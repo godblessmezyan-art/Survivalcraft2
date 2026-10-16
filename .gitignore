@@ -1,0 +1,35 @@
+# Build outputs
+bin/
+obj/
+build/
+dist/
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Local configuration and secrets
+.env
+.env.*
+*.local
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+~$*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Mobile packages and signing material
+*.apk
+*.aab
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
