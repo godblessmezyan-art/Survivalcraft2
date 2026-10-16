@@ -2,7 +2,7 @@
 
 面向 Android 版《生存战争 2.4》联机客户端（Survivalcraft NET / SCNET）的建筑辅助 Mod。首要适配版本是 **Net_x25.01.17**，目标产物为 `.netmod`。
 
-> 当前状态：Phase 1 开发环境与最小加载包已建立。代码已在对应 Windows 程序集上编译通过；Android/7723 渠道实机加载尚未验证，因此不能标记为兼容完成。
+> 当前状态：Phase 1 开发环境与最小加载包已建立。代码已在对应 Windows 程序集上编译通过，最小 Mod 已由用户在 Android/7723 客户端确认安装和加载成功。程序集指纹及后续 UI、地形和联机 API 仍需分别验证。
 
 ## 项目目标
 
@@ -18,7 +18,7 @@
 | --- | --- | --- |
 | SCNET Net_x25.01.17 Windows 程序集 | 已确认/已编译 | 用于 ABI 校验与构建引用 |
 | SCNET Net_x25.01.17 Android 官方发布 APK | 待实机测试 | 尚未完成安装与加载验证 |
-| 7723 渠道 Android 安装包 | 待提供程序集指纹 | 不能仅凭版本号认定与公开 APK 一致 |
+| 7723 渠道 Android 安装包 | 最小加载已确认 | 用户实机确认安装/加载；程序集指纹和功能 API 仍待验证 |
 | SCAPI / `.scmod` | 不支持 | 加载器 ABI 与包格式不同 |
 | 官方原版 Survivalcraft | 不支持 | 不包含已确认的 SCNET ModLoader |
 
@@ -49,9 +49,8 @@ Android 的实际 `NetMods` 路径会受客户端构建和 Android 存储权限�
 - [x] x25.01.17 Windows 程序集与加载入口核验。
 - [x] 最小 Mod 加载日志。
 - [x] `.netmod` 构建、依赖检查和打包脚本。
-- [ ] Android/7723 实机加载测试。
+- [x] Android/7723 最小 Mod 安装与加载测试（用户实机确认）。
 - [ ] Android 触屏测试按钮。
 - [ ] 地形编辑、撤销、蓝图与联机同步功能。
 
 开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)。
-
