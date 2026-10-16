@@ -3,6 +3,7 @@ bin/
 obj/
 build/
 dist/
+artifacts/
 
 # IDE and editor files
 .vs/
@@ -33,3 +34,21 @@ Thumbs.db
 *.jks
 *.p12
 *.mobileprovision
+
+# Proprietary game files and local runtime references
+SCNET/
+game-libs/
+vendor/
+*.scpak
+Survivalcraft.exe
+Engine.dll
+EntitySystem.dll
+*.pdb
+
+# Player data
+Worlds/
+CharacterSkins/
+FurniturePacks/
+TexturePacks/
+Settings.xml
+ModSettings.xml
