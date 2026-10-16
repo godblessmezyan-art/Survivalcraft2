@@ -41,6 +41,21 @@
 | 日志接口 | `Engine.Log.Information(string)` 等 | 已确认 |
 | 目标目录 | Windows 包内 `NetMods` | 已确认 |
 | 包结构 | ZIP 容器，根目录包含 `modinfo.json` 与 Mod DLL | 待 Android 实机验证 |
+| 原生船组件 | `BoatBlock`、`ComponentBoat`、`ComponentMount`、`ComponentRider` | 已确认 |
+| 原生触屏船控制 | `ComponentInput.PlayerInput.Move` -> `ComponentBoat.MoveOrder/TurnOrder` | 已确认 |
+| GUI 更新 Hook | `GuiUpdate(ComponentGui)` / `ModsManager.RegisterHook("GuiUpdate", ...)` | 已确认 |
+| 骑乘网络包 | `Game.NetWork.Packages.ComponentMountPackage` | 已确认存在；自定义载具行为待验证 |
+
+## v0.2.0 快艇原型兼容性
+
+| 能力 | Windows 编译 | Android/7723 | 联机 |
+| --- | --- | --- | --- |
+| 识别原生船和骑乘状态 | 已确认 | 待验证 | 待验证 |
+| 复用原生触屏移动输入 | 已确认接口 | 待验证 | 不启用 |
+| 有上限的额外推进 | 已编译 | 待验证 | 主动禁用 |
+| 独立快艇物品/模型 | 未实现 | 未实现 | 未实现 |
+
+当前原型只在 `WorkType.Local` 下修改船体速度。远程客户端会显示禁用提示，避免未经确认的客户端物理写入造成回弹、不同步或反作弊问题。
 
 已检查文件 SHA-256：
 

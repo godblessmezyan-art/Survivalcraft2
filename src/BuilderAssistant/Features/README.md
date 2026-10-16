@@ -6,4 +6,4 @@ Future features live in separate subdirectories and remain disabled until their 
 - `BatchBuild/`: bounded changes and undo (Phase 3).
 - `Selection/`: selection/copy/paste/rotation (Phase 4).
 - `Blueprints/`: versioned JSON import/export (Phase 5+).
-
+- `Speedboat/`: bounded single-player propulsion prototype using the native boat and touch controls.

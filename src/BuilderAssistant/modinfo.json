@@ -1,12 +1,11 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.1.0",
+  "Version": "0.2.0",
   "ApiVersion": "1.42",
-  "Description": "Minimal SCNET x25.01.17 loading probe for the future Android-first building assistant.",
+  "Description": "Android-first Builder Assistant. v0.2 adds a bounded single-player speedboat boost to the built-in boat for water-vehicle testing.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",
   "PackageName": "BuilderAssistant",
   "Dependencies": []
 }
-

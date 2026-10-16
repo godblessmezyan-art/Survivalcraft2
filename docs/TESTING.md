@@ -35,3 +35,15 @@
 - 已确认范围：客户端能接受当前 `.netmod` 包结构、元数据和最小 `Game.ModLoader` 初始化入口。
 - 未确认范围：渠道程序集哈希、触屏 UI、地形修改、存档写入、撤销、主机/客户端同步及其他 Hook。
 - 证据等级：用户实机结果；尚未收集设备型号、Android 版本和完整日志。
+
+## 2026-10-16：v0.2.0 快艇推进原型构建
+
+- 目标：在不新增专有资源、不修改地形的前提下验证水上载具操控链路。
+- 实现：骑乘原生船时读取原生 `PlayerInput.Move`，追加 `5 m/s²` 等效推进，并把水平速度限制为 `10 m/s`。
+- 安全范围：只在 `Game.NetWork.WorkType.Local` 启用；远程客户端主动禁用。
+- 命令：`./scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`
+- 结果：成功，0 警告、0 错误。
+- 包内容：`BuilderAssistant.dll`、`modinfo.json`。
+- 当次包 SHA-256：`CED1D7DF36139B9FF87066A61E6763942DD50E6AC578536A49F831BE55F909C8`。
+- Android/7723 运行：待验证。
+- 联机运行：未测试，功能主动禁用。
