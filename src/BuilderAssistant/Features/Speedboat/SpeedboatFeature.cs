@@ -1,6 +1,5 @@
 using Engine;
 using Game;
-using Game.NetWork;
 
 namespace BuilderAssistant.Features.Speedboat
 {
@@ -10,12 +9,11 @@ namespace BuilderAssistant.Features.Speedboat
     /// </summary>
     internal sealed class SpeedboatFeature
     {
-        private const float ExtraAcceleration = 5f;
-        private const float MaxHorizontalSpeed = 10f;
+        private const float ExtraAcceleration = 9f;
+        private const float MaxHorizontalSpeed = 18f;
         private const float MinimumThrottle = 0.05f;
 
         private ComponentBody m_lastMountedBoatBody;
-        private bool m_multiplayerNoticeShown;
 
         public void Update(ComponentGui componentGui)
         {
@@ -28,21 +26,6 @@ namespace BuilderAssistant.Features.Speedboat
                 boat.Entity.ValuesDictionary.DatabaseObject.Name != "Speedboat")
             {
                 m_lastMountedBoatBody = null;
-                m_multiplayerNoticeShown = false;
-                return;
-            }
-
-            if (CommonLib.WorkType != WorkType.Local)
-            {
-                if (!m_multiplayerNoticeShown)
-                {
-                    componentGui.DisplaySmallMessage(
-                        "[BuilderAssistant] Speedboat boost is disabled in multiplayer tests.",
-                        Color.Yellow,
-                        blinking: false,
-                        playNotificationSound: false);
-                    m_multiplayerNoticeShown = true;
-                }
                 return;
             }
 

@@ -1,7 +1,6 @@
 using System.Linq;
 using Engine;
 using Game;
-using Game.NetWork;
 using TemplatesDatabase;
 
 namespace BuilderAssistant.Features.Speedboat
@@ -23,16 +22,6 @@ namespace BuilderAssistant.Features.Speedboat
             if (Terrain.ExtractContents(componentMiner.ActiveBlockValue) != SpeedboatBlock.Index)
             {
                 return false;
-            }
-
-            if (CommonLib.WorkType != WorkType.Local)
-            {
-                componentMiner.ComponentPlayer?.ComponentGui.DisplaySmallMessage(
-                    "[BuilderAssistant] Speedboat spawning is disabled in multiplayer until server authority is verified.",
-                    Color.Yellow,
-                    blinking: false,
-                    playNotificationSound: false);
-                return true;
             }
 
             TerrainRaycastResult? hit = componentMiner.Raycast<TerrainRaycastResult>(

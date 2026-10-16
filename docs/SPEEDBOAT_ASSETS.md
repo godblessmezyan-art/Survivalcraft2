@@ -1,6 +1,6 @@
 # 快艇美术资源规范
 
-当前 v0.3.0 已包含一个原创的低多边形占位模型和 32×32 占位贴图，因此不依赖游戏本体模型或贴图。它们用于先验证方块、实体、生成、乘坐和操控链路，美术质量不是最终版本。
+当前 v0.4.0 使用原创低多边形模型和用户提供的 1254×1254 PNG 快艇贴图，不依赖游戏本体模型或贴图。贴图按原始尺寸打包，没有重采样；当前 UV 仍按低多边形验证模型设计。若 Android 设备不支持该非 2 次幂尺寸，后续再生成 1024×1024 兼容版；若出现图案错位，则需要继续调整模型 UV。
 
 ## 网页图片生成规格
 
@@ -20,4 +20,4 @@
 Square seamless game texture atlas for a low-poly speedboat, flat orthographic material sheet, bold red fiberglass hull panels, clean white racing stripe, dark charcoal non-slip deck, tiny orange safety accents, simple Survivalcraft-like pixel-clean shapes, no boat silhouette, no perspective, no environment, no text, no logo, no watermark, 512x512 PNG
 ```
 
-收到正式贴图后，删除 `src/BuilderAssistant/Assets/Textures/Speedboat.png.base64`，将 PNG 放到 `src/BuilderAssistant/Assets/Textures/Speedboat.png`，重新构建并在 Android 单人测试世界检查 UV、接缝和缩放。若最终外形需要更换，模型必须继续保留名为 `Speedboat` 的网格节点，否则 `SpeedboatBlock.Initialize()` 会找不到网格。
+正式贴图路径为 `src/BuilderAssistant/Assets/Textures/Speedboat.png`。替换后重新构建，并在 Android 测试世界检查 UV、接缝和缩放。若最终外形需要更换，模型必须继续保留名为 `Speedboat` 的网格节点，否则 `SpeedboatBlock.Initialize()` 会找不到网格。
