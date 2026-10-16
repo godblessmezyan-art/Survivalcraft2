@@ -47,3 +47,17 @@
 - 当次包 SHA-256：`CED1D7DF36139B9FF87066A61E6763942DD50E6AC578536A49F831BE55F909C8`。
 - Android/7723 运行：待验证。
 - 联机运行：未测试，功能主动禁用。
+
+## 2026-10-16：v0.3.0 独立快艇构建
+
+- 新增：方块编号 `900`、创造栏 `Items/Speedboat`、`Speedboat` 实体模板、专用生成子系统、原创 DAE 占位模型和 PNG 占位贴图。
+- 原版编号证据：x25.01.17 原版 `Block.Index` 最高为 `263`；`BlocksManager` 内容数组长度为 `1024`。
+- 资源加载证据：`ModEntity` 仅注册 ZIP 中以 `Assets/` 开头的资源；`.csv` 和 `.xdb` 分别进入方块表与数据库合并流程。
+- 安全：8 格附近最多 4 艘；生成和额外推进仅在 `WorkType.Local` 启用；普通 `Boat` 不再加速。
+- 命令：`./scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`
+- 编译：成功，0 警告、0 错误。
+- 包内容：DLL、元数据、方块 CSV、实体 XDB、模型 DAE、贴图 PNG。
+- 静态资源检查：CSV 为 `21/21` 列；24 个新 GUID 无原版碰撞或内部重复；DAE 为 13 个三角形、117/117 个索引字段且索引均未越界；PNG 为有效 32×32 文件。
+- 包 SHA-256：`505CD1D545C72F183F7CF03410FB64365910DAB84050C234AAF0916C57BEF6AC`。
+- Android/7723：待用户实机验证，不能标记兼容。
+- 联机：未测试且主动禁用。

@@ -5,8 +5,8 @@ using Game.NetWork;
 namespace BuilderAssistant.Features.Speedboat
 {
     /// <summary>
-    /// Adds a bounded speed boost to the built-in boat while the local player
-    /// is riding it. The existing touch movement controls remain authoritative.
+    /// Adds a bounded speed boost only to the independent Speedboat entity.
+    /// The native boat and native touch movement controls remain untouched.
     /// </summary>
     internal sealed class SpeedboatFeature
     {
@@ -23,7 +23,9 @@ namespace BuilderAssistant.Features.Speedboat
             ComponentMount mount = player?.ComponentRider?.Mount;
             ComponentBoat boat = mount?.Entity.FindComponent<ComponentBoat>(throwOnError: false);
 
-            if (boat == null || boat.m_componentBody == null)
+            if (boat == null ||
+                boat.m_componentBody == null ||
+                boat.Entity.ValuesDictionary.DatabaseObject.Name != "Speedboat")
             {
                 m_lastMountedBoatBody = null;
                 m_multiplayerNoticeShown = false;
@@ -98,4 +100,3 @@ namespace BuilderAssistant.Features.Speedboat
         }
     }
 }
-

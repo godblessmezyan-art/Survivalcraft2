@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.2.0",
+  "Version": "0.3.0",
   "ApiVersion": "1.42",
-  "Description": "Android-first Builder Assistant. v0.2 adds a bounded single-player speedboat boost to the built-in boat for water-vehicle testing.",
+  "Description": "Android-first Builder Assistant. v0.3 adds an independent creative-mode speedboat item, entity, model, texture and bounded single-player spawning.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

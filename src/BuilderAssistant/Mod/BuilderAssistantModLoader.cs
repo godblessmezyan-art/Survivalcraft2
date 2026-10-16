@@ -16,7 +16,7 @@ namespace BuilderAssistant.Mod
         public override void __ModInitialize()
         {
             ModsManager.RegisterHook("GuiUpdate", this);
-            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v0.2.0, speedboat prototype enabled).");
+            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v0.3.0, independent speedboat enabled).");
         }
 
         /// <summary>Updates the local-player speedboat prototype from native touch input.</summary>

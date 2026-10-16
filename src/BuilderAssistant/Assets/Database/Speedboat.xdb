@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="Speedboat" Guid="e03a5231-e4eb-4e48-9b57-842b90f8f96a">
+      <MemberComponentTemplate Name="Boat" Guid="40850271-df62-45fa-bfaa-55603daf01ec" InheritanceParent="472b36f3-6ee6-442a-900f-b4caba94be39" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="4eaba843-8d87-44fa-83f9-08b05c86b847" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="d991d56d-d583-4af6-8c03-493300a93a0e" Value="Models/Speedboat" Type="string" />
+        <Parameter Name="CastsShadow" Guid="af50bb96-bf9c-4f95-baa9-4e17045ab8ec" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="54b332a0-fb4c-428d-90a5-49c0014af876" Value="Textures/Speedboat" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="accc8123-f12a-457b-ad82-836768853df0" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36" />
+      <MemberComponentTemplate Name="OnFire" Guid="78b7edcf-1469-498d-9d61-55b1debc8a79" InheritanceParent="93590d78-63b9-4cd6-bc41-e66864cbb050" />
+      <MemberComponentTemplate Name="Mount" Guid="b263371c-15c7-430a-a6c6-78bfa8ef310d" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="6fbe785b-9e2d-4ac1-b57b-9efcc81a49da" Value="0,0.75,-0.2" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="9eb09566-3814-4cff-b984-b782fcd1cf38" Value="0,0.5,0.4" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="4bd26d8a-ab5e-4afe-8d56-965d48acef39" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="WaterSwayAngle" Guid="50c5f80f-f2b2-424c-a5b5-26ce436d5210" Value="0.03" Type="float" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="8665c39e-cb32-465b-85a5-57077759708f" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="55b360b2-a7fa-4604-b74d-37b6e605465c" Value="1.45,0.5,1.9" Type="Vector3" />
+        <Parameter Name="WaterDrag" Guid="35e102d0-f27e-4755-80ea-625b95e24d85" Value="5,4" Type="Vector2" />
+        <Parameter Name="Mass" Guid="f9984739-0e8e-4055-870c-64c1ed458997" Value="220" Type="float" />
+        <Parameter Name="AirDrag" Guid="bb90efc0-0036-49d0-89af-8acff970a849" Value="0.25,0.5" Type="Vector2" />
+        <Parameter Name="Density" Guid="623c48af-b78b-476b-83d9-878e48b9a17e" Value="0.2" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="1d027857-a0e6-4124-a694-24ad47d8dd50" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="c7bd3ce0-f360-4e36-a97f-26d25fc917ca" Value="200" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SpeedboatBlockBehavior" Guid="933c9fbd-9bf7-4351-a2a0-69794cf7980c" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="ea25b78e-7d8c-4998-85d3-2b1baad3ba34" Value="BuilderAssistant.Features.Speedboat.SubsystemSpeedboatBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SpeedboatBlockBehavior" Guid="00e3ea47-d9a4-46c0-a9df-5bb7f0f33be3" InheritanceParent="933c9fbd-9bf7-4351-a2a0-69794cf7980c" />
+  </ProjectTemplate>
+</DatabaseObjects>

@@ -35,7 +35,7 @@ $env:SCNET_GAME_DIR = 'E:\SCNET\SCNETx25.01.17'
 ./scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'
 ```
 
-构建脚本实际执行 SDK 风格的 `net472` Release 构建，并把 `BuilderAssistant.dll` 与 `modinfo.json` 放在 ZIP 根目录，最终扩展名为 `.netmod`。
+构建脚本实际执行 SDK 风格的 `net472` Release 构建，并把 `BuilderAssistant.dll`、`modinfo.json` 和 `Assets/` 放入 ZIP，最终扩展名为 `.netmod`。ZIP 条目统一使用 `/`，因为 x25.01.17 的加载器只把以 `Assets/` 开头的条目注册到 `ContentManager`。
 
 手动编译等价命令：
 
@@ -53,6 +53,11 @@ dotnet build ./src/BuilderAssistant/BuilderAssistant.csproj -c Release -p:SCNetG
 
 ```text
 BuilderAssistant.netmod
+├── Assets
+│   ├── Blocks/Speedboat.csv
+│   ├── Database/Speedboat.xdb
+│   ├── Models/Speedboat.dae
+│   └── Textures/Speedboat.png
 ├── BuilderAssistant.dll
 └── modinfo.json
 ```
@@ -90,4 +95,3 @@ BuilderAssistant.netmod
 - Mod 不出现在列表：检查扩展名、`NetMods` 目录、ZIP 根目录以及 `Dependencies` 是否为数组。
 - 能在 Windows 加载但 Android 失败：优先比对 Android 包内程序集，不要先修改接口签名。
 - 联机中修改不生效：先确认主机/服务端权威逻辑，不假定客户端地形写入会同步。
-
