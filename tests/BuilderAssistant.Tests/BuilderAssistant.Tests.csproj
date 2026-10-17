@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>BuilderAssistant.Tests</AssemblyName>
+    <RootNamespace>BuilderAssistant.Tests</RootNamespace>
+    <!-- Core + Generators are game-agnostic, so this runner proves the build
+         engine offline (no Survivalcraft.dll needed). -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\CellPos.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Safety\WorldBounds.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Safety\BuildSafetyLimits.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintCell.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\Blueprint.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintBuilder.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BuildingMaterials.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\ITerrainGateway.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\IBlockValueResolver.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\BlockUndoRecord.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\BuildEngine\BuildPlan.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\BuildEngine\BuildPlanner.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\BuildEngine\BuildTaskState.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\BuildEngine\BuildTask.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\BuildEngine\TransactionHistory.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\GenerationContext.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\IBuildingGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\BuildingGeneratorRegistry.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\MedievalCottageGenerator.cs" />
+  </ItemGroup>
+</Project>

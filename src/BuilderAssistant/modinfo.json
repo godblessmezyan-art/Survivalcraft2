@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.4.0",
+  "Version": "0.5.0",
   "ApiVersion": "1.42",
-  "Description": "Android-first Builder Assistant. v0.4 adds an independent speedboat prototype with bounded speed; Android rendering and multiplayer behavior remain unverified.",
+  "Description": "Android-first Builder Assistant. v0.5 keeps the independent speedboat prototype (behavior unchanged) and adds an offline auto-building foundation: a medieval cottage generator with plan-validate-batch-undo, enabled only in a single-player test world. Android device verification pending.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

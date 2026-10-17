@@ -1,0 +1,66 @@
+# Builder Assistant 架构说明（v0.5.0）
+
+本文只描述 Builder Assistant 的自动建造基础，不涉及 SCIE-Port。目标是“可靠、可撤销的离线自动建造”，不做云、AI 或复杂 UI。
+
+## 设计原则
+
+一条主线贯穿全部代码：**计划 → 校验 → 分批执行 → 记录撤销**，任何一步失败都在动世界之前停下。
+
+三层严格分离，让安全规则可以脱离游戏被单元测试证明：
+
+- `Core/`（纯 C#，零游戏程序集引用，`internal`）：坐标、蓝图、事务接口、计划器、任务、历史。
+- `Features/Generators/`（纯 C#，`internal`）：把“造什么”表达成相对坐标蓝图，与地形无关。
+- `Features/WorldEdit/`（唯一接触游戏的层，`internal`，除被游戏反射实例化的方块/行为类为 `public`）：把纯接口接到真实 `SubsystemTerrain/Terrain/BlocksManager`。
+
+游戏反射只会实例化 `public` 的方块与行为类（通过 CSV 的 `Class Name` 与 XDB 的 `Class` 参数），其余保持 `internal`，因此开启 `GenerateDocumentationFile` + `TreatWarningsAsErrors` 时仍无缺失文档告警。
+
+## 目录与职责
+
+```
+src/BuilderAssistant/
+  Core/
+    CellPos.cs                       整数格坐标（相对 & 绝对通用）
+    Safety/WorldBounds.cs            世界高度上限 0..256
+    Safety/BuildSafetyLimits.cs      单事务 1024 / 单批 32 / 单轴 64（保持不变）
+    Blueprints/Blueprint.cs          相对坐标结构定义 + 旋转/镜像 Reorient
+    Blueprints/BlueprintBuilder.cs   Set/FillBox/FillShell/Walls/Layer/Carve，确定性排序
+    Blueprints/BlueprintCell.cs      (相对坐标 + 逻辑材料键)
+    Blueprints/BuildingMaterials.cs  逻辑材料键常量
+    Transactions/ITerrainGateway.cs  唯一地形读写抽象（测试用内存实现）
+    Transactions/IBlockValueResolver.cs 材料键→打包方块值
+    Transactions/BlockUndoRecord.cs  (绝对坐标, 写前旧值, 写入值)
+    BuildEngine/BuildPlan.cs         计划结果（成功/失败原因/变更列表）
+    BuildEngine/BuildPlanner.cs      落地前全部安全校验，任何失败都不写
+    BuildEngine/BuildTask.cs         分批执行、执行期复校、快照、失败回滚、取消、撤销
+    BuildEngine/BuildTaskState.cs    Pending/Running/Completed/Failed/Cancelled/Undone
+    BuildEngine/TransactionHistory.cs 至多 20 层撤销栈，仅记录 Completed
+  Features/
+    Generators/IBuildingGenerator.cs / GenerationContext.cs / BuildingGeneratorRegistry.cs
+    Generators/MedievalCottageGenerator.cs   首个可玩结构：9×10×11 小屋
+    WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）
+    WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值
+    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、分批 Tick、撤销入口
+    WorldEdit/BuilderToolBlock.cs(901) / UndoToolBlock.cs(902)
+    WorldEdit/SubsystemBuilderToolBlockBehavior.cs / SubsystemUndoToolBlockBehavior.cs
+  Mod/BuilderAssistantModLoader.cs   注册 GuiUpdate + BlocksInitalized；快艇逻辑保持原样
+```
+
+## 一次建造的生命周期
+
+1. 玩家手持“建造工具(901)”点击 → `SubsystemBuilderToolBlockBehavior.OnUse` 在主线程被触发 → `WorldEditRuntime.OnBuildTool`。
+2. 先校验 `Game.NetWork.CommonLib.WorkType == Local`（单人测试世界才允许）。
+3. `Raycast<TerrainRaycastResult>(Interaction)` 取命中格 `CellFace`；第一次点击只“选定点位”（居中：`ox=x-(SizeX-1)/2, oz=z-(SizeZ-1)/2, oy=命中格Y+1`），第二次点击才“确认施工”。这是明确确认，避免误触。
+4. `MedievalCottageGenerator` 生成相对蓝图；`GameTerrainGateway` 包住当前 `SubsystemTerrain`。
+5. `BuildPlanner.Plan` 逐格校验：数量≤1024、单轴≤64、高度在 `WorldBounds` 内、`IsCellEditable`（含区块 `State==Valid && IsLoaded`）、默认非空气不覆盖、材料键可解析。任一失败 → 返回失败原因，**不产生任何写入**。
+6. 计划成功 → 建 `BuildTask`，`GuiUpdate` 每帧调用 `WorldEditRuntime.Tick`，每次最多写 `32` 格（分批，不卡主线程），每格写前抓旧值；执行期若某格变为不可编辑/非空气 → 立即失败并把已写格回滚。
+7. 完成后写入 `TransactionHistory`（≤20 层）。
+
+## 撤销语义
+
+“撤销工具(902)”点击：若有正在进行的建造，先取消并回滚；否则撤销最近一次已完成事务。撤销只在“当前值仍等于本次建造写入值”时才恢复旧值，因此**不会覆盖玩家在建造之后手动改动过的方块**。
+
+## 可扩展性（为后续阶段预留，不在本轮实现）
+
+- 蓝图与地形彻底分离：`Blueprint.Reorient` 已支持旋转/镜像，`GenerationContext` 已留 `Seed` 与 `MaterialOverrideKey`，未来做随机、换材、组合只需新增生成器。
+- 区域选取 / 复制 / 粘贴：新增 `ITerrainGateway` 读出侧即可复用计划器与撤销链。
+- 蓝图库/JSON 导入导出：`Blueprint` 已是纯数据（相对坐标 + 材料键），可直接序列化。

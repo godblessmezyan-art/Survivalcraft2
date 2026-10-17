@@ -88,3 +88,45 @@
 - Windows 游戏进程运行：未执行。
 - Android/7723 快艇生成、渲染、乘坐和驾驶：未执行。
 - 多人联机：未执行。
+
+## 2026-10-17：v0.5.0 Builder Assistant 离线自动建造基础
+
+本轮范围：仅 Builder Assistant，未改动 SCIE-Port。目标为可靠、可撤销的离线自动建造基础（架构 + 安全施工 + 中世纪小屋 + 可扩展生成器 + 验证）。
+
+### 证据分级（严格区分）
+
+1. 静态检查（源码/包内文件级）
+
+   - 新增架构模块：`Core/CellPos`、`Core/Safety`、`Core/Blueprints`、`Core/Transactions`、`Core/BuildEngine`、`Features/Generators`、`Features/WorldEdit`；均为纯 C#，`Core`/`Generators`/`WorldEdit` 逻辑类为 `internal`，仅被游戏反射发现的方块与行为类为 `public`。
+   - 小屋蓝图：`9×10×11`（宽×高×长），470 个方块，仅使用已核验的原版普通立方材质（Cobblestone/StoneBrick/Planks/Bricks/Glass），不引入台阶/门/梯等需朝向数据位的方块；确认为有内部空腔与屋顶的真实结构，非空心盒子。
+   - 编号：建造工具 `901`、撤销工具 `902`，位于原版 `0–263` 之外，与快艇 `900` 互不重叠。
+   - `Building.xdb` 复用原版 `BlockBehaviors`（`00c97f0f…`）与 `Project`（`85023bf8…`）GUID，四个新子系统/成员模板使用新生成的唯一 GUID；打包脚本对“原版同名文件夹必须使用原版 GUID”做强制断言，规避 SCIE-Port 曾遇到的合并异常。
+   - CSV 类名唯一性：`BuilderToolBlock, SpeedboatBlock, UndoToolBlock`（打包脚本报出，无重复）。
+
+2. Windows 侧验证（本机，真实程序集）
+
+   - 命令：`./scripts/Test-Environment.ps1 -GameDir 'D:\SCNET'` —— 通过：程序集版本 `2.4.0.0`、TargetFramework net472、API `1.42`、SC `2.4.10.6`，三程序集 SHA-256 与记录一致，快艇 ABI 检查通过。
+   - 命令：`./scripts/Build-NetMod.ps1 -GameDir 'D:\SCNET' -Configuration Release` —— 该脚本现会先跑 `Test-Environment.ps1` 与 `Test-Logic.ps1`，再 Release 编译、打包并做上述冲突/ GUID 断言。
+   - Release 编译：`0 错误、0 警告`。编译期即完成对 `SubsystemTerrain.ChangeCell`、`Terrain.GetCellValue/IsCellValid/GetChunkAtCell/MakeBlockValue/ExtractContents`、`BlocksManager.FindBlockByTypeName`、`PaintedCubeBlock(int)`、`SubsystemBlockBehavior.OnUse(Engine.Ray3,ComponentMiner)`、`ComponentMiner.Raycast<TerrainRaycastResult>`、`Game.NetWork.CommonLib.WorkType`、`ComponentGui.DisplaySmallMessage` 的真实签名绑定；任何签名不符都会编译失败。
+   - 离线逻辑测试：`tests/BuilderAssistant.Tests`（net8 控制台，仅编译 Core+Generators 源码，不引用游戏程序集），`38/38` 断言通过，覆盖：蓝图重建确定性、尺寸与内部空腔、材料键可解析、越界 Y 拒绝、默认不覆盖非空气、显式覆盖开关、数量上限(1024)拒绝、单轴上限(64)拒绝、未知材料拒绝、分批执行完成、撤销不覆盖玩家后续改动、执行中区块卸载触发失败并回滚、取消并回滚、旋转四步复原、镜像对合。
+   - 包内容：`BuilderAssistant.dll`、`modinfo.json`、`Assets/Blocks/{Speedboat,BuilderTools}.csv`、`Assets/Database/{Speedboat,Building}.xdb`、`Assets/Models/Speedboat.dae`、`Assets/Textures/Speedboat.png`；不含任何专有游戏程序集。
+   - 本次 `.netmod`（v0.5.0）SHA-256：`9EF20A19C779DC2FF8C1CAAAFF08442E710AA34C0D63E341B053C8F295FA8B19`。
+
+3. Android 实机验证（待用户在单人创造测试世界执行）
+
+   - 尚不能宣称建造/撤销在手机上工作；以下需在 7723 Android 客户端实测：安装 `.netmod` 后能否进世界、建造/撤销工具是否在创造栏出现、落点选取与二次确认手感、分批写入可见性（32/帧）、整体撤销、存档并再次进入后世界是否正常、以及快艇功能是否不受影响。
+
+### 复现实验
+
+- 打包（本机实际游戏目录为 `D:\SCNET`，注意不是文档里旧写的 `E:\SCNET\...`）：
+
+  ```powershell
+  ./scripts/Build-NetMod.ps1 -GameDir 'D:\SCNET' -Configuration Release
+  ```
+
+- 仅跑离线逻辑测试：
+
+  ```powershell
+  ./scripts/Test-Logic.ps1
+  # 或： dotnet run --project tests/BuilderAssistant.Tests -c Release
+  ```
