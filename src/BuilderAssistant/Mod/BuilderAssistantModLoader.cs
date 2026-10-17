@@ -16,7 +16,7 @@ namespace BuilderAssistant.Mod
         public override void __ModInitialize()
         {
             ModsManager.RegisterHook("GuiUpdate", this);
-            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v0.4.0, faster multiplayer speedboat enabled).");
+            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v0.4.0; speedboat multiplayer behavior remains unverified).");
         }
 
         /// <summary>Updates the local-player speedboat prototype from native touch input.</summary>

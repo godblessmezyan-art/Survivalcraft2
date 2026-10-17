@@ -29,6 +29,15 @@ namespace BuilderAssistant.Features.Speedboat
                 return;
             }
 
+            // ComponentMount.Rider is the first rider attached to the boat body in
+            // x25.01.17. Keep the optional boost driver-only so a later passenger
+            // seat cannot gain authority merely by having the same parent body.
+            if (mount.Rider != player.ComponentRider)
+            {
+                m_lastMountedBoatBody = null;
+                return;
+            }
+
             ComponentBody body = boat.m_componentBody;
             if (m_lastMountedBoatBody != body)
             {

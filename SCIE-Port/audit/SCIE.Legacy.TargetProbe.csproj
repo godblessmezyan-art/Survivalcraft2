@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>SCIE.Legacy.TargetProbe</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SCNET_GAME_DIR)' != ''">$(SCNET_GAME_DIR)</SCNetGameDir>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
+    <SCIEUpstreamDir Condition="'$(SCIEUpstreamDir)' == ''">$(MSBuildThisFileDirectory)..\upstream\SCIE</SCIEUpstreamDir>
+  </PropertyGroup>
+  <Target Name="ValidateAuditInputs" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(SCIEUpstreamDir)\SCIE.csproj')" Text="Pinned SCIE source is missing. Run scripts\Fetch-Upstream.ps1." />
+    <Error Condition="!Exists('$(SCNetGameDir)\Survivalcraft.exe')" Text="Target Survivalcraft.exe is missing." />
+    <Error Condition="!Exists('$(SCIEUpstreamDir)\Common\Jint.dll')" Text="Upstream Jint.dll is missing; this probe never packages it." />
+  </Target>
+  <ItemGroup>
+    <Compile Include="$(SCIEUpstreamDir)\**\*.cs" Exclude="$(SCIEUpstreamDir)\obj\**\*;$(SCIEUpstreamDir)\bin\**\*" />
+    <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)\Survivalcraft.exe</HintPath><Private>false</Private></Reference>
+    <Reference Include="Engine"><HintPath>$(SCNetGameDir)\Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)\EntitySystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Jint"><HintPath>$(SCIEUpstreamDir)\Common\Jint.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

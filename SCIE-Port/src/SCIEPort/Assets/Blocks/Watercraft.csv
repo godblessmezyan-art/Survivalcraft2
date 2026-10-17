@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultIconBlockOffset;DefaultIconViewOffset;DefaultIconViewScale;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;InHandOffset;InHandRotation;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsPlacementTransparent;IsGatherable;MaxStacking;DefaultDescription
+SteamBoatBlock;SCIE 蒸汽船（授权移植预览）;Items;;901;0,0,0;-0.7,0.8,-1;0.45;0.4;0.5,-0.5,-0.6;0,40,0;0.4;0,0,0;90,0,0;scieport-steamboat;0;FALSE;FALSE;TRUE;TRUE;1;使用 SCIE 原蒸汽船模型与纹理的移植预览：独立实体、可乘坐、触屏驾驶和有上限的额外推进。燃料系统尚未完成。

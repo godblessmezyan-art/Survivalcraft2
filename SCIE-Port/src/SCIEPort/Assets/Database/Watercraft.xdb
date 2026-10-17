@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortWatercraft>
+  <Folder Name="Entities" Guid="3ea62aa2-9707-4d5e-93c2-4d949ea1b44a">
+    <EntityTemplate Name="SCIEPortSteamBoat" Guid="6c6a3db4-8a2f-4616-b345-6c17e127e812">
+      <MemberComponentTemplate Name="Boat" Guid="f61d2fde-6b47-44a8-8c41-a3023520354f" InheritanceParent="472b36f3-6ee6-442a-900f-b4caba94be39" />
+      <MemberComponentTemplate Name="SteamBoatDrive" Guid="4d7f8f8d-7d25-47c8-9c3b-3eae9c268088" InheritanceParent="178f2607-acfe-48e4-bd5d-2da2bfd27495" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="e604b284-29be-476f-ab1a-aa5be550e2ed" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="ec437439-e340-40ba-ad10-536b736ca8f1" Value="Models/SteamBoat" Type="string" />
+        <Parameter Name="CastsShadow" Guid="1c129619-b38b-4fc8-8bb5-b4cc436da3d2" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="0e2195e8-5e68-47d4-b527-f3101b86c981" Value="Textures/SteamBoat" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="cd6a7d84-84c2-49c6-9c58-773372cc1400" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="34332735-d2c3-498e-8caf-c44665b25ebd" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="OnFire" Guid="036a14e5-da22-460a-b15b-a6aab167f535" InheritanceParent="93590d78-63b9-4cd6-bc41-e66864cbb050" />
+      <MemberComponentTemplate Name="Mount" Guid="c44e6b42-5ee1-4d23-9233-fcc9390d60cc" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="9acba37e-960c-4a4b-afc7-8d4738db99d9" Value="0,0.85,-0.8" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="602bded7-564d-45e5-bced-66a9f5bfc01a" Value="0,0.5,0.4" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="f8c127bd-25bd-4504-8620-91752735d88c" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="WaterSwayAngle" Guid="6afcd33c-7071-4376-8865-b14f25de7fb6" Value="0.04" Type="float" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="99c3fa16-a598-47c7-b5cb-8396a88eea9e" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="c9763de9-fe28-449f-a8c1-64901e983756" Value="2,0.5,4.5" Type="Vector3" />
+        <Parameter Name="WaterDrag" Guid="08ad89fa-68cc-41a9-a9a1-48445cf44dd1" Value="6,4" Type="Vector2" />
+        <Parameter Name="Mass" Guid="668643ce-fbe6-43ac-ab7b-a3ad64ce00aa" Value="250" Type="float" />
+        <Parameter Name="AirDrag" Guid="6f46e742-b065-49aa-b13f-bca174873e29" Value="0.25,0.5" Type="Vector2" />
+        <Parameter Name="Density" Guid="8d613c24-fd91-4ec1-b019-d282b9991cf1" Value="0.2" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="62a02f09-3de8-4be4-a80e-5e74bd6708b8" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="d3b06908-c676-4c91-bbda-712e640424d3" Value="500" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="Gameplay" Guid="fa264e34-255a-4a6a-b656-531488b22899">
+    <ComponentTemplate Name="SCIEPortSteamBoatDrive" Description="Bounded local steam-boat propulsion" Guid="178f2607-acfe-48e4-bd5d-2da2bfd27495" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="07157607-a690-43d3-919c-193e7e91a472" Value="SCIEPort.Features.Watercraft.ComponentSteamBoatDrive" Type="string" />
+    </ComponentTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="36e1b3bf-0691-4244-adc6-228bf06a7e64">
+    <SubsystemTemplate Name="SCIEPortSteamBoatBlockBehavior" Guid="94846978-9655-4184-bd17-faa82e4a4ba6" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="f011e397-d96e-425f-b63f-862109cbb8a9" Value="SCIEPort.Features.Watercraft.SubsystemSteamBoatBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortSteamBoatBlockBehavior" Guid="bfb67151-6c34-42d4-94bc-d5671640bc49" InheritanceParent="94846978-9655-4184-bd17-faa82e4a4ba6" />
+  </ProjectTemplate>
+</SCIEPortWatercraft>

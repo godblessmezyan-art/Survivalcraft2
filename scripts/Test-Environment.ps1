@@ -63,4 +63,7 @@ Write-Host "Target framework: $targetFramework"
 Write-Host 'Mod API marker: 1.42'
 Write-Host 'SC version marker: 2.4.10.6'
 Write-Host "Known Windows hashes match: $hashesMatch"
+
+& (Join-Path $PSScriptRoot 'Test-SpeedboatAbi.ps1') -GameDir $GameDir
+
 Write-Host 'Environment validation passed.'

@@ -73,3 +73,18 @@
 - `.netmod` SHA-256：`037E5D49CC71F612059628CAD62544C370693E05B28A6C4895B4541D2479C4C9`。
 - Android/7723 单机渲染与速度：待验证。
 - 联机主机/普通客户端：待验证；不能仅凭编译结果确认服务器不会纠正客户端速度。
+
+## 2026-10-17：快艇调研、ABI 检查与驾驶员保护
+
+- 调研固定提交：SCIE `4864d956793b6e670413019f1f6b1cc5c8bb0970`、ZanJhatCraft `756d849df4a8ecf0e6e0c57324b0e110aa99ebd8`、SurvivalcraftRuins `53425779dc499c6f08b94f4b973f329217f92765`、SurvivalcraftTemplateModForAPI `80a9e325ec8b68fa5d7632b36bed1fdf008f3690`。
+- 新增 `scripts/Test-SpeedboatAbi.ps1`，检查 x25.01.17 的 Boat、Mount、Rider、Body、输入、生成和网络包公开签名；目标程序集三个已记录 SHA-256 均匹配。
+- 代码改动：额外推进只对 `ComponentMount.Rider` 所指的首位 Rider 生效；没有实现或宣称双座完成。
+- 命令：`./scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'`。
+- 环境结果：成功；程序集版本 `2.4.0.0`、TargetFramework net472、API `1.42`、SC `2.4.10.6`、快艇 ABI 检查通过。
+- 命令：`./scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`。
+- Release 结果：成功，0 警告、0 错误。
+- 包内容：`BuilderAssistant.dll`、`modinfo.json`、Speedboat CSV/XDB/DAE/PNG；未包含游戏程序集。
+- `.netmod` SHA-256：`CACAC83621FF6D38C2222AB469BAC55B4CD0518F08B267E1DDE493E1538C312D`。
+- Windows 游戏进程运行：未执行。
+- Android/7723 快艇生成、渲染、乘坐和驾驶：未执行。
+- 多人联机：未执行。
