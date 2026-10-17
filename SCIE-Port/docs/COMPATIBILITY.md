@@ -11,7 +11,7 @@ Android 或多人测试。
 | 目标框架 | 已确认 | `.NETFramework,Version=v4.7.2` |
 | SCNET ModLoader 与 CSV | 已确认 | 对真实程序集编译通过；运行加载待验证 |
 | 物品 ID 999、1000 | 已确认 | 反射扫描目标原生常量未占用；其他 Mod 冲突仍待运行检查 |
-| XDB 合并格式 | 已确认 | 0.3.1 使用 Mod 容器根节点；0.3.0 的 `DatabaseObjects` 根会导致 `Database not loaded`，不支持 |
+| XDB 合并格式 | 已确认（机理） | `ModsManager.CombineDataBase` 按 `LocalName + Guid` 匹配文件夹后再合并内容。**真正的判别项是文件夹 GUID 是否等于游戏原版值**：原版文件夹（Entities `5fcdf35f…`、Gameplay `d3d4b692…`、BlockBehaviors `00c97f0f…`）若使用自定义 GUID，合并不会并入原版文件夹，而是追加“同名不同 GUID”的游离 `<Folder>`（0.3.1 即此）。根节点用 Mod 容器（`<SCIEPortWatercraft>`，0.3.2 采用）还是 `<DatabaseObjects>`（正常运行的 Builder Assistant 采用）本身都可用——“根节点导致嵌套 `DatabaseObjects` 才报错”属早期误诊，已推翻。`scripts/Test-Database.ps1` 现强制校验该规则。 |
 | Boat/Mount/Rider/SpawnCreature ABI | 已确认 | `Test-Environment.ps1` 逐项反射签名通过 |
 | 蒸汽船本地推进代码 | 已确认 | 仅 `WorkType.Local`，Release 0 warning/0 error |
 | Windows 游戏加载与驾驶 | 待验证 | 尚未启动目标游戏进行生成、骑乘与存档测试 |

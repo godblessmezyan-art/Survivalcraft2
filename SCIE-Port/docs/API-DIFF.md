@@ -71,10 +71,14 @@ SCIE-Port 0.3.0 Release 构建验证调用签名：
 | `ComponentBody` | `Position`、`Velocity`、`Density`、`IsSneaking` | 生成检查、限速和下船条件 | 已确认 |
 | `CommonLib.WorkType` | 与 `WorkType.Local` 比较 | 将额外推进限制在本地单人工作模式 | 已确认 |
 
-XDB 合并还有一项已由目标 `ModsManager.CombineDataBase` 反编译确认的格式约束：Mod XDB
-必须使用自定义容器根节点（例如 `<SCIEPortWatercraft>`），其直接子节点才是要加入原版
-`DatabaseObjects` 的 `Folder` / `ProjectTemplate`。若 Mod 文件自身以 `<DatabaseObjects>` 为根，
-会产生嵌套同名节点并使数据库反序列化失败。
+XDB 合并还有一项已由目标 `ModsManager.CombineDataBase` 反编译确认的格式约束：该例程读取 Mod xdb
+后，遍历其根节点的**直接子元素**（`Folder` / `ProjectTemplate`），逐个合并进原版 `<DatabaseObjects>`
+树。这一步与根元素叫什么名字无关——用自定义容器根（`<SCIEPortWatercraft>`）或以 `<DatabaseObjects>`
+为根都能被正确处理（正常运行的 Builder Assistant `Speedboat.xdb` 就是以 `<DatabaseObjects>` 为根）。
+因此“根节点导致嵌套 `DatabaseObjects` 才反序列化失败”是早期误诊，已推翻。真正、且已由反编译确认的
+约束是：**代表某个原版文件夹的 `<Folder>` 必须复用游戏的原版文件夹 GUID**，因为合并按
+`Name + Guid` 匹配；GUID 不一致时合并不会并入原版文件夹，而是追加一个同名但不同 GUID 的游离
+`<Folder>`，使内容落到非标准容器（这正是 0.3.1 的问题，现由 `scripts/Test-Database.ps1` 拦截）。
 
 这些结论只覆盖程序集表面与编译。`SCIEPortSteamBoat` XDB 模板能否在游戏中
 实例化、SCIE `Models/SteamBoat` 与纹理是否按预期装载，以及触屏骑乘输入的实际行为仍为待验证。

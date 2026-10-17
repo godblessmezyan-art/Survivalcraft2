@@ -34,6 +34,9 @@ foreach ($directory in @($build, $stage)) {
 & dotnet build $projectFile --configuration $Configuration --output $build "-p:SCNetGameDir=$GameDir"
 if ($LASTEXITCODE -ne 0) { throw "dotnet build failed: $LASTEXITCODE" }
 
+& (Join-Path $PSScriptRoot 'Test-Database.ps1')
+if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
+
 Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
