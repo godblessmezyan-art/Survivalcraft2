@@ -4,7 +4,7 @@
 
 | 项目/文件 | 发现版本 | 许可证据 | 当前处理 |
 |---|---|---|---|
-| SCIE 源码与资源 | commit `4864d956793b6e670413019f1f6b1cc5c8bb0970` | 固定树无公开许可证文件；用户声明已取得明确许可 | 0.5.0 打包蒸汽船 DAE/PNG、飞艇 DAE、火车 DAE/PNG 与 Minecart DAE；公开发布前归档权利人许可文本和范围 |
+| SCIE 源码与资源 | commit `4864d956793b6e670413019f1f6b1cc5c8bb0970` | 固定树无公开许可证文件；用户声明已取得明确许可 | 0.5.1 打包蒸汽船 DAE/PNG、飞艇 DAE、火车 DAE/PNG 与 Minecart DAE；其中前三个 DAE 使用项目内 Y_UP 派生副本；公开发布前归档权利人许可文本和范围 |
 | SCPluginAPI | SCIE README 仅给仓库链接，未固定 commit | 上游仓库标示 MIT | 可研究其 API 思路；不能据此推定 SCIE 获得 MIT |
 | 游戏程序集/内容包 | 本机 x25.01.17 | 专有游戏内容 | 仅外部编译引用；不提交、不打包 |
 
@@ -30,7 +30,7 @@
 - `Engine.dll`
 - `EntitySystem.dll`
 
-打包脚本明确拒绝游戏 DLL、Jint、TypeExtensions 以及本轮范围外的火车/飞艇资源。
+打包脚本明确拒绝游戏 DLL、Jint 和 TypeExtensions，并检查四种载具所需模型与纹理。
 当前 `.netmod` 没有第三方二进制依赖；包含获用户授权声明覆盖的 SCIE 蒸汽船 DAE/PNG，详见 `THIRD-PARTY-NOTICES.md`。
 
 ## 需要用户补充或确认

@@ -1,7 +1,7 @@
 # SCIE-Port Agent 开发交接手册
 
 > 更新时间：2026-10-17
-> 当前移植版本：`0.5.0`
+> 当前移植版本：`0.5.1`
 > 目标游戏：Survivalcraft NET 2.4 `Net_x25.01.17`
 > 最终平台：Android（7723 游戏盒版本）
 > 产物格式：`.netmod`
@@ -134,7 +134,7 @@ SCIE-Port/
 
 ## 5. 当前实现：SCIE 四种交通载具
 
-固定 SCIE 提交中交通实体为 `SteamBoat`、`Airship`、`Train` 和 `Carriage`。当前 0.5.0 包含：
+固定 SCIE 提交中交通实体为 `SteamBoat`、`Airship`、`Train` 和 `Carriage`。当前 0.5.1 包含：
 
 - 独立物品 `SteamBoatBlock`，内容 ID `999`；
 - 独立实体模板 `SCIEPortSteamBoat`；
@@ -148,8 +148,8 @@ SCIE-Port/
 - 原船体参数：`BoxSize=2,0.5,4.5`、`Mass=250`、`Density=0.2`；
 - 驾驶座偏移：`0,0.85,-0.8`。
 
-飞艇部分包含内容 ID `998`、实体 `SCIEPortAirship`、原 `Airship.dae`、白色运行时纹理、
-单人触屏推进/转向/视角升降、速度上限 12、浸水损坏和附近最多 2 艘限制。
+飞艇部分包含内容 ID `998`、实体 `SCIEPortAirship`、Y_UP 派生 `Airship.dae`、白色运行时纹理、
+单人触屏推进/转向/视角升降、速度上限 12、浸水损坏和附近最多 2 艘限制；0.5.1 已缩小驾驶舱碰撞体以恢复原生骑乘搜索可达性。
 
 轨道部分包含内容 ID `997` 的十形态铁轨、ID `996` 火车、ID `995` 车厢、邻接自动成形、
 仅在轨道生成、单人沿轨导向和触屏驾驶。车厢目前是独立低速试乘实体；自动编组、货箱和燃料未实现。
@@ -205,11 +205,11 @@ upstream/SCIE/IndustrialMod/Textures/Train.png
 
 | 能力 | 当前状态 | 说明 |
 |---|---|---|
-| Release 编译 | 已确认 | 0.5.0 为 0 warning / 0 error |
+| Release 编译 | 已确认 | 0.5.1 为 0 warning / 0 error |
 | XDB 根格式修复 | 已确认 | 由 x25 `CombineDataBase` 真实实现确认 |
 | Windows 进入世界 | 待验证 | 0.3.1 尚缺完整运行日志 |
 | Android 进入世界 | 已确认 | 用户确认 0.3.1 已修复数据库加载错误；完整日志仍待归档 |
-| Android 四种载具和铁轨 | 待验证 | 0.5.0 新增轨道功能及此前飞艇均待用户复测 |
+| Android 四种载具和铁轨 | 待验证 | 0.5.1 飞艇/火车坐标轴修复及轨道功能待用户复测 |
 | 模型与 UV 实际渲染 | 待验证 | 文件、网格和纹理哈希已确认，实机画面未确认 |
 | 生成、乘坐和驾驶 | 待验证 | 需要新建可丢弃单人世界测试 |
 | 保存退出和重新进入 | 待验证 | 必须确认船实体可恢复且无模板错误 |
@@ -239,11 +239,11 @@ cd E:\Survivalcraft2\SCIE-Port
 Get-FileHash .\artifacts\SCIEPort.netmod -Algorithm SHA256
 ```
 
-当前 0.5.0 构建记录：
+当前 0.5.1 构建记录：
 
 - 文件：`SCIE-Port/artifacts/SCIEPort.netmod`
-- 大小：135,391 字节
-- SHA-256：`BBBB7F6446A43508E092C22B497EE1D2636D5F3165F9C8B56608993C47CF2442`
+- 大小：136,966 字节
+- SHA-256：`68DD8F38C7962953C655BC84A3CECD542F7E2063E21E22CF70D06E036A1070A6`
 - 包内条目：
 
 ```text

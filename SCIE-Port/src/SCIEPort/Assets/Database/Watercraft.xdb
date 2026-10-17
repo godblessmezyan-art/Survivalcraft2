@@ -41,13 +41,13 @@
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="OnFire" Guid="fd9a13a3-9a8d-4531-aa29-88cc15b529d4" InheritanceParent="93590d78-63b9-4cd6-bc41-e66864cbb050" />
       <MemberComponentTemplate Name="Mount" Guid="113147a5-299c-45a6-9337-226d6bad12ad" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
-        <Parameter Name="MountOffset" Guid="b8f5fcc0-99fc-4ce3-937d-0a927419acb0" Value="0,0.85,-0.8" Type="Vector3" />
-        <Parameter Name="DismountOffset" Guid="834153b2-b287-4720-a659-73652ada5f13" Value="0,0.5,0.4" Type="Vector3" />
+        <Parameter Name="MountOffset" Guid="b8f5fcc0-99fc-4ce3-937d-0a927419acb0" Value="0,1,-0.8" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="834153b2-b287-4720-a659-73652ada5f13" Value="1.75,0.5,0" Type="Vector3" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Body" Guid="e41f56bd-b3b2-4633-a22a-9df67e06c948" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
         <Parameter Name="WaterSwayAngle" Guid="34ed37e0-f308-46d2-a9a9-b3523df0c9d6" Value="0.04" Type="float" />
         <Parameter Name="MaxSmoothRiseHeight" Guid="218b12ca-c80a-40cc-94fe-d7f9a2fc6803" Value="0.3" Type="float" />
-        <Parameter Name="BoxSize" Guid="25927e39-9bec-4898-be6c-05f0fe96cc30" Value="9,7.5,9" Type="Vector3" />
+        <Parameter Name="BoxSize" Guid="25927e39-9bec-4898-be6c-05f0fe96cc30" Value="3,2,6" Type="Vector3" />
         <Parameter Name="WaterDrag" Guid="54cec41f-4ce0-4637-81a0-283e1753129d" Value="6,4" Type="Vector2" />
         <Parameter Name="Mass" Guid="755aff59-6df8-4115-bba7-42faf1ed41c5" Value="250" Type="float" />
         <Parameter Name="AirDrag" Guid="d197b72f-e5b8-4792-a168-e20b884c8103" Value="0.25,0.5" Type="Vector2" />

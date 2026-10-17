@@ -90,6 +90,11 @@ XDB 合并还有一项已由目标 `ModsManager.CombineDataBase` 反编译确认
 `ComponentBody.IsGravityEnabled`、`IsGroundDragEnabled`、`Velocity` 和 `Rotation`。
 自定义推进仅在 `WorkType.Local` 执行，多人权威仍为不支持。
 
+目标 `ComponentRider.FindNearestMount()` 只搜索身体中心周围 2.5 格，并要求玩家眼睛到
+`ComponentMount.MountOffset` 的距离小于 2.5 格。0.5.0 飞艇沿用了旧 `BoxSize=9,7.5,9`，
+玩家会先被碰撞体挡住，因此座位不可达。0.5.1 将物理体限定到驾驶舱 `3,2,6`，并使用
+可达座位 `0,1,-0.8`；这是按实际反编译逻辑修复，不是扩大或替换原生骑乘协议。
+
 这些结论只覆盖程序集表面与编译。`SCIEPortSteamBoat` XDB 模板能否在游戏中
 实例化、SCIE `Models/SteamBoat` 与纹理是否按预期装载，以及触屏骑乘输入的实际行为仍为待验证。
 

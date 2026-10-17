@@ -8,6 +8,9 @@
   `IndustrialMod/Textures/SteamBoat.png`, and
   `IndustrialMod/Models/Airship.dae`, `IndustrialMod/Models/Train.dae`,
   `IndustrialMod/Models/Minecart.dae`, and `IndustrialMod/Textures/Train.png`.
+- Modified derivatives in the package: `Assets/Models/SteamBoat.dae`,
+  `Assets/Models/Airship.dae`, and `Assets/Models/Train.dae` rotate the
+  authorized Z-up source geometry into SCNET's Y-up coordinate convention.
 - Authorization basis: the user commissioning this port stated on 2026-10-17
   that explicit permission to use and redistribute the project assets has been
   obtained.

@@ -11,10 +11,14 @@ assets. The public license-text caveat and attribution are recorded in
 
 The current milestone contains a SCNET-native loader, one creative-only test
 material, and authorized previews of all four SCIE transport entities:
-SteamBoat, Airship, Train and Carriage. Version 0.5.0 also adds the required
+SteamBoat, Airship, Train and Carriage. Version 0.5.1 also adds the required
 rail block and uses x25-native entity, mount, body and input interfaces. It is
 an early single-player runtime probe, not a completed SCIE port; steam fuel,
 carriage coupling/storage and multiplayer authority are still pending.
+
+Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
+and Train models. The Airship collision body is limited to its cabin so the
+native 2.5-block mount search can reach the pilot seat.
 
 ```powershell
 .\scripts\Fetch-Upstream.ps1

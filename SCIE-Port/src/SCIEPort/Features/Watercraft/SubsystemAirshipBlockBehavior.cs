@@ -32,7 +32,7 @@ namespace SCIEPort.Features.Watercraft
                 return true;
             }
 
-            Vector3 position = hit.Value.HitPoint() + 2f * Vector3.UnitY;
+            Vector3 position = hit.Value.HitPoint() + 0.1f * Vector3.UnitY;
             DynamicArray<ComponentBody> bodies = new DynamicArray<ComponentBody>();
             m_subsystemBodies.FindBodiesInArea(
                 new Vector2(position.X, position.Z) - new Vector2(16f),

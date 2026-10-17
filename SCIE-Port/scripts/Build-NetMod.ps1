@@ -45,8 +45,8 @@ $authorizedAssets = @(
     # Use the project-owned Y_UP derivative, not the upstream Z_UP model.
     @{ Source = (Join-Path $projectDir 'Assets\Models\SteamBoat.dae'); Destination = (Join-Path $stage 'Assets\Models\SteamBoat.dae') },
     @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'); Destination = (Join-Path $stage 'Assets\Textures\SteamBoat.png') },
-    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Airship.dae'); Destination = (Join-Path $stage 'Assets\Models\Airship.dae') },
-    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Train.dae'); Destination = (Join-Path $stage 'Assets\Models\Train.dae') },
+    @{ Source = (Join-Path $projectDir 'Assets\Models\Airship.dae'); Destination = (Join-Path $stage 'Assets\Models\Airship.dae') },
+    @{ Source = (Join-Path $projectDir 'Assets\Models\Train.dae'); Destination = (Join-Path $stage 'Assets\Models\Train.dae') },
     @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae'); Destination = (Join-Path $stage 'Assets\Models\Minecart.dae') },
     @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\Train.png'); Destination = (Join-Path $stage 'Assets\Textures\Train.png') }
 )
@@ -96,6 +96,19 @@ try {
         throw 'Package contains a prohibited game or upstream dependency binary.'
     }
     [xml]$watercraftDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Watercraft.xdb')
+    $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
+    $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
+    $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
+    $airshipBox = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
+    if ($null -eq $airshipMount -or $airshipMount.Value -ne '0,1,-0.8') {
+        throw 'Airship MountOffset must remain reachable at 0,1,-0.8.'
+    }
+    if ($null -eq $airshipDismount -or $airshipDismount.Value -ne '1.75,0.5,0') {
+        throw 'Airship DismountOffset must remain outside the cabin collision box.'
+    }
+    if ($null -eq $airshipBox -or $airshipBox.Value -ne '3,2,6') {
+        throw 'Airship collision box must remain cabin-sized (3,2,6) so the native 2.5-block mount search can reach its seat.'
+    }
     [xml]$steamBoatModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\SteamBoat.dae')
     $meshNode = $steamBoatModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")
     if ($null -eq $meshNode) {
@@ -114,19 +127,36 @@ try {
         throw "SteamBoat.dae positions array should hold 98 vertices (294 floats); found $posCount. The orientation fix may have altered geometry."
     }
 
-    [xml]$airshipModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Airship.dae')
+    [xml]$airshipModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Airship.dae')
     $airshipMeshNode = $airshipModel.SelectSingleNode("//*[local-name()='node' and @name='Airship']")
     if ($null -eq $airshipMeshNode) {
         throw 'Authorized Airship.dae is missing the required Airship mesh node.'
     }
+    if ($airshipModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Airship.dae must be oriented Y_UP.'
+    }
+    $airshipPositions = $airshipModel.SelectSingleNode("//*[local-name()='float_array'][contains(@id,'-positions-')]")
+    if ((@($airshipPositions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 2778) {
+        throw 'Airship.dae positions array should hold 926 vertices (2778 floats).'
+    }
 
-    [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Train.dae')
+    [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
     if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {
         throw 'Authorized Train.dae is missing the required Cylinder mesh node.'
+    }
+    if ($trainModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Train.dae must be oriented Y_UP.'
+    }
+    $trainPositions = $trainModel.SelectSingleNode("//*[local-name()='float_array'][contains(@id,'-positions-')]")
+    if ((@($trainPositions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 660) {
+        throw 'Train.dae positions array should hold 220 vertices (660 floats).'
     }
     [xml]$minecartModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae')
     if ($null -eq $minecartModel.SelectSingleNode("//*[local-name()='node' and @name='obj1']")) {
         throw 'Authorized Minecart.dae is missing the required obj1 mesh node.'
+    }
+    if ($minecartModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Minecart.dae must be oriented Y_UP.'
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))
