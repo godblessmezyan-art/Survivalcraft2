@@ -42,7 +42,7 @@ Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stag
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
 Copy-Item -Recurse -LiteralPath (Join-Path $projectDir 'Assets') -Destination (Join-Path $stage 'Assets')
 $authorizedAssets = @(
-    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\SteamBoat.dae'); Destination = (Join-Path $stage 'Assets\Models\SteamBoat.dae') },
+    @{ Source = (Join-Path $projectDir 'Assets\Models\SteamBoat.dae'); Destination = (Join-Path $stage 'Assets\Models\SteamBoat.dae') },
     @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'); Destination = (Join-Path $stage 'Assets\Textures\SteamBoat.png') }
 )
 foreach ($asset in $authorizedAssets) {
@@ -98,10 +98,22 @@ try {
         throw 'Watercraft.xdb would create an invalid nested DatabaseObjects node.'
     }
 
-    [xml]$steamBoatModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\SteamBoat.dae')
+    [xml]$steamBoatModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\SteamBoat.dae')
     $meshNode = $steamBoatModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")
     if ($null -eq $meshNode) {
         throw 'Authorized SteamBoat.dae is missing the required Cylinder mesh node.'
+    }
+    $upAxisNode = $steamBoatModel.SelectSingleNode("//*[local-name()='asset']/*[local-name()='up_axis']")
+    if ($null -eq $upAxisNode -or $upAxisNode.InnerText -ne 'Y_UP') {
+        throw 'SteamBoat.dae must be oriented Y_UP (the Z_UP -> Y_UP fix did not ship).'
+    }
+    $posArray = $steamBoatModel.SelectSingleNode("//*[local-name()='float_array'][contains(@id,'-positions-')]")
+    if ($null -eq $posArray) {
+        throw 'SteamBoat.dae is missing its vertex positions array.'
+    }
+    $posCount = (@($posArray.InnerText -split '\s+' | Where-Object { $_ -ne '' })).Count
+    if ($posCount -ne 294) {
+        throw "SteamBoat.dae positions array should hold 98 vertices (294 floats); found $posCount. The orientation fix may have altered geometry."
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))

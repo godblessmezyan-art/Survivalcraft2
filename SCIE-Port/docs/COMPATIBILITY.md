@@ -18,7 +18,9 @@ Android 或多人测试。
 | Android 7723 包 | 待验证 | 尚未取得该安装包的程序集哈希并实机运行 |
 | 多人蒸汽船推进 | 不支持 | 尚未实现服务器权威驾驶输入和纠偏 |
 | SCIE 燃料/蒸汽机库存 | 不支持 | 0.3.0 未实现，不能以占位代码宣称兼容 |
-| SCIE 蒸汽船模型与纹理 | 待验证 | 0.3.0 按用户声明的明确授权打包；模型/纹理哈希已确认，游戏渲染待验证 |
+| 世界加载（进入世界） | 已确认（桌面真实反序列化 + 手机实测） | `ModsManager.CombineDataBase` 按原版文件夹 GUID 合并；用真实原版 `Assets/Database.xml` + 真实 `DatabaseManager.LoadDataBaseFromXml` 端到端证明修复后无 rogue `Entities`，且手机反馈“经过测试可以了”，能进世界不再报 `Database not loaded`。 |
+| SCIE 蒸汽船纹理 | 待验证 | 64×64 PNG，上游授权文件哈希已确认；游戏渲染待验证 |
+| SCIE 蒸汽船模型朝向（Y_UP） | 已确认（文件/打包级）/ Android 待实测 | SCNET 的 `SimpleModel` 按游戏约定直接读原始顶点坐标，Y=上、Z=前，故 `.dae` 必须 `up_axis=Y_UP`。上游授权 `SteamBoat.dae` 是 Blender 导出的 `Z_UP`（高度放在 Z），进世界后船竖直立着；对照能正常横放的 Builder Assistant `Speedboat.dae` 是手写 `Y_UP`。0.3.3 改为打包**项目内派生的修正副本** `src/SCIEPort/Assets/Models/SteamBoat.dae`：对 positions(98 顶点) 与 normals(135) 烘焙绕 X −90° 旋转 `(x,y,z)->(x,z,-y)`（保持右手系），`up_axis` 改 `Y_UP`，`Cylinder` 节点与顶点数不变；**上游源文件保持不动**（仅作授权溯源）。`Build-NetMod.ps1` 打包级强制校验 `up_axis=Y_UP`+294 float。手机里船是否真正平放仍须实机确认，不提前宣称已修复。 |
 | SCIE 音频及其他载具资源 | 不支持 | 不在本轮授权移植包范围内 |
 
 ## 当前包布局
