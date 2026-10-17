@@ -80,5 +80,28 @@ XDB 合并还有一项已由目标 `ModsManager.CombineDataBase` 反编译确认
 `Name + Guid` 匹配；GUID 不一致时合并不会并入原版文件夹，而是追加一个同名但不同 GUID 的游离
 `<Folder>`，使内容落到非标准容器（这正是 0.3.1 的问题，现由 `scripts/Test-Database.ps1` 拦截）。
 
+## 飞艇接口差异
+
+旧 `ComponentAirship` 继承 `ComponentBoatI`，依赖旧 `ComponentEngineA`、全局 `Utils`、
+隐藏式 `new Update` 和旧版 `Quaternion.ToForwardVector()` 扩展。x25 中不能原样复用。
+0.4.0 改为独立 `ComponentAirshipDrive : Component, IUpdateable`：通过目标
+`ComponentMount.Rider` 确认驾驶者，直接读取 `ComponentInput.PlayerInput.Move`，以
+`Matrix.CreateFromQuaternion(EyeRotation).Forward` 计算升降方向，并使用目标
+`ComponentBody.IsGravityEnabled`、`IsGroundDragEnabled`、`Velocity` 和 `Rotation`。
+自定义推进仅在 `WorkType.Local` 执行，多人权威仍为不支持。
+
 这些结论只覆盖程序集表面与编译。`SCIEPortSteamBoat` XDB 模板能否在游戏中
 实例化、SCIE `Models/SteamBoat` 与纹理是否按预期装载，以及触屏骑乘输入的实际行为仍为待验证。
+
+## 铁轨和轨道载具接口差异
+
+旧 `RailBlock` 的几何签名使用已不存在的 `TerrainGeometrySubsets`；0.5.0 已改为目标
+`TerrainGeometry` 和 `SubsetAlphaTest`。旧眼睛方向扩展改为
+`Matrix.CreateFromQuaternion(EyeRotation).Forward`，`SubsystemTerrain.ChangeCell` 改用目标五参数签名。
+旧 `ComponentTrain` 的 `int UpdateOrder` 改为目标 `Game.UpdateOrder`，实体创建统一使用已反射确认的
+`SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool)`。
+
+旧火车推进依赖尚未迁移的 `ComponentEngine.HeatLevel`，车厢编组依赖延迟复制父实体位置、
+`EntityReference` 存档和旧 GUI/库存体系。这些部分没有直接复制：0.5.0 先实现单人本地触屏推进、
+轨道居中、转弯和坡轨姿态，车厢暂作可独立试乘实体。编组、燃料和多人权威状态为不支持，
+实际游戏加载与轨道物理为待验证。

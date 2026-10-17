@@ -3,18 +3,18 @@
 Clean-room migration workspace for **SCIE Industrial Era** to Survivalcraft NET
 2.4 `Net_x25.01.17`.
 
-The original repository is used as a read-only research input at the pinned
-commit recorded in `UPSTREAM-BASELINE.md`. It is intentionally excluded from
-version control. Because that repository does not contain a license, this
-project does not copy or redistribute its source code, models, textures, audio,
-translations, or compiled dependencies.
+The original repository is used as a read-only input at the pinned commit
+recorded in `UPSTREAM-BASELINE.md` and is excluded from version control. The
+user has stated that explicit permission was obtained for the ported vehicle
+assets. The public license-text caveat and attribution are recorded in
+`THIRD-PARTY-NOTICES.md`.
 
 The current milestone contains a SCNET-native loader, one creative-only test
-material, and an authorized SteamBoat preview. Version 0.3.0 packages the SCIE
-SteamBoat model and texture from the pinned upstream commit and uses SCNET's
-native boat/mount components. The permission basis and remaining publication
-record requirement are documented in `THIRD-PARTY-NOTICES.md`. It is an early
-single-player runtime probe, not a completed SCIE port.
+material, and authorized previews of all four SCIE transport entities:
+SteamBoat, Airship, Train and Carriage. Version 0.5.0 also adds the required
+rail block and uses x25-native entity, mount, body and input interfaces. It is
+an early single-player runtime probe, not a completed SCIE port; steam fuel,
+carriage coupling/storage and multiplayer authority are still pending.
 
 ```powershell
 .\scripts\Fetch-Upstream.ps1
@@ -23,3 +23,5 @@ single-player runtime probe, not a completed SCIE port.
 ```
 
 See `docs/TEST-RESULTS.md` before interpreting any compatibility claim.
+
+Agents taking over development should start with `docs/AGENT-HANDOFF.md`.

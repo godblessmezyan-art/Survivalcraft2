@@ -49,6 +49,8 @@ $globalModsManager = $assembly.GetType('ModsManager', $true)
 $componentBoat = $assembly.GetType('Game.ComponentBoat', $true)
 $componentMount = $assembly.GetType('Game.ComponentMount', $true)
 $componentRider = $assembly.GetType('Game.ComponentRider', $true)
+$componentBody = $assembly.GetType('Game.ComponentBody', $true)
+$componentModel = $assembly.GetType('Game.ComponentModel', $true)
 $creatureSpawn = $assembly.GetType('Game.SubsystemCreatureSpawn', $true)
 
 if (-not $modLoader.GetMethod('__ModInitialize', [Reflection.BindingFlags]'Public,Instance')) {
@@ -83,7 +85,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @(999, 1000)) {
+foreach ($reservedId in @(995, 996, 997, 998, 999, 1000)) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -97,9 +99,17 @@ if (-not $componentMount.GetProperty('Rider') -or -not $componentRider.GetProper
 if (-not ($creatureSpawn.GetMethods() | Where-Object { $_.Name -eq 'SpawnCreature' })) {
     throw 'SubsystemCreatureSpawn.SpawnCreature was not found.'
 }
+foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'Velocity', 'Rotation', 'ImmersionFactor')) {
+    if (-not $componentBody.GetProperty($propertyName)) {
+        throw "ComponentBody.$propertyName required by the airship was not found."
+    }
+}
+if (-not $componentModel.GetProperty('TextureOverride')) {
+    throw 'ComponentModel.TextureOverride required by the airship was not found.'
+}
 
 Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, steam-boat mount/spawn, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, transport mount-spawn-body, and reserved ID ABI checks passed.'

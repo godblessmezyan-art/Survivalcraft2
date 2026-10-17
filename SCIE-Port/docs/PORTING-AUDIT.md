@@ -122,7 +122,7 @@ SCIE 声明的 ID：
 
 上游有 17 个 DAE、11 个 PNG、1 个 OGG，另有中英文 CSV/CR/CLO 和两个 XDB。17 个 DAE 均可被 XML 解析；除 `Shield.dae` 外均至少声明一个 `TEXCOORD` 输入。声明 TEXCOORD 只证明模型带 UV 通道，不证明它与实际 PNG 匹配。部分模型不内嵌图像路径，由代码提供贴图；`JellyFish.dae` 还引用了上游包内并不存在的 Blender 风格图像名。所有模型需在获得授权后逐网格、逐材质做渲染和 UV 截图验证。
 
-0.3.0 包含固定上游提交的蒸汽船模型与纹理；不含上游音频、旧 DLL、旧 XDB 或其他载具资源。
+0.5.0 包含固定上游提交的四种交通载具模型及蒸汽船/火车纹理；不含上游音频、旧 DLL 或旧 XDB。
 
 ## 0.2 蒸汽船预览审计
 
@@ -134,7 +134,7 @@ SCIE 声明的 ID：
 - `Subsystems/SubsystemItemBlockBehavior.cs`：从物品生成 `SteamBoat` 实体。
 - `Components/ComponentBoatI.cs`：浮力、推进、转向和损坏逻辑。
 - `工业mod.xdb`：船体、骑乘点、19 格蒸汽机库存及组件组合。
-- `IndustrialMod/Models/SteamBoat.dae` 及对应纹理：未授权资源，不进入交付包。
+- `IndustrialMod/Models/SteamBoat.dae` 及对应纹理：按用户声明的明确许可进入交付包。
 
 SCIE 原逻辑以 `ComponentEngine.HeatLevel / 90f` 作为动力来源，并依赖工业燃料、
 库存和 UI。0.3.0 没有伪造这些工业模块，而是建立了独立的 x25 移植预览：
@@ -152,6 +152,29 @@ LICENSE/COPYING，因此公开发布前应把权利人的单独许可文本及�
 
 仍需重写或补齐：19 格蒸汽机库存、燃料/热量、工业 UI、音效、
 存档往返验证，以及服务器权威的驾驶输入同步。当前预览不得描述为完整 SCIE 蒸汽船。
+
+## 0.4 飞艇预览审计
+
+来源路径为 `Blocks/Vehicles.cs`、`Components/ComponentAirShip.cs`、
+`Subsystems/SubsystemItemBlockBehavior.cs`、`工业mod.xdb` 与
+`IndustrialMod/Models/Airship.dae`。原实现依赖 `ComponentBoatI`、`ComponentEngineA`
+和被替换的玩家/GUI 链路，因此只保留功能规格，不直接编译旧源码。
+
+0.4.0 已独立实现物品 ID 998、实体、骑乘、关闭重力、触屏转向、按观察方向推进、
+速度上限、浸水损坏和生成数量限制。原模型 140,080 字节，要求 `Airship` 网格节点，
+已通过 XML、哈希和包内容检查。航空燃料、10 格工作台、UI、多人同步和实机渲染仍未完成。
+
+## 0.5 轨道交通预览审计
+
+固定上游的 `Blocks/RailBlock.cs`、`Subsystems/SubsystemRailBlockBehavior.cs`、
+`Components/ComponentTrain.cs` 和 `Subsystems/SubsystemItemBlockBehavior.cs` 提供轨道 data 编码、
+邻接成形、沿轨导向与实体生成线索。目标版重新实现 ID 997 铁轨、ID 996 火车和 ID 995 车厢，
+并引用获授权的 `Train.dae`、`Minecart.dae`、`Train.png`。两模型都包含 UV0；要求的网格节点
+`Cylinder` 和 `obj1` 已由打包脚本检查。
+
+可复用的是十种轨道形状的低四位编码和转弯规则。必须重写的是几何 override、方块交互、
+UpdateOrder、玩家输入以及实体创建。旧蒸汽机热量、车厢父体延迟复制、货箱 GUI 和多人同步没有直接迁移；
+0.5.0 的车厢是可独立试乘的验证实体。Release 编译和资源检查为已确认，游戏内轨道运行仍为待验证。
 
 ## 当前可复用与必须重写
 

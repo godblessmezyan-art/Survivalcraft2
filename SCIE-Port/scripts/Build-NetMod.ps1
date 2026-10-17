@@ -42,8 +42,13 @@ Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stag
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
 Copy-Item -Recurse -LiteralPath (Join-Path $projectDir 'Assets') -Destination (Join-Path $stage 'Assets')
 $authorizedAssets = @(
+    # Use the project-owned Y_UP derivative, not the upstream Z_UP model.
     @{ Source = (Join-Path $projectDir 'Assets\Models\SteamBoat.dae'); Destination = (Join-Path $stage 'Assets\Models\SteamBoat.dae') },
-    @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'); Destination = (Join-Path $stage 'Assets\Textures\SteamBoat.png') }
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'); Destination = (Join-Path $stage 'Assets\Textures\SteamBoat.png') },
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Airship.dae'); Destination = (Join-Path $stage 'Assets\Models\Airship.dae') },
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Train.dae'); Destination = (Join-Path $stage 'Assets\Models\Train.dae') },
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae'); Destination = (Join-Path $stage 'Assets\Models\Minecart.dae') },
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\Train.png'); Destination = (Join-Path $stage 'Assets\Textures\Train.png') }
 )
 foreach ($asset in $authorizedAssets) {
     if (-not (Test-Path -LiteralPath $asset.Source)) {
@@ -78,7 +83,11 @@ try {
         'Assets/Blocks/SCIEPort.csv',
         'Assets/Blocks/Watercraft.csv',
         'Assets/Database/Watercraft.xdb',
+        'Assets/Models/Airship.dae',
+        'Assets/Models/Train.dae',
+        'Assets/Models/Minecart.dae',
         'Assets/Models/SteamBoat.dae',
+        'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
@@ -86,18 +95,7 @@ try {
     if ($entries | Where-Object { $_ -match '(^|/)(Survivalcraft\.exe|Engine\.dll|EntitySystem\.dll|Jint\.dll|System\.Reflection\.TypeExtensions\.dll)$' }) {
         throw 'Package contains a prohibited game or upstream dependency binary.'
     }
-    if ($entries | Where-Object { $_ -match '(^|/)(Train|Airship)' }) {
-        throw 'Package contains an out-of-scope upstream vehicle resource.'
-    }
-
     [xml]$watercraftDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Watercraft.xdb')
-    if ($watercraftDatabase.DocumentElement.Name -ne 'SCIEPortWatercraft') {
-        throw 'Watercraft.xdb must use a Mod container root, not DatabaseObjects.'
-    }
-    if ($watercraftDatabase.DocumentElement.ChildNodes | Where-Object { $_.Name -eq 'DatabaseObjects' }) {
-        throw 'Watercraft.xdb would create an invalid nested DatabaseObjects node.'
-    }
-
     [xml]$steamBoatModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\SteamBoat.dae')
     $meshNode = $steamBoatModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")
     if ($null -eq $meshNode) {
@@ -116,9 +114,28 @@ try {
         throw "SteamBoat.dae positions array should hold 98 vertices (294 floats); found $posCount. The orientation fix may have altered geometry."
     }
 
+    [xml]$airshipModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Airship.dae')
+    $airshipMeshNode = $airshipModel.SelectSingleNode("//*[local-name()='node' and @name='Airship']")
+    if ($null -eq $airshipMeshNode) {
+        throw 'Authorized Airship.dae is missing the required Airship mesh node.'
+    }
+
+    [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Train.dae')
+    if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {
+        throw 'Authorized Train.dae is missing the required Cylinder mesh node.'
+    }
+    [xml]$minecartModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae')
+    if ($null -eq $minecartModel.SelectSingleNode("//*[local-name()='node' and @name='obj1']")) {
+        throw 'Authorized Minecart.dae is missing the required obj1 mesh node.'
+    }
+
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))
     if ($pngBytes.Length -lt 24 -or $pngBytes[0] -ne 137 -or $pngBytes[1] -ne 80 -or $pngBytes[2] -ne 78 -or $pngBytes[3] -ne 71) {
         throw 'Authorized SteamBoat.png does not have a valid PNG signature.'
+    }
+    $trainPngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\Train.png'))
+    if ($trainPngBytes.Length -lt 24 -or $trainPngBytes[0] -ne 137 -or $trainPngBytes[1] -ne 80 -or $trainPngBytes[2] -ne 78 -or $trainPngBytes[3] -ne 71) {
+        throw 'Authorized Train.png does not have a valid PNG signature.'
     }
 }
 finally { $archive.Dispose() }

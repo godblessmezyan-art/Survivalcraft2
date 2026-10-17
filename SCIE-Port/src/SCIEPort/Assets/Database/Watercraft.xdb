@@ -30,18 +30,119 @@
         <Parameter Name="AttackResilience" Guid="d3b06908-c676-4c91-bbda-712e640424d3" Value="500" Type="float" />
       </MemberComponentTemplate>
     </EntityTemplate>
+    <EntityTemplate Name="SCIEPortAirship" Guid="db7db846-86de-43d4-ac26-192e680a78b4">
+      <MemberComponentTemplate Name="AirshipDrive" Guid="e020df20-4dd1-4b0a-b4c1-5ee606878d74" InheritanceParent="f3408b0f-0d51-4128-93f1-03cf2cc87601" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="1b94514c-e5e5-434d-80a5-10460ed3249e" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="3560fd8b-64ec-4c90-930c-028af0906477" Value="Models/Airship" Type="string" />
+        <Parameter Name="CastsShadow" Guid="fe0fe524-db17-49d5-b3eb-a6d0d4d8ba92" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="730ac8ef-8d84-44f5-baa0-c7f48e8a2f4d" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="ead2dc40-db60-4ae6-8cb5-5bd5b3df7d84" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="OnFire" Guid="fd9a13a3-9a8d-4531-aa29-88cc15b529d4" InheritanceParent="93590d78-63b9-4cd6-bc41-e66864cbb050" />
+      <MemberComponentTemplate Name="Mount" Guid="113147a5-299c-45a6-9337-226d6bad12ad" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="b8f5fcc0-99fc-4ce3-937d-0a927419acb0" Value="0,0.85,-0.8" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="834153b2-b287-4720-a659-73652ada5f13" Value="0,0.5,0.4" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="e41f56bd-b3b2-4633-a22a-9df67e06c948" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="WaterSwayAngle" Guid="34ed37e0-f308-46d2-a9a9-b3523df0c9d6" Value="0.04" Type="float" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="218b12ca-c80a-40cc-94fe-d7f9a2fc6803" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="25927e39-9bec-4898-be6c-05f0fe96cc30" Value="9,7.5,9" Type="Vector3" />
+        <Parameter Name="WaterDrag" Guid="54cec41f-4ce0-4637-81a0-283e1753129d" Value="6,4" Type="Vector2" />
+        <Parameter Name="Mass" Guid="755aff59-6df8-4115-bba7-42faf1ed41c5" Value="250" Type="float" />
+        <Parameter Name="AirDrag" Guid="d197b72f-e5b8-4792-a168-e20b884c8103" Value="0.25,0.5" Type="Vector2" />
+        <Parameter Name="Density" Guid="c1de87b7-a3f0-430d-8401-2db14d86aa90" Value="-1" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="cd67697d-65a8-4ee1-8384-290eb7bf7804" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="8636a275-1b4b-41e9-9c46-17a4ebf81aee" Value="200" Type="float" />
+        <Parameter Name="FireResilience" Guid="95cb422f-04c9-41c4-a1c0-d4f127c577dc" Value="5" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+    <EntityTemplate Name="SCIEPortTrain" Guid="8bcb876d-9503-43c0-895d-66cecb12ae01">
+      <MemberComponentTemplate Name="RailVehicle" Guid="52a2539f-04ed-4ed6-bf16-d4515c8f8f51" InheritanceParent="151318a1-920b-477d-9422-d109168a2d60">
+        <Parameter Name="Powered" Guid="f69cd742-307d-46a7-8c73-e8db5a116bcf" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="SimpleModel" Guid="f228b52b-0804-4321-88ec-f934e952c314" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="79bc3c2c-b1d8-4a7a-9982-26f7a2469441" Value="Models/Train" Type="string" />
+        <Parameter Name="CastsShadow" Guid="c6ca0d41-9ef5-4b63-a70a-1d24a6e7fe3a" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="f203821c-b04a-4ee0-a806-b7861115739a" Value="Textures/Train" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="da8359bc-a65f-46fd-946a-c675fc97dcfa" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="868bcb48-2ef8-45d9-b53d-4b7fb6853e90" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="5fd14ee6-bd89-43e4-825a-490b35fc2ba3" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="7b720f02-b02d-426a-9ca1-1b62384a10df" Value="0,1,0.4" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="a4fcb4db-4f19-440b-b9c3-143be81b11b1" Value="0,0.5,1.2" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="c720816a-f84f-4ef0-909d-e93f79e32b74" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="MaxSmoothRiseHeight" Guid="d915e1f6-c7bf-4494-b198-fb4875f18416" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="67a076a1-8874-4f03-a9cd-3071161b0409" Value="1,0.5,1.2" Type="Vector3" />
+        <Parameter Name="Mass" Guid="76010b8a-3517-4c0b-954f-a4930a97f24c" Value="1000" Type="float" />
+        <Parameter Name="AirDrag" Guid="120223d7-7afb-4191-846b-67cf300e9001" Value="1,0" Type="Vector2" />
+        <Parameter Name="Density" Guid="a1de82ab-8e4b-484a-ae37-9d1c37f32c17" Value="7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="ed9fa620-101e-40ea-ad87-28cbb31703ce" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="09532061-60be-46e0-ab71-442115df47d6" Value="100" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+    <EntityTemplate Name="SCIEPortCarriage" Guid="c52a3fc1-cec2-4427-b524-ab3916026715">
+      <MemberComponentTemplate Name="RailVehicle" Guid="a328551a-6149-4cbf-9fb8-7f746939112f" InheritanceParent="151318a1-920b-477d-9422-d109168a2d60">
+        <Parameter Name="Powered" Guid="84b89f0c-9b1c-4e7c-8fd5-e0b06e14d406" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="SimpleModel" Guid="07bb2a88-7bb6-499a-8c48-5ba80abe1939" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="2773f996-31e5-438e-9f24-a108f54ed20a" Value="Models/Minecart" Type="string" />
+        <Parameter Name="CastsShadow" Guid="0c154853-0cb0-45db-9005-1766256039d8" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="94ee2042-63b5-43e8-97a5-1f35aa6d262c" Value="Textures/Creatures/Jaguar" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="3401afce-11b3-4dd1-b8a5-4cac02aa6c83" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="4f3e6480-b78b-40c9-b99b-4809d624d83e" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="dad1a87a-5f6b-4708-9dd9-4dbd17458921" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="66042673-9d09-4053-be21-af9155e3ab6d" Value="0,0.5,0" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="2dd3ed6a-d2c2-4de0-842c-e081a1198c2c" Value="0,0.5,1.2" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="1900cf52-cae4-4d3c-a4d5-5dc85529d669" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="MaxSmoothRiseHeight" Guid="825754e4-f2f6-44af-a0f6-7f29dbd87c41" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="ef5fdc38-72ae-4911-967b-4271e09a981b" Value="1,0.6,1" Type="Vector3" />
+        <Parameter Name="Mass" Guid="5e3b519a-15a5-4c97-8cbe-03ca4f2d401a" Value="120" Type="float" />
+        <Parameter Name="AirDrag" Guid="c639a406-7a21-4982-b840-348a61df49d5" Value="1,0" Type="Vector2" />
+        <Parameter Name="Density" Guid="f7fab6d6-156c-46c4-93af-e8b950935c34" Value="4.76" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="be414702-f19c-417a-98fb-5d7937f71ae6" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="c710968f-79f4-46d6-a890-ea92e8939540" Value="90" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
   </Folder>
   <Folder Name="Gameplay" Guid="d3d4b692-acc9-4128-9b99-a5acf1de1fbb">
     <ComponentTemplate Name="SCIEPortSteamBoatDrive" Description="Bounded local steam-boat propulsion" Guid="178f2607-acfe-48e4-bd5d-2da2bfd27495" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
       <Parameter Name="Class" Guid="07157607-a690-43d3-919c-193e7e91a472" Value="SCIEPort.Features.Watercraft.ComponentSteamBoatDrive" Type="string" />
+    </ComponentTemplate>
+    <ComponentTemplate Name="SCIEPortAirshipDrive" Description="Bounded local airship flight" Guid="f3408b0f-0d51-4128-93f1-03cf2cc87601" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="0adf07f7-8bcd-4075-946e-a4b216398ee4" Value="SCIEPort.Features.Watercraft.ComponentAirshipDrive" Type="string" />
+    </ComponentTemplate>
+    <ComponentTemplate Name="SCIEPortRailVehicle" Description="SCIE rail vehicle guidance" Guid="151318a1-920b-477d-9422-d109168a2d60" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="a49de92e-a68b-4baa-838f-a2aa84809a78" Value="SCIEPort.Features.Rail.ComponentRailVehicle" Type="string" />
+      <Parameter Name="Powered" Guid="94ec4514-8cf6-48fe-89fd-fe77714e3bdf" Value="False" Type="bool" />
     </ComponentTemplate>
   </Folder>
   <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
     <SubsystemTemplate Name="SCIEPortSteamBoatBlockBehavior" Guid="94846978-9655-4184-bd17-faa82e4a4ba6" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
       <Parameter Name="Class" Guid="f011e397-d96e-425f-b63f-862109cbb8a9" Value="SCIEPort.Features.Watercraft.SubsystemSteamBoatBlockBehavior" Type="string" />
     </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortAirshipBlockBehavior" Guid="1471d8a8-34f8-45c8-a47c-363d7023fc86" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="64b1a50d-df88-4392-96e4-e20390621d4d" Value="SCIEPort.Features.Watercraft.SubsystemAirshipBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortRailBlockBehavior" Guid="53585647-1bd2-435f-9a23-fafc1ff1b11e" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="c68396ce-0457-4db6-aeb6-533f98d92272" Value="SCIEPort.Features.Rail.SubsystemRailBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortRailVehicleBlockBehavior" Guid="cf91e42e-f81e-44f1-8769-d638221470f1" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="540522c5-96eb-48c6-96d7-684344a24357" Value="SCIEPort.Features.Rail.SubsystemRailVehicleBlockBehavior" Type="string" />
+    </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
     <MemberSubsystemTemplate Name="SCIEPortSteamBoatBlockBehavior" Guid="bfb67151-6c34-42d4-94bc-d5671640bc49" InheritanceParent="94846978-9655-4184-bd17-faa82e4a4ba6" />
+    <MemberSubsystemTemplate Name="SCIEPortAirshipBlockBehavior" Guid="3bbcb0ad-5188-4f38-8e31-7af15f4a1980" InheritanceParent="1471d8a8-34f8-45c8-a47c-363d7023fc86" />
+    <MemberSubsystemTemplate Name="SCIEPortRailBlockBehavior" Guid="40f76c23-4508-4b95-aa73-75a49daf1786" InheritanceParent="53585647-1bd2-435f-9a23-fafc1ff1b11e" />
+    <MemberSubsystemTemplate Name="SCIEPortRailVehicleBlockBehavior" Guid="d3552643-347f-4248-b67e-f35dbb63d201" InheritanceParent="cf91e42e-f81e-44f1-8769-d638221470f1" />
   </ProjectTemplate>
 </SCIEPortWatercraft>

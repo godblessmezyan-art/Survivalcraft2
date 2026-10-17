@@ -1,16 +1,16 @@
 # 测试结果
 
-日期：2026-10-17  
-目标：`Survivalcraft NET 2.4 Net_x25.01.17`  
-本机仓库目录：`D:\Survivalcraft2\SCIE-Port`（文档口径中的 `E:\Survivalcraft2`）  
-本机游戏程序集目录：`D:\SCNET`
+日期：2026-10-17
+目标：`Survivalcraft NET 2.4 Net_x25.01.17`
+本机仓库目录：`E:\Survivalcraft2\SCIE-Port`
+本机游戏程序集目录：`E:\SCNET\SCNETx25.01.17`
 
 ## 结果矩阵
 
 | 项目 | 状态 | 证据/说明 |
 |---|---|---|
 | 上游 SHA 固定 | 已确认 | `git rev-parse HEAD` = `4864d956793b6e670413019f1f6b1cc5c8bb0970`；工作树干净 |
-| SCIE 许可文件检查 | 已确认 | 固定树没有 LICENSE/COPYING；因此当前不分发上游内容 |
+| SCIE 许可文件检查 | 已确认 | 固定树没有 LICENSE/COPYING；用户声明已获明确许可，车辆资源及公开发布留档边界见第三方声明 |
 | x25 Windows 程序集指纹 | 已确认 | 三项 SHA-256 与 `Test-Environment.ps1` 固定值一致 |
 | 目标 ABI 检查 | 已确认 | 版本 2.4.0.0、API 1.42、SC 2.4.10.6、net472；ModLoader/CSV/ID 及 Boat/Mount/Rider/SpawnCreature 签名检查通过 |
 | 原 SCIE 工程原样构建 | 不支持 | 旧 csproj 硬编码 `D:\Survivalcraft`；缺引用时产生 1378 错误，不能作为目标构建方式 |
@@ -24,25 +24,37 @@
 | `.netmod` 内容校验 | 已确认 | 0.3.3 包含 DLL、modinfo、两块 CSV、修复后的 Watercraft XDB、**朝向修正后的**蒸汽船模型（Y_UP）/授权纹理及第三方声明；打包级校验强制模型 `up_axis=Y_UP` 且顶点数组保持 98 顶点（294 float）+ `Cylinder` 节点 |
 | `.netmod` 大小 | 已确认 | 0.3.3：20,975 字节（较 0.3.2 变化源于打包模型由上游 Z_UP 原文件换成项目内修正后的 Y_UP 资产，且 zip 时间戳非确定性 ±若干字节） |
 | `.netmod` SHA-256 | 已确认 | 0.3.3：`B86B9B152BE738697FB2AE9A4A901208FD0EBD577C9F93BA20B5344CDDCDBCCA`（20,975 字节）。历史：0.3.2（世界加载修复）`E0C3568E…` / 首次构建 `AC22833A…`；0.3.1 旧值 `78E44A1C…`（进入世界报 `Database not loaded`）。 |
+| `.netmod` 内容校验 | 已确认 | 0.5.0 包含 DLL、modinfo、CSV、Watercraft XDB、四种载具/铁轨代码、授权模型纹理及第三方声明 |
+| `.netmod` 大小 | 已确认 | 0.5.0 合并构建：135,391 字节；DAE 等文本资源经 ZIP 压缩 |
+| `.netmod` SHA-256 | 已确认 | 0.5.0 合并构建：`BBBB7F6446A43508E092C22B497EE1D2636D5F3165F9C8B56608993C47CF2442` |
 | 蒸汽船物品/组件编译 | 已确认 | ID 999；独立实体、原生 Boat/Mount/Body/Damage 和本地推进组件均以 Release 0 warning/0 error 编译 |
 | SCIE 蒸汽船模型 | 已确认 | 上游授权源模型（保持不动、仅溯源）：`upstream/SCIE/IndustrialMod/Models/SteamBoat.dae`，25,178 字节，SHA-256 `E3C2F54513D10486FA14927418E6ABB76CB7AC270B947A57C338A2423911C4F8`，`up_axis=Z_UP`。**实际打包的模型**（项目内朝向修正资产）：`src/SCIEPort/Assets/Models/SteamBoat.dae`，25,042 字节，`up_axis=Y_UP`，仍含 `Cylinder` 节点与 98 顶点（294 float）。 |
 | 蒸汽船“竖着”朝向修复 | 已确认（文件/打包级）/ Android 待实测 | 现象：手机进世界能加载，但船竖直立着。根因：SCIE 的 `SteamBoat.dae` 是 Blender 导出的 `Z_UP`（把高度放在 Z 轴），而 SCNET 的 `SimpleModel` 按游戏约定直接读原始坐标、把 Y 当上、Z 当前——于是 Z_UP 模型的高度轴被当成“前后”，船就竖起来；对照能正常横放的 Builder Assistant `Speedboat.dae` 是手写的 `Y_UP`。修复：对 `Cylinder-mesh-positions-array`（98 顶点）与 `Cylinder-mesh-normals-array`（135 法线）逐三元组烘焙绕 X 轴 −90° 旋转 `(x,y,z)->(x,z,-y)`（右手系不翻转），并把 `<up_axis>` 改为 `Y_UP`；不改 `SimpleModel` 参数、不动 `Body` 的 `BoxSize`、不动模板/GUID。结果包围盒由（宽 X±1.06 / 高 Z0.06..1.56 / 长 Y−2.74..2.35）变为（宽 X±1.06 / 高 Y−0.13..1.56 / 长 Z−2.35..2.74），与 `BoxSize=2,0.5,4.5`（Z 为船长）一致。**边界**：本机只能在文件与打包级验证几何已旋转、`up_axis=Y_UP`、顶点数未丢，且已确认随包模型确为 Y_UP；手机里船是否真正平放仍须实机确认，不提前宣称已修复。 |
 | SCIE 蒸汽船纹理 | 已确认 | 64×64 PNG，6,036 字节；SHA-256 `BB0CC5F9886E30BA9DE12D79F1C7724CBF9C6341DCE7606C65906441ABE8F6A4` |
+| 飞艇物品/实体/飞行组件编译 | 已确认 | ID 998；独立实体、Mount/Body/Damage、触屏输入和本地限速飞行均为 Release 0 warning/0 error |
+| SCIE 飞艇模型 | 已确认 | 固定提交文件 140,080 字节；SHA-256 `FAE480B6DFC30A3BB88BD6D9D1A7A4368CC2193E5E95C518A718310AB7A2BD47`；`Airship` 节点检查通过 |
+| 铁轨/火车/车厢编译 | 已确认 | ID 997/996/995；轨道几何、邻接形状、实体生成、骑乘及本地沿轨组件为 Release 0 warning/0 error |
+| SCIE 火车模型/纹理 | 已确认 | `Train.dae` 49,959 字节，SHA-256 `6E9AF8F38F939F2889FF00CA14AE8DD6093CC86A87CC9BDA3D2ECC4B74E2A0D4`，`Cylinder` 节点通过；`Train.png` 5,344 字节，SHA-256 `413E44943BA96517FB0B1712EB0ACC157CE60E14BE7B96C7D0B3FB37C3A5CD57` |
+| SCIE 车厢模型 | 已确认 | `Minecart.dae` 432,139 字节，SHA-256 `CDB55F28AA29BAB7067DF8D68217953BB70EB8D3544BC10A337C2BDD639D88F5`，`obj1` 节点检查通过 |
+| Watercraft XDB 静态结构 | 已确认 | 自定义根 `SCIEPortWatercraft`；109 个 XML 节点、108 个 GUID、无重复 GUID |
 | Windows 游戏加载 | 待验证 | 本次没有启动游戏进程 |
 | Windows 创造栏显示材料 | 待验证 | 必须在新建可丢弃单人世界确认 |
 | Windows 蒸汽船生成/骑乘/驾驶 | 待验证 | XDB、内置模型路径、触屏输入和实体运行行为必须在游戏中确认 |
 | 世界加载（进入世界） | 已确认（桌面真实反序列化 + 手机实测） | 桌面 harness 已用真实 `DatabaseManager.LoadDataBaseFromXml` 证明：修复后首异常 `Another database object with name "Entities" is already nested in database object "Root".` 消失、加载成功，且阳性对照同样成功。手机实机反馈“经过测试可以了”——能进世界，不再报 `Database not loaded`，仅剩“船竖着”的外观问题（见“蒸汽船朝向修复”行）。0.3.3 未改 XDB（只换模型），故该世界加载结论直接继承。 |
+| 0.5.0 Android 四种载具 | 待验证 | 蒸汽船、飞艇、火车、车厢的模型、生成、骑乘、驾驶和保存恢复均需实机复测 |
+| 0.5.0 铁轨运行 | 待验证 | 直轨、四种弯轨、四种坡轨、自动形状更新及沿轨转向未启动游戏验证 |
 | Windows 保存/重载 | 待验证 | 仅创造物品也需验证存档不报错 |
 | Android 7723 实测 | 待验证 | 尚未部署到手机，Windows 指纹不能替代 Android 证据 |
-| 多人主机/客户端 | 不支持 | 0.3.0 的额外推进明确仅启用 `WorkType.Local`；尚无服务器权威输入同步 |
+| 多人主机/客户端 | 不支持 | 四种载具的自定义推进/飞行/轨道物理仅启用 `WorkType.Local`；尚无服务器权威输入同步 |
+| 火车蒸汽燃料、车厢编组/货箱 | 不支持 | 依赖尚未迁移的工业机器、库存、父体同步和存档链；0.5.0 未以占位实现冒充完成 |
 
 ## 执行命令
 
 ```powershell
-cd D:\Survivalcraft2\SCIE-Port
-.\scripts\Test-Environment.ps1 -GameDir 'D:\SCNET'
+cd E:\Survivalcraft2\SCIE-Port
+.\scripts\Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'
 .\scripts\Test-Database.ps1                 # 单独运行数据库静态校验
-.\scripts\Build-NetMod.ps1 -GameDir 'D:\SCNET'   # 构建时会自动再跑一次 Test-Database.ps1
+.\scripts\Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'   # 构建时会自动再跑一次 Test-Database.ps1
 ```
 
 以上三条命令在修复后的 0.3.2 代码树上都应成功。`Build-NetMod.ps1` 在打包前会自动调用 `Test-Database.ps1`；一旦出现“同名不同 GUID 的原版文件夹”或悬空 `InheritanceParent`，构建即失败，防止本类缺陷再次进入 `.netmod`。
@@ -53,14 +65,18 @@ cd D:\Survivalcraft2\SCIE-Port
 Assets/Blocks/SCIEPort.csv
 Assets/Blocks/Watercraft.csv
 Assets/Database/Watercraft.xdb
+Assets/Models/Airship.dae
+Assets/Models/Minecart.dae
 Assets/Models/SteamBoat.dae
+Assets/Models/Train.dae
 Assets/Textures/SteamBoat.png
+Assets/Textures/Train.png
 modinfo.json
 SCIEPort.dll
 THIRD-PARTY-NOTICES.md
 ```
 
-包内未发现：`Survivalcraft.exe`、`Engine.dll`、`EntitySystem.dll`、`Jint.dll`、`System.Reflection.TypeExtensions.dll`、SCIE 音频/旧 XDB/配方/翻译或其他载具资源。
+包内未发现：`Survivalcraft.exe`、`Engine.dll`、`EntitySystem.dll`、`Jint.dll`、`System.Reflection.TypeExtensions.dll`、SCIE 音频/旧 XDB/配方/翻译。
 
 ## 下一轮运行测试步骤
 
@@ -71,7 +87,13 @@ THIRD-PARTY-NOTICES.md
 5. 搜索 `SCIE 蒸汽船（原型）`，对水面使用；确认只生成一艘实体且物品减少。
 6. 验证上船、触屏前进/后退/转向、松手减速、下船、碰撞损坏及附近最多 4 艘限制。
 7. 保存退出并重进，确认玩家库存、船实体和位置可恢复且日志无实体模板错误。
-8. Android 上重复 2–7，并记录 APK/程序集指纹、设备、Android 版本和日志。
+8. 搜索 `SCIE 飞艇（授权移植预览）`，在开阔地生成；验证乘坐、触屏前后推进、视角控制升降、转向、下船、浸水损坏和附近 2 艘限制。
+9. 保存退出并重进，确认飞艇位置和状态可恢复。
+10. 搜索并铺设 `SCIE 铁轨（授权移植预览）`：分别验证直线、四向弯道和一格高坡道是否自动成形。
+11. 把 `SCIE 火车（授权移植预览）` 放到轨道上，验证非轨道拒绝生成、乘坐、触屏前后驾驶、弯道和坡道。
+12. 对 `SCIE 车厢（授权移植预览）` 重复生成和独立低速试乘；当前不应期待自动编组或货箱。
+13. 保存退出并重进，确认铁轨 data、两种轨道实体位置/方向恢复且日志无模板错误。
+14. Android 上重复 2–13，并记录 APK/程序集指纹、设备、Android 版本和日志。
 
 ## Android (SCNET x25.01.17 / 7723) 安装、卸载旧包、隔离测试步骤
 

@@ -4,8 +4,10 @@
 
 - Source: https://github.com/Lixue9jiu/SCIE
 - Pinned commit: `4864d956793b6e670413019f1f6b1cc5c8bb0970`
-- Included files: `IndustrialMod/Models/SteamBoat.dae` and
-  `IndustrialMod/Textures/SteamBoat.png`.
+- Included files: `IndustrialMod/Models/SteamBoat.dae`,
+  `IndustrialMod/Textures/SteamBoat.png`, and
+  `IndustrialMod/Models/Airship.dae`, `IndustrialMod/Models/Train.dae`,
+  `IndustrialMod/Models/Minecart.dae`, and `IndustrialMod/Textures/Train.png`.
 - Authorization basis: the user commissioning this port stated on 2026-10-17
   that explicit permission to use and redistribute the project assets has been
   obtained.
