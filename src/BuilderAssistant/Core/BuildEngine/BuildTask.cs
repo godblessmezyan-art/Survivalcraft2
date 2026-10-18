@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Core.Transactions;
 
 namespace BuilderAssistant.Core.BuildEngine
@@ -44,11 +45,29 @@ namespace BuilderAssistant.Core.BuildEngine
             get { return IsFinished && _pendingRollback.Count == 0 && _pendingUndo.Count == 0; }
         }
 
+        /// <summary>
+        /// v0.6.3 bounded stall: how many consecutive Advance calls have made zero
+        /// forward progress because the next in-order target chunk is only transiently
+        /// not-ready. Resets to 0 whenever a cell is actually applied. Once this exceeds
+        /// BuildSafetyLimits.MaxIdleAdvanceCallsDuringBuild the build gives up and rolls
+        /// back safely instead of hanging forever on a chunk that never streams in.
+        /// </summary>
+        public int IdleAdvanceCalls { get { return _idleAdvanceCalls; } }
+
+        /// <summary>Running but currently blocked on a recoverable (waitable) chunk.</summary>
+        public bool IsStalled
+        {
+            get { return State == BuildTaskState.Running && _idleAdvanceCalls > 0; }
+        }
+
         private readonly List<PlannedChange> _changes;
         private readonly List<BlockUndoRecord> _applied = new List<BlockUndoRecord>();
         private readonly List<BlockUndoRecord> _pendingRollback = new List<BlockUndoRecord>();
         private readonly List<BlockUndoRecord> _pendingUndo = new List<BlockUndoRecord>();
         private readonly bool _allowOverride;
+        private readonly bool _clearSoftObstructions;
+        private int _idleAdvanceCalls;
+        private string _stallReason;
         private int _cursor;
 
         private enum RestoreOutcome
@@ -59,11 +78,22 @@ namespace BuilderAssistant.Core.BuildEngine
         }
 
         public BuildTask(string name, CellPos origin, List<PlannedChange> changes, bool allowOverride)
+            : this(name, origin, changes, allowOverride, false)
+        {
+        }
+
+        public BuildTask(
+            string name,
+            CellPos origin,
+            List<PlannedChange> changes,
+            bool allowOverride,
+            bool clearSoftObstructions)
         {
             Name = name;
             Origin = origin;
             _changes = changes;
             _allowOverride = allowOverride;
+            _clearSoftObstructions = clearSoftObstructions;
             State = BuildTaskState.Pending;
         }
 
@@ -86,12 +116,28 @@ namespace BuilderAssistant.Core.BuildEngine
                 CellEditability eco = gateway.InspectCell(change.Absolute);
                 if (!eco.IsEditable)
                 {
-                    return Fail(gateway, "执行中区块变为未加载/越界[" + eco.Describe() + "]");
+                    // v0.6.3: our own writes trigger an engine re-mesh that can briefly
+                    // drop the chunk State below Valid. That is transient and recoverable,
+                    // so pausing to retry is correct — aborting the whole cottage for it is
+                    // not. Only a HARD failure (invalid Y / extent / terrain-null) aborts.
+                    if (eco.IsRecoverableByWaiting)
+                    {
+                        return OnRecoverableStall(gateway, appliedThisCall, eco);
+                    }
+                    return Fail(gateway, "执行中区块不可编辑[" + eco.Describe() + "]");
                 }
 
                 if (!_allowOverride && !gateway.IsCellAir(change.Absolute))
                 {
-                    return Fail(gateway, "执行中目标已非空气，安全中止: " + change.Absolute);
+                    // Non-air target. Replace it only when the user opted into full
+                    // override, or into clear-soft AND this is a walk-through plant/snow.
+                    bool softClearable =
+                        _clearSoftObstructions && gateway.IsCellSoftObstruction(change.Absolute);
+                    if (!softClearable)
+                    {
+                        return Fail(gateway, "执行中目标已非空气，安全中止: " + change.Absolute);
+                    }
+                    // else: clear-soft is enabled and this is a plant/snow — allowed.
                 }
 
                 int oldValue;
@@ -110,6 +156,12 @@ namespace BuilderAssistant.Core.BuildEngine
                 appliedThisCall++;
             }
 
+            if (appliedThisCall > 0)
+            {
+                _idleAdvanceCalls = 0;
+                _stallReason = null;
+            }
+
             if (_cursor >= _changes.Count)
             {
                 State = BuildTaskState.Completed;
@@ -117,6 +169,38 @@ namespace BuilderAssistant.Core.BuildEngine
 
             return appliedThisCall;
         }
+
+        /// <summary>
+        /// Handles hitting a still-streaming / transiently re-meshed chunk mid-build. We
+        /// never roll back for something the engine can recover from: we keep whatever was
+        /// applied this call, stay Running, and let the next GuiUpdate tick call Advance
+        /// again. Only after MaxIdleAdvanceCallsDuringBuild *consecutive zero-progress*
+        /// calls do we give up (a chunk that truly never arrives) and roll back safely.
+        /// </summary>
+        private int OnRecoverableStall(ITerrainGateway gateway, int appliedThisCall, CellEditability eco)
+        {
+            _stallReason = eco.Describe();
+
+            if (appliedThisCall > 0)
+            {
+                // We made real progress this call, so this is not an idle stall.
+                _idleAdvanceCalls = 0;
+                return appliedThisCall;
+            }
+
+            _idleAdvanceCalls++;
+            if (_idleAdvanceCalls > BuildSafetyLimits.MaxIdleAdvanceCallsDuringBuild)
+            {
+                return Fail(gateway,
+                    "目标区块持续未就绪，已等待 " + _idleAdvanceCalls +
+                    " 帧仍未恢复[" + _stallReason + "]");
+            }
+
+            return 0;
+        }
+
+        /// <summary>Last recoverable stall description, or null when not stalled.</summary>
+        public string StallReason { get { return _stallReason; } }
 
         private int Fail(ITerrainGateway gateway, string reason)
         {

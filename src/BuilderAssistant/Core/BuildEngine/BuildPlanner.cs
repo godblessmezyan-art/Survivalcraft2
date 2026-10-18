@@ -32,6 +32,24 @@ namespace BuilderAssistant.Core.BuildEngine
             ITerrainGateway gateway,
             bool allowOverride)
         {
+            return Plan(blueprint, origin, resolver, gateway, allowOverride, false);
+        }
+
+        /// <summary>
+        /// Validates a blueprint at an anchor with no writes. <c>allowOverride</c> is the
+        /// full-overwrite mode (any non-air target may be replaced; unchanged v0.6.x opt-in).
+        /// <c>clearSoftObstructions</c> is v0.6.3 clear-soft: when NOT in full override it
+        /// still lets the plan replace walk-through plants/snow (non-collidable, non-fluid),
+        /// while solid terrain and player structures remain refused.
+        /// </summary>
+        public static BuildPlan Plan(
+            Blueprint blueprint,
+            CellPos origin,
+            IBlockValueResolver resolver,
+            ITerrainGateway gateway,
+            bool allowOverride,
+            bool clearSoftObstructions)
+        {
             if (blueprint == null || blueprint.CellCount == 0)
             {
                 return BuildPlan.Fail("蓝图空或无效");
@@ -56,8 +74,12 @@ namespace BuilderAssistant.Core.BuildEngine
             // First-failure trackers for the two non-editability policies. We keep
             // only the first of each so the reported reason stays concise, while
             // still scanning every cell to collect the full editability breakdown.
-            bool sawNonAir = false;
-            CellPos firstNonAir = default(CellPos);
+            bool sawHardBlocked = false;
+            CellPos firstHardBlocked = default(CellPos);
+            bool sawSoftBlocked = false;
+            CellPos firstSoftBlocked = default(CellPos);
+            int softBlockedCount = 0;
+            int softClearedCount = 0;
             bool sawUnknownMaterial = false;
             string firstUnknownMaterial = null;
 
@@ -85,12 +107,35 @@ namespace BuilderAssistant.Core.BuildEngine
 
                 if (!allowOverride && !gateway.IsCellAir(absolute))
                 {
-                    if (!sawNonAir)
+                    bool soft = gateway.IsCellSoftObstruction(absolute);
+                    if (soft && clearSoftObstructions)
                     {
-                        sawNonAir = true;
-                        firstNonAir = absolute;
+                        // Opt-in clear-soft: this walk-through plant/snow cell will be
+                        // replaced. Fall through to the material-resolve + write path.
+                        softClearedCount++;
                     }
-                    continue;
+                    else if (soft)
+                    {
+                        // A plant/snow is in the way but clear-soft is off: report it
+                        // separately so the UI can offer to enable clearing.
+                        if (!sawSoftBlocked)
+                        {
+                            sawSoftBlocked = true;
+                            firstSoftBlocked = absolute;
+                        }
+                        softBlockedCount++;
+                        continue;
+                    }
+                    else
+                    {
+                        // Solid terrain / player structure: never touched by default.
+                        if (!sawHardBlocked)
+                        {
+                            sawHardBlocked = true;
+                            firstHardBlocked = absolute;
+                        }
+                        continue;
+                    }
                 }
 
                 int value;
@@ -126,9 +171,16 @@ namespace BuilderAssistant.Core.BuildEngine
                 return BuildPlan.Fail(reason, editabilityFailures, allRecoverable);
             }
 
-            if (sawNonAir)
+            if (sawHardBlocked)
             {
-                return BuildPlan.Fail("目标非空气方块，默认不覆盖: " + firstNonAir);
+                return BuildPlan.Fail("目标为实心方块/玩家建筑，默认不覆盖: " + firstHardBlocked);
+            }
+
+            if (sawSoftBlocked)
+            {
+                return BuildPlan.FailSoftBlocked(
+                    "目标有 " + softBlockedCount + " 处植被/积雪覆盖（示例 " + firstSoftBlocked +
+                    "），默认不清理；开启「清理植被」后可重建。");
             }
 
             if (sawUnknownMaterial)
@@ -136,7 +188,7 @@ namespace BuilderAssistant.Core.BuildEngine
                 return BuildPlan.Fail("未知材料键: " + firstUnknownMaterial);
             }
 
-            return BuildPlan.Ok(changes);
+            return BuildPlan.Ok(changes, softClearedCount);
         }
 
         private static string ComposeEditabilityReason(

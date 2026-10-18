@@ -21,6 +21,9 @@ namespace BuilderAssistant.Tests
         public readonly HashSet<CellPos> Blocked = new HashSet<CellPos>();
         // Cells whose "chunk" is entirely missing (also recoverable by waiting).
         public readonly HashSet<CellPos> Missing = new HashSet<CellPos>();
+        // v0.6.3: non-air cells that hold a walk-through plant/snow (soft obstruction).
+        // A non-air cell NOT in this set is treated as solid/hard (protect at all costs).
+        public readonly HashSet<CellPos> Soft = new HashSet<CellPos>();
         private readonly Dictionary<CellPos, int> _values = new Dictionary<CellPos, int>();
 
         public int Writes;
@@ -58,6 +61,20 @@ namespace BuilderAssistant.Tests
         {
             int value;
             return TryGetCellValue(cell, out value) && value == 0;
+        }
+
+        public bool IsCellSoftObstruction(CellPos cell)
+        {
+            int value;
+            if (!TryGetCellValue(cell, out value))
+            {
+                return false;
+            }
+            if (value == 0)
+            {
+                return false; // air is not an obstruction
+            }
+            return Soft.Contains(cell); // only plants/snow; everything else is hard
         }
 
         public bool TryGetCellValue(CellPos cell, out int value)
@@ -157,6 +174,14 @@ namespace BuilderAssistant.Tests
             TestPartialRollbackIsTrackedAndRetried();
             TestPartialUndoRetainedAndRetried();
             TestUndoPendingYieldsToLaterPlayerEdit();
+
+            // v0.6.3: bounded stall (transient chunk re-mesh pauses, never aborts a good
+            // build) + clear-soft (walk-through plants/snow replaceable on opt-in, solid
+            // terrain / player structures still protected). See BuildTask / BuildPlanner.
+            TestTransientChunkStallPausesInsteadOfAborting();
+            TestStallBudgetExhaustionRollsBackSafely();
+            TestClearSoftReplacesVegetationWhenOptedIn();
+            TestClearSoftNeverTouchesSolidBlocks();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -385,12 +410,14 @@ namespace BuilderAssistant.Tests
             task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch); // applies cells 0..31
             Check(!task.IsFinished, "first batch leaves the task Running (32 per batch)");
 
-            // Simulate the chunk for the next target cell unloading mid-build.
-            CellPos unloadCell = plan.Changes[32].Absolute;
-            terrain.Blocked.Add(unloadCell);
+            // Make the NEXT target cell (x=132) a HARD failure by shrinking the world
+            // extent below it, while every already-placed cell (x<=131) stays editable so
+            // the rollback can reach all of them. A transient recoverable block now pauses
+            // (see the v0.6.3 stall tests) instead of aborting.
+            terrain.ExtentLimit = 131;
 
             task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
-            Check(task.State == BuildTaskState.Failed, "task fails when a target cell becomes uneditable mid-build");
+            Check(task.State == BuildTaskState.Failed, "task fails immediately when a target cell becomes hard-uneditable mid-build");
 
             bool rolledBack = true;
             for (int i = 0; i < 32; i++)
@@ -400,7 +427,154 @@ namespace BuilderAssistant.Tests
                     rolledBack = false;
                 }
             }
-            Check(rolledBack, "all already-placed cells were rolled back to air on failure");
+            Check(rolledBack, "all already-placed cells were rolled back to air on a hard mid-build failure");
+            Check(task.PendingRollbackCount == 0, "a hard failure with reachable chunks leaves nothing pending");
+        }
+
+        // --- v0.6.3 bounded stall: a transiently re-meshed / not-yet-ready chunk pauses
+        //     the build IN PLACE instead of aborting the whole structure. ---
+        private static void TestTransientChunkStallPausesInsteadOfAborting()
+        {
+            Console.WriteLine("[TestTransientChunkStallPausesInsteadOfAborting]");
+            Blueprint bp = LineBlueprint(40);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(100, 60, 100);
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            BuildTask task = new BuildTask("line40", origin, plan.Changes, false);
+            task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch); // 32 placed
+
+            // The next target's chunk briefly drops (recoverable, e.g. our own write
+            // triggering a re-mesh). One Advance must NOT fail or roll back — it stalls.
+            CellPos stallCell = plan.Changes[32].Absolute;
+            terrain.Blocked.Add(stallCell);
+
+            int applied = task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            Check(task.State == BuildTaskState.Running, "a recoverable mid-build block leaves the task Running, not Failed");
+            Check(applied == 0, "the stalled Advance applies nothing");
+            Check(task.IdleAdvanceCalls == 1, "one zero-progress stall call is counted");
+            Check(task.IsStalled, "the task reports it is stalled");
+
+            // Already-placed cells must remain untouched while we wait (no rollback).
+            bool stillPlaced = true;
+            for (int i = 0; i < 32; i++)
+            {
+                if (terrain.ValueAt(plan.Changes[i].Absolute) == 0)
+                {
+                    stillPlaced = false;
+                }
+            }
+            Check(stillPlaced, "a transient stall does NOT roll back the part already built");
+
+            // The chunk streams back; the next Advance resumes and finishes the build.
+            terrain.Blocked.Remove(stallCell);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(task.State == BuildTaskState.Completed, "build resumes and completes once the chunk is ready");
+            Check(task.IdleAdvanceCalls == 0, "making real progress resets the idle-stall counter");
+        }
+
+        private static void TestStallBudgetExhaustionRollsBackSafely()
+        {
+            Console.WriteLine("[TestStallBudgetExhaustionRollsBackSafely]");
+            Blueprint bp = LineBlueprint(40);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(100, 60, 100);
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            BuildTask task = new BuildTask("line40", origin, plan.Changes, false);
+            task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch); // 32 placed
+
+            // A chunk that NEVER arrives: keep it blocked and pump Advance past the budget.
+            CellPos deadCell = plan.Changes[32].Absolute;
+            terrain.Blocked.Add(deadCell);
+
+            int guard = 0;
+            while (!task.IsFinished && guard < BuildSafetyLimits.MaxIdleAdvanceCallsDuringBuild + 10)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+                guard++;
+            }
+
+            Check(task.State == BuildTaskState.Failed,
+                "a chunk that never streams in eventually fails instead of hanging forever");
+            Check(task.FailureReason != null && task.FailureReason.Contains("持续未就绪"),
+                "give-up reason reports the exhausted stall budget");
+
+            bool rolledBack = true;
+            for (int i = 0; i < 32; i++)
+            {
+                if (terrain.ValueAt(plan.Changes[i].Absolute) != 0)
+                {
+                    rolledBack = false;
+                }
+            }
+            Check(rolledBack, "exhausting the stall budget rolls the build back safely");
+        }
+
+        // --- v0.6.3 clear-soft: plants/snow may be replaced on an explicit opt-in, but
+        //     solid terrain and player structures are never touched. ---
+        private static void TestClearSoftReplacesVegetationWhenOptedIn()
+        {
+            Console.WriteLine("[TestClearSoftReplacesVegetationWhenOptedIn]");
+            Blueprint bp = LineBlueprint(5);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(50, 60, 50);
+            CellPos plantCell = plan_FirstTarget(bp, origin);
+
+            // A walk-through plant sits on one target cell.
+            int plantValue = 4242;
+            terrain.Occupy(plantCell, plantValue);
+            terrain.Soft.Add(plantCell);
+
+            // Default (clear-soft OFF): the plant blocks the plan and nothing is written.
+            BuildPlan blocked = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false, false);
+            Check(!blocked.Success, "a plant in the footprint blocks the plan when clear-soft is off");
+            Check(blocked.FailedBySoftObstruction, "the block is classified as soft (offer to clear)");
+            Check(terrain.Writes == 0, "no writes when clear-soft is off");
+
+            // Opt-in: the plant is replaceable; the plan succeeds and reports the count.
+            BuildPlan cleared = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false, true);
+            Check(cleared.Success, "clear-soft mode lets the plan replace walk-through plants");
+            Check(cleared.SoftClearedCount == 1, "the plan reports exactly one cleared soft obstruction");
+
+            // Execute, then confirm the plant cell now holds the built block and Undo
+            // restores the original plant value (never leaves a hole).
+            BuildTask task = new BuildTask("line5", origin, cleared.Changes, false, true);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(task.State == BuildTaskState.Completed, "clear-soft build runs to completion");
+            int builtValue = terrain.ValueAt(plantCell);
+            Check(builtValue != plantValue && builtValue != 0, "the plant cell now holds the freshly built block");
+
+            task.Undo(terrain);
+            Check(terrain.ValueAt(plantCell) == plantValue, "undo restores the exact original plant (no erasure)");
+        }
+
+        private static void TestClearSoftNeverTouchesSolidBlocks()
+        {
+            Console.WriteLine("[TestClearSoftNeverTouchesSolidBlocks]");
+            Blueprint bp = LineBlueprint(5);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(70, 60, 70);
+            CellPos solidCell = plan_FirstTarget(bp, origin);
+
+            // A solid terrain / player-structure block (non-air, NOT in Soft).
+            terrain.Occupy(solidCell, 999);
+
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false, true);
+            Check(!plan.Success, "clear-soft still refuses to replace a solid block");
+            Check(!plan.FailedBySoftObstruction, "a solid conflict is not offered as a clearable soft case");
+            Check(plan.FailureReason.Contains("实心方块"), "reason names the solid-block conflict");
+            Check(terrain.Writes == 0, "solid block is never written");
+        }
+
+        // Shared helper: the absolute cell a LineBlueprint's first cell maps to.
+        private static CellPos plan_FirstTarget(Blueprint bp, CellPos origin)
+        {
+            return origin.Add(bp.Cells[0].Relative);
         }
 
         private static void TestCancelMidBuildRollsBack()
@@ -524,12 +698,14 @@ namespace BuilderAssistant.Tests
             task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch); // cells 0..31 applied
 
             CellPos appliedCell = new CellPos(1010, 60, 1000); // already placed
-            CellPos nextTarget = new CellPos(1032, 60, 1000);  // about to be written
             terrain.Blocked.Add(appliedCell); // its chunk unloads before rollback can reach it
-            terrain.Blocked.Add(nextTarget);  // triggers the mid-build failure
+            // Trigger a HARD mid-build failure (a recoverable block would now just stall):
+            // shrink the extent below the next target so it is a non-recoverable InvalidCell,
+            // while every already-placed cell (x<=1031) remains within bounds.
+            terrain.ExtentLimit = 1031;
 
             task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
-            Check(task.State == BuildTaskState.Failed, "task fails when the next target is uneditable");
+            Check(task.State == BuildTaskState.Failed, "task fails when the next target becomes hard-uneditable");
             Check(task.PendingRollbackCount == 1,
                 "the one blocked already-placed cell is parked, not silently forgotten (got " +
                 task.PendingRollbackCount + ")");

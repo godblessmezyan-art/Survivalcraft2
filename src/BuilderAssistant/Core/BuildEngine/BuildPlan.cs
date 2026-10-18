@@ -26,23 +26,45 @@ namespace BuilderAssistant.Core.BuildEngine
         /// </summary>
         public bool AllEditabilityFailuresRecoverable { get; private set; }
 
+        /// <summary>
+        /// v0.6.3 clear-soft mode: how many non-air target cells are walk-through
+        /// plants/snow that this plan will REPLACE (only meaningful on a successful
+        /// plan with clear-soft enabled). Solid terrain / player structures are never
+        /// counted here because they abort the plan. The runtime surfaces this to the
+        /// user in the second-tap confirmation so clearing vegetation is always visible.
+        /// </summary>
+        public int SoftClearedCount { get; private set; }
+
+        /// <summary>
+        /// v0.6.3: true when the ONLY thing blocking the plan is soft obstructions
+        /// (grass/flowers/tall grass/dead bushes/snow layers) that clear-soft mode could
+        /// replace. Hard conflicts (solid terrain, player structures) and unknown
+        /// materials leave this false, so the runtime only ever offers the "clear
+        /// vegetation" confirmation for the genuinely safe case.
+        /// </summary>
+        public bool FailedBySoftObstruction { get; private set; }
+
         private BuildPlan(
             bool success,
             string reason,
             List<PlannedChange> changes,
             List<CellEditability> editabilityFailures,
-            bool allRecoverable)
+            bool allRecoverable,
+            int softClearedCount,
+            bool softFail)
         {
             Success = success;
             FailureReason = reason;
             Changes = changes;
             EditabilityFailures = editabilityFailures ?? new List<CellEditability>();
             AllEditabilityFailuresRecoverable = allRecoverable;
+            SoftClearedCount = softClearedCount;
+            FailedBySoftObstruction = softFail;
         }
 
         public static BuildPlan Fail(string reason)
         {
-            return new BuildPlan(false, reason, null, null, false);
+            return new BuildPlan(false, reason, null, null, false, 0, false);
         }
 
         /// <summary>
@@ -55,12 +77,27 @@ namespace BuilderAssistant.Core.BuildEngine
             List<CellEditability> editabilityFailures,
             bool allRecoverable)
         {
-            return new BuildPlan(false, reason, null, editabilityFailures, allRecoverable);
+            return new BuildPlan(false, reason, null, editabilityFailures, allRecoverable, 0, false);
+        }
+
+        /// <summary>
+        /// v0.6.3: failure caused purely by soft obstructions (plants/snow) sitting in
+        /// the footprint while clear-soft is off. The runtime may offer to enable
+        /// clear-soft and re-plan; solid/structure conflicts never come through here.
+        /// </summary>
+        public static BuildPlan FailSoftBlocked(string reason)
+        {
+            return new BuildPlan(false, reason, null, null, false, 0, true);
         }
 
         public static BuildPlan Ok(List<PlannedChange> changes)
         {
-            return new BuildPlan(true, null, changes, null, false);
+            return Ok(changes, 0);
+        }
+
+        public static BuildPlan Ok(List<PlannedChange> changes, int softClearedCount)
+        {
+            return new BuildPlan(true, null, changes, null, false, softClearedCount, false);
         }
     }
 

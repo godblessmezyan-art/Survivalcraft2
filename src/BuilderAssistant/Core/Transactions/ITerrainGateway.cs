@@ -27,6 +27,14 @@ namespace BuilderAssistant.Core.Transactions
         /// <summary>Cell currently holds air (contents == 0).</summary>
         bool IsCellAir(CellPos cell);
 
+        /// <summary>
+        /// Cell holds a non-air but "soft" obstruction that is safe to clear for building
+        /// — plants / snow / other walk-through blocks the engine marks non-collidable.
+        /// v0.6.3 clear-soft mode may replace these; solid terrain and player structures
+        /// (IsCollidable) must return false here so they are never silently wiped.
+        /// </summary>
+        bool IsCellSoftObstruction(CellPos cell);
+
         /// <summary>Read the current packed cell value, or false if unreadable.</summary>
         bool TryGetCellValue(CellPos cell, out int value);
 

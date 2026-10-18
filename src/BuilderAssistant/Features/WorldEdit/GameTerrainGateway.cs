@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Game;
 using BuilderAssistant.Core;
 using BuilderAssistant.Core.Safety;
@@ -17,6 +18,13 @@ namespace BuilderAssistant.Features.WorldEdit
     {
         private readonly SubsystemTerrain _subsystemTerrain;
         private readonly Terrain _terrain;
+
+        // Cached BlockIndex -> Block map over BlocksManager.Blocks, built once on the
+        // main thread. Used by IsCellSoftObstruction to decide whether a non-air cell
+        // is a walk-through plant/snow (safe to clear) or solid/structural (protect).
+        // Keyed by Block.BlockIndex (NOT the array slot) so the mapping is exact even
+        // if the array order ever diverges from the numeric ids.
+        private static Dictionary<int, Block> _idToBlock;
 
         public GameTerrainGateway(SubsystemTerrain subsystemTerrain)
         {
@@ -91,6 +99,69 @@ namespace BuilderAssistant.Features.WorldEdit
                 return false;
             }
             return Terrain.ExtractContents(value) == 0;
+        }
+
+        /// <summary>
+        /// Resolve a terrain contents value (a BlockIndex) to its real Block through a
+        /// lazily built cache. Returns null when the id is unknown so callers fail safe.
+        /// Only ever touched on the main thread, so no locking is required.
+        /// </summary>
+        private static Block BlockById(int blockIndex)
+        {
+            var map = _idToBlock;
+            if (map == null)
+            {
+                map = new Dictionary<int, Block>();
+                Block[] blocks = BlocksManager.Blocks;
+                if (blocks != null)
+                {
+                    for (int i = 0; i < blocks.Length; i++)
+                    {
+                        Block b = blocks[i];
+                        if (b != null && !map.ContainsKey(b.BlockIndex))
+                        {
+                            map[b.BlockIndex] = b;
+                        }
+                    }
+                }
+                _idToBlock = map;
+            }
+            Block found;
+            return map.TryGetValue(blockIndex, out found) ? found : null;
+        }
+
+        /// <summary>
+        /// A "soft obstruction" is a non-air cell a walk-through block occupies — grass,
+        /// flowers, tall grass, dead bushes, snow layers and similar plants the engine
+        /// flags IsCollidable == false. In clear-soft mode the builder may replace these.
+        /// Air (contents 0) is handled elsewhere (returns false here so the "target not
+        /// air" bookkeeping stays accurate); fluids are deliberately protected so a build
+        /// never silently drains water; and every solid/collidable block — real terrain
+        /// and any player structure — returns false so it is never wiped. An unresolvable
+        /// id also returns false (fail safe: never clear what we cannot classify).
+        /// </summary>
+        public bool IsCellSoftObstruction(CellPos cell)
+        {
+            int value;
+            if (!TryGetCellValue(cell, out value))
+            {
+                return false;
+            }
+            int contents = Terrain.ExtractContents(value);
+            if (contents == 0)
+            {
+                return false; // air — not an obstruction at all
+            }
+            Block block = BlockById(contents);
+            if (block == null)
+            {
+                return false; // unknown block -> protect, never auto-clear
+            }
+            if (block is FluidBlock)
+            {
+                return false; // water/lava -> never silently removed
+            }
+            return !block.IsCollidable; // walk-through plants/snow only
         }
 
         public bool TryGetCellValue(CellPos cell, out int value)

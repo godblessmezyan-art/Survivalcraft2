@@ -54,6 +54,14 @@ namespace BuilderAssistant.Features.WorldEdit
         private static bool _hasPending;
         private static CellPos _pendingOrigin;
 
+        // v0.6.3 clear-soft: when a footprint is blocked only by walk-through plants/snow,
+        // the user can opt (via an extra confirmation tap) to let the build replace them.
+        // Never enabled by default; solid terrain and player structures are unaffected.
+        private static bool _clearSoftArmed;
+
+        // The clear-soft intent carried across a bounded chunk-wait re-plan.
+        private static bool _preflightClearSoft;
+
         /// <summary>
         /// Called from the BlocksInitalized hook and whenever a new world session
         /// re-initializes blocks. Rebuilds the palette against the fresh
@@ -82,6 +90,8 @@ namespace BuilderAssistant.Features.WorldEdit
             ClearPreflight();
             _hasPending = false;
             _pendingOrigin = default(CellPos);
+            _clearSoftArmed = false;
+            _preflightClearSoft = false;
             _history.Clear();
         }
 
@@ -133,6 +143,7 @@ namespace BuilderAssistant.Features.WorldEdit
             {
                 _pendingOrigin = ComputeOrigin(surface);
                 _hasPending = true;
+                _clearSoftArmed = false;
                 Notify(gui, "落点已选定 " + _pendingOrigin + "。再次点击建造工具以确认施工。");
                 return true;
             }
@@ -297,12 +308,22 @@ namespace BuilderAssistant.Features.WorldEdit
 
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
+            bool clearSoft = _clearSoftArmed;
 
-            BuildPlan plan = BuildPlanner.Plan(blueprint, origin, _palette, gateway, false);
+            BuildPlan plan = BuildPlanner.Plan(blueprint, origin, _palette, gateway, false, clearSoft);
             if (plan.Success)
             {
-                StartBuild(plan, blueprint, gateway, origin);
-                Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount + " 个方块。");
+                StartBuild(plan, blueprint, gateway, origin, clearSoft);
+                if (plan.SoftClearedCount > 0)
+                {
+                    Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount +
+                        " 个方块；将清理 " + plan.SoftClearedCount + " 处植被/积雪（不影响实心方块与建筑）。");
+                }
+                else
+                {
+                    Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount + " 个方块。");
+                }
+                _clearSoftArmed = false;
                 return;
             }
 
@@ -314,19 +335,35 @@ namespace BuilderAssistant.Features.WorldEdit
                 _preflightGateway = gateway;
                 _preflightBlueprint = blueprint;
                 _preflightOrigin = origin;
+                _preflightClearSoft = clearSoft;
                 _preflightFramesLeft = MaxPreflightFrames;
                 Notify(gui, "建筑范围尚未全部就绪（可能跨越多个区块），正在等待区块加载，最多 " +
                     MaxPreflightFrames + " 帧后自动放弃。当前诊断：" + plan.FailureReason);
                 return;
             }
 
+            // Blocked ONLY by walk-through plants/snow, and the user has not yet opted to
+            // clear them: arm clear-soft and require one more confirmation tap on the same
+            // origin. This keeps the AGENTS "no default overwrite" rule while letting the
+            // player proceed with an explicit, reversible extra tap.
+            if (plan.FailedBySoftObstruction && !clearSoft)
+            {
+                _clearSoftArmed = true;
+                _pendingOrigin = origin;
+                _hasPending = true;
+                Notify(gui, "目标区域有植被/积雪覆盖，默认不清理。再次点击建造工具可确认「清理植被后重建」" +
+                    "（只会替换草/花/枯枝/雪等可穿过方块，绝不破坏实心地形或你的建筑）。");
+                return;
+            }
+
+            _clearSoftArmed = false;
             Notify(gui, "规划失败，未改动世界：" + plan.FailureReason);
         }
 
-        private static void StartBuild(BuildPlan plan, Blueprint blueprint, GameTerrainGateway gateway, CellPos origin)
+        private static void StartBuild(BuildPlan plan, Blueprint blueprint, GameTerrainGateway gateway, CellPos origin, bool clearSoft)
         {
             _activeGateway = gateway;
-            _activeTask = new BuildTask(blueprint.Name, origin, plan.Changes, false);
+            _activeTask = new BuildTask(blueprint.Name, origin, plan.Changes, false, clearSoft);
         }
 
         private static void AdvancePreflight(ComponentGui gui)
@@ -337,8 +374,9 @@ namespace BuilderAssistant.Features.WorldEdit
                 return;
             }
 
+            bool clearSoft = _preflightClearSoft;
             BuildPlan plan = BuildPlanner.Plan(
-                _preflightBlueprint, _preflightOrigin, _palette, _preflightGateway, false);
+                _preflightBlueprint, _preflightOrigin, _palette, _preflightGateway, false, clearSoft);
 
             if (plan.Success)
             {
@@ -346,9 +384,17 @@ namespace BuilderAssistant.Features.WorldEdit
                 Blueprint blueprint = _preflightBlueprint;
                 GameTerrainGateway gateway = _preflightGateway;
                 ClearPreflight();
-                StartBuild(plan, blueprint, gateway, origin);
-                Notify(gui, "区块已就绪，开始建造 " + blueprint.Name + "，共 " +
-                    blueprint.CellCount + " 个方块。");
+                StartBuild(plan, blueprint, gateway, origin, clearSoft);
+                if (plan.SoftClearedCount > 0)
+                {
+                    Notify(gui, "区块已就绪，开始建造 " + blueprint.Name + "，共 " +
+                        blueprint.CellCount + " 个方块；将清理 " + plan.SoftClearedCount + " 处植被/积雪。");
+                }
+                else
+                {
+                    Notify(gui, "区块已就绪，开始建造 " + blueprint.Name + "，共 " +
+                        blueprint.CellCount + " 个方块。");
+                }
                 return;
             }
 
@@ -375,6 +421,7 @@ namespace BuilderAssistant.Features.WorldEdit
             _preflightBlueprint = null;
             _preflightOrigin = default(CellPos);
             _preflightFramesLeft = 0;
+            _preflightClearSoft = false;
         }
 
         private static void FinalizeActive(ComponentGui gui)
