@@ -1,4 +1,4 @@
-# Builder Assistant 架构说明（v0.7.0）
+# Builder Assistant 架构说明（v0.8.0）
 
 本文只描述 Builder Assistant 的自动建造基础，不涉及 SCIE-Port。目标是“可靠、可撤销的离线自动建造”，不做云、AI 或复杂 UI。v0.6.0 在不改动这条主线的前提下，专门处理“目标区块未加载或越界”这一 P0：把失败原因细分到每一格、允许主线程有限等待区块加载、并让回滚/撤销可追踪并重试未完成的部分。
 
@@ -27,6 +27,7 @@ src/BuilderAssistant/
     Blueprints/BlueprintCell.cs      (相对坐标 + 逻辑材料键)
     Blueprints/BuildingMaterials.cs  逻辑材料键常量
     Blueprints/BlueprintJson.cs      蓝图↔JSON(schemaVersion=1) 序列化/解析/校验，永不抛异常（v0.7.0，纯 Core）
+    Blueprints/BlueprintLibraryBrowser.cs 蓝图库游标纯逻辑：把 (条目数, 当前游标) 映射为下一次点击要载入的索引，空库返回 -1、到末尾回绕；不含文件/游戏/UI 依赖，可离线单测（v0.8.0）
     Json/Json.cs                     零依赖严格 JSON 解析器 + 确定性写器（v0.7.0，net472 无 System.Text.Json）
     Transactions/ITerrainGateway.cs  唯一地形读写抽象（新增 InspectCell 诊断，测试用内存实现）
     Transactions/CellEditability.cs  每格不可编辑原因的枚举+结构（越界/缺失/状态/未加载，v0.6.0）
@@ -43,9 +44,9 @@ src/BuilderAssistant/
     WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）；TypeNameForContents/DescribeContents 供复制读取（v0.7.0）
     WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值；SupportedPlainCubes 保守白名单 + IsResolvableKey 预检（v0.7.0）
     WorldEdit/BlueprintCopier.cs     两角选区读实时方块→纯 Blueprint，仅复制白名单立方块，其余逐类跳过并报告（v0.7.0）
-    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）
-    WorldEdit/BuilderToolBlock.cs(901) / UndoToolBlock.cs(902)
-    WorldEdit/SubsystemBuilderToolBlockBehavior.cs / SubsystemUndoToolBlockBehavior.cs
+    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）；`OnBlueprintTool` + `CycleImportLibrary` 蓝图库逐次点击浏览/载入（v0.8.0）
+    WorldEdit/BuilderToolBlock.cs(901) / UndoToolBlock.cs(902) / BlueprintToolBlock.cs(903，手持即浏览/导入蓝图，本身从不写地形)
+    WorldEdit/SubsystemBuilderToolBlockBehavior.cs / SubsystemUndoToolBlockBehavior.cs / SubsystemBlueprintToolBlockBehavior.cs
   Infrastructure/
     BlueprintStorage.cs              蓝图 JSON 落盘：基目录取 ModsManager.UserDataPath + Mod 私有子目录，绝不硬编码设备路径；IO 全 try/catch（v0.7.0）
   Mod/BuilderAssistantModLoader.cs   注册 GuiUpdate + BlocksInitalized；快艇逻辑保持原样
@@ -86,8 +87,21 @@ v0.6.0 用三件事应对，均不改“写前先全量校验”的铁律：
 
 生成侧的可扩展性同样保留：`Blueprint.Reorient` 支持旋转/镜像，`GenerationContext` 留 `Seed` 与 `MaterialOverrideKey`，新增结构只需再写一个 `IBuildingGenerator`。
 
+## 外部 AI → 导入 → 落成 闭环（v0.8.0 已实现）
+
+v0.7.0 打通了“蓝图↔JSON↔磁盘↔世界”的数据桥，但**游戏内没有触屏入口**去调用导入——`ImportBlueprint` 只能被程序化调用。v0.8.0 补上这最后一环，让“外部 AI 生成蓝图 → 丢进手机 → 导入 → 落成建筑”无需任何桌面工具即可闭环。
+
+关键约束：x25.01.17 的 ABI 只暴露“点方块 `OnUse`”+“一行小消息 `DisplaySmallMessage`”，**没有文本框、文件选择器或对话框**。所以导入必须做成触屏交互。方案是新增第三个手持工具——蓝图工具（item 903，`BlueprintToolBlock`）：
+
+- 每次 `OnUse`（点任意方块面即触发，命中点不作为选块，只借主线程）经 `WorldEditRuntime.OnBlueprintTool` → `CycleImportLibrary`：先用 `BlueprintStorage.ListNames` 读一次蓝图库。
+- **空库**：把真实基目录 `BlueprintStorage.BaseDirectory` 打印一次（`ModsManager.UserDataPath` 下的 Mod 私有子目录，绝不硬编码设备路径），提示玩家用安卓自带文件管理器把 AI 生成的 `.json` 放进去（文件名限字母/数字/下划线/连字符，≤48，纯 ASCII）。
+- **非空**：用纯逻辑 `BlueprintLibraryBrowser.Advance` 让游标前进一位（到末尾回绕到 0），并**立即 `ImportBlueprint` 载入该条**——内部 `BlueprintJson.Decode` 全量校验 + 材料预检。成功则播报“已载入蓝图 [i/N]「name」 尺寸 X×Y×Z，共 n 方块”，并给出下一步指引；非法/AI 劣质文件（坏 JSON、超界、不支持方块、材料悬空）则**响亮拒绝、绝不改动剪贴板、绝不部分导入**，游标仍前进以跳过坏文件。
+- 载入后**仍用建造工具(901)对准地面两次点击落成**，走与小屋**完全相同**的 `PlanAndStart`→`BuildPlanner`→`BuildTask`→撤销链，全部安全规则一致；蓝图工具本身只读文件+校验，**从不写地形**。
+
+两处**待验证**（真机）：① 安卓 scoped storage 下系统文件管理器能否写入 `UserDataPath`；② item 903 是否与设备上其它 mod 的索引冲突。
+
 ## 仍为预留（未来阶段）
 
 - 台阶/半砖/带朝向原木/栅栏/植物/流体/含实体方块等的复制与粘贴：需先在真机逐块验证渲染与朝向数据位，再扩 `SupportedPlainCubes`。
-- 设备内的模式切换 / 旋转选择 / 蓝图浏览 UI：当前用“空闲点撤销工具循环模式 + 程序化 `SetPasteRotation`/`ImportBlueprint`”过渡，正式触屏面板待做。
-- AI 建筑生产者：让其直接产出 `schemaVersion=1` 的蓝图 JSON，经同一导入→校验→粘贴链落建；模型只负责“设计”，可靠复现与安全性由本桥与既有引擎保证。
+- 设备内的正式触屏面板（显式模式切换 / 旋转选择器）：当前以“蓝图工具(903)逐次点击浏览+载入 + 空闲点撤销工具循环模式 + 程序化 `SetPasteRotation`”过渡，正式触屏面板待做。
+- AI 建筑生产者：导入侧已由蓝图工具打通——模型只需产出 `schemaVersion=1` 的蓝图 JSON 并丢进蓝图库，即可经同一导入→校验→粘贴链落建；模型负责“设计”，可靠复现与安全性由本桥与既有引擎保证。

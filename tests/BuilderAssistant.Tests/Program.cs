@@ -203,6 +203,13 @@ namespace BuilderAssistant.Tests
             TestBlueprintJsonRejectsSizeMismatch();
             TestBlueprintJsonRotationTransformReproduces();
 
+            // v0.8.0: the in-game blueprint tool browses the library folder by tapping.
+            // Prove the pure cursor (advance/wrap/empty) and its "[i/N]" toast label are
+            // correct without touching files or the game. See Core/Blueprints/
+            // BlueprintLibraryBrowser + WorldEditRuntime.CycleImportLibrary.
+            TestBlueprintLibraryBrowserAdvance();
+            TestBlueprintLibraryBrowserPositionLabel();
+
             Console.WriteLine();
             Console.WriteLine(_failures == 0
                 ? "ALL " + _checks + " CHECKS PASSED"
@@ -1028,6 +1035,57 @@ namespace BuilderAssistant.Tests
             string rjson = BlueprintJson.Serialize(rotDecoded);
             BlueprintJsonDecodeResult r = BlueprintJson.Decode(rjson);
             Check(r.Success && SameCellSet(rotDecoded, r.Blueprint), "a rotated blueprint round-trips through JSON identically");
+        }
+
+        // --- v0.8.0: the blueprint tool's library browser (pure, no files/UI). ---
+
+        // The cursor that walks the blueprint folder on each tap: an empty library is
+        // nothing to load (-1), a fresh session (cursor -1) starts at the first entry,
+        // taps move forward monotonically, and the last entry wraps back to the first.
+        private static void TestBlueprintLibraryBrowserAdvance()
+        {
+            Console.WriteLine("[TestBlueprintLibraryBrowserAdvance]");
+
+            Check(BlueprintLibraryBrowser.Advance(0, -1) == -1, "an empty library (count 0) loads nothing (-1)");
+            Check(BlueprintLibraryBrowser.Advance(-3, 2) == -1, "a negative count is treated as empty (-1)");
+
+            // Fresh session: cursor starts at -1, first tap selects index 0.
+            Check(BlueprintLibraryBrowser.Advance(3, -1) == 0, "first tap from a fresh cursor (-1) selects entry 0");
+
+            // Monotonic forward stepping.
+            Check(BlueprintLibraryBrowser.Advance(3, 0) == 1, "second tap advances 0 -> 1");
+            Check(BlueprintLibraryBrowser.Advance(3, 1) == 2, "third tap advances 1 -> 2");
+
+            // Wrap-around: from the last entry the next tap returns to the first.
+            Check(BlueprintLibraryBrowser.Advance(3, 2) == 0, "a tap past the last entry wraps back to 0");
+
+            // Single-entry library always stays on 0 (browse is a no-op but never -1).
+            Check(BlueprintLibraryBrowser.Advance(1, 0) == 0, "a one-entry library always resolves to index 0");
+
+            // Simulate N taps over a 2-entry library: sequence must be 0,1,0,1,...
+            int cursor = -1;
+            bool alternates = true;
+            for (int i = 0; i < 6; i++)
+            {
+                cursor = BlueprintLibraryBrowser.Advance(2, cursor);
+                int expected = i % 2; // 0,1,0,1,0,1
+                if (cursor != expected) alternates = false;
+            }
+            Check(alternates, "six taps over a 2-entry library alternate 0,1,0,1,0,1 (clean cycling)");
+        }
+
+        // The "[i/N]" position shown in the import toast: 1-based display index, and an
+        // empty string whenever there is nothing valid to show (guards malformed state).
+        private static void TestBlueprintLibraryBrowserPositionLabel()
+        {
+            Console.WriteLine("[TestBlueprintLibraryBrowserPositionLabel]");
+
+            Check(BlueprintLibraryBrowser.PositionLabel(4, 0) == "[1/4]", "first entry of four shows [1/4]");
+            Check(BlueprintLibraryBrowser.PositionLabel(4, 3) == "[4/4]", "last entry of four shows [4/4]");
+            Check(BlueprintLibraryBrowser.PositionLabel(1, 0) == "[1/1]", "a single entry shows [1/1]");
+            Check(BlueprintLibraryBrowser.PositionLabel(0, 0) == string.Empty, "an empty library yields no label");
+            Check(BlueprintLibraryBrowser.PositionLabel(4, -1) == string.Empty, "a pre-selection cursor (-1) yields no label");
+            Check(BlueprintLibraryBrowser.PositionLabel(4, 9) == string.Empty, "an out-of-range cursor yields no label (defensive)");
         }
 
         // --- helpers ---

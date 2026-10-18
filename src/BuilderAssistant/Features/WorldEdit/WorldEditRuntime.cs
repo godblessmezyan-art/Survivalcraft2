@@ -93,6 +93,14 @@ namespace BuilderAssistant.Features.WorldEdit
         private static bool _copyHasA;
         private static CellPos _copyCornerA;
 
+        // v0.8 blueprint-tool import browser: the cached library file list, the cursor
+        // the last tap left us on (-1 = nothing loaded yet, so the first tap picks the
+        // first file), and whether we have already printed the library path so the
+        // player is not spammed with it on every empty-library tap.
+        private static System.Collections.Generic.List<string> _blueprintLibNames;
+        private static int _blueprintCursor = -1;
+        private static bool _blueprintPathShown;
+
         /// <summary>
         /// Called from the BlocksInitalized hook and whenever a new world session
         /// re-initializes blocks. Rebuilds the palette against the fresh
@@ -133,6 +141,12 @@ namespace BuilderAssistant.Features.WorldEdit
             _clipboardSourceName = null;
             _copyHasA = false;
             _copyCornerA = default(CellPos);
+
+            // Reset the v0.8 import browser too: a fresh world re-scans the library and
+            // is allowed to print the path hint once again.
+            _blueprintLibNames = null;
+            _blueprintCursor = -1;
+            _blueprintPathShown = false;
         }
 
         /// <summary>
@@ -779,6 +793,106 @@ namespace BuilderAssistant.Features.WorldEdit
             SetMode(RuntimeMode.Paste, gui);
             Notify(gui, "已导入蓝图「" + bp.Name + "」，共 " + bp.CellCount + " 个方块。");
             return true;
+        }
+
+        /// <summary>
+        /// Blueprint-tool (item 903) tap: browse and import saved blueprint JSON. This
+        /// is the on-device entry point that closes the loop "external AI writes a
+        /// .json -&gt; drop it in the library folder -&gt; tap to load -&gt; build tool to
+        /// place". It only reads and validates files; it never touches terrain, so a
+        /// browse can't damage the world. Busy states (a build running or a chunk wait)
+        /// are respected and deferred, exactly like the other tools.
+        /// </summary>
+        public static bool OnBlueprintTool(ComponentMiner miner, Ray3 ray)
+        {
+            ComponentGui gui = miner != null && miner.ComponentPlayer != null
+                ? miner.ComponentPlayer.ComponentGui
+                : null;
+
+            if (!IsSinglePlayer(gui))
+            {
+                return true;
+            }
+
+            if ((_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0)
+            {
+                Notify(gui, "施工或等待区块就绪中，请先用撤销工具处理完当前建造，再浏览导入蓝图。");
+                return true;
+            }
+
+            if (_palette == null)
+            {
+                Notify(gui, "世界尚未初始化完毕，请稍候再试。");
+                return true;
+            }
+
+            CycleImportLibrary(gui);
+            return true;
+        }
+
+        private static void CycleImportLibrary(ComponentGui gui)
+        {
+            string listError;
+            System.Collections.Generic.List<string> names = BlueprintStorage.ListNames(out listError);
+
+            // Library listing itself failed (e.g. no user-data path yet): tell the
+            // player once and stop, rather than silently doing nothing on every tap.
+            if (listError != null)
+            {
+                Notify(gui, "无法访问蓝图库：" + listError);
+                return;
+            }
+
+            _blueprintLibNames = names;
+
+            if (names.Count == 0)
+            {
+                string dir = BlueprintStorage.BaseDirectory;
+                if (!_blueprintPathShown)
+                {
+                    _blueprintPathShown = true;
+                    Notify(gui, "蓝图库是空的。请用系统文件管理器把 AI 生成的 .json 放进：" +
+                        (dir ?? "(游戏尚未提供用户数据目录)") +
+                        "（文件名仅限字母/数字/下划线/连字符，≤48 字符）。放好后再次点击本工具即可载入。");
+                }
+                else
+                {
+                    Notify(gui, "蓝图库仍为空。把 .json 放进：" + (dir ?? "(未知目录)") + " 后再点本工具。");
+                }
+                _blueprintCursor = -1;
+                return;
+            }
+
+            // We have files. If the previous selection no longer exists (library shrank),
+            // restart the cursor so Advance lands cleanly on the first entry.
+            if (_blueprintCursor >= names.Count) _blueprintCursor = -1;
+
+            int next = BlueprintLibraryBrowser.Advance(names.Count, _blueprintCursor);
+            if (next < 0 || next >= names.Count)
+            {
+                _blueprintCursor = -1;
+                return;
+            }
+
+            string stem = names[next];
+            // ImportBlueprint validates (parse + material resolvability), refuses bad
+            // files WITHOUT touching the clipboard, and on success sets Paste mode.
+            if (ImportBlueprint(stem, gui))
+            {
+                _blueprintCursor = next;
+                Blueprint bp = _clipboard;
+                string label = BlueprintLibraryBrowser.PositionLabel(names.Count, next);
+                Notify(gui, "已载入蓝图 " + label + "「" + bp.Name + "」 尺寸 " +
+                    bp.SizeX + "×" + bp.SizeY + "×" + bp.SizeZ + "，共 " + bp.CellCount +
+                    " 方块。再点本工具切换下一个；满意后改用建造工具(901)对准地面两次点击即可落成（可撤销）。");
+            }
+            else
+            {
+                // A bad file must not strand the cursor on it forever; move past it so
+                // the next tap tries a different entry, and the player sees the reason
+                // (ImportBlueprint already announced the specific failure).
+                _blueprintCursor = next;
+            }
         }
 
         /// <summary>Export the current clipboard blueprint to the Mod JSON library.</summary>

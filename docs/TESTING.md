@@ -302,3 +302,48 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-XdbGuards.p
 # net472 打包（游戏目录 D:\SC）
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
 ```
+
+## 2026-10-18：v0.8.0 蓝图工具（外部 AI → 导入 → 落成 闭环）
+
+范围：仅 `src/BuilderAssistant/`（新增 `Features/WorldEdit/BlueprintToolBlock.cs`(903) 与 `SubsystemBlueprintToolBlockBehavior.cs`、纯 Core `Core/Blueprints/BlueprintLibraryBrowser.cs`；升级 `WorldEditRuntime` 加 `OnBlueprintTool`+`CycleImportLibrary` 及浏览游标状态并在 `ResetSession` 清空；`Assets/Blocks/BuilderTools.csv` 新增一行；`Assets/Database/Building.xdb` 新增行为 `SubsystemTemplate` + `Class` 参数 + `Project` 成员，三者用全新且彼此唯一的 GUID）与 `tests/BuilderAssistant.Tests/`。未改 SCIE-Port、未改快艇数据、未触及联机；蓝图工具只读文件+校验、**从不写地形**；载入的蓝图仍经与小屋**完全相同**的 `PlanAndStart`→`BuildPlanner`→`BuildTask`→`TransactionHistory` 主链落成，安全规则（单人门禁、仅主线程、默认不覆盖+显式确认、写前全量校验、有界区块等待、clear-soft、延迟回滚/撤销）一字不改。目标：补上游戏内触屏导入入口，闭环“外部 AI 生成 `.json` → 系统文件管理器投递 → 蓝图工具浏览/载入/校验 → 建造工具两次落成”。
+
+### 1. 新增离线逻辑测试（真实执行，本机）
+
+- 命令：`"$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests`（测试工程新增编译 `Core/Blueprints/BlueprintLibraryBrowser.cs`，仍不引用游戏程序集）。
+- 结果：`ALL 147 CHECKS PASSED`（在原 133 项基础上新增 14 项，全部针对纯游标 `BlueprintLibraryBrowser.Advance`/`PositionLabel`）。
+- 新增用例覆盖：空库 `count<=0` 返回 -1、负数按空处理、游标 -1 首点选 0、单调前进 0→1→2、到末尾回绕 2→0、单条目恒为 0、两条目连点六次严格交替 `0,1,0,1,0,1`；`[i/N]` 标签：首条 `[1/4]`、末条 `[4/4]`、单条 `[1/1]`，空库 / 预选游标 -1 / 越界游标一律返回空串（防御）。不依赖文件 IO 或游戏程序集。
+
+### 2. Building.xdb 独立校验（临时 .ps1，本机）
+
+- 用 `XmlDocument.Load` 确认新 `Building.xdb` **XML 合法**；正则抽取全部 `Guid="…"`（11 个）逐一小写去重——`NO_DUPLICATE_GUIDS_IN_FILE`；并确认三个新 GUID 均在位：子系统模板 `c1f4a9d6-8b7a-4f11-9c3d-5a1b2e77f4c9`、Class 参数 `9d6b253e-47f8-4f1d-a29b-47e51cf0c6d8`、Project 成员 `6a7b1b7f-4143-459e-83ac-1c22f6d9b0e1`。
+- **环境坑（复现既有铁律）**：此前试图用 `powershell -Command '...'`（经 bash）内联跑校验，正则里的反斜杠转义双引号在 bash 单引号包裹下把 PowerShell 解析打崩（`MissingEndParenthesisInMethodCall` 等乱码报错，exit 1）。改把校验写进临时 `.ps1` 用 `-File` 运行即稳定通过——与记忆里“PS 命令经 bash 须整体单引号、复杂内容落 `.ps1` 文件”一致。
+
+### 3. XDB 合并安全守卫回归（本机）
+
+- 命令：`powershell -File scripts/Test-XdbGuards.ps1` → `CHECKS: 7 passed, 0 failed`。第 1 项对**真实随包** `Building.xdb`/`Speedboat.xdb`（已含新 `BlueprintToolBlockBehavior`）判定 **0 冲突**；第 5b 项继续验证“跨文件重复 `<Parameter>` GUID”会被抓；第 6 项确认合法的共享父级 `fefb9590…`（引擎方块行为基类）复用**不误报**。v0.6.1 参数 GUID 修复未回退。
+
+### 4. net472 游戏侧编译（本机，引用 D:\SC 真实程序集）
+
+- 命令：`dotnet build -c Release -p:SCNetGameDir='D:\SC'` → `已成功生成，0 个警告，0 个错误`。编译期即确认 `BlueprintToolBlock : PaintedCubeBlock(15)` 基类、`SubsystemBlockBehavior.OnUse(Engine.Ray3, ComponentMiner)`/`HandledBlocks`、`Terrain.ExtractContents`、`ComponentMiner.ActiveBlockValue`、`ComponentGui`、`Ray3` 等签名可用；item 903 与纹理槽 15 经编译验证。
+
+### 5. 全流程打包（本机，GameDir=D:\SC）
+
+- 命令（须走包装脚本以修正 dotnet 环境）：
+  ```powershell
+  powershell -File package_wrapper.ps1   # 内部先把 %LOCALAPPDATA%\Microsoft\dotnet(9.0.300) 前置 PATH、设 DOTNET_ROOT + DOTNET_ROLL_FORWARD=Major，再调用 scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release
+  ```
+- **环境坑（关键）**：直接跑 `Build-NetMod.ps1` 时其 `Test-Logic.ps1` 用 `& dotnet run`，PATH 上的 `dotnet` 解析到 `C:\Program Files\dotnet`（只装了 5.0.408/8.0.400，而 `global.json` 钉 9.0.300）→ 报 `A compatible .NET SDK was not found / Requested SDK version: 9.0.300`、逻辑测试 exit `-2147450735`。解法：用 wrapper `.ps1` 把带 9.0.300 的 `%LOCALAPPDATA%\Microsoft\dotnet` 前置到 PATH 并设 `DOTNET_ROOT`/`DOTNET_ROLL_FORWARD=Major`（bash `export` 传不进子 powershell，故必须在 `.ps1` 内设置）。
+- 结果：`Test-Environment` 通过（哈希匹配、2.4.0.0、net472、API 1.42、SC 2.4.10.6、快艇 ABI）、`ALL 147 CHECKS PASSED`、Release `0 错误 0 警告`、打包通过全部内容守卫：必需条目齐、CSV 方块类名唯一（`BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock`）、`Test-XdbMergeSafety` 对打包后真实 `.xdb` 全局 Guid 唯一性 0 问题、不含任何专有游戏程序集。
+- 随包核对：`modinfo Version=0.8.0`、DLL 程序集版本 0.8.0.0、Building.xdb `ea25b78e`=0、Speedboat.xdb 仅 1。
+- `.netmod`（v0.8.0）SHA-256：`D1FD40CF4EE61DC74E3C9F96106DE101900C829F596134466BB40220581AC700`（取代 v0.7.0 的 `4B227BB5…`）。交付副本：`outputs/BuilderAssistant_v0.8.0.netmod`（字节 2,336,310，哈希与上一致）。
+
+### 6. Android / 7723 实机（待验证）
+
+本轮未在任何设备执行验证；桌面离线全绿 + 编译期 ABI + 打包守卫 ≠ 手机可用。待实测：
+1. 装 v0.8.0，进单人创造世界，加载横幅应显示 v0.8.0（不再写死）。
+2. 手持蓝图工具点击 → 记下消息打印的真实蓝图库目录；用安卓自带文件管理器把合法蓝图 `.json`（纯 ASCII 文件名）放进该目录（**关键待验证：scoped storage 下该目录是否可被文件管理器写入**；不可写则逃生绳为 ADB push 到同一路径）。
+3. 再点蓝图工具 → 应报“已载入蓝图 [1/1]「name」 尺寸 …”；切建造工具对准地面两次点击 → 应落成，撤销工具整体回退。
+4. 放非法 JSON（不支持方块/超界/坏语法）→ 应“导入失败：<原因>”，且不污染剪贴板。
+5. 多份 `.json` → 连点蓝图工具循环浏览、到末尾回绕，`[i/N]` 计数正确。
+6. 建造/预检等待中点蓝图工具 → 应被挡下不误触发。
+若失败请回传首条 `Warning/Error` 原文 + 完整 `Game.log`（尤其 `DisplaySmallMessage` 里的真实路径，用于判定 scoped storage 可写性）。
