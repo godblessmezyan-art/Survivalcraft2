@@ -231,6 +231,16 @@ namespace BuilderAssistant.Tests
             TestNamePolicyResolveUniqueNeverOverwrites();
             TestNamePolicyStableHashDeterministic();
 
+            // v0.8.2: expand the copy/build whitelist to more plain stone/brick cubes.
+            // The palette (VanillaBlockPalette) itself needs the game assembly and is
+            // covered by the net472 build + on-device checklist; what this pure layer must
+            // PROVE is that adding concrete block-type-name keys — the exact key form the
+            // BlueprintCopier emits — is a whitelist-only change: BlueprintJson and
+            // BlueprintImportService reproduce arbitrary material keys verbatim and still
+            // let the resolver be the single gate that accepts or rejects each new name.
+            TestBlueprintJsonPreservesConcreteBlockNameKeys();
+            TestImportGateAcceptsOrRejectsNewConcreteKeys();
+
             Console.WriteLine();
             Console.WriteLine(_failures == 0
                 ? "ALL " + _checks + " CHECKS PASSED"
@@ -1230,6 +1240,80 @@ namespace BuilderAssistant.Tests
 
             BlueprintImportResult acceptAll = BlueprintImportService.FromString(json, AcceptAllMaterials);
             Check(acceptAll.Success, "the identical JSON imports when every material is supported");
+        }
+
+        // The 7 plain stone/brick cubes added to VanillaBlockPalette.SupportedPlainCubes in
+        // v0.8.2. The copier keys captured materials by their CLR type name, so these strings
+        // are EXACTLY the material keys a copy of such a structure will produce — the pure
+        // JSON/import layer must handle them with no special-casing.
+        private static readonly string[] NewPlainCubeKeys =
+        {
+            "BasaltBlock", "GraniteBlock", "MarbleBlock", "SandstoneBlock",
+            "ClayBlock", "LimestoneBlock", "MalachiteBlock"
+        };
+
+        private static string SortedMaterialKeys(Blueprint bp)
+        {
+            var keys = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < bp.Cells.Count; i++) keys.Add(bp.Cells[i].MaterialKey ?? string.Empty);
+            keys.Sort(System.StringComparer.Ordinal);
+            return string.Join("|", keys.ToArray());
+        }
+
+        private static void TestBlueprintJsonPreservesConcreteBlockNameKeys()
+        {
+            Console.WriteLine("[TestBlueprintJsonPreservesConcreteBlockNameKeys]");
+
+            // One cell per new concrete block-type name, plus a logical key for contrast.
+            var builder = new BlueprintBuilder();
+            for (int i = 0; i < NewPlainCubeKeys.Length; i++)
+            {
+                builder.Set(i, 0, 0, NewPlainCubeKeys[i]);
+            }
+            builder.Set(0, 1, 0, BuildingMaterials.StoneBase);
+            Blueprint original = builder.ToBlueprint("plain-cube-expansion", 1);
+
+            string json = BlueprintJson.Serialize(original);
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(decode.Blueprint != null, "a blueprint keyed by concrete block-type names decodes without error");
+            Check(decode.Blueprint != null && decode.Blueprint.CellCount == original.CellCount,
+                "the cell count survives the round trip");
+            Check(decode.Blueprint != null && SortedMaterialKeys(decode.Blueprint) == SortedMaterialKeys(original),
+                "every concrete block-type-name material key is reproduced verbatim (no schema/Decode change needed to expand the whitelist)");
+
+            // Stability: re-serializing the decoded blueprint reproduces the same key set.
+            string json2 = BlueprintJson.Serialize(decode.Blueprint);
+            BlueprintJsonDecodeResult re = BlueprintJson.Decode(json2);
+            Check(re.Blueprint != null && SortedMaterialKeys(re.Blueprint) == SortedMaterialKeys(original),
+                "the new block names remain stable across a second serialize/decode cycle");
+        }
+
+        private static void TestImportGateAcceptsOrRejectsNewConcreteKeys()
+        {
+            Console.WriteLine("[TestImportGateAcceptsOrRejectsNewConcreteKeys]");
+
+            var builder = new BlueprintBuilder();
+            for (int i = 0; i < NewPlainCubeKeys.Length; i++)
+            {
+                builder.Set(i, 0, 0, NewPlainCubeKeys[i]);
+            }
+            string json = BlueprintJson.Serialize(builder.ToBlueprint("gate-sample", 1));
+
+            // Accepting every new concrete name -> success (this is the whitelist expansion).
+            BlueprintImportResult accept = BlueprintImportService.FromString(json, AcceptAllMaterials);
+            Check(accept.Success, "the JSON imports once the resolver accepts the new block names");
+            Check(accept.Blueprint != null && accept.BlockCount == NewPlainCubeKeys.Length,
+                "all new blocks import as buildable cells (" + accept.BlockCount + "/" + NewPlainCubeKeys.Length + ")");
+
+            // Rejecting a single new name -> the resolver is the one gate; import fails and
+            // names the offending block. Proves adding a name to the palette can never slip
+            // through un-checked, and an unregistered block aborts cleanly rather than building.
+            BlueprintImportResult reject = BlueprintImportService.FromString(
+                json, delegate(string key) { return key != "MalachiteBlock"; });
+            Check(!reject.Success, "the import is gated when one new block is not supported");
+            Check(reject.Blueprint == null, "a gated new block yields NO partial blueprint");
+            Check(reject.Reason != null && reject.Reason.IndexOf("MalachiteBlock") >= 0,
+                "the failure reason names the specific unsupported block");
         }
 
         // The heart of "失败不污染剪贴板": on EVERY failure path the service returns

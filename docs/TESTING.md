@@ -378,3 +378,33 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
 ### 5. Android / 7723 实机（待验证）
 
 本轮未在任何设备执行验证；桌面全绿 + 编译期 ABI + 打包守卫 ≠ 手机可用。待实测见 `docs/COMPATIBILITY.md`「v0.8.1」清单，核心：**剪贴板读取(`Game.ClipboardManager`)在 7723 是否可用、拿到的是否系统剪贴板文本**——若不可用应自动回退到 v0.8.0 文件浏览（不阻塞可用版本）；真机文件落盘（scoped storage 写 `UserDataPath`）仍待验证；SAF 系统文件选择器为**不支持/未接入**（第二阶段）。
+
+## 2026-10-18：v0.8.2 扩充纯立方石/砖方块（Phase A，只扩白名单）
+
+范围：**仅** `src/BuilderAssistant/Features/WorldEdit/VanillaBlockPalette.cs`（`SupportedPlainCubes` 由 5→12，追加 Basalt/Granite/Marble/Sandstone/Clay/Limestone/Malachite）、`tests/BuilderAssistant.Tests/Program.cs`（新增 2 个纯逻辑测试）、`modinfo.json`/`csproj`（0.8.1→**0.8.2**）与 `docs/`。**未改** schema（仍 `schemaVersion=1`）、`GameTerrainGateway` 写路径（仍 `data=0/light=0`、不含颜色）、`BlueprintJson`/`BlueprintCopier`（材料键本就是 CLR 类型名）、`Building.xdb`（无新方块条目/行为）、SCIE-Port、快艇、联机、既有事务安全策略。依据：反射 `D:\SC\Survivalcraft.exe` 立方族全谱，只取 data=0 可完整复现、无朝向/实体/相态位的纯立方；实体/相态/重力/蔓延/不可破坏/朝向原木/AlphaTest 均明确排除。
+
+### 1. 新增离线逻辑测试（真实执行，本机）
+
+- 命令：`DOTNET_ROLL_FORWARD=Major` + `dotnet run -c Release --project tests/BuilderAssistant.Tests`（测试工程仍不引用游戏程序集）。
+- 结果：`ALL 203 CHECKS PASSED`（在 v0.8.1 的 194 项基础上新增 9 项，exit 0）。
+- 新增用例：`TestBlueprintJsonPreservesConcreteBlockNameKeys`——以 7 个具体方块类型名作 material key 造蓝图，`Serialize`→`Decode` 逐字复现全部 key、cell 数一致、再序列化二次稳定（证明**扩白名单无需改 schema/Decode**）；`TestImportGateAcceptsOrRejectsNewConcreteKeys`——同一 JSON 在 resolver 全放行时导入 7/7、在拒收其中一块时失败并 `blueprint=null` 且原因点名该块（证明 resolver 是唯一门控、未注册块只会干净中止绝不塞垃圾）。均不依赖游戏程序集或文件 IO。
+
+### 2. XDB 合并安全守卫回归（本机）
+
+- 命令：`powershell -File scripts/Test-XdbGuards.ps1` → `CHECKS: 7 passed, 0 failed`。本轮未改任何 `.xdb`，第 1 项对真实随包文件判 0 冲突，`ea25b78e` 仍 0、Speedboat 仍 1，v0.6.1 参数 GUID 修复未回退。
+
+### 3. net472 游戏侧编译（本机，引用 D:\SC 真实程序集）
+
+- `scripts/Test-Environment.ps1 -GameDir D:\SC` → 哈希匹配、程序集 2.4.0.0、net472、API 1.42、SC 2.4.10.6、快艇 ABI 全部通过。
+- `dotnet build -c Release -p:SCNetGameDir='D:\SC'` → `已成功生成，0 个警告，0 个错误`。`SupportedPlainCubes` 是 `HashSet<string>` 字面量，编译期即确认无语法/类型问题（新块名的实际可解析性经 `FindBlockByTypeName` 属**运行时**，故 7723 渲染仍待验证）。
+
+### 4. 全流程打包（本机，GameDir=D:\SC）
+
+- 命令：临时 `package_v082.ps1`（前置 `%LOCALAPPDATA%\Microsoft\dotnet` 到 PATH + `DOTNET_ROOT` + `DOTNET_ROLL_FORWARD=Major` 后调 `scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release`）。
+- 结果：逻辑 `ALL 203 CHECKS PASSED`、Release `0 错误 0 警告`、打包内容守卫全过——必需条目齐、CSV 方块类名唯一、打包后真实 `.xdb` 全局 Guid 唯一性 0 问题、不含任何专有游戏程序集。
+- 随包核对（解包 `outputs/BuilderAssistant_v0.8.2.netmod` 校验）：`modinfo Version=0.8.2`、`BuilderAssistant.dll` 程序集版本 `0.8.2.0`、`Building.xdb` `ea25b78e`=0、条目仅 8 项无游戏程序集。
+- `.netmod`（v0.8.2）SHA-256：`7FE91876B0C9A9AF93E750EC8DE0985E891207C2C925448C593C6C0ABDCD04AA`（2,339,153 字节，取代 v0.8.1 的 `E71E7386…`）。交付副本：`outputs/BuilderAssistant_v0.8.2.netmod`（哈希与上一致）。
+
+### 5. Android / 7723 实机（待验证）
+
+本轮未在任何设备执行验证；桌面全绿 + 编译期 ABI + 打包守卫 ≠ 手机可用。逐块（玄武岩/花岗岩/大理石/砂岩/黏土/石灰岩/孔雀石）在 7723 的渲染、复制/落成往返、以及“上色块落成是否默认色”均为**待验证**，实测清单见 `docs/COMPATIBILITY.md`「v0.8.2」。任何一块未实测前不得标兼容。染色方块（Phase B）留待后续，需 `schemaVersion=2` + 按材料 color + `IPaintableBlock`/地形上色 API + 真机验证。

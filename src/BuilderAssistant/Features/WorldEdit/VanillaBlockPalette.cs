@@ -38,25 +38,46 @@ namespace BuilderAssistant.Features.WorldEdit
             };
 
         /// <summary>
-        /// The conservative set of vanilla blocks Builder Assistant v1 is willing to
-        /// copy and paste: full solid/transparent cubes that render identically with
-        /// data == 0 and carry no per-block entity state. This is deliberately limited
-        /// to the exact cube blocks already proven (compile-verified and used by the
-        /// cottage). Anything outside it - stairs, slabs, oriented logs, fences, glass
-        /// panes, ladders, plants, snow, water/lava, doors, chests/furnaces and other
-        /// entity-bearing blocks - is NOT reproduced: copy skips it with a clear report,
-        /// and an imported blueprint referencing it aborts with a clear message rather
-        /// than generating a degraded structure. The set is extensible only after a
-        /// block is verified on-device.
+        /// The set of vanilla blocks Builder Assistant is willing to copy and paste:
+        /// full solid/transparent cubes that render identically with data == 0 and
+        /// carry no per-block entity state. Everything outside it - stairs, slabs,
+        /// oriented logs, fences, glass panes, ladders, plants, snow, water/lava,
+        /// doors, chests/furnaces, gravity sand/gravel and other entity-bearing blocks
+        /// - is NOT reproduced: copy skips it with a clear report, and an imported
+        /// blueprint referencing it aborts with a clear message rather than generating
+        /// a degraded structure.
+        ///
+        /// Policy for extension (v0.8.2): a block may be ADDED here once reflection over
+        /// D:\SC\Survivalcraft.exe confirms it is a plain CubeBlock/PaintedCubeBlock with
+        /// no orientation/entity/state data bits. Adding a name is fail-safe at runtime:
+        /// TryResolve looks the type up via BlocksManager.FindBlockByTypeName, so if a
+        /// name is somehow not a registered in-game block it simply returns false and the
+        /// build/import aborts cleanly - it can never place a wrong or guessed block. The
+        /// remaining open question for every newly added entry is on-device RENDERING on
+        /// the 7723 target, which stays 待验证 until confirmed block-by-block (see
+        /// docs/COMPATIBILITY.md). PaintedCube-family members are pasted with the engine
+        /// default color in this phase (per-cell color is not part of the terrain value);
+        /// preserving color is reserved for a later schemaVersion=2 with a color payload.
         /// </summary>
         public static readonly HashSet<string> SupportedPlainCubes =
             new HashSet<string>(System.StringComparer.Ordinal)
             {
-                "CobblestoneBlock", // logical StoneBase
-                "StoneBrickBlock",  // logical StoneWall
-                "PlanksBlock",      // logical WoodWall / WoodTrim / Floor
-                "BricksBlock",      // logical Roof
-                "GlassBlock",       // logical Glass
+                // Proven on-device since the cottage (v0.6/v0.7):
+                "CobblestoneBlock", // logical StoneBase   (PaintedCube)
+                "StoneBrickBlock",  // logical StoneWall   (PaintedCube)
+                "PlanksBlock",      // logical WoodWall / WoodTrim / Floor (PaintedCube)
+                "BricksBlock",      // logical Roof        (PaintedCube)
+                "GlassBlock",       // logical Glass       (AlphaTestCube)
+
+                // v0.8.2: reflection-verified plain stone/brick cubes. class exists and
+                // data==0 is safe; on-device rendering on 7723 is 待验证 (COMPATIBILITY).
+                "BasaltBlock",      // PaintedCube, plain stone   (待验证)
+                "GraniteBlock",     // PaintedCube, plain stone   (待验证)
+                "MarbleBlock",      // PaintedCube, plain stone   (待验证)
+                "SandstoneBlock",   // PaintedCube, plain stone   (待验证)
+                "ClayBlock",        // PaintedCube, plain block   (待验证)
+                "LimestoneBlock",   // Cube (fixed texture)       (待验证)
+                "MalachiteBlock",   // Cube (fixed texture)       (待验证)
             };
 
         private readonly Dictionary<string, int> _resolved = new Dictionary<string, int>();

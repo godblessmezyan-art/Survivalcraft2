@@ -296,3 +296,41 @@ v0.8.0 已闭环，但玩家仍须“建目录 / 起 ASCII 名 / 用文件管理
 6. 用**纯中文 name** 的蓝图导入 → 存档文件名应带可读的 `name` 字段（JSON 内）且磁盘名不再统统是 `blueprint`，两个不同中文名应得两个不同文件。
 7. 剪贴板内容不变连点蓝图工具 → 应只重复播报“剪贴板内容未变，已载入…”，不重复生成新编号副本。
 若失败，请回传首条 `Warning/Error` 原文 + 完整 `Game.log`，尤其注明第 2 步是走了“粘贴导入”还是回退成“文件浏览”，以判定 `Game.ClipboardManager` 在 7723 的可用性。
+
+## v0.8.2 扩充可复制/可建造的纯立方石/砖方块（Phase A，只扩白名单）
+
+本轮目标（用户明确指令「支持更多方块」，AskUserQuestion 定为“先只扩充纯立方方块”“优先石/砖类”）：把 `VanillaBlockPalette.SupportedPlainCubes` 从小屋已验证的 **5** 块纯立方扩到 **12** 块，让实时区域复制与导入/手写/AI 蓝图都能复现更多石/砖块。这是**白名单最小改动**：`schemaVersion` 仍 1、地形写值仍 `data=0/light=0`、**不含按格颜色**、`GameTerrainGateway`/`BlueprintJson`/`BlueprintCopier`/`Building.xdb` 均未改，联机/SCIE-Port/快艇/事务安全一字未动。
+
+依据来源：反射 `D:\SC\Survivalcraft.exe` 得到立方族全谱（非猜测），据此只挑 `CubeBlock`/`PaintedCubeBlock` 中 **data=0 即可完整复现、无朝向/实体/相态数据位**的纯立方。**明确排除**含实体(Chest/Dispenser/Furnace)、相态(Fluid/Ice/Snow)、重力(Sand/Gravel)、蔓延(Grass/Soil/FallenLeaves)、不可破坏(Bedrock)、带朝向原木(Wood)、导线(WireThrough)、以及 AlphaTest 族(Leaves/WickerLamp/Window/FramedGlass，本轮不加)。
+
+新增 7 块与状态：
+
+| 方块（material key = CLR 类型名） | 族 | 类存在 / 编译 ABI | 7723 实机渲染 |
+| --- | --- | --- | --- |
+| BasaltBlock（玄武岩） | PaintedCube | 已确认（反编译+net472 编译） | **待验证** |
+| GraniteBlock（花岗岩） | PaintedCube | 已确认 | **待验证** |
+| MarbleBlock（大理石） | PaintedCube | 已确认 | **待验证** |
+| SandstoneBlock（砂岩） | PaintedCube | 已确认 | **待验证** |
+| ClayBlock（黏土块） | PaintedCube | 已确认 | **待验证** |
+| LimestoneBlock（石灰岩） | Cube 固定贴图 | 已确认 | **待验证** |
+| MalachiteBlock（孔雀石块） | Cube 固定贴图 | 已确认 | **待验证** |
+
+安全保证（可确认）：把某名字加入白名单是**失败即止、绝不塞垃圾**的——`TryResolve` 经 `BlocksManager.FindBlockByTypeName` 解析，若该名字在真机不是已注册方块则返回 false，建造/导入会以精确原因**干净中止**，绝不会放错块或半块。故“加入白名单”本身不引入写坏地形风险，唯一未决问题是上表逐块的 7723 渲染表现。
+
+“复制丢色”取舍（务必知悉）：`PaintedCube` 族的按格颜色不存于地形 value，Phase A 只写 `data=0/light=0`，因此**已上色**的源方块被复制/落成后会呈现**引擎默认色**。此现象对现有 Cobble/StoneBrick/Planks/Bricks 早已存在，新块只是扩大范围；忠实保留颜色需 Phase B 升 `schemaVersion=2` 加按材料 `color` + `IPaintableBlock`/地形上色 API，且那些非文档 API 必须先在真机验证——本轮明确不做。
+
+已跑验证（本机，无设备）：
+- 离线 `tests/BuilderAssistant.Tests` 净增至 **203/203 全通过**（在 v0.8.1 的 194 项基础上新增 9 项，专测“新具体方块类型名作 material key 经 `BlueprintJson` 序列化/解码逐字复现、`BlueprintImportService` 以 resolver 为唯一门控可放行或精确拒绝新块”）。这些断言不依赖游戏程序集。
+- `net472` 对真实 x25.01.17 程序集（`D:\SC`）Release **0 错误 0 警告**（`Test-Environment` 哈希/2.4.0.0/net472/API1.42/SC2.4.10.6/快艇 ABI 均通过）。
+- XDB 合并安全守卫回归 **7/7**（`Building.xdb` 本轮未改，仍 0 冲突；`ea25b78e` 复用缺陷未回退）。
+- `.netmod` v0.8.2 SHA-256 `7FE91876B0C9A9AF93E750EC8DE0985E891207C2C925448C593C6C0ABDCD04AA`（2,339,153 字节，取代 v0.8.1 的 `E71E7386…`）。随包核对：`modinfo.json Version=0.8.2`、`BuilderAssistant.dll` 程序集版本 `0.8.2.0`、`Building.xdb` 中 `ea25b78e` 仍 0 次、CSV 方块类名仍唯一（`BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock`）、不含任何专有游戏程序集。
+
+**重要**：Windows 编译 + 打包 ≠ 运行验证。以上只证明“这些 CLR 类存在于已验证的程序集、可编译、离线复现成立”；这 7 块在手机里是否按预期整块渲染，**全部待验证**——桌面从未在设备上落过任何一个新块。任何一块未实测前不得标“兼容/已确认”。
+
+**Android 7723 单人创造世界实测清单（逐块）**：
+1. 装 v0.8.2，进单人创造世界，加载横幅应显示 v0.8.2。
+2. 对玄武岩/花岗岩/大理石/砂岩/黏土/石灰岩/孔雀石**逐一**准备一份只含该块的小型蓝图（`materials[].key` 用具体类型名，或从现含该块的真实结构复制），蓝图工具载入 → 建造工具(901)对准地面两次点击 → 应落成，且该块渲染为**完整整块**、无缺失/半块/紫黑/透明异常。
+3. 复制一段含该块的结构再落回 → 类型保留、位置正确；若源块已上色，观察落成是否为默认色（预期“复制丢色”，非缺陷）。
+4. 放非法/超界/含未支持块的蓝图 → 应“导入失败：<原因>”，且不污染剪贴板、不部分导入。
+5. 撤销工具一次应整体干净回退。
+若某块异常，回传首条 `Warning/Error` 原文 + 完整 `Game.log`，并注明是“落成”还是“复制/导入”阶段、具体哪个块；该块在本文保持**待验证**，不得标兼容。
