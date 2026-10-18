@@ -9,8 +9,20 @@ namespace BuilderAssistant.Core.Transactions
     /// </summary>
     internal interface ITerrainGateway
     {
-        /// <summary>Cell is within world bounds AND its chunk is loaded/valid.</summary>
+        /// <summary>
+        /// Cell is within world bounds AND its chunk is loaded/valid. Kept for hot
+        /// paths (per-frame execution) and backwards compatibility; it is just a
+        /// one-bit shorthand for InspectCell(...).IsEditable.
+        /// </summary>
         bool IsCellEditable(CellPos cell);
+
+        /// <summary>
+        /// The classified reason a cell is or is not editable, plus whatever chunk
+        /// context the implementation could observe. BuildPlanner uses this to turn
+        /// the old collapsed "目标区块未加载或越界" into a precise, actionable
+        /// diagnosis (which check, which chunk, recoverable-by-waiting or hard).
+        /// </summary>
+        CellEditability InspectCell(CellPos cell);
 
         /// <summary>Cell currently holds air (contents == 0).</summary>
         bool IsCellAir(CellPos cell);

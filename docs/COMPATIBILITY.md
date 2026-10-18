@@ -139,3 +139,23 @@
 - 分批写入在真机帧率下的可见性与耗时（32/帧）。
 - 建造落点选取、二次确认与撤销在触屏上的实际操作体验。
 - 与 SCIE-Port 同时安装时，两者的 CSV/XDB 合并顺序与最终世界加载。
+
+## v0.6.0 区块未就绪诊断与生存（M1）
+
+本轮只改 Builder Assistant，不动 SCIE-Port，也不改动快艇。证据严格分级如下：
+
+1. **Core 纯逻辑（本机已离线证明）**
+
+   新增 `Core/Transactions/CellEditability.cs`（每格不可编辑原因枚举+结构）、`ITerrainGateway.InspectCell`、`BuildPlan` 的不可编辑明细与 `AllEditabilityFailuresRecoverable`、`BuildTask` 的延迟回滚/撤销条目与 `RetryRollback`/`RetryUndo`、`TransactionHistory.UndoLast(gateway, out pending)` 的部分撤销保留。以上均由 `tests/BuilderAssistant.Tests`（net8，仅编译 Core+Generators 源码，不引用游戏程序集）离线验证，`72/72` 断言全通过；覆盖跨区块未就绪的分类与可恢复判定、越界/高度为硬性不可恢复、部分回滚被追踪并重试、部分撤销保留待续做、以及延迟撤销遇到玩家后续改动时让位不覆盖。
+
+2. **Features 适配层（源码就绪，本机未能编译 — 待验证）**
+
+   `GameTerrainGateway.InspectCell` 与 `WorldEditRuntime` 的预检/延迟回滚只用 v0.5.0 已经编译绑定过的 ABI 成员（`Terrain.GetChunkAtCell`、`TerrainChunk.State==Valid`、`TerrainChunk.IsLoaded`、`Terrain.IsCellValid`、`SubsystemTerrain.ChangeCell`），未引入任何新签名。但**本会话机器上不存在游戏引用程序集**，`net472` Mod 工程无法在此重新编译，故这两个文件状态为“源码完成、本机未编译”：
+
+   - 直接 `dotnet build -c Release` 在引用校验步骤即失败：`error : Missing SCNET x25.01.17 reference: E:\SCNET\SCNETx25.01.17\Survivalcraft.exe. Pass -p:SCNetGameDir=... or set SCNET_GAME_DIR.`
+   - 复现（需在装有 x25.01.17 的机器上，指向真实游戏目录）：`./scripts/Build-NetMod.ps1 -GameDir '<游戏目录>' -Configuration Release`
+   - 结论：Features 层与 net472 打包标记为**待验证**，仅当在有游戏程序集的机器上 0 错误 0 警告编译通过后，才可升级为“已确认（编译期 ABI）”。
+
+3. **Android 实机（待验证）**
+
+   尚不能宣称该修复在手机上生效。有限等待是否真能在触屏上等到跨区块小屋的相邻区块加载、延迟回滚/撤销的重试提示是否按预期出现，均需 7723 Android 单人创造世界实测。

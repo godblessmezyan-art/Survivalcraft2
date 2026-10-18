@@ -130,3 +130,60 @@
   ./scripts/Test-Logic.ps1
   # 或： dotnet run --project tests/BuilderAssistant.Tests -c Release
   ```
+
+## 2026-10-18：v0.6.0 M1 修复「目标区块未加载或越界」（Builder Assistant）
+
+范围：仅 `src/BuilderAssistant/` 与 `tests/BuilderAssistant.Tests/`，分支 `feat/ai-builder-foundation`（自 main `0badabb` 自动建造小屋提交）。未改动 SCIE-Port，未改动快艇功能，未删除任何安全检查，未在写前全量校验上做任何放宽。
+
+### 1. 环境修复（M0 阻塞）
+
+- 现象：`global.json` 钉住 SDK `9.0.300`，`rollForward: latestFeature` 无法跨大版本回退，机器只有 net8 运行库 → `dotnet` 直接解析失败。
+- 处理：用 `dotnet-install.ps1` 以用户作用域安装 SDK `9.0.300` 到 `%LOCALAPPDATA%\Microsoft\dotnet`，调用该目录下 `dotnet.exe` 并设 `DOTNET_ROOT`；离线测试工程为 `net8.0`，而该根下只有 net9 运行时，故额外设 `DOTNET_ROLL_FORWARD=Major` 才能跑起测试应用。
+- 注意：机器级（PATH 上的）`dotnet` 仍缺 9.0.300，属本机现状，不代表 CI/其他机器。
+- 实际调用（git-bash）：
+
+  ```bash
+  export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"
+  export DOTNET_ROLL_FORWARD=Major
+  "$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release \
+    --project tests/BuilderAssistant.Tests
+  ```
+
+### 2. 离线逻辑测试（真实执行，本机）
+
+- 命令：`"$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests`（工程仅编译 `Core` + `Features/Generators` 源码，不引用游戏程序集）。
+- 结果：`72/72 CHECKS PASSED`（在原 v0.5 的 38 项基础上新增 M1 相关断言）。
+- M1 新增测试方法（6 个，注册于 `Program.Main`）：
+  - `TestCrossChunkNotReadyClassifiedAndRecoverable`：跨区块、部分格区块未就绪时，逐格分类正确且判定为“全部可恢复”。
+  - `TestOutOfBoundsIsHardNotRecoverable`：越出有效域的落点判为硬性不可恢复（有限等待救不了）。
+  - `TestWorldHeightYBoundary`：Y=255 在界内、Y=256 判高度越界且非“等待可解”。
+  - `TestPartialRollbackIsTrackedAndRetried`：回滚遇个别不可编辑格时登记延迟条目、如实报告未完成，区块恢复后 `RetryRollback` 补齐并转为干净完成。
+  - `TestPartialUndoRetainedAndRetried`：部分撤销后事务保留在栈上，再次撤销续做，全部恢复才出栈。
+  - `TestUndoPendingYieldsToLaterPlayerEdit`：延迟撤销的格子若被玩家后续改动则不再重试、绝不覆盖。
+
+### 3. net472 游戏侧编译（本机阻塞 — 待验证）
+
+- 本机不存在 SCNET x25.01.17 引用程序集，`dotnet build -c Release` 在引用校验步骤即失败：
+
+  ```
+  error : Missing SCNET x25.01.17 reference: E:\SCNET\SCNETx25.01.17\Survivalcraft.exe.
+          Pass -p:SCNetGameDir=... or set SCNET_GAME_DIR.
+  ```
+
+- 因此 `Features/WorldEdit/GameTerrainGateway.InspectCell` 与 `WorldEditRuntime` 预检/延迟回滚两处改动为“源码完成、本机未编译”，其调用的游戏 ABI 成员均为 v0.5.0 已编译绑定过的（`GetChunkAtCell`/`TerrainChunk.State==Valid`/`IsLoaded`/`IsCellValid`/`ChangeCell`），未引入新签名。
+- 复现（在装有 x25.01.17 的机器上指向真实游戏目录）：`./scripts/Build-NetMod.ps1 -GameDir '<游戏目录>' -Configuration Release`。通过后方可把 Features 层与 `.netmod` 打包标记升级为“已确认（编译期 ABI）”。
+
+### 4. Android / 7723 实机（待验证）
+
+- 本轮未在 Android 实机执行任何验证，**不能宣称该修复在手机上生效**。待实测：安装后能否进世界、跨区块小屋是否会触发有限等待并最终开工、延迟回滚/撤销的重试提示是否符合预期、撤销是否不覆盖玩家后续改动、存档重进是否正常、快艇是否不受影响。
+
+### 5. 复现实验（本机当前可跑的部分）
+
+```bash
+# 离线逻辑（本机可跑，无需游戏程序集）
+export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"; export DOTNET_ROLL_FORWARD=Major
+"$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests
+
+# net472 打包（需游戏程序集，本机当前缺失）
+# ./scripts/Build-NetMod.ps1 -GameDir '<游戏目录>' -Configuration Release
+```

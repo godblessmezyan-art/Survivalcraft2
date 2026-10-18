@@ -9,6 +9,13 @@ namespace BuilderAssistant.Core.BuildEngine
     /// themselves back). Each Undo reverts just the most recent reversible
     /// transaction, honouring the "do not overwrite later player edits" policy.
     /// </summary>
+    /// <remarks>
+    /// If an Undo could only partially restore (some chunks were unloaded at the
+    /// moment of the tap), the task is kept on the stack in an Undone-with-pending
+    /// state instead of being dropped, so the next undo tap can finish the job once
+    /// those chunks stream back. Without this, a partial undo was reported as done
+    /// and the never-restored cells were silently lost.
+    /// </remarks>
     internal sealed class TransactionHistory
     {
         public const int MaxDepth = 20;
@@ -30,13 +37,16 @@ namespace BuilderAssistant.Core.BuildEngine
             }
         }
 
+        /// <summary>True when there is a completed build to undo OR a partial undo to finish.</summary>
         public bool HasUndoable
         {
             get
             {
                 for (int i = _completed.Count - 1; i >= 0; i--)
                 {
-                    if (_completed[i].State == BuildTaskState.Completed)
+                    BuildTask task = _completed[i];
+                    if (task.State == BuildTaskState.Completed ||
+                        (task.State == BuildTaskState.Undone && task.PendingUndoCount > 0))
                     {
                         return true;
                     }
@@ -45,18 +55,43 @@ namespace BuilderAssistant.Core.BuildEngine
             }
         }
 
-        /// <summary>Undo the newest still-completed transaction. Returns cells restored, -1 if none.</summary>
-        public int UndoLast(ITerrainGateway gateway)
+        /// <summary>
+        /// Undo the newest reversible transaction (finishing a prior partial undo
+        /// first if one exists). Returns cells restored this call (-1 if nothing
+        /// undoable). <paramref name="pending"/> reports cells that STILL could not
+        /// be restored because their chunk is uneditable; when &gt; 0 the task stays
+        /// on the stack so a later tap can retry.
+        /// </summary>
+        public int UndoLast(ITerrainGateway gateway, out int pending)
         {
+            pending = 0;
             for (int i = _completed.Count - 1; i >= 0; i--)
             {
                 BuildTask task = _completed[i];
+
+                if (task.State == BuildTaskState.Undone && task.PendingUndoCount > 0)
+                {
+                    // Finish the most recent partial undo before touching older ones.
+                    int finished = task.RetryUndo(gateway);
+                    pending = task.PendingUndoCount;
+                    if (pending == 0)
+                    {
+                        _completed.RemoveAt(i);
+                    }
+                    return finished;
+                }
+
                 if (task.State != BuildTaskState.Completed)
                 {
                     continue;
                 }
+
                 int restored = task.Undo(gateway);
-                _completed.RemoveAt(i);
+                pending = task.PendingUndoCount;
+                if (pending == 0)
+                {
+                    _completed.RemoveAt(i);
+                }
                 return restored;
             }
             return -1;

@@ -17,29 +17,41 @@ namespace BuilderAssistant.Tests
     /// </summary>
     internal sealed class FakeTerrain : ITerrainGateway
     {
+        // Cells whose "chunk" is present but not loaded (recoverable by waiting).
         public readonly HashSet<CellPos> Blocked = new HashSet<CellPos>();
+        // Cells whose "chunk" is entirely missing (also recoverable by waiting).
+        public readonly HashSet<CellPos> Missing = new HashSet<CellPos>();
         private readonly Dictionary<CellPos, int> _values = new Dictionary<CellPos, int>();
 
         public int Writes;
         public int Reads;
         public int ExtentLimit = 4096;
 
-        public bool IsCellEditable(CellPos cell)
+        public CellEditability InspectCell(CellPos cell)
         {
             if (!WorldBounds.IsYValid(cell.Y))
             {
-                return false;
-            }
-            if (Blocked.Contains(cell))
-            {
-                return false;
+                return new CellEditability(cell, CellEditabilityStatus.InvalidY);
             }
             if (cell.X < -ExtentLimit || cell.X > ExtentLimit ||
                 cell.Z < -ExtentLimit || cell.Z > ExtentLimit)
             {
-                return false;
+                return new CellEditability(cell, CellEditabilityStatus.InvalidCell);
             }
-            return true;
+            if (Missing.Contains(cell))
+            {
+                return new CellEditability(cell, CellEditabilityStatus.ChunkMissing);
+            }
+            if (Blocked.Contains(cell))
+            {
+                return new CellEditability(cell, CellEditabilityStatus.ChunkNotLoaded);
+            }
+            return CellEditability.Ok(cell);
+        }
+
+        public bool IsCellEditable(CellPos cell)
+        {
+            return InspectCell(cell).IsEditable;
         }
 
         public bool IsCellAir(CellPos cell)
@@ -135,6 +147,16 @@ namespace BuilderAssistant.Tests
             TestCancelMidBuildRollsBack();
             TestRotationPreservesBlueprint();
             TestMirrorIsInvolution();
+
+            // P0 diagnostics + transactional-integrity regressions (chunk loading,
+            // boundaries, partial rollback/undo). See BuildPlanner / BuildTask /
+            // TransactionHistory changes.
+            TestCrossChunkNotReadyClassifiedAndRecoverable();
+            TestOutOfBoundsIsHardNotRecoverable();
+            TestWorldHeightYBoundary();
+            TestPartialRollbackIsTrackedAndRetried();
+            TestPartialUndoRetainedAndRetried();
+            TestUndoPendingYieldsToLaterPlayerEdit();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -427,6 +449,171 @@ namespace BuilderAssistant.Tests
             Blueprint m = bp.Reorient(0, true);
             Check(m.CellCount == bp.CellCount, "mirror preserves cell count");
             Check(SameCellSet(bp, m.Reorient(0, true)), "mirroring twice returns the original layout");
+        }
+
+        // --- P0 diagnostics: classify editability instead of one collapsed error. ---
+        private static void TestCrossChunkNotReadyClassifiedAndRecoverable()
+        {
+            Console.WriteLine("[TestCrossChunkNotReadyClassifiedAndRecoverable]");
+            Blueprint bp = LineBlueprint(40); // spans 40 columns on X
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(1000, 60, 1000);
+
+            // One cell's chunk is present-but-unloaded, another's chunk is entirely
+            // missing. Both are legitimately part of the world, just not ready yet.
+            terrain.Blocked.Add(new CellPos(1005, 60, 1000));
+            terrain.Missing.Add(new CellPos(1020, 60, 1000));
+
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            Check(!plan.Success, "cross-chunk not-ready cells fail the plan");
+            Check(terrain.Writes == 0, "not-ready plan writes nothing");
+            Check(plan.EditabilityFailures.Count == 2,
+                "both offending cells are enumerated (got " + plan.EditabilityFailures.Count + ")");
+            Check(plan.AllEditabilityFailuresRecoverable,
+                "pure chunk-readiness failures are flagged recoverable (worth a wait)");
+            Check(plan.FailureReason.Contains("区块未加载") && plan.FailureReason.Contains("区块缺失"),
+                "reason separates 区块未加载 vs 区块缺失 instead of one collapsed message");
+        }
+
+        private static void TestOutOfBoundsIsHardNotRecoverable()
+        {
+            Console.WriteLine("[TestOutOfBoundsIsHardNotRecoverable]");
+            Blueprint bp = LineBlueprint(3);
+            FakeTerrain terrain = new FakeTerrain();
+            terrain.ExtentLimit = 10; // world only extends to +/-10 on X/Z
+            BuildPlan plan = BuildPlanner.Plan(bp, new CellPos(100, 60, 0), new FakeResolver(), terrain, false);
+            Check(!plan.Success, "beyond-extent cells fail the plan");
+            Check(!plan.AllEditabilityFailuresRecoverable,
+                "out-of-bounds is a HARD failure (a wait can never make it editable)");
+            Check(plan.FailureReason.Contains("超出有效范围"),
+                "reason names the extent violation explicitly");
+            Check(terrain.Writes == 0, "out-of-bounds plan writes nothing");
+        }
+
+        private static void TestWorldHeightYBoundary()
+        {
+            Console.WriteLine("[TestWorldHeightYBoundary]");
+            FakeTerrain terrain = new FakeTerrain();
+
+            // Y=255 is the last valid row (MaxYExclusive==256).
+            BuildPlan ok = BuildPlanner.Plan(LineBlueprint(3), new CellPos(50, 255, 50),
+                new FakeResolver(), terrain, false);
+            Check(ok.Success, "structure at Y=255 is within the terrain column");
+
+            // Y=256 overflows the world height and must be a hard, non-recoverable fail.
+            BuildPlan bad = BuildPlanner.Plan(LineBlueprint(3), new CellPos(50, 256, 50),
+                new FakeResolver(), terrain, false);
+            Check(!bad.Success, "structure at Y=256 is rejected as height overflow");
+            Check(!bad.AllEditabilityFailuresRecoverable, "height overflow is hard, not a wait");
+            Check(bad.FailureReason.Contains("高度越界"), "reason identifies the Y bound violation");
+            Check(terrain.Writes == 0, "height-overflow plans write nothing");
+        }
+
+        // --- Transactional integrity: never mis-report a partial restore. ---
+        private static void TestPartialRollbackIsTrackedAndRetried()
+        {
+            Console.WriteLine("[TestPartialRollbackIsTrackedAndRetried]");
+            Blueprint bp = LineBlueprint(40);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(1000, 60, 1000);
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            Check(plan.Success, "40-cell line plans cleanly");
+
+            BuildTask task = new BuildTask("line40", origin, plan.Changes, false);
+            task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch); // cells 0..31 applied
+
+            CellPos appliedCell = new CellPos(1010, 60, 1000); // already placed
+            CellPos nextTarget = new CellPos(1032, 60, 1000);  // about to be written
+            terrain.Blocked.Add(appliedCell); // its chunk unloads before rollback can reach it
+            terrain.Blocked.Add(nextTarget);  // triggers the mid-build failure
+
+            task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            Check(task.State == BuildTaskState.Failed, "task fails when the next target is uneditable");
+            Check(task.PendingRollbackCount == 1,
+                "the one blocked already-placed cell is parked, not silently forgotten (got " +
+                task.PendingRollbackCount + ")");
+            Check(terrain.ValueAt(appliedCell) != 0,
+                "the still-unreachable cell visibly remains (partial rollback, not falsely clean)");
+
+            int othersClean = 0;
+            for (int i = 0; i < 32; i++)
+            {
+                if (plan.Changes[i].Absolute != appliedCell && terrain.ValueAt(plan.Changes[i].Absolute) == 0)
+                {
+                    othersClean++;
+                }
+            }
+            Check(othersClean == 31, "every other already-placed cell was rolled back (31 of 31)");
+            Check(!task.IsCleanlyFinished, "a partial rollback is not reported as a clean finish");
+
+            terrain.Blocked.Remove(appliedCell); // chunk streams back
+            int stillPending = task.RetryRollback(terrain);
+            Check(stillPending == 0, "retry restores the deferred cell once the chunk is reachable");
+            Check(terrain.ValueAt(appliedCell) == 0, "deferred cell is now back to its original (air)");
+            Check(task.IsCleanlyFinished, "after the retry the task reports a clean finish");
+        }
+
+        private static void TestPartialUndoRetainedAndRetried()
+        {
+            Console.WriteLine("[TestPartialUndoRetainedAndRetried]");
+            Blueprint bp = LineBlueprint(10);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(500, 60, 500);
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            BuildTask task = new BuildTask("line10", origin, plan.Changes, false);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(task.State == BuildTaskState.Completed, "line10 built to completion");
+
+            TransactionHistory history = new TransactionHistory();
+            history.Record(task);
+
+            CellPos unloadCell = new CellPos(503, 60, 500);
+            terrain.Blocked.Add(unloadCell); // its chunk unloads before the undo reaches it
+
+            int pending;
+            history.UndoLast(terrain, out pending);
+            Check(pending == 1, "undo reports one cell still unrestored (chunk unloaded)");
+            Check(history.Count == 1, "the partially-undone transaction is KEPT on the stack for retry");
+            Check(history.HasUndoable, "a partial undo leaves the history marked undoable");
+            Check(terrain.ValueAt(unloadCell) != 0, "the unreachable cell is not falsely claimed restored");
+
+            terrain.Blocked.Remove(unloadCell); // chunk streams back
+            history.UndoLast(terrain, out pending);
+            Check(pending == 0, "the follow-up undo finishes the deferred restore");
+            Check(terrain.ValueAt(unloadCell) == 0, "the cell is now returned to its original (air)");
+            Check(history.Count == 0, "once fully restored the transaction leaves the stack");
+        }
+
+        private static void TestUndoPendingYieldsToLaterPlayerEdit()
+        {
+            Console.WriteLine("[TestUndoPendingYieldsToLaterPlayerEdit]");
+            Blueprint bp = LineBlueprint(5);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(200, 60, 200);
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false);
+            BuildTask task = new BuildTask("line5", origin, plan.Changes, false);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+
+            CellPos playerCell = new CellPos(202, 60, 200);
+            terrain.Blocked.Add(playerCell);
+
+            task.Undo(terrain); // one cell parked
+            Check(task.PendingUndoCount == 1, "undo parks the single unreachable cell");
+
+            // While the chunk was unloaded the player rebuilt that cell themselves.
+            terrain.Occupy(playerCell, 999);
+            terrain.Blocked.Remove(playerCell);
+
+            int stillPending = task.RetryUndo(terrain);
+            Check(stillPending == 0, "retry does not keep a cell the player has since changed");
+            Check(terrain.ValueAt(playerCell) == 999,
+                "the player's later edit is preserved — undo never clobbers it");
         }
 
         // --- helpers ---

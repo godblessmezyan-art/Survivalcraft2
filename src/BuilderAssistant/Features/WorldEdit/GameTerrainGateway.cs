@@ -24,27 +24,51 @@ namespace BuilderAssistant.Features.WorldEdit
             _terrain = subsystemTerrain.Terrain;
         }
 
-        public bool IsCellEditable(CellPos cell)
+        public CellEditability InspectCell(CellPos cell)
         {
             if (_terrain == null)
             {
-                return false;
+                return new CellEditability(cell, CellEditabilityStatus.TerrainNull);
             }
             if (!WorldBounds.IsYValid(cell.Y))
             {
-                return false;
+                return new CellEditability(cell, CellEditabilityStatus.InvalidY);
             }
             if (!_terrain.IsCellValid(cell.X, cell.Y, cell.Z))
             {
-                return false;
+                // Engine says this coordinate is outside the valid terrain extent.
+                // A wait will not fix it, so the planner treats it as a hard failure.
+                return new CellEditability(cell, CellEditabilityStatus.InvalidCell);
             }
 
             TerrainChunk chunk = _terrain.GetChunkAtCell(cell.X, cell.Z);
             if (chunk == null)
             {
-                return false;
+                // No chunk object for this column yet; it may still stream in.
+                return new CellEditability(cell, CellEditabilityStatus.ChunkMissing);
             }
-            return chunk.State == TerrainChunkState.Valid && chunk.IsLoaded;
+
+            int stateOrdinal = (int)chunk.State;
+            bool loaded = chunk.IsLoaded;
+            if (chunk.State != TerrainChunkState.Valid)
+            {
+                return new CellEditability(
+                    cell, CellEditabilityStatus.ChunkStateNotReady,
+                    true, CellEditability.UnknownCoord, CellEditability.UnknownCoord, stateOrdinal, loaded);
+            }
+            if (!loaded)
+            {
+                return new CellEditability(
+                    cell, CellEditabilityStatus.ChunkNotLoaded,
+                    true, CellEditability.UnknownCoord, CellEditability.UnknownCoord, stateOrdinal, loaded);
+            }
+
+            return CellEditability.Ok(cell);
+        }
+
+        public bool IsCellEditable(CellPos cell)
+        {
+            return InspectCell(cell).IsEditable;
         }
 
         public bool IsCellAir(CellPos cell)

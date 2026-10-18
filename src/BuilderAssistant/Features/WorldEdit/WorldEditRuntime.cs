@@ -17,9 +17,25 @@ namespace BuilderAssistant.Features.WorldEdit
     /// two-tap confirmation, the single-player gate, and the Android undo/cancel
     /// entry point.
     /// </summary>
+    /// <remarks>
+    /// v0.6.0: the whole footprint is now pre-checked on the main thread. A 9x11
+    /// cottage can straddle several chunks, and a single crosshair hit being loaded
+    /// does not mean the entire site is ready. If the only problem is chunks the
+    /// engine has not streamed in yet (recoverable), we wait a bounded number of
+    /// frames and re-plan instead of failing the first tap — but we NEVER write
+    /// during the wait, and out-of-bounds/height errors still abort immediately.
+    /// </remarks>
     internal static class WorldEditRuntime
     {
         private const string Prefix = "[BuilderAssistant] ";
+
+        /// <summary>
+        /// Upper bound on GuiUpdate frames the preflight wait may consume before it
+        /// gives up. At typical 30-60 fps this is a few seconds — long enough for a
+        /// neighbouring chunk to load, short enough to feel responsive on a phone.
+        /// It is a bounded wait, not a blind write.
+        /// </summary>
+        private const int MaxPreflightFrames = 150;
 
         private static VanillaBlockPalette _palette;
         private static readonly TransactionHistory _history = new TransactionHistory();
@@ -27,6 +43,12 @@ namespace BuilderAssistant.Features.WorldEdit
         // The one in-flight build, if any. Advanced a few cells per GuiUpdate.
         private static BuildTask _activeTask;
         private static GameTerrainGateway _activeGateway;
+
+        // Bounded main-thread preflight wait (waiting for chunks, writing nothing).
+        private static GameTerrainGateway _preflightGateway;
+        private static Blueprint _preflightBlueprint;
+        private static CellPos _preflightOrigin;
+        private static int _preflightFramesLeft;
 
         // Explicit two-tap confirmation of the drop point.
         private static bool _hasPending;
@@ -52,11 +74,12 @@ namespace BuilderAssistant.Features.WorldEdit
             ResetSession();
         }
 
-        /// <summary>Drop any world-bound state (active build, selection, undo stack).</summary>
+        /// <summary>Drop any world-bound state (active build, selection, preflight, undo stack).</summary>
         public static void ResetSession()
         {
             _activeTask = null;
             _activeGateway = null;
+            ClearPreflight();
             _hasPending = false;
             _pendingOrigin = default(CellPos);
             _history.Clear();
@@ -88,6 +111,12 @@ namespace BuilderAssistant.Features.WorldEdit
             if (_activeTask != null && !_activeTask.IsFinished)
             {
                 Notify(gui, "施工进行中，请耐心等待或使用撤销工具取消。");
+                return true;
+            }
+
+            if (_preflightFramesLeft > 0)
+            {
+                Notify(gui, "正在等待建筑范围的区块就绪，请稍候…");
                 return true;
             }
 
@@ -131,6 +160,15 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
+            // Waiting on chunks during preflight? Nothing has been written yet, so a
+            // cancel here is simply aborting the pending build intent.
+            if (_activeTask == null && _preflightFramesLeft > 0)
+            {
+                ClearPreflight();
+                Notify(gui, "已取消等待中的建造（尚未改动世界）。");
+                return true;
+            }
+
             if (_activeTask != null && !_activeTask.IsFinished)
             {
                 GameTerrainGateway gateway = _activeGateway;
@@ -140,12 +178,24 @@ namespace BuilderAssistant.Features.WorldEdit
                 }
 
                 bool cancelled = gateway != null && _activeTask.Cancel(gateway);
-                _activeTask = null;
-                _activeGateway = null;
                 _hasPending = false;
-                Notify(gui, cancelled
-                    ? "已取消施工并回滚已放置的方块。"
-                    : "施工无法继续（区块未加载），已放弃当前任务。");
+
+                if (cancelled && _activeTask.PendingRollbackCount > 0)
+                {
+                    // Some placed cells sit in chunks that are momentarily uneditable;
+                    // keep the task alive so Tick retries restoring them, and be honest
+                    // that the rollback is not yet complete.
+                    Notify(gui, "已请求取消，但有 " + _activeTask.PendingRollbackCount +
+                        " 个方块因区块未就绪暂未回滚，将在区块恢复后自动重试。");
+                }
+                else
+                {
+                    Notify(gui, cancelled
+                        ? "已取消施工并回滚已放置的方块。"
+                        : "施工无法继续（区块未加载），已放弃当前任务。");
+                    _activeTask = null;
+                    _activeGateway = null;
+                }
                 return true;
             }
 
@@ -169,10 +219,16 @@ namespace BuilderAssistant.Features.WorldEdit
             }
 
             GameTerrainGateway undoGateway = new GameTerrainGateway(miner.m_subsystemTerrain);
-            int restored = _history.UndoLast(undoGateway);
+            int pendingUndo;
+            int restored = _history.UndoLast(undoGateway, out pendingUndo);
             if (restored < 0)
             {
                 Notify(gui, "撤销失败：最新一次建造的目标区块已卸载。");
+            }
+            else if (pendingUndo > 0)
+            {
+                Notify(gui, "已撤销，恢复 " + restored + " 个方块；" + pendingUndo +
+                    " 个因区块未加载暂未恢复，区块就绪后可再次点击撤销完成。");
             }
             else
             {
@@ -182,30 +238,52 @@ namespace BuilderAssistant.Features.WorldEdit
         }
 
         /// <summary>
-        /// Advance the active build by up to MaxBlocksPerBatch cells. Called once
-        /// per frame from GuiUpdate on the main thread.
+        /// Per-frame main-thread pump: advance the active build, keep retrying a
+        /// deferred rollback, or make progress on the bounded preflight wait.
         /// </summary>
         public static void Tick(ComponentGui gui)
         {
-            if (_activeTask == null)
+            if (_activeTask != null)
             {
+                if (_activeGateway == null)
+                {
+                    _activeTask = null;
+                    return;
+                }
+
+                if (!_activeTask.IsFinished)
+                {
+                    _activeTask.Advance(_activeGateway, BuildSafetyLimits.MaxBlocksPerBatch);
+                    if (_activeTask.IsFinished)
+                    {
+                        FinalizeActive(gui);
+                    }
+                    return;
+                }
+
+                // Finished (Failed/Cancelled) but kept around because a rollback was
+                // deferred. Retry restoring the pending cells; clear once it is clean.
+                if (_activeTask.PendingRollbackCount > 0)
+                {
+                    int still = _activeTask.RetryRollback(_activeGateway);
+                    if (still == 0)
+                    {
+                        Notify(gui, "延迟的方块已随区块恢复完成回滚。");
+                        _activeTask = null;
+                        _activeGateway = null;
+                    }
+                }
+                else
+                {
+                    _activeTask = null;
+                    _activeGateway = null;
+                }
                 return;
             }
 
-            if (_activeGateway == null)
+            if (_preflightFramesLeft > 0)
             {
-                _activeTask = null;
-                return;
-            }
-
-            if (!_activeTask.IsFinished)
-            {
-                _activeTask.Advance(_activeGateway, BuildSafetyLimits.MaxBlocksPerBatch);
-            }
-
-            if (_activeTask.IsFinished)
-            {
-                FinalizeActive(gui);
+                AdvancePreflight(gui);
             }
         }
 
@@ -221,15 +299,82 @@ namespace BuilderAssistant.Features.WorldEdit
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
 
             BuildPlan plan = BuildPlanner.Plan(blueprint, origin, _palette, gateway, false);
-            if (!plan.Success)
+            if (plan.Success)
             {
-                Notify(gui, "规划失败，未改动世界：" + plan.FailureReason);
+                StartBuild(plan, blueprint, gateway, origin);
+                Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount + " 个方块。");
                 return;
             }
 
+            // Whole-site pre-check failed. If it is only that some chunks are not
+            // ready yet, wait a bounded number of frames and re-plan; otherwise abort
+            // with the now-detailed diagnostic. We never write during the wait.
+            if (plan.AllEditabilityFailuresRecoverable)
+            {
+                _preflightGateway = gateway;
+                _preflightBlueprint = blueprint;
+                _preflightOrigin = origin;
+                _preflightFramesLeft = MaxPreflightFrames;
+                Notify(gui, "建筑范围尚未全部就绪（可能跨越多个区块），正在等待区块加载，最多 " +
+                    MaxPreflightFrames + " 帧后自动放弃。当前诊断：" + plan.FailureReason);
+                return;
+            }
+
+            Notify(gui, "规划失败，未改动世界：" + plan.FailureReason);
+        }
+
+        private static void StartBuild(BuildPlan plan, Blueprint blueprint, GameTerrainGateway gateway, CellPos origin)
+        {
             _activeGateway = gateway;
             _activeTask = new BuildTask(blueprint.Name, origin, plan.Changes, false);
-            Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount + " 个方块。");
+        }
+
+        private static void AdvancePreflight(ComponentGui gui)
+        {
+            if (_preflightGateway == null || _preflightBlueprint == null || _palette == null)
+            {
+                ClearPreflight();
+                return;
+            }
+
+            BuildPlan plan = BuildPlanner.Plan(
+                _preflightBlueprint, _preflightOrigin, _palette, _preflightGateway, false);
+
+            if (plan.Success)
+            {
+                CellPos origin = _preflightOrigin;
+                Blueprint blueprint = _preflightBlueprint;
+                GameTerrainGateway gateway = _preflightGateway;
+                ClearPreflight();
+                StartBuild(plan, blueprint, gateway, origin);
+                Notify(gui, "区块已就绪，开始建造 " + blueprint.Name + "，共 " +
+                    blueprint.CellCount + " 个方块。");
+                return;
+            }
+
+            // Became a hard failure mid-wait (e.g. world changed): stop waiting.
+            if (!plan.AllEditabilityFailuresRecoverable)
+            {
+                ClearPreflight();
+                Notify(gui, "等待期间范围判定为不可施工，已停止：" + plan.FailureReason);
+                return;
+            }
+
+            _preflightFramesLeft--;
+            if (_preflightFramesLeft == 0)
+            {
+                ClearPreflight();
+                Notify(gui, "区块在等待后仍未全部就绪，已停止（未改动世界）。最后诊断：" + plan.FailureReason);
+            }
+            // Otherwise keep waiting quietly; re-plan next frame.
+        }
+
+        private static void ClearPreflight()
+        {
+            _preflightGateway = null;
+            _preflightBlueprint = null;
+            _preflightOrigin = default(CellPos);
+            _preflightFramesLeft = 0;
         }
 
         private static void FinalizeActive(ComponentGui gui)
@@ -246,19 +391,40 @@ namespace BuilderAssistant.Features.WorldEdit
                     _history.Record(task);
                     Notify(gui, "建造完成：" + task.Name + " " + task.AppliedCount + "/" + task.PlannedCount +
                         " 方块。用撤销工具可整体回退。");
+                    _activeTask = null;
+                    _activeGateway = null;
                     break;
                 case BuildTaskState.Failed:
-                    Notify(gui, "施工已中止并自动回滚：" + task.FailureReason);
+                    if (task.PendingRollbackCount > 0)
+                    {
+                        // Keep the task so Tick can retry the deferred rollback; do not
+                        // claim a clean rollback we have not achieved.
+                        Notify(gui, "施工已中止：" + task.FailureReason);
+                    }
+                    else
+                    {
+                        Notify(gui, "施工已中止并自动回滚：" + task.FailureReason);
+                        _activeTask = null;
+                        _activeGateway = null;
+                    }
                     break;
                 case BuildTaskState.Cancelled:
-                    Notify(gui, "施工已取消并回滚。");
+                    if (task.PendingRollbackCount > 0)
+                    {
+                        Notify(gui, "施工已取消：" + task.FailureReason);
+                    }
+                    else
+                    {
+                        Notify(gui, "施工已取消并回滚。");
+                        _activeTask = null;
+                        _activeGateway = null;
+                    }
                     break;
                 default:
+                    _activeTask = null;
+                    _activeGateway = null;
                     break;
             }
-
-            _activeTask = null;
-            _activeGateway = null;
         }
 
         private static CellPos ComputeOrigin(CellPos surface)
