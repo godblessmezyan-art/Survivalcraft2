@@ -15,16 +15,9 @@ $stageDir = Join-Path $artifactsDir 'package'
 $zipPath = Join-Path $artifactsDir 'BuilderAssistant.zip'
 $packagePath = Join-Path $artifactsDir 'BuilderAssistant.netmod'
 
-# Canonical vanilla database folder/template GUIDs. A mod that reuses these must
-# match the game's own GUID exactly; using a fresh GUID with a vanilla NAME (e.g.
-# an "Entities" folder) produces a rogue duplicate folder and the x25.01.17
-# merge throws "Another database object with name ... is already nested".
-$vanillaFolderGuids = @{
-    'Entities'       = '5fcdf35f-7001-442c-883e-e0502b15d291'
-    'Gameplay'       = 'd3d4b692-acc9-4128-9b99-a5acf1de1fbb'
-    'BlockBehaviors' = '00c97f0f-731e-481c-9909-eae9cc5ee940'
-}
-$vanillaProjectGuid = '85023bf8-1c90-4dd1-9442-e6c13691d078'
+# Database merge safety (vanilla GUID tables + rules) lives in one shared place so
+# Build-NetMod.ps1 and scripts/Test-XdbGuards.ps1 use the exact same validator.
+. (Join-Path $PSScriptRoot 'XdbMergeSafety.ps1')
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Logic.ps1')
@@ -144,30 +137,20 @@ try {
         throw ("Duplicate block class names in package CSVs: " + ($dupes -join ', '))
     }
 
-    # Guard 2: any vanilla-named folder / project template must carry the exact
-    # vanilla GUID, so the mod never produces a rogue duplicate database folder.
+    # Guard 2 / 3 / 4: database merge safety, validated against the ACTUAL packaged
+    # .xdb contents using the SAME shared validator as scripts/Test-XdbGuards.ps1.
+    $xdbTexts = [ordered]@{}
     foreach ($entry in $archive.Entries) {
         if ($entry.FullName -match '^Assets/Database/.*\.xdb$') {
             $reader = New-Object System.IO.StreamReader($entry.Open())
-            $xdb = $reader.ReadToEnd()
+            $xdbTexts[$entry.FullName] = $reader.ReadToEnd()
             $reader.Dispose()
-
-            foreach ($folderMatch in [regex]::Matches($xdb, '<Folder\s+Name="([^"]+)"\s+Guid="([^"]+)"')) {
-                $folderName = $folderMatch.Groups[1].Value
-                $folderGuid = $folderMatch.Groups[2].Value
-                if ($vanillaFolderGuids.ContainsKey($folderName) -and
-                    $folderGuid -ne $vanillaFolderGuids[$folderName]) {
-                    throw ("$($entry.FullName): folder '$folderName' uses non-vanilla GUID $folderGuid " +
-                        "(expected $($vanillaFolderGuids[$folderName])). This re-triggers the x25.01.17 database merge error.")
-                }
-            }
-            foreach ($projMatch in [regex]::Matches($xdb, '<ProjectTemplate\s+Name="Project"\s+Guid="([^"]+)"')) {
-                if ($projMatch.Groups[1].Value -ne $vanillaProjectGuid) {
-                    throw ("$($entry.FullName): ProjectTemplate uses non-vanilla GUID $($projMatch.Groups[1].Value) " +
-                        "(expected $vanillaProjectGuid).")
-                }
-            }
         }
+    }
+    $dbFailures = Test-XdbMergeSafety -XdbTexts $xdbTexts
+    if ($dbFailures.Count -gt 0) {
+        $detail = ($dbFailures | ForEach-Object { "  - $_" }) -join "`n"
+        throw ("Database merge-safety validation FAILED ($($dbFailures.Count) problem(s)):`n$detail")
     }
 
     Write-Host ("Block class names unique: " + (($classNames | Sort-Object -Unique) -join ', '))

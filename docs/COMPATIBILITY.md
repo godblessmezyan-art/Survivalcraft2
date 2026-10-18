@@ -152,10 +152,26 @@
 
    以 `-p:SCNetGameDir='D:\SC'` 对真实 x25.01.17 程序集 Release 编译 `net472` Mod 工程，结果 **0 错误、0 警告**。`GameTerrainGateway.InspectCell` 与 `WorldEditRuntime` 的预检/延迟回滚只用 v0.5.0 已编译绑定过的 ABI 成员（`Terrain.GetChunkAtCell`、`TerrainChunk.State==Valid`、`TerrainChunk.IsLoaded`、`Terrain.IsCellValid`、`SubsystemTerrain.ChangeCell`），未引入新签名；这次编译进一步对 M1 新增调用的游戏侧类型（`chunk.State` 枚举、`IsLoaded`）做了编译期绑定确认。随后 `./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release` 完成打包，通过全部包内容守卫（必需条目、CSV 类名唯一 `BuilderToolBlock/SpeedboatBlock/UndoToolBlock`、原版 GUID 断言、不含专有程序集）。
 
-   - `.netmod`（v0.6.0）SHA-256：`03F4AD4321FE7FD349DC54667D83F1C2B244D97ABD0BE75BDB481A39CF9B253D`
+   - `.netmod`（v0.6.0，重新打包）SHA-256：`E454EC15254845DD816358DA3C3BF287CC0F443E7C3C6634D157185F408CCA67`
    - 本机程序集哈希（与公开 Windows 发布一致）：`Survivalcraft.exe 3D14B8D6…CC74A7AD`、`Engine.dll 98F2035B…E770694`、`EntitySystem.dll 7A87E643…B67ED19C`。
    - 注意：**Windows 编译+打包 ≠ 运行验证**。本结论仅证明这些接口在目标程序集上签名正确、可编译；Windows 游戏进程内加载、以及下面的 Android 实机仍各自待验证。
 
 3. **Android 实机（待验证）**
 
    尚不能宣称该修复在手机上生效。有限等待是否真能在触屏上等到跨区块小屋的相邻区块加载、延迟回滚/撤销的重试提示是否按预期出现，均需 7723 Android 单人创造世界实测。
+
+## v0.6.0 XDB 数据库 GUID / 合并冲突专项复核（无 Builder Assistant 缺陷）
+
+针对“排查 v0.6.0 是否复现历史上的 `Another database object with name ... is already nested` 合并失败”这一诉求，逐层取证后的结论是：**Builder Assistant 不存在 GUID 冲突或数据库合并缺陷，v0.6.0 也不可能引入此类问题**，证据分级如下（均不采信记录值，改以真实游戏数据交叉验证）。
+
+1. **版本差异（git 已证明）** — `git diff --stat 0badabb..HEAD` 显示 v0.6.0 只改了 `modinfo.json`（版本号+描述）与 Core/Features/docs/tests 源码，**未改动任何 `.xdb` / `.csv`**。既未新增节点、也未改任何 GUID 或父级引用，故数据库层无回归可能。
+
+2. **包内容结构校验（真实产物）** — 对已打包的 `BuilderAssistant.netmod` 内实际 `.xdb` 运行合并安全校验：`Entities=5fcdf35f…`、`BlockBehaviors=00c97f0f…` 等原版文件夹均**复用真实原版 GUID**（不是游离同名文件夹）；Building.xdb 与 Speedboat.xdb 都声明同名 `BlockBehaviors`/`Project` 且 GUID 一致，正是并入同一原版容器所需的形态；每个 `InheritanceParent` 要么指向包内已定义节点，要么指向已知原版基类。唯一的“报错”来自 SCIE-Port 自身的“根节点不得为 `<DatabaseObjects>`”约定，而该约定对本就不适用——`<DatabaseObjects>` 根正是被历史阳性对照验证为“手机已知能跑”的 Builder Assistant 写法，早期“根节点导致嵌套才报错”属误诊、已在 SCIE-Port 文档推翻。
+
+3. **对真实 x25.01.17 数据库交叉验证（本机 Windows 程序集）** — 用游戏自身的 `Game.SurvivalCraftModEntity.GetDecipherStream`（静态、入参 `Stream`、返回 `MemoryStream`）解密 `D:\SC\Content.scpak` 得到明文 ZIP，取出真实 `Assets/Database.xml`（463,610 字节）。逐个核对 Builder Assistant 依赖的 12 个原版 GUID（三个文件夹 + Project + 八个基类模板）在**真实库中存在且元素名匹配**；其七个自定义结构 GUID（BuilderTool/UndoTool/Speedboat 实体与 BlockBehavior 等）在真实库中**均不存在**，即纯增量、不覆盖任何原版节点、不可能触发同名冲突。
+
+4. **游戏真实运行日志（本机）** — `D:\SC\Bugs\Game.log` 记录了一次完整启动+进世界（Version=2.4.0.0-ljx25.01.17，Mods Manager Api 1.42，SCPAK 资源 882 项，读取数据库正常，进世界 `Loaded world ... WorldName=Bysnow`）：**全程无任何异常、无 `already nested`、无 `Database not loaded`、无堆栈**。且该次运行 `D:\SC\NetMods` 为空——Builder Assistant 并未安装于此环境，因此本机**当前没有可复现的 v0.6.0 运行期报错可供定位**。历史那条首异常确属于 SCIE-Port 0.3.1 的游离 `Entities` 文件夹，0.3.2 已修复。
+
+**结论与边界**：在没有用户实机异常日志的前提下，不能臆造 Builder Assistant 的 GUID 根因，也不会随机替换 GUID（AGENTS 铁律）。若后续在 7723 真机复现出报错，需回传**读条/加载阶段第一条 `Warning(...)` 原文 + 完整日志**再据实定位；本复核的“待验证”仅限“手机实机”，不改变“桌面/数据库结构已确认无冲突”的事实。
+
+**构建加固（本轮新增，仅构建期，不改任何随包数据）**：把合并安全规则抽取为共享函数 `scripts/XdbMergeSafety.ps1`（`Test-XdbMergeSafety`），`Build-NetMod.ps1` 打包守卫改为调用该函数，杜绝规则漂移；并新增 `scripts/Test-XdbGuards.ps1` 回归测试（6 项：真实包干净、游离同名文件夹被抓、同名多 GUID 被抓、未知父级被抓、自定义 GUID 重复被抓、合法的跨文件原版文件夹/Project 重复不误报），全部通过。

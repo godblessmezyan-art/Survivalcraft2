@@ -187,8 +187,8 @@ cd /d/SC && sha256sum Survivalcraft.exe Engine.dll EntitySystem.dll
     -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
   ```
 
-- 结果：`Test-Environment` 通过（哈希匹配、assembly 2.4.0.0、net472、API 1.42、SC 2.4.10.6、快艇 ABI 检查）、`72/72` 逻辑测试、`0 错误 0 警告` 编译、打包通过全部守卫（必需条目、CSV 类名唯一 `BuilderToolBlock/SpeedboatBlock/UndoToolBlock`、原版 GUID 断言、不含专有程序集）。
-- `.netmod`（v0.6.0）SHA-256：`03F4AD4321FE7FD349DC54667D83F1C2B244D97ABD0BE75BDB481A39CF9B253D`。
+- 结果：`Test-Environment` 通过（哈希匹配、assembly 2.4.0.0、net472、API 1.42、SC 2.4.10.6、快艇 ABI 检查）、`72/72` 逻辑测试、`0 错误 0 警告` 编译、打包通过全部守卫（必需条目、CSV 类名唯一 `BuilderToolBlock/SpeedboatBlock/UndoToolBlock`、经 `Test-XdbMergeSafety` 校验的原版 GUID/跨文件同名/父级可解析性断言、不含专有程序集）。
+- `.netmod`（v0.6.0，重新打包）SHA-256：`E454EC15254845DD816358DA3C3BF287CC0F443E7C3C6634D157185F408CCA67`。
 - 边界：**Windows 编译+打包 ≠ 运行验证**。Windows 游戏进程内加载与 Android 实机仍各自待验证（见第 4 节）。
 
 ### 4. Android / 7723 实机（待验证）
@@ -205,3 +205,28 @@ export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"; export DOTNET_ROLL_FO
 # net472 打包（本机游戏目录为 D:\SC，已验证可用）
 powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
 ```
+
+### 6. XDB 合并安全：守卫回归 + 对真实库交叉验证（本机 Windows，成功）
+
+本轮针对“是否复现历史 `already nested` 合并失败”做了专项取证。本机可直接复现两条：
+
+- 守卫回归测试（喂入构造样本，证明规则会咬、且不误报合法的跨文件原版文件夹/Project 重复）：
+
+  ```bash
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-XdbGuards.ps1
+  ```
+
+  结果：`CHECKS: 6 passed, 0 failed` → `XDB GUARD TESTS PASSED`。其中第 1 项对**真实随包** `Building.xdb`/`Speedboat.xdb` 判定为 0 冲突。
+
+- 用游戏自身解密器把 `Content.scpak` 解成明文 ZIP、取出真实 `Assets/Database.xml`，再逐个核对 Builder Assistant 依赖的 GUID 是否存在于真实库（不采信记录值）：
+
+  ```powershell
+  # 关键 API：Game.SurvivalCraftModEntity.GetDecipherStream(System.IO.Stream) -> MemoryStream（静态）
+  # 解密后 head 50 4b 03 04（标准 ZIP），取 Assets/Database.xml（463,610 字节）
+  ```
+
+  结果：12 个原版 GUID（`Entities 5fcdf35f…`、`BlockBehaviors 00c97f0f…`、`Project 85023bf8…`、八个组件/子系统基类含 `fefb9590…`）在真实库中**存在且元素名匹配**；7 个自定义结构 GUID 在真实库中**不存在**（纯增量、不覆盖原版）。
+
+- 真实运行日志佐证：`D:\SC\Bugs\Game.log` 一次完整启动+进世界（`WorldName=Bysnow`）全程无异常、无 `already nested`、无 `Database not loaded`；该次 `D:\SC\NetMods` 为空，即 Builder Assistant 未装于此环境，本机当前无可复现的 v0.6.0 运行期报错。历史首异常属 SCIE-Port 0.3.1 的游离 `Entities` 文件夹（0.3.2 已修）。
+
+**边界**：以上为“桌面数据库结构 + 真实库交叉验证”层面的确认，**不等于** Windows 进程内加载、也不等于 Android 实机运行。若真机复现，需回传读条阶段第一条 `Warning(...)` 原文 + 完整日志再据实定位；不臆造根因、不随机替换 GUID。

@@ -42,6 +42,7 @@
 - [x] v0.6.0：用官方 Windows x25.01.17 客户端（`D:\SC`，哈希匹配公开发布）Release 编译 net472（0 错 0 警），Features 层升级为已确认（编译期 ABI），并打包出 `.netmod`（内容守卫全通过）。
 - [~] v0.6.0：Windows 游戏进程内加载、Android/7723 实机验证有限等待与延迟回滚/撤销。
 - [x] 与 SCIE-Port 共存时的方块编号（900/901/902）、资源路径与数据库 GUID 冲突检查（打包脚本强制校验）。
+- [x] v0.6.0：XDB/GUID 合并冲突专项复核——git 证明未动 `.xdb/.csv`；用 `GetDecipherStream` 解密真实 `Database.xml` 交叉验证 12 个原版 GUID 存在且名匹配、7 个自定义 GUID 纯增量不覆盖；`D:\SC\Bugs\Game.log` 干净、`NetMods` 空（本机无复现报错）。结论：Builder Assistant 无合并缺陷，历史 `already nested` 属 SCIE-Port 0.3.1。构建守卫抽取为共享函数 `scripts/XdbMergeSafety.ps1` 并加 `scripts/Test-XdbGuards.ps1` 回归（6/6）。
 
 ## Phase 4：区域选取、复制、粘贴与旋转
 
