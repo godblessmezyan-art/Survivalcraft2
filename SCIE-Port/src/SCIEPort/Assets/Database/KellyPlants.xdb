@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortKellySoybeanBehavior" Guid="a32e4a0c-4a69-4d87-84c9-5c1db24c668c" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="055555ea-ae87-4ec9-b735-a92e50da0ca2" Value="SCIEPort.Features.KellyPlants.SubsystemSoybeanBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortKellyWildBerryBehavior" Guid="20b9040d-b054-4f74-b9ed-f8fbc4dc8e98" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="55615307-e8fe-44d1-9f8c-d31bfb9629a5" Value="SCIEPort.Features.KellyPlants.SubsystemWildBerryBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortKellyFruitBehavior" Guid="7085d7bd-a914-4be0-98b8-9f307b10deec" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="5b47280b-2e98-43c3-b738-799886538b66" Value="SCIEPort.Features.KellyPlants.SubsystemKellyFruitBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortKellyMushroomBehavior" Guid="77203e52-b04f-4e56-afc9-498547a07c2c" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="cf14e1d8-5ef2-4631-93e6-22dbe7d1fcc5" Value="SCIEPort.Features.KellyPlants.SubsystemKellyMushroomBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortKellySoybeanBehavior" Guid="3da185cf-d409-4115-a38e-bc29b8d43369" InheritanceParent="a32e4a0c-4a69-4d87-84c9-5c1db24c668c" />
+    <MemberSubsystemTemplate Name="SCIEPortKellyWildBerryBehavior" Guid="9c616062-0390-403a-8791-b3611cf6cbee" InheritanceParent="20b9040d-b054-4f74-b9ed-f8fbc4dc8e98" />
+    <MemberSubsystemTemplate Name="SCIEPortKellyFruitBehavior" Guid="6c4ec401-dcb4-4483-b423-b95f8f6cb4d6" InheritanceParent="7085d7bd-a914-4be0-98b8-9f307b10deec" />
+    <MemberSubsystemTemplate Name="SCIEPortKellyMushroomBehavior" Guid="b40a2573-a83c-40b6-a268-925276a83e1f" InheritanceParent="77203e52-b04f-4e56-afc9-498547a07c2c" />
+  </ProjectTemplate>
+</DatabaseObjects>

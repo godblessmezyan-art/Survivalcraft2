@@ -71,4 +71,8 @@ Android 的实际 `NetMods` 路径会受客户端构建和 Android 存储权限�
 
 附近 8 格范围最多生成 4 艘快艇，水平速度始终限制在 `18`。v0.4.0 已允许联机生成和推进，但客户端速度可能仍被服务器权威状态修正，因此必须分别记录主机玩家与普通客户端的实际速度、回弹和同步表现。编号 `900` 未被原版 x25.01.17 使用，但安装其他新增方块 Mod 时仍需检查编号冲突。
 
+## 工程边界
+
+`src/BuilderAssistant/` 只承载自动生成建筑、蓝图、批量建造和安全撤销等建筑助手功能。获许可的第三方 Mod 移植统一放在独立的 [`SCIE-Port/`](SCIE-Port/) 工程中，禁止把其代码或资源打入 Builder Assistant。
+
 开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)。

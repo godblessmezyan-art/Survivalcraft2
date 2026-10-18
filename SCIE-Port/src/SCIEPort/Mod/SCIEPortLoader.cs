@@ -1,15 +1,51 @@
 using Game;
+using Engine;
+using SCIEPort.Features.KellyPlants;
 
 namespace SCIEPort.Mod
 {
     /// <summary>SCNET x25.01.17 loader entry for the SCIE port.</summary>
     public sealed class SCIEPortLoader : ModLoader
     {
+        private bool m_kellyPlantsReady;
+
         /// <inheritdoc />
         public override void __ModInitialize()
         {
-            // Registration of the probe block is performed by SCNET's normal
-            // assembly type scan plus Assets/Blocks/SCIEPort.csv.
+            ModsManager.RegisterHook("BlocksInitalized", this);
+            ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
+        }
+
+        /// <inheritdoc />
+        public override void BlocksInitalized()
+        {
+            try
+            {
+                _ = KellyPlantTextures.Atlas;
+                m_kellyPlantsReady = true;
+                Log.Information("[SCIEPort] Kelly plant resources initialized (14 blocks, original inventory names).");
+            }
+            catch (System.Exception exception)
+            {
+                m_kellyPlantsReady = false;
+                Log.Error("[SCIEPort] Kelly plant resources failed to initialize: " + exception);
+            }
+        }
+
+        /// <inheritdoc />
+        public override void OnTerrainContentsGenerated(TerrainChunk chunk)
+        {
+            try
+            {
+                if (m_kellyPlantsReady)
+                {
+                    KellyPlantWorldGeneration.Generate(chunk);
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Log.Error("[SCIEPort] Kelly plant world generation failed: " + exception);
+            }
         }
     }
 }

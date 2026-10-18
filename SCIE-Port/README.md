@@ -1,7 +1,8 @@
 # SCIE-Port
 
-Clean-room migration workspace for **SCIE Industrial Era** to Survivalcraft NET
-2.4 `Net_x25.01.17`.
+Independent migration workspace for authorized third-party Mods targeting
+Survivalcraft NET 2.4 `Net_x25.01.17`. It is deliberately separate from
+Builder Assistant, whose scope remains automatic building and blueprints.
 
 The original repository is used as a read-only input at the pinned commit
 recorded in `UPSTREAM-BASELINE.md` and is excluded from version control. The
@@ -10,11 +11,18 @@ assets. The public license-text caveat and attribution are recorded in
 `THIRD-PARTY-NOTICES.md`.
 
 The current milestone contains a SCNET-native loader, one creative-only test
-material, and authorized previews of all four SCIE transport entities:
+material, authorized previews of all four SCIE transport entities:
 SteamBoat, Airship, Train and Carriage. Version 0.5.1 also adds the required
 rail block and uses x25-native entity, mount, body and input interfaces. It is
 an early single-player runtime probe, not a completed SCIE port; steam fuel,
 carriage coupling/storage and multiplayer authority are still pending.
+
+Version 0.6.0 adds the authorized Kelly Expansion 1.1.0 plant-resource port:
+14 blocks/items, the plant atlas, fruit model, bounded new-chunk ecology,
+seasonal berries, soybean growth, cactus/acorn behavior and rain-driven
+mushrooms. Inventory entries retain the exact upstream Chinese names and must
+not gain parenthesized port labels. These runtime behaviors remain pending
+Android/7723 verification.
 
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
@@ -27,5 +35,7 @@ native 2.5-block mount search can reach the pilot seat.
 ```
 
 See `docs/TEST-RESULTS.md` before interpreting any compatibility claim.
+Porting rules and licensing requirements are in `AGENTS.md`,
+`docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 
 Agents taking over development should start with `docs/AGENT-HANDOFF.md`.

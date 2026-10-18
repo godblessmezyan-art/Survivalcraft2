@@ -11,6 +11,7 @@ Android 或多人测试。
 | 目标框架 | 已确认 | `.NETFramework,Version=v4.7.2` |
 | SCNET ModLoader 与 CSV | 已确认 | 对真实程序集编译通过；运行加载待验证 |
 | 物品 ID 995–1000 | 已确认 | 反射扫描目标原生常量未占用；其他 Mod 冲突仍待运行检查 |
+| Kelly 植物 ID 903–916 | 已确认 | `Test-Environment.ps1` 对 x25.01.17 的 260 个原生方块常量完成反射扫描，目标区间未占用；其他 Mod 冲突仍需安装时检查 |
 | XDB 合并格式 | 已确认（机理） | `ModsManager.CombineDataBase` 按 `LocalName + Guid` 匹配文件夹后再合并内容。**真正的判别项是文件夹 GUID 是否等于游戏原版值**：原版文件夹（Entities `5fcdf35f…`、Gameplay `d3d4b692…`、BlockBehaviors `00c97f0f…`）若使用自定义 GUID，合并不会并入原版文件夹，而是追加“同名不同 GUID”的游离 `<Folder>`（0.3.1 即此）。根节点用 Mod 容器（`<SCIEPortWatercraft>`，0.3.2 采用）还是 `<DatabaseObjects>`（正常运行的 Builder Assistant 采用）本身都可用——“根节点导致嵌套 `DatabaseObjects` 才报错”属早期误诊，已推翻。`scripts/Test-Database.ps1` 现强制校验该规则。**已用真实原版 `Assets/Database.xml`（解自 `Content.scpak`）+ 游戏真实 `DatabaseManager.LoadDataBaseFromXml` 端到端复现**：0.3.1 的确切首异常是 `Another database object with name "Entities" is already nested in database object "Root".`（`DatabaseObject.set_NestingParent`），0.3.2 与阳性对照 Builder Assistant 均加载成功。 |
 | Boat/Mount/Rider/SpawnCreature ABI | 已确认 | `Test-Environment.ps1` 逐项反射签名通过 |
 | 蒸汽船本地推进代码 | 已确认 | 仅 `WorkType.Local`，Release 0 warning/0 error |
@@ -28,6 +29,10 @@ Android 或多人测试。
 | SCIE 铁轨和轨道载具运行 | 待验证 | 未在 Windows/Android 验证放置、弯坡轨、生成、骑乘、驾驶和存档 |
 | 车厢自动编组和货箱 | 不支持 | 旧实现依赖延迟父体复制及旧 GUI/库存链；0.5.0 仅提供独立试乘 |
 | 轨道载具多人同步 | 不支持 | 自定义轨道物理仅在 `WorkType.Local` 执行 |
+| Kelly 植物代码与资源 | 已确认（编译/静态） | 0.6.0 的 14 个方块类、4 个行为模板、原图集与果实模型已迁入 `SCIE-Port`；net472 对目标程序集编译通过，资源哈希与授权来源记录一致 |
+| Kelly 创造栏原名 | 已确认（静态） | CSV 严格为野莓植株、野莓、香蒲、蒲菜、云莓植株、云莓、野生蘑菇簇、野生蘑菇、毒蝇伞簇、毒蝇伞、大豆、黄豆、仙人掌果、橡子；构建脚本按顺序哈希并拒绝中英文括号 |
+| Kelly XDB 合并 | 已确认（静态） | `KellyPlants.xdb` 复用原版 `BlockBehaviors` GUID，4 个模板与 4 个成员继承均由 `Test-Database.ps1` 解析通过 |
+| Kelly Windows/Android 运行 | 待验证 | 内容管线加载 `.webp`/`.dae`、创造栏显示、播种/成长、生态生成、雨后蘑菇、存读档和性能尚未启动游戏验证 |
 
 ## 当前包布局
 
@@ -36,13 +41,17 @@ SCIEPort.dll
 modinfo.json
 Assets/Blocks/SCIEPort.csv
 Assets/Blocks/Watercraft.csv
+Assets/Blocks/KellyPlants.csv
 Assets/Database/Watercraft.xdb
+Assets/Database/KellyPlants.xdb
 Assets/Models/Airship.dae
+Assets/Models/KellyFruits.dae
 Assets/Models/Minecart.dae
 Assets/Models/SteamBoat.dae
 Assets/Models/Train.dae
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
+Assets/Textures/KellyExpansion.webp
 THIRD-PARTY-NOTICES.md
 ```
 

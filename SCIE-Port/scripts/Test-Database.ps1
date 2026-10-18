@@ -22,8 +22,8 @@ if (-not $DatabaseDir) { $DatabaseDir = Join-Path $ProjectRoot 'src\SCIEPort\Ass
 #   turns that failure into a build-time error.
 #
 # CHECKS (all hard failures, non-zero exit; nothing is swallowed)
-#   1. Root element must be a mod container root, never <DatabaseObjects>, and must
-#      not contain a nested <DatabaseObjects> child (matches Build-NetMod contract).
+#   1. Root may be <DatabaseObjects> or a custom mod container, but a custom root
+#      must not contain a nested <DatabaseObjects> child.
 #   2. Any folder whose Name matches a known vanilla folder must reuse the real
 #      vanilla Guid (no same-name/different-GUID rogue folder).
 #   3. No two <Folder> nodes inside one file may share a Name with different Guids.
@@ -84,11 +84,8 @@ foreach ($file in $xdbFiles) {
     $root = $xml.DocumentElement
 
     # 1. Root container contract.
-    if ($root.Name -eq 'DatabaseObjects') {
-        $failures.Add("$($file.Name): root element must be a mod container root, not 'DatabaseObjects'.")
-    }
     $nestedDatabaseObjects = @($root.ChildNodes | Where-Object { $_.NodeType -eq 'Element' -and $_.Name -eq 'DatabaseObjects' })
-    if ($nestedDatabaseObjects.Count -gt 0) {
+    if ($root.Name -ne 'DatabaseObjects' -and $nestedDatabaseObjects.Count -gt 0) {
         $failures.Add("$($file.Name): would create a nested <DatabaseObjects> node.")
     }
 

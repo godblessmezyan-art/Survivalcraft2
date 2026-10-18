@@ -31,8 +31,20 @@ foreach ($directory in @($build, $stage)) {
     New-Item -ItemType Directory -Path $directory | Out-Null
 }
 
-& dotnet build $projectFile --configuration $Configuration --output $build "-p:SCNetGameDir=$GameDir"
-if ($LASTEXITCODE -ne 0) { throw "dotnet build failed: $LASTEXITCODE" }
+$dotnetPath = (Get-Command dotnet -ErrorAction Stop).Source
+$dotnetSdkRoot = Join-Path (Split-Path -Parent $dotnetPath) 'sdk'
+$sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'MSBuild.dll')) } |
+    Sort-Object { [version]$_.Name } -Descending |
+    ForEach-Object { Get-Item -LiteralPath (Join-Path $_.FullName 'MSBuild.dll') } |
+    Select-Object -First 1
+if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot" }
+
+# Invoke the installed SDK's MSBuild directly. This net472 project does not need
+# the repository-wide SDK pinned by global.json, and direct invocation keeps the
+# port build usable when that optional SDK is not installed locally.
+& $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
+if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -82,18 +94,55 @@ try {
         'THIRD-PARTY-NOTICES.md',
         'Assets/Blocks/SCIEPort.csv',
         'Assets/Blocks/Watercraft.csv',
+        'Assets/Blocks/KellyPlants.csv',
         'Assets/Database/Watercraft.xdb',
+        'Assets/Database/KellyPlants.xdb',
         'Assets/Models/Airship.dae',
+        'Assets/Models/KellyFruits.dae',
         'Assets/Models/Train.dae',
         'Assets/Models/Minecart.dae',
         'Assets/Models/SteamBoat.dae',
         'Assets/Textures/Train.png',
-        'Assets/Textures/SteamBoat.png'
+        'Assets/Textures/SteamBoat.png',
+        'Assets/Textures/KellyExpansion.webp'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
     if ($entries | Where-Object { $_ -match '(^|/)(Survivalcraft\.exe|Engine\.dll|EntitySystem\.dll|Jint\.dll|System\.Reflection\.TypeExtensions\.dll)$' }) {
         throw 'Package contains a prohibited game or upstream dependency binary.'
+    }
+
+    $blockClassNames = New-Object System.Collections.Generic.List[string]
+    $kellyDisplayNames = New-Object System.Collections.Generic.List[string]
+    foreach ($entry in $archive.Entries) {
+        if ($entry.FullName -notmatch '^Assets/Blocks/.*\.csv$') { continue }
+        $reader = New-Object System.IO.StreamReader($entry.Open())
+        try { $lines = @($reader.ReadToEnd() -split "`r?`n") }
+        finally { $reader.Dispose() }
+        for ($i = 1; $i -lt $lines.Count; $i++) {
+            if ([string]::IsNullOrWhiteSpace($lines[$i])) { continue }
+            $columns = $lines[$i] -split ';'
+            if ($columns.Count -gt 0) { $blockClassNames.Add($columns[0].Trim()) }
+            if ($entry.FullName -eq 'Assets/Blocks/KellyPlants.csv' -and $columns.Count -gt 1) {
+                $kellyDisplayNames.Add($columns[1].Trim())
+            }
+        }
+    }
+    $duplicateClasses = @($blockClassNames | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name)
+    if ($duplicateClasses.Count -gt 0) {
+        throw ("Duplicate block class names in package CSVs: " + ($duplicateClasses -join ', '))
+    }
+    $kellyNameBytes = [Text.Encoding]::UTF8.GetBytes(($kellyDisplayNames -join '|'))
+    $kellyNameHasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        $kellyNamesHash = ($kellyNameHasher.ComputeHash($kellyNameBytes) | ForEach-Object { $_.ToString('x2') }) -join ''
+    }
+    finally { $kellyNameHasher.Dispose() }
+    if ($kellyDisplayNames.Count -ne 14 -or $kellyNamesHash -ne '5b868dfafcb2fd858f71f73d0997c16779a2cbf7f5696848c1df341651cb3656') {
+        throw ("Kelly inventory names differ from the authorized source names: " + ($kellyDisplayNames -join ', '))
+    }
+    if ($kellyDisplayNames | Where-Object { $_ -match '[\uFF08\uFF09()]' }) {
+        throw ("Kelly inventory names must remain original and contain no port-marker parentheses: " + ($kellyDisplayNames -join ', '))
     }
     [xml]$watercraftDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Watercraft.xdb')
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")

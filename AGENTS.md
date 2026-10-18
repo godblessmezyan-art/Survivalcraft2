@@ -10,7 +10,7 @@
 - 目标平台：Android 手机；下载渠道为 7723 游戏盒。
 - 开发平台：Windows PC。
 - 产物格式：`.netmod`，安装目录族为 `NetMods`。
-- 方向：功能扩展、建筑辅助、批量建造、建筑蓝图和自动化操作。
+- 方向：Builder Assistant 负责建筑辅助；`SCIE-Port/` 负责获许可的第三方 Mod 移植。
 - 优先级：当前 Android 客户端可运行 > 跨版本兼容。
 
 7723 安装包可能经过重新打包。即使显示相同版本号，也必须通过程序集名称、版本、哈希或 API 表面重新验证，不能自动继承公开发布包的兼容结论。
@@ -25,19 +25,22 @@
 6. 未编译的代码不得标记“完成”；未在 Android/7723 客户端测试的构建不得标记“兼容”。
 7. 所有功能优先适配触屏，不依赖键盘、鼠标悬停或桌面专用路径。
 
-## 目录规范
+## 工程与目录规范
 
-- `src/BuilderAssistant/`：唯一 Mod 工程。
+- `src/BuilderAssistant/`：建筑助手独立 Mod 工程，只允许自动生成建筑、批量建造、建筑蓝图、建筑操作自动化及其必要基础设施。
 - `src/BuilderAssistant/Mod/`：加载器入口和 SCNET Hook 适配层。
 - `src/BuilderAssistant/Core/`：不直接依赖 UI 的领域逻辑。
 - `src/BuilderAssistant/Features/`：按功能拆分的实现；每项功能独立启用。
 - `src/BuilderAssistant/Infrastructure/`：存储、日志、序列化与版本适配。
+- `SCIE-Port/`：第三方 Mod 移植的唯一工作区；遵循其目录内 `AGENTS.md`。Kelly、SCIE 等外部 Mod 的代码、数据库和美术资源不得放入或打包进 Builder Assistant。
 - `tests/`：不需要游戏进程即可运行的单元测试。
 - `scripts/`：依赖检查、构建、打包和部署辅助。
 - `docs/`：兼容性、开发流程、测试记录和路线图。
 - `artifacts/`、`bin/`、`obj/`：生成物，不提交。
 
 禁止在源码中硬编码用户存档路径、设备 ID、账号信息或专有文件内容。
+
+Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`、构建脚本、产物和版本号。除只读 ABI 取证外，不得跨工程引用源码或资产，也不得用一个工程的兼容性结论替代另一个工程的测试证据。
 
 ## 安全与存档原则
 

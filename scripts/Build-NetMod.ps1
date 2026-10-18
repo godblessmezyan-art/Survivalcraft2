@@ -34,15 +34,20 @@ foreach ($directory in @($buildDir, $stageDir)) {
     New-Item -ItemType Directory -Path $directory | Out-Null
 }
 
-$buildArguments = @(
-    'build', $projectPath,
-    '--configuration', $Configuration,
-    '--output', $buildDir,
-    "-p:SCNetGameDir=$GameDir"
-)
-& dotnet @buildArguments
+$dotnetPath = (Get-Command dotnet -ErrorAction Stop).Source
+$dotnetSdkRoot = Join-Path (Split-Path -Parent $dotnetPath) 'sdk'
+$sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'MSBuild.dll')) } |
+    Sort-Object { [version]$_.Name } -Descending |
+    ForEach-Object { Get-Item -LiteralPath (Join-Path $_.FullName 'MSBuild.dll') } |
+    Select-Object -First 1
+if ($null -eq $sdkMsBuild) {
+    throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot"
+}
+
+& $dotnetPath $sdkMsBuild.FullName $projectPath /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$buildDir\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) {
-    throw "dotnet build failed with exit code $LASTEXITCODE"
+    throw "MSBuild failed with exit code $LASTEXITCODE"
 }
 
 $modDll = Join-Path $buildDir 'BuilderAssistant.dll'

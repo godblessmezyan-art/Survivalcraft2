@@ -1,7 +1,9 @@
 # SCIE-Port Agent 开发交接手册
 
 > 更新时间：2026-10-17
-> 当前移植版本：`0.5.1`
+> 当前移植版本：`0.6.0`
+
+> 工程边界：Builder Assistant 仅做自动建筑；所有获许可第三方 Mod 移植均在本目录。本版另含 Kelly Expansion 植物资源，代码位于 `Features/KellyPlants`，不得回迁到 Builder Assistant。
 > 目标游戏：Survivalcraft NET 2.4 `Net_x25.01.17`
 > 最终平台：Android（7723 游戏盒版本）
 > 产物格式：`.netmod`
@@ -134,7 +136,7 @@ SCIE-Port/
 
 ## 5. 当前实现：SCIE 四种交通载具
 
-固定 SCIE 提交中交通实体为 `SteamBoat`、`Airship`、`Train` 和 `Carriage`。当前 0.5.1 包含：
+固定 SCIE 提交中交通实体为 `SteamBoat`、`Airship`、`Train` 和 `Carriage`。当前 0.6.0 保留 0.5.1 的以下交通实现：
 
 - 独立物品 `SteamBoatBlock`，内容 ID `999`；
 - 独立实体模板 `SCIEPortSteamBoat`；
@@ -178,15 +180,15 @@ upstream/SCIE/IndustrialMod/Textures/Train.png
 
 ### 0.3.0：`Database not loaded`
 
-0.3.0 的 `Watercraft.xdb` 错误地使用了：
+早期曾把问题误判为 `Watercraft.xdb` 使用了：
 
 ```xml
 <DatabaseObjects>
 ```
 
-目标 `ModsManager.CombineDataBase` 会把 Mod XDB 根节点的直接子节点加入原版
-`DatabaseObjects`。上述写法会产生嵌套的 `DatabaseObjects`，使数据库反序列化失败，
-进入世界后显示 `Database not loaded.`。
+后续真实反序列化取证已经推翻这个判断：`<DatabaseObjects>` 根本身可以正常合并，
+Builder Assistant 的正常运行 XDB 也是阳性对照。真正根因是原版 `Entities`、`Gameplay`、
+`BlockBehaviors` 文件夹使用了错误 GUID，形成同名不同 GUID 的游离文件夹。
 
 0.3.1 已改为：
 
@@ -194,7 +196,9 @@ upstream/SCIE/IndustrialMod/Textures/Train.png
 <SCIEPortWatercraft>
 ```
 
-构建脚本现在会拒绝错误根节点。任何 Agent 都不得把它改回 `DatabaseObjects`。
+`Watercraft.xdb` 继续使用自定义根；`KellyPlants.xdb` 使用 `<DatabaseObjects>` 根。两种形式均允许，
+但自定义根内部不得再嵌套 `<DatabaseObjects>`。构建脚本真正强制的是原版文件夹 GUID、
+同名文件夹冲突和继承父级可解析性。
 
 ### 安装升级注意事项
 
@@ -205,7 +209,7 @@ upstream/SCIE/IndustrialMod/Textures/Train.png
 
 | 能力 | 当前状态 | 说明 |
 |---|---|---|
-| Release 编译 | 已确认 | 0.5.1 为 0 warning / 0 error |
+| Release 编译 | 已确认 | 0.6.0 net472 以警告视为错误编译通过 |
 | XDB 根格式修复 | 已确认 | 由 x25 `CombineDataBase` 真实实现确认 |
 | Windows 进入世界 | 待验证 | 0.3.1 尚缺完整运行日志 |
 | Android 进入世界 | 已确认 | 用户确认 0.3.1 已修复数据库加载错误；完整日志仍待归档 |
@@ -218,6 +222,8 @@ upstream/SCIE/IndustrialMod/Textures/Train.png
 | 多人权威驾驶同步 | 不支持 | 自定义推进仅允许 `WorkType.Local` |
 | 双座 | 不支持 | 当前 SCIE 蒸汽船本身为单座；原生 Mount 协议没有座位号 |
 | 火车燃料、车厢编组/货箱 | 不支持 | 依赖后续工业机器、库存和父体同步链 |
+| Kelly 植物静态迁移 | 已确认 | 14 个原名、ID 903–916、资源哈希、XDB 与目标 ABI 编译均通过 |
+| Kelly 植物 Android 运行 | 待验证 | 内容加载、播种成长、生态生成、雨后蘑菇、存读档和性能待实机验证 |
 
 不要用删除功能、空实现、伪造类或屏蔽异常的方式改变这些状态。
 
@@ -239,7 +245,7 @@ cd E:\Survivalcraft2\SCIE-Port
 Get-FileHash .\artifacts\SCIEPort.netmod -Algorithm SHA256
 ```
 
-当前 0.5.1 构建记录：
+最近一次完整可打包的历史基线仍是 0.5.1；0.6.0 因本机缺少被忽略的固定 SCIE 上游快照且 GitHub 暂不可达，只完成编译/XDB/资源与名称校验，尚无完整包哈希。0.5.1 记录：
 
 - 文件：`SCIE-Port/artifacts/SCIEPort.netmod`
 - 大小：136,966 字节
