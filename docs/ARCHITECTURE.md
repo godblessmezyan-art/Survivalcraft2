@@ -1,4 +1,4 @@
-# Builder Assistant 架构说明（v0.6.0）
+# Builder Assistant 架构说明（v0.7.0）
 
 本文只描述 Builder Assistant 的自动建造基础，不涉及 SCIE-Port。目标是“可靠、可撤销的离线自动建造”，不做云、AI 或复杂 UI。v0.6.0 在不改动这条主线的前提下，专门处理“目标区块未加载或越界”这一 P0：把失败原因细分到每一格、允许主线程有限等待区块加载、并让回滚/撤销可追踪并重试未完成的部分。
 
@@ -26,6 +26,8 @@ src/BuilderAssistant/
     Blueprints/BlueprintBuilder.cs   Set/FillBox/FillShell/Walls/Layer/Carve，确定性排序
     Blueprints/BlueprintCell.cs      (相对坐标 + 逻辑材料键)
     Blueprints/BuildingMaterials.cs  逻辑材料键常量
+    Blueprints/BlueprintJson.cs      蓝图↔JSON(schemaVersion=1) 序列化/解析/校验，永不抛异常（v0.7.0，纯 Core）
+    Json/Json.cs                     零依赖严格 JSON 解析器 + 确定性写器（v0.7.0，net472 无 System.Text.Json）
     Transactions/ITerrainGateway.cs  唯一地形读写抽象（新增 InspectCell 诊断，测试用内存实现）
     Transactions/CellEditability.cs  每格不可编辑原因的枚举+结构（越界/缺失/状态/未加载，v0.6.0）
     Transactions/IBlockValueResolver.cs 材料键→打包方块值
@@ -38,11 +40,14 @@ src/BuilderAssistant/
   Features/
     Generators/IBuildingGenerator.cs / GenerationContext.cs / BuildingGeneratorRegistry.cs
     Generators/MedievalCottageGenerator.cs   首个可玩结构：9×10×11 小屋
-    WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）
-    WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值
-    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）
+    WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）；TypeNameForContents/DescribeContents 供复制读取（v0.7.0）
+    WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值；SupportedPlainCubes 保守白名单 + IsResolvableKey 预检（v0.7.0）
+    WorldEdit/BlueprintCopier.cs     两角选区读实时方块→纯 Blueprint，仅复制白名单立方块，其余逐类跳过并报告（v0.7.0）
+    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）
     WorldEdit/BuilderToolBlock.cs(901) / UndoToolBlock.cs(902)
     WorldEdit/SubsystemBuilderToolBlockBehavior.cs / SubsystemUndoToolBlockBehavior.cs
+  Infrastructure/
+    BlueprintStorage.cs              蓝图 JSON 落盘：基目录取 ModsManager.UserDataPath + Mod 私有子目录，绝不硬编码设备路径；IO 全 try/catch（v0.7.0）
   Mod/BuilderAssistantModLoader.cs   注册 GuiUpdate + BlocksInitalized；快艇逻辑保持原样
 ```
 
@@ -70,8 +75,19 @@ v0.6.0 用三件事应对，均不改“写前先全量校验”的铁律：
 2. **有限等待（预检）**：若失败纯因区块未就绪，`WorldEditRuntime` 在主线程做有界等待——记住落点与蓝图，每帧重新 `Plan`，等待期间不写任何方块，就绪即开工、转硬错误即停、超 `MaxPreflightFrames` 自动放弃。
 3. **可追踪的部分回滚/撤销**：回滚或撤销时个别格暂时不可编辑，不再被静默跳过，而是登记为延迟条目，由后续帧或再次点击续做；如实报告“还有 N 格未恢复”，绝不谎报“已完成”。
 
-## 可扩展性（为后续阶段预留，不在本轮实现）
+## 蓝图 JSON 桥（v0.7.0 已实现）
 
-- 蓝图与地形彻底分离：`Blueprint.Reorient` 已支持旋转/镜像，`GenerationContext` 已留 `Seed` 与 `MaterialOverrideKey`，未来做随机、换材、组合只需新增生成器。
-- 区域选取 / 复制 / 粘贴：新增 `ITerrainGateway` 读出侧即可复用计划器与撤销链。
-- 蓝图库/JSON 导入导出：`Blueprint` 已是纯数据（相对坐标 + 材料键），可直接序列化。
+这一层把“纯数据蓝图 ↔ JSON 文本 ↔ 磁盘 ↔ 真实世界”打通，是通向未来 AI 生成建筑的桥；核心承诺是**先能可靠地保存、重导入并复现同一建筑**，再接模型。
+
+- 复制（读）：`RuntimeMode.Copy` 下两次点选对角 → `BlueprintCopier.Copy` 逐格读实时方块（只读，绝不损伤源结构）→ 只有 `VanillaBlockPalette.SupportedPlainCubes`（小屋已验证的纯立方方块）才纳入蓝图，其余按类型如实计入“暂不支持”并跳过 → 产出相对坐标 + 具体方块类型名作 material key 的纯 `Blueprint`，并 `BlueprintJson.Serialize` 落盘到 `ModsManager.UserDataPath` 下的 Mod 私有蓝图库。
+- 存储（不硬编码路径）：`Infrastructure/BlueprintStorage` 的基目录来自游戏自带的 `ModsManager.UserDataPath`，再拼私有子目录；这也是第 10 步 Android 本地文件访问的答复——用游戏自己的路径 API，而不是写死 `/sdcard/...`。
+- 导入 + 粘贴（写）：`ImportBlueprint` 读取并 `BlueprintJson.Decode`（永不抛异常，全量校验：整数坐标、无重复、材料 id 不悬空、数量/单轴上限、声明 size 与包围盒一致），再 `CollectUnresolvableKeys` 预检材料；`RuntimeMode.Paste` 定位后走 `BeginBuildBlueprint` → 与小屋**同一条** `PlanAndStart`：写前全量校验、有界区块等待、clear-soft、分批执行、延迟回滚/撤销、`TransactionHistory` 撤销，全部一致。旋转 `SetPasteRotation` 仅在蓝图空间 `Reorient`，落地不碰地形。
+- 前向兼容但不造假：schema 预留 `o`/`d`/`props`（朝向/数据/复杂方块属性）与顶层 `buildOps` 字段位，但 v1 无法复现它们，故一律**响亮拒绝**而非硬凑劣质建筑（AGENTS：不写垃圾）。
+
+生成侧的可扩展性同样保留：`Blueprint.Reorient` 支持旋转/镜像，`GenerationContext` 留 `Seed` 与 `MaterialOverrideKey`，新增结构只需再写一个 `IBuildingGenerator`。
+
+## 仍为预留（未来阶段）
+
+- 台阶/半砖/带朝向原木/栅栏/植物/流体/含实体方块等的复制与粘贴：需先在真机逐块验证渲染与朝向数据位，再扩 `SupportedPlainCubes`。
+- 设备内的模式切换 / 旋转选择 / 蓝图浏览 UI：当前用“空闲点撤销工具循环模式 + 程序化 `SetPasteRotation`/`ImportBlueprint`”过渡，正式触屏面板待做。
+- AI 建筑生产者：让其直接产出 `schemaVersion=1` 的蓝图 JSON，经同一导入→校验→粘贴链落建；模型只负责“设计”，可靠复现与安全性由本桥与既有引擎保证。

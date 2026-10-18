@@ -1,8 +1,10 @@
+using System;
 using BuilderAssistant.Core;
 using BuilderAssistant.Core.Blueprints;
 using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Features.Generators;
+using BuilderAssistant.Infrastructure;
 using Engine;
 using Game;
 
@@ -63,6 +65,35 @@ namespace BuilderAssistant.Features.WorldEdit
         private static bool _preflightClearSoft;
 
         /// <summary>
+        /// What a build-tool tap does. <c>Cottage</c> is the unchanged v0.5/v0.6 path.
+        /// <c>Copy</c> reads a two-corner region into a blueprint (and auto-exports it
+        /// to the Mod's JSON library). <c>Paste</c> rebuilds the clipboard blueprint at a
+        /// confirmed origin through the SAME plan/execute/undo pipeline the cottage uses,
+        /// so all AGENTS safety rules apply identically to imported/copied structures.
+        /// </summary>
+        internal enum RuntimeMode
+        {
+            Cottage,
+            Copy,
+            Paste,
+        }
+
+        private static RuntimeMode _mode = RuntimeMode.Cottage;
+
+        // The blueprint waiting to be pasted (from a copy or an imported JSON file),
+        // the quarter-turn rotation to apply (0..3) and the name it came from. NOTE:
+        // rotation is carried in state and applied via Blueprint.Reorient at build time;
+        // an on-device rotation picker is a follow-up, so paste currently uses 0 unless a
+        // caller sets it programmatically. The transform itself is fully tested offline.
+        private static Blueprint _clipboard;
+        private static int _clipboardRotation;
+        private static string _clipboardSourceName;
+
+        // Copy-mode selection: the first corner, then the second completes the copy.
+        private static bool _copyHasA;
+        private static CellPos _copyCornerA;
+
+        /// <summary>
         /// Called from the BlocksInitalized hook and whenever a new world session
         /// re-initializes blocks. Rebuilds the palette against the fresh
         /// BlocksManager and drops any stale selection, history and terrain handle
@@ -93,6 +124,15 @@ namespace BuilderAssistant.Features.WorldEdit
             _clearSoftArmed = false;
             _preflightClearSoft = false;
             _history.Clear();
+
+            // Reset the v0.7 blueprint copy/paste state too, so a fresh world never
+            // inherits a stale clipboard or a half-finished copy selection.
+            _mode = RuntimeMode.Cottage;
+            _clipboard = null;
+            _clipboardRotation = 0;
+            _clipboardSourceName = null;
+            _copyHasA = false;
+            _copyCornerA = default(CellPos);
         }
 
         /// <summary>
@@ -139,18 +179,48 @@ namespace BuilderAssistant.Features.WorldEdit
 
             CellPos surface = new CellPos(hit.Value.CellFace.X, hit.Value.CellFace.Y, hit.Value.CellFace.Z);
 
+            if (_mode == RuntimeMode.Copy)
+            {
+                return OnCopyTap(miner, gui, surface);
+            }
+
+            if (_mode == RuntimeMode.Paste && _clipboard == null)
+            {
+                Notify(gui, "剪贴板为空：请先切换到复制模式点选两块对角，或导入一个蓝图文件。");
+                return true;
+            }
+
+            Blueprint effective = _mode == RuntimeMode.Paste ? EffectiveClipboard() : null;
+
             if (!_hasPending)
             {
-                _pendingOrigin = ComputeOrigin(surface);
+                _pendingOrigin = _mode == RuntimeMode.Paste
+                    ? ComputeOrigin(effective, surface)
+                    : ComputeOrigin(surface);
                 _hasPending = true;
                 _clearSoftArmed = false;
-                Notify(gui, "落点已选定 " + _pendingOrigin + "。再次点击建造工具以确认施工。");
+                if (_mode == RuntimeMode.Paste)
+                {
+                    Notify(gui, "粘贴落点已选定 " + _pendingOrigin + "（蓝图 " + _clipboardSourceName +
+                        "）。再次点击建造工具以确认放置。");
+                }
+                else
+                {
+                    Notify(gui, "落点已选定 " + _pendingOrigin + "。再次点击建造工具以确认施工。");
+                }
                 return true;
             }
 
             CellPos origin = _pendingOrigin;
             _hasPending = false;
-            BeginBuild(miner, gui, origin);
+            if (_mode == RuntimeMode.Paste)
+            {
+                BeginBuildBlueprint(miner, gui, effective, origin);
+            }
+            else
+            {
+                BeginBuild(miner, gui, origin);
+            }
             return true;
         }
 
@@ -219,7 +289,10 @@ namespace BuilderAssistant.Features.WorldEdit
 
             if (!_history.HasUndoable)
             {
-                Notify(gui, "没有可撤销的建造。");
+                // Nothing in flight, nothing pending, nothing to undo: on a phone there
+                // is no separate mode button, so an idle undo-tool tap cycles the build
+                // mode (Cottage → Copy → Paste). All busy states were handled above.
+                CycleMode(gui);
                 return true;
             }
 
@@ -300,13 +373,44 @@ namespace BuilderAssistant.Features.WorldEdit
 
         private static void BeginBuild(ComponentMiner miner, ComponentGui gui, CellPos origin)
         {
+            Blueprint cottage = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            PlanAndStart(miner, gui, cottage, origin);
+        }
+
+        /// <summary>
+        /// Paste entry point. Unlike the cottage (whose keys are known-good logical
+        /// names), a copied or imported blueprint may reference block types this
+        /// palette cannot rebuild. Pre-flight every material key first and abort with
+        /// an explicit unsupported-type list rather than letting the planner fail
+        /// opaquely, then reuse the SAME plan/execute/undo pipeline as the cottage.
+        /// </summary>
+        private static void BeginBuildBlueprint(ComponentMiner miner, ComponentGui gui, Blueprint blueprint, CellPos origin)
+        {
+            if (blueprint == null || blueprint.CellCount == 0)
+            {
+                Notify(gui, "剪贴板为空或蓝图没有方块，无法粘贴。");
+                return;
+            }
+
+            string unsupported = CollectUnresolvableKeys(blueprint);
+            if (unsupported != null)
+            {
+                Notify(gui, "蓝图包含本版本尚不能重建的方块（" + unsupported +
+                    "）。为避免劣质生成已中止粘贴，未改动世界。");
+                return;
+            }
+
+            PlanAndStart(miner, gui, blueprint, origin);
+        }
+
+        private static void PlanAndStart(ComponentMiner miner, ComponentGui gui, Blueprint blueprint, CellPos origin)
+        {
             if (miner.m_subsystemTerrain == null)
             {
                 Notify(gui, "地形尚未就绪，无法施工。");
                 return;
             }
 
-            Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
             bool clearSoft = _clearSoftArmed;
 
@@ -474,13 +578,245 @@ namespace BuilderAssistant.Features.WorldEdit
             }
         }
 
-        private static CellPos ComputeOrigin(CellPos surface)
+        private static CellPos ComputeOrigin(Blueprint bp, CellPos surface)
         {
-            Blueprint bp = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
             int ox = surface.X - (bp.SizeX - 1) / 2;
             int oz = surface.Z - (bp.SizeZ - 1) / 2;
             int oy = surface.Y + 1; // sit the structure on top of the aimed block
             return new CellPos(ox, oy, oz);
+        }
+
+        private static CellPos ComputeOrigin(CellPos surface)
+        {
+            Blueprint bp = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            return ComputeOrigin(bp, surface);
+        }
+
+        /// <summary>
+        /// The clipboard as it will actually be pasted: the stored blueprint with the
+        /// current quarter-turn rotation applied. Returns null when the clipboard is
+        /// empty. Rotation is a pure blueprint-space transform (fully tested offline),
+        /// so paste never needs to touch terrain to rotate.
+        /// </summary>
+        private static Blueprint EffectiveClipboard()
+        {
+            if (_clipboard == null) return null;
+            return _clipboardRotation == 0 ? _clipboard : _clipboard.Reorient(_clipboardRotation, false);
+        }
+
+        /// <summary>
+        /// Distinct material keys in a blueprint the palette cannot rebuild. Returns
+        /// null when every key resolves (nothing unsupported). Used to give the user a
+        /// precise reason on paste instead of an opaque planner failure.
+        /// </summary>
+        private static string CollectUnresolvableKeys(Blueprint blueprint)
+        {
+            if (blueprint == null || _palette == null) return null;
+            var seen = new System.Collections.Generic.HashSet<string>(StringComparer.Ordinal);
+            var bad = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < blueprint.Cells.Count; i++)
+            {
+                string key = blueprint.Cells[i].MaterialKey ?? string.Empty;
+                if (seen.Add(key) && !_palette.IsResolvableKey(key))
+                {
+                    bad.Add(key.Length == 0 ? "(空材料)" : key);
+                }
+            }
+            return bad.Count == 0 ? null : string.Join("、", bad.ToArray());
+        }
+
+        /// <summary>
+        /// Copy-mode two-corner selection driven by build-tool taps. The first tap
+        /// records the aimed cell as corner A; the second completes the box, reads
+        /// the LIVE region into a blueprint (read-only, never damages the source),
+        /// stores it as the clipboard, auto-exports it to the Mod's JSON library and
+        /// flips the runtime into Paste mode so the next taps place the copy. All
+        /// capture/skip detail is surfaced so the player knows exactly what will and
+        /// will not be reproduced.
+        /// </summary>
+        private static bool OnCopyTap(ComponentMiner miner, ComponentGui gui, CellPos surface)
+        {
+            if (!_copyHasA)
+            {
+                _copyCornerA = surface;
+                _copyHasA = true;
+                Notify(gui, "复制起点已选定 " + surface + "。请将准星移到对角块再次点击建造工具以完成复制。");
+                return true;
+            }
+
+            CellPos cornerA = _copyCornerA;
+            _copyHasA = false;
+
+            if (miner.m_subsystemTerrain == null)
+            {
+                Notify(gui, "地形尚未就绪，无法复制。");
+                return true;
+            }
+
+            string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            string name = "copy_" + stamp;
+            GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
+            BlueprintCopier.Result copy = BlueprintCopier.Copy(gateway, cornerA, surface, name);
+
+            if (copy.HasFailure)
+            {
+                Notify(gui, "复制失败：" + copy.Failure);
+                return true;
+            }
+            if (copy.Blueprint == null || copy.Copied == 0)
+            {
+                Notify(gui, "选区内没有可复制的方块。" + copy.Describe());
+                return true;
+            }
+
+            _clipboard = copy.Blueprint;
+            _clipboardSourceName = copy.Blueprint.Name;
+            _clipboardRotation = 0;
+            _hasPending = false;
+
+            // Auto-export so the captured structure survives the session and can be
+            // re-imported or fed to the future AI pipeline. IO problems are reported
+            // but never lose the in-memory clipboard (paste still works this session).
+            string savedFileName;
+            string saveError = BlueprintStorage.Save(name, BlueprintJson.Serialize(_clipboard), out savedFileName);
+
+            _mode = RuntimeMode.Paste;
+            string msg = copy.Describe() + " 已切换到粘贴模式：" +
+                "对准新的地面两次点击建造工具即可放置该建筑。";
+            if (saveError != null)
+            {
+                msg += "（保存到蓝图库失败：" + saveError + "，但本次粘贴仍可用。）";
+            }
+            else
+            {
+                msg += "（已存入蓝图库：" + savedFileName + "）";
+            }
+            Notify(gui, msg);
+            return true;
+        }
+
+        /// <summary>
+        /// Advance the runtime to the next mode (Cottage → Copy → Paste → Cottage).
+        /// Exposed so a future on-device UI (or the undo tool's idle tap) can cycle
+        /// without duplicating the state machine. Only meaningful in single player;
+        /// callers gate that upstream.
+        /// </summary>
+        public static void CycleMode(ComponentGui gui)
+        {
+            RuntimeMode next;
+            switch (_mode)
+            {
+                case RuntimeMode.Cottage: next = RuntimeMode.Copy; break;
+                case RuntimeMode.Copy: next = RuntimeMode.Paste; break;
+                default: next = RuntimeMode.Cottage; break;
+            }
+            SetMode(next, gui);
+        }
+
+        /// <summary>Set the runtime mode explicitly and announce it to the player.</summary>
+        internal static void SetMode(RuntimeMode mode, ComponentGui gui)
+        {
+            // Abandon any half-finished selection/confirm when switching modes so a
+            // stale corner or pending drop point can never leak into the new mode.
+            _mode = mode;
+            _hasPending = false;
+            _clearSoftArmed = false;
+            if (mode != RuntimeMode.Copy)
+            {
+                _copyHasA = false;
+            }
+
+            switch (mode)
+            {
+                case RuntimeMode.Copy:
+                    Notify(gui, "模式：复制。点选一个角，再点选对角即可把一段真实建筑复制成蓝图并自动保存。");
+                    break;
+                case RuntimeMode.Paste:
+                    if (_clipboard == null)
+                    {
+                        Notify(gui, "模式：粘贴。剪贴板为空——请先复制一段建筑，或导入一个蓝图文件。");
+                    }
+                    else
+                    {
+                        Notify(gui, "模式：粘贴。将放置蓝图「" + _clipboardSourceName + "」，对准地面两次点击确认落点。");
+                    }
+                    break;
+                default:
+                    Notify(gui, "模式：小屋。点击建造工具将放置内置的中世纪小屋。");
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Load a saved blueprint JSON (by file stem) from the Mod library into the
+        /// clipboard and switch to Paste mode. Every AGENTS rule (bounds, caps,
+        /// material support, chunk readiness, no-overwrite) is still enforced later by
+        /// BuildPlanner/BuildTask at paste time; this only validates parse + materials
+        /// up front so the player gets an immediate, precise answer.
+        /// </summary>
+        public static bool ImportBlueprint(string name, ComponentGui gui)
+        {
+            string error;
+            Blueprint bp = BlueprintStorage.LoadBlueprint(name, out error);
+            if (bp == null)
+            {
+                Notify(gui, "导入失败：" + error);
+                return false;
+            }
+
+            string unsupported = CollectUnresolvableKeys(bp);
+            if (unsupported != null)
+            {
+                Notify(gui, "蓝图「" + bp.Name + "」含本版本尚不能重建的方块（" + unsupported +
+                    "）。为避免劣质生成未载入。");
+                return false;
+            }
+
+            _clipboard = bp;
+            _clipboardSourceName = bp.Name;
+            _clipboardRotation = 0;
+            _hasPending = false;
+            SetMode(RuntimeMode.Paste, gui);
+            Notify(gui, "已导入蓝图「" + bp.Name + "」，共 " + bp.CellCount + " 个方块。");
+            return true;
+        }
+
+        /// <summary>Export the current clipboard blueprint to the Mod JSON library.</summary>
+        public static bool ExportClipboard(ComponentGui gui, string name)
+        {
+            if (_clipboard == null)
+            {
+                Notify(gui, "剪贴板为空，没有可导出的蓝图。");
+                return false;
+            }
+            string stem = string.IsNullOrEmpty(name) ? _clipboardSourceName : name;
+            if (string.IsNullOrEmpty(stem)) stem = "blueprint";
+            string savedFileName;
+            string saveError = BlueprintStorage.Save(stem, BlueprintJson.Serialize(_clipboard), out savedFileName);
+            if (saveError != null)
+            {
+                Notify(gui, "导出失败：" + saveError);
+                return false;
+            }
+            Notify(gui, "已导出蓝图到蓝图库：" + savedFileName);
+            return true;
+        }
+
+        /// <summary>
+        /// Set the paste rotation (quarter turns, 0..3). The transform itself is
+        /// pure blueprint space and fully tested offline; normalised modulo 4.
+        /// </summary>
+        public static void SetPasteRotation(int steps, ComponentGui gui)
+        {
+            _clipboardRotation = ((steps % 4) + 4) % 4;
+            if (_clipboard == null)
+            {
+                Notify(gui, "已设定朝向 " + _clipboardRotation * 90 + "°（剪贴板当前为空，载入蓝图后生效）。");
+            }
+            else
+            {
+                Notify(gui, "粘贴朝向已设为 " + _clipboardRotation * 90 + "°。");
+            }
         }
 
         private static bool IsSinglePlayer(ComponentGui gui)

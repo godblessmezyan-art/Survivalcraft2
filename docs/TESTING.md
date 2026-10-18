@@ -258,3 +258,47 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
 **本机复测结果**：`net472` 对真实程序集 Release 编译 `0 错误 0 警告`（编译期确认 `Cells`/`Coords`/`State` 签名可用）；`BuilderAssistant.Tests` 离线逻辑 `ALL 72 CHECKS PASSED`（`TestCrossChunkNotReadyClassifiedAndRecoverable` 已断言“区块内容未就绪 vs 区块缺失”分类且均可恢复、不写入）；`Test-XdbGuards` `CHECKS: 7 passed, 0 failed`；随包内容核对 `modinfo Version=0.6.2`、Building.xdb `ea25b78e`=0（GUID 修复未回退）、Speedboat.xdb 仅 1。`.netmod`（v0.6.2）SHA-256：`404D1798666B28ED85B611AD635760F7EAE497B3D07CFEA071F6B6E60EA11D61`（取代 v0.6.1 的 `C4B022D3…`）。
 
 **待办（关键）**：把 v0.6.2 装上 7723 单人创造测试世界，对准**脚下已渲染的地面**建造应能成功；若仍失败，请回传新诊断行（重点看 `state=` 值与“区块内容未就绪/区块状态未就绪/区块缺失”各自计数）与完整日志。桌面+编译+离线全绿仍≠手机已修复，Android 能否真正落建筑材**待验证**。
+
+## 2026-10-18：v0.7.0 通用 JSON 蓝图导入/导出 + 复制/粘贴（AI 建筑接口的桥）
+
+范围：仅 `src/BuilderAssistant/`（新增 Core/Json、Core/Blueprints/BlueprintJson、Features/WorldEdit/BlueprintCopier、Infrastructure/BlueprintStorage；改写 VanillaBlockPalette、GameTerrainGateway、WorldEditRuntime）与 `tests/BuilderAssistant.Tests/`。未改 SCIE-Port、未改快艇数据、未触及联机、未绕过任何区块校验（第 11 步）。目标：先确保蓝图能被可靠保存、重导入并复现同一建筑，再谈接 AI。
+
+### 1. 新增离线逻辑测试（真实执行，本机）
+
+- 命令：`"$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests`（工程新增编译 `Core/Json/Json.cs` 与 `Core/Blueprints/BlueprintJson.cs`，仍不引用游戏程序集）。
+- 结果：`ALL 133 CHECKS PASSED`（在原 95 项基础上新增 14 个 JSON/蓝图用例）。
+- 新增用例覆盖：字节稳定往返复现同 (坐标,材料) 集、负相对坐标归一化后复现、重复坐标拒、小数坐标拒、schemaVersion=999 拒、缺 schemaVersion 拒、>1024 拒、单轴 65 拒、悬空材料 id 拒、空 cells 拒、per-cell `d`（朝向/数据预留位）拒、非空 `buildOps` 拒、声明 size≠重算包围盒拒、四分之一转向与 JSON 往返一致性。
+
+### 2. XDB 合并安全守卫回归（本机）
+
+- 命令：`powershell -File scripts/Test-XdbGuards.ps1` → `CHECKS: 7 passed, 0 failed`（Building.xdb/Speedboat.xdb 判定 0 冲突；v0.6.1 参数 GUID 修复未回退）。
+
+### 3. net472 游戏侧编译（本机，引用 D:\SC 真实程序集）
+
+- 命令：`dotnet build -c Release -p:SCNetGameDir='D:\SC'` → `0 错误 0 警告`。编译期确认 `ModsManager.UserDataPath`（public static string）、`Terrain.ExtractContents`、`BlocksManager.FindBlockByTypeName`、`Block.GetType().Name`、`chunk.Coords/State/Cells` 等复制/存储所用签名可用。
+- 过程中修掉两处编译错：CS1570（BlueprintStorage doc 注释里未转义的 `<`）与 CS0051（`SetMode` 取私有 `RuntimeMode` 可访问性不一致，已将 enum 提为 internal、方法降为 internal）。
+
+### 4. 全流程打包（本机，GameDir=D:\SC）
+
+- 命令：`powershell -File scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release`（内含 Test-Environment + Test-Logic(133/133) + Release 编译 + 打包 + 内容守卫）。
+- 结果：通过全部守卫（必需条目、CSV 类名唯一 `BuilderToolBlock/SpeedboatBlock/UndoToolBlock`、`Test-XdbMergeSafety` 全局 Guid 唯一性、不含专有程序集）。
+- 随包核对：`modinfo Version=0.7.0`、DLL 程序集版本 0.7.0.0、Building.xdb `ea25b78e`=0、Speedboat.xdb 仅 1。
+- `.netmod`（v0.7.0）SHA-256：`4B227BB59C731D02BC1724473A69ABFD1B5A5D6E440C8C761C1487C1F1F51064`（取代 v0.6.3 的 `D88B1E1A…`）。
+
+### 5. Android / 7723 实机（待验证）
+
+本轮未在任何设备执行验证。桌面离线全绿 + 编译期 ABI ≠ 手机可用。待实测：①复制模式两角框选一段立方方块建筑，应报“已捕获 N 个…/已存入蓝图库：copy_….json”，切 Paste 后两次点击原样重建；②撤销整体回退粘贴体且不覆盖玩家手改；③选区含台阶/植物/水时如实列为“暂不支持”并跳过、不硬凑；④导入先前保存的 `.json` 再粘贴；⑤`ModsManager.UserDataPath` 下蓝图库读写在真机是否可落地（此前从未在设备上跑过一次文件 IO）。若失败请回传首条 `Warning/Error` 原文 + 完整 `Game.log`。
+
+### 6. 复现实验（本机当前可跑）
+
+```bash
+# 离线逻辑（无需游戏程序集）
+export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"; export DOTNET_ROLL_FORWARD=Major
+"$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests
+
+# 守卫
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-XdbGuards.ps1
+
+# net472 打包（游戏目录 D:\SC）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
+```

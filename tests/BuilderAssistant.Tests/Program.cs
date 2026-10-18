@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using BuilderAssistant.Core;
 using BuilderAssistant.Core.Blueprints;
 using BuilderAssistant.Core.BuildEngine;
+using BuilderAssistant.Core.Json;
 using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Core.Transactions;
 using BuilderAssistant.Features.Generators;
@@ -182,6 +183,25 @@ namespace BuilderAssistant.Tests
             TestStallBudgetExhaustionRollsBackSafely();
             TestClearSoftReplacesVegetationWhenOptedIn();
             TestClearSoftNeverTouchesSolidBlocks();
+
+            // v0.7.0: generic JSON blueprint import/export. Proves a structure can be
+            // reliably saved, re-imported and reproduce the SAME block set, and that any
+            // malformed / unsupported / illegal blueprint is rejected loudly (never a
+            // partial or garbage import). See Core/Blueprints/BlueprintJson + Core/Json.
+            TestJsonEngineBasicsAndStrictness();
+            TestBlueprintJsonRoundTripCottage();
+            TestBlueprintJsonNegativeCoordsNormalizeAndReproduce();
+            TestBlueprintJsonRejectsDuplicateCoords();
+            TestBlueprintJsonRejectsFractionalCoords();
+            TestBlueprintJsonRejectsUnknownSchemaVersion();
+            TestBlueprintJsonRejectsOverCap();
+            TestBlueprintJsonRejectsAxisCap();
+            TestBlueprintJsonRejectsUnknownMaterialId();
+            TestBlueprintJsonRejectsEmptyCells();
+            TestBlueprintJsonRejectsUnsupportedOrientation();
+            TestBlueprintJsonRejectsBuildOps();
+            TestBlueprintJsonRejectsSizeMismatch();
+            TestBlueprintJsonRotationTransformReproduces();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -791,6 +811,223 @@ namespace BuilderAssistant.Tests
             Check(stillPending == 0, "retry does not keep a cell the player has since changed");
             Check(terrain.ValueAt(playerCell) == 999,
                 "the player's later edit is preserved — undo never clobbers it");
+        }
+
+        // --- v0.7.0: generic JSON blueprint import/export. ---
+
+        // The hand-rolled JSON engine must accept well-formed input (nested objects,
+        // arrays, escapes, unicode, bools, null) and reject malformed input loudly.
+        private static void TestJsonEngineBasicsAndStrictness()
+        {
+            Console.WriteLine("[TestJsonEngineBasicsAndStrictness]");
+            JsonValue obj = JsonValue.Parse(
+                "{\"schemaVersion\":1,\"name\":\"小屋 \\u00fc\",\"flag\":true,\"n\":null," +
+                "\"size\":{\"x\":-3,\"y\":10,\"z\":11},\"arr\":[1,2,3],\"s\":\"a\\\"b\"}");
+            int sv;
+            Check(obj.TryGetInt("schemaVersion", out sv) && sv == 1, "parses integer member");
+            Check(obj.Get("name").StringValue == "小屋 ü", "parses unicode escape + CJK name");
+            Check(obj.Get("flag").BoolValue, "parses boolean true");
+            Check(obj.Get("n").Kind == JsonKind.Null, "parses null");
+            int negx;
+            Check(obj.Get("size").TryGetInt("x", out negx) && negx == -3, "parses nested negative integer");
+            Check(obj.Get("arr").Items.Count == 3, "parses array of three items");
+            Check(obj.Get("s").StringValue == "a\"b", "parses escaped quote in string");
+
+            bool threwTrailing = false;
+            try { JsonValue.Parse("{} extra"); } catch (JsonParseException) { threwTrailing = true; }
+            Check(threwTrailing, "rejects trailing characters after top-level value");
+
+            bool threwTrailingComma = false;
+            try { JsonValue.Parse("[1,2,]"); } catch (JsonParseException) { threwTrailingComma = true; }
+            Check(threwTrailingComma, "rejects trailing comma (strict parser, no garbage)");
+
+            bool threwBadNum = false;
+            try { JsonValue.Parse("{\"x\":1e}"); } catch (JsonParseException) { threwBadNum = true; }
+            Check(threwBadNum, "rejects malformed number token");
+        }
+
+        // The core promise: cottage -> JSON -> blueprint reproduces the SAME block set,
+        // and re-serializing is byte-stable (deterministic ordering).
+        private static void TestBlueprintJsonRoundTripCottage()
+        {
+            Console.WriteLine("[TestBlueprintJsonRoundTripCottage]");
+            Blueprint original = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            string json = BlueprintJson.Serialize(original);
+            Check(json.Length > 0, "serialized a non-empty JSON document");
+
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(decode.Success, "decoded the blueprint without errors (" + decode.JoinedErrors() + ")");
+            if (decode.Blueprint == null) return;
+
+            Check(decode.Blueprint.CellCount == original.CellCount, "round-trip preserves cell count");
+            Check(SameCellSet(original, decode.Blueprint), "round-trip reproduces the identical (position, material) set");
+            Check(decode.Blueprint.SizeX == original.SizeX &&
+                  decode.Blueprint.SizeY == original.SizeY &&
+                  decode.Blueprint.SizeZ == original.SizeZ, "round-trip preserves dimensions");
+
+            string json2 = BlueprintJson.Serialize(decode.Blueprint);
+            Check(json == json2, "re-serializing the decoded blueprint is byte-identical (deterministic)");
+        }
+
+        // Negative relative coordinates are legal input and must normalize to min (0,0,0),
+        // reproducing the same shape after a round-trip.
+        private static void TestBlueprintJsonNegativeCoordsNormalizeAndReproduce()
+        {
+            Console.WriteLine("[TestBlueprintJsonNegativeCoordsNormalizeAndReproduce]");
+            string json = "{\"schemaVersion\":1,\"name\":\"neg\",\"cells\":[" +
+                "{\"x\":-2,\"y\":0,\"z\":-5,\"key\":\"StoneBase\"}," +
+                "{\"x\":0,\"y\":1,\"z\":0,\"key\":\"WoodWall\"}," +
+                "{\"x\":3,\"y\":0,\"z\":2,\"key\":\"StoneBase\"}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(decode.Success, "negative relative coords are accepted (" + decode.JoinedErrors() + ")");
+            if (decode.Blueprint == null) return;
+
+            int minX = int.MaxValue, minY = int.MaxValue, minZ = int.MaxValue;
+            foreach (BlueprintCell c in decode.Blueprint.Cells)
+            {
+                if (c.Relative.X < minX) minX = c.Relative.X;
+                if (c.Relative.Y < minY) minY = c.Relative.Y;
+                if (c.Relative.Z < minZ) minZ = c.Relative.Z;
+            }
+            Check(minX == 0 && minY == 0 && minZ == 0, "blueprint is normalized so the min corner is (0,0,0)");
+
+            string again = BlueprintJson.Serialize(decode.Blueprint);
+            BlueprintJsonDecodeResult re = BlueprintJson.Decode(again);
+            Check(re.Success && SameCellSet(decode.Blueprint, re.Blueprint), "normalized blueprint round-trips identically");
+        }
+
+        private static void TestBlueprintJsonRejectsDuplicateCoords()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsDuplicateCoords]");
+            string json = "{\"schemaVersion\":1,\"cells\":[" +
+                "{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}," +
+                "{\"x\":0,\"y\":0,\"z\":0,\"key\":\"WoodWall\"}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "duplicate relative coordinates are rejected");
+            Check(decode.FirstError != null && decode.FirstError.Contains("重复"), "reason names the duplicate coordinate");
+        }
+
+        private static void TestBlueprintJsonRejectsFractionalCoords()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsFractionalCoords]");
+            string json = "{\"schemaVersion\":1,\"cells\":[{\"x\":0.5,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "a fractional coordinate is rejected (coords must be integers)");
+        }
+
+        private static void TestBlueprintJsonRejectsUnknownSchemaVersion()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsUnknownSchemaVersion]");
+            string future = "{\"schemaVersion\":999,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}]}";
+            BlueprintJsonDecodeResult d1 = BlueprintJson.Decode(future);
+            Check(!d1.Success, "a schemaVersion newer than supported is rejected (no silent downgrade)");
+
+            string missing = "{\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}]}";
+            BlueprintJsonDecodeResult d2 = BlueprintJson.Decode(missing);
+            Check(!d2.Success, "a missing schemaVersion is rejected");
+        }
+
+        private static void TestBlueprintJsonRejectsOverCap()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsOverCap]");
+            // 23 x 23 x 2 = 1058 cells > the 1024 per-transaction cap.
+            var sb = new System.Text.StringBuilder();
+            sb.Append("{\"schemaVersion\":1,\"materials\":[{\"id\":0,\"key\":\"StoneBase\"}],\"cells\":[");
+            int n = 0;
+            for (int x = 0; x < 23 && n < 1058; x++)
+                for (int z = 0; z < 23 && n < 1058; z++)
+                    for (int y = 0; y < 2 && n < 1058; y++, n++)
+                    {
+                        if (n > 0) sb.Append(',');
+                        sb.Append("{\"x\":").Append(x).Append(",\"y\":").Append(y)
+                          .Append(",\"z\":").Append(z).Append(",\"m\":0}");
+                    }
+            sb.Append("]}");
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(sb.ToString());
+            Check(!decode.Success, "an over-cap blueprint (>1024 cells) is rejected on import");
+            Check(decode.FirstError != null && decode.FirstError.Contains("上限"), "reason mentions the block cap");
+        }
+
+        private static void TestBlueprintJsonRejectsAxisCap()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsAxisCap]");
+            var sb = new System.Text.StringBuilder();
+            sb.Append("{\"schemaVersion\":1,\"materials\":[{\"id\":0,\"key\":\"StoneBase\"}],\"cells\":[");
+            for (int x = 0; x < 65; x++) // 65 long on X > MaxSelectionAxisLength 64
+            {
+                if (x > 0) sb.Append(',');
+                sb.Append("{\"x\":").Append(x).Append(",\"y\":0,\"z\":0,\"m\":0}");
+            }
+            sb.Append("]}");
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(sb.ToString());
+            Check(!decode.Success, "a blueprint exceeding the 64 axis length is rejected");
+        }
+
+        private static void TestBlueprintJsonRejectsUnknownMaterialId()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsUnknownMaterialId]");
+            string json = "{\"schemaVersion\":1,\"materials\":[{\"id\":0,\"key\":\"StoneBase\"}],\"cells\":[" +
+                "{\"x\":0,\"y\":0,\"z\":0,\"m\":7}]}"; // id 7 not in the table
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "a cell referencing a non-existent material id is rejected");
+            Check(decode.FirstError != null && decode.FirstError.Contains("不存在的材料"), "reason names the dangling material id");
+        }
+
+        private static void TestBlueprintJsonRejectsEmptyCells()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsEmptyCells]");
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode("{\"schemaVersion\":1,\"cells\":[]}");
+            Check(!decode.Success, "an empty cells list is rejected");
+        }
+
+        private static void TestBlueprintJsonRejectsUnsupportedOrientation()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsUnsupportedOrientation]");
+            string json = "{\"schemaVersion\":1,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\",\"d\":4}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "a per-cell data/orientation payload (reserved, unreproducible in v1) is rejected");
+            Check(decode.FirstError != null && decode.FirstError.Contains("朝向"), "reason explains the unsupported orientation");
+        }
+
+        private static void TestBlueprintJsonRejectsBuildOps()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsBuildOps]");
+            string json = "{\"schemaVersion\":1,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}]," +
+                "\"buildOps\":[{\"op\":\"fill\"}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "a blueprint carrying executable buildOps is rejected rather than partially applied");
+        }
+
+        private static void TestBlueprintJsonRejectsSizeMismatch()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsSizeMismatch]");
+            // cells span x=0..0 (size 1) but declares size x=9 -> tampered/hallucinated file.
+            string json = "{\"schemaVersion\":1,\"size\":{\"x\":9,\"y\":1,\"z\":1}," +
+                "\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\"}]}";
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(!decode.Success, "a declared size inconsistent with the cells bounding box is rejected");
+        }
+
+        // Rotation applied to a decoded blueprint must match rotation applied to the
+        // original and still round-trip, so AI/copied structures survive transforms.
+        private static void TestBlueprintJsonRotationTransformReproduces()
+        {
+            Console.WriteLine("[TestBlueprintJsonRotationTransformReproduces]");
+            Blueprint original = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            Blueprint decoded = BlueprintJson.Decode(BlueprintJson.Serialize(original)).Blueprint;
+            Check(decoded != null, "decoded cottage available for transform test");
+            if (decoded == null) return;
+
+            Blueprint rotOrig = original.Reorient(1, false);
+            Blueprint rotDecoded = decoded.Reorient(1, false);
+            Check(SameCellSet(rotOrig, rotDecoded), "one quarter-turn of the decoded blueprint matches the original's");
+            Check(rotDecoded.SizeX == original.SizeZ && rotDecoded.SizeZ == original.SizeX,
+                "quarter-turn swaps the footprint axes after round-trip");
+
+            // A rotated blueprint must itself still round-trip through JSON unchanged.
+            string rjson = BlueprintJson.Serialize(rotDecoded);
+            BlueprintJsonDecodeResult r = BlueprintJson.Decode(rjson);
+            Check(r.Success && SameCellSet(rotDecoded, r.Blueprint), "a rotated blueprint round-trips through JSON identically");
         }
 
         // --- helpers ---

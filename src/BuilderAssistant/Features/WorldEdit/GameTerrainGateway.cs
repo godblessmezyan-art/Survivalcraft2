@@ -184,5 +184,34 @@ namespace BuilderAssistant.Features.WorldEdit
             _subsystemTerrain.ChangeCell(cell.X, cell.Y, cell.Z, value);
             return true;
         }
+
+        /// <summary>
+        /// Map a terrain contents value (a BlockIndex) to its vanilla block CLR type
+        /// name, or null when the id is unknown. The copier uses this to turn a live
+        /// cell into a concrete material key it can (or cannot) reproduce. Main-thread
+        /// only, like the rest of the gateway.
+        /// </summary>
+        public static string TypeNameForContents(int contents)
+        {
+            if (contents == 0) return null;
+            Block block = BlockById(contents);
+            if (block == null) return null;
+            return block.GetType().Name;
+        }
+
+        /// <summary>
+        /// A short human classification of a non-air contents value for the copy
+        /// report: "fluid" for water/lava, "植被/雪" for a walk-through (non-collidable)
+        /// block, otherwise the block type name. Never assumes solidity.
+        /// </summary>
+        public static string DescribeContents(int contents)
+        {
+            if (contents == 0) return "空气";
+            Block block = BlockById(contents);
+            if (block == null) return "未知方块(id=" + contents + ")";
+            if (block is FluidBlock) return "流体";
+            if (!block.IsCollidable) return "植被/雪";
+            return block.GetType().Name;
+        }
     }
 }
