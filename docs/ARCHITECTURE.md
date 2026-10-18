@@ -44,7 +44,7 @@ src/BuilderAssistant/
     Generators/IBuildingGenerator.cs / GenerationContext.cs / BuildingGeneratorRegistry.cs
     Generators/MedievalCottageGenerator.cs   首个可玩结构：9×10×11 小屋
     WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）；TypeNameForContents/DescribeContents 供复制读取（v0.7.0）
-    WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值；SupportedPlainCubes 保守白名单 + IsResolvableKey 预检（v0.7.0）
+    WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值；SupportedPlainCubes 保守白名单 + IsResolvableKey 预检（v0.7.0；v0.8.2 由小屋已验证的 5 块纯立方扩至 12 块纯立方石/砖块，仍是复制与导入解析的唯一把关点）
     WorldEdit/BlueprintCopier.cs     两角选区读实时方块→纯 Blueprint，仅复制白名单立方块，其余逐类跳过并报告（v0.7.0）
     WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）；`OnBlueprintTool` + `CycleImportLibrary` 蓝图库逐次点击浏览/载入（v0.8.0）；`ImportOrBrowse`/`ImportFromText`——剪贴板像 JSON 就直接粘贴导入（成功才载入剪贴板+存库+切粘贴，失败绝不改剪贴板/绝不写地形），否则回退到 toast+文件浏览（v0.8.1）
     WorldEdit/GameInterop.cs         可选游戏内部服务的防御性单一入口：`TryReadClipboardText`（包 `Game.ClipboardManager.ClipboardString`，try/catch 兜底返回 null→上层优雅回退）；`TryPickBlueprintFileText` 为预留 SAF 文件选择器桩，恒返回不可用。均非 SCNET 文档 API，安卓运行时待验证（v0.8.1）
@@ -83,7 +83,7 @@ v0.6.0 用三件事应对，均不改“写前先全量校验”的铁律：
 
 这一层把“纯数据蓝图 ↔ JSON 文本 ↔ 磁盘 ↔ 真实世界”打通，是通向未来 AI 生成建筑的桥；核心承诺是**先能可靠地保存、重导入并复现同一建筑**，再接模型。
 
-- 复制（读）：`RuntimeMode.Copy` 下两次点选对角 → `BlueprintCopier.Copy` 逐格读实时方块（只读，绝不损伤源结构）→ 只有 `VanillaBlockPalette.SupportedPlainCubes`（小屋已验证的纯立方方块）才纳入蓝图，其余按类型如实计入“暂不支持”并跳过 → 产出相对坐标 + 具体方块类型名作 material key 的纯 `Blueprint`，并 `BlueprintJson.Serialize` 落盘到 `ModsManager.UserDataPath` 下的 Mod 私有蓝图库。
+- 复制（读）：`RuntimeMode.Copy` 下两次点选对角 → `BlueprintCopier.Copy` 逐格读实时方块（只读，绝不损伤源结构）→ 只有 `VanillaBlockPalette.SupportedPlainCubes`（小屋已验证的纯立方 + v0.8.2 追加的纯立方石/砖块，共 12 项）才纳入蓝图，其余按类型如实计入“暂不支持”并跳过 → 产出相对坐标 + 具体方块类型名作 material key 的纯 `Blueprint`，并 `BlueprintJson.Serialize` 落盘到 `ModsManager.UserDataPath` 下的 Mod 私有蓝图库。
 - 存储（不硬编码路径）：`Infrastructure/BlueprintStorage` 的基目录来自游戏自带的 `ModsManager.UserDataPath`，再拼私有子目录；这也是第 10 步 Android 本地文件访问的答复——用游戏自己的路径 API，而不是写死 `/sdcard/...`。
 - 导入 + 粘贴（写）：`ImportBlueprint` 读取并 `BlueprintJson.Decode`（永不抛异常，全量校验：整数坐标、无重复、材料 id 不悬空、数量/单轴上限、声明 size 与包围盒一致），再 `CollectUnresolvableKeys` 预检材料；`RuntimeMode.Paste` 定位后走 `BeginBuildBlueprint` → 与小屋**同一条** `PlanAndStart`：写前全量校验、有界区块等待、clear-soft、分批执行、延迟回滚/撤销、`TransactionHistory` 撤销，全部一致。旋转 `SetPasteRotation` 仅在蓝图空间 `Reorient`，落地不碰地形。
 - 前向兼容但不造假：schema 预留 `o`/`d`/`props`（朝向/数据/复杂方块属性）与顶层 `buildOps` 字段位，但 v1 无法复现它们，故一律**响亮拒绝**而非硬凑劣质建筑（AGENTS：不写垃圾）。
@@ -117,6 +117,8 @@ v0.8.0 虽已闭环，但玩家仍需“建目录 / 起名 / 用文件管理器�
 
 ## 仍为预留（未来阶段）
 
+- v0.8.2（本阶段）：`SupportedPlainCubes` 已扩到 12 项（追加玄武岩/花岗岩/大理石/砂岩/黏土/石灰岩/孔雀石等纯立方石/砖块），schema 仍 `schemaVersion=1`、写路径仍 `data=0/light=0`、不含按格颜色——即“只扩白名单”的最小改动；每块在 7723 的渲染仍**待验证**（见 COMPATIBILITY 清单）。
+- 染色/上色方块（Phase B，本阶段明确推迟）：`PaintedCube` 族的按格颜色不存于地形 value，故复制/粘贴目前呈现引擎默认色（“复制丢色”取舍，对现有木/石块亦已如此）。忠实保留颜色需升 `schemaVersion=2` 增加可选的按材料 `color` 字段，复制侧读单元颜色、落地侧经 `IPaintableBlock`/地形上色 API 写入，且这些非文档 API 必须先在真机验证——属未立项的第二阶段。
 - 台阶/半砖/带朝向原木/栅栏/植物/流体/含实体方块等的复制与粘贴：需先在真机逐块验证渲染与朝向数据位，再扩 `SupportedPlainCubes`。
 - 设备内的正式触屏面板（显式模式切换 / 旋转选择器）：当前以“蓝图工具(903)逐次点击浏览+载入 + 空闲点撤销工具循环模式 + 程序化 `SetPasteRotation`”过渡，正式触屏面板待做。
 - AI 建筑生产者：导入侧已由蓝图工具打通——模型只需产出 `schemaVersion=1` 的蓝图 JSON 并丢进蓝图库，即可经同一导入→校验→粘贴链落建；模型负责“设计”，可靠复现与安全性由本桥与既有引擎保证。
