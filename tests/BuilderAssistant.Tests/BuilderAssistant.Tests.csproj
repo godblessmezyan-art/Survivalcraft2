@@ -20,6 +20,7 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BuildingMaterials.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Json\Json.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintJson.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintLibraryBrowser.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\ITerrainGateway.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\IBlockValueResolver.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\BlockUndoRecord.cs" />

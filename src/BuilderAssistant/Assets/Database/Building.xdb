@@ -7,9 +7,13 @@
     <SubsystemTemplate Name="UndoToolBlockBehavior" Guid="b4bb6da4-75e0-4df9-9652-b39636dfa1da" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
       <Parameter Name="Class" Guid="82d5d8fd-cdc7-4d80-922b-1d4ac7ae92b3" Value="BuilderAssistant.Features.WorldEdit.SubsystemUndoToolBlockBehavior" Type="string" />
     </SubsystemTemplate>
+    <SubsystemTemplate Name="BlueprintToolBlockBehavior" Guid="c1f4a9d6-8b7a-4f11-9c3d-5a1b2e77f4c9" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="9d6b253e-47f8-4f1d-a29b-47e51cf0c6d8" Value="BuilderAssistant.Features.WorldEdit.SubsystemBlueprintToolBlockBehavior" Type="string" />
+    </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
     <MemberSubsystemTemplate Name="BuilderToolBlockBehavior" Guid="47db5b64-5e95-4ec1-b0fb-ecf642ce149b" InheritanceParent="ff444494-c399-4e37-9046-504a2f043e6a" />
     <MemberSubsystemTemplate Name="UndoToolBlockBehavior" Guid="7a63018d-c038-4169-9181-09e8d761cd53" InheritanceParent="b4bb6da4-75e0-4df9-9652-b39636dfa1da" />
+    <MemberSubsystemTemplate Name="BlueprintToolBlockBehavior" Guid="6a7b1b7f-4143-459e-83ac-1c22f6d9b0e1" InheritanceParent="c1f4a9d6-8b7a-4f11-9c3d-5a1b2e77f4c9" />
   </ProjectTemplate>
 </DatabaseObjects>

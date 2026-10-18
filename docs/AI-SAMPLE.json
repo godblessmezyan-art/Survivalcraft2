@@ -1,0 +1,1 @@
+{"schemaVersion":1,"kind":"builderassistant.blueprint","name":"tiny_pillar","cells":[{"x":0,"y":0,"z":0,"key":"CobblestoneBlock"},{"x":0,"y":1,"z":0,"key":"StoneBrickBlock"},{"x":0,"y":2,"z":0,"key":"PlanksBlock"},{"x":0,"y":3,"z":0,"key":"GlassBlock"}]}

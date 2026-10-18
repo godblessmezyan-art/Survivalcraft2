@@ -230,3 +230,35 @@ v0.6.2 修好“误判未加载”后，真机推进到建造落点判定，暴�
 **AGENTS 铁律核对（第 11 步）**：改动全部落在 `src/BuilderAssistant/` 与其离线测试工程，**SCIE-Port 一字未动**；单测/守卫/编译/打包均无一处触及联机（`OnBuildTool`/`OnUndoTool` 仍先 `IsSinglePlayer` 门禁 `WorkType.Local`，复制/粘贴/导入皆经此门）；**未绕过任何区块校验**——复制只读且经 `TryGetCellValue→InspectCell`（`State==Valid && Cells!=null`）判就绪，粘贴写前仍跑 `BuildPlanner.Plan` 的全足迹预检与有界等待，默认不覆盖、显式确认、仅主线程一律保留。✔✔✔
 
 **验证与边界**：`net472` 对真实 x25.01.17 程序集 Release **0 错误 0 警告**（编译期即锁定 `ModsManager.UserDataPath`、`Terrain.ExtractContents`、`BlocksManager.FindBlockByTypeName`、`Block.GetType().Name` 等签名可用；过程中修掉一处 CS1570（doc 注释里未转义的 `<`）与一处 CS0051（`SetMode` 与私有 `RuntimeMode` 可访问性不一致，已把 enum 提为 internal、方法降为 internal））；离线逻辑测试由 95 项扩到 **133/133 全通过**（新增 14 个 JSON/蓝图用例：往返复现同方块集、字节稳定再序列化、负坐标归一化、重复坐标拒、小数坐标拒、`schemaVersion` 999/缺失拒、`>1024` 拒、单轴 65 拒、悬空材料 id 拒、空 cells 拒、per-cell `d` 拒、非空 `buildOps` 拒、声明 size≠包围盒拒、四分之一转向一致性）；XDB 守卫 **7/7**。重打包 `.netmod` v0.7.0 SHA-256 `4B227BB59C731D02BC1724473A69ABFD1B5A5D6E440C8C761C1487C1F1F51064`（DLL 程序集版本 0.7.0.0、modinfo Version=0.7.0；随包核对 Building.xdb `ea25b78e` 仍 0 次、Speedboat 仍 1 次，v0.6.1 数据库修复未回退；不含任何专有游戏程序集）。以上仍是“桌面 + 编译期 ABI + 离线逻辑”层面——**Android 7723 上的复制读取真实方块、剪贴板粘贴、JSON 导入/导出、以及 `UserDataPath` 落盘 IO 全部为待验证**；桌面测试从未在设备上跑过一次文件读写。装 v0.7.0 到单人创造测试世界实测：①切到复制模式点两角复制一段由已知立方方块构成的建筑，应报“已捕获 N 个…/已存入蓝图库：copy_….json”，并能切 Paste 后两次点击成功原样重建；②用撤销工具一次整体回退粘贴体、且不得覆盖回退前玩家的手改；③复制选区若含台阶/植物/水，应在报告中如实列为“暂不支持”并跳过、绝不硬凑；④导入一个先前保存的 `.json` 应能再次粘贴；若失败请回传首条 `Warning/Error` 原文与完整 `Game.log`。
+
+## v0.8.0 蓝图工具：外部 AI → 导入 → 落成 闭环
+
+v0.7.0 有数据桥但缺游戏内触屏导入入口；v0.8.0 补上第三个手持工具——蓝图工具（item 903），闭环“外部 AI 生成蓝图 JSON → 用系统文件管理器丢进手机蓝图库 → 手持蓝图工具逐次点击浏览/载入/校验 → 建造工具两次点击落成”。全程仍走 v0.5 起既有的 `PlanAndStart`→`BuildPlanner`→`BuildTask`→`TransactionHistory` 主链，安全规则一字不改。
+
+| 项 | 结论 | 状态 |
+| --- | --- | --- |
+| 触屏面仅 `SubsystemBlockBehavior.OnUse(Ray3, ComponentMiner)` + `ComponentGui.DisplaySmallMessage(...)`，**无文本框/文件选择器/对话框** | 全仓检索确认该 ABI 无文本输入接口；导入必须做成触屏逐次点击 | 已确认（编译期 ABI） |
+| `BlueprintToolBlock : PaintedCubeBlock(15)`（玻璃立方），行为类 `SubsystemBlueprintToolBlockBehavior`（`HandledBlocks={903}`，`OnUse` 里 `ExtractContents(ActiveBlockValue)==903` 守卫） | 与建造/撤销工具同一注册套路，复用既有行为分发；编译期绑定 | 已确认（编译期 ABI） |
+| 物品编号 903 | 高于原版 0–263，且与快艇 900、建造 901、撤销 902 不冲突（打包脚本校验类名唯一） | 已确认（静态/打包） |
+| 903 与设备上**其它第三方 mod** 的编号冲突 | SCNET 无全局编号注册表 | **待验证** |
+| 空库时用 `DisplaySmallMessage` 打印真实基目录 `BlueprintStorage.BaseDirectory`（取 `ModsManager.UserDataPath`，绝不硬编码），玩家据此用安卓文件管理器投递 `.json` | 路径来源与拼接逻辑离线/编译均已确认 | 已确认（编译期 ABI） |
+| 安卓 scoped storage 下**系统文件管理器能否写入 `UserDataPath`** | 桌面无从判定；若不可写，逃生绳为 ADB push 到同一路径 | **待验证** |
+| 载入即 `BlueprintJson.Decode` + 材料预检，非法/AI 劣质文件响亮拒绝、绝不改动剪贴板、绝不部分导入 | 拒绝语义与 v0.7.0 同一 Core 逻辑，已离线证明 | 已确认（离线）+ 待验证（真机 IO） |
+
+**验证与边界**：本轮所有改动均落在 `src/BuilderAssistant/` 与其离线测试工程，**SCIE-Port 一字未动**；蓝图工具只读文件+校验、从不写地形；载入后落成经与小屋完全相同的写前全量校验、有界区块等待、clear-soft、默认不覆盖+显式确认、仅主线程、`IsSinglePlayer` 单人门禁，铁律核对不变 ✔。
+
+- 离线逻辑测试由 133 项扩到 **147/147 全通过**（新增 14 项针对纯 `BlueprintLibraryBrowser` 游标：空库/负数→-1、游标 -1 首点选 0、单调前进 0→1→2、到末尾回绕 2→0、单条目恒为 0、两条目连点六次严格交替 0,1,0,1,0,1；以及 `[i/N]` 位置标签：首/末/单条目、空库/预选游标 -1/越界游标的空串防御）。这些断言不依赖游戏程序集或文件 IO。
+- XDB 合并安全守卫 **7/7** 全通过，含“真实随包 `.xdb` 文件（已含新 `BlueprintToolBlockBehavior` 模板与 Class 参数）必须干净”一项——新增的三个 GUID（模板 `c1f4a9d6…`、Class 参数 `9d6b253e…`、Project 成员 `6a7b1b7f…`）经文件内唯一性 + 跨文件全局唯一性双重校验，未回退 v0.6.1 数据库修复。
+- `net472` 对真实 x25.01.17 程序集（`D:\SC`）Release **0 错误 0 警告**（编译期即确认 `BlueprintToolBlock` 基类、`SubsystemBlockBehavior.OnUse`/`HandledBlocks`、`Terrain.ExtractContents`、`ComponentMiner.ActiveBlockValue`、`ComponentGui` 等签名可用）。
+- 重打包 `.netmod` v0.8.0 SHA-256 `D1FD40CF4EE61DC74E3C9F96106DE101900C829F596134466BB40220581AC700`。随包核对：CSV 方块类名唯一（`BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock`）、`Building.xdb` 中 `ea25b78e` 仍 0 次 / Speedboat 仍 1 次、不含任何专有游戏程序集。
+
+**重要**：Windows 编译 + 打包 ≠ 运行验证。以上证明接口签名正确、可编译、离线逻辑成立；蓝图工具在手机上的浏览、导入、落成，以及文件投递路径**全部为待验证**——桌面从未在设备上跑过一次文件读写。
+
+**Android 7723 单人创造世界实测清单**：
+1. 装 v0.8.0，进单人创造世界，加载横幅应显示 v0.8.0（不再写死）。
+2. 手持蓝图工具点击 → 记下消息里打印的真实蓝图库目录；用安卓自带文件管理器在该目录放入一个合法蓝图 `.json`（文件名纯 ASCII，仅限字母/数字/下划线/连字符，≤48）。
+3. 再点蓝图工具 → 应报“已载入蓝图 [1/1]「name」 尺寸 …”；切建造工具对准地面两次点击 → 应落成，撤销工具可整体回退。
+4. 放入一个非法 JSON（含不支持方块 / 超界 / 坏语法）→ 应报“导入失败：<原因>”，且不污染剪贴板（随后建造工具应保持原有蓝图或提示空）。
+5. 放入多份 `.json` → 连点蓝图工具应循环浏览、到末尾回绕到第一条，`[i/N]` 计数正确。
+6. 建造或预检等待进行中点蓝图工具 → 应被“施工或等待区块就绪中…”挡下，不误触发导入。
+若失败，请回传首条 `Warning/Error` 原文 + 完整 `Game.log`（尤其含 `DisplaySmallMessage` 里打印的真实路径，以判定 scoped storage 是否可写）。
