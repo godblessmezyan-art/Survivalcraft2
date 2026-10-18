@@ -162,7 +162,8 @@ namespace BuilderAssistant.Core.BuildEngine
 
             if (allRecoverable)
             {
-                sb.Append(" 结论：均为区块尚未就绪（可能跨越多个区块），等待引擎加载后有望成功，建议稍后重试而非改坐标。");
+                sb.Append(" 结论：目标区块仍在生成中（State 未到 Valid 或方块数据尚未分配），并非坐标越界。无需改动落点；")
+                  .Append("请让角色靠近该区域（走/瞬移到目标点）等引擎把区块生成完成后重试即可。本次未改动任何方块。");
             }
             else
             {
@@ -191,7 +192,7 @@ namespace BuilderAssistant.Core.BuildEngine
             AppendCount(sb, counts, (int)CellEditabilityStatus.TerrainNull, "地形未就绪");
             AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkMissing, "区块缺失");
             AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkStateNotReady, "区块状态未就绪");
-            AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkNotLoaded, "区块未加载");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkContentsNotReady, "区块内容未就绪");
             if (sb.Length == 0)
             {
                 sb.Append("无");

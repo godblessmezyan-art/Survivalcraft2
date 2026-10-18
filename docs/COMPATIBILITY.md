@@ -122,7 +122,7 @@
 | --- | --- | --- |
 | 地形写入入口 `Game.SubsystemTerrain.ChangeCell(x,y,z,value[,bool][,ComponentMiner])` | 主线程、引擎自带（触发保护/网络/重网格）；已编译绑定 | 已确认（编译期 ABI） |
 | 方块读回 `Game.Terrain.GetCellValue`、有效域 `IsCellValid`、按名取块 `BlocksManager.FindBlockByTypeName`、打包值 `Terrain.MakeBlockValue/ExtractContents` | 全部经编译绑定 | 已确认（编译期 ABI） |
-| 区块就绪判定 `Terrain.GetChunkAtCell` -> `TerrainChunk.State==Valid && IsLoaded` | 经编译绑定；`GetChunkAtCell` 缺失时返回空，非分配 | 已确认（编译期 ABI） |
+| 区块成员 ABI `Terrain.GetChunkAtCell(x,z)`、`TerrainChunk.State`/`IsLoaded`/`Cells`/`Coords`、`Terrain.IsCellValid` | 均经编译绑定；`GetChunkAtCell` 对未生成列返回空。注意：早期把「可编辑」判据写成 `State==Valid && IsLoaded` 是**错误语义**（`IsLoaded` 是磁盘/流送态，非可写性），已于 **v0.6.2** 更正为 `State==Valid && Cells!=null`，详见下文 v0.6.2 小节 | 已确认（编译期 ABI） |
 | 工具方块基类 `Game.PaintedCubeBlock(int textureSlot)` | 普通着色立方，无需朝向数据位；纹理槽 69/51 取自真实原版方块 | 已确认（编译期 ABI + 反编译） |
 | 行为分发 `Game.SubsystemBlockBehavior.OnUse(Engine.Ray3, ComponentMiner)` + `HandledBlocks` | 主线程点击回调；已编译绑定 | 已确认（编译期 ABI） |
 | 交互射线 `ComponentMiner.Raycast<TerrainRaycastResult>(Ray3, RaycastMode.Interaction)` -> `CellFace.X/Y/Z` | 已编译绑定 | 已确认（编译期 ABI） |
@@ -179,3 +179,22 @@
 **守卫修正（关键：堵住上轮的盲区）**：`scripts/XdbMergeSafety.ps1` 的 `Test-XdbMergeSafety` 改为对**整包每一个 `Guid=` 值做全局唯一性校验**，仅豁免三个原版文件夹 GUID + Project GUID（合法跨文件复用）；从而能抓到 `<Parameter>` 重复 GUID。`scripts/Test-XdbGuards.ps1` 扩到 **7 项**并新增“跨文件重复 `<Parameter>` GUID 被抓”用例，全部通过；重新对真实库交叉验证 12 个原版依赖 GUID 存在且名匹配、BA 自定义 GUID 纯增量不覆盖。
 
 **边界**：以上为“桌面结构 + 真实库交叉验证 + 修复随包产物内容核对”层面确认（重打包 `.netmod` v0.6.1 SHA-256 `C4B022D3566E4066AFB2EA15ED541D8AC68B4829903D593F207C3B3E3FF60C30`，随包 Building.xdb 已无重复 GUID、`ea25b78e` 全包仅 1 次、modinfo Version=0.6.1）。**仍不等于手机实机验证**——需把新包装上 7723 真机、确认进世界不再报 `Database not loaded`、建造/撤销/快艇均正常；若仍有报错，请回传读条阶段第一条 `Warning(...)` 原文 + 完整日志。
+
+## v0.6.2 区块就绪误判修复（真因：把 `IsLoaded` 当成可写性把关）
+
+装上 v0.6.1 后数据库崩溃消失、建造逻辑已跑到“区块就绪检查”，但真机回传：`区块在等待后仍未全部就绪，已停止(未改动世界) … 470 格中有 470 格不可编辑 … 示例:ChunkNotLoaded @(833,66,-28) chunk(-2147483648,-2147483648) state=9 loaded=False`。
+
+**逐项排除红鲱鱼（均经 x25.01.17 程序集反射取证）**：
+1. `chunk(-2147483648,-2147483648)` 看着像坐标算崩，实为 `CellEditability.UnknownCoord = int.MinValue` 占位符——判定“未就绪”时故意没回填真实区块坐标，是日志显示缺陷，非换算出错。
+2. `state=9` = `TerrainChunkState.Valid`（枚举 0..9，Valid 是末位）——即该区块内容/光照/几何其实**已经生成完毕**，本就可编辑。
+3. `GetChunkAtCell(x,z)` 与 `ChangeCell(x,y,z)`/`IsCellValid(x,y,z)` 用**同一套 cell 坐标**，不存在块↔原子尺度错配。
+4. 落点 `(833,66,-28)` 来自 `ComponentMiner.Raycast(..., RaycastMode.Interaction)` 命中方块面后 `ComputeOrigin` 居中所得——就是玩家准星指着、正在渲染的那格地；且 `_terrain.IsCellValid(...)` 已返回 true（否则归为越界而非“未加载”）。
+
+**真因**：`GameTerrainGateway.InspectCell` 把可编辑性**硬性要求 `chunk.IsLoaded == true`**。但 `TerrainChunk.IsLoaded` 是与 `State` 并列的独立字段，语义是“该区块是否已从存档/流送载入工作集”的磁盘态标志；对玩家正站立、`State` 已 `Valid`、`IsCellValid` 已通过的新生成区块它仍会是 `false`。于是眼前完全可建的落点被判成“未加载”，运行时等待 150 帧后放弃（“未改动世界”这一保守行为本身没错，但中止是误判）。该 `IsLoaded` 判据自 v0.5.0 起存在，从未在真机验证过。
+
+**v0.6.2 最小修复**：
+- 可编辑判据改为引擎自身的就绪信号：`chunk.State == TerrainChunkState.Valid && chunk.Cells != null`（`Valid` 已在内容/光照/几何全部生成后才达成，`Cells` 非空即方块数据已分配）。`IsLoaded` 仅继续写入日志诊断，**不再参与把关**。
+- 把误导性的状态 `ChunkNotLoaded` 更名为 `ChunkContentsNotReady`，中文标签由“区块未加载”改为“区块内容未就绪”；`CellEditability`/`BuildPlanner`/离线测试双件同步更新。
+- 诊断示例改为回填真实区块坐标（`chunk.Coords.X/.Y`，`Engine.Point2` public 字段），不再打印 `int.MinValue` 哨兵；“结论”文案改为如实告知“区块仍在生成中、请靠近后重试、并非越界”，去掉“改坐标/稍后重试即可”这类在此场景下误导的话。
+
+**验证与边界**：`net472` 对真实 x25.01.17 程序集 Release 编译 **0 错误 0 警告**（编译期即确认 `chunk.Cells`、`chunk.Coords`、`TerrainChunkState.Valid` 签名可用）；离线逻辑 **72/72**、XDB 守卫 **7/7** 全通过。重打包 `.netmod` v0.6.2 SHA-256 `404D1798666B28ED85B611AD635760F7EAE497B3D07CFEA071F6B6E60EA11D61`（DLL 程序集版本 0.6.2.0、modinfo Version=0.6.2，Building.xdb `ea25b78e` 仍 0 次、Speedboat 仍 1 次，GUID 修复未被回退）。以上仍是“桌面取证 + 编译期 ABI + 离线逻辑”层面——**Android 7723 上能否真正落建筑材仍为待验证**，需装 v0.6.2 到单人创造测试世界实测：对准脚下地面建造应能成功；若仍失败，请回传新的诊断行（尤其 `state=` 与 `区块内容未就绪/区块状态未就绪` 计数）与完整日志。

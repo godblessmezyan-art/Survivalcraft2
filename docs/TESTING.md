@@ -240,3 +240,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
 本机复测：`Test-XdbGuards` 7/7（含新增“跨文件重复 `<Parameter>` GUID 被抓”）；重新 Release 编译 0 错 0 警并重打包，守卫全过；**核对随包产物内容**——`Building.xdb` 无重复 GUID、`ea25b78e` 计数 0、`Speedboat.xdb` 仅 1、`modinfo Version=0.6.1`。`.netmod`（v0.6.1）SHA-256：`C4B022D3566E4066AFB2EA15ED541D8AC68B4829903D593F207C3B3E3FF60C30`（取代此前 v0.6.0 的 `E454EC15…`）。
 
 **待办**：把 v0.6.1 包装上 7723 真机，确认加载横幅显示 v0.6.1、不再出现该 WARNING / `Database not loaded`，且进世界、建造、撤销、快艇均正常。仍不能仅凭桌面结论宣称手机已修复。
+
+### 8. v0.6.2：真机日志定位到“区块就绪误判（`IsLoaded` 被当成可写性）”并修复（本机复核，成功；待真机复测）
+
+用户装 v0.6.1 后回传真机日志：数据库崩溃已消失、能跑到建造逻辑，但报 `区块在等待后仍未全部就绪，已停止(未改动世界) … 470 格中有 470 格不可编辑 … 示例:ChunkNotLoaded @(833,66,-28) chunk(-2147483648,-2147483648) state=9 loaded=False … 结论:均为区块尚未就绪…建议稍后重试而非改坐标`。
+
+**先排除假线索（反射 x25.01.17 程序集取证，非猜测）**：
+- `chunk(-2147483648,-2147483648)` = `CellEditability.UnknownCoord`（`int.MinValue`）占位，不是坐标换算崩了；
+- `state=9` = `TerrainChunkState.Valid`（反射枚举 0..9，Valid 末位），即区块内容其实**已生成就绪**；
+- `GetChunkAtCell(x,z)`/`ChangeCell`/`IsCellValid` 同用 cell 坐标，无块↔原子错配；
+- 落点来自 `RaycastMode.Interaction` 近身射线命中，是玩家眼前正在渲染的地，且 `IsCellValid` 已通过。
+
+**真因**：`GameTerrainGateway.InspectCell` 把“可编辑”硬性要求 `chunk.IsLoaded==true`。`TerrainChunk.IsLoaded` 是磁盘/流送态标志，对玩家站立的 Valid 新生成区块仍为 `false`，于是眼前可建区被误判“未加载”，等待 150 帧后放弃（保守中止本身对，但中止是误判）。此判据自 v0.5.0 起从未真机验证。
+
+**修复（最小）**：判据改为引擎就绪信号 `chunk.State==Valid && chunk.Cells!=null`，`IsLoaded` 只记日志不再把关；`ChunkNotLoaded`→`ChunkContentsNotReady`、中文标签“区块未加载”→“区块内容未就绪”（`CellEditability`/`BuildPlanner`/测试双件同改）；诊断回填真实区块坐标（`chunk.Coords.X/.Y`）并如实改写“结论”文案。
+
+**本机复测结果**：`net472` 对真实程序集 Release 编译 `0 错误 0 警告`（编译期确认 `Cells`/`Coords`/`State` 签名可用）；`BuilderAssistant.Tests` 离线逻辑 `ALL 72 CHECKS PASSED`（`TestCrossChunkNotReadyClassifiedAndRecoverable` 已断言“区块内容未就绪 vs 区块缺失”分类且均可恢复、不写入）；`Test-XdbGuards` `CHECKS: 7 passed, 0 failed`；随包内容核对 `modinfo Version=0.6.2`、Building.xdb `ea25b78e`=0（GUID 修复未回退）、Speedboat.xdb 仅 1。`.netmod`（v0.6.2）SHA-256：`404D1798666B28ED85B611AD635760F7EAE497B3D07CFEA071F6B6E60EA11D61`（取代 v0.6.1 的 `C4B022D3…`）。
+
+**待办（关键）**：把 v0.6.2 装上 7723 单人创造测试世界，对准**脚下已渲染的地面**建造应能成功；若仍失败，请回传新诊断行（重点看 `state=` 值与“区块内容未就绪/区块状态未就绪/区块缺失”各自计数）与完整日志。桌面+编译+离线全绿仍≠手机已修复，Android 能否真正落建筑材**待验证**。

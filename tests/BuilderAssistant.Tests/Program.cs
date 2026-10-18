@@ -44,7 +44,7 @@ namespace BuilderAssistant.Tests
             }
             if (Blocked.Contains(cell))
             {
-                return new CellEditability(cell, CellEditabilityStatus.ChunkNotLoaded);
+                return new CellEditability(cell, CellEditabilityStatus.ChunkContentsNotReady);
             }
             return CellEditability.Ok(cell);
         }
@@ -459,8 +459,9 @@ namespace BuilderAssistant.Tests
             FakeTerrain terrain = new FakeTerrain();
             CellPos origin = new CellPos(1000, 60, 1000);
 
-            // One cell's chunk is present-but-unloaded, another's chunk is entirely
-            // missing. Both are legitimately part of the world, just not ready yet.
+            // One cell's chunk is present-but-contents-not-ready, another's chunk is
+            // entirely missing. Both are legitimately part of the world, just not
+            // ready yet — the fix in v0.6.2 stops treating "unloaded" as a hard gate.
             terrain.Blocked.Add(new CellPos(1005, 60, 1000));
             terrain.Missing.Add(new CellPos(1020, 60, 1000));
 
@@ -471,8 +472,8 @@ namespace BuilderAssistant.Tests
                 "both offending cells are enumerated (got " + plan.EditabilityFailures.Count + ")");
             Check(plan.AllEditabilityFailuresRecoverable,
                 "pure chunk-readiness failures are flagged recoverable (worth a wait)");
-            Check(plan.FailureReason.Contains("区块未加载") && plan.FailureReason.Contains("区块缺失"),
-                "reason separates 区块未加载 vs 区块缺失 instead of one collapsed message");
+            Check(plan.FailureReason.Contains("区块内容未就绪") && plan.FailureReason.Contains("区块缺失"),
+                "reason separates 区块内容未就绪 vs 区块缺失 instead of one collapsed message");
         }
 
         private static void TestOutOfBoundsIsHardNotRecoverable()

@@ -50,17 +50,29 @@ namespace BuilderAssistant.Features.WorldEdit
 
             int stateOrdinal = (int)chunk.State;
             bool loaded = chunk.IsLoaded;
-            if (chunk.State != TerrainChunkState.Valid)
+            int chunkX = chunk.Coords.X;
+            int chunkZ = chunk.Coords.Y;
+
+            // v0.6.2: the engine's readiness signal is the chunk State pipeline, which
+            // only reaches Valid after contents + light + geometry are generated, and an
+            // allocated Cells array. TerrainChunk.IsLoaded is a separate disk/stream flag
+            // that stays false for chunks the player is standing on and raycasting into,
+            // so it is recorded for the log but NEVER gates editability — requiring it is
+            // what made an on-screen, perfectly editable build site abort as "未加载".
+            bool stateValid = chunk.State == TerrainChunkState.Valid;
+            bool contentsReady = chunk.Cells != null;
+
+            if (!stateValid)
             {
                 return new CellEditability(
                     cell, CellEditabilityStatus.ChunkStateNotReady,
-                    true, CellEditability.UnknownCoord, CellEditability.UnknownCoord, stateOrdinal, loaded);
+                    true, chunkX, chunkZ, stateOrdinal, loaded);
             }
-            if (!loaded)
+            if (!contentsReady)
             {
                 return new CellEditability(
-                    cell, CellEditabilityStatus.ChunkNotLoaded,
-                    true, CellEditability.UnknownCoord, CellEditability.UnknownCoord, stateOrdinal, loaded);
+                    cell, CellEditabilityStatus.ChunkContentsNotReady,
+                    true, chunkX, chunkZ, stateOrdinal, loaded);
             }
 
             return CellEditability.Ok(cell);

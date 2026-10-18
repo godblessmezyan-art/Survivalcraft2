@@ -23,11 +23,17 @@ namespace BuilderAssistant.Core.Transactions
         /// <summary>GetChunkAtCell returned null for this column. Recoverable by waiting (chunk streams in).</summary>
         ChunkMissing,
 
-        /// <summary>Chunk exists but its State is not yet Valid. Recoverable by waiting.</summary>
+        /// <summary>Chunk exists but its State is not yet Valid (still generating). Recoverable by waiting.</summary>
         ChunkStateNotReady,
 
-        /// <summary>Chunk State is fine but IsLoaded is false. Recoverable by waiting.</summary>
-        ChunkNotLoaded,
+        /// <summary>
+        /// Chunk State is Valid but its block contents array is not allocated yet, so
+        /// cells cannot be read/written this instant. Recoverable by waiting. NOTE: this
+        /// is deliberately NOT keyed on TerrainChunk.IsLoaded — that flag tracks disk/stream
+        /// state and stays false for chunks the player is standing on and raycasting into,
+        /// so gating on it produced a false "not loaded" abort on device (fixed in v0.6.2).
+        /// </summary>
+        ChunkContentsNotReady,
     }
 
     /// <summary>
@@ -101,7 +107,7 @@ namespace BuilderAssistant.Core.Transactions
             {
                 return Status == CellEditabilityStatus.ChunkMissing ||
                        Status == CellEditabilityStatus.ChunkStateNotReady ||
-                       Status == CellEditabilityStatus.ChunkNotLoaded;
+                       Status == CellEditabilityStatus.ChunkContentsNotReady;
             }
         }
 
