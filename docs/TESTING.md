@@ -347,3 +347,34 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
 5. 多份 `.json` → 连点蓝图工具循环浏览、到末尾回绕，`[i/N]` 计数正确。
 6. 建造/预检等待中点蓝图工具 → 应被挡下不误触发。
 若失败请回传首条 `Warning/Error` 原文 + 完整 `Game.log`（尤其 `DisplaySmallMessage` 里的真实路径，用于判定 scoped storage 可写性）。
+
+## 2026-10-18：v0.8.1 剪贴板粘贴导入（免建目录/免手写文件）
+
+范围：仅 `src/BuilderAssistant/` 与其离线测试工程。新增纯 Core `Core/Blueprints/BlueprintImportService.cs`（string→`Blueprint`，复用同一 `BlueprintJson.Decode` + 注入材料预检 + 前置尺寸上限，失败恒 `blueprint=null`）、`Core/Blueprints/BlueprintNamePolicy.cs`（显示名→可移植词干，纯中文走 `bp_<FNV 哈希>` 不再塌成 `blueprint`，`ResolveUnique` 撞名 _2/_3 且永不返回已存在词干）；新增游戏侧防御适配器 `Features/WorldEdit/GameInterop.cs`（`TryReadClipboardText` 包 `Game.ClipboardManager.ClipboardString` 全 try/catch；`TryPickBlueprintFileText` 为预留 SAF 桩恒返回未接入）；升级 `WorldEditRuntime` 加 `ImportOrBrowse`/`ImportFromText`/`TextHash` 及 `_lastClipboardImportHash` 去重、`ResetSession` 清空；`Infrastructure/BlueprintStorage.cs` 的 `SanitizeName` 改走 `BlueprintNamePolicy.ToStem`、`Save` 改为枚举既有词干→`ResolveUnique`→写入（自动建目录、不覆盖）。`modinfo.json`/`csproj` 版本 0.8.0→**0.8.1**。**未改 SCIE-Port、未改快艇、未触及联机与既有事务安全策略**；蓝图工具仍只读+校验、**从不写地形**；落成仍走同一 `PlanAndStart`→`BuildPlanner`→`BuildTask`→`TransactionHistory` 主链，安全规则一字不改。
+
+关键发现与取舍（护栏）：反射真实 x25.01.17 Windows 程序集发现，除文档 SCNET Mod API 外还暴露了 public `Game.*` 内部 UI/剪贴板类型（`ClipboardManager.ClipboardString`、`DialogsManager.ShowDialog/Alert/Confirm/Promit`、`TextBoxDialog`、`ListSelectionDialog`、`MessageDialog` 等）——推翻了 v0.8.0“无文本框/文件选择器/对话框”的旧结论（那仅对**文档 API**成立）。它们能编译但 7723 运行时未证实。按“未验证接口绝不当作可用、且勿一次堆太多未验证 UI”的要求，本版**只用最简单的剪贴板读取**，包在 try/catch 里，不可用即**优雅回退** v0.8.0 的 toast+文件浏览；对话框/文本框/SAF 全部留作第二阶段。
+
+### 1. 新增离线逻辑测试（真实执行，本机）
+
+- 命令：`run_offline_tests.ps1` 内先设 `%LOCALAPPDATA%\Microsoft\dotnet`(9.0.300) 到 PATH + `DOTNET_ROOT` + `DOTNET_ROLL_FORWARD=Major`，再 `dotnet run -c Release --project tests/BuilderAssistant.Tests`（测试工程新增编译 `BlueprintImportService.cs`/`BlueprintNamePolicy.cs`，仍不引用游戏程序集）。
+- 结果：`ALL 194 CHECKS PASSED`（在原 147 项基础上新增 47 项，exit 0）。
+- 覆盖：`BlueprintImportService`——合法粘贴复现正确 3 方块/2×2×1/名称；null/空/纯空白拒；不以 `{` 开头的非 JSON 形拒；`{"…{ + 256K` 超尺寸 blob 拒（证明尺寸门先于 tokenizer）且留 `blueprint=null`；坏语法 JSON 拒；重复坐标拒；1025 cells 超限拒（计数门先于坐标门）；材料预检拒未知块且同 JSON 在“全支持”下成功；七类坏输入逐一断言“失败⇒`blueprint=null`”即剪贴板完整性。`BlueprintNamePolicy`——sanitize 仅留 `[A-Za-z0-9_-]`/裁首尾分隔/截 48；纯中文名 `ToStem` 得 `bp_<hash>` 且两个不同中文名不同、同名确定；`ResolveUnique` 空集返回基名且 `collided=null`、撞名 `_2/_3`、结果必不在已存在集合、重复中文名得 `…_2`；`StableHash` 确定性且 8 位十六进制。均不依赖文件 IO 或游戏程序集。
+
+### 2. XDB 合并安全守卫回归（本机）
+
+- 命令：`powershell -File scripts/Test-XdbGuards.ps1` → `CHECKS: 7 passed, 0 failed`。本轮未改任何 `.xdb`，第 1 项对真实随包文件判 0 冲突，`ea25b78e` 仍 0、Speedboat 仍 1，v0.6.1 参数 GUID 修复未回退。
+
+### 3. net472 游戏侧编译（本机，引用 D:\SC 真实程序集）
+
+- 命令：`build_net472.ps1` → `dotnet build -c Release -p:SCNetGameDir='D:\SC'` → `已成功生成，0 个警告，0 个错误`。编译期确认 `Game.ClipboardManager.ClipboardString`、`BlueprintToolBlock/BuilderToolBlock/UndoToolBlock`、`ComponentGui`、`SubsystemBlockBehavior.OnUse` 等签名可用；`GameInterop` 编译通过只证明“能编”，不等于“真机能跑”。
+
+### 4. 全流程打包（本机，GameDir=D:\SC）
+
+- 命令：`run_pack.ps1`（内含 dotnet 环境修正 wrapper，调 `scripts/Build-NetMod.ps1 -GameDir 'D:\SC'`）。
+- 结果：逻辑测试 `ALL 194 CHECKS PASSED`、Release `0 错误 0 警告`、打包内容守卫全过——必需条目齐、CSV 方块类名唯一（`BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock`）、打包后真实 `.xdb` 全局 Guid 唯一性 0 问题、不含任何专有游戏程序集。
+- 随包核对：`modinfo Version=0.8.1`、DLL 程序集版本 0.8.1.0、Building.xdb `ea25b78e`=0、Speedboat.xdb 仅 1。
+- `.netmod`（v0.8.1）SHA-256：`E71E73866B0DA2B3C603F875E6DB6989C6A1287A221FE20E45139891B1F1310C`（2,338,624 字节，取代 v0.8.0 的 `D1FD40CF…`）。交付副本：`outputs/BuilderAssistant_v0.8.1.netmod`（哈希与上一致）。
+
+### 5. Android / 7723 实机（待验证）
+
+本轮未在任何设备执行验证；桌面全绿 + 编译期 ABI + 打包守卫 ≠ 手机可用。待实测见 `docs/COMPATIBILITY.md`「v0.8.1」清单，核心：**剪贴板读取(`Game.ClipboardManager`)在 7723 是否可用、拿到的是否系统剪贴板文本**——若不可用应自动回退到 v0.8.0 文件浏览（不阻塞可用版本）；真机文件落盘（scoped storage 写 `UserDataPath`）仍待验证；SAF 系统文件选择器为**不支持/未接入**（第二阶段）。

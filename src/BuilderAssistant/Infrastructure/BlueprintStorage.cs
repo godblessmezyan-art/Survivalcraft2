@@ -38,38 +38,47 @@ namespace BuilderAssistant.Infrastructure
             }
         }
 
-        /// <summary>Sanitize a user/AI-supplied blueprint name into a safe file stem.</summary>
+        /// <summary>
+        /// Turn a user/AI/CJK display name into a safe, portable file stem. Delegated to
+        /// <see cref="BlueprintNamePolicy"/>: ASCII characters are kept, and a pure-CJK
+        /// name gets a stable short hash suffix so two different Chinese names no longer
+        /// collapse to the same "blueprint" file and clobber each other. The readable
+        /// name always stays inside the JSON "name" field regardless of the stem.
+        /// </summary>
         public static string SanitizeName(string raw)
         {
             if (string.IsNullOrEmpty(raw)) return "blueprint";
-            var sb = new StringBuilder();
-            for (int i = 0; i < raw.Length && sb.Length < MaxNameLength; i++)
-            {
-                char c = raw[i];
-                bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                            (c >= '0' && c <= '9') || c == '_' || c == '-';
-                // CJK and other unicode letters are allowed for names but are stripped
-                // here to keep filenames portable across Android storage; the readable
-                // name still lives inside the JSON "name" field.
-                if (keep) sb.Append(c);
-            }
-            string s = sb.ToString().Trim('_', '-');
-            return s.Length == 0 ? "blueprint" : s;
+            return BlueprintNamePolicy.ToStem(raw);
         }
 
-        /// <summary>Write blueprint JSON to a file. Returns null on success, else an error message.</summary>
+        /// <summary>
+        /// Write blueprint JSON to the library WITHOUT ever overwriting an existing file.
+        /// The directory is created on demand, the display name is mapped to a portable
+        /// stem, and if that stem is already taken it is auto-numbered (_2, _3, ...) so a
+        /// fresh blueprint cannot silently clobber a previous one. Returns null on success,
+        /// else a failure message. <paramref name="savedFileName"/> is the actual written
+        /// file name (including any collision suffix).
+        /// </summary>
         public static string Save(string name, string json, out string savedFileName)
         {
             savedFileName = null;
             string dir = BaseDirectory;
             if (dir == null) return "游戏尚未提供用户数据目录，无法保存蓝图。";
-            string safe = SanitizeName(name);
             try
             {
                 Directory.CreateDirectory(dir);
-                string path = Path.Combine(dir, safe + ".json");
+
+                var existing = new List<string>();
+                foreach (string f in Directory.GetFiles(dir, "*.json"))
+                {
+                    existing.Add(Path.GetFileNameWithoutExtension(f));
+                }
+
+                string collided;
+                string stem = BlueprintNamePolicy.ResolveUnique(name, existing, out collided);
+                string path = Path.Combine(dir, stem + ".json");
                 File.WriteAllText(path, json, new UTF8Encoding(false));
-                savedFileName = safe + ".json";
+                savedFileName = stem + ".json";
                 return null;
             }
             catch (Exception ex)

@@ -210,6 +210,27 @@ namespace BuilderAssistant.Tests
             TestBlueprintLibraryBrowserAdvance();
             TestBlueprintLibraryBrowserPositionLabel();
 
+            // v0.8.1: paste-a-JSON-string import (clipboard-paste MVP). Proves the pure
+            // BlueprintImportService reuses the canonical parser, rejects every bad input
+            // with a clear reason AND never hands back a partial blueprint (so the caller
+            // can guarantee the live clipboard is never clobbered), and that the naming
+            // policy stops all-CJK names collapsing to "blueprint" and never overwrites an
+            // existing stem. See Core/Blueprints/BlueprintImportService + BlueprintNamePolicy
+            // + Infrastructure/BlueprintStorage + WorldEditRuntime.ImportFromText.
+            TestImportValidBlueprint();
+            TestImportRejectsEmptyText();
+            TestImportRejectsNonJsonShape();
+            TestImportRejectsOverSizeInput();
+            TestImportRejectsInvalidJson();
+            TestImportRejectsDuplicateCoords();
+            TestImportRejectsOverCapBlueprint();
+            TestImportRejectsUnknownMaterial();
+            TestImportFailureNeverYieldsPartialBlueprint();
+            TestNamePolicySanitize();
+            TestNamePolicyCjkNoLongerCollapses();
+            TestNamePolicyResolveUniqueNeverOverwrites();
+            TestNamePolicyStableHashDeterministic();
+
             Console.WriteLine();
             Console.WriteLine(_failures == 0
                 ? "ALL " + _checks + " CHECKS PASSED"
@@ -1086,6 +1107,221 @@ namespace BuilderAssistant.Tests
             Check(BlueprintLibraryBrowser.PositionLabel(0, 0) == string.Empty, "an empty library yields no label");
             Check(BlueprintLibraryBrowser.PositionLabel(4, -1) == string.Empty, "a pre-selection cursor (-1) yields no label");
             Check(BlueprintLibraryBrowser.PositionLabel(4, 9) == string.Empty, "an out-of-range cursor yields no label (defensive)");
+        }
+
+        // === v0.8.1 clipboard-paste import: BlueprintImportService ===
+
+        // A known-good JSON string produced by the SAME serializer the game uses to
+        // persist a copied blueprint, so the paste path is exercised with real bytes.
+        private static string GoodBlueprintJson()
+        {
+            BlueprintBuilder b = new BlueprintBuilder();
+            b.Set(0, 0, 0, BuildingMaterials.StoneBase);
+            b.Set(1, 0, 0, BuildingMaterials.StoneBase);
+            b.Set(0, 1, 0, BuildingMaterials.Glass);
+            Blueprint bp = b.ToBlueprint("paste-sample", 1);
+            return BlueprintJson.Serialize(bp);
+        }
+
+        // Resolver that accepts every logical material key used in tests.
+        private static bool AcceptAllMaterials(string key) { return true; }
+
+        private static void TestImportValidBlueprint()
+        {
+            Console.WriteLine("[TestImportValidBlueprint]");
+            string json = GoodBlueprintJson();
+            BlueprintImportResult r = BlueprintImportService.FromString(json, AcceptAllMaterials);
+            Check(r.Success, "a valid pasted JSON blueprint imports successfully");
+            Check(r.Blueprint != null, "success yields a non-null blueprint");
+            Check(r.BlockCount == 3, "imported blueprint has the expected 3 cells (got " + r.BlockCount + ")");
+            Check(!string.IsNullOrEmpty(r.DisplayName) && r.DisplayName == "paste-sample", "display name is preserved from the JSON");
+            Check(r.SizeX == 2 && r.SizeY == 2 && r.SizeZ == 1, "recomputed size matches the cell set (" + r.SizeX + "x" + r.SizeY + "x" + r.SizeZ + ")");
+        }
+
+        private static void TestImportRejectsEmptyText()
+        {
+            Console.WriteLine("[TestImportRejectsEmptyText]");
+            Check(!BlueprintImportService.FromString(null, AcceptAllMaterials).Success, "null text is rejected");
+            Check(!BlueprintImportService.FromString(string.Empty, AcceptAllMaterials).Success, "empty text is rejected");
+            Check(!BlueprintImportService.FromString("   \t  ", AcceptAllMaterials).Success, "whitespace-only text is rejected");
+            BlueprintImportResult r = BlueprintImportService.FromString("   ", AcceptAllMaterials);
+            Check(r.Reason != null && r.Reason.Length > 0, "empty text carries a human-readable reason");
+        }
+
+        private static void TestImportRejectsNonJsonShape()
+        {
+            Console.WriteLine("[TestImportRejectsNonJsonShape]");
+            BlueprintImportResult r = BlueprintImportService.FromString("CobblestoneBlock x 5 at 10,20,30", AcceptAllMaterials);
+            Check(!r.Success, "plain prose that is not JSON is rejected");
+            Check(r.Blueprint == null, "a rejected non-JSON paste yields NO blueprint");
+            Check(r.Reason != null && r.Reason.IndexOf("JSON") >= 0, "the reason points at the JSON shape problem");
+        }
+
+        private static void TestImportRejectsOverSizeInput()
+        {
+            Console.WriteLine("[TestImportRejectsOverSizeInput]");
+            // Starts with '{' so it passes the cheap shape gate, but is far over the cap,
+            // proving the size guard fires BEFORE the tokenizer is ever asked to chew it.
+            string huge = "{" + new string('a', BlueprintImportService.MaxImportChars);
+            BlueprintImportResult r = BlueprintImportService.FromString(huge, AcceptAllMaterials);
+            Check(!r.Success, "a pasted blob larger than the cap is rejected");
+            Check(r.Blueprint == null, "an over-size paste yields NO blueprint");
+            Check(r.Reason != null && r.Reason.IndexOf("过大") >= 0, "the reason says the input is too large");
+        }
+
+        private static void TestImportRejectsInvalidJson()
+        {
+            Console.WriteLine("[TestImportRejectsInvalidJson]");
+            // Starts with '{' (shape gate passes) but is not parseable JSON.
+            BlueprintImportResult r = BlueprintImportService.FromString("{ this is : not valid , json ", AcceptAllMaterials);
+            Check(!r.Success, "malformed JSON is rejected");
+            Check(r.Blueprint == null, "malformed JSON yields NO blueprint");
+            Check(r.Reason != null && r.Reason.Length > 0, "malformed JSON surfaces a concrete parse reason");
+        }
+
+        private static void TestImportRejectsDuplicateCoords()
+        {
+            Console.WriteLine("[TestImportRejectsDuplicateCoords]");
+            string json = "{\"schemaVersion\":1,\"kind\":\"builderassistant.blueprint\",\"name\":\"dup\"," +
+                          "\"materials\":[{\"id\":0,\"key\":\"" + BuildingMaterials.StoneBase + "\",\"block\":\"\"}]," +
+                          "\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"m\":0},{\"x\":0,\"y\":0,\"z\":0,\"m\":0}]}";
+            BlueprintImportResult r = BlueprintImportService.FromString(json, AcceptAllMaterials);
+            Check(!r.Success, "two cells at the same coordinate are rejected");
+            Check(r.Blueprint == null, "a duplicate-coordinate paste yields NO blueprint");
+        }
+
+        private static void TestImportRejectsOverCapBlueprint()
+        {
+            Console.WriteLine("[TestImportRejectsOverCapBlueprint]");
+            // 1025 unique cells: the count guard trips before any axis/coordinate check,
+            // proving a pathologically large (or malicious) blueprint is refused outright.
+            var sb = new System.Text.StringBuilder();
+            sb.Append("{\"schemaVersion\":1,\"kind\":\"builderassistant.blueprint\",\"name\":\"big\",");
+            sb.Append("\"materials\":[{\"id\":0,\"key\":\"").Append(BuildingMaterials.StoneBase).Append("\",\"block\":\"\"}],");
+            sb.Append("\"cells\":[");
+            int n = BuildSafetyLimits.MaxBlocksPerOperation + 1;
+            for (int i = 0; i < n; i++)
+            {
+                if (i > 0) sb.Append(',');
+                sb.Append("{\"x\":0,\"y\":0,\"z\":0,\"m\":0}"); // coords irrelevant: count trips first
+            }
+            sb.Append("]}");
+            BlueprintImportResult r = BlueprintImportService.FromString(sb.ToString(), AcceptAllMaterials);
+            Check(!r.Success, "a blueprint over the per-transaction block cap is rejected");
+            Check(r.Blueprint == null, "an over-cap paste yields NO partial blueprint");
+            Check(r.Reason != null && r.Reason.IndexOf("超过") >= 0, "the reason names the cap being exceeded");
+        }
+
+        private static void TestImportRejectsUnknownMaterial()
+        {
+            Console.WriteLine("[TestImportRejectsUnknownMaterial]");
+            BlueprintBuilder b = new BlueprintBuilder();
+            b.Set(0, 0, 0, BuildingMaterials.StoneBase);
+            b.Set(1, 0, 0, "MysteryBlock"); // a block this build cannot rebuild
+            string json = BlueprintJson.Serialize(b.ToBlueprint("unknown-mat", 1));
+
+            // Structural decode succeeds (the shape is legal); only the material pre-flight
+            // must reject it — proving the resolver hook is actually consulted.
+            BlueprintImportResult withReject = BlueprintImportService.FromString(
+                json, delegate(string key) { return key != "MysteryBlock"; });
+            Check(!withReject.Success, "a material the resolver rejects blocks the import");
+            Check(withReject.Blueprint == null, "an unsupported-material paste yields NO blueprint");
+            Check(withReject.Reason != null && withReject.Reason.IndexOf("MysteryBlock") >= 0, "the reason names the offending material");
+
+            BlueprintImportResult acceptAll = BlueprintImportService.FromString(json, AcceptAllMaterials);
+            Check(acceptAll.Success, "the identical JSON imports when every material is supported");
+        }
+
+        // The heart of "失败不污染剪贴板": on EVERY failure path the service returns
+        // Success=false with a null blueprint, so the runtime literally has nothing to
+        // write into the clipboard unless the import genuinely succeeded.
+        private static void TestImportFailureNeverYieldsPartialBlueprint()
+        {
+            Console.WriteLine("[TestImportFailureNeverYieldsPartialBlueprint]");
+            string[] badInputs =
+            {
+                null,
+                string.Empty,
+                "   ",
+                "not json at all",
+                "{ broken ",
+                "{\"schemaVersion\":99,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"" + BuildingMaterials.StoneBase + "\"}]}",
+                "{\"schemaVersion\":1,\"cells\":[]}"
+            };
+            bool allNullBlueprint = true;
+            bool allFailed = true;
+            foreach (string s in badInputs)
+            {
+                BlueprintImportResult r = BlueprintImportService.FromString(s, AcceptAllMaterials);
+                if (r.Success) allFailed = false;
+                if (r.Blueprint != null) allNullBlueprint = false;
+            }
+            Check(allFailed, "every malformed/unsupported input fails");
+            Check(allNullBlueprint, "no failure path ever returns a partial blueprint (clipboard stays intact)");
+        }
+
+        // === v0.8.1 naming policy: BlueprintNamePolicy ===
+
+        private static void TestNamePolicySanitize()
+        {
+            Console.WriteLine("[TestNamePolicySanitize]");
+            Check(BlueprintNamePolicy.Sanitize("My House_2024!") == "MyHouse_2024", "spaces/punct stripped, [A-Za-z0-9_-] kept");
+            Check(BlueprintNamePolicy.Sanitize("___abc___") == "abc", "leading/trailing separators trimmed");
+            Check(BlueprintNamePolicy.Sanitize("小屋") == string.Empty, "a pure-CJK name has no portable stem via Sanitize");
+            string longName = new string('a', 80);
+            Check(BlueprintNamePolicy.Sanitize(longName).Length == BlueprintNamePolicy.MaxStemLength, "stem is capped to MaxStemLength (" + BlueprintNamePolicy.MaxStemLength + ")");
+        }
+
+        private static void TestNamePolicyCjkNoLongerCollapses()
+        {
+            Console.WriteLine("[TestNamePolicyCjkNoLongerCollapses]");
+            string a = BlueprintNamePolicy.ToStem("小屋");
+            string b = BlueprintNamePolicy.ToStem("城堡");
+            Check(a.StartsWith("bp_"), "a pure-CJK name becomes a bp_<hash> stem instead of 'blueprint'");
+            Check(a != b, "two DIFFERENT Chinese names map to DIFFERENT stems (the old collapse bug is fixed)");
+            Check(BlueprintNamePolicy.ToStem("小屋") == a, "the same Chinese name always yields the same stem (deterministic)");
+            // ASCII names keep their readable stem.
+            Check(BlueprintNamePolicy.ToStem("MyCottage") == "MyCottage", "an ASCII name keeps its readable stem");
+        }
+
+        private static void TestNamePolicyResolveUniqueNeverOverwrites()
+        {
+            Console.WriteLine("[TestNamePolicyResolveUniqueNeverOverwrites]");
+
+            // Fresh library: the plain stem is returned and no collision is reported.
+            string collided;
+            string first = BlueprintNamePolicy.ResolveUnique("MyCottage", new List<string>(), out collided);
+            Check(first == "MyCottage", "a free name uses its base stem");
+            Check(collided == null, "a free name reports no collision");
+
+            // A stem already taken -> _2, and collidedWith reports the original.
+            var existing = new List<string> { "MyCottage" };
+            string second = BlueprintNamePolicy.ResolveUnique("MyCottage", existing, out collided);
+            Check(second == "MyCottage_2", "a colliding name is numbered to _2 (never overwrites)");
+            Check(collided == "MyCottage", "the collision hint names the original stem");
+
+            // _2 also taken -> _3.
+            existing.Add("MyCottage_2");
+            string third = BlueprintNamePolicy.ResolveUnique("MyCottage", existing, out collided);
+            Check(third == "MyCottage_3", "numbering continues to _3 when _2 is taken");
+
+            // The guarantee that matters for non-overwrite: the result is never an existing stem.
+            existing.Add("MyCottage_3");
+            string fourth = BlueprintNamePolicy.ResolveUnique("MyCottage", existing, out collided);
+            Check(!existing.Contains(fourth), "the resolved stem is NEVER already present in the folder");
+
+            // CJK duplicate: two identical Chinese names must not collide onto one file.
+            string cjkStem = BlueprintNamePolicy.ToStem("秘密小屋");
+            string cjkDup = BlueprintNamePolicy.ResolveUnique("秘密小屋", new List<string> { cjkStem }, out collided);
+            Check(cjkDup != cjkStem && cjkDup.StartsWith(cjkStem), "a duplicate Chinese-named blueprint gets a numbered stem, not an overwrite");
+        }
+
+        private static void TestNamePolicyStableHashDeterministic()
+        {
+            Console.WriteLine("[TestNamePolicyStableHashDeterministic]");
+            Check(BlueprintNamePolicy.StableHash("小屋") == BlueprintNamePolicy.StableHash("小屋"), "hash of the same text is stable");
+            Check(BlueprintNamePolicy.StableHash("小屋") != BlueprintNamePolicy.StableHash("城堡"), "different text yields a different hash");
+            Check(BlueprintNamePolicy.StableHash(string.Empty).Length == 8, "the hash renders as 8 hex chars");
         }
 
         // --- helpers ---

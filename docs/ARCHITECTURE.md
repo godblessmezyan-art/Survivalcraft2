@@ -1,4 +1,4 @@
-# Builder Assistant 架构说明（v0.8.0）
+# Builder Assistant 架构说明（v0.8.1）
 
 本文只描述 Builder Assistant 的自动建造基础，不涉及 SCIE-Port。目标是“可靠、可撤销的离线自动建造”，不做云、AI 或复杂 UI。v0.6.0 在不改动这条主线的前提下，专门处理“目标区块未加载或越界”这一 P0：把失败原因细分到每一格、允许主线程有限等待区块加载、并让回滚/撤销可追踪并重试未完成的部分。
 
@@ -28,6 +28,8 @@ src/BuilderAssistant/
     Blueprints/BuildingMaterials.cs  逻辑材料键常量
     Blueprints/BlueprintJson.cs      蓝图↔JSON(schemaVersion=1) 序列化/解析/校验，永不抛异常（v0.7.0，纯 Core）
     Blueprints/BlueprintLibraryBrowser.cs 蓝图库游标纯逻辑：把 (条目数, 当前游标) 映射为下一次点击要载入的索引，空库返回 -1、到末尾回绕；不含文件/游戏/UI 依赖，可离线单测（v0.8.0）
+    Blueprints/BlueprintImportService.cs 纯文本→蓝图导入入口：复用同一 `BlueprintJson.Decode` 解析器 + 注入材料预检，前置尺寸上限，失败一律返回 Success=false 且 blueprint=null（调用方据此保证绝不污染剪贴板/绝不做部分导入）；不碰文件/地形/游戏，可离线单测（v0.8.1）
+    Blueprints/BlueprintNamePolicy.cs 蓝图命名纯规则：显示名→可移植文件词干（保留 ASCII，纯中文名用稳定 FNV 哈希 `bp_<hash>` 以免统统塌成 'blueprint'），`ResolveUnique` 撞名追加 _2/_3 且永不返回已存在词干（不覆盖），词干≤48；可读名仍存 JSON name 字段（v0.8.1）
     Json/Json.cs                     零依赖严格 JSON 解析器 + 确定性写器（v0.7.0，net472 无 System.Text.Json）
     Transactions/ITerrainGateway.cs  唯一地形读写抽象（新增 InspectCell 诊断，测试用内存实现）
     Transactions/CellEditability.cs  每格不可编辑原因的枚举+结构（越界/缺失/状态/未加载，v0.6.0）
@@ -44,11 +46,12 @@ src/BuilderAssistant/
     WorldEdit/GameTerrainGateway.cs  ITerrainGateway → 真实地形（ChangeCell 主线程写）；TypeNameForContents/DescribeContents 供复制读取（v0.7.0）
     WorldEdit/VanillaBlockPalette.cs 材料键 → FindBlockByTypeName → BlockIndex → 打包值；SupportedPlainCubes 保守白名单 + IsResolvableKey 预检（v0.7.0）
     WorldEdit/BlueprintCopier.cs     两角选区读实时方块→纯 Blueprint，仅复制白名单立方块，其余逐类跳过并报告（v0.7.0）
-    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）；`OnBlueprintTool` + `CycleImportLibrary` 蓝图库逐次点击浏览/载入（v0.8.0）
+    WorldEdit/WorldEditRuntime.cs    主线程协调器：单人门控、双击确认、全范围预检+有限等待区块加载、分批 Tick、延迟回滚重试、撤销入口（v0.6.0）；RuntimeMode 小屋/复制/粘贴状态机 + 导入/导出/旋转入口（v0.7.0）；`OnBlueprintTool` + `CycleImportLibrary` 蓝图库逐次点击浏览/载入（v0.8.0）；`ImportOrBrowse`/`ImportFromText`——剪贴板像 JSON 就直接粘贴导入（成功才载入剪贴板+存库+切粘贴，失败绝不改剪贴板/绝不写地形），否则回退到 toast+文件浏览（v0.8.1）
+    WorldEdit/GameInterop.cs         可选游戏内部服务的防御性单一入口：`TryReadClipboardText`（包 `Game.ClipboardManager.ClipboardString`，try/catch 兜底返回 null→上层优雅回退）；`TryPickBlueprintFileText` 为预留 SAF 文件选择器桩，恒返回不可用。均非 SCNET 文档 API，安卓运行时待验证（v0.8.1）
     WorldEdit/BuilderToolBlock.cs(901) / UndoToolBlock.cs(902) / BlueprintToolBlock.cs(903，手持即浏览/导入蓝图，本身从不写地形)
     WorldEdit/SubsystemBuilderToolBlockBehavior.cs / SubsystemUndoToolBlockBehavior.cs / SubsystemBlueprintToolBlockBehavior.cs
   Infrastructure/
-    BlueprintStorage.cs              蓝图 JSON 落盘：基目录取 ModsManager.UserDataPath + Mod 私有子目录，绝不硬编码设备路径；IO 全 try/catch（v0.7.0）
+    BlueprintStorage.cs              蓝图 JSON 落盘：基目录取 ModsManager.UserDataPath + Mod 私有子目录，绝不硬编码设备路径；IO 全 try/catch（v0.7.0）；v0.8.1 起 `Save` 经 `BlueprintNamePolicy.ResolveUnique` 自动建目录、去重命名（撞名 _2/_3）、永不覆盖同名文件，纯中文名不再塌成 'blueprint'
   Mod/BuilderAssistantModLoader.cs   注册 GuiUpdate + BlocksInitalized；快艇逻辑保持原样
 ```
 
@@ -99,6 +102,18 @@ v0.7.0 打通了“蓝图↔JSON↔磁盘↔世界”的数据桥，但**游戏�
 - 载入后**仍用建造工具(901)对准地面两次点击落成**，走与小屋**完全相同**的 `PlanAndStart`→`BuildPlanner`→`BuildTask`→撤销链，全部安全规则一致；蓝图工具本身只读文件+校验，**从不写地形**。
 
 两处**待验证**（真机）：① 安卓 scoped storage 下系统文件管理器能否写入 `UserDataPath`；② item 903 是否与设备上其它 mod 的索引冲突。
+
+## 剪贴板粘贴导入（v0.8.1 已实现）
+
+v0.8.0 虽已闭环，但玩家仍需“建目录 / 起名 / 用文件管理器投递 `.json`”，触屏上手成本高。v0.8.1 增加一条**零文件操作**的低摩擦入口：把蓝图 JSON 复制到手机剪贴板，手持蓝图工具(903)点一下即粘贴导入。
+
+- 反思发现 x25.01.17 程序集还暴露了**文档 API 之外**的 public `Game.ClipboardManager.ClipboardString`（可读写 OS 剪贴板）。它在 Windows 参考程序集上编译通过，但**安卓/7723 运行时行为未经证实**——因此所有调用都包在防御性适配器 `GameInterop.TryReadClipboardText` 里（try/catch 兜底返回 null），绝不假设其一定可用。
+- `OnBlueprintTool` → `ImportOrBrowse`：若剪贴板文本去空白后以 `{` 开头（像 JSON 对象），走 `ImportFromText`；否则（含剪贴板服务不可用）回退到 v0.8.0 的 toast + 文件库浏览，**不降级、不报错、行为向后兼容**。同一段剪贴板文本连点多次用 `TextHash` 去重，只重复播报不重复存盘。
+- `ImportFromText` 调纯 `BlueprintImportService.FromString`（复用同一 `BlueprintJson.Decode` + 材料预检，绝不重写解析器），失败一律“精确原因 + 不改剪贴板 + 不写地形”；成功才载入内存剪贴板、切 `Paste` 模式，并经 `BlueprintStorage.Save` 落一份**唯一命名、永不覆盖**的副本。
+- 命名侧修复：`BlueprintNamePolicy` 让纯中文名映射到 `bp_<FNV 哈希>`（不再统统塌成 `blueprint` 互相覆盖），撞名自动 `_2/_3`；人类可读名始终原样保留在 JSON 的 `name` 字段。
+- 落成**仍走**建造工具(901)两次点击 → `PlanAndStart`→`BuildPlanner`→`BuildTask`→撤销链，安全规则与既往完全一致；蓝图工具本身**从不写地形**。
+
+待验证（真机）：剪贴板读取(`Game.ClipboardManager`)在 7723 是否可用、拿到的是否为系统剪贴板文本；不可用时自动回退文件浏览，故不阻塞可用版本。预留但未接入：安卓 SAF 文件选择器（`GameInterop.TryPickBlueprintFileText`，标注**不支持（未接入）**），待原生调用在真机验证后作为第二阶段。
 
 ## 仍为预留（未来阶段）
 
