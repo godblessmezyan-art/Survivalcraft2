@@ -161,17 +161,35 @@
   - `TestPartialUndoRetainedAndRetried`：部分撤销后事务保留在栈上，再次撤销续做，全部恢复才出栈。
   - `TestUndoPendingYieldsToLaterPlayerEdit`：延迟撤销的格子若被玩家后续改动则不再重试、绝不覆盖。
 
-### 3. net472 游戏侧编译（本机阻塞 — 待验证）
+### 3. net472 游戏侧编译 + `.netmod` 打包（本机成功 — Features 层升级为已确认）
 
-- 本机不存在 SCNET x25.01.17 引用程序集，`dotnet build -c Release` 在引用校验步骤即失败：
+用户提供官方 Windows x25.01.17 客户端目录 `D:\SC`。先核对引用程序集哈希（与既有登记的公开 Windows 发布完全一致）：
 
+```bash
+cd /d/SC && sha256sum Survivalcraft.exe Engine.dll EntitySystem.dll
+# Survivalcraft.exe 3d14b8d6…cc74a7ad（= 记录值）
+# Engine.dll       98f2035b…e770694（= 记录值）
+# EntitySystem.dll 7a87e643…b67ed19c（= 记录值）
+```
+
+- 直接编译 Mod 工程（引用真实程序集）：
+
+  ```bash
+  export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"; export DOTNET_ROLL_FORWARD=Major
+  "$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" build -c Release -p:SCNetGameDir='D:\SC'
   ```
-  error : Missing SCNET x25.01.17 reference: E:\SCNET\SCNETx25.01.17\Survivalcraft.exe.
-          Pass -p:SCNetGameDir=... or set SCNET_GAME_DIR.
+
+- 结果：`已成功生成，0 个警告，0 个错误`，产出 `BuilderAssistant.dll`（net472）。这确认了 `GameTerrainGateway.InspectCell` 与 `WorldEditRuntime` 预检/延迟回滚用到的游戏侧成员（`GetChunkAtCell`、`TerrainChunk.State==Valid`、`IsLoaded`、`IsCellValid`、`ChangeCell`）签名全部正确。Features 层由此从“待验证”升级为**已确认（编译期 ABI）**。
+- 官方脚本全流程（环境校验 + 逻辑测试 + Release 编译 + 打包 + 内容守卫）：
+
+  ```bash
+  powershell.exe -NoProfile -ExecutionPolicy Bypass \
+    -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
   ```
 
-- 因此 `Features/WorldEdit/GameTerrainGateway.InspectCell` 与 `WorldEditRuntime` 预检/延迟回滚两处改动为“源码完成、本机未编译”，其调用的游戏 ABI 成员均为 v0.5.0 已编译绑定过的（`GetChunkAtCell`/`TerrainChunk.State==Valid`/`IsLoaded`/`IsCellValid`/`ChangeCell`），未引入新签名。
-- 复现（在装有 x25.01.17 的机器上指向真实游戏目录）：`./scripts/Build-NetMod.ps1 -GameDir '<游戏目录>' -Configuration Release`。通过后方可把 Features 层与 `.netmod` 打包标记升级为“已确认（编译期 ABI）”。
+- 结果：`Test-Environment` 通过（哈希匹配、assembly 2.4.0.0、net472、API 1.42、SC 2.4.10.6、快艇 ABI 检查）、`72/72` 逻辑测试、`0 错误 0 警告` 编译、打包通过全部守卫（必需条目、CSV 类名唯一 `BuilderToolBlock/SpeedboatBlock/UndoToolBlock`、原版 GUID 断言、不含专有程序集）。
+- `.netmod`（v0.6.0）SHA-256：`03F4AD4321FE7FD349DC54667D83F1C2B244D97ABD0BE75BDB481A39CF9B253D`。
+- 边界：**Windows 编译+打包 ≠ 运行验证**。Windows 游戏进程内加载与 Android 实机仍各自待验证（见第 4 节）。
 
 ### 4. Android / 7723 实机（待验证）
 
@@ -184,6 +202,6 @@
 export DOTNET_ROOT="$HOME/AppData/Local/Microsoft/dotnet"; export DOTNET_ROLL_FORWARD=Major
 "$HOME/AppData/Local/Microsoft/dotnet/dotnet.exe" run -c Release --project tests/BuilderAssistant.Tests
 
-# net472 打包（需游戏程序集，本机当前缺失）
-# ./scripts/Build-NetMod.ps1 -GameDir '<游戏目录>' -Configuration Release
+# net472 打包（本机游戏目录为 D:\SC，已验证可用）
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release"
 ```
