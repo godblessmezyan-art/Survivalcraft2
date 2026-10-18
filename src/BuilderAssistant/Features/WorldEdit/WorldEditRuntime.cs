@@ -101,6 +101,12 @@ namespace BuilderAssistant.Features.WorldEdit
         private static int _blueprintCursor = -1;
         private static bool _blueprintPathShown;
 
+        // v0.8.1 clipboard-paste import: a cheap hash of the last pasted text that was
+        // successfully imported. Repeated taps while the clipboard is unchanged just
+        // re-announce the loaded blueprint instead of saving a fresh numbered copy
+        // every time. 0 means "nothing imported from clipboard yet this session".
+        private static int _lastClipboardImportHash;
+
         /// <summary>
         /// Called from the BlocksInitalized hook and whenever a new world session
         /// re-initializes blocks. Rebuilds the palette against the fresh
@@ -147,6 +153,7 @@ namespace BuilderAssistant.Features.WorldEdit
             _blueprintLibNames = null;
             _blueprintCursor = -1;
             _blueprintPathShown = false;
+            _lastClipboardImportHash = 0;
         }
 
         /// <summary>
@@ -826,8 +833,109 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
-            CycleImportLibrary(gui);
+            ImportOrBrowse(gui);
             return true;
+        }
+
+        /// <summary>
+        /// v0.8.1 blueprint-tool tap decision. Prefer the lowest-friction, most
+        /// touch-friendly import: if the OS clipboard currently holds text that looks
+        /// like a blueprint JSON object, import it directly (paste). When there is no
+        /// such text - or the clipboard service is unavailable on this platform - fall
+        /// back to the proven toast + file-library browse so nothing regresses. This is
+        /// read/validate only; it never writes terrain.
+        /// </summary>
+        private static void ImportOrBrowse(ComponentGui gui)
+        {
+            string raw = GameInterop.TryReadClipboardText();
+            string trimmed = raw == null ? null : raw.Trim();
+
+            // Only treat the clipboard as a paste candidate when it looks like a JSON
+            // object; any other clipboard content must not hijack the browse flow.
+            bool looksLikeJson = trimmed != null && trimmed.Length > 0 && trimmed[0] == '{';
+            if (looksLikeJson)
+            {
+                int hash = TextHash(trimmed);
+                if (hash != 0 && hash == _lastClipboardImportHash &&
+                    _clipboard != null && _mode == RuntimeMode.Paste)
+                {
+                    Notify(gui, "剪贴板内容未变，已载入蓝图「" + _clipboardSourceName +
+                        "」。改用建造工具(901)对准地面两次点击即可落成。");
+                    return;
+                }
+
+                ImportFromText(trimmed, gui);
+                return;
+            }
+
+            // No importable clipboard text: reset the paste de-dupe and browse files.
+            _lastClipboardImportHash = 0;
+            CycleImportLibrary(gui);
+        }
+
+        /// <summary>
+        /// Import a blueprint directly from a pasted / typed JSON string. Reuses the
+        /// canonical parser + validator via <see cref="BlueprintImportService"/>, and
+        /// pre-flights material resolvability with the live palette. On success: load
+        /// the clipboard blueprint, switch to Paste mode, and persist a uniquely-named
+        /// (non-overwriting) copy to the library. On any parse/material failure: report
+        /// the precise reason and LEAVE THE CURRENT CLIPBOARD UNTOUCHED - a bad paste
+        /// can never clobber a good clipboard nor write terrain.
+        /// </summary>
+        internal static bool ImportFromText(string json, ComponentGui gui)
+        {
+            System.Func<string, bool> resolver = _palette != null
+                ? (System.Func<string, bool>)_palette.IsResolvableKey
+                : null;
+
+            BlueprintImportResult result = BlueprintImportService.FromString(json, resolver);
+            if (!result.Success)
+            {
+                // Integrity guarantee: no clipboard mutation, no terrain write.
+                _lastClipboardImportHash = 0;
+                Notify(gui, "导入失败：" + result.Reason);
+                return false;
+            }
+
+            Blueprint bp = result.Blueprint;
+            _clipboard = bp;
+            _clipboardSourceName = bp.Name;
+            _clipboardRotation = 0;
+            _hasPending = false;
+            SetMode(RuntimeMode.Paste, gui);
+            _lastClipboardImportHash = TextHash(json.Trim());
+
+            // Auto-save to the library so the pasted structure survives the session and
+            // can be re-browsed / re-imported later. IO problems are reported but never
+            // roll back the in-memory clipboard (paste still works this session).
+            string savedFileName;
+            string saveError = BlueprintStorage.Save(bp.Name, BlueprintJson.Serialize(bp), out savedFileName);
+            string persist = saveError != null
+                ? "（已载入但未存入蓝图库：" + saveError + "）"
+                : "（已存入蓝图库：" + savedFileName + "）";
+
+            Notify(gui, "已导入并载入蓝图「" + bp.Name + "」 尺寸 " + bp.SizeX + "×" + bp.SizeY + "×" + bp.SizeZ +
+                "，共 " + bp.CellCount + " 方块，已切换到粘贴模式。" + persist +
+                "改用建造工具(901)对准地面两次点击即可落成（可撤销）。");
+            return true;
+        }
+
+        /// <summary>
+        /// Cheap, stable FNV-1a hash of the trimmed clipboard text for de-duplicating
+        /// repeated taps on an unchanged clipboard. Not a security hash; collisions only
+        /// mean an extra re-import save at worst. Returns non-zero for non-empty input.
+        /// </summary>
+        private static int TextHash(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return 0;
+            uint h = 2166136261u;
+            for (int i = 0; i < s.Length; i++)
+            {
+                h ^= s[i];
+                h *= 16777619u;
+            }
+            int r = (int)(h & 0x7FFFFFFF);
+            return r == 0 ? 1 : r;
         }
 
         private static void CycleImportLibrary(ComponentGui gui)

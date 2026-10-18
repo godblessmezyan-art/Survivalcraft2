@@ -262,3 +262,37 @@ v0.7.0 有数据桥但缺游戏内触屏导入入口；v0.8.0 补上第三个手
 5. 放入多份 `.json` → 连点蓝图工具应循环浏览、到末尾回绕到第一条，`[i/N]` 计数正确。
 6. 建造或预检等待进行中点蓝图工具 → 应被“施工或等待区块就绪中…”挡下，不误触发导入。
 若失败，请回传首条 `Warning/Error` 原文 + 完整 `Game.log`（尤其含 `DisplaySmallMessage` 里打印的真实路径，以判定 scoped storage 是否可写）。
+
+## v0.8.1 剪贴板粘贴导入（免建目录 / 免手写文件）
+
+v0.8.0 已闭环，但玩家仍须“建目录 / 起 ASCII 名 / 用文件管理器投递 `.json`”，触屏成本高。v0.8.1 增一条**零文件操作**入口：把蓝图 JSON 复制到手机剪贴板 → 手持蓝图工具(903)点一下即粘贴导入；剪贴板不像 JSON 或服务不可用时，自动**原样回退** v0.8.0 的 toast+文件浏览，不降级、不报错。落成仍走建造工具(901)两次点击 → 同一 `PlanAndStart`→`BuildPlanner`→`BuildTask`→撤销链，安全规则一字不改。
+
+重要更正：v0.8.0 曾记“该 ABI 无文本框/文件选择器/对话框”——那只对**文档化的 SCNET Mod API**成立。反射真实 x25.01.17 Windows 程序集发现，游戏还暴露了若干 **public `Game.*` 内部类型**（非文档 Mod API）：`Game.ClipboardManager.ClipboardString`{get;set;}、`Game.DialogsManager.ShowDialog/Alert/Confirm/Promit`、`Game.TextBoxDialog`、`Game.ListSelectionDialog`、`Game.MessageDialog` 等。它们在 Windows 参考程序集上**编译通过**，但**安卓/7723 运行时行为未经证实**。故本版只用其中最简单、可优雅回退的剪贴板读取，且**一律包在 `GameInterop` 的 try/catch 里，绝不假设未验证接口一定可用**；对话框/文本框面板留作第二阶段（避免一次堆太多未验证 UI）。
+
+| 项 | 结论 | 状态 |
+| --- | --- | --- |
+| `Game.ClipboardManager.ClipboardString`（读 OS 剪贴板文本） | 对真实 Windows x25.01.17 程序集编译通过；但非 SCNET 文档 API，7723 上是否可用、拿到的是否系统剪贴板文本无从桌面判定 | **待验证**（编译期 ABI + 真机未测） |
+| 剪贴板不可用/抛异常时的行为 | `GameInterop.TryReadClipboardText` try/catch 兜底返回 null → 上层回退 v0.8.0 toast+文件浏览 | 已确认（离线逻辑）|
+| `BlueprintImportService.FromString` 复用同一 `BlueprintJson.Decode` + 材料预检，空/非 JSON 形/超长/坏语法/未知材料/重复坐标/超限一律精确拒绝且 `blueprint=null` | 与 v0.8.0 导入同一 Core 校验语义，不重写解析器；离线证明失败绝不返回半成品蓝图（故绝不污染剪贴板） | 已确认（离线）|
+| `BlueprintNamePolicy`：纯中文名→`bp_<FNV 哈希>`（不再统统塌成 `blueprint` 互相覆盖），撞名自动 `_2/_3`，词干≤48，`ResolveUnique` 永不返回已存在词干（不覆盖）；可读名仍存 JSON `name` | 纯逻辑，离线单测覆盖去重、不覆盖、CJK 不塌名、哈希确定性 | 已确认（离线）|
+| `BlueprintStorage.Save` 自动建目录 + 唯一命名 + 不覆盖同名 | 目录/IO 依赖 `ModsManager.UserDataPath` 与设备文件系统 | 已确认（离线命名）+ **待验证**（真机 IO）|
+| 安卓 SAF 系统文件选择器（`GameInterop.TryPickBlueprintFileText`） | 仅预留独立入口桩，恒返回“未接入”，不触碰剪贴板路径；待原生调用真机验证 | **不支持**（未接入，第二阶段）|
+
+**验证与边界**：本轮改动全落在 `src/BuilderAssistant/` 及其离线测试工程，**SCIE-Port 一字未动**、快艇原型未动、既有事务安全策略未动；蓝图工具仍**从不写地形**；导入失败**绝不改内存剪贴板、绝不部分导入、绝不落坏盘**。
+
+- 离线逻辑测试由 147 项扩到 **194/194 全通过**（新增 47 项：合法粘贴导入复现正确尺寸/名称/方块数；空文本(null/""/纯空白)拒；非 JSON 形（不以 `{` 开头）拒；超尺寸 blob（过 shape 门但未进 tokenizer）拒并留 NO 蓝图；坏 JSON 拒；重复坐标拒；`>1024` 方块拒（计数门先于坐标门）；材料预检拒未知块且同 JSON 在“全部支持”下成功；七种坏输入逐一验证“失败⇒blueprint=null”即剪贴板完整性；`BlueprintNamePolicy` 的 sanitize/纯中文不塌名/`ResolveUnique` 撞名 _2/_3 且结果必不在已存在集合/`StableHash` 确定性与 8 位十六进制）。这些断言不依赖游戏程序集或文件 IO。
+- XDB 合并安全守卫 **7/7** 全通过（本轮未改任何 `.xdb`，`ea25b78e` 仍 0 次、Speedboat 仍 1，v0.6.1 数据库修复未回退）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SC`）Release **0 错误 0 警告**（编译期即确认 `Game.ClipboardManager.ClipboardString` 与 `BlueprintToolBlock/BuilderToolBlock/UndoToolBlock` 等签名可用；`GameInterop` 通过编译证明“能编”，不等于“真机能跑”）。
+- 重打包 `.netmod` v0.8.1 SHA-256 `E71E73866B0DA2B3C603F875E6DB6989C6A1287A221FE20E45139891B1F1310C`（2,338,624 字节）。随包核对：CSV 方块类名唯一（`BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock`）、`Building.xdb` 中 `ea25b78e` 仍 0 次 / Speedboat 仍 1 次、不含任何专有游戏程序集。
+
+**重要**：Windows 编译 + 打包 ≠ 运行验证。剪贴板读取在 7723 上是否可用、拿到的是否系统剪贴板文本，以及真机文件落盘，**全部为待验证**；桌面从未在设备上跑过一次剪贴板读或文件写。因剪贴板路径已优雅回退文件浏览，即便真机不支持剪贴板，可用版本也不被阻塞。
+
+**Android 7723 单人创造世界实测清单**：
+1. 装 v0.8.1，进单人创造世界，加载横幅应显示 v0.8.1。
+2. 用任意 App 复制一段**合法**蓝图 JSON（或以文本编辑器全选复制 v0.8.0 清单里那类合法 `.json` 内容）到系统剪贴板 → 手持蓝图工具(903)点一下 → 应报“已导入并载入蓝图「name」 尺寸 …，已切换到粘贴模式。（已存入蓝图库：….json）”。若报的是“蓝图库是空的/仍为空…”说明剪贴板不可用、已回退浏览——据此判定 7723 是否支持 `ClipboardManager`。
+3. 切建造工具(901)对准地面两次点击 → 应落成；撤销工具一次整体回退。
+4. 复制一段**非法**内容（坏 JSON / 含不支持方块 / 超 1024 / 重复坐标）→ 应报“导入失败：<精确原因>”，且**不得**改动当前已载入蓝图（随后建造工具应保持上一个有效蓝图或提示空）。
+5. 复制**两个同名**合法蓝图先后各导入一次 → 落盘文件名应为 `name.json` 与 `name_2.json`（或纯中文名对应的 `bp_xxxx.json` 与 `bp_xxxx_2.json`），**不得互相覆盖**；两份都可再浏览到。
+6. 用**纯中文 name** 的蓝图导入 → 存档文件名应带可读的 `name` 字段（JSON 内）且磁盘名不再统统是 `blueprint`，两个不同中文名应得两个不同文件。
+7. 剪贴板内容不变连点蓝图工具 → 应只重复播报“剪贴板内容未变，已载入…”，不重复生成新编号副本。
+若失败，请回传首条 `Warning/Error` 原文 + 完整 `Game.log`，尤其注明第 2 步是走了“粘贴导入”还是回退成“文件浏览”，以判定 `Game.ClipboardManager` 在 7723 的可用性。
