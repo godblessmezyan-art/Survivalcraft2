@@ -65,7 +65,19 @@ $bad4 = [ordered]@{
         '<EntityTemplate Name="Two" Guid="55555555-5555-5555-5555-555555555555" InheritanceParent="' + $boatBase + '"/></Folder></DatabaseObjects>')
 }
 $res = Test-XdbMergeSafety -XdbTexts $bad4
-Assert-Cond (($res -join ' ') -match 'duplicate custom structural GUID') ("duplicate custom GUID flagged (got $($res.Count))")
+Assert-Cond (($res -join ' ') -match 'Duplicate GUID') ("duplicate custom GUID flagged (got $($res.Count))")
+
+Write-Host "[5b] duplicate <Parameter> GUID across files (the ea25b78e shipped bug) must be caught"
+$bad5b = [ordered]@{
+    'F.xdb' = ('<DatabaseObjects><Folder Name="BlockBehaviors" Guid="' + $realBlocks + '">' +
+        '<SubsystemTemplate Name="BA" Guid="aaaaaaaa-1111-1111-1111-111111111111" InheritanceParent="' + $bbBase + '">' +
+        '<Parameter Name="Class" Guid="ea25b78e-7d8c-4998-85d3-2b1baad3ba34" Value="X.SubA" Type="string"/></SubsystemTemplate></Folder></DatabaseObjects>')
+    'G.xdb' = ('<DatabaseObjects><Folder Name="BlockBehaviors" Guid="' + $realBlocks + '">' +
+        '<SubsystemTemplate Name="BB" Guid="bbbbbbbb-2222-2222-2222-222222222222" InheritanceParent="' + $bbBase + '">' +
+        '<Parameter Name="Class" Guid="ea25b78e-7d8c-4998-85d3-2b1baad3ba34" Value="X.SubB" Type="string"/></SubsystemTemplate></Folder></DatabaseObjects>')
+}
+$res = Test-XdbMergeSafety -XdbTexts $bad5b
+Assert-Cond (($res -join ' ') -match 'Duplicate GUID') ("duplicate <Parameter> GUID flagged (got $($res.Count))")
 
 Write-Host "[6] legitimate shared-vanilla folder + Project repeat across files must NOT be flagged"
 $good = [ordered]@{

@@ -216,7 +216,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-XdbGuards.ps1
   ```
 
-  结果：`CHECKS: 6 passed, 0 failed` → `XDB GUARD TESTS PASSED`。其中第 1 项对**真实随包** `Building.xdb`/`Speedboat.xdb` 判定为 0 冲突。
+  结果：`CHECKS: 7 passed, 0 failed` → `XDB GUARD TESTS PASSED`。其中第 1 项对**真实随包** `Building.xdb`/`Speedboat.xdb` 判定为 0 冲突；新增的第 5b 项专门验证“跨文件重复 `<Parameter>` GUID”会被抓（即下面 v0.6.1 修的那类）。
 
 - 用游戏自身解密器把 `Content.scpak` 解成明文 ZIP、取出真实 `Assets/Database.xml`，再逐个核对 Builder Assistant 依赖的 GUID 是否存在于真实库（不采信记录值）：
 
@@ -230,3 +230,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& ./scripts/Build-Ne
 - 真实运行日志佐证：`D:\SC\Bugs\Game.log` 一次完整启动+进世界（`WorldName=Bysnow`）全程无异常、无 `already nested`、无 `Database not loaded`；该次 `D:\SC\NetMods` 为空，即 Builder Assistant 未装于此环境，本机当前无可复现的 v0.6.0 运行期报错。历史首异常属 SCIE-Port 0.3.1 的游离 `Entities` 文件夹（0.3.2 已修）。
 
 **边界**：以上为“桌面数据库结构 + 真实库交叉验证”层面的确认，**不等于** Windows 进程内加载、也不等于 Android 实机运行。若真机复现，需回传读条阶段第一条 `Warning(...)` 原文 + 完整日志再据实定位；不臆造根因、不随机替换 GUID。
+
+### 7. v0.6.1：真机日志定位到“Class 参数 GUID 重复”并修复（本机复核，成功；待真机复测）
+
+用户回传真机 `Game.log`，首异常为 `[Builder Assistant] 加载.xdb` 之后 `WARNING: An item with the same key has already been added. Key: ea25b78e-7d8c-4998-85d3-2b1baad3ba34`，连锁 `Database not loaded.` 与 `EntityTemplate "MalePlayer" not found.`（进世界栈：`DatabaseManager.get_GameDatabase ← GameManager.LoadProject`）。交叉验证真实 `Database.xml` 确认：原版每个 `<Parameter>` 实例 GUID 各不相同、`ea25b78e` 在原版出现 0 次——它是 Builder Assistant 在 Building.xdb 里**同时贴给 BuilderTool 与 UndoTool 两个 Class 参数**（Speedboat 又用一次）的复制粘贴键，加载器按 `Guid=` 建字典即冲突。
+
+修复：只把 Building.xdb 两个 Class 参数改为新的唯一 GUID（`ecf3ac44…`、`82d5d8fd…`，经核不在原版、彼此唯一），`ea25b78e` 全包仅留 Speedboat.xdb 一处；**Speedboat.xdb 一字未动**。版本升到 0.6.1，加载横幅改为按程序集版本动态打印（此前写死 `v0.5.0`，也正说明手机装的是旧包）。
+
+本机复测：`Test-XdbGuards` 7/7（含新增“跨文件重复 `<Parameter>` GUID 被抓”）；重新 Release 编译 0 错 0 警并重打包，守卫全过；**核对随包产物内容**——`Building.xdb` 无重复 GUID、`ea25b78e` 计数 0、`Speedboat.xdb` 仅 1、`modinfo Version=0.6.1`。`.netmod`（v0.6.1）SHA-256：`C4B022D3566E4066AFB2EA15ED541D8AC68B4829903D593F207C3B3E3FF60C30`（取代此前 v0.6.0 的 `E454EC15…`）。
+
+**待办**：把 v0.6.1 包装上 7723 真机，确认加载横幅显示 v0.6.1、不再出现该 WARNING / `Database not loaded`，且进世界、建造、撤销、快艇均正常。仍不能仅凭桌面结论宣称手机已修复。

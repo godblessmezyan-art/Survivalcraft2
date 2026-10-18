@@ -20,7 +20,8 @@ namespace BuilderAssistant.Mod
         {
             ModsManager.RegisterHook("GuiUpdate", this);
             ModsManager.RegisterHook("BlocksInitalized", this);
-            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v0.5.0; speedboat behavior unchanged, world-edit builds run only in a single-player test world).");
+            string modVersion = typeof(BuilderAssistantModLoader).Assembly.GetName().Version.ToString();
+            Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v" + modVersion + "; speedboat behavior unchanged, world-edit builds run only in a single-player test world).");
         }
 
         /// <summary>

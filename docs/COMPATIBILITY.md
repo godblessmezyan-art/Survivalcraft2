@@ -160,18 +160,22 @@
 
    尚不能宣称该修复在手机上生效。有限等待是否真能在触屏上等到跨区块小屋的相邻区块加载、延迟回滚/撤销的重试提示是否按预期出现，均需 7723 Android 单人创造世界实测。
 
-## v0.6.0 XDB 数据库 GUID / 合并冲突专项复核（无 Builder Assistant 缺陷）
+## v0.6.1 XDB 数据库 GUID / 合并冲突复核（发现并修复：Class 参数 GUID 重复）
 
-针对“排查 v0.6.0 是否复现历史上的 `Another database object with name ... is already nested` 合并失败”这一诉求，逐层取证后的结论是：**Builder Assistant 不存在 GUID 冲突或数据库合并缺陷，v0.6.0 也不可能引入此类问题**，证据分级如下（均不采信记录值，改以真实游戏数据交叉验证）。
+**更正此前结论。** 上一节曾判定“Builder Assistant 无数据库缺陷、v0.6.0 不可能引入合并问题”——该结论**不完整且误导**：我据此复核时把 `<Parameter>` 的 GUID 排除在唯一性检查之外，误以为参数 GUID 可跨节点复用。用户回传的真机日志推翻了这一点，暴露出一个**随包发布即存在的真实缺陷**（v0.5.0 起就有，非 v0.6.0 引入）。
 
-1. **版本差异（git 已证明）** — `git diff --stat 0badabb..HEAD` 显示 v0.6.0 只改了 `modinfo.json`（版本号+描述）与 Core/Features/docs/tests 源码，**未改动任何 `.xdb` / `.csv`**。既未新增节点、也未改任何 GUID 或父级引用，故数据库层无回归可能。
+1. **真机首异常（用户日志，决定性）** — 加载 `[Builder Assistant] 加载.xdb数据库文件` 之后立刻：
+   `WARNING: An item with the same key has already been added. Key: ea25b78e-7d8c-4998-85d3-2b1baad3ba34`
+   随后连锁：`加载方块Game.EggBlock错误:Database not loaded.`、`加载方块Game.ClothingBlock错误:EntityTemplate "MalePlayer" not found.`，进世界时 `System.InvalidOperationException: Database not loaded.`（栈 `DatabaseManager.get_GameDatabase ← GameManager.LoadProject ← GameLoadingScreen`）。`ea25b78e` 正是 `Class` 参数的 GUID；数据库因此整体为 null，故连原版 EggBlock/MalePlayer 都解析不到。（日志里大量 `Unable to resolve host "m.schub.top"` 只是断网取 MOTD 失败，与本缺陷无关。）
 
-2. **包内容结构校验（真实产物）** — 对已打包的 `BuilderAssistant.netmod` 内实际 `.xdb` 运行合并安全校验：`Entities=5fcdf35f…`、`BlockBehaviors=00c97f0f…` 等原版文件夹均**复用真实原版 GUID**（不是游离同名文件夹）；Building.xdb 与 Speedboat.xdb 都声明同名 `BlockBehaviors`/`Project` 且 GUID 一致，正是并入同一原版容器所需的形态；每个 `InheritanceParent` 要么指向包内已定义节点，要么指向已知原版基类。唯一的“报错”来自 SCIE-Port 自身的“根节点不得为 `<DatabaseObjects>`”约定，而该约定对本就不适用——`<DatabaseObjects>` 根正是被历史阳性对照验证为“手机已知能跑”的 Builder Assistant 写法，早期“根节点导致嵌套才报错”属误诊、已在 SCIE-Port 文档推翻。
+2. **真实库交叉验证（本机 Windows 程序集，不采信记录值）** — 用游戏 `GetDecipherStream` 解 `Content.scpak` 得真实 `Assets/Database.xml`：原版里 `<Parameter Name="Class">` **每个实例都是各自唯一的 GUID**（全库 191 个各不相同），且 `ea25b78e` 在原版中**出现 0 次**——它不是共享的类型 GUID，而是 Builder Assistant 作者的复制粘贴。即：**文件夹/Project 容器可复用原版 GUID（合并时并入同一容器），但叶子 `<Parameter>` 的 GUID 必须全局唯一**；x25.01.17 加载器把所有 `Guid=` 值塞进一张字典，重复即抛“same key already added”。
 
-3. **对真实 x25.01.17 数据库交叉验证（本机 Windows 程序集）** — 用游戏自身的 `Game.SurvivalCraftModEntity.GetDecipherStream`（静态、入参 `Stream`、返回 `MemoryStream`）解密 `D:\SC\Content.scpak` 得到明文 ZIP，取出真实 `Assets/Database.xml`（463,610 字节）。逐个核对 Builder Assistant 依赖的 12 个原版 GUID（三个文件夹 + Project + 八个基类模板）在**真实库中存在且元素名匹配**；其七个自定义结构 GUID（BuilderTool/UndoTool/Speedboat 实体与 BlockBehavior 等）在真实库中**均不存在**，即纯增量、不覆盖任何原版节点、不可能触发同名冲突。
+3. **冲突节点与来源** — Building.xdb 把 `ea25b78e` 同时用于 `BuilderToolBlockBehavior` 与 `UndoToolBlockBehavior` 两个 Class 参数（Speedboat.xdb 还再用了第三次）。这也解释了此前“快艇阳性对照能加载”的矛盾：当初只单独加载 Speedboat.xdb（`ea25b78e` 仅 1 个实例，无冲突）；一旦装上含 Building.xdb 的完整包，同名键冲突即触发。根因属 Builder Assistant 自身数据，SCIE-Port 无关；历史 `already nested`（文件夹级）是另一类问题、与本次（参数级）不同。
 
-4. **游戏真实运行日志（本机）** — `D:\SC\Bugs\Game.log` 记录了一次完整启动+进世界（Version=2.4.0.0-ljx25.01.17，Mods Manager Api 1.42，SCPAK 资源 882 项，读取数据库正常，进世界 `Loaded world ... WorldName=Bysnow`）：**全程无任何异常、无 `already nested`、无 `Database not loaded`、无堆栈**。且该次运行 `D:\SC\NetMods` 为空——Builder Assistant 并未安装于此环境，因此本机**当前没有可复现的 v0.6.0 运行期报错可供定位**。历史那条首异常确属于 SCIE-Port 0.3.1 的游离 `Entities` 文件夹，0.3.2 已修复。
+4. **版本澄清** — 真机日志首行加载横幅写死 `v0.5.0`，说明用户手机上装的其实是**旧版 v0.5.0**（非 v0.6.0）；该 XDB 缺陷在 v0.5.0/v0.6.0 数据里**一字未改地共存**，所以“v0.6.0 没动 .xdb”属实、但“因此无缺陷”的推论错误。此前 `D:\SC\Bugs\Game.log` 那份“干净无异常”的日志不具备代表性——那次 `D:\SC\NetMods` 为空，根本没安装本 Mod。
 
-**结论与边界**：在没有用户实机异常日志的前提下，不能臆造 Builder Assistant 的 GUID 根因，也不会随机替换 GUID（AGENTS 铁律）。若后续在 7723 真机复现出报错，需回传**读条/加载阶段第一条 `Warning(...)` 原文 + 完整日志**再据实定位；本复核的“待验证”仅限“手机实机”，不改变“桌面/数据库结构已确认无冲突”的事实。
+**v0.6.1 最小修复**：只给 Building.xdb 的两个 `Class` 参数各换一个**新的、经确认不在原版库、彼此唯一**的 GUID（Builder=`ecf3ac44…`、Undo=`82d5d8fd…`），使 `ea25b78e` 在整个包里只剩 Speedboat.xdb 一处；**Speedboat.xdb 一字未改**（保持已验证可加载的快艇数据字节一致，不破坏快艇/建造/撤销）。同时把加载横幅改为按程序集版本动态输出（不再写死），并把版本号升到 0.6.1（`modinfo.json` / csproj / `AssemblyVersion`）。参数 GUID 不被存档引用，改动安全。
 
-**构建加固（本轮新增，仅构建期，不改任何随包数据）**：把合并安全规则抽取为共享函数 `scripts/XdbMergeSafety.ps1`（`Test-XdbMergeSafety`），`Build-NetMod.ps1` 打包守卫改为调用该函数，杜绝规则漂移；并新增 `scripts/Test-XdbGuards.ps1` 回归测试（6 项：真实包干净、游离同名文件夹被抓、同名多 GUID 被抓、未知父级被抓、自定义 GUID 重复被抓、合法的跨文件原版文件夹/Project 重复不误报），全部通过。
+**守卫修正（关键：堵住上轮的盲区）**：`scripts/XdbMergeSafety.ps1` 的 `Test-XdbMergeSafety` 改为对**整包每一个 `Guid=` 值做全局唯一性校验**，仅豁免三个原版文件夹 GUID + Project GUID（合法跨文件复用）；从而能抓到 `<Parameter>` 重复 GUID。`scripts/Test-XdbGuards.ps1` 扩到 **7 项**并新增“跨文件重复 `<Parameter>` GUID 被抓”用例，全部通过；重新对真实库交叉验证 12 个原版依赖 GUID 存在且名匹配、BA 自定义 GUID 纯增量不覆盖。
+
+**边界**：以上为“桌面结构 + 真实库交叉验证 + 修复随包产物内容核对”层面确认（重打包 `.netmod` v0.6.1 SHA-256 `C4B022D3566E4066AFB2EA15ED541D8AC68B4829903D593F207C3B3E3FF60C30`，随包 Building.xdb 已无重复 GUID、`ea25b78e` 全包仅 1 次、modinfo Version=0.6.1）。**仍不等于手机实机验证**——需把新包装上 7723 真机、确认进世界不再报 `Database not loaded`、建造/撤销/快艇均正常；若仍有报错，请回传读条阶段第一条 `Warning(...)` 原文 + 完整日志。

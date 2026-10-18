@@ -2,10 +2,10 @@
 <DatabaseObjects>
   <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
     <SubsystemTemplate Name="BuilderToolBlockBehavior" Guid="ff444494-c399-4e37-9046-504a2f043e6a" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
-      <Parameter Name="Class" Guid="ea25b78e-7d8c-4998-85d3-2b1baad3ba34" Value="BuilderAssistant.Features.WorldEdit.SubsystemBuilderToolBlockBehavior" Type="string" />
+      <Parameter Name="Class" Guid="ecf3ac44-01eb-4464-918f-d6ad30240e94" Value="BuilderAssistant.Features.WorldEdit.SubsystemBuilderToolBlockBehavior" Type="string" />
     </SubsystemTemplate>
     <SubsystemTemplate Name="UndoToolBlockBehavior" Guid="b4bb6da4-75e0-4df9-9652-b39636dfa1da" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
-      <Parameter Name="Class" Guid="ea25b78e-7d8c-4998-85d3-2b1baad3ba34" Value="BuilderAssistant.Features.WorldEdit.SubsystemUndoToolBlockBehavior" Type="string" />
+      <Parameter Name="Class" Guid="82d5d8fd-cdc7-4d80-922b-1d4ac7ae92b3" Value="BuilderAssistant.Features.WorldEdit.SubsystemUndoToolBlockBehavior" Type="string" />
     </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">

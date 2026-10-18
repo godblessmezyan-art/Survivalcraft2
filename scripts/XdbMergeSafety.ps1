@@ -104,24 +104,27 @@ function Test-XdbMergeSafety {
         }
     }
 
-    # (C)+(collision) collect structural GUIDs, InheritanceParent references.
+    # (C)+(collision) GLOBAL Guid uniqueness + InheritanceParent references.
+    # The x25.01.17 loader keys EVERY Guid= value (including <Parameter>) into a
+    # dictionary; reusing any GUID throws 'An item with the same key has already
+    # been added'. The ONLY legitimate repeats are the shared vanilla CONTAINER
+    # GUIDs (Entities/Gameplay/BlockBehaviors folders + Project), which each file
+    # re-declares once so their children fold into the SAME vanilla folder.
     $sharedVanillaGuids = @{}
     @($vanillaFolderGuids.Values) + @($vanillaProjectGuid) | ForEach-Object { $sharedVanillaGuids[$_.ToLowerInvariant()] = $true }
-    $structuralOwners = @{}
+    $guidOwners = @{}
     $definedGuids = [System.Collections.Generic.HashSet[string]]::new()
     $parentRefs = @()
     foreach ($name in $XdbTexts.Keys) {
         $xdb = [string]$XdbTexts[$name]
-        foreach ($m in [regex]::Matches($xdb, $structuralRx)) {
-            $g = $m.Groups[2].Value
-            $gl = $g.ToLowerInvariant()
-            if ($structuralOwners.ContainsKey($gl) -and -not $sharedVanillaGuids.ContainsKey($gl)) {
-                $failures.Add("$name``: duplicate custom structural GUID $g ($($m.Groups[1].Value)); already defined by $($structuralOwners[$gl]).")
-            }
-            if (-not $structuralOwners.ContainsKey($gl)) { $structuralOwners[$gl] = $name }
-        }
         foreach ($m in [regex]::Matches($xdb, $anyGuidRx)) {
-            [void]$definedGuids.Add($m.Groups[1].Value.ToLowerInvariant())
+            $gl = $m.Groups[1].Value.ToLowerInvariant()
+            [void]$definedGuids.Add($gl)
+            if ($sharedVanillaGuids.ContainsKey($gl)) { continue }
+            if ($guidOwners.ContainsKey($gl)) {
+                $failures.Add("Duplicate GUID $($m.Groups[1].Value): first in $($guidOwners[$gl]), again in $name. The x25.01.17 database loader keys every Guid= (including <Parameter>) and throws 'An item with the same key has already been added'.")
+            }
+            else { $guidOwners[$gl] = $name }
         }
         foreach ($m in [regex]::Matches($xdb, $parentRx)) {
             $parentRefs += [pscustomobject]@{ File = $name; Node = $m.Groups[1].Value; Parent = $m.Groups[2].Value }

@@ -42,7 +42,9 @@
 - [x] v0.6.0：用官方 Windows x25.01.17 客户端（`D:\SC`，哈希匹配公开发布）Release 编译 net472（0 错 0 警），Features 层升级为已确认（编译期 ABI），并打包出 `.netmod`（内容守卫全通过）。
 - [~] v0.6.0：Windows 游戏进程内加载、Android/7723 实机验证有限等待与延迟回滚/撤销。
 - [x] 与 SCIE-Port 共存时的方块编号（900/901/902）、资源路径与数据库 GUID 冲突检查（打包脚本强制校验）。
-- [x] v0.6.0：XDB/GUID 合并冲突专项复核——git 证明未动 `.xdb/.csv`；用 `GetDecipherStream` 解密真实 `Database.xml` 交叉验证 12 个原版 GUID 存在且名匹配、7 个自定义 GUID 纯增量不覆盖；`D:\SC\Bugs\Game.log` 干净、`NetMods` 空（本机无复现报错）。结论：Builder Assistant 无合并缺陷，历史 `already nested` 属 SCIE-Port 0.3.1。构建守卫抽取为共享函数 `scripts/XdbMergeSafety.ps1` 并加 `scripts/Test-XdbGuards.ps1` 回归（6/6）。
+- [!] v0.6.0：XDB/GUID 合并冲突专项复核——**该结论不完整且误导，已由 v0.6.1 真机日志推翻**。当时只核对了文件夹/Project/自定义结构节点的 GUID，把 `<Parameter Name="Class">` 的 GUID 排除在唯一性检查之外，误判「无合并缺陷」。
+- [x] v0.6.1：真机 7723 日志暴露真实缺陷——Building.xdb 里 Builder/Undo 两个方块行为节点复用了同一个 `<Parameter Name="Class">` GUID `ea25b78e-…ba34`（含 Speedboat 全局共 3 次）。x25.01.17 数据库加载器把每一个 `Guid=`（含 `<Parameter>`）都登记进字典，重复键抛 `An item with the same key has already been added. Key: ea25b78e…`，清空 `m_gameDatabase`，级联出 `Database not loaded.` 与 `EntityTemplate "MalePlayer" not found.`。取证：解密真实 `Database.xml` 得 191 个 `<Parameter Class>` GUID 全部逐实例唯一、`ea25b78e` 原版计数为 0。
+- [x] v0.6.1：最小修复——仅把 Building.xdb 两个 Class 参数改成新的唯一 GUID（`ecf3ac44…`、`82d5d8fd…`，已验证不在原版库），Speedboat.xdb 逐字节保持原样使 `ea25b78e` 全包只出现 1 次；顺带修掉硬编码的 `v0.5.0` 启动横幅（改由程序集版本派生，设备此前实为旧包）。构建守卫 `scripts/XdbMergeSafety.ps1` 升级为全局 `Guid=` 唯一性校验（豁免原版文件夹/Project 复用），回归 `scripts/Test-XdbGuards.ps1` 增至 7 项全通过。Android 实机复测仍待验证。
 
 ## Phase 4：区域选取、复制、粘贴与旋转
 
