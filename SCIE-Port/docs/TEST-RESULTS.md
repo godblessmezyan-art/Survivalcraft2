@@ -185,8 +185,8 @@ THIRD-PARTY-NOTICES.md
 | 真实 ABI 守卫 | `ComponentBody` 地面物理属性、Mount/Rider/原生下车、`ComponentPlayer → ComponentInput → PlayerInput.Move`（`Move` 为目标程序集公开字段）、`ComponentCreatureModel.EyeRotation`、生成接口与模型贴图接口均通过反射检查 |
 | 纯规则测试 | `dotnet run --project tests/SCIEPort.Tanks.Tests/SCIEPort.Tanks.Tests.csproj --configuration Release --nologo`：通过；覆盖前进、倒车、松油、反向制动、两方向限速和 0.3 格台阶上限 |
 | 完整构建 | `scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release`：通过；Kelly 11 条既有规则测试、Tank 规则测试、net472 Release、全部 XDB 验证和包清单检查均通过，构建输出无 warning/error |
-| 数据库/资源 | `Tanks.xdb` 的原版文件夹 GUID、父模板、`SCIEPortT34Tank` 的 Body/Mount/Spawn/Damage/TankDrive、`T34Tank` Y_UP、`TankHull`/`TankTurret`/`TankGun` 节点、包内 PNG 均由构建脚本验证 |
-| 产物 | `artifacts/SCIEPort.netmod`，366,174 字节，SHA-256 `93A59D381563DA6F872368A04EF06F0CB5BAD5643B9C65EFFDD00CA3C536B021`；内置 `SCIEPort.dll` 版本 `0.8.1.0`；不含游戏 DLL/PDB/旧 Mod DLL |
+| 数据库/资源 | `Tanks.xdb` 的原版文件夹 GUID、父模板、`SCIEPortT34Tank` 的 Body/Mount/Spawn/Damage/TankDrive、`T34Tank` Y_UP、三个各自独立的 `TankHull`/`TankTurret`/`TankGun` geometry/node、法线、UV、包内 PNG 均由构建脚本验证 |
+| 产物 | `artifacts/SCIEPort.netmod`，366,736 字节，SHA-256 `6A62471E9BCE317B1CC9E38B6F185D2A946BF1B3FC3DC2180262D4A2E13FBD2C`；内置 `SCIEPort.dll` 版本 `0.8.1.0`；不含游戏 DLL/PDB/旧 Mod DLL |
 
 ### 未进行的运行测试
 

@@ -1,1 +1,45 @@
-<?xml version="1.0" encoding="utf-8"?><COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1"><asset><up_axis>Y_UP</up_axis></asset><library_geometries><geometry id="c"><mesh><source id="p"><float_array id="positions-array" count="24">-.5 -.5 -.5 .5 -.5 -.5 .5 .5 -.5 -.5 .5 -.5 -.5 -.5 .5 .5 -.5 .5 .5 .5 .5 -.5 .5 .5</float_array><technique_common><accessor source="#positions-array" count="8" stride="3"/></technique_common></source><vertices id="v"><input semantic="POSITION" source="#p"/></vertices><triangles count="12"><input semantic="VERTEX" source="#v" offset="0"/><p>0 1 2 0 2 3 4 6 5 4 7 6 0 4 5 0 5 1 1 5 6 1 6 2 2 6 7 2 7 3 3 7 4 3 4 0</p></triangles></mesh></geometry></library_geometries><library_visual_scenes><visual_scene id="s"><node id="TankHull" name="TankHull"><matrix>2.2 0 0 0 0 .7 0 0 0 0 3 0 0 .6 0 1</matrix><instance_geometry url="#c"/></node><node id="TankTurret" name="TankTurret"><matrix>1.25 0 0 0 0 .45 0 0 0 0 1.25 0 0 1.3 -.15 1</matrix><instance_geometry url="#c"/></node><node id="TankGun" name="TankGun"><matrix>.22 0 0 0 0 .22 0 0 0 0 2 0 0 1.3 -1.7 1</matrix><instance_geometry url="#c"/></node></visual_scene></library_visual_scenes><scene><instance_visual_scene url="#s"/></scene></COLLADA>
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor><author>SCIE-Port contributors</author><authoring_tool>Hand-authored clean-room low-poly vehicle model</authoring_tool></contributor>
+    <unit name="meter" meter="1" />
+    <up_axis>Y_UP</up_axis>
+  </asset>
+  <library_geometries>
+    <geometry id="TankHull-mesh" name="TankHull">
+      <mesh>
+        <source id="TankHull-positions"><float_array id="TankHull-positions-array" count="24">-1.1 0 -1.5 1.1 0 -1.5 1.1 .7 -1.5 -1.1 .7 -1.5 -1.1 0 1.5 1.1 0 1.5 1.1 .7 1.5 -1.1 .7 1.5</float_array><technique_common><accessor source="#TankHull-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankHull-normals"><float_array id="TankHull-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 1 0 0 -1 0</float_array><technique_common><accessor source="#TankHull-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankHull-map"><float_array id="TankHull-map-array" count="8">0 0 1 0 1 1 0 1</float_array><technique_common><accessor source="#TankHull-map-array" count="4" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="TankHull-vertices"><input semantic="POSITION" source="#TankHull-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#TankHull-vertices" offset="0"/><input semantic="NORMAL" source="#TankHull-normals" offset="1"/><input semantic="TEXCOORD" source="#TankHull-map" offset="2" set="0"/><p>0 0 0 1 0 1 2 0 2 0 0 0 2 0 2 3 0 3 4 1 0 6 1 2 5 1 1 4 1 0 7 1 3 6 1 2 0 2 0 3 2 3 7 2 2 0 2 0 7 2 2 4 2 1 1 3 0 5 3 1 6 3 2 1 3 0 6 3 2 2 3 3 3 4 0 2 4 3 6 4 2 2 4 0 6 4 2 7 4 3 0 5 0 4 5 1 5 5 2 0 5 0 5 5 2 1 5 3</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="TankTurret-mesh" name="TankTurret">
+      <mesh>
+        <source id="TankTurret-positions"><float_array id="TankTurret-positions-array" count="24">-.63 .7 -.78 .63 .7 -.78 .63 1.15 -.78 -.63 1.15 -.78 -.63 .7 .48 .63 .7 .48 .63 1.15 .48 -.63 1.15 .48</float_array><technique_common><accessor source="#TankTurret-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankTurret-normals"><float_array id="TankTurret-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 1 0 0 -1 0</float_array><technique_common><accessor source="#TankTurret-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankTurret-map"><float_array id="TankTurret-map-array" count="8">0 0 1 0 1 1 0 1</float_array><technique_common><accessor source="#TankTurret-map-array" count="4" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="TankTurret-vertices"><input semantic="POSITION" source="#TankTurret-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#TankTurret-vertices" offset="0"/><input semantic="NORMAL" source="#TankTurret-normals" offset="1"/><input semantic="TEXCOORD" source="#TankTurret-map" offset="2" set="0"/><p>0 0 0 1 0 1 2 0 2 0 0 0 2 0 2 3 0 3 4 1 0 6 1 2 5 1 1 4 1 0 7 1 3 6 1 2 0 2 0 3 2 3 7 2 2 0 2 0 7 2 2 4 2 1 1 3 0 5 3 1 6 3 2 1 3 0 6 3 2 2 3 3 3 4 0 2 4 3 6 4 2 2 4 0 6 4 2 7 4 3 0 5 0 4 5 1 5 5 2 0 5 0 5 5 2 1 5 3</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="TankGun-mesh" name="TankGun">
+      <mesh>
+        <source id="TankGun-positions"><float_array id="TankGun-positions-array" count="24">-.11 .83 -2.25 .11 .83 -2.25 .11 1.05 -2.25 -.11 1.05 -2.25 -.11 .83 -.68 .11 .83 -.68 .11 1.05 -.68 -.11 1.05 -.68</float_array><technique_common><accessor source="#TankGun-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankGun-normals"><float_array id="TankGun-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 1 0 0 -1 0</float_array><technique_common><accessor source="#TankGun-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="TankGun-map"><float_array id="TankGun-map-array" count="8">0 0 1 0 1 1 0 1</float_array><technique_common><accessor source="#TankGun-map-array" count="4" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="TankGun-vertices"><input semantic="POSITION" source="#TankGun-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#TankGun-vertices" offset="0"/><input semantic="NORMAL" source="#TankGun-normals" offset="1"/><input semantic="TEXCOORD" source="#TankGun-map" offset="2" set="0"/><p>0 0 0 1 0 1 2 0 2 0 0 0 2 0 2 3 0 3 4 1 0 6 1 2 5 1 1 4 1 0 7 1 3 6 1 2 0 2 0 3 2 3 7 2 2 0 2 0 7 2 2 4 2 1 1 3 0 5 3 1 6 3 2 1 3 0 6 3 2 2 3 3 3 4 0 2 4 3 6 4 2 2 4 0 6 4 2 7 4 3 0 5 0 4 5 1 5 5 2 0 5 0 5 5 2 1 5 3</p></triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="TankHull" name="TankHull" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#TankHull-mesh" name="TankHull"/></node>
+      <node id="TankTurret" name="TankTurret" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#TankTurret-mesh" name="TankTurret"/></node>
+      <node id="TankGun" name="TankGun" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#TankGun-mesh" name="TankGun"/></node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene><instance_visual_scene url="#Scene"/></scene>
+</COLLADA>

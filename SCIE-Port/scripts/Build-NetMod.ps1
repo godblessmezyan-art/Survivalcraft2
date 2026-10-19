@@ -388,6 +388,19 @@ try {
         if ($null -eq $tankModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$tankMeshName']")) {
             throw "T34Tank.dae is missing required node $tankMeshName."
         }
+        $tankGeometry = $tankModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$tankMeshName']")
+        if ($null -eq $tankGeometry) {
+            throw "T34Tank.dae is missing independent geometry $tankMeshName."
+        }
+        $tankTriangles = $tankGeometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ($null -eq $tankTriangles -or $tankTriangles.GetAttribute('count') -ne '12') {
+            throw "T34Tank.dae geometry $tankMeshName must contain 12 low-poly box triangles."
+        }
+        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
+            if ($null -eq $tankTriangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "T34Tank.dae geometry $tankMeshName is missing $semantic data."
+            }
+        }
     }
 
     [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
