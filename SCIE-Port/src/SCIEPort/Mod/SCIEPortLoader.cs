@@ -37,7 +37,7 @@ namespace SCIEPort.Mod
         {
             try
             {
-                if (m_kellyPlantsReady)
+                if (m_kellyPlantsReady && KellyPlantWorldGeneration.IsReady)
                 {
                     KellyPlantWorldGeneration.Generate(chunk);
                 }

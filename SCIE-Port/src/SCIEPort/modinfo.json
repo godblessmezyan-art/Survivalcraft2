@@ -1,6 +1,6 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.7.2",
+  "Version": "0.8.0",
   "ApiVersion": "1.42",
   "Description": "Authorized x25.01.17 port workspace. Includes SCIE transport previews, six static SCIE industrial furniture models, and Kelly Expansion plant resources. Android runtime verification remains pending.",
   "ScVersion": "2.4.10.6",

@@ -40,6 +40,10 @@ $sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
     Select-Object -First 1
 if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot" }
 
+$kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
+& $dotnetPath run --project $kellyTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" }
+
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
