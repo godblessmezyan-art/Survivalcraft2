@@ -1,5 +1,14 @@
 # Third-party notices
 
+## SCIE-Port original ATV assets
+
+- `Assets/Models/ATV.dae` is a project-created, low-poly Y-up model consisting
+  of one body and four wheel nodes. It is not copied from SCIE or another upstream Mod.
+- `Assets/Textures/ATV.png` is the project-created opaque white 1×1 base texture
+  already used for the untextured airship, copied under an ATV-specific resource
+  name so the entity does not depend on a game-owned texture. SHA-256:
+  `D5A51B6AED15684EC8C123E30FE5703155359D6543B6D7B47CB5766EF44939DE`.
+
 ## SCIE Industrial Era
 
 - Source: https://github.com/Lixue9jiu/SCIE

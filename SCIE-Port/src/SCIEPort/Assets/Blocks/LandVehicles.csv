@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultIconBlockOffset;DefaultIconViewOffset;DefaultIconViewScale;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;InHandOffset;InHandRotation;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsPlacementTransparent;IsGatherable;MaxStacking;DefaultDescription
+AtvBlock;SCIE 越野摩托;Items;;906;0,0,0;-0.65,0.35,-1;1;0.38;0.45,-0.45,-0.6;0,35,0;0.38;0,0,0;90,0,0;scieport-atv;0;FALSE;FALSE;TRUE;TRUE;1;单座四轮越野摩托：触屏前后控制前进、后退和刹车，左右控制转向。仅支持单人本地驾驶；燃料、多人同步和复杂悬挂尚未实现。

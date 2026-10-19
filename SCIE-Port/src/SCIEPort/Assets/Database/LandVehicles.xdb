@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortLandVehicles>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortATV" Guid="2af2cc63-3f0a-4e0f-a721-308d1c5e40aa">
+      <MemberComponentTemplate Name="ATVDrive" Guid="63b0a393-d2e8-4f74-a0a4-c3f842b7009b" InheritanceParent="e9a8f5aa-5a2c-4df3-a4d4-ec86dc93351a" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="6ef5f1ba-e3c8-4f5f-8ca6-77cc3c9a2004" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="786ed73d-3e9d-4f62-b21d-7d7e96299143" Value="Models/ATV" Type="string" />
+        <Parameter Name="CastsShadow" Guid="8c21be03-7c9e-4a5e-8453-d830f6ed1a6a" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="45134a3e-5c87-4ba0-87bd-ca251f3a97b6" Value="Textures/ATV" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="df38ed0d-7492-4418-af20-d180e784bb76" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="30c09f75-c878-439f-b87f-edb2d8ff37d9" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="ed3c2791-1f44-4df4-9f91-e367e1e4b84c" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="51e6e9de-c704-4eee-88ea-48a2b3ff2dba" Value="0,0.8,0" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="cd0a626a-d4fb-4c85-a40f-6eb222bc0549" Value="1.2,0.4,0" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="a783e477-7e3c-4d1b-8e67-36c332252c64" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="MaxSmoothRiseHeight" Guid="f1ec3d4c-c00e-4461-8cff-e7a1192cad1f" Value="0.35" Type="float" />
+        <Parameter Name="BoxSize" Guid="da4f0452-d2d9-4be2-a645-72b993516579" Value="1.5,0.75,2.25" Type="Vector3" />
+        <Parameter Name="Mass" Guid="63ba2d69-2258-4994-9f5f-3135981a96cd" Value="250" Type="float" />
+        <Parameter Name="AirDrag" Guid="5f697c00-bc86-4649-8e9b-6f0f2892b695" Value="0.4,0.7" Type="Vector2" />
+        <Parameter Name="WaterDrag" Guid="9471d25a-aa7e-426f-872e-918c84a0b99b" Value="2,3" Type="Vector2" />
+        <Parameter Name="Density" Guid="2c20d5d5-f89a-4e1b-8095-a217e1a1a45b" Value="4" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="51d22b91-7c79-4ac4-8863-187c7931c7c7" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="cb3674f5-193a-4932-8a05-6cbcd656a08e" Value="180" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="Gameplay" Guid="d3d4b692-acc9-4128-9b99-a5acf1de1fbb">
+    <ComponentTemplate Name="SCIEPortATVDrive" Description="Single-player land ATV drive" Guid="e9a8f5aa-5a2c-4df3-a4d4-ec86dc93351a" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="f0a0a5cd-c7bb-4755-9bd9-263a7a5b7ccf" Value="SCIEPort.Features.LandVehicles.ComponentAtvDrive" Type="string" />
+    </ComponentTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortAtvBlockBehavior" Guid="bf783ef6-1f07-497c-87bb-1561ce1d062b" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="5c14fd20-7a37-48ee-aa5d-da2ef591c5f4" Value="SCIEPort.Features.LandVehicles.SubsystemAtvBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortAtvBlockBehavior" Guid="e526886d-69fe-4f20-8f88-995c5b0a27ec" InheritanceParent="bf783ef6-1f07-497c-87bb-1561ce1d062b" />
+  </ProjectTemplate>
+</SCIEPortLandVehicles>

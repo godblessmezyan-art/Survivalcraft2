@@ -38,6 +38,13 @@ entities also apply a small non-zero emission floor so terrain light sampling
 cannot turn their world models completely black. Android verification remains
 pending.
 
+Version 0.8.1 adds the first independent land-vehicle preview: a project-created
+low-poly, single-seat four-wheel ATV. It reuses only the verified native entity,
+body collision, mount/rider and persistence infrastructure; it does not reuse
+boat buoyancy or rail alignment. The controller is deliberately single-player
+only and has no fuel, multiplayer authority or suspension model. Android/7723
+spawn, riding, collision, camera and save/reload remain pending real-device tests.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

@@ -119,3 +119,24 @@ XDB 合并还有一项已由目标 `ModsManager.CombineDataBase` 反编译确认
 `EntityReference` 存档和旧 GUI/库存体系。这些部分没有直接复制：0.5.0 先实现单人本地触屏推进、
 轨道居中、转弯和坡轨姿态，车厢暂作可独立试乘实体。编组、燃料和多人权威状态为不支持，
 实际游戏加载与轨道物理为待验证。
+
+## 0.8.1 陆地 ATV 接口取证
+
+ATV 没有复用 `ComponentBoat`：该组件的推进、浮力和水面转向语义不适用于陆地。
+也没有复用 `ComponentRailVehicle`：它每帧强制把实体吸附到铁路中心线，会破坏自由地面碰撞。
+
+对固定 Windows `Net_x25.01.17` 程序集反编译并由 net472 编译绑定确认：
+
+| 接口 | 实际用途 | 结论 |
+|---|---|---|
+| `ComponentBody.Velocity`、`Rotation`、`IsGravityEnabled`、`IsGroundDragEnabled` | 只修改水平驱动速度，保留原版重力与碰撞 | 已确认 |
+| `ComponentBody.StandingOnValue` / `StandingOnBody` | 仅在原生碰撞已判定接地后施加驱动力 | 已确认 |
+| `ComponentBody.IsSmoothRiseEnabled` / `MaxSmoothRiseHeight` | 由原生 `HandleSmoothRise` 执行台阶、坡面和碰撞；ATV 限制为 `0.35` 格 | 已确认 |
+| `ComponentMount.Rider` / `ComponentRider.StartDismounting` | 单座上车、下车及落水强制下车 | 已确认 |
+| `ComponentRider` 的父 `ComponentBody` 关系 | 原生骑乘将骑手身体挂到载具身体，故沿用原生第三人称镜头与保存链 | 已确认；实际镜头待验证 |
+| `SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool)` | 物品只生成独立 ATV 实体，不写入或替换地形 | 已确认 |
+
+`ComponentBody` 在目标程序集内会查询地形和其它 body 的碰撞盒、按轴碰撞移动，并把
+`MaxSmoothRiseHeight` 作为原生光滑上台阶的上界。因此本模块不自行穿透地形、不直接改写
+`Position`，也不复制任何船只水面物理。上述是程序集和静态编译证据；在 Android 7723 的
+实际坡度、碰撞、下车位置、第三人称和存档恢复仍为待验证。
