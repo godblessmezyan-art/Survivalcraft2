@@ -7,13 +7,37 @@
 - Included files: `IndustrialMod/Models/SteamBoat.dae`,
   `IndustrialMod/Textures/SteamBoat.png`, and
   `IndustrialMod/Models/Airship.dae`, `IndustrialMod/Models/Train.dae`,
-  `IndustrialMod/Models/Minecart.dae`, and `IndustrialMod/Textures/Train.png`.
+  `IndustrialMod/Models/Minecart.dae`, `IndustrialMod/Textures/Train.png`,
+  `IndustrialMod/Models/Gear.dae`, `IndustrialMod/Models/Wheel.dae`,
+  `IndustrialMod/Models/GearMould.dae`, `IndustrialMod/Models/WheelMould.dae`,
+  `IndustrialMod/Models/Piston.dae`, and `IndustrialMod/Models/Cylinder.dae`.
 - Modified derivatives in the package: `Assets/Models/SteamBoat.dae`,
   `Assets/Models/Airship.dae`, and `Assets/Models/Train.dae` rotate the
   authorized Z-up source geometry into SCNET's Y-up coordinate convention.
+  The packaged `Gear`, `Wheel`, `GearMould`, `WheelMould`, and `Piston`
+  models are likewise Y-up derivatives; `Cylinder.dae` was already Y-up.
 - Authorization basis: the user commissioning this port stated on 2026-10-17
   that explicit permission to use and redistribute the project assets has been
-  obtained.
+  obtained, and requested migration of further SCIE furniture resources on
+  2026-10-19.
+
+Industrial furniture source SHA-256 values at the pinned commit:
+
+- `Gear.dae`: `4EC3E790C8A72C9D3FE84A63015842809AB364F85558424ADD4924DE1B361EDC`
+- `Wheel.dae`: `944F1AB0864869663E584116D90408742F4CDE80315343A17E0E05B2375789DF`
+- `GearMould.dae`: `F9683EE0D4EC840C5D62676F0C309F3EF9F757969D8F0B0DC910C9849F6CE396`
+- `WheelMould.dae`: `A32D7E96B70C749452BD55F7A5F500DE7E7DF16A5231FFD0783C6E14AB4256AA`
+- `Piston.dae`: `803E29FAB121E70513D3FCDCA2A54CD8969DF86998EBC2C5CAD9C12FDE153B0C`
+- `Cylinder.dae`: `6987977D7E973D421B166C0647273E20AF5F427E7D026EF142E2BD29A8806573`
+
+Packaged Y-up derivative SHA-256 values:
+
+- `Gear.dae`: `81D053C54E3527C3831367F08143B6D88C4EE98E97E614FBEA830FAB6AD437EC`
+- `Wheel.dae`: `D97CF6AC7057E14509A99EF95721C9C2E5E9315B552D7ACA1419EB740149105E`
+- `GearMould.dae`: `CE5D40F5560E9F852A5F1A0AB9E19A126BF7BA1D70DA22A7C5412808A54820F3`
+- `WheelMould.dae`: `CCE804CB4D0C6BA1A9D81340A545CC5F1E775EC6360A507005FF458EE8B9AC15`
+- `Piston.dae`: `B623D73D9BB76C6405F46E220706DBA75420D4993F12B382B31EF03B10F8CDCB`
+- `Cylinder.dae`: unchanged from the Y-up source, hash `6987977D7E973D421B166C0647273E20AF5F427E7D026EF142E2BD29A8806573`
 
 The public repository and pinned commit do not currently contain a LICENSE or
 COPYING file. Before public distribution, archive the rights holder's permission
@@ -34,7 +58,14 @@ invent or substitute a license grant.
 - Included model SHA-256:
   `C35D3B5DDD7D42464F9DA55C88A5A87AEE832FDB1E91B8864B6F1E4E4A6B40A9`.
 - Included texture SHA-256:
-  `E4C99B07E7F4D2FEB8420D889C3CC0559DC835B951D1AC56CA5FDD87320CE0`.
+  `E4C99B07E7F4D2FEB8420D889C3CC0559DC835B951D1AC56CA5FDD87320CE0CE`.
+- Packaged PNG derivative: `Assets/Textures/KellyExpansion.png`, losslessly
+  decoded from the authorized WebP at 512×512 RGBA; SHA-256
+  `55331055E71B68C36C6EDAB045970F9107BBFB3119C7DBAE85168527B1A0C1BF`.
+- `Assets/Textures/Airship.png` is a project-created opaque white 1×1 PNG,
+  used only as the entity texture override for the untextured authorized
+  airship model; SHA-256
+  `D5A51B6AED15684EC8C123E30FE5703155359D6543B6D7B47CB5766EF44939DE`.
 - Authorization basis: the user commissioning this port stated on 2026-10-18
   that permission for this migration has already been obtained.
 

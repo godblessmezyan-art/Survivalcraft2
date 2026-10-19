@@ -7,6 +7,7 @@ namespace SCIEPort.Features.KellyPlants
     internal static class KellyPlantWorldGeneration
     {
         private const int PermanentMushroomData = 32;
+        private static SubsystemGameInfo s_gameInfo;
         private static SubsystemSeasons s_seasons;
         private static SubsystemTerrain s_terrain;
 
@@ -18,16 +19,23 @@ namespace SCIEPort.Features.KellyPlants
             }
             s_seasons = project.FindSubsystem<SubsystemSeasons>(false);
             s_terrain = project.FindSubsystem<SubsystemTerrain>(false);
+            s_gameInfo = project.FindSubsystem<SubsystemGameInfo>(false);
+        }
+
+        public static bool IsReady
+        {
+            get { return s_terrain != null && s_gameInfo != null; }
         }
 
         public static void Generate(TerrainChunk chunk)
         {
-            if (chunk == null)
+            if (chunk == null || !IsReady)
             {
                 return;
             }
 
-            Game.Random random = new Game.Random((chunk.Coords.X * 3129871) ^ (chunk.Coords.Y * 116129));
+            Game.Random random = new Game.Random(
+                KellyPlantRules.GetChunkSeed(s_gameInfo.WorldSeed, chunk.Coords.X, chunk.Coords.Y));
 
             if (random.Float(0f, 1f) <= 0.25f)
             {

@@ -1,0 +1,7 @@
+Class Name;DefaultDisplayName;DefaultCategory;DisplayOrder;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsDiggingTransparent;IsPlacementTransparent;IsGatherable;IsFluidBlocker;IsTransparent;GenerateFacesForSameNeighbors;DefaultShadowStrength;LightAttenuation;MaxStacking;DefaultSoundMaterialName;DigMethod;DigResilience;DefaultDescription
+SteelGearFurnitureBlock;钢齿轮;Furniture;430;scieport-steel-gear-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;6;1;40;Metal;Hack;3;SCIE 钢齿轮模型的静态装饰版本，不包含机器、配方或传动功能。
+SteelWheelFurnitureBlock;钢轮;Furniture;431;scieport-steel-wheel-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;6;1;40;Metal;Hack;3;SCIE 钢轮模型的静态装饰版本，不包含车辆或传动功能。
+GearMouldFurnitureBlock;齿轮模具;Furniture;432;scieport-gear-mould-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;5;1;40;Stone;Hack;2;SCIE 齿轮模具模型的静态装饰版本，不执行铸造流程。
+WheelMouldFurnitureBlock;车轮模具;Furniture;433;scieport-wheel-mould-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;5;1;40;Stone;Hack;2;SCIE 车轮模具模型的静态装饰版本，不执行铸造流程。
+IndustrialPistonFurnitureBlock;工业活塞;Furniture;434;scieport-industrial-piston-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;6;1;40;Metal;Hack;3;SCIE 工业活塞模型的静态装饰版本，不包含机器动力或配方功能。
+IndustrialCylinderFurnitureBlock;钢瓶;Furniture;435;scieport-industrial-cylinder-furniture;0;TRUE;TRUE;TRUE;TRUE;TRUE;FALSE;TRUE;FALSE;6;1;40;Metal;Hack;3;SCIE 钢瓶模型的静态装饰版本，不储存气体，也不参与化学系统。

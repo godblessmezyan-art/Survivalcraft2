@@ -1,7 +1,7 @@
 # SCIE-Port Agent 开发交接手册
 
-> 更新时间：2026-10-17
-> 当前移植版本：`0.6.0`
+> 更新时间：2026-10-19
+> 当前移植版本：`0.7.2`
 
 > 工程边界：Builder Assistant 仅做自动建筑；所有获许可第三方 Mod 移植均在本目录。本版另含 Kelly Expansion 植物资源，代码位于 `Features/KellyPlants`，不得回迁到 Builder Assistant。
 > 目标游戏：Survivalcraft NET 2.4 `Net_x25.01.17`
@@ -209,7 +209,8 @@ Builder Assistant 的正常运行 XDB 也是阳性对照。真正根因是原版
 
 | 能力 | 当前状态 | 说明 |
 |---|---|---|
-| Release 编译 | 已确认 | 0.6.0 net472 以警告视为错误编译通过 |
+| Release 编译 | 已确认 | 0.7.0 net472 以警告视为错误编译通过 |
+| 六件静态工业家具 | 已确认 | ID 917–922、Y_UP/节点/顶点、四向 data、碰撞及掉落代码完成静态与编译验证；运行待验证 |
 | XDB 根格式修复 | 已确认 | 由 x25 `CombineDataBase` 真实实现确认 |
 | Windows 进入世界 | 待验证 | 0.3.1 尚缺完整运行日志 |
 | Android 进入世界 | 已确认 | 用户确认 0.3.1 已修复数据库加载错误；完整日志仍待归档 |
@@ -245,21 +246,32 @@ cd E:\Survivalcraft2\SCIE-Port
 Get-FileHash .\artifacts\SCIEPort.netmod -Algorithm SHA256
 ```
 
-最近一次完整可打包的历史基线仍是 0.5.1；0.6.0 因本机缺少被忽略的固定 SCIE 上游快照且 GitHub 暂不可达，只完成编译/XDB/资源与名称校验，尚无完整包哈希。0.5.1 记录：
+当前完整可打包基线为 0.7.0，本机固定 SCIE 上游快照 SHA 已核对：
 
 - 文件：`SCIE-Port/artifacts/SCIEPort.netmod`
-- 大小：136,966 字节
-- SHA-256：`68DD8F38C7962953C655BC84A3CECD542F7E2063E21E22CF70D06E036A1070A6`
+- 大小：339,693 字节
+- SHA-256：`520FAA575C7100F4942C1EDB1652978A0DA445631790D54B010517F03B2EF03B`
 - 包内条目：
 
 ```text
 Assets/Blocks/SCIEPort.csv
 Assets/Blocks/Watercraft.csv
+Assets/Blocks/KellyPlants.csv
+Assets/Blocks/IndustrialFurniture.csv
 Assets/Database/Watercraft.xdb
+Assets/Database/KellyPlants.xdb
 Assets/Models/Airship.dae
+Assets/Models/Cylinder.dae
+Assets/Models/Gear.dae
+Assets/Models/GearMould.dae
+Assets/Models/KellyFruits.dae
 Assets/Models/Minecart.dae
+Assets/Models/Piston.dae
 Assets/Models/SteamBoat.dae
 Assets/Models/Train.dae
+Assets/Models/Wheel.dae
+Assets/Models/WheelMould.dae
+Assets/Textures/KellyExpansion.png
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
 modinfo.json

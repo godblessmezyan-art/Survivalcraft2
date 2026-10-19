@@ -4,7 +4,7 @@
 
 | 项目/文件 | 发现版本 | 许可证据 | 当前处理 |
 |---|---|---|---|
-| SCIE 源码与资源 | commit `4864d956793b6e670413019f1f6b1cc5c8bb0970` | 固定树无公开许可证文件；用户声明已取得明确许可 | 0.5.1 打包蒸汽船 DAE/PNG、飞艇 DAE、火车 DAE/PNG 与 Minecart DAE；其中前三个 DAE 使用项目内 Y_UP 派生副本；公开发布前归档权利人许可文本和范围 |
+| SCIE 源码与资源 | commit `4864d956793b6e670413019f1f6b1cc5c8bb0970` | 固定树无公开许可证文件；用户声明已取得明确许可 | 0.7.0 在既有交通资源外新增 Gear、Wheel、GearMould、WheelMould、Piston、Cylinder 六个模型；五个 Z_UP 模型使用项目内 Y_UP 派生副本，Cylinder 原样为 Y_UP；公开发布前归档权利人许可文本和范围 |
 | Kelly Expansion 植物资源 | 发布器 `1.1.0` / 包内 `0.2.1` | 用户声明已取得移植许可；公开分发前仍须归档权利人许可文本与范围 | 0.6.0 仅打包 14 个植物/果实定义、植物图集和果实模型；不复用原 DLL/PDB，不纳入其他系统；哈希见 `THIRD-PARTY-NOTICES.md` |
 | SCPluginAPI | SCIE README 仅给仓库链接，未固定 commit | 上游仓库标示 MIT | 可研究其 API 思路；不能据此推定 SCIE 获得 MIT |
 | 游戏程序集/内容包 | 本机 x25.01.17 | 专有游戏内容 | 仅外部编译引用；不提交、不打包 |

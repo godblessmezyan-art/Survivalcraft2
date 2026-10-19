@@ -1,6 +1,6 @@
 # 测试结果
 
-日期：2026-10-17
+日期：2026-10-19
 目标：`Survivalcraft NET 2.4 Net_x25.01.17`
 本机仓库目录：`E:\Survivalcraft2\SCIE-Port`
 本机游戏程序集目录：`E:\SCNET\SCNETx25.01.17`
@@ -28,13 +28,30 @@
 | `.netmod` 大小 | 已确认 | 0.5.1：136,966 字节；DAE 等文本资源经 ZIP 压缩 |
 | `.netmod` SHA-256 | 已确认 | 0.5.1：`68DD8F38C7962953C655BC84A3CECD542F7E2063E21E22CF70D06E036A1070A6` |
 | 0.6.0 Kelly 源码迁移 | 已确认 | 三个实现文件已移至 `src/SCIEPort/Features/KellyPlants`，命名空间及 XDB 类名改为 `SCIEPort.Features.KellyPlants`；Builder Assistant 不再包含或注册 Kelly 功能 |
-| 0.6.0 Kelly 资源 | 已确认 | 14 条 CSV、`KellyPlants.xdb`、`KellyFruits.dae`、`KellyExpansion.webp` 均位于 SCIE-Port；模型 SHA-256 `C35D3B5DDD7D42464F9DA55C88A5A87AEE832FDB1E91B8864B6F1E4E4A6B40A9`，贴图 SHA-256 `E4C99B07E7F4D2FEB8420D889C3CC0559DC835B951D1AC56CA5FDD87320CE0` |
+| 0.6.0 Kelly 资源 | 已确认 | 14 条 CSV、`KellyPlants.xdb`、`KellyFruits.dae` 与授权 WebP 源文件均位于 SCIE-Port；模型 SHA-256 `C35D3B5DDD7D42464F9DA55C88A5A87AEE832FDB1E91B8864B6F1E4E4A6B40A9`，WebP 源文件 SHA-256 `E4C99B07E7F4D2FEB8420D889C3CC0559DC835B951D1AC56CA5FDD87320CE0` |
+| 0.7.1 Kelly 创造栏崩溃日志 | 已确认（缺陷） | 用户 Android 日志在 `KellyFruitBlock.DrawBlock` → `KellyPlantTextures.Atlas` 明确报 `未能找到资源[Textures/KellyExpansion][Engine.Graphics.Texture2D]`；0.7.0 包只有 WebP |
+| 0.7.1 Kelly PNG 修复 | 已确认（文件/打包级） | WebP 以 512×512 RGBA、无缩放方式转换为 PNG；构建包必须含 PNG 且拒绝 WebP。Android 翻页复测待验证 |
+| 0.7.2 资源引用审计 | 已确认（静态/打包） | 所有 Mod 自有 `ContentManager.Get`、Watercraft XDB `ModelName`/`TextureOverride` 均可映射至包内 DAE 或 PNG；唯一原版依赖为 `Textures/Creatures/Jaguar`，已从目标 `Content.scpak` 确认存在。包内不存在非 PNG 的 `Assets/Textures/*` |
+| 0.7.2 飞艇黑色根因 | 已确认（代码/ABI） | XDB 中原先没有 `TextureOverride`；`ComponentAirshipDrive.Load` 虽写入运行时白贴图，却可能早于 `ComponentSimpleModel.Load`，后者按空值重设为 null。物品图标走 `DrawMeshBlock` 的独立白贴图，故不受影响 |
+| 0.7.2 载具世界颜色修复 | 已确认（编译/静态） | 飞艇 XDB 改为包内 `Textures/Airship.png`；蒸汽船、飞艇、火车、车厢统一设置白色 Diffuse 与 `0.12` 低强度 Emission，保留原贴图颜色并避免低地形光压成纯黑 |
+| 0.7.2 Release/包检查 | 已确认 | `Test-Environment.ps1` 与 `Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release` 通过；net472、程序集 `0.7.2.0`、0 warning、0 error，XDB 与资源守卫通过 |
+| 0.7.2 `.netmod` | 已确认 | 361,213 字节；SHA-256 `A1E1F4A683120049250117168FB5AC5CF465B32E8E515943C35ED764B34F2FB2`；包含 `Airship.png` 与 `KellyExpansion.png`，不包含 Kelly WebP 或游戏 DLL |
+| 0.7.2 Android 运行 | 待验证 | 未在本机或设备启动游戏；需验证植物第三页及后续翻页不退出，以及飞艇/火车/车厢/蒸汽船在昼夜和室内外均非纯黑 |
 | 0.6.0 Kelly 原名守卫 | 已确认 | 14 个名称按 CSV 顺序拼接的 UTF-8 SHA-256 为 `5b868dfafcb2fd858f71f73d0997c16779a2cbf7f5696848c1df341651cb3656`；无中英文括号，构建脚本会拒绝改名或追加括号移植标注 |
 | 0.6.0 原版 ID 扫描 | 已确认 | `Test-Environment.ps1 -GameDir D:\SC` 通过；目标程序集读出 260 个原生方块常量，903–916 与 995–1000 均未冲突 |
 | 0.6.0 Release 编译 | 已确认 | 使用已安装 .NET SDK 8.0.400 的 MSBuild 直接构建 net472，`TreatWarningsAsErrors=true`，成功生成 `SCIEPort.dll`，无错误或警告 |
 | 0.6.0 XDB 静态校验 | 已确认 | `KellyPlants.xdb` 与 `Watercraft.xdb` 同时通过 `Test-Database.ps1`；原版文件夹 GUID、内部继承与已知原版父级均可解析 |
 | 0.6.0 `.netmod` 完整打包 | 待验证 | 本机缺少被 Git 忽略的 `upstream/SCIE` 固定快照；自动获取固定提交时 GitHub 443 不可达，因此既有 SCIE 三个授权资源无法重新取入，本轮未生成新的完整 `.netmod`，不得伪报包哈希 |
 | 0.6.0 Android Kelly 运行 | 待验证 | 尚未在 7723 客户端验证原名显示、贴图/模型、播种成长、生态生成、雨后蘑菇、存读档与性能 |
+| 0.7.0 工业家具来源 | 已确认 | 固定 SCIE commit `4864d956...` 的 Gear、Wheel、GearMould、WheelMould、Piston、Cylinder 六个模型；源文件与派生文件 SHA-256 已记录在 `THIRD-PARTY-NOTICES.md` |
+| 0.7.0 工业家具 ID | 已确认 | 真实 x25.01.17 程序集反射读出 260 个原生方块常量，917–922 未占用；与本工程 903–916、995–1000 无内部冲突，外部 Mod 冲突仍待安装检查 |
+| 0.7.0 工业家具模型转换 | 已确认 | Gear、Wheel、两种 Mould、Piston 的 positions/normals 已用 `Convert-DaeToYUp.ps1` 从 Z_UP 转为 Y_UP；Cylinder 原生 Y_UP；构建逐个校验节点与 position float 数 |
+| 0.7.0 Release 编译 | 已确认 | `Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17`：net472、程序集版本 0.7.0.0、0 warning、0 error；真实 x25 程序集哈希与 ABI 检查通过 |
+| 0.7.0 XDB 校验 | 已确认 | `KellyPlants.xdb` 与 `Watercraft.xdb` 均通过 `Test-Database.ps1`；家具不新增 XDB，不改变已确认文件夹 GUID |
+| 0.7.0 `.netmod` | 已确认 | 339,693 字节；SHA-256 `520FAA575C7100F4942C1EDB1652978A0DA445631790D54B010517F03B2EF03B`；包内含六件家具 CSV/模型，不含游戏 DLL、旧 Mod DLL、PDB 或 Jint |
+| 0.7.0 Windows 家具运行 | 待验证 | 尚未启动游戏验证创造栏、模型比例/颜色、四向放置、碰撞、拆除和保存重载 |
+| 0.7.0 Android/7723 家具运行 | 待验证 | 尚未部署手机；Windows 编译与包检查不能替代真机渲染和存档验证 |
+| 0.7.0 多人家具同步 | 待验证 | 静态方块理论上走原生地形同步，但尚未分别测试主机和普通客户端，不能继承单机结论 |
 | 蒸汽船物品/组件编译 | 已确认 | ID 999；独立实体、原生 Boat/Mount/Body/Damage 和本地推进组件均以 Release 0 warning/0 error 编译 |
 | SCIE 蒸汽船模型 | 已确认 | 上游授权源模型（保持不动、仅溯源）：`upstream/SCIE/IndustrialMod/Models/SteamBoat.dae`，25,178 字节，SHA-256 `E3C2F54513D10486FA14927418E6ABB76CB7AC270B947A57C338A2423911C4F8`，`up_axis=Z_UP`。**实际打包的模型**（项目内朝向修正资产）：`src/SCIEPort/Assets/Models/SteamBoat.dae`，25,042 字节，`up_axis=Y_UP`，仍含 `Cylinder` 节点与 98 顶点（294 float）。 |
 | 蒸汽船“竖着”朝向修复 | 已确认（文件/打包级）/ Android 待实测 | 现象：手机进世界能加载，但船竖直立着。根因：SCIE 的 `SteamBoat.dae` 是 Blender 导出的 `Z_UP`（把高度放在 Z 轴），而 SCNET 的 `SimpleModel` 按游戏约定直接读原始坐标、把 Y 当上、Z 当前——于是 Z_UP 模型的高度轴被当成“前后”，船就竖起来；对照能正常横放的 Builder Assistant `Speedboat.dae` 是手写的 `Y_UP`。修复：对 `Cylinder-mesh-positions-array`（98 顶点）与 `Cylinder-mesh-normals-array`（135 法线）逐三元组烘焙绕 X 轴 −90° 旋转 `(x,y,z)->(x,z,-y)`（右手系不翻转），并把 `<up_axis>` 改为 `Y_UP`；不改 `SimpleModel` 参数、不动 `Body` 的 `BoxSize`、不动模板/GUID。结果包围盒由（宽 X±1.06 / 高 Z0.06..1.56 / 长 Y−2.74..2.35）变为（宽 X±1.06 / 高 Y−0.13..1.56 / 长 Z−2.35..2.74），与 `BoxSize=2,0.5,4.5`（Z 为船长）一致。**边界**：本机只能在文件与打包级验证几何已旋转、`up_axis=Y_UP`、顶点数未丢，且已确认随包模型确为 Y_UP；手机里船是否真正平放仍须实机确认，不提前宣称已修复。 |
@@ -75,16 +92,23 @@ cd E:\Survivalcraft2\SCIE-Port
 Assets/Blocks/SCIEPort.csv
 Assets/Blocks/Watercraft.csv
 Assets/Blocks/KellyPlants.csv
+Assets/Blocks/IndustrialFurniture.csv
 Assets/Database/Watercraft.xdb
 Assets/Database/KellyPlants.xdb
 Assets/Models/Airship.dae
 Assets/Models/KellyFruits.dae
+Assets/Models/Cylinder.dae
+Assets/Models/Gear.dae
+Assets/Models/GearMould.dae
 Assets/Models/Minecart.dae
+Assets/Models/Piston.dae
 Assets/Models/SteamBoat.dae
 Assets/Models/Train.dae
+Assets/Models/Wheel.dae
+Assets/Models/WheelMould.dae
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
-Assets/Textures/KellyExpansion.webp
+Assets/Textures/KellyExpansion.png
 modinfo.json
 SCIEPort.dll
 THIRD-PARTY-NOTICES.md
@@ -108,6 +132,8 @@ THIRD-PARTY-NOTICES.md
 12. 对 `SCIE 车厢（授权移植预览）` 重复生成和独立低速试乘；当前不应期待自动编组或货箱。
 13. 保存退出并重进，确认铁轨 data、两种轨道实体位置/方向恢复且日志无模板错误。
 14. Android 上重复 2–13，并记录 APK/程序集指纹、设备、Android 版本和日志。
+15. 在 Furniture 分类逐一拿取钢齿轮、钢轮、齿轮模具、车轮模具、工业活塞、钢瓶；每件按四个朝向放置，核对不竖直、不沉地、不越格、碰撞可接受。
+16. 逐件拆除并确认掉落原物品；保存退出并重进，核对类型与朝向 data 均保持。家具仅为静态装饰，不应出现机器 UI、库存或配方行为。
 
 ## Android (SCNET x25.01.17 / 7723) 安装、卸载旧包、隔离测试步骤
 

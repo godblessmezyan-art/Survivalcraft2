@@ -41,25 +41,16 @@ namespace SCIEPort.Features.KellyPlants
                 return;
             }
 
-            int interval = 6;
             int soilData = Terrain.ExtractData(soilValue);
-            if (SoilBlock.GetHydration(soilData))
-            {
-                interval -= 2;
-            }
-            if (SoilBlock.GetNitrogen(soilData) > 0)
-            {
-                interval -= 2;
-            }
 
             int temperature = terrain.GetSeasonalTemperature(x, z)
                 + SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
-            if (temperature <= 4)
-            {
-                interval += 6;
-            }
+            int interval = KellyPlantRules.GetSoybeanGrowthInterval(
+                SoilBlock.GetHydration(soilData),
+                SoilBlock.GetNitrogen(soilData),
+                temperature);
 
-            if (pollPass % MathUtils.Max(interval, 1) != 0)
+            if (pollPass % interval != 0)
             {
                 return;
             }
@@ -82,6 +73,26 @@ namespace SCIEPort.Features.KellyPlants
                     Terrain.ReplaceData(soilValue, SoilBlock.SetNitrogen(soilData, nitrogen)),
                     true,
                     null);
+            }
+        }
+
+        public override void OnNeighborBlockChanged(
+            int x,
+            int y,
+            int z,
+            int neighborX,
+            int neighborY,
+            int neighborZ)
+        {
+            Terrain terrain = SubsystemTerrain.Terrain;
+            int value = terrain.GetCellValue(x, y, z);
+            if (Terrain.ExtractContents(value) != SoybeanBlock.Index || y <= 0)
+            {
+                return;
+            }
+            if (Terrain.ExtractContents(terrain.GetCellValue(x, y - 1, z)) != SoilBlock.Index)
+            {
+                SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
             }
         }
     }
@@ -204,6 +215,10 @@ namespace SCIEPort.Features.KellyPlants
 
         public void Update(float dt)
         {
+            if (!KellyPlantRules.AllowPostRainSpawning)
+            {
+                return;
+            }
             m_accumulator += dt;
             if (m_accumulator < 0.25f)
             {

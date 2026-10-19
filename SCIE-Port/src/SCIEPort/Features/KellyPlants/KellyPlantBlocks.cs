@@ -359,6 +359,15 @@ namespace SCIEPort.Features.KellyPlants
             yield return Terrain.MakeBlockValue(Index, 0, SetSize(0, 7));
         }
 
+        public override BlockPlacementData GetPlacementValue(
+            SubsystemTerrain subsystemTerrain,
+            ComponentMiner componentMiner,
+            int value,
+            TerrainRaycastResult raycastResult)
+        {
+            return SoybeanPlacement.GetPlacementValue(subsystemTerrain, raycastResult);
+        }
+
         public override void GetDropValues(
             SubsystemTerrain subsystemTerrain,
             int oldValue,
@@ -436,10 +445,21 @@ namespace SCIEPort.Features.KellyPlants
             int value,
             TerrainRaycastResult raycastResult)
         {
+            return SoybeanPlacement.GetPlacementValue(subsystemTerrain, raycastResult);
+        }
+    }
+
+    internal static class SoybeanPlacement
+    {
+        public static BlockPlacementData GetPlacementValue(
+            SubsystemTerrain subsystemTerrain,
+            TerrainRaycastResult raycastResult)
+        {
             CellFace target = raycastResult.CellFace;
             Point3 direction = CellFace.FaceToPoint3(target.Face);
-            if (direction.Y == 1 &&
-                Terrain.ExtractContents(subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z)) == SoilBlock.Index)
+            bool isSoil = Terrain.ExtractContents(
+                subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z)) == SoilBlock.Index;
+            if (KellyPlantRules.CanPlaceSoybean(direction.Y == 1, isSoil))
             {
                 return new BlockPlacementData
                 {

@@ -24,6 +24,20 @@ mushrooms. Inventory entries retain the exact upstream Chinese names and must
 not gain parenthesized port labels. These runtime behaviors remain pending
 Android/7723 verification.
 
+Version 0.7.0 adds a first low-risk SCIE industrial furniture batch: steel
+gear, steel wheel, gear mould, wheel mould, industrial piston and cylinder.
+They are static placeable decorations with four horizontal orientations. No
+machine, inventory, recipe, gas, chemistry or circuit behavior is claimed.
+The five Z-up source models are packaged as Y-up derivatives; the cylinder was
+already Y-up. Android placement, rendering and save/reload remain pending.
+
+Version 0.7.2 fixes two Android-facing rendering faults found by user testing:
+the Kelly atlas is shipped as PNG rather than unsupported WebP, and the
+airship now declares a packaged white entity texture. All ported vehicle
+entities also apply a small non-zero emission floor so terrain light sampling
+cannot turn their world models completely black. Android verification remains
+pending.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

@@ -35,6 +35,7 @@
       <MemberComponentTemplate Name="SimpleModel" Guid="1b94514c-e5e5-434d-80a5-10460ed3249e" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
         <Parameter Name="ModelName" Guid="3560fd8b-64ec-4c90-930c-028af0906477" Value="Models/Airship" Type="string" />
         <Parameter Name="CastsShadow" Guid="fe0fe524-db17-49d5-b3eb-a6d0d4d8ba92" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="78b6263c-acde-4f47-b8ea-16f272c5f94a" Value="Textures/Airship" Type="string" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Spawn" Guid="730ac8ef-8d84-44f5-baa0-c7f48e8a2f4d" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
         <Parameter Name="AutoDespawn" Guid="ead2dc40-db60-4ae6-8cb5-5bd5b3df7d84" Value="False" Type="bool" />

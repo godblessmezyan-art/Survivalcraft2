@@ -40,6 +40,10 @@ $sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
     Select-Object -First 1
 if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot" }
 
+$kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
+& $dotnetPath run --project $kellyTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" }
+
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
@@ -53,6 +57,13 @@ Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
 Copy-Item -Recurse -LiteralPath (Join-Path $projectDir 'Assets') -Destination (Join-Path $stage 'Assets')
+# Keep the authorized WebP source for provenance, but do not ship it. The
+# x25.01.17 Android content manager did not register it as Texture2D and the
+# creative inventory crashed when a Kelly fruit icon was drawn.
+$stagedKellyWebp = Join-Path $stage 'Assets\Textures\KellyExpansion.webp'
+if (Test-Path -LiteralPath $stagedKellyWebp) {
+    Remove-Item -Force -LiteralPath $stagedKellyWebp
+}
 $authorizedAssets = @(
     # Use the project-owned Y_UP derivative, not the upstream Z_UP model.
     @{ Source = (Join-Path $projectDir 'Assets\Models\SteamBoat.dae'); Destination = (Join-Path $stage 'Assets\Models\SteamBoat.dae') },
@@ -60,7 +71,9 @@ $authorizedAssets = @(
     @{ Source = (Join-Path $projectDir 'Assets\Models\Airship.dae'); Destination = (Join-Path $stage 'Assets\Models\Airship.dae') },
     @{ Source = (Join-Path $projectDir 'Assets\Models\Train.dae'); Destination = (Join-Path $stage 'Assets\Models\Train.dae') },
     @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae'); Destination = (Join-Path $stage 'Assets\Models\Minecart.dae') },
-    @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\Train.png'); Destination = (Join-Path $stage 'Assets\Textures\Train.png') }
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Textures\Train.png'); Destination = (Join-Path $stage 'Assets\Textures\Train.png') },
+    # Cylinder.dae is already Y_UP, so it is packaged without a derived copy.
+    @{ Source = (Join-Path $upstream 'IndustrialMod\Models\Cylinder.dae'); Destination = (Join-Path $stage 'Assets\Models\Cylinder.dae') }
 )
 foreach ($asset in $authorizedAssets) {
     if (-not (Test-Path -LiteralPath $asset.Source)) {
@@ -95,18 +108,36 @@ try {
         'Assets/Blocks/SCIEPort.csv',
         'Assets/Blocks/Watercraft.csv',
         'Assets/Blocks/KellyPlants.csv',
+        'Assets/Blocks/IndustrialFurniture.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
+        'Assets/Models/Gear.dae',
+        'Assets/Models/GearMould.dae',
+        'Assets/Models/Piston.dae',
         'Assets/Models/Train.dae',
+        'Assets/Models/Wheel.dae',
+        'Assets/Models/WheelMould.dae',
+        'Assets/Models/Cylinder.dae',
         'Assets/Models/Minecart.dae',
         'Assets/Models/SteamBoat.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
-        'Assets/Textures/KellyExpansion.webp'
+        'Assets/Textures/Airship.png',
+        'Assets/Textures/KellyExpansion.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
+    }
+    if ($entries -contains 'Assets/Textures/KellyExpansion.webp') {
+        throw 'Package must not contain KellyExpansion.webp; x25.01.17 Android cannot load it as Texture2D.'
+    }
+    $unsupportedTextures = @($entries | Where-Object {
+        $_ -like 'Assets/Textures/*' -and [IO.Path]::GetExtension($_) -ne '.png'
+    })
+    if ($unsupportedTextures.Count -gt 0) {
+        throw ("Package contains texture formats not validated as x25.01.17 Texture2D resources: " +
+            ($unsupportedTextures -join ', '))
     }
     if ($entries | Where-Object { $_ -match '(^|/)(Survivalcraft\.exe|Engine\.dll|EntitySystem\.dll|Jint\.dll|System\.Reflection\.TypeExtensions\.dll)$' }) {
         throw 'Package contains a prohibited game or upstream dependency binary.'
@@ -114,6 +145,7 @@ try {
 
     $blockClassNames = New-Object System.Collections.Generic.List[string]
     $kellyDisplayNames = New-Object System.Collections.Generic.List[string]
+    $furnitureDisplayNames = New-Object System.Collections.Generic.List[string]
     foreach ($entry in $archive.Entries) {
         if ($entry.FullName -notmatch '^Assets/Blocks/.*\.csv$') { continue }
         $reader = New-Object System.IO.StreamReader($entry.Open())
@@ -125,6 +157,9 @@ try {
             if ($columns.Count -gt 0) { $blockClassNames.Add($columns[0].Trim()) }
             if ($entry.FullName -eq 'Assets/Blocks/KellyPlants.csv' -and $columns.Count -gt 1) {
                 $kellyDisplayNames.Add($columns[1].Trim())
+            }
+            if ($entry.FullName -eq 'Assets/Blocks/IndustrialFurniture.csv' -and $columns.Count -gt 1) {
+                $furnitureDisplayNames.Add($columns[1].Trim())
             }
         }
     }
@@ -144,7 +179,33 @@ try {
     if ($kellyDisplayNames | Where-Object { $_ -match '[\uFF08\uFF09()]' }) {
         throw ("Kelly inventory names must remain original and contain no port-marker parentheses: " + ($kellyDisplayNames -join ', '))
     }
+    $furnitureNameBytes = [Text.Encoding]::UTF8.GetBytes(($furnitureDisplayNames -join '|'))
+    $furnitureNameHasher = [Security.Cryptography.SHA256]::Create()
+    try {
+        $furnitureNamesHash = ($furnitureNameHasher.ComputeHash($furnitureNameBytes) | ForEach-Object { $_.ToString('x2') }) -join ''
+    }
+    finally { $furnitureNameHasher.Dispose() }
+    if ($furnitureDisplayNames.Count -ne 6 -or $furnitureNamesHash -ne '258d7960b1fb60731d9754f786864dfcfa64cf0e4d37ce8f5f18cb5ec26caf18') {
+        throw ("Industrial furniture names or order differ from the audited list: " + ($furnitureDisplayNames -join ', '))
+    }
+    if ($furnitureDisplayNames | Where-Object { $_ -match '[\uFF08\uFF09()]' }) {
+        throw ("Industrial furniture names must contain no port-marker parentheses: " + ($furnitureDisplayNames -join ', '))
+    }
     [xml]$watercraftDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Watercraft.xdb')
+    foreach ($parameter in $watercraftDatabase.SelectNodes("//Parameter[@Name='ModelName']")) {
+        $modelEntry = 'Assets/' + $parameter.Value + '.dae'
+        if ($entries -notcontains $modelEntry) {
+            throw "Watercraft database references missing model resource: $modelEntry"
+        }
+    }
+    foreach ($parameter in $watercraftDatabase.SelectNodes("//Parameter[@Name='TextureOverride']")) {
+        # This carriage texture is supplied by the base game, not by the Mod.
+        if ($parameter.Value -eq 'Textures/Creatures/Jaguar') { continue }
+        $textureEntry = 'Assets/' + $parameter.Value + '.png'
+        if ($entries -notcontains $textureEntry) {
+            throw "Watercraft database references missing PNG Texture2D resource: $textureEntry"
+        }
+    }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -206,6 +267,33 @@ try {
     }
     if ($minecartModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'Minecart.dae must be oriented Y_UP.'
+    }
+
+    $furnitureModels = @(
+        @{ Name = 'Gear'; Node = 'Gear'; Floats = 192 },
+        @{ Name = 'Wheel'; Node = 'Wheel'; Floats = 72 },
+        @{ Name = 'GearMould'; Node = 'GearMould'; Floats = 216 },
+        @{ Name = 'WheelMould'; Node = 'WheelMould'; Floats = 96 },
+        @{ Name = 'Piston'; Node = 'Piston'; Floats = 144 },
+        @{ Name = 'Cylinder'; Node = 'obj1'; Floats = 390 }
+    )
+    foreach ($furnitureModel in $furnitureModels) {
+        $modelPath = Join-Path $stage ("Assets\Models\" + $furnitureModel.Name + '.dae')
+        [xml]$modelDocument = Get-Content -Raw -Encoding UTF8 $modelPath
+        if ($modelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+            throw "$($furnitureModel.Name).dae must be oriented Y_UP."
+        }
+        if ($null -eq $modelDocument.SelectSingleNode("//*[local-name()='node' and @name='$($furnitureModel.Node)']")) {
+            throw "$($furnitureModel.Name).dae is missing required node $($furnitureModel.Node)."
+        }
+        $positions = @($modelDocument.SelectNodes("//*[local-name()='float_array'][contains(@id,'-positions-')]"))
+        $positionFloatCount = 0
+        foreach ($positionsArray in $positions) {
+            $positionFloatCount += (@($positionsArray.InnerText -split '\s+' | Where-Object { $_ })).Count
+        }
+        if ($positionFloatCount -ne $furnitureModel.Floats) {
+            throw "$($furnitureModel.Name).dae positions should contain $($furnitureModel.Floats) floats; found $positionFloatCount."
+        }
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))
