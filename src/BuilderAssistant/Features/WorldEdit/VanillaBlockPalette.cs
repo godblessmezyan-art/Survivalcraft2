@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Game;
 using BuilderAssistant.Core.Blueprints;
+using BuilderAssistant.Core.Building;
 using BuilderAssistant.Core.Transactions;
 
 namespace BuilderAssistant.Features.WorldEdit
@@ -31,24 +32,28 @@ namespace BuilderAssistant.Features.WorldEdit
     internal sealed class VanillaBlockPalette : IBlockValueResolver
     {
         // logical key -> CLR type name of a verified vanilla block.
-        private static readonly Dictionary<string, string> KeyToTypeName =
-            new Dictionary<string, string>
-            {
-                { BuildingMaterials.StoneBase, "CobblestoneBlock" },  // index 5  (plain cube)
-                { BuildingMaterials.StoneWall, "StoneBrickBlock" },  // index 26 (plain cube)
-                { BuildingMaterials.WoodWall,  "PlanksBlock" },      // index 21 (plain cube)
-                { BuildingMaterials.WoodTrim,  "PlanksBlock" },      // index 21
-                { BuildingMaterials.Roof,      "BricksBlock" },      // index 73 (plain cube)
-                { BuildingMaterials.Glass,     "GlassBlock" },       // index 15 (plain cube)
-                { BuildingMaterials.Floor,     "PlanksBlock" },      // index 21
+        //
+        // Derived from MaterialCatalog (the game-free single source of truth in
+        // Core.Building) instead of a hand-maintained duplicate, so this runtime resolver and
+        // the offline BuildingValidator can never drift apart, and every logical key the
+        // parametric engine emits (including InteriorWall / SupportBeam / InteriorStairs /
+        // StoneRailing / FlatDeck) is resolvable without editing this file. The catalog's
+        // concrete type names are all guaranteed members of SupportedBlocks below.
+        private static readonly Dictionary<string, string> KeyToTypeName = BuildKeyToTypeName();
 
-                // v0.9 cottage-oriented keys (schema v2). Families are derived from the
-                // resolved type name below, so these keys need no separate family table.
-                { BuildingMaterials.RoofStairs,   "WoodenStairsBlock" },
-                { BuildingMaterials.EntryDoor,    "WoodenDoorBlock" },
-                { BuildingMaterials.WindowSill,   "StoneSlabBlock" },
-                { BuildingMaterials.GardenFence,  "WoodenFenceBlock" },
-            };
+        private static Dictionary<string, string> BuildKeyToTypeName()
+        {
+            var d = new Dictionary<string, string>(System.StringComparer.Ordinal);
+            foreach (string key in MaterialCatalog.Keys)
+            {
+                MaterialCatalog.Entry e;
+                if (MaterialCatalog.TryGet(key, out e))
+                {
+                    d[key] = e.TypeName;
+                }
+            }
+            return d;
+        }
 
         /// <summary>
         /// Every vanilla block Builder Assistant is willing to build and copy, mapped to
@@ -172,7 +177,11 @@ namespace BuilderAssistant.Features.WorldEdit
                 typeName = materialKey;
             }
 
-            BlockFamily family = SupportedBlocks[typeName];
+            BlockFamily family;
+            if (!SupportedBlocks.TryGetValue(typeName, out family))
+            {
+                return false; // mapped to a type we cannot build -> abort, never guess
+            }
 
             // Plain cubes need no orientation: pack the bare content index (light 0,
             // data 0). Cache those (the common cottage path) to skip reflection re-lookup.

@@ -16,8 +16,8 @@ namespace BuilderAssistant.Features.WorldEdit
     /// thread) and the GuiUpdate tick (also main thread), so terrain is never
     /// touched from a background thread. Every AGENTS.md safety rule is enforced
     /// downstream by BuildPlanner / BuildTask; this class only adds the explicit
-    /// two-tap confirmation, the single-player gate, and the Android undo/cancel
-    /// entry point.
+    /// two-tap confirmation, the world-authority gate (single player or host may
+    /// build, remote clients may not), and the Android undo/cancel entry point.
     /// </summary>
     /// <remarks>
     /// v0.6.0: the whole footprint is now pre-checked on the main thread. A 9x11
@@ -168,7 +168,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 ? miner.ComponentPlayer.ComponentGui
                 : null;
 
-            if (!IsSinglePlayer(gui))
+            if (!CanMutateWorld(gui))
             {
                 return true;
             }
@@ -257,7 +257,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 ? miner.ComponentPlayer.ComponentGui
                 : null;
 
-            if (!IsSinglePlayer(gui))
+            if (!CanMutateWorld(gui))
             {
                 return true;
             }
@@ -816,7 +816,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 ? miner.ComponentPlayer.ComponentGui
                 : null;
 
-            if (!IsSinglePlayer(gui))
+            if (!CanMutateWorld(gui))
             {
                 return true;
             }
@@ -1041,14 +1041,45 @@ namespace BuilderAssistant.Features.WorldEdit
             }
         }
 
-        private static bool IsSinglePlayer(ComponentGui gui)
+        /// <summary>
+        /// Authority gate. Terrain may only be mutated by the role that owns the
+        /// world: single player (Local) or the multiplayer host (Server). A
+        /// connected remote client (Client) is refused, because its local writes
+        /// are neither authoritative nor guaranteed to reach the host. Anything
+        /// unrecognised is refused defensively.
+        ///
+        /// Note this is orthogonal to whether OTHER peers have the mod installed:
+        /// the host writes ordinary vanilla blocks, so buildings it generates are
+        /// visible to non-mod clients through normal chunk sync. Whether that sync
+        /// actually lands on the 7723 build is still to be verified on-device.
+        /// </summary>
+        private static bool CanMutateWorld(ComponentGui gui)
         {
-            if (Game.NetWork.CommonLib.WorkType != Game.NetWork.WorkType.Local)
+            if (!TerrainAuthority.IsWritable(MapAuthority(Game.NetWork.CommonLib.WorkType)))
             {
-                Notify(gui, "自动建造目前仅在单人模式下启用（测试阶段）。");
+                Notify(gui, "自动建造需在单人世界或作为联机房主时使用；联机客户端请由房主建造后再查看。");
                 return false;
             }
             return true;
+        }
+
+        /// <summary>
+        /// Maps the live game network role into the game-free authority enum so
+        /// the writable/refused decision itself is unit-testable offline. Unknown
+        /// values collapse to RemoteClient (never writable).
+        /// </summary>
+        private static WorldAuthority MapAuthority(Game.NetWork.WorkType workType)
+        {
+            switch (workType)
+            {
+                case Game.NetWork.WorkType.Local:
+                    return WorldAuthority.SinglePlayer;
+                case Game.NetWork.WorkType.Server:
+                    return WorldAuthority.Host;
+                case Game.NetWork.WorkType.Client:
+                default:
+                    return WorldAuthority.RemoteClient;
+            }
         }
 
         private static void Notify(ComponentGui gui, string message)

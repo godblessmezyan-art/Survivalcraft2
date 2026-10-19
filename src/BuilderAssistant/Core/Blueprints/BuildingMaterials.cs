@@ -24,10 +24,21 @@ namespace BuilderAssistant.Core.Blueprints
         public const string WindowSill  = "WindowSill";    // slab windowsill (StoneSlabBlock)
         public const string GardenFence = "GardenFence";   // fence accent (WoodenFenceBlock)
 
+        // v0.10 parametric-engine logical keys. Every one of these is mapped to a
+        // verified vanilla block in Core/Building/MaterialCatalog (the single source of
+        // truth both the offline validator and the WorldEdit palette read), so a key
+        // added here without a catalog entry is caught by an offline parity test.
+        public const string InteriorWall   = "InteriorWall";    // room partitions    (PlanksBlock)
+        public const string SupportBeam    = "SupportBeam";     // structural posts   (PlanksBlock)
+        public const string InteriorStairs = "InteriorStairs";  // floor-to-floor steps (WoodenStairsBlock)
+        public const string StoneRailing   = "StoneRailing";    // stairwell/terrace rail (StoneFenceBlock)
+        public const string FlatDeck       = "FlatDeck";        // flat roof / terrace deck (StoneSlabBlock)
+
         public static readonly string[] All =
         {
             StoneBase, StoneWall, WoodWall, WoodTrim, Roof, Glass, Floor,
             RoofStairs, EntryDoor, WindowSill, GardenFence,
+            InteriorWall, SupportBeam, InteriorStairs, StoneRailing, FlatDeck,
         };
     }
 }

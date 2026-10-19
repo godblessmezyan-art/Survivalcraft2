@@ -426,3 +426,67 @@ v0.8.0 已闭环，但玩家仍须“建目录 / 起 ASCII 名 / 用文件管理
 5. 旋转/镜像：同一蓝图切不同朝向落成 → 楼梯高边、门开向应随整体转动（不是逐格乱转）。
 6. 非法/超界/含未支持块 → 应“导入失败：<原因>”，不污染剪贴板、不部分导入。
 若某族/某变体异常，回传首条 `Warning/Error` 原文 + 完整 `Game.log`，注明阶段（落成/复制/导入）与具体方块；该变体在本文保持**待验证**，不得标兼容。
+
+## v0.10.0 参数化建筑生成引擎（BuildingSpec → BuildingComposer → Blueprint）
+
+本轮目标（用户明确指令）：把手写的固定 `MedievalCottageGenerator`（逐格硬编码坐标）升级为一个**参数化、模块化、可扩展**的建筑生成引擎——“通过修改少量 `BuildingSpec` 参数得到不同尺寸与布局的建筑，而不是继续依赖手写固定方块坐标”。本轮**只改 `src/BuilderAssistant` 纯逻辑层 + 测试 + 文档**，不动 SCIE-Port、不动快艇、不重写 `WorldEditRuntime`、不改任何 `.xdb`/CSV。
+
+### 分层与数据流
+
+引擎落在**无游戏依赖**的 `Core/Building/`（可离线单测），复用既有 `Core/Blueprints`（`BlueprintBuilder`/`Blueprint`/schema v2 朝向）与既有 `BuildPlanner → BuildTask → TransactionHistory` 执行链；`Features/Generators` 仅加两个薄适配器，把 `IBuildingGenerator` 契约桥到引擎，因此建造工具与注册表**接口一字未改**。
+
+- `BuildingSpec`：可序列化的纯数据参数（`Type` 建筑类型、`Width/Length`、`Floors` 层数、`WallHeight` 层高、`Roof` 屋顶类型 Hip/Gabled/Flat、`Seed` 随机种子、`HasChimney`、`WindowDensity` 0–100、`Materials` 材料档）。几何约定：`FloorSlabY(s)=s*(WallHeight+1)`，墙基 = 板顶 +1，屋顶从 `FloorSlabY(Floors)` 起。
+- `BuildingSpec.Validate()`：**生成前**逐条硬校验并汇总所有问题（绝不抛异常、绝不留半成品）：宽高 ∈ [5,64]、层数 ∈ [1,4]、层高 ∈ [2,8]、窗密度 ∈ [0,100]、估算总高 ≤ 64、每个材料槽必须在 `MaterialCatalog` 已知键内、`EstimateBlockCount()` 保守上界 ≤ 1024（每事务上限）、双层住宅需 `Floors≥2` 且 `≥7×7`。非法/超预算规格**在写任何一格之前**被拒绝，不生成蓝图、无死循环。
+- `DeterministicRandom`：xorshift32 整数实现，跨 net472/net8/Android **逐位一致**（不用 `System.Random`，因其实现不保证跨运行时确定）。同一 `(spec, seed)` 输出字节级相同。
+- `MaterialCatalog`：**单一事实源**（游戏无关），逻辑键 → `Entry{类型名, 族}`。`VanillaBlockPalette.KeyToTypeName` 现由它派生（新增逻辑键无需再手改调色板），离线校验器与运行时解析器**不可能漂移**。为此在 `BuildingMaterials` 追加纯新增键 `InteriorWall/SupportBeam/InteriorStairs/StoneRailing/FlatDeck`（旧键值原样保留）。
+- 组件（共享一个 `BuildingContext`，按**固定顺序**运行，靠 `BlueprintBuilder` 后写覆盖先写实现“在成品墙上开门洞、在成品楼板上打楼梯井洞”）：`FoundationGenerator`（每层楼板/地面）、`WallGenerator`（逐层外墙环 + 角柱 + 顶部圈梁）、`StairGenerator`（`Floors≥2` 时的双列折返楼梯井，冲掉目标楼板留出通行洞、装侧面栅栏扶手）、`OpeningGenerator`（居中入户门**不随机**、逐层四立面窗 + 窗台半砖）、`FloorPlanGenerator`（按种子在内墙位置切十字隔墙，门列与楼梯列留洞）、`RoofGenerator`（Hip/Gabled/Flat 三式，檐口楼梯按朝向、山墙填充、平屋顶女儿墙栅栏）、`DecorationGenerator`（烟囱、屋脊饰、室内家具）。
+- `BuildingComposer.Compose(spec,name)`：唯一入口 `BuildingSpec → Blueprint`。流程 = 校验 → 建上下文 → 按序跑组件 → `ToBlueprint(name, 2)` → 跑独立校验器 → 返回 `BuildingGenResult`（蓝图 + 规格结果 + QC 结果 + 族/材料计数 + `Summarize()`）。
+- `BuildingValidator`：**独立 QC**，从**已产出的格子**反推事实（而非组件的意图），逐条报告：非空与预算/单轴、占地= `Width×Length`、坐标唯一、每键可解析且族匹配目录、入口门唯一且下方有支撑/上方留空/内侧可通行、每层外壳中环在中缝无缺口、内部为空腔且入口经水平洪水填充可达足够大连通房间（隔墙未封死入口）、多层每道层界都有楼梯且楼板有通行洞、整体为**单连通分量**（无孤立/悬空块）。难以自动确证的（楼梯在真机上是否可攀爬、家具人体工学）用**显式负向测试**兜底，而非乐观启发。
+
+### 两种建筑（均经引擎产出，非硬编码坐标）
+
+- 参数化小屋 `cottage_param`：默认 9×11、单层、Hip 屋顶——**沿用用户已熟悉的形状**；改参数即变尺寸/屋顶/窗。实测 480 格，QC 通过。
+- 两层住宅 `house_two_story`：**新建筑**，默认 9×9、两层、Gabled 屋顶。实测 616 格（589 立方/23 楼梯/2 半砖/1 栅栏/1 门），**两层真能用**：逐层楼板、承重外壳 + 角柱、可通行的折返楼梯井（打开上层楼板）、四立面窗、山墙轮廓、室内隔墙 + 家具——不是两个空心盒叠放。QC 通过。
+
+全部只用已在 v0.9 反编译取证过的族/类型（Planks/石砖/鹅卵石/砖/玻璃立方、WoodenStairs、StoneSlab、Wooden/StoneFence、WoodenDoor 双格）。不可靠特性没有伪装成完成：楼梯/半砖/栅栏/门的**在设备渲染与连通**仍标 **待验证**。
+
+### 安全与兼容（未回退）
+
+`BuildPlanner/BuildTask/TransactionHistory` 语义不变：默认不覆盖实心玩家方块、单事务 ≤ 1024、单轴 ≤ 64、单批 ≤ 32、区块就绪预检、取消、失败整体回滚、有界停等续跑、编辑感知撤销——生成蓝图与手写小屋走**同一条**落建/撤销路径，离线测试用 `FakeTerrain` 证明“生成 → 计划 → 分批落建 → 撤销复原”全程成立且撤销精确恢复全部格。`schemaVersion=1` 导入兼容保持（引擎只发 v2，旧文件仍按立方解码）。中世纪小屋仍是注册表 `Default[0]`，输出**逐字节不变**，新旧并存为纯**追加**。
+
+### 已跑验证（本机，无设备）
+
+- 离线 `tests/BuilderAssistant.Tests`：由 267 净增至 **334/334 全通过**（+67：注册表默认小屋字节级回归护栏、规格边界/总高/预算/双层前置条件的正负例、默认小屋/双层住宅生成且 QC 通过并打印族计数、改少量参数得不同尺寸且更大规格→更多方块、同种子字节级一致 / 换种子仍合法且布局不同、`BuildingMaterials↔MaterialCatalog` 双向对等且生成蓝图键全可解析、生成蓝图 JSON v2 逐字往返、生成小屋走计划→落建→撤销、以及六例**校验器负向夹具**：门被堵、外壳缺口、孤立悬空块、双层缺楼梯井、占地不符、未知材料——逐例证明规则确实触发）。断言不依赖游戏程序集或文件 IO。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true` 下 0 警告 = 调色板改由 `MaterialCatalog` 派生后仍能编译绑定）。
+- XDB 合并安全守卫通过（本轮未改任何 `.xdb`/CSV，未新增任何 GUID；新逻辑键都映射到已存在的原版类型名）。方块类名仍唯一（`BlueprintToolBlock/BuilderToolBlock/SpeedboatBlock/UndoToolBlock`）。
+- 重打包 `.netmod` v0.10.0 SHA-256 `823A15929970A8ADB947B7262A40C7921DB69DD9BBEC1B271A74E80E5E71D05A`。随包反射核对：`modinfo.json Version=0.10.0`、`BuilderAssistant.dll` `AssemblyVersion=0.10.0.0`、`FileVersion=0.10.0.0`、`ProductVersion=0.10.0+…`，不含任何专有游戏程序集。
+
+**重要**：Windows 编译 + 打包 ≠ 运行验证。以上只证明“参数化引擎离线可编译、可确定复现、QC 与负向夹具成立、生成的蓝图能无损往返并走通既有落建/撤销链”。参数化小屋 / 两层住宅在 7723 手机上**是否按朝向正确渲染（楼梯、半砖、栅栏接连、门自动补上半格）并真正可上下通行**，**全部为待验证**——桌面从未在设备上落过任何一幢参数化生成的建筑。
+
+**Android 7723 实测清单（待后续接入选择 UI 后执行）**：1) 装 v0.10.0，横幅显示 v0.10.0。2) 由 `cottage_param`/`house_two_story` 生成 → 落成，目视尺寸/屋顶/窗与参数相符。3) 两层住宅：可经楼梯井走上二层（验证设备侧楼梯连通），正面为完整两格门。4) 同 `(spec,seed)` 两次生成应完全相同；换 seed 窗/隔墙/装饰应不同但结构完好。5) 撤销 → 整体干净回退。任一异常回传首条 `Warning/Error` 原文 + 完整 `Game.log`，注明阶段（生成/落成/撤销）与具体方块；相关项在本文保持**待验证**，不得标兼容。
+
+## v0.10.1 解除联机限制（主机可建，客户端拒绝）
+
+本轮驱动（用户明确指令「我想要实现联机时房主装别人没装，虽然别人看不到这三个方块，但是可以看到通过这三个方块生成的建筑，所以解除联机限制，并校验」）：把建造 / 撤销 / 蓝图工具的权限从「仅单人」放宽为「单人或联机房主可自动建造，仅拒绝非权威的联机客户端」，并补校验。
+
+代码改了什么（范围严格限定在 Builder Assistant）：`WorldEditRuntime` 的闸门方法由 `IsSinglePlayer` 改名为 `CanMutateWorld`，判定从「非 `WorkType.Local` 一律拒」改为「放行 `WorkType.Local`（单人）与 `WorkType.Server`（本机为联机房主），仅拒绝 `WorkType.Client`；未知值一律按客户端拒绝（防御）」；三个入口点（`OnBuildTool`、`OnUndoTool`、`OnBlueprintTool`）同步改调用新方法，拒绝时给出清晰提示「自动建造需在单人世界或作为联机房主时使用…」。为让该判定可离线单测，新增无游戏依赖的 `Core/Safety/TerrainAuthority`：以纯枚举 `WorldAuthority{SinglePlayer,Host,RemoteClient}` 镜像游戏角色，`IsWritable` 只对 `SinglePlayer`/`Host` 返回真；`WorldEditRuntime.MapAuthority` 把实时游戏 `Game.NetWork.WorkType` 映射进该纯枚举。加载器 `__ModInitialize` 日志与 `modinfo.json` 描述里「仅在单人」的旧措辞一并更正，版本号 `0.10.0 → 0.10.1`。
+
+代码没改什么：计划→校验→分批执行→记录撤销的整条安全管线、`BuildSafetyLimits` 的 1024/32/64 限额与 Y∈[0,256)、v0.10.0 参数化引擎、`WorldEditRuntime` 其余逻辑、以及任何 `.xdb`/CSV/GUID 全部一字未动（本轮不新增方块或子系统，故不引入新 GUID，XDB 合并安全守卫不受影响）。
+
+ABI 取证（非猜测）：`Game.NetWork.WorkType` 经对 `D:\SCNET\Survivalcraft.exe`（x25.01.17）反射确认为三值 `{ Local, Server, Client }`，`Game.NetWork.CommonLib.WorkType` 返回当前实例角色；`Local`=单机自持世界，`Server`=本机为世界权威房主，`Client`=已连接的非权威远端。放行 Local+Server、拒绝 Client 正是据此。
+
+本机已跑验证（无设备）：
+- 离线 `tests/BuilderAssistant.Tests` 由 334 净增至 **343/343 全通过**。新增 `TestTerrainAuthorityGate`（断言 `SinglePlayer`→可写、`Host`→可写、`RemoteClient`→拒绝）与 `TestBuildEmitsOnlyVanillaBlocks`（断言 `MaterialCatalog` 绝不会把任何材料键解析成 Mod 自定义工具方块 CLR 名 `BuilderToolBlock/UndoToolBlock/BlueprintToolBlock/SpeedboatBlock`，且默认小屋与两层住宅的**每一格** material key 都在 catalog 内可解析为原版方块——即落建只写原版方块、从不把 900/901/902/903 写进世界）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`Directory.Build.props` 设 `TreatWarningsAsErrors=true`，能编译即成功绑定——`Game.NetWork.WorkType.Server`/`.Client` 两个 switch 分支可解析即为 ABI 取证）。
+- 重打包 `.netmod` v0.10.1，SHA-256 `B3CE449408DD5637623AB9F91BD8BCF135E619BB8366D976D2F66A7DB1A040ED`；随包核对：解压 netmod 反射内嵌 `BuilderAssistant.dll` = `AssemblyVersion 0.10.1.0` / `FileVersion 0.10.1.0`，`modinfo.json Version=0.10.1`，方块类名仍唯一。
+
+**核心结论与诚实边界**：本轮「房主建、未装 Mod 的人也能看到建筑」的前提在架构上是**成立**的——生成的每一格都是所有客户端本就认识的原版方块（工具方块 900–903 只是手持物品、经离线测试证明从不作为世界内容写入），因此未装 Mod 的客户端理论上应能经**普通区块同步**看到落成结构。但**房主侧直接改地形能否真正传播到未装 Mod 的客户端，尚未验证，且无法从这台 Windows 证成**：桌面从未做过两台真机联机。按 AGENTS.md「没有证据时不得假定客户端修改会同步」，主机→非装 Mod 客户端的可见性一律标注 **待验证**，在两台真机实测通过前**不得**标「兼容/已确认」。
+
+**两台真机联机验证协议（务必先备份，用可丢弃的新建世界；禁止直接拿玩家主存档）**：
+1. 主机设备：装 v0.10.1，新建单人测试世界→另存/开房，作为联机房主。加载横幅应显示 v0.10.1。
+2. 客户端设备：**不装**本 Mod，正常加入主机开的房。
+3. 主机权限：主机切到建造工具（901）对准平整地面两次点击 → 应能整幢落成（证明 `WorkType.Server` 已放行）。
+4. 客户端拒绝：同一客户端设备若装了 Mod 后以 `WorkType.Client` 身份点建造/撤销/蓝图工具，应弹出「需在单人世界或作为联机房主时使用…」并被拒，不改动世界。
+5. 可见性（本轮关键待验项）：在**未装 Mod 的客户端**上观察主机落成的小屋 / 两层住宅是否出现、是否为正确的楼梯 / 半砖 / 栅栏 / 门朝向与两格门（门上半由引擎自动补）。若客户端完全看不到 → 说明主机直写地形未经区块同步下发，须记录该结论并保持「待验证 / 不标兼容」。
+6. 撤销：主机撤销 → 世界应干净回退，且未装 Mod 的客户端上该建筑应随之消失。
+7. 若任一步异常或不同步，回传首条 `Warning/Error` 原文 + 主机与客户端各自完整 `Game.log`，注明阶段（落成/撤销/同步）与设备角色（Server/Client）。在本文档中，主机→非装 Mod 客户端的建筑可见性保持**待验证**，实测通过前不得升级为「已确认」。

@@ -12,7 +12,14 @@ namespace BuilderAssistant.Features.Generators
     {
         private static readonly List<IBuildingGenerator> _generators = new List<IBuildingGenerator>
         {
-            new MedievalCottageGenerator()
+            // Index 0 = registry Default = the hand-tuned medieval cottage. It MUST stay
+            // first so the shipped build tool and the existing 267 offline tests keep stamping
+            // the exact same structure. The parametric engine is additive, never a replacement.
+            new MedievalCottageGenerator(),
+
+            // New parametric options (resolvable by key; not the default).
+            new ParametricCottageGenerator(),  // "cottage_param"
+            new TwoStoryHouseGenerator(),      // "house_two_story"
         };
 
         public static IReadOnlyList<IBuildingGenerator> All { get { return _generators; } }

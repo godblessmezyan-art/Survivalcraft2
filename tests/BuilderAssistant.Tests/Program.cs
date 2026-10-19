@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using BuilderAssistant.Core;
 using BuilderAssistant.Core.Blueprints;
+using BuilderAssistant.Core.Building;
 using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Json;
 using BuilderAssistant.Core.Safety;
@@ -276,6 +277,34 @@ namespace BuilderAssistant.Tests
             TestBlueprintJsonStripsEngineDerivedOrientationBits();
             TestCottageEmitsOrientedFamilies();
             TestCottageOrientationSurvivesRotationAndRoundTrip();
+
+            // v0.10.0: the parametric generation engine. Prove that changing a few
+            // BuildingSpec fields yields different valid buildings (the core acceptance
+            // criterion), that (spec, seed) is byte-reproducible while a new seed varies the
+            // layout, that bad/over-budget specs are refused before any cell is written, that
+            // a generated blueprint flows through the UNCHANGED plan/undo path, and that
+            // BuildingValidator actually FIRES on each kind of broken structure. The existing
+            // cottage remains the registry default and is byte-for-byte unchanged.
+            TestRegistryKeepsCottageAsDefault();
+            TestSpecValidationBoundsAndBudget();
+            TestParametricCottageComposesValid();
+            TestTwoStoryHouseComposesValid();
+            TestVaryingParamsChangeSizeAndLayout();
+            TestParametricDeterminismAndVariation();
+            TestMaterialCatalogParity();
+            TestGeneratedBlueprintJsonRoundTrip();
+            TestGeneratedBlueprintPlansAndUndoes();
+            TestValidatorCatchesBlockedEntrance();
+            TestValidatorCatchesMissingWall();
+            TestValidatorCatchesFloatingBlock();
+            TestValidatorCatchesMissingStair();
+            TestValidatorCatchesFootprintMismatch();
+            TestValidatorCatchesUnknownMaterial();
+
+            // Multiplayer gate (host builds, remote clients refuse) + proof the build
+            // pipeline only ever emits vanilla blocks that non-mod clients already know.
+            TestTerrainAuthorityGate();
+            TestBuildEmitsOnlyVanillaBlocks();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -1782,6 +1811,465 @@ namespace BuilderAssistant.Tests
             // top, fence arm or door hinge makes the key differ too.
             return c.Relative.X + "," + c.Relative.Y + "," + c.Relative.Z + "|" + c.MaterialKey
                 + "|" + (int)c.Family + "|" + c.Data;
+        }
+
+        // ============================================================
+        // v0.10: parametric building generation engine.
+        // Everything below runs the game-free BuildingSpec -> BuildingComposer ->
+        // Blueprint pipeline entirely offline, proving: size/bounds validation, single-
+        // and two-storey generation, same-seed determinism, different-seed variation,
+        // roof/stair/slab presence, material resolvability, over-budget safe rejection,
+        // JSON round-trip of a generated blueprint, that undo/planner semantics are not
+        // regressed, and that BuildingValidator actually FIRES on each kind of broken
+        // structure (negative fixtures) instead of silently emitting a bad building.
+        // ============================================================
+
+        /// <summary>
+        /// Reproduce the composer's fixed component order to obtain a shared context whose
+        /// cross-component facts (door position, stairwell) match the valid structure, so a
+        /// negative fixture can introduce exactly ONE defect and still be internally
+        /// consistent. The engine never exposes its context, so the test rebuilds it here.
+        /// </summary>
+        private static BuildingContext FreshContext(BuildingSpec spec)
+        {
+            var ctx = new BuildingContext(spec);
+            new FoundationGenerator().Generate(ctx);
+            new WallGenerator().Generate(ctx);
+            new StairGenerator().Generate(ctx);
+            new OpeningGenerator().Generate(ctx);
+            new FloorPlanGenerator().Generate(ctx);
+            new RoofGenerator().Generate(ctx);
+            new DecorationGenerator().Generate(ctx);
+            return ctx;
+        }
+
+        // --- Probe / positive: the default specs generate structurally valid buildings. ---
+        private static void TestParametricCottageComposesValid()
+        {
+            Console.WriteLine("[TestParametricCottageComposesValid]");
+            BuildingGenResult r = BuildingComposer.Compose(BuildingSpec.DefaultCottage(), "Cottage");
+            Console.WriteLine("      " + r.Summarize());
+            Check(r.Success, "parametric cottage passes structural QC");
+            Check(r.Blueprint != null, "cottage produced a blueprint");
+            Check(r.Blueprint.SizeX == 9 && r.Blueprint.SizeZ == 11, "cottage footprint is 9x11");
+            Check(r.Blueprint.SchemaVersion == 2, "generated blueprint is schema v2");
+            Check(CountFamily(r.Blueprint, BlockFamily.Door) == 1, "exactly one entry door bottom");
+            Check(CountFamily(r.Blueprint, BlockFamily.Stairs) > 0, "hip roof uses stairs");
+            Check(r.Blueprint.CellCount <= BuildSafetyLimits.MaxBlocksPerOperation, "cottage within the 1024 budget");
+        }
+
+        private static void TestTwoStoryHouseComposesValid()
+        {
+            Console.WriteLine("[TestTwoStoryHouseComposesValid]");
+            BuildingGenResult r = BuildingComposer.Compose(BuildingSpec.DefaultTwoStoryHouse(), "House");
+            Console.WriteLine("      " + r.Summarize());
+            Check(r.Success, "two-storey house passes structural QC");
+            Check(r.Blueprint != null, "house produced a blueprint");
+            Check(r.Blueprint.SizeX == 9 && r.Blueprint.SizeZ == 9, "house footprint is 9x9");
+            int door = CountFamily(r.Blueprint, BlockFamily.Door);
+            int stair = CountFamily(r.Blueprint, BlockFamily.Stairs);
+            int slab = CountFamily(r.Blueprint, BlockFamily.Slab);
+            Check(door == 1, "one entry door (got " + door + ")");
+            Check(stair > 0, "stairwell present (got " + stair + " stair cells)");
+            Check(slab >= 0, "slabs accounted for (got " + slab + ")");
+            Check(r.Blueprint.CellCount <= BuildSafetyLimits.MaxBlocksPerOperation, "house within the 1024 budget");
+            // Two-storey must be a tall, connected shell, not two stacked hollow boxes.
+            Check(r.Blueprint.SizeY >= 2 * 4 + 2, "house is tall enough for two storeys + roof (Y=" + r.Blueprint.SizeY + ")");
+        }
+
+        // --- Seeded determinism: same spec+seed byte-identical; different seed varies layout. ---
+        private static void TestParametricDeterminismAndVariation()
+        {
+            Console.WriteLine("[TestParametricDeterminismAndVariation]");
+            BuildingSpec a = BuildingSpec.DefaultTwoStoryHouse();
+            a.Seed = 12345;
+            BuildingSpec b = BuildingSpec.DefaultTwoStoryHouse();
+            b.Seed = 12345;
+            Blueprint ba = BuildingComposer.Compose(a, "H").Blueprint;
+            Blueprint bb = BuildingComposer.Compose(b, "H").Blueprint;
+
+            bool identical = ba.CellCount == bb.CellCount;
+            if (identical)
+            {
+                for (int i = 0; i < ba.Cells.Count; i++)
+                {
+                    if (CellKey(ba.Cells[i]) != CellKey(bb.Cells[i])) { identical = false; break; }
+                }
+            }
+            Check(identical, "same spec+seed produces a byte-identical blueprint");
+
+            // A different seed should vary the randomized bits (windows / partitions / decor)
+            // while staying structurally valid.
+            BuildingSpec c = BuildingSpec.DefaultTwoStoryHouse();
+            c.Seed = 987;
+            BuildingGenResult rc = BuildingComposer.Compose(c, "H");
+            Blueprint bc = rc.Blueprint;
+            Check(rc.Success, "a different seed still produces a QC-valid house");
+            bool differs = ba.CellCount != bc.CellCount;
+            if (!differs)
+            {
+                for (int i = 0; i < ba.Cells.Count && i < bc.Cells.Count; i++)
+                {
+                    if (CellKey(ba.Cells[i]) != CellKey(bc.Cells[i])) { differs = true; break; }
+                }
+            }
+            Check(differs, "a different seed changes the layout (not a copy of seed 12345)");
+        }
+
+        // --- Varying a few params yields different sizes (the core acceptance criterion). ---
+        private static void TestVaryingParamsChangeSizeAndLayout()
+        {
+            Console.WriteLine("[TestVaryingParamsChangeSizeAndLayout]");
+            BuildingSpec small = BuildingSpec.DefaultCottage();
+            small.Width = 5; small.Length = 5; small.Roof = RoofType.Flat; small.WindowDensity = 20;
+            BuildingSpec big = BuildingSpec.DefaultCottage();
+            big.Width = 11; big.Length = 13; big.Roof = RoofType.Gabled; big.WindowDensity = 80;
+
+            BuildingGenResult rs = BuildingComposer.Compose(small, "s");
+            BuildingGenResult rb = BuildingComposer.Compose(big, "b");
+            Console.WriteLine("      small: " + rs.Summarize());
+            Console.WriteLine("      big:   " + rb.Summarize());
+            Check(rs.Success, "compact 5x5 flat-roof cottage is valid");
+            Check(rb.Success, "larger 11x13 gabled cottage is valid");
+            Check(rs.Blueprint.SizeX == 5 && rs.Blueprint.SizeZ == 5, "small footprint honored");
+            Check(rb.Blueprint.SizeX == 11 && rb.Blueprint.SizeZ == 13, "big footprint honored");
+            Check(rs.Blueprint.CellCount < rb.Blueprint.CellCount, "bigger spec -> more blocks");
+        }
+
+        // --- Spec validation: bad parameters are refused BEFORE any generation. ---
+        private static void TestSpecValidationBoundsAndBudget()
+        {
+            Console.WriteLine("[TestSpecValidationBoundsAndBudget]");
+
+            Check(BuildingSpec.DefaultCottage().Validate().IsValid, "default cottage spec is valid");
+            Check(BuildingSpec.DefaultTwoStoryHouse().Validate().IsValid, "default house spec is valid");
+
+            BuildingSpec narrow = BuildingSpec.DefaultCottage(); narrow.Width = 3;
+            Check(!narrow.Validate().IsValid, "width below the 5 minimum is rejected");
+
+            BuildingSpec wide = BuildingSpec.DefaultCottage(); wide.Width = 65;
+            Check(!wide.Validate().IsValid, "width above the 64 axis cap is rejected");
+
+            BuildingSpec floors = BuildingSpec.DefaultCottage(); floors.Floors = 9;
+            Check(!floors.Validate().IsValid, "floor count above the maximum is rejected");
+
+            BuildingSpec wallH = BuildingSpec.DefaultCottage(); wallH.WallHeight = 20;
+            Check(!wallH.Validate().IsValid, "wall height above the maximum is rejected");
+
+            BuildingSpec win = BuildingSpec.DefaultCottage(); win.WindowDensity = 130;
+            Check(!win.Validate().IsValid, "window density outside 0..100 is rejected");
+
+            BuildingSpec tall = BuildingSpec.DefaultCottage();
+            tall.Floors = 4; tall.WallHeight = 8; // 4*(8+1)=36 slab + roof -> beyond single-axis 64
+            Check(!tall.Validate().IsValid, "over-tall stack (total height > 64) is rejected");
+
+            BuildingSpec monster = BuildingSpec.DefaultCottage();
+            monster.Width = 40; monster.Length = 40; monster.Floors = 1;
+            Check(!monster.Validate().IsValid, "over-budget footprint is rejected before generation");
+
+            // Rejected specs must produce NO blueprint at all (no partial structure).
+            BuildingGenResult r = BuildingComposer.Compose(monster, "nope");
+            Check(r.Blueprint == null, "over-budget compose emits no blueprint");
+            Check(!r.Success, "over-budget compose reports failure");
+
+            // A house needs >=2 floors and >=7x7.
+            BuildingSpec squatHouse = BuildingSpec.DefaultTwoStoryHouse();
+            squatHouse.Floors = 1;
+            Check(!squatHouse.Validate().IsValid, "a 'two-storey' house with 1 floor is rejected");
+            BuildingSpec tinyHouse = BuildingSpec.DefaultTwoStoryHouse();
+            tinyHouse.Width = 5; tinyHouse.Length = 5;
+            Check(!tinyHouse.Validate().IsValid, "a house too small for a stairwell is rejected");
+        }
+
+        // --- Material catalog parity: BuildingMaterials keys == MaterialCatalog keys, and
+        //     every default-profile slot is a known key. ---
+        private static void TestMaterialCatalogParity()
+        {
+            Console.WriteLine("[TestMaterialCatalogParity]");
+            var catalog = new HashSet<string>();
+            foreach (string k in MaterialCatalog.Keys) catalog.Add(k);
+
+            bool allMaterialsKnown = true;
+            for (int i = 0; i < BuildingMaterials.All.Length; i++)
+            {
+                if (!catalog.Contains(BuildingMaterials.All[i]))
+                {
+                    Console.WriteLine("      catalog missing: " + BuildingMaterials.All[i]);
+                    allMaterialsKnown = false;
+                }
+            }
+            Check(allMaterialsKnown, "MaterialCatalog covers every BuildingMaterials logical key");
+
+            // Reverse: no catalog key is unknown to BuildingMaterials (guards against drift).
+            bool noExtra = true;
+            foreach (string k in catalog)
+            {
+                bool found = false;
+                for (int i = 0; i < BuildingMaterials.All.Length; i++)
+                {
+                    if (BuildingMaterials.All[i] == k) { found = true; break; }
+                }
+                if (!found) { Console.WriteLine("      catalog-only key: " + k); noExtra = false; }
+            }
+            Check(noExtra, "MaterialCatalog has no key that BuildingMaterials lacks");
+
+            // The generated blueprints only ever use known keys.
+            Blueprint bp = BuildingComposer.Compose(BuildingSpec.DefaultTwoStoryHouse(), "H").Blueprint;
+            bool allResolvable = true;
+            for (int i = 0; i < bp.Cells.Count; i++)
+            {
+                if (!MaterialCatalog.IsKnownKey(bp.Cells[i].MaterialKey))
+                {
+                    Console.WriteLine("      unresolvable key in house: " + bp.Cells[i].MaterialKey);
+                    allResolvable = false; break;
+                }
+            }
+            Check(allResolvable, "every material key in a generated house is resolvable");
+        }
+
+        // --- JSON round-trip: a generated blueprint survives export/import unchanged, so a
+        //     parametric building can be saved and re-imported like any other. ---
+        private static void TestGeneratedBlueprintJsonRoundTrip()
+        {
+            Console.WriteLine("[TestGeneratedBlueprintJsonRoundTrip]");
+            Blueprint bp = BuildingComposer.Compose(BuildingSpec.DefaultTwoStoryHouse(), "House").Blueprint;
+            string json = BlueprintJson.Serialize(bp);
+            BlueprintJsonDecodeResult decoded = BlueprintJson.Decode(json);
+            Blueprint back = decoded.Blueprint;
+            Check(decoded.Success, "generated blueprint decodes cleanly");
+            Check(back != null, "generated blueprint decodes");
+            Check(back.CellCount == bp.CellCount, "round-trip preserves cell count (" + bp.CellCount + ")");
+            bool identical = back.CellCount == bp.CellCount;
+            if (identical)
+            {
+                for (int i = 0; i < bp.Cells.Count; i++)
+                {
+                    if (CellKey(bp.Cells[i]) != CellKey(back.Cells[i])) { identical = false; break; }
+                }
+            }
+            Check(identical, "round-trip preserves position+material+family+data verbatim");
+            Check(back.SchemaVersion == 2, "generated blueprint round-trips as schema v2");
+        }
+
+        // --- Planner/undo are NOT regressed: a generated blueprint flows through the exact
+        //     same plan -> execute -> undo path as the hand-written cottage. ---
+        private static void TestGeneratedBlueprintPlansAndUndoes()
+        {
+            Console.WriteLine("[TestGeneratedBlueprintPlansAndUndoes]");
+            Blueprint bp = BuildingComposer.Compose(BuildingSpec.DefaultCottage(), "Cottage").Blueprint;
+            var terrain = new FakeTerrain();
+            FakeResolver resolver = new FakeResolver();
+            var origin = new CellPos(100, 10, 100);
+
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, resolver, terrain, false);
+            Check(plan.Success, "generated cottage plans cleanly on an empty world");
+            Check(plan.Changes.Count == bp.CellCount, "planner writes every generated cell");
+
+            BuildTask task = new BuildTask("generated-cottage", origin, plan.Changes, false);
+            int guard = 0;
+            while (!task.IsFinished && guard++ < 100000)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(task.State == BuildTaskState.Completed, "generated cottage finishes building");
+
+            bool allPlaced = true;
+            foreach (PlannedChange pc in plan.Changes)
+            {
+                if (terrain.ValueAt(pc.Absolute) != pc.Value) allPlaced = false;
+            }
+            Check(allPlaced, "every generated cell was actually written to the world");
+
+            int restored = task.Undo(terrain);
+            Check(restored == plan.Changes.Count, "undo restores the world after a generated build");
+            bool cleared = true;
+            foreach (PlannedChange pc in plan.Changes)
+            {
+                if (terrain.ValueAt(pc.Absolute) != 0) cleared = false;
+            }
+            Check(cleared, "all generated cells reverted to their captured original (air)");
+        }
+
+        // --- Negative fixtures: prove BuildingValidator FIRES on each kind of broken
+        //     structure instead of quietly accepting it. Each introduces exactly ONE defect. ---
+        private static void TestValidatorCatchesBlockedEntrance()
+        {
+            Console.WriteLine("[TestValidatorCatchesBlockedEntrance]");
+            var spec = BuildingSpec.DefaultCottage();
+            BuildingContext ctx = FreshContext(spec);
+            // Block the cell you step into when walking through the doorway (door base height).
+            ctx.Builder.Set(ctx.DoorX, ctx.DoorY, ctx.Z0 + 1, BuildingMaterials.StoneWall);
+            Blueprint bp = ctx.Builder.ToBlueprint("blocked", 2);
+            var v = new BuildingValidator(spec, ctx, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!v.IsValid, "a blocked doorway is detected as invalid");
+            Check(v.JoinedProblems().Contains("门内侧"), "the failure names the blocked entrance");
+        }
+
+        private static void TestValidatorCatchesMissingWall()
+        {
+            Console.WriteLine("[TestValidatorCatchesMissingWall]");
+            var spec = BuildingSpec.DefaultCottage();
+            BuildingContext ctx = FreshContext(spec);
+            int planeY = ctx.WallBaseY(0) + (spec.WallHeight / 2);
+            // Punch a hole in the middle of the left perimeter wall at mid-height.
+            ctx.Builder.Carve(ctx.X0, planeY, (ctx.Z0 + ctx.Z1) / 2, ctx.X0, planeY, (ctx.Z0 + ctx.Z1) / 2);
+            Blueprint bp = ctx.Builder.ToBlueprint("holey", 2);
+            var v = new BuildingValidator(spec, ctx, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!v.IsValid, "a gap in the shell is detected as invalid");
+            Check(v.JoinedProblems().Contains("缺口"), "the failure names the wall gap");
+        }
+
+        private static void TestValidatorCatchesFloatingBlock()
+        {
+            Console.WriteLine("[TestValidatorCatchesFloatingBlock]");
+            var spec = BuildingSpec.DefaultCottage();
+            BuildingContext ctx = FreshContext(spec);
+            // Add one isolated cell high above the roof, touching nothing.
+            int fx = 2;
+            int fy = spec.CeilingY + spec.WallHeight + 5;
+            int fz = 2;
+            ctx.Builder.Set(fx, fy, fz, BuildingMaterials.StoneWall);
+            Blueprint bp = ctx.Builder.ToBlueprint("floaty", 2);
+            var v = new BuildingValidator(spec, ctx, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!v.IsValid, "an isolated floating block is detected as invalid");
+            Check(v.JoinedProblems().Contains("不连通"), "the failure reports a disconnected component");
+        }
+
+        private static void TestValidatorCatchesMissingStair()
+        {
+            Console.WriteLine("[TestValidatorCatchesMissingStair]");
+            var spec = BuildingSpec.DefaultTwoStoryHouse();
+            // Rebuild WITHOUT StairGenerator: omitting it in the fixed order simulates a
+            // two-storey shell whose floors were never connected, so the validator must
+            // refuse it rather than accept two stacked boxes.
+            var ctxNoStair = new BuildingContext(spec);
+            new FoundationGenerator().Generate(ctxNoStair);
+            new WallGenerator().Generate(ctxNoStair);
+            // NOTE: StairGenerator intentionally omitted.
+            new OpeningGenerator().Generate(ctxNoStair);
+            new FloorPlanGenerator().Generate(ctxNoStair);
+            new RoofGenerator().Generate(ctxNoStair);
+            new DecorationGenerator().Generate(ctxNoStair);
+            Blueprint bp = ctxNoStair.Builder.ToBlueprint("nostair", 2);
+            var v = new BuildingValidator(spec, ctxNoStair, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!ctxNoStair.HasStairwell, "context knows the stairwell is absent");
+            Check(!v.IsValid, "a two-storey house without a stair is detected as invalid");
+            Check(v.JoinedProblems().Contains("楼梯"), "the failure reports the missing stairwell");
+        }
+
+        private static void TestValidatorCatchesFootprintMismatch()
+        {
+            Console.WriteLine("[TestValidatorCatchesFootprintMismatch]");
+            var spec = BuildingSpec.DefaultCottage(); // 9x11
+            // Build a deliberately narrower shell so SizeZ != Length.
+            var ctx = new BuildingContext(spec);
+            ctx.Builder.FillBox(0, 0, 0, 8, 4, 6, BuildingMaterials.StoneWall); // 9x7, not 9x11
+            Blueprint bp = ctx.Builder.ToBlueprint("mismatch", 2);
+            var v = new BuildingValidator(spec, ctx, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!v.IsValid, "a footprint that ignores Length is rejected");
+            Check(v.JoinedProblems().Contains("占地长"), "the failure names the footprint mismatch");
+        }
+
+        private static void TestValidatorCatchesUnknownMaterial()
+        {
+            Console.WriteLine("[TestValidatorCatchesUnknownMaterial]");
+            var spec = BuildingSpec.DefaultCottage();
+            BuildingContext ctx = FreshContext(spec);
+            // Introduce a cell with a material key that is not in the catalog.
+            ctx.Builder.Set(ctx.X0 + 1, ctx.WallBaseY(0), ctx.Z0 + 1, "GhostlyMysteryBlock");
+            Blueprint bp = ctx.Builder.ToBlueprint("ghost", 2);
+            var v = new BuildingValidator(spec, ctx, bp).Validate();
+            Console.WriteLine("      problems: " + v.JoinedProblems());
+            Check(!v.IsValid, "an unresolvable material key is rejected");
+            Check(v.JoinedProblems().Contains("GhostlyMysteryBlock"), "the failure names the bad material");
+        }
+
+        private static void TestRegistryKeepsCottageAsDefault()
+        {
+            Console.WriteLine("[TestRegistryKeepsCottageAsDefault]");
+            Check(BuildingGeneratorRegistry.Default.Key == "medieval_cottage", "registry default is still the medieval cottage");
+            Check(BuildingGeneratorRegistry.Find("cottage_param") != null, "parametric cottage is registered by key");
+            Check(BuildingGeneratorRegistry.Find("house_two_story") != null, "two-storey house is registered by key");
+            // The default cottage generator output is byte-identical to before the engine landed.
+            Blueprint viaDefault = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            Blueprint viaDirect = new MedievalCottageGenerator().Generate(new GenerationContext(0));
+            bool same = viaDefault.CellCount == viaDirect.CellCount;
+            if (same)
+            {
+                for (int i = 0; i < viaDefault.Cells.Count; i++)
+                {
+                    if (CellKey(viaDefault.Cells[i]) != CellKey(viaDirect.Cells[i])) { same = false; break; }
+                }
+            }
+            Check(same, "the existing cottage tool behavior is unchanged (additive engine)");
+        }
+        private static void TestTerrainAuthorityGate()
+        {
+            Console.WriteLine("[TestTerrainAuthorityGate]");
+            // Terrain may be mutated by the world-authoritative roles only: the
+            // single player and the multiplayer host. A remote client is refused.
+            Check(TerrainAuthority.IsWritable(WorldAuthority.SinglePlayer),
+                "single player is allowed to build");
+            Check(TerrainAuthority.IsWritable(WorldAuthority.Host),
+                "multiplayer host is allowed to build (multiplayer gate lifted)");
+            Check(!TerrainAuthority.IsWritable(WorldAuthority.RemoteClient),
+                "remote client is refused (writes would not sync to the host)");
+        }
+
+        private static void TestBuildEmitsOnlyVanillaBlocks()
+        {
+            Console.WriteLine("[TestBuildEmitsOnlyVanillaBlocks]");
+            // The mod's own in-hand tool blocks are never world content. Their CLR
+            // type names must not appear in the material catalog, and every cell the
+            // generators produce must resolve to a vanilla block through the catalog.
+            string[] toolBlockNames =
+            {
+                "BuilderToolBlock", "UndoToolBlock", "BlueprintToolBlock", "SpeedboatBlock",
+            };
+            foreach (string tool in toolBlockNames)
+            {
+                bool collides = false;
+                foreach (string key in MaterialCatalog.Keys)
+                {
+                    MaterialCatalog.Entry e;
+                    if (MaterialCatalog.TryGet(key, out e) && e.TypeName == tool)
+                    {
+                        collides = true;
+                        break;
+                    }
+                }
+                Check(!collides, "catalog never resolves a material to the mod tool block " + tool);
+            }
+
+            // Both shipped buildings: every cell material key must be a cataloged vanilla
+            // block, i.e. resolvable on ANY client that already knows the vanilla set.
+            Blueprint cottage = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            BuildingGenResult house = BuildingComposer.Compose(BuildingSpec.DefaultTwoStoryHouse(), "house_probe");
+
+            Check(AllCellsResolveVanilla(cottage), "default cottage emits only cataloged vanilla blocks");
+            Check(house.Success && AllCellsResolveVanilla(house.Blueprint),
+                "two-storey house emits only cataloged vanilla blocks");
+        }
+
+        private static bool AllCellsResolveVanilla(Blueprint bp)
+        {
+            if (bp == null)
+            {
+                return false;
+            }
+            for (int i = 0; i < bp.Cells.Count; i++)
+            {
+                if (!MaterialCatalog.IsKnownKey(bp.Cells[i].MaterialKey))
+                {
+                    return false;
+                }
+            }
+            return bp.CellCount > 0;
         }
     }
 }

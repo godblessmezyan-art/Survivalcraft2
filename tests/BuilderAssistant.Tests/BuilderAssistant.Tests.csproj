@@ -14,6 +14,7 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\CellPos.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\WorldBounds.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\BuildSafetyLimits.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Safety\TerrainAuthority.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlockOrientation.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintCell.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\Blueprint.cs" />
@@ -37,5 +38,27 @@
     <Compile Include="..\..\src\BuilderAssistant\Features\Generators\IBuildingGenerator.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Features\Generators\BuildingGeneratorRegistry.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Features\Generators\MedievalCottageGenerator.cs" />
+    <!-- Parametric generation engine (game-free Core/Building + adapters). The whole
+         BuildingSpec -> BuildingComposer -> Blueprint pipeline and its validator run here
+         with no Survivalcraft.dll, which is exactly what lets us prove determinism, budget
+         rejection and structural QC offline before touching the live palette/terrain layer. -->
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingEnums.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\DeterministicRandom.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\MaterialCatalog.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\MaterialProfile.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingSpec.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingContext.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\IBuildingComponent.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\FoundationGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\WallGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\StairGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\OpeningGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\FloorPlanGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\RoofGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\DecorationGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingValidator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingComposer.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\ParametricCottageGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Features\Generators\TwoStoryHouseGenerator.cs" />
   </ItemGroup>
 </Project>
