@@ -7,6 +7,7 @@ using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Json;
 using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Core.Transactions;
+using BuilderAssistant.Core.Workbench;
 using BuilderAssistant.Features.Generators;
 
 namespace BuilderAssistant.Tests
@@ -305,6 +306,21 @@ namespace BuilderAssistant.Tests
             // pipeline only ever emits vanilla blocks that non-mod clients already know.
             TestTerrainAuthorityGate();
             TestBuildEmitsOnlyVanillaBlocks();
+
+            // v0.11.0 Visual Building Workbench: the pure state machine + read-only footprint
+            // preview + confirmation/authority gates, proven entirely offline.
+            TestWorkbenchSelectAndGenerate();
+            TestWorkbenchSelectionCatalog();
+            TestWorkbenchSeedDeterminism();
+            TestWorkbenchRotationFourTurnsIdentity();
+            TestWorkbenchComplexOrientationRotates();
+            TestWorkbenchPreviewAreaEqualsBuildArea();
+            TestWorkbenchNoTerrainWriteDuringPreview();
+            TestWorkbenchParamChangeInvalidatesConfirmation();
+            TestWorkbenchRejectsWhenTerrainChangedBeforeBuild();
+            TestWorkbenchInvalidParamKeepsPreviousValidBuilding();
+            TestWorkbenchCancelRestores();
+            TestWorkbenchAuthorityGateNotRegressed();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -2270,6 +2286,261 @@ namespace BuilderAssistant.Tests
                 }
             }
             return bp.CellCount > 0;
+        }
+
+        // ==================== v0.11.0 Visual Building Workbench (pure) ====================
+
+        private static int BlueprintSignature(Blueprint bp)
+        {
+            unchecked
+            {
+                int h = 17;
+                foreach (BlueprintCell c in bp.Cells)
+                {
+                    h = h * 31 + c.Relative.X;
+                    h = h * 31 + c.Relative.Y;
+                    h = h * 31 + c.Relative.Z;
+                    h = h * 31 + (c.MaterialKey == null ? 0 : c.MaterialKey.GetHashCode());
+                    h = h * 31 + (int)c.Family;
+                    h = h * 31 + c.Data;
+                }
+                return h;
+            }
+        }
+
+        private static BuildingWorkbench NewWorkbench(out BuildingSelectionService svc)
+        {
+            svc = new BuildingSelectionService();
+            return new BuildingWorkbench(svc);
+        }
+
+        private static void TestWorkbenchSelectAndGenerate()
+        {
+            Console.WriteLine("[TestWorkbenchSelectAndGenerate]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            Check(wb.Stage == WorkbenchStage.Idle, "starts Idle");
+            WorkbenchStatus sel = wb.SelectFirst();
+            Check(sel.Accepted && wb.Choice != null && wb.Draft != null, "SelectFirst chooses the cottage and seeds a spec");
+            WorkbenchStatus gen = wb.Regenerate();
+            Check(gen.Accepted && wb.CurrentBlueprint != null && wb.CurrentBlueprint.CellCount > 0,
+                "Regenerate produces a real blueprint via the unchanged engine");
+            Check(wb.NeedsRegenerate == false, "after generate the draft is no longer dirty");
+        }
+
+        private static void TestWorkbenchSelectionCatalog()
+        {
+            Console.WriteLine("[TestWorkbenchSelectionCatalog]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            Check(svc.Choices.Count == 2, "parametric catalog offers cottage + house (no imported yet)");
+            Check(wb.SelectFirst().Accepted && wb.Choice.Kind == BuildingChoiceKind.Cottage, "first choice is the cottage");
+            WorkbenchStatus next = wb.SelectNextChoice();
+            Check(next.Accepted && wb.Choice.Kind == BuildingChoiceKind.House, "cycling advances to the house");
+            // Importing adds a third, read-only choice.
+            Blueprint imported = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            svc.SetImportedBlueprint(imported);
+            Check(svc.Choices.Count == 3, "an imported blueprint appears as a third choice once loaded");
+            wb.SelectNextChoice();
+            Check(wb.Choice != null && wb.Choice.Kind == BuildingChoiceKind.Imported, "cycling reaches the imported choice");
+            Check(wb.CycleWidth().Accepted == false, "dimension knobs are refused for an imported blueprint");
+        }
+
+        private static void TestWorkbenchSeedDeterminism()
+        {
+            Console.WriteLine("[TestWorkbenchSeedDeterminism]");
+            BuildingSelectionService s1, s2;
+            BuildingWorkbench a = new BuildingWorkbench(s1 = new BuildingSelectionService());
+            BuildingWorkbench b = new BuildingWorkbench(s2 = new BuildingSelectionService());
+            a.SelectFirst(); b.SelectFirst();
+            a.Regenerate(); b.Regenerate();
+            Check(a.CurrentBlueprint.CellCount == b.CurrentBlueprint.CellCount &&
+                  BlueprintSignature(a.CurrentBlueprint) == BlueprintSignature(b.CurrentBlueprint),
+                "same (spec, seed) reproduces a byte-identical blueprint through the workbench");
+            WorkbenchStatus vs = a.CycleSeedVariant();
+            a.Regenerate();
+            Check(vs.Accepted && a.CurrentBlueprint != null &&
+                  BlueprintSignature(a.CurrentBlueprint) != BlueprintSignature(b.CurrentBlueprint),
+                "a different seed yields a different (but still valid) layout");
+        }
+
+        private static void TestWorkbenchRotationFourTurnsIdentity()
+        {
+            Console.WriteLine("[TestWorkbenchRotationFourTurnsIdentity]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate();
+            Blueprint e0 = wb.EffectiveBlueprint();
+            int sig0 = BlueprintSignature(e0);
+            wb.RotateCw();
+            Blueprint e1 = wb.EffectiveBlueprint();
+            Check(e1.SizeX == e0.SizeZ && e1.SizeZ == e0.SizeX && e1.CellCount == e0.CellCount,
+                "one quarter turn swaps the footprint axes and preserves the block count");
+            Check(BlueprintSignature(e1) != sig0, "a rotated non-square footprint genuinely differs");
+            wb.RotateCw(); wb.RotateCw(); wb.RotateCw(); // three more -> back to rot0
+            Blueprint e4 = wb.EffectiveBlueprint();
+            Check(wb.Rotation == 0 && BlueprintSignature(e4) == sig0,
+                "four clockwise quarter turns return to the exact original footprint (group law)");
+        }
+
+        private static void TestWorkbenchComplexOrientationRotates()
+        {
+            Console.WriteLine("[TestWorkbenchComplexOrientationRotates]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate();
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            CellPos origin = new CellPos(0, 1, 0);
+            BuildPreviewModel m0;
+            wb.PreviewAt(origin, fake, res, out m0);
+            Check(m0 != null && m0.HasDoor, "the parametric cottage has a main door to orient");
+            string l0 = m0.DoorFacingLabel;
+            wb.RotateCw();
+            BuildPreviewModel m1;
+            wb.PreviewAt(origin, fake, res, out m1);
+            Check(m1.HasDoor && m1.DoorFacingLabel != l0,
+                "rotating the blueprint rotates the authored door facing with it");
+            wb.RotateCw(); wb.RotateCw(); wb.RotateCw();
+            BuildPreviewModel m4;
+            wb.PreviewAt(origin, fake, res, out m4);
+            Check(m4.DoorFacingLabel == l0, "the door facing returns to its original direction after four turns");
+        }
+
+        private static void TestWorkbenchPreviewAreaEqualsBuildArea()
+        {
+            Console.WriteLine("[TestWorkbenchPreviewAreaEqualsBuildArea]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate();
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            CellPos origin = new CellPos(0, 1, 0);
+            BuildPreviewModel m;
+            WorkbenchStatus st = wb.PreviewAt(origin, fake, res, out m);
+            Blueprint eff = wb.EffectiveBlueprint();
+            BuildPlan plan = BuildPlanner.Plan(eff, origin, res, fake, false, false);
+            Check(st.Accepted && m.Allowed && plan.Success, "a clear-air footprint previews as allowed");
+            Check(m.MatchesBuildEnvelope(eff, plan.Changes.Count),
+                "preview area/size/cell-count/planned-writes all equal the eventual build envelope");
+            Check(m.PlannedWriteCount == eff.CellCount && m.FootprintArea == eff.SizeX * eff.SizeZ,
+                "every blueprint cell is one planned write over clear ground");
+        }
+
+        private static void TestWorkbenchNoTerrainWriteDuringPreview()
+        {
+            Console.WriteLine("[TestWorkbenchNoTerrainWriteDuringPreview]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            wb.SelectFirst(); wb.Regenerate();
+            BuildPreviewModel m;
+            wb.PreviewAt(new CellPos(0, 1, 0), fake, res, out m);
+            BuildStartDescriptor d;
+            wb.TryBeginBuild(WorldAuthority.SinglePlayer, fake, res, out d);
+            Check(fake.Writes == 0,
+                "select -> configure -> generate -> preview -> pre-build gate NEVER writes terrain");
+        }
+
+        private static void TestWorkbenchParamChangeInvalidatesConfirmation()
+        {
+            Console.WriteLine("[TestWorkbenchParamChangeInvalidatesConfirmation]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            wb.SelectFirst(); wb.Regenerate();
+            BuildPreviewModel m;
+            wb.PreviewAt(new CellPos(0, 1, 0), fake, res, out m);
+            BuildStartDescriptor before;
+            Check(wb.TryBeginBuild(WorldAuthority.SinglePlayer, fake, res, out before).Accepted,
+                "an untouched confirmation is accepted");
+            wb.CycleWidth(); // changes the structure AFTER preview
+            BuildStartDescriptor after;
+            WorkbenchStatus gated = wb.TryBeginBuild(WorldAuthority.SinglePlayer, fake, res, out after);
+            Check(!gated.Accepted && gated.Reason.Contains("失效"),
+                "a parameter change after preview invalidates the confirmation and refuses the build");
+            Check(fake.Writes == 0, "the stale confirmation was refused without any terrain write");
+        }
+
+        private static void TestWorkbenchRejectsWhenTerrainChangedBeforeBuild()
+        {
+            Console.WriteLine("[TestWorkbenchRejectsWhenTerrainChangedBeforeBuild]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            CellPos origin = new CellPos(0, 1, 0);
+            wb.SelectFirst(); wb.Regenerate();
+            BuildPreviewModel m;
+            wb.PreviewAt(origin, fake, res, out m);
+            Check(m.Allowed, "footprint is clear at preview time");
+            // A player block appears in the footprint AFTER the preview but before confirming.
+            Blueprint eff = wb.EffectiveBlueprint();
+            CellPos occupied = origin.Add(eff.Cells[0].Relative);
+            fake.Occupy(occupied, 777);
+            BuildStartDescriptor d;
+            WorkbenchStatus gated = wb.TryBeginBuild(WorldAuthority.SinglePlayer, fake, res, out d);
+            Check(!gated.Accepted && gated.Reason.Contains("已变化"),
+                "the pre-build re-plan against current terrain rejects a footprint that was occupied after preview");
+            Check(fake.Writes == 0, "nothing was written when the build was refused");
+        }
+
+        private static void TestWorkbenchInvalidParamKeepsPreviousValidBuilding()
+        {
+            Console.WriteLine("[TestWorkbenchInvalidParamKeepsPreviousValidBuilding]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate();
+            Blueprint captured = wb.CurrentBlueprint;
+            Check(captured != null, "a valid cottage exists before the bad edit");
+            // Push parameters past the per-transaction budget (13x13, 3 floors, wall height 5).
+            wb.CycleWidth(); wb.CycleWidth();   // 9 -> 11 -> 13
+            wb.CycleLength();                   // 11 -> 13
+            wb.CycleFloors(); wb.CycleFloors(); // 1 -> 2 -> 3
+            wb.CycleWallHeight();               // 4 -> 5
+            WorkbenchStatus gen = wb.Regenerate();
+            Check(!gen.Accepted, "an over-budget spec is refused with a reason");
+            Check(wb.CurrentBlueprint == captured && wb.CurrentBlueprint.CellCount == captured.CellCount,
+                "the previous valid building is preserved verbatim on rejection (no partial overwrite)");
+        }
+
+        private static void TestWorkbenchCancelRestores()
+        {
+            Console.WriteLine("[TestWorkbenchCancelRestores]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate();
+            wb.CommitApplied();
+            Blueprint captured = wb.CurrentBlueprint;
+            int w0 = wb.Draft.Width;
+            wb.CycleWidth();
+            Check(wb.Draft.Width != w0, "the width knob changed the draft");
+            WorkbenchStatus cancel = wb.Cancel();
+            Check(cancel.Accepted && wb.Draft.Width == w0 && wb.CurrentBlueprint == captured,
+                "Cancel restores the last confirmed building and its parameters");
+        }
+
+        private static void TestWorkbenchAuthorityGateNotRegressed()
+        {
+            Console.WriteLine("[TestWorkbenchAuthorityGateNotRegressed]");
+            BuildingSelectionService svc;
+            BuildingWorkbench wb = NewWorkbench(out svc);
+            FakeTerrain fake = new FakeTerrain();
+            FakeResolver res = new FakeResolver();
+            wb.SelectFirst(); wb.Regenerate();
+            BuildPreviewModel m;
+            wb.PreviewAt(new CellPos(0, 1, 0), fake, res, out m);
+            BuildStartDescriptor d;
+            WorkbenchStatus client = wb.TryBeginBuild(WorldAuthority.RemoteClient, fake, res, out d);
+            Check(!client.Accepted && client.Reason.Contains("权限") && d == null,
+                "a remote client is refused the workbench build (authority not regressed)");
+            WorkbenchStatus host = wb.TryBeginBuild(WorldAuthority.Host, fake, res, out d);
+            Check(host.Accepted && d != null && d.Blueprint != null,
+                "the multiplayer host is allowed to confirm the build");
+            WorkbenchStatus sp = wb.TryBeginBuild(WorldAuthority.SinglePlayer, fake, res, out d);
+            Check(sp.Accepted && d != null, "single player is allowed to confirm the build");
         }
     }
 }

@@ -3,6 +3,7 @@ using BuilderAssistant.Core;
 using BuilderAssistant.Core.Blueprints;
 using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Safety;
+using BuilderAssistant.Core.Workbench;
 using BuilderAssistant.Features.Generators;
 using BuilderAssistant.Infrastructure;
 using Engine;
@@ -154,6 +155,10 @@ namespace BuilderAssistant.Features.WorldEdit
             _blueprintCursor = -1;
             _blueprintPathShown = false;
             _lastClipboardImportHash = 0;
+
+            // Reset the v0.11 guided workbench session too: a fresh world starts the
+            // Visual Building Workbench at its first step with no stale preview.
+            WorkbenchSession.Reset();
         }
 
         /// <summary>
@@ -1039,6 +1044,82 @@ namespace BuilderAssistant.Features.WorldEdit
             {
                 Notify(gui, "粘贴朝向已设为 " + _clipboardRotation * 90 + "°。");
             }
+        }
+
+        // ==================== v0.11 VISUAL BUILDING WORKBENCH SURFACE ====================
+        // These are the ONLY game-side hooks the guided workbench needs. They deliberately
+        // expose read-only / reuse-existing-path operations and add NO second execution
+        // pipeline: the workbench brain is the game-free Core/Workbench state machine, and
+        // any build it confirms is fed back through the SAME BeginBuildBlueprint ->
+        // PlanAndStart -> BuildTask/undo path the manual tools already use, so every
+        // AGENTS safety rule (bounds, 1024/32/64 caps, no-overwrite, chunk-readiness,
+        // bounded stall, main-thread-only batched writes, edit-aware undo) applies verbatim.
+
+        /// <summary>
+        /// The live material palette, offered as the read-only resolver the workbench uses to
+        /// compose its footprint preview. Null before <see cref="Initialize"/> has run, in
+        /// which case the session refuses to preview until the world is ready.
+        /// </summary>
+        internal static VanillaBlockPalette Palette
+        {
+            get { return _palette; }
+        }
+
+        /// <summary>
+        /// The current clipboard blueprint (from a live copy or an imported JSON), surfaced so
+        /// the workbench can offer it as its read-only "Imported" choice. Null when empty. The
+        /// workbench applies its OWN rotation on top, so it must be handed the base blueprint.
+        /// </summary>
+        internal static Blueprint ClipboardBlueprint
+        {
+            get { return _clipboard; }
+        }
+
+        /// <summary>
+        /// True while a build is executing or a chunk-readiness wait is in flight. The
+        /// workbench refuses to preview or confirm during this window so it can never
+        /// clobber an in-progress task or interleave two builds.
+        /// </summary>
+        internal static bool IsBusy
+        {
+            get { return (_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0; }
+        }
+
+        /// <summary>The live world authority, classified into the game-free enum the workbench gate understands.</summary>
+        internal static WorldAuthority CurrentAuthority()
+        {
+            return MapAuthority(Game.NetWork.CommonLib.WorkType);
+        }
+
+        /// <summary>
+        /// Drop-point origin for a blueprint aimed at <paramref name="surface"/>. This is the
+        /// SAME arithmetic the manual build/paste path uses (see <see cref="ComputeOrigin(Blueprint, CellPos)"/>),
+        /// reused verbatim so the workbench's preview anchor and its eventual build anchor can
+        /// never diverge.
+        /// </summary>
+        internal static CellPos WorkbenchOriginFor(Blueprint blueprint, CellPos surface)
+        {
+            return ComputeOrigin(blueprint, surface);
+        }
+
+        /// <summary>
+        /// Hand a workbench-confirmed build to the existing execution pipeline. The descriptor
+        /// already passed the pure gate (authority + preview-valid + re-planned against current
+        /// terrain). Here we still run it through the full <see cref="BeginBuildBlueprint"/>
+        /// pre-flight (unresolvable-material scan) and <see cref="PlanAndStart"/> so the
+        /// authoritative terrain re-check, bounded chunk wait, clear-soft re-confirm and undo
+        /// recording are all identical to a manual paste. The workbench adds no shortcuts.
+        /// </summary>
+        internal static void WorkbenchBeginBuild(ComponentMiner miner, ComponentGui gui, BuildStartDescriptor descriptor)
+        {
+            if (descriptor == null || descriptor.Blueprint == null)
+            {
+                Notify(gui, "工作台没有可建造的蓝图。");
+                return;
+            }
+            _clearSoftArmed = descriptor.ClearSoftObstructions;
+            _hasPending = false;
+            BeginBuildBlueprint(miner, gui, descriptor.Blueprint, descriptor.Origin);
         }
 
         /// <summary>

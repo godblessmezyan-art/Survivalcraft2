@@ -60,5 +60,14 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\Building\BuildingComposer.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Features\Generators\ParametricCottageGenerator.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Features\Generators\TwoStoryHouseGenerator.cs" />
+    <!-- Visual Building Workbench (v0.11.0): pure, game-independent state machine + footprint
+         preview + selection catalog. Everything here is unit-testable offline because it only
+         touches Core abstractions (BuildingSpec/Composer, BuildPlanner, ITerrainGateway), never
+         the game assembly. The device-side dialog/render layer is separate and 待验证. -->
+    <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildPreviewModel.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildPreviewComposer.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildingSelectionService.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\WorkbenchStage.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildingWorkbench.cs" />
   </ItemGroup>
 </Project>
