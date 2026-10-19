@@ -128,6 +128,21 @@ Android 翻到植物第三页及后续页面是否不再退出仍为待验证。
 v0.7.2 将飞艇改为 XDB 明确引用包内白色 PNG，并为蒸汽船、飞艇、火车和车厢设定低强度保底自发光，
 避免世界地形光照为零时成为纯黑。目标程序集编译、XDB 与包资源引用检查均已确认；Android 实机视觉结果待验证。
 
+### SCIE-Port v0.8.1 陆地 ATV 预览
+
+此项仅在 `SCIE-Port/` 独立工作树 `codex/atv-land-vehicle` 中开发，不改变 Builder Assistant。
+新增独立 `LandVehicles` 模块、项目创建的低多边形四轮 `ATV.dae`、部署物品 ID `923`、实体
+`SCIEPortATV` 及单座原生 Mount/Body/Spawn 模板。固定 x25.01.17 Windows 程序集的反射、反编译和
+net472 Release 编译确认：`ComponentBody` 提供地形/body 碰撞、重力、保存的 Velocity/ParentBody、
+接地状态及 `MaxSmoothRiseHeight`；ATV 仅在单人 `WorkType.Local`、接地且未浸水时读取触屏 `Move`，
+限制上台阶高度为 0.35 格，支持前进、后退、转向和反向刹车。它不套用船的浮力物理、不写地形，也不套用
+火车的轨道吸附。
+
+已通过 13 项纯规则测试、XDB 合并验证、固定程序集环境检查、net472 Release 0 warning/0 error 和
+`.netmod` 包资源守卫。**未启动 Windows 游戏、未在 Android 7723 实测、未进行多人联机测试**；因此
+实体生成、原生上/下车与第三人称、碰撞/台阶手感、模型渲染、保存退出重进及所有联机行为均为待验证。
+本阶段明确不支持燃料、多人与服务器权威输入同步、复杂悬挂。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。

@@ -43,6 +43,9 @@ if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found unde
 $kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
 & $dotnetPath run --project $kellyTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" }
+$atvTests = Join-Path $projectRoot 'tests\SCIEPort.LandVehicles.Tests\SCIEPort.LandVehicles.Tests.csproj'
+& $dotnetPath run --project $atvTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "ATV drive rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -109,8 +112,11 @@ try {
         'Assets/Blocks/Watercraft.csv',
         'Assets/Blocks/KellyPlants.csv',
         'Assets/Blocks/IndustrialFurniture.csv',
+        'Assets/Blocks/LandVehicles.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
+        'Assets/Database/LandVehicles.xdb',
+        'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
         'Assets/Models/Gear.dae',
@@ -125,6 +131,7 @@ try {
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
+        'Assets/Textures/ATV.png',
         'Assets/Textures/KellyExpansion.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
@@ -206,6 +213,17 @@ try {
             throw "Watercraft database references missing PNG Texture2D resource: $textureEntry"
         }
     }
+    [xml]$landVehiclesDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\LandVehicles.xdb')
+    $atvEntity = $landVehiclesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortATV']")
+    if ($null -eq $atvEntity) { throw 'LandVehicles database is missing SCIEPortATV.' }
+    $atvModel = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']")
+    $atvTexture = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']")
+    $atvStepHeight = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='MaxSmoothRiseHeight']")
+    $atvBox = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
+    if ($null -eq $atvModel -or $atvModel.Value -ne 'Models/ATV') { throw 'ATV ModelName must be Models/ATV.' }
+    if ($null -eq $atvTexture -or $atvTexture.Value -ne 'Textures/ATV') { throw 'ATV TextureOverride must be the packaged Textures/ATV.' }
+    if ($null -eq $atvStepHeight -or $atvStepHeight.Value -ne '0.35') { throw 'ATV MaxSmoothRiseHeight must stay at the audited 0.35 cells.' }
+    if ($null -eq $atvBox -or $atvBox.Value -ne '1.5,0.75,2.25') { throw 'ATV collision box must stay at the audited land-vehicle dimensions.' }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -249,6 +267,18 @@ try {
     if ((@($airshipPositions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 2778) {
         throw 'Airship.dae positions array should hold 926 vertices (2778 floats).'
     }
+
+    [xml]$atvModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\ATV.dae')
+    if ($atvModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'ATV.dae must be oriented Y_UP.'
+    }
+    foreach ($requiredNode in @('ATVBody', 'ATVWheelFrontLeft', 'ATVWheelFrontRight', 'ATVWheelRearLeft', 'ATVWheelRearRight')) {
+        if ($null -eq $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']")) {
+            throw "ATV.dae is missing required low-poly node $requiredNode."
+        }
+    }
+    $atvPositionFloats = (@($atvModelDocument.SelectSingleNode("//*[local-name()='float_array'][contains(@id,'positions-array')]").InnerText -split '\s+' | Where-Object { $_ })).Count
+    if ($atvPositionFloats -ne 24) { throw "ATV.dae should contain 8 cube positions (24 floats); found $atvPositionFloats." }
 
     [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
     if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {

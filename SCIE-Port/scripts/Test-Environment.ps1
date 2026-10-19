@@ -85,7 +85,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..922) + (995..1000))) {
+foreach ($reservedId in @((903..923) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -99,7 +99,7 @@ if (-not $componentMount.GetProperty('Rider') -or -not $componentRider.GetProper
 if (-not ($creatureSpawn.GetMethods() | Where-Object { $_.Name -eq 'SpawnCreature' })) {
     throw 'SubsystemCreatureSpawn.SpawnCreature was not found.'
 }
-foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'Velocity', 'Rotation', 'ImmersionFactor')) {
+foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'IsSmoothRiseEnabled', 'MaxSmoothRiseHeight', 'StandingOnValue', 'Velocity', 'Rotation', 'ImmersionFactor')) {
     if (-not $componentBody.GetProperty($propertyName)) {
         throw "ComponentBody.$propertyName required by the airship was not found."
     }
@@ -112,4 +112,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, Kelly plant, industrial furniture, transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, Kelly plant, industrial furniture, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'

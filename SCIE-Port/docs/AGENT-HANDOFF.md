@@ -1,7 +1,7 @@
 # SCIE-Port Agent 开发交接手册
 
 > 更新时间：2026-10-19
-> 当前移植版本：`0.7.2`
+> 当前移植版本：`0.8.1`
 
 > 工程边界：Builder Assistant 仅做自动建筑；所有获许可第三方 Mod 移植均在本目录。本版另含 Kelly Expansion 植物资源，代码位于 `Features/KellyPlants`，不得回迁到 Builder Assistant。
 > 目标游戏：Survivalcraft NET 2.4 `Net_x25.01.17`
@@ -225,6 +225,8 @@ Builder Assistant 的正常运行 XDB 也是阳性对照。真正根因是原版
 | 火车燃料、车厢编组/货箱 | 不支持 | 依赖后续工业机器、库存和父体同步链 |
 | Kelly 植物静态迁移 | 已确认 | 14 个原名、ID 903–916、资源哈希、XDB 与目标 ABI 编译均通过 |
 | Kelly 植物 Android 运行 | 待验证 | 内容加载、播种成长、生态生成、雨后蘑菇、存读档和性能待实机验证 |
+| ATV 静态/编译/打包 | 已确认 | 独立 `Features/LandVehicles`，ID 923、Y_UP 自有低模、实体 XDB、13 项离线规则测试、net472 0 warning/0 error 和包守卫通过 |
+| ATV Windows/Android/多人运行 | 待验证 | 未启动游戏或部署设备；仅单人本地物理设计，燃料、多人权威同步和悬挂均不支持 |
 
 不要用删除功能、空实现、伪造类或屏蔽异常的方式改变这些状态。
 

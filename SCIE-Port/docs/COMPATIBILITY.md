@@ -38,6 +38,11 @@ Android 或多人测试。
 | 飞艇世界贴图 | 已确认（机理/修复） | 0.7.1 中 `AirshipDrive.Load` 先写运行时白贴图、随后 `SimpleModel.Load` 以空 XDB 值覆盖为 null；0.7.2 改为 XDB 明确引用包内 `Textures/Airship.png` |
 | 载具世界黑色保底 | 已确认（编译/静态） | 蒸汽船、飞艇、火车和车厢的实体模型均设白色漫反射与低强度自发光，避免世界地形采样光接近 0 时渲染为纯黑；Android 实机待验证 |
 | 载具资源引用守卫 | 已确认（打包级） | 构建检查 Watercraft XDB 的每个自有模型/贴图都在包内；仅车厢 `Textures/Creatures/Jaguar` 明确为 x25 原版资源；拒绝任意非 PNG 的 Mod 贴图 |
+| ATV 物品与 ID 923 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 的 260 个原版方块常量完成扫描；923 未占用且与本工程 903–922、995–1000 无内部冲突。其他 Mod 的 ID 冲突仍待安装时检查 |
+| ATV 实体/XDB 合并 | 已确认 | `SCIEPortATV`、单座 Mount、Body、Spawn、Damage 和 `SCIEPortATVDrive` 通过 XDB GUID/继承完整性校验；`AutoDespawn=False` 依赖原生实体保存链 |
+| ATV 地面物理 | 已确认 | 仅在 `WorkType.Local`、原生 body 接地且未浸水时读取触屏 Move；`ComponentBody` 负责碰撞、重力和 `MaxSmoothRiseHeight=0.35` 平滑上台阶。真实手感/坡度/碰撞待验证 |
+| ATV 模型与贴图 | 已确认 | 项目创建的 `ATV.dae` 为 Y_UP，含车身与四个轮节点；`ATV.png` 是项目内白色基础纹理副本，着色由模型组件完成。Android 渲染待验证 |
+| ATV Windows/Android/联机运行 | 待验证 | 未启动 Windows 游戏或 Android 7723 客户端；本阶段明确不实现多人自定义输入同步、燃料和复杂悬挂 |
 | SCIE 工业家具 ID 917–922 | 已确认 | x25.01.17 的 260 个原生方块常量反射扫描未占用；本工程内部无重复，其他 Mod 冲突仍待安装时检查 |
 | SCIE 工业家具模型 | 已确认 | Gear、Wheel、GearMould、WheelMould、Piston 已从 Z_UP 转为 Y_UP，Cylinder 源文件本身为 Y_UP；节点名、position float 数和包内资源由构建脚本校验 |
 | SCIE 工业家具代码 | 已确认 | 六件静态可放置方块、四向 data、碰撞箱、掉落路径对 x25.01.17 Release 编译通过后方可维持此状态；不含机器语义 |
@@ -53,9 +58,12 @@ Assets/Blocks/SCIEPort.csv
 Assets/Blocks/Watercraft.csv
 Assets/Blocks/KellyPlants.csv
 Assets/Blocks/IndustrialFurniture.csv
+Assets/Blocks/LandVehicles.csv
 Assets/Database/Watercraft.xdb
 Assets/Database/KellyPlants.xdb
+Assets/Database/LandVehicles.xdb
 Assets/Models/Airship.dae
+Assets/Models/ATV.dae
 Assets/Models/KellyFruits.dae
 Assets/Models/Gear.dae
 Assets/Models/GearMould.dae
@@ -68,6 +76,7 @@ Assets/Models/WheelMould.dae
 Assets/Models/Cylinder.dae
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
+Assets/Textures/ATV.png
 Assets/Textures/KellyExpansion.png
 THIRD-PARTY-NOTICES.md
 ```
