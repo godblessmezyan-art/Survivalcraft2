@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.8.3",
+  "Version": "0.9.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. ATV v0.2.1 uses a single-bone Android-safe world model, removes competing ground drag, preserves airborne momentum and enables native collision-checked one-cell smooth rise.",
+  "Description": "Authorized x25.01.17 port workspace. Includes the Android-verified ATV model and a project-created single-player T-34 style tank prototype. Tank Android runtime verification remains pending.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

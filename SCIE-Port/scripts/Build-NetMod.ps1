@@ -46,6 +46,9 @@ if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" 
 $atvTests = Join-Path $projectRoot 'tests\SCIEPort.LandVehicles.Tests\SCIEPort.LandVehicles.Tests.csproj'
 & $dotnetPath run --project $atvTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "ATV drive rule tests failed: $LASTEXITCODE" }
+$tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
+& $dotnetPath run --project $tankTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -113,9 +116,11 @@ try {
         'Assets/Blocks/KellyPlants.csv',
         'Assets/Blocks/IndustrialFurniture.csv',
         'Assets/Blocks/LandVehicles.csv',
+        'Assets/Blocks/Tanks.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
+        'Assets/Database/Tanks.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -128,11 +133,13 @@ try {
         'Assets/Models/Cylinder.dae',
         'Assets/Models/Minecart.dae',
         'Assets/Models/SteamBoat.dae',
+        'Assets/Models/T34Tank.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
         'Assets/Textures/ATV.png',
-        'Assets/Textures/KellyExpansion.png'
+        'Assets/Textures/KellyExpansion.png',
+        'Assets/Textures/T34Tank.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -224,6 +231,20 @@ try {
     if ($null -eq $atvTexture -or $atvTexture.Value -ne 'Textures/ATV') { throw 'ATV TextureOverride must be the packaged Textures/ATV.' }
     if ($null -eq $atvStepHeight -or $atvStepHeight.Value -ne '1.05') { throw 'ATV MaxSmoothRiseHeight must provide the audited one-cell clearance of 1.05 cells.' }
     if ($null -eq $atvBox -or $atvBox.Value -ne '1.7,1.15,2.1') { throw 'ATV collision box must cover the complete rebuilt model at 1.7,1.15,2.1.' }
+    [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
+    $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
+    if ($null -eq $tankEntity) { throw 'Tank database is missing SCIEPortT34Tank.' }
+    foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body', 'Damage')) {
+        if ($null -eq $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$requiredTankComponent']")) {
+            throw "Tank entity is missing component: $requiredTankComponent"
+        }
+    }
+    $tankModel = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']")
+    $tankTexture = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']")
+    $tankStep = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='MaxSmoothRiseHeight']")
+    if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '0.3') {
+        throw 'Tank entity model, texture or ground-step parameters are not the audited values.'
+    }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -358,6 +379,16 @@ try {
         if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
     }
     finally { $atvBitmap.Dispose() }
+
+    [xml]$tankModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\T34Tank.dae')
+    if ($tankModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'T34Tank.dae must be oriented Y_UP.'
+    }
+    foreach ($tankMeshName in @('TankHull', 'TankTurret', 'TankGun')) {
+        if ($null -eq $tankModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$tankMeshName']")) {
+            throw "T34Tank.dae is missing required node $tankMeshName."
+        }
+    }
 
     [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
     if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {

@@ -158,3 +158,30 @@ ATV 没有复用 `ComponentBoat`：该组件的推进、浮力和水面转向语
 `StandingOnValue` 表示地形支撑，`StandingOnBody` 表示实体支撑。v0.2 只有前者且后者为空时才施加
 驱动力；两者都为空时保留水平惯性，由原生重力和空气阻力处理。这样短暂离地不再触发 v0.1 的
 `7 * dt` 强制水平刹停，也不会借站在其它实体上获得越障推进。
+## 0.8.1 坦克地面载具接口审计
+
+坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail
+模块的强制轨道居中或姿态覆盖。对固定目标程序集 `Net_x25.01.17`（本文件开头的三份
+SHA-256）实际反射，并以 net472 Release 绑定验证的接口如下：
+
+| 目标接口 | 实际用途 | 状态 |
+|---|---|---|
+| `SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool)` | 放置物品生成 `SCIEPortT34Tank` 实体 | 已确认 |
+| `ComponentMount.Rider` / `ComponentRider.Mount` | 识别唯一原生驾驶者与原生骑乘关系 | 已确认 |
+| `ComponentRider.StartDismounting()` | 深度浸水时调用原生下车流程 | 已确认 |
+| `ComponentPlayer.ComponentInput` → `ComponentInput.PlayerInput.Move` | 读取 Android 触屏映射后的前后/左右输入 | 已确认 |
+| `ComponentBody.Velocity`、`Rotation`、`Matrix` | 只施加水平驱动与车体转向，不直接写位置 | 已确认 |
+| `ComponentBody.IsGravityEnabled`、`IsGroundDragEnabled` | 交给原生物理保持重力、阻尼和地形/实体碰撞 | 已确认 |
+| `ComponentBody.IsSmoothRiseEnabled`、`MaxSmoothRiseHeight`、`StandingOnValue`、`StandingOnBody` | 仅允许 0.3 格原生平滑上坡；离地时不施加推力 | 已确认 |
+| `ComponentBody.ImmersionFactor` | 断开水面驾驶，深度浸水时下车 | 已确认 |
+| `ComponentCreatureModel.EyeRotation` | 以玩家视线初始方向放置车体 | 已确认 |
+| `ComponentModel.TextureOverride` | 引用包内 PNG，避免世界实体无纹理 | 已确认 |
+
+`ComponentBody` 是目标程序集自己的碰撞/地形解算器；本阶段不直接更新 `Position`，因此
+没有通过穿墙移动、船只水面推进或 Rail 轨道对齐来伪造地面驾驶。原生碰撞、实际坡面、
+第三人称镜头和 Android 触控操作均仍须游戏实测，不能由上述 ABI 证据推出。
+
+模板 `SCIEPortT34Tank` 使用原版 `SimpleModel`、`Spawn`、`Mount`、`Body`、`Damage` 父模板，
+并以新的 `SCIEPortTankDrive` 组件只保存 `TurretYaw`、`GunPitch`。炮塔/炮管目前只是独立
+模型节点和独立持久化状态，尚没有输入绑定或逐节点动画；这避免在第一阶段引入未经验证的
+模型骨骼、网络或武器接口。

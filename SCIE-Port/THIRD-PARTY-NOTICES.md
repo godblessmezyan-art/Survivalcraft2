@@ -85,3 +85,15 @@ invent or substitute a license grant.
 Archive the rights holder's permission text and its exact redistribution scope
 with release records before public distribution. The source Mod binary is not
 renamed or redistributed; code and database bindings are rewritten for SCNET.
+
+## SCIE-Port tank prototype assets
+
+- `Assets/Models/T34Tank.dae` is an original, project-created low-poly model,
+  authored for this port. It is not extracted from a game or a third-party
+  vehicle asset. Its required nodes are `TankHull`, `TankTurret` and `TankGun`.
+- `Assets/Textures/T34Tank.png` is a project-created opaque-white 1×1 PNG,
+  reused as a neutral material input and tinted by the tank entity's diffuse
+  color. Its SHA-256 is
+  `D5A51B6AED15684EC8C123E30FE5703155359D6543B6D7B47CB5766EF44939DE`.
+- The visual design is a generic, low-poly T-34-style silhouette; no claimed
+  manufacturer artwork, texture, sound or source-game asset is included.

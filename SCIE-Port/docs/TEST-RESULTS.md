@@ -173,3 +173,35 @@ THIRD-PARTY-NOTICES.md
 8. 若船已平放：继续蒸汽船功能实测（搜索/拿取、放置、上船、驾驶、下船、存档重载），全部通过后才可把“蒸汽船朝向修复”行从“Android 待实测”改为“已确认”。若仍竖着或躺倒方向不对（如侧翻/上下颠倒），记录实际朝向并把 `src/SCIEPort/Assets/Models/SteamBoat.dae` 与 `modinfo.json` 版本回传，据旋转方向继续调整，不提前宣称已修复。
 
 只有以上证据完成后，才能把相应运行项目从“待验证”改为“已确认”。
+
+## 0.8.1 T-34 风格坦克第一阶段（2026-10-19）
+
+### 已确认的构建/静态证据
+
+| 检查 | 结果 |
+|---|---|
+| 独立分支/工程 | `codex/t34-tank` 的独立工作树；只改 `SCIE-Port`，未改 Builder Assistant、Watercraft、Rail 或 Kelly 源码 |
+| 目标程序集 | `E:\SCNET\SCNETx25.01.17`；`Test-Environment.ps1` 校验已记录的 `Survivalcraft.exe`、`Engine.dll`、`EntitySystem.dll` SHA-256、2.4.0.0、API 1.42、SC 2.4.10.6 与 net472 |
+| 真实 ABI 守卫 | `ComponentBody` 地面物理属性、Mount/Rider/原生下车、`ComponentPlayer → ComponentInput → PlayerInput.Move`（`Move` 为目标程序集公开字段）、`ComponentCreatureModel.EyeRotation`、生成接口与模型贴图接口均通过反射检查 |
+| 纯规则测试 | `dotnet run --project tests/SCIEPort.Tanks.Tests/SCIEPort.Tanks.Tests.csproj --configuration Release --nologo`：通过；覆盖前进、倒车、松油、反向制动、两方向限速和 0.3 格台阶上限 |
+| 完整构建 | `scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release`：通过；Kelly 11 条既有规则测试、Tank 规则测试、net472 Release、全部 XDB 验证和包清单检查均通过，构建输出无 warning/error |
+| 数据库/资源 | `Tanks.xdb` 的原版文件夹 GUID、父模板、`SCIEPortT34Tank` 的 Body/Mount/Spawn/Damage/TankDrive、`T34Tank` Y_UP、`TankHull`/`TankTurret`/`TankGun` 节点、包内 PNG 均由构建脚本验证 |
+| 产物 | `artifacts/SCIEPort.netmod`，366,174 字节，SHA-256 `93A59D381563DA6F872368A04EF06F0CB5BAD5643B9C65EFFDD00CA3C536B021`；内置 `SCIEPort.dll` 版本 `0.8.1.0`；不含游戏 DLL/PDB/旧 Mod DLL |
+
+### 未进行的运行测试
+
+| 环境 | 状态 | 说明 |
+|---|---|---|
+| Windows 游戏运行 | 待验证 | 本次未启动游戏；没有生成、骑乘、第三人称、碰撞、坡度、离水、退出保存或重载的运行结论 |
+| Android 7723 | 待验证 | 本次未安装/启动手机端；Windows 编译、数据库合并和资源包检查不能证明 Android 兼容 |
+| 多人联机 | 不支持 | 本阶段仅在 `WorkType.Local` 改写驱动速度；没有服务器权威、复制、重连或纠偏实现 |
+
+### Android 7723 单人创造世界测试清单
+
+1. 备份现有包，在 `NetMods` 中只保留本轮 `SCIEPort.netmod`；冷启动游戏，确认加载信息显示 `0.8.1`。
+2. 新建可丢弃的单人创造世界，搜索 `T-34 坦克`，确认图标、名称和拿在手上的模型不黑屏、不缺资源。
+3. 对平坦固体地面使用物品，确认实体生成在地面上方、物品扣除、不会写入或覆盖地形。
+4. 靠近车体并上车；分别验证前进、倒车、左右转向、松手减速和下车，且离地/落水时不继续获得地面推力。
+5. 对 0.3 格以内小台阶、1 格墙、斜坡边缘、建筑墙和悬崖逐项测试：只应由原生 Body 碰撞/重力处理，不得穿墙、穿地或飞行。
+6. 保存退出并重进，确认实体模板、位置、车体方向及日志正常；本阶段 `TurretYaw`/`GunPitch` 只是持久化预留字段，尚无操控/动画。
+7. 若失败，回传首次 `Warning/Error` 原文、完整日志、设备型号、Android 版本、7723 客户端版本/文件指纹与复现步骤；不要仅凭后续的“Database not loaded”判断根因。

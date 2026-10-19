@@ -51,6 +51,9 @@ $componentMount = $assembly.GetType('Game.ComponentMount', $true)
 $componentRider = $assembly.GetType('Game.ComponentRider', $true)
 $componentBody = $assembly.GetType('Game.ComponentBody', $true)
 $componentModel = $assembly.GetType('Game.ComponentModel', $true)
+$componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
+$componentInput = $assembly.GetType('Game.ComponentInput', $true)
+$playerInput = $componentInput.GetProperty('PlayerInput').PropertyType
 $creatureSpawn = $assembly.GetType('Game.SubsystemCreatureSpawn', $true)
 
 if (-not $modLoader.GetMethod('__ModInitialize', [Reflection.BindingFlags]'Public,Instance')) {
@@ -85,7 +88,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..923) + (995..1000))) {
+foreach ($reservedId in @((903..924) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -96,16 +99,26 @@ if (-not $componentBoat.GetProperty('MoveOrder') -or -not $componentBoat.GetProp
 if (-not $componentMount.GetProperty('Rider') -or -not $componentRider.GetProperty('Mount')) {
     throw 'Native mount/rider API required by the steam boat was not found.'
 }
+if (-not $componentRider.GetMethod('StartDismounting', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'ComponentRider.StartDismounting required by the tank safety dismount was not found.'
+}
+if (-not $componentPlayer.GetProperty('ComponentInput') -or -not $componentPlayer.GetProperty('ComponentRider') -or -not $playerInput.GetField('Move', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'ComponentPlayer -> ComponentInput -> PlayerInput.Move chain required by the tank was not found.'
+}
 if (-not ($creatureSpawn.GetMethods() | Where-Object { $_.Name -eq 'SpawnCreature' })) {
     throw 'SubsystemCreatureSpawn.SpawnCreature was not found.'
 }
-foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'IsSmoothRiseEnabled', 'MaxSmoothRiseHeight', 'StandingOnValue', 'Velocity', 'Rotation', 'ImmersionFactor')) {
+foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'IsSmoothRiseEnabled', 'MaxSmoothRiseHeight', 'StandingOnValue', 'StandingOnBody', 'Velocity', 'Rotation', 'ImmersionFactor')) {
     if (-not $componentBody.GetProperty($propertyName)) {
         throw "ComponentBody.$propertyName required by the airship was not found."
     }
 }
 if (-not $componentModel.GetProperty('TextureOverride')) {
     throw 'ComponentModel.TextureOverride required by the airship was not found.'
+}
+$componentCreatureModel = $assembly.GetType('Game.ComponentCreatureModel', $true)
+if (-not $componentCreatureModel.GetProperty('EyeRotation')) {
+    throw 'ComponentCreatureModel.EyeRotation required by the tank spawn orientation was not found.'
 }
 
 Write-Host "SCNET: $gamePath"

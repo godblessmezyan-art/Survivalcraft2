@@ -61,6 +61,15 @@ old DAE imported as ten bones. The nine geometries now share one identity root
 bone, and the inventory path enumerates all meshes instead of relying on unique
 mesh names. Android confirmation of the rebuilt package remains pending.
 
+Version 0.9.0 adds an independently implemented, project-created low-poly T-34
+style tank prototype. It uses the native ground body, mount and rider chain
+rather than any boat physics: single-player touch input supports forward,
+reverse, hull steering, braking, gravity, collision and a conservative
+0.3-block smooth-rise limit. The hull, turret and gun are separate named model
+nodes; hull movement state and independent persisted turret/gun angle fields
+are ready for a later aiming/fire feature. There is deliberately no fuel,
+weapon, multiplayer authority or Android compatibility claim yet.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

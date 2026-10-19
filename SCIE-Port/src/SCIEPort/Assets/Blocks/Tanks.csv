@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultIconBlockOffset;DefaultIconViewOffset;DefaultIconViewScale;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;InHandOffset;InHandRotation;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsPlacementTransparent;IsGatherable;MaxStacking;DefaultDescription
+TankBlock;T-34 坦克;Items;;907;0,0,0;-0.7,0.4,-1;1;0.35;0.4,-0.4,-0.6;0,35,0;0.35;0,0,0;90,0,0;scieport-t34-tank;0;FALSE;FALSE;TRUE;TRUE;1;单座低多边形坦克原型。单人模式可前进、倒车、转向和刹车；燃料、开火、炮塔控制和多人同步尚未实现。

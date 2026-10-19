@@ -54,6 +54,12 @@ Android 或多人测试。
 | SCIE 工业家具代码 | 已确认 | 六件静态可放置方块、四向 data、碰撞箱、掉落路径对 x25.01.17 Release 编译通过后方可维持此状态；不含机器语义 |
 | SCIE 工业家具 Windows/Android 运行 | 待验证 | 创造栏、模型比例/颜色、四向放置、碰撞、拆除掉落、保存重载尚未进游戏验证 |
 | SCIE 工业家具机器/配方/库存功能 | 不支持 | 0.7.0 明确只移植静态家具外观，不伪造上游工业逻辑 |
+| T-34 坦克 ID 924 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 程序集扫描 260 个原生方块常量；924 未被原版占用，仍需安装时检查其他 Mod 冲突 |
+| T-34 实体/XDB/资源布局 | 已确认 | `Tanks.xdb` 复用原版文件夹 GUID；静态构建守卫检查实体组件、模型、纹理、0.3 格台阶限制与三处模型节点 |
+| T-34 单人地面驱动代码 | 已确认 | 仅 `WorkType.Local`；真实程序集反射检查 Mount/Rider/Input/Body/CreatureModel 所需表面，且 Release 编译通过后方可维持该状态 |
+| T-34 Windows 游戏运行 | 待验证 | 未启动游戏；生成、骑乘、触屏/键鼠驱动、碰撞、坡度、下车、视角与存档恢复均待验证 |
+| T-34 Android 7723 运行 | 待验证 | 未安装到 Android；Windows ABI/构建不能证明渠道包兼容 |
+| T-34 多人同步 | 不支持 | 第一阶段明确只在 `WorkType.Local` 驱动，未实现服务器权威输入、状态复制或纠偏 |
 
 ## 当前包布局
 
@@ -65,9 +71,11 @@ Assets/Blocks/Watercraft.csv
 Assets/Blocks/KellyPlants.csv
 Assets/Blocks/IndustrialFurniture.csv
 Assets/Blocks/LandVehicles.csv
+Assets/Blocks/Tanks.csv
 Assets/Database/Watercraft.xdb
 Assets/Database/KellyPlants.xdb
 Assets/Database/LandVehicles.xdb
+Assets/Database/Tanks.xdb
 Assets/Models/Airship.dae
 Assets/Models/ATV.dae
 Assets/Models/KellyFruits.dae
@@ -80,10 +88,12 @@ Assets/Models/Train.dae
 Assets/Models/Wheel.dae
 Assets/Models/WheelMould.dae
 Assets/Models/Cylinder.dae
+Assets/Models/T34Tank.dae
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
 Assets/Textures/ATV.png
 Assets/Textures/KellyExpansion.png
+Assets/Textures/T34Tank.png
 THIRD-PARTY-NOTICES.md
 ```
 
