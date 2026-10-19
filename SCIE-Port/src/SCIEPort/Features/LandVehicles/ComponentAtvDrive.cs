@@ -13,11 +13,14 @@ namespace SCIEPort.Features.LandVehicles
     /// </summary>
     public sealed class ComponentAtvDrive : Component, IUpdateable
     {
-        private const float TurnRate = 1.7f;
-        private const float LateralGrip = 7f;
+        private const float TurnRate = 1.55f;
+        private const float LateralGrip = 5f;
+        private const float DiagnosticPeriod = 5f;
 
         private ComponentBody m_body;
         private ComponentMount m_mount;
+        private float m_airborneTime;
+        private float m_diagnosticTime;
 
         /// <inheritdoc />
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
@@ -56,25 +59,37 @@ namespace SCIEPort.Features.LandVehicles
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
             if (player == null || player.ComponentRider != rider)
             {
-                ApplyCoastingGrip(boundedDt);
+                RestoreParkingDrag();
                 return;
             }
 
-            bool grounded = m_body.StandingOnValue.HasValue || m_body.StandingOnBody != null;
-            if (!AtvDriveRules.CanDrive(grounded, m_body.ImmersionFactor))
+            bool terrainGrounded = m_body.StandingOnValue.HasValue;
+            bool bodyGrounded = m_body.StandingOnBody != null;
+            bool supported = terrainGrounded || bodyGrounded;
+            m_airborneTime = supported ? 0f : m_airborneTime + boundedDt;
+
+            // ComponentBody applies a 6*dt ground-speed lerp after custom drive updates.
+            // Disable that competing drag only while occupied; this controller supplies
+            // deterministic longitudinal coast and frame-rate-independent lateral grip.
+            m_body.IsGroundDragEnabled = false;
+
+            Vector3 input = player.ComponentInput.PlayerInput.Move;
+            float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
+            float turn = MathUtils.Clamp(input.X, -1f, 1f);
+            if (!AtvDriveRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
             {
-                ApplyCoastingGrip(boundedDt);
                 if (m_body.ImmersionFactor >= 0.8f)
                 {
                     m_mount.Rider?.StartDismounting();
                 }
 
+                WriteDiagnostics(boundedDt, throttle, terrainGrounded, bodyGrounded,
+                    m_body.ImmersionFactor >= 0.25f ? "water-blocked" :
+                    (bodyGrounded ? "body-supported" :
+                    (AtvDriveRules.IsAirborneGrace(supported, m_airborneTime, m_body.ImmersionFactor) ? "airborne-grace" : "airborne")));
                 return;
             }
 
-            Vector3 input = player.ComponentInput.PlayerInput.Move;
-            float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
-            float turn = MathUtils.Clamp(input.X, -1f, 1f);
             Vector3 forward = m_body.Matrix.Forward;
             forward.Y = 0f;
             if (forward.LengthSquared() <= 0.0001f)
@@ -86,38 +101,59 @@ namespace SCIEPort.Features.LandVehicles
             Vector3 velocity = m_body.Velocity;
             Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
             float forwardSpeed = Vector3.Dot(horizontal, forward);
-            float acceleration = AtvDriveRules.GetLongitudinalAcceleration(forwardSpeed, throttle);
-            horizontal += forward * acceleration * boundedDt;
-            horizontal = LimitForwardAndReverseSpeed(horizontal, forward);
+            forwardSpeed = AtvDriveRules.IntegrateForwardSpeed(forwardSpeed, throttle, boundedDt);
+            Vector3 lateral = horizontal - forward * Vector3.Dot(horizontal, forward);
+            lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(LateralGrip * boundedDt));
+            horizontal = forward * forwardSpeed + lateral;
             m_body.Velocity = new Vector3(horizontal.X, velocity.Y, horizontal.Z);
 
             if (MathUtils.Abs(turn) >= 0.05f)
             {
                 float steering = AtvDriveRules.GetSteeringDirection(forwardSpeed);
+                float steeringScale = AtvDriveRules.GetSteeringScale(MathUtils.Abs(forwardSpeed));
                 m_body.Rotation *= Quaternion.CreateFromAxisAngle(
                     Vector3.UnitY,
-                    -turn * TurnRate * steering * boundedDt);
+                    -turn * TurnRate * steering * steeringScale * boundedDt);
             }
+
+            WriteDiagnostics(boundedDt, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
         }
 
-        private void ApplyCoastingGrip(float dt)
+        private void RestoreParkingDrag()
         {
+            // An unoccupied ATV uses ComponentBody's native ground drag. Airborne
+            // horizontal velocity is intentionally left intact for gravity/air drag.
+            m_body.IsGroundDragEnabled = true;
+            m_airborneTime = 0f;
+        }
+
+        private void WriteDiagnostics(
+            float dt,
+            float throttle,
+            bool terrainGrounded,
+            bool bodyGrounded,
+            string state)
+        {
+            m_diagnosticTime += dt;
+            if (m_diagnosticTime < DiagnosticPeriod)
+            {
+                return;
+            }
+
+            m_diagnosticTime = 0f;
             Vector3 velocity = m_body.Velocity;
-            Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
-            horizontal = Vector3.Lerp(horizontal, Vector3.Zero, MathUtils.Saturate(LateralGrip * dt));
-            m_body.Velocity = new Vector3(horizontal.X, velocity.Y, horizontal.Z);
-        }
-
-        private static Vector3 LimitForwardAndReverseSpeed(Vector3 horizontal, Vector3 forward)
-        {
-            float forwardSpeed = Vector3.Dot(horizontal, forward);
-            Vector3 lateral = horizontal - forward * forwardSpeed;
-            forwardSpeed = MathUtils.Clamp(
-                forwardSpeed,
-                -AtvDriveRules.MaximumReverseSpeed,
-                AtvDriveRules.MaximumForwardSpeed);
-            lateral = Vector3.Lerp(lateral, Vector3.Zero, 0.35f);
-            return forward * forwardSpeed + lateral;
+            float speed = new Vector2(velocity.X, velocity.Z).Length();
+            Log.Information(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "SCIE-Port ATV: state={0}, speed={1:0.00}, throttle={2:0.00}, terrainGrounded={3}, bodyGrounded={4}, airborne={5:0.00}, nativeGroundDrag={6}, lateralGrip={7:0.00}",
+                state,
+                speed,
+                throttle,
+                terrainGrounded,
+                bodyGrounded,
+                m_airborneTime,
+                m_body.IsGroundDragEnabled,
+                LateralGrip));
         }
     }
 }

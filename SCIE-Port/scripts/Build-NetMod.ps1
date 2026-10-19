@@ -222,8 +222,8 @@ try {
     $atvBox = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
     if ($null -eq $atvModel -or $atvModel.Value -ne 'Models/ATV') { throw 'ATV ModelName must be Models/ATV.' }
     if ($null -eq $atvTexture -or $atvTexture.Value -ne 'Textures/ATV') { throw 'ATV TextureOverride must be the packaged Textures/ATV.' }
-    if ($null -eq $atvStepHeight -or $atvStepHeight.Value -ne '0.35') { throw 'ATV MaxSmoothRiseHeight must stay at the audited 0.35 cells.' }
-    if ($null -eq $atvBox -or $atvBox.Value -ne '1.5,0.75,2.25') { throw 'ATV collision box must stay at the audited land-vehicle dimensions.' }
+    if ($null -eq $atvStepHeight -or $atvStepHeight.Value -ne '1.05') { throw 'ATV MaxSmoothRiseHeight must provide the audited one-cell clearance of 1.05 cells.' }
+    if ($null -eq $atvBox -or $atvBox.Value -ne '1.7,1.15,2.1') { throw 'ATV collision box must cover the complete rebuilt model at 1.7,1.15,2.1.' }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -272,13 +272,77 @@ try {
     if ($atvModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'ATV.dae must be oriented Y_UP.'
     }
-    foreach ($requiredNode in @('ATVBody', 'ATVWheelFrontLeft', 'ATVWheelFrontRight', 'ATVWheelRearLeft', 'ATVWheelRearRight')) {
+    $atvParts = @('ATVBody', 'ATVNose', 'ATVSeat', 'ATVHandlebarStem', 'ATVHandlebar', 'ATVWheelFrontLeft', 'ATVWheelFrontRight', 'ATVWheelRearLeft', 'ATVWheelRearRight')
+    foreach ($requiredNode in $atvParts) {
         if ($null -eq $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']")) {
             throw "ATV.dae is missing required low-poly node $requiredNode."
         }
+        $nodeMatrix = $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']/*[local-name()='matrix']")
+        if ($null -eq $nodeMatrix -or ($nodeMatrix.InnerText -replace '\s+', ' ').Trim() -ne '1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1') {
+            throw "ATV.dae node $requiredNode must use an identity matrix; coordinates must be baked to prevent importer-dependent scaling."
+        }
+        $instanceGeometry = $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']/*[local-name()='instance_geometry']")
+        if ($null -eq $instanceGeometry -or $instanceGeometry.GetAttribute('url') -ne "#$requiredNode-mesh") {
+            throw "ATV.dae node $requiredNode must reference only its own independent geometry."
+        }
+        $geometry = $atvModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$requiredNode']")
+        if ($null -eq $geometry) { throw "ATV.dae is missing independent geometry $requiredNode." }
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24) {
+            throw "ATV.dae geometry $requiredNode must contain 8 cuboid positions (24 floats)."
+        }
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ($null -eq $triangles -or $triangles.GetAttribute('count') -ne '12') {
+            throw "ATV.dae geometry $requiredNode must contain exactly 12 triangles."
+        }
+        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "ATV.dae geometry $requiredNode is missing $semantic data."
+            }
+        }
+        $faceIndices = @($triangles.SelectSingleNode("./*[local-name()='p']").InnerText -split '\s+' | Where-Object { $_ } | ForEach-Object { [int]$_ })
+        if ($faceIndices.Count -ne 108) { throw "ATV.dae geometry $requiredNode must contain 108 interleaved face indices; found $($faceIndices.Count)." }
+        for ($i = 0; $i -lt $faceIndices.Count; $i += 3) {
+            if ($faceIndices[$i] -lt 0 -or $faceIndices[$i] -gt 7 -or
+                $faceIndices[$i + 1] -lt 0 -or $faceIndices[$i + 1] -gt 5 -or
+                $faceIndices[$i + 2] -ne 0) {
+                throw "ATV.dae geometry $requiredNode contains an out-of-range vertex/normal/UV face index at tuple $($i / 3)."
+            }
+        }
     }
-    $atvPositionFloats = (@($atvModelDocument.SelectSingleNode("//*[local-name()='float_array'][contains(@id,'positions-array')]").InnerText -split '\s+' | Where-Object { $_ })).Count
-    if ($atvPositionFloats -ne 24) { throw "ATV.dae should contain 8 cube positions (24 floats); found $atvPositionFloats." }
+    $atvGeometryNames = @($atvModelDocument.SelectNodes("//*[local-name()='geometry']") | ForEach-Object { $_.GetAttribute('name') })
+    if (($atvGeometryNames | Select-Object -Unique).Count -ne $atvParts.Count) {
+        throw 'ATV.dae parts must not share or duplicate geometry names.'
+    }
+    $atvCoordinates = New-Object System.Collections.Generic.List[double]
+    foreach ($positionArray in $atvModelDocument.SelectNodes("//*[local-name()='float_array'][contains(@id,'positions-array')]")) {
+        foreach ($coordinate in @($positionArray.InnerText -split '\s+' | Where-Object { $_ })) {
+            $atvCoordinates.Add([double]::Parse($coordinate, [Globalization.CultureInfo]::InvariantCulture))
+        }
+    }
+    $atvX = for ($i = 0; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
+    $atvY = for ($i = 1; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
+    $atvZ = for ($i = 2; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
+    if (($atvX | Measure-Object -Minimum).Minimum -lt -0.85 -or ($atvX | Measure-Object -Maximum).Maximum -gt 0.85 -or
+        ($atvY | Measure-Object -Minimum).Minimum -lt 0 -or ($atvY | Measure-Object -Maximum).Maximum -gt 1.15 -or
+        ($atvZ | Measure-Object -Minimum).Minimum -lt -1.05 -or ($atvZ | Measure-Object -Maximum).Maximum -gt 1.05) {
+        throw 'ATV.dae visible geometry exceeds the complete 1.7,1.15,2.1 ComponentBody collision box.'
+    }
+    Add-Type -AssemblyName System.Drawing
+    $atvBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\ATV.png'))
+    try {
+        if ($atvBitmap.Width -ne 32 -or $atvBitmap.Height -ne 8) { throw 'ATV.png must be the audited 32x8 opaque palette.' }
+        $atvColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x = 0; $x -lt $atvBitmap.Width; $x++) {
+            for ($y = 0; $y -lt $atvBitmap.Height; $y++) {
+                $pixel = $atvBitmap.GetPixel($x, $y)
+                if ($pixel.A -ne 255) { throw "ATV.png contains transparent pixel at $x,$y." }
+                [void]$atvColors.Add($pixel.ToArgb())
+            }
+        }
+        if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
+    }
+    finally { $atvBitmap.Dispose() }
 
     [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
     if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {

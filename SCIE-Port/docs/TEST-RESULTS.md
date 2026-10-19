@@ -43,6 +43,14 @@
 | 0.8.1 Release/包检查 | 已确认 | `Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17`、Kelly 11 项规则测试、ATV 13 项规则测试、net472 Release（0 warning/0 error）、三份 XDB 和包资源守卫全部通过 |
 | 0.8.1 `.netmod` | 已确认 | 366,804 字节；SHA-256 `A88675F576BBE4638F9C13E2F7FB5D3B70C700780EBFF240AEE38CB244C65577`；包含 `LandVehicles.csv`、`LandVehicles.xdb`、`ATV.dae`、`ATV.png`，不包含游戏 DLL、PDB 或上游 DLL |
 | 0.8.1 ATV Windows/Android/多人运行 | 待验证 | 本机没有启动游戏，也没有部署设备。需要验证生成、骑乘、第三人称、地形碰撞、0.35 格台阶、刹车、存档重载；本版本不支持多人自定义物理/输入同步 |
+| 0.8.2 ATV 根因审计 | 已确认 | 目标 `ComponentBody` 反编译确认接地 `6*dt` 原生阻力与 v0.1 自定义阻力叠加；源码确认离地调用 `7*dt` 水平归零、横向抓地固定每帧 0.35、物品重复反向面、共享单 cube geometry 和 1×1 白纹理。Android 共享实例行为仍标待验证 |
+| 0.8.2 ATV 规则测试 | 已确认 | `tests/SCIEPort.LandVehicles.Tests` 23 项通过：地形/实体支撑隔离、浸水门控、0.35 秒离地状态、前后驱动、反向刹车、松油不过零、双向限速、高低速转向和 1.05 格 smooth-rise clearance |
+| 0.8.2 ATV 模型/纹理守卫 | 已确认 | 九个独立 Y_UP geometry/node、identity 矩阵、每件 24 position floats/12 triangles/法线/UV；32×8 PNG 恰好四种 Alpha=255 色，模型边界完整落在 `1.7,1.15,2.1` Body 内 |
+| 0.8.2 Release/包检查 | 已确认 | `Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release` 通过；固定程序集哈希/ABI、Kelly 11 项、ATV 23 项、net472 Release 0 warning/0 error、三份 XDB 与全部包守卫通过 |
+| 0.8.2 `.netmod` | 已确认 | 368,782 字节；SHA-256 `BFB90D40D17BE7E500BB6FB44688629D5CD7C1287846BC7B6C26DE79BE132DC9`；内置 `SCIEPort.dll` 版本 `0.8.2.0`，不含游戏 DLL/PDB/上游 DLL |
+| 0.8.2 Windows 游戏运行 | 待验证 | 按用户此前要求未启动本机游戏；物品/世界渲染、实际速度、相机、骑乘、碰撞和旧实体恢复均未运行验证 |
+| 0.8.2 Android 7723 | 待验证 | 尚未安装到手机；模型、触屏手感、一格越障、狭窄道路、净空和保存重载必须按 `ATV-V0.2-AUDIT.md` 验收 |
+| 0.8.2 多人 | 不支持 | 驱动仍只在 `WorkType.Local` 执行，没有服务端权威输入或状态纠偏 |
 | 0.6.0 Kelly 原名守卫 | 已确认 | 14 个名称按 CSV 顺序拼接的 UTF-8 SHA-256 为 `5b868dfafcb2fd858f71f73d0997c16779a2cbf7f5696848c1df341651cb3656`；无中英文括号，构建脚本会拒绝改名或追加括号移植标注 |
 | 0.6.0 原版 ID 扫描 | 已确认 | `Test-Environment.ps1 -GameDir D:\SC` 通过；目标程序集读出 260 个原生方块常量，903–916 与 995–1000 均未冲突 |
 | 0.6.0 Release 编译 | 已确认 | 使用已安装 .NET SDK 8.0.400 的 MSBuild 直接构建 net472，`TreatWarningsAsErrors=true`，成功生成 `SCIEPort.dll`，无错误或警告 |
@@ -143,7 +151,7 @@ THIRD-PARTY-NOTICES.md
 17. 搜索 `SCIE 越野摩托`，仅在新的可丢弃单人创造世界对实体顶面/地面使用：确认一次消耗一件、附近超过 4 辆时拒绝生成，且不会改变任何地形方块。
 18. 靠近驾驶座使用原生上车操作：确认可上车/下车，第一和第三人称都跟随载具，不出现玩家被碰撞体卡住或无限下落。
 19. 在平地分别验证前进、松手滑行、后退、行驶中反向输入先刹车再倒车、左右转向；确认最大前进和倒退速度受限，进入深水会停驱动并下车。
-20. 对 0.25、0.35、0.5 和 1 格高的台阶及实体墙重复低速和全速测试：只允许目标 `0.35` 格以内的原生平滑上台阶；高台阶和墙必须发生原生碰撞，绝不穿透、飞越或改写方块。
+20. 对半格坡、完整一格方块、两格墙、实体墙和低顶棚一格台阶重复低速和全速测试：一格应由原生 smooth rise 连续抬升；两格、其它实体和净空不足必须发生原生碰撞，绝不穿透、飞越、瞬移或改写方块。
 21. 撞墙、从一格高落下、跨区块边缘后保存退出并重进：确认 ATV 位置/朝向/速度可恢复，日志没有 `SCIEPortATV`、`LandVehicles`、模板、模型或 XDB 异常。多人主机和普通客户端不在本阶段测试范围，不能把单人结果外推为联机兼容。
 
 ## Android (SCNET x25.01.17 / 7723) 安装、卸载旧包、隔离测试步骤

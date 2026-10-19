@@ -45,6 +45,16 @@ boat buoyancy or rail alignment. The controller is deliberately single-player
 only and has no fuel, multiplayer authority or suspension model. Android/7723
 spawn, riding, collision, camera and save/reload remain pending real-device tests.
 
+Version 0.8.2 is ATV v0.2 stabilization. The model is rebuilt as nine independent
+Y-up meshes with baked coordinates, opaque four-color UV palette, seat and
+handlebar; the inventory path no longer duplicates every triangle with reversed
+winding. While occupied, the controller disables native `6*dt` ground drag and
+uses one frame-rate-independent drive/grip calculation, preserves horizontal
+inertia when briefly airborne, and emits one diagnostic line every five seconds.
+Native `ComponentBody` continuous smooth rise is set to 1.05 cells and the body
+box now covers the whole visible model, allowing a one-cell step while retaining
+terrain, entity and overhead collision checks. Android results remain pending.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

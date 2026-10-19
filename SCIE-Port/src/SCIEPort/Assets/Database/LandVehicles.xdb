@@ -16,8 +16,8 @@
         <Parameter Name="DismountOffset" Guid="cd0a626a-d4fb-4c85-a40f-6eb222bc0549" Value="1.2,0.4,0" Type="Vector3" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Body" Guid="a783e477-7e3c-4d1b-8e67-36c332252c64" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
-        <Parameter Name="MaxSmoothRiseHeight" Guid="f1ec3d4c-c00e-4461-8cff-e7a1192cad1f" Value="0.35" Type="float" />
-        <Parameter Name="BoxSize" Guid="da4f0452-d2d9-4be2-a645-72b993516579" Value="1.5,0.75,2.25" Type="Vector3" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="f1ec3d4c-c00e-4461-8cff-e7a1192cad1f" Value="1.05" Type="float" />
+        <Parameter Name="BoxSize" Guid="da4f0452-d2d9-4be2-a645-72b993516579" Value="1.7,1.15,2.1" Type="Vector3" />
         <Parameter Name="Mass" Guid="63ba2d69-2258-4994-9f5f-3135981a96cd" Value="250" Type="float" />
         <Parameter Name="AirDrag" Guid="5f697c00-bc86-4649-8e9b-6f0f2892b695" Value="0.4,0.7" Type="Vector2" />
         <Parameter Name="WaterDrag" Guid="9471d25a-aa7e-426f-872e-918c84a0b99b" Value="2,3" Type="Vector2" />

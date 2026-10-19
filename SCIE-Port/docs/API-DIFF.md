@@ -140,3 +140,21 @@ ATV 没有复用 `ComponentBoat`：该组件的推进、浮力和水面转向语
 `MaxSmoothRiseHeight` 作为原生光滑上台阶的上界。因此本模块不自行穿透地形、不直接改写
 `Position`，也不复制任何船只水面物理。上述是程序集和静态编译证据；在 Android 7723 的
 实际坡度、碰撞、下车位置、第三人称和存档恢复仍为待验证。
+
+## 0.8.2 ATV 阻力与一格越障取证
+
+目标 `ComponentBody.Update` 在自定义组件更新之后仍会执行空气阻力，并在
+`IsGroundDragEnabled && StandingOnValue.HasValue` 时额外执行
+`Velocity = Vector3.Lerp(Velocity, StandingOnVelocity, 6 * dt)`。ATV v0.1 在此前还应用自己的
+纵向滑行和横向抓地，构成双重地面阻力；v0.2 在有驾驶者时关闭原生地面阻力，由
+`ComponentAtvDrive` 统一计算制动、滑行和抓地，无驾驶者时立即恢复原生地面阻力。
+
+真实 `MoveWithCollision` 每个物理子步依次执行 `HandleSmoothRise`、Y/X/Z 三轴碰撞；
+`HandleSmoothRise` 的垂直上升速度限制为 `min(4.5 * dt, overlap)`。水平碰撞使用抬高
+`MaxSmoothRiseHeight` 后的完整碰撞盒判断地形，但其它 `ComponentBody` 仍使用未抬高的正常碰撞盒；
+因此 `1.05` 能覆盖完整一格及浮点容差，同时不会把实体当台阶。碰撞盒上界保持不变，顶部障碍仍会
+阻止抬升。v0.2 没有调用 `ApplyDirectMove`、没有写 `Position`、没有改地形，也没有瞬移越障。
+
+`StandingOnValue` 表示地形支撑，`StandingOnBody` 表示实体支撑。v0.2 只有前者且后者为空时才施加
+驱动力；两者都为空时保留水平惯性，由原生重力和空气阻力处理。这样短暂离地不再触发 v0.1 的
+`7 * dt` 强制水平刹停，也不会借站在其它实体上获得越障推进。

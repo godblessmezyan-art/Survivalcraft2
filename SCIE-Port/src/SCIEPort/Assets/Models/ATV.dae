@@ -1,24 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Project-created, deliberately low-poly ATV: one body cuboid plus four wheel cuboids. -->
+<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; every visible part owns an independent mesh. -->
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
-  <asset><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
+  <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-AtvAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
   <library_geometries>
-    <geometry id="ATV-Cube-mesh" name="ATV-Cube">
+    <geometry id="ATVBody-mesh" name="ATVBody">
       <mesh>
-        <source id="ATV-Cube-positions"><float_array id="ATV-Cube-positions-array" count="24">-0.5 -0.5 -0.5 0.5 -0.5 -0.5 0.5 0.5 -0.5 -0.5 0.5 -0.5 -0.5 -0.5 0.5 0.5 -0.5 0.5 0.5 0.5 0.5 -0.5 0.5 0.5</float_array><technique_common><accessor source="#ATV-Cube-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
-        <source id="ATV-Cube-normals"><float_array id="ATV-Cube-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATV-Cube-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
-        <source id="ATV-Cube-uv"><float_array id="ATV-Cube-uv-array" count="8">0 0 1 0 1 1 0 1</float_array><technique_common><accessor source="#ATV-Cube-uv-array" count="4" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
-        <vertices id="ATV-Cube-vertices"><input semantic="POSITION" source="#ATV-Cube-positions"/></vertices>
-        <triangles count="12"><input semantic="VERTEX" source="#ATV-Cube-vertices" offset="0"/><input semantic="NORMAL" source="#ATV-Cube-normals" offset="1"/><input semantic="TEXCOORD" source="#ATV-Cube-uv" offset="2" set="0"/><p>0 0 0 1 0 1 2 0 2 0 0 0 2 0 2 3 0 3 4 1 0 6 1 2 5 1 1 4 1 0 7 1 3 6 1 2 0 2 0 3 2 3 7 2 2 0 2 0 7 2 2 4 2 1 1 3 0 5 3 1 6 3 2 1 3 0 6 3 2 2 3 3 0 4 0 4 4 1 5 4 2 0 4 0 5 4 2 1 4 3 3 5 0 2 5 1 6 5 2 3 5 0 6 5 2 7 5 3</p></triangles>
+        <source id="ATVBody-positions"><float_array id="ATVBody-positions-array" count="24">-0.58 0.4 -0.82 0.58 0.4 -0.82 0.58 0.78 -0.82 -0.58 0.78 -0.82 -0.58 0.4 0.75 0.58 0.4 0.75 0.58 0.78 0.75 -0.58 0.78 0.75</float_array><technique_common><accessor source="#ATVBody-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVBody-normals"><float_array id="ATVBody-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVBody-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVBody-uv"><float_array id="ATVBody-uv-array" count="2">0.125 0.5</float_array><technique_common><accessor source="#ATVBody-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVBody-vertices"><input semantic="POSITION" source="#ATVBody-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVBody-vertices" offset="0"/><input semantic="NORMAL" source="#ATVBody-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVBody-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVNose-mesh" name="ATVNose">
+      <mesh>
+        <source id="ATVNose-positions"><float_array id="ATVNose-positions-array" count="24">-0.5 0.62 -1.02 0.5 0.62 -1.02 0.5 0.9 -1.02 -0.5 0.9 -1.02 -0.5 0.62 -0.55 0.5 0.62 -0.55 0.5 0.9 -0.55 -0.5 0.9 -0.55</float_array><technique_common><accessor source="#ATVNose-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVNose-normals"><float_array id="ATVNose-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVNose-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVNose-uv"><float_array id="ATVNose-uv-array" count="2">0.125 0.5</float_array><technique_common><accessor source="#ATVNose-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVNose-vertices"><input semantic="POSITION" source="#ATVNose-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVNose-vertices" offset="0"/><input semantic="NORMAL" source="#ATVNose-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVNose-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVSeat-mesh" name="ATVSeat">
+      <mesh>
+        <source id="ATVSeat-positions"><float_array id="ATVSeat-positions-array" count="24">-0.38 0.79 -0.05 0.38 0.79 -0.05 0.38 0.98 -0.05 -0.38 0.98 -0.05 -0.38 0.79 0.58 0.38 0.79 0.58 0.38 0.98 0.58 -0.38 0.98 0.58</float_array><technique_common><accessor source="#ATVSeat-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVSeat-normals"><float_array id="ATVSeat-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVSeat-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVSeat-uv"><float_array id="ATVSeat-uv-array" count="2">0.625 0.5</float_array><technique_common><accessor source="#ATVSeat-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVSeat-vertices"><input semantic="POSITION" source="#ATVSeat-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVSeat-vertices" offset="0"/><input semantic="NORMAL" source="#ATVSeat-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVSeat-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVHandlebarStem-mesh" name="ATVHandlebarStem">
+      <mesh>
+        <source id="ATVHandlebarStem-positions"><float_array id="ATVHandlebarStem-positions-array" count="24">-0.08 0.73 -0.72 0.08 0.73 -0.72 0.08 1.12 -0.72 -0.08 1.12 -0.72 -0.08 0.73 -0.62 0.08 0.73 -0.62 0.08 1.12 -0.62 -0.08 1.12 -0.62</float_array><technique_common><accessor source="#ATVHandlebarStem-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVHandlebarStem-normals"><float_array id="ATVHandlebarStem-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVHandlebarStem-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVHandlebarStem-uv"><float_array id="ATVHandlebarStem-uv-array" count="2">0.875 0.5</float_array><technique_common><accessor source="#ATVHandlebarStem-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVHandlebarStem-vertices"><input semantic="POSITION" source="#ATVHandlebarStem-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVHandlebarStem-vertices" offset="0"/><input semantic="NORMAL" source="#ATVHandlebarStem-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVHandlebarStem-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVHandlebar-mesh" name="ATVHandlebar">
+      <mesh>
+        <source id="ATVHandlebar-positions"><float_array id="ATVHandlebar-positions-array" count="24">-0.55 1.06 -0.75 0.55 1.06 -0.75 0.55 1.14 -0.75 -0.55 1.14 -0.75 -0.55 1.06 -0.64 0.55 1.06 -0.64 0.55 1.14 -0.64 -0.55 1.14 -0.64</float_array><technique_common><accessor source="#ATVHandlebar-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVHandlebar-normals"><float_array id="ATVHandlebar-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVHandlebar-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVHandlebar-uv"><float_array id="ATVHandlebar-uv-array" count="2">0.875 0.5</float_array><technique_common><accessor source="#ATVHandlebar-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVHandlebar-vertices"><input semantic="POSITION" source="#ATVHandlebar-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVHandlebar-vertices" offset="0"/><input semantic="NORMAL" source="#ATVHandlebar-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVHandlebar-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVWheelFrontLeft-mesh" name="ATVWheelFrontLeft">
+      <mesh>
+        <source id="ATVWheelFrontLeft-positions"><float_array id="ATVWheelFrontLeft-positions-array" count="24">-0.82 0.08 -0.86 -0.58 0.08 -0.86 -0.58 0.62 -0.86 -0.82 0.62 -0.86 -0.82 0.08 -0.34 -0.58 0.08 -0.34 -0.58 0.62 -0.34 -0.82 0.62 -0.34</float_array><technique_common><accessor source="#ATVWheelFrontLeft-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelFrontLeft-normals"><float_array id="ATVWheelFrontLeft-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVWheelFrontLeft-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelFrontLeft-uv"><float_array id="ATVWheelFrontLeft-uv-array" count="2">0.375 0.5</float_array><technique_common><accessor source="#ATVWheelFrontLeft-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVWheelFrontLeft-vertices"><input semantic="POSITION" source="#ATVWheelFrontLeft-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVWheelFrontLeft-vertices" offset="0"/><input semantic="NORMAL" source="#ATVWheelFrontLeft-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVWheelFrontLeft-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVWheelFrontRight-mesh" name="ATVWheelFrontRight">
+      <mesh>
+        <source id="ATVWheelFrontRight-positions"><float_array id="ATVWheelFrontRight-positions-array" count="24">0.58 0.08 -0.86 0.82 0.08 -0.86 0.82 0.62 -0.86 0.58 0.62 -0.86 0.58 0.08 -0.34 0.82 0.08 -0.34 0.82 0.62 -0.34 0.58 0.62 -0.34</float_array><technique_common><accessor source="#ATVWheelFrontRight-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelFrontRight-normals"><float_array id="ATVWheelFrontRight-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVWheelFrontRight-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelFrontRight-uv"><float_array id="ATVWheelFrontRight-uv-array" count="2">0.375 0.5</float_array><technique_common><accessor source="#ATVWheelFrontRight-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVWheelFrontRight-vertices"><input semantic="POSITION" source="#ATVWheelFrontRight-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVWheelFrontRight-vertices" offset="0"/><input semantic="NORMAL" source="#ATVWheelFrontRight-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVWheelFrontRight-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVWheelRearLeft-mesh" name="ATVWheelRearLeft">
+      <mesh>
+        <source id="ATVWheelRearLeft-positions"><float_array id="ATVWheelRearLeft-positions-array" count="24">-0.82 0.08 0.31 -0.58 0.08 0.31 -0.58 0.62 0.31 -0.82 0.62 0.31 -0.82 0.08 0.83 -0.58 0.08 0.83 -0.58 0.62 0.83 -0.82 0.62 0.83</float_array><technique_common><accessor source="#ATVWheelRearLeft-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelRearLeft-normals"><float_array id="ATVWheelRearLeft-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVWheelRearLeft-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelRearLeft-uv"><float_array id="ATVWheelRearLeft-uv-array" count="2">0.375 0.5</float_array><technique_common><accessor source="#ATVWheelRearLeft-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVWheelRearLeft-vertices"><input semantic="POSITION" source="#ATVWheelRearLeft-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVWheelRearLeft-vertices" offset="0"/><input semantic="NORMAL" source="#ATVWheelRearLeft-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVWheelRearLeft-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
+      </mesh>
+    </geometry>
+    <geometry id="ATVWheelRearRight-mesh" name="ATVWheelRearRight">
+      <mesh>
+        <source id="ATVWheelRearRight-positions"><float_array id="ATVWheelRearRight-positions-array" count="24">0.58 0.08 0.31 0.82 0.08 0.31 0.82 0.62 0.31 0.58 0.62 0.31 0.58 0.08 0.83 0.82 0.08 0.83 0.82 0.62 0.83 0.58 0.62 0.83</float_array><technique_common><accessor source="#ATVWheelRearRight-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelRearRight-normals"><float_array id="ATVWheelRearRight-normals-array" count="18">0 0 -1 0 0 1 -1 0 0 1 0 0 0 -1 0 0 1 0</float_array><technique_common><accessor source="#ATVWheelRearRight-normals-array" count="6" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
+        <source id="ATVWheelRearRight-uv"><float_array id="ATVWheelRearRight-uv-array" count="2">0.375 0.5</float_array><technique_common><accessor source="#ATVWheelRearRight-uv-array" count="1" stride="2"><param name="S" type="float"/><param name="T" type="float"/></accessor></technique_common></source>
+        <vertices id="ATVWheelRearRight-vertices"><input semantic="POSITION" source="#ATVWheelRearRight-positions"/></vertices>
+        <triangles count="12"><input semantic="VERTEX" source="#ATVWheelRearRight-vertices" offset="0"/><input semantic="NORMAL" source="#ATVWheelRearRight-normals" offset="1"/><input semantic="TEXCOORD" source="#ATVWheelRearRight-uv" offset="2" set="0"/><p>0 0 0 1 0 0 2 0 0 0 0 0 2 0 0 3 0 0 4 1 0 6 1 0 5 1 0 4 1 0 7 1 0 6 1 0 0 2 0 3 2 0 7 2 0 0 2 0 7 2 0 4 2 0 1 3 0 5 3 0 6 3 0 1 3 0 6 3 0 2 3 0 0 4 0 4 4 0 5 4 0 0 4 0 5 4 0 1 4 0 3 5 0 2 5 0 6 5 0 3 5 0 6 5 0 7 5 0</p></triangles>
       </mesh>
     </geometry>
   </library_geometries>
   <library_visual_scenes><visual_scene id="Scene" name="Scene">
-    <node id="ATVBody" name="ATVBody" type="NODE"><matrix sid="transform">1.3 0 0 0 0 0.42 0 0 0 0 1.85 0 0 0.65 0 1</matrix><instance_geometry url="#ATV-Cube-mesh"/></node>
-    <node id="ATVWheelFrontLeft" name="ATVWheelFrontLeft" type="NODE"><matrix sid="transform">0.36 0 0 0 0 0.36 0 0 0 0 0.30 0 -0.9 0.34 -0.78 1</matrix><instance_geometry url="#ATV-Cube-mesh"/></node>
-    <node id="ATVWheelFrontRight" name="ATVWheelFrontRight" type="NODE"><matrix sid="transform">0.36 0 0 0 0 0.36 0 0 0 0 0.30 0 0.9 0.34 -0.78 1</matrix><instance_geometry url="#ATV-Cube-mesh"/></node>
-    <node id="ATVWheelRearLeft" name="ATVWheelRearLeft" type="NODE"><matrix sid="transform">0.36 0 0 0 0 0.36 0 0 0 0 0.30 0 -0.9 0.34 0.78 1</matrix><instance_geometry url="#ATV-Cube-mesh"/></node>
-    <node id="ATVWheelRearRight" name="ATVWheelRearRight" type="NODE"><matrix sid="transform">0.36 0 0 0 0 0.36 0 0 0 0 0.30 0 0.9 0.34 0.78 1</matrix><instance_geometry url="#ATV-Cube-mesh"/></node>
+      <node id="ATVBody" name="ATVBody" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVBody-mesh" name="ATVBody"/></node>
+      <node id="ATVNose" name="ATVNose" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVNose-mesh" name="ATVNose"/></node>
+      <node id="ATVSeat" name="ATVSeat" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVSeat-mesh" name="ATVSeat"/></node>
+      <node id="ATVHandlebarStem" name="ATVHandlebarStem" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVHandlebarStem-mesh" name="ATVHandlebarStem"/></node>
+      <node id="ATVHandlebar" name="ATVHandlebar" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVHandlebar-mesh" name="ATVHandlebar"/></node>
+      <node id="ATVWheelFrontLeft" name="ATVWheelFrontLeft" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelFrontLeft-mesh" name="ATVWheelFrontLeft"/></node>
+      <node id="ATVWheelFrontRight" name="ATVWheelFrontRight" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelFrontRight-mesh" name="ATVWheelFrontRight"/></node>
+      <node id="ATVWheelRearLeft" name="ATVWheelRearLeft" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelRearLeft-mesh" name="ATVWheelRearLeft"/></node>
+      <node id="ATVWheelRearRight" name="ATVWheelRearRight" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelRearRight-mesh" name="ATVWheelRearRight"/></node>
   </visual_scene></library_visual_scenes>
   <scene><instance_visual_scene url="#Scene"/></scene>
 </COLLADA>

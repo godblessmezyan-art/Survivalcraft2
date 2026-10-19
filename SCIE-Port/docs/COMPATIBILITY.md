@@ -43,6 +43,10 @@ Android 或多人测试。
 | ATV 地面物理 | 已确认 | 仅在 `WorkType.Local`、原生 body 接地且未浸水时读取触屏 Move；`ComponentBody` 负责碰撞、重力和 `MaxSmoothRiseHeight=0.35` 平滑上台阶。真实手感/坡度/碰撞待验证 |
 | ATV 模型与贴图 | 已确认 | 项目创建的 `ATV.dae` 为 Y_UP，含车身与四个轮节点；`ATV.png` 是项目内白色基础纹理副本，着色由模型组件完成。Android 渲染待验证 |
 | ATV Windows/Android/联机运行 | 待验证 | 未启动 Windows 游戏或 Android 7723 客户端；本阶段明确不实现多人自定义输入同步、燃料和复杂悬挂 |
+| ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry/node，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
+| ATV v0.2 阻力修复 | 已确认 | 真实 `ComponentBody.Update` 的 `6*dt` 接地阻力已反编译确认；驾驶时禁用该项并使用帧率无关的纵向/横向控制，无人时恢复。Android 手感待验证 |
+| ATV v0.2 一格越障 | 已确认 | ABI/代码级确认使用原生三轴碰撞和连续 `4.5*dt` smooth rise，`MaxSmoothRiseHeight=1.05`；不写 Position/地形且不抬高实体碰撞。Android 一格台阶与净空仍待验证 |
+| ATV v0.2 诊断日志 | 已确认 | 仅本地单人、有人驾驶时每 5 秒输出速度、油门、地形/实体支撑、离地时间、原生阻力开关和状态；Android 日志格式待验证 |
 | SCIE 工业家具 ID 917–922 | 已确认 | x25.01.17 的 260 个原生方块常量反射扫描未占用；本工程内部无重复，其他 Mod 冲突仍待安装时检查 |
 | SCIE 工业家具模型 | 已确认 | Gear、Wheel、GearMould、WheelMould、Piston 已从 Z_UP 转为 Y_UP，Cylinder 源文件本身为 Y_UP；节点名、position float 数和包内资源由构建脚本校验 |
 | SCIE 工业家具代码 | 已确认 | 六件静态可放置方块、四向 data、碰撞箱、掉落路径对 x25.01.17 Release 编译通过后方可维持此状态；不含机器语义 |

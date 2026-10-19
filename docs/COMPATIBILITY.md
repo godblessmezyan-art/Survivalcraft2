@@ -143,6 +143,18 @@ net472 Release 编译确认：`ComponentBody` 提供地形/body 碰撞、重力�
 实体生成、原生上/下车与第三人称、碰撞/台阶手感、模型渲染、保存退出重进及所有联机行为均为待验证。
 本阶段明确不支持燃料、多人与服务器权威输入同步、复杂悬挂。
 
+### SCIE-Port v0.8.2 / ATV v0.2 稳定性修复
+
+保持 Block ID `923` 和实体名 `SCIEPortATV`。已确认 v0.1 同时受到自定义滑行/抓地和原生
+`ComponentBody` 接地 `6*dt` 阻力，导致速度建立受抑；v0.2 在驾驶时关闭原生接地阻力、无人时恢复，
+最高前进速度仍为 11，没有通过提高限速掩盖问题。短暂离地不再强制清零水平速度。
+
+原项目自有模型已重建为九个独立 Y_UP 网格，使用 identity 节点矩阵、完整法线/UV 和不透明四色 PNG；
+物品渲染删除重复反向面。`ComponentBody` 的真实 `HandleSmoothRise` 以 `4.5*dt` 连续抬升并继续检查
+地形、实体和顶部净空，故设置 `MaxSmoothRiseHeight=1.05` 支持完整一格而无需瞬移。Release 构建与
+静态资源结果为已确认；Windows 游戏、Android 7723 渲染/驾驶/一格越障/保存重载仍为待验证，
+多人仍不支持。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。

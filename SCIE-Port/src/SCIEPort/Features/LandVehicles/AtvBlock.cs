@@ -32,15 +32,15 @@ namespace SCIEPort.Features.LandVehicles
             Model model = ContentManager.Get<Model>("Models/ATV");
             foreach (string meshName in new[]
             {
-                "ATVBody", "ATVWheelFrontLeft", "ATVWheelFrontRight", "ATVWheelRearLeft", "ATVWheelRearRight"
+                "ATVBody", "ATVNose", "ATVSeat", "ATVHandlebarStem", "ATVHandlebar",
+                "ATVWheelFrontLeft", "ATVWheelFrontRight", "ATVWheelRearLeft", "ATVWheelRearRight"
             })
             {
                 ModelMesh mesh = model.FindMesh(meshName, true);
-                Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone) * Matrix.CreateScale(0.32f);
+                Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone) * Matrix.CreateScale(0.45f);
                 foreach (ModelMeshPart part in mesh.MeshParts)
                 {
                     m_itemMesh.AppendModelMeshPart(part, transform, false, false, false, false, Color.White);
-                    m_itemMesh.AppendModelMeshPart(part, transform, false, true, false, false, Color.White);
                 }
             }
 
