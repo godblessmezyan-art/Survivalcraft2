@@ -24,7 +24,7 @@
 
 ## x25.01.17 已验证 ABI
 
-检查来源：本机 `E:\SCNET\SCNETx25.01.17`，来自公开 x25.01.17 Windows 发布包。
+检查来源：本机 `D:\SCNET`，来自公开 x25.01.17 Windows 发布包。
 
 | 项目 | 结论 | 状态 |
 | --- | --- | --- |
@@ -334,3 +334,46 @@ v0.8.0 已闭环，但玩家仍须“建目录 / 起 ASCII 名 / 用文件管理
 4. 放非法/超界/含未支持块的蓝图 → 应“导入失败：<原因>”，且不污染剪贴板、不部分导入。
 5. 撤销工具一次应整体干净回退。
 若某块异常，回传首条 `Warning/Error` 原文 + 完整 `Game.log`，并注明是“落成”还是“复制/导入”阶段、具体哪个块；该块在本文保持**待验证**，不得标兼容。
+
+
+## v0.9.0 支持带朝向方块：楼梯 / 半砖 / 栅栏 / 门（Phase B，蓝图 schema v1→v2）
+
+本轮目标（用户明确指令「添加楼梯、栅栏、门、半砖等方块」，AskUserQuestion 定为“四类全做·所有变体”“改造生成器使用新方块”）：把 Builder Assistant 从只支持**纯立方**推进到支持**带数据位的朝向方块**——楼梯（stairs）、半砖（slab）、栅栏（fence）、门（door），覆盖其全部材料变体，并把中世纪小屋生成器改为**真正使用**这些新块。为此蓝图交换格式由 `schemaVersion=1` 升级到 **`schemaVersion=2`**。
+
+这是一次**真正的 schema 迁移**，不是白名单扩充：每个格子现在可携带两个**可选**字段——`f` 族标签（`cube|stairs|slab|fence|door`，缺省=cube）与 `d` 该族**自有**的数据位。凡不属该格自有的、由引擎派生的状态（楼梯拐角接合、所有方块颜色）一律**不入库**（`BlockOrientation.Normalize` 剥离），延续“绝不塞垃圾/降级生成”的既有铁律。
+
+### ABI 取证（依据来源：反编译 `D:\SCNET\Survivalcraft.exe` x25.01.17 Game 程序集，非猜测）
+
+地形值打包 `Game.Terrain.MakeBlockValue(contents, light, data)`：contents 占 bit 0–9（`0x3FF`），light 占 bit 10–13，data 占 bit 14+；`ExtractData=(value & -16384)>>14`、`ExtractContents=value & 0x3FF`。各族 `data` 位语义（从 `StairsBlock`/`SlabBlock`/`FenceBlock`/`DoorBlock` 数据访问器与 `SubsystemFenceBlockBehavior`/`SubsystemStairsBlockBehavior`/`SubsystemDoorBlockBehavior` 邻接逻辑反推）：
+
+| 族 | data 自有位 | Normalize 掩码 | 引擎派生（不入库）| 朝向变换 |
+| --- | --- | --- | --- | --- |
+| Stairs | rot[0–1] + upsideDown[2] | `0x7` | 拐角接合[3–4]、颜色[5+] | 随朝向变 |
+| Slab | isTop[0] | `0x1` | 颜色[1+] | 不变（仅 isTop）|
+| Fence | 四连接臂 [0]=+X [1]=−X [2]=+Z [3]=−Z | `0xF` | 引擎按邻块重算，仍保留授权掩码以便即时渲染 | 臂随旋转置换 |
+| Door | rot[0–1] + open[2] + rightHanded[3] | `0xF` | — | 随朝向变；镜像翻铰链 |
+
+朝向约定（与 `Block.GetPlacementValue` 一致）：`rot0=−Z, rot1=−X, rot2=+Z, rot3=+X`。一次顺时针 90°：`newRot=(rot+3)&3`；栅栏臂 `+X→+Z→−X→−Z→+X`。X 镜像：`newRot=(−rot)&3`，门的 rightHanded 位翻转，栅栏 `+X/−X` 互换而 `+Z/−Z` 不动。这些公式全部落在**纯 Core** `Core/Blueprints/BlockOrientation.cs`（无游戏依赖、离线可单测），`VanillaBlockPalette` 只负责“类型名→族→`MakeBlockValue` 打包”。
+
+门是**双格方块**：蓝图/复制**只存下半格**，写入下半格后 `SubsystemDoorBlockBehavior.OnBlockAdded` 依下半格自动生成上半格，且要求下方为实心支撑。`BlueprintCopier` 会识别门上半格并计入 `SkippedDerived`（**只采下半**），否则粘贴时写入下半→引擎自动造上半→紧接着的计划上半写入会命中“目标已非空气”而中止——这是本轮修掉的真实设计缺陷。`BuildPlanner` 的格子按 Y 升序执行，保证“先下后上”。
+
+新增支持变体（材料 key = CLR 类型名）：楼梯 9（Wooden/Cobblestone/Stone/StoneBrick/Brick/Basalt/Marble/Sandstone/Dirt StairsBlock）、半砖 9（同集 SlabBlock）、栅栏 5（Wooden/Stone/Brick/Basalt/Iron FenceBlock）、门 2（WoodenDoorBlock/IronDoorBlock），连同既有立方 12。`SupportedPlainCubes` 作为 `SupportedBlocks` 的 Cube 子集保留（向后兼容）。
+
+安全模型**一字未改**：默认不覆盖非空气 + 显式二次确认、主线程分批写入、区块就绪预检、有界停等（transient re-mesh 暂停重试而非整体回滚）、撤销仅恢复玩家未再改动的格。旧 `schemaVersion=1` 文件（无 f/d）仍可解码、按纯立方载入，历史蓝图不受影响。
+
+已跑验证（本机，无设备）：
+- 离线 `tests/BuilderAssistant.Tests` 由 203 项净增至 **267/267 全通过**（新增 64 项：`BlockOrientation` 的 Normalize 掩码、旋转四次=恒等/−1≡+3 群律、楼梯朝向置换、栅栏臂置换、镜像对合+门铰链翻转；`BlueprintJson` schema v2 朝向格逐字往返、纯立方不发 `cube` 标签以保 v1 字节形、引擎派生位被剥离、非法族标签与 `props` 与负 `d` 精确拒绝；小屋**确实**产出楼梯 35/半砖 2/栅栏 2/门 1 且各朝向正确、门上半格确未被授权写入；整幢小屋旋转四次回到恒等、旋转后 JSON 往返朝向完好）。断言不依赖游戏程序集或文件 IO。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`Directory.Build.props` 设 `TreatWarningsAsErrors=true`，0 警告即编译期绑定成功——`Terrain.MakeBlockValue`/`ExtractData` 与各 `*Block` 族名可用）。
+- XDB 合并安全守卫 **7/7**（本轮**未改任何 `.xdb`/CSV**：新块都是已存在的原版方块，经 `BlocksManager.FindBlockByTypeName` 按类型名解析，无需新增子系统/方块注册，故不引入新 GUID；`ea25b78e` 复用缺陷未回退）。
+- 重打包 `.netmod` v0.9.0 SHA-256 `E9281514FB57884BE5EF63E73AC3C7C4B8A0334F7D53A97A108F208F35EDA04E`（2,342,108 字节，取代 v0.8.2 的 `7FE91876…`）。随包核对：`modinfo.json Version=0.9.0`、`BuilderAssistant.dll` 程序集版本 `0.9.0.0`（FileVersion `0.9.0.0`，ProductVersion `0.9.0+…`，无 `0.8.2` 残留）、CSV 方块类名仍唯一、不含任何专有游戏程序集。
+
+**重要**：Windows 编译 + 打包 ≠ 运行验证。以上只证明“这些族名存在于已验证程序集、可编译、朝向数学离线成立、蓝图能无损往返”；楼梯/半砖/栅栏/门在 7723 手机上**是否按朝向正确渲染、门是否自动补上半格、栅栏是否正确接连**，**全部为待验证**——桌面从未在设备上落过任何一个朝向方块。任一变体未实测前不得标“兼容/已确认”。
+
+**Android 7723 单人创造世界实测清单（逐族）**：
+1. 装 v0.9.0，进单人创造世界，加载横幅应显示 v0.9.0。
+2. 内置小屋：建造工具(901)对准平整地面两次点击 → 应整幢落成，檐口呈**楼梯斜坡**、正面有**木门**、窗下有**半砖窗台**、屋脊两端有**栅栏**；撤销一次应整体干净回退。
+3. 门：落成后正面门洞应显示**完整两格门**（下半由蓝图写、上半由引擎自动生成），若只见下半而上半为空/异常，即 `SubsystemDoorBlockBehavior.OnBlockAdded` 在该机未触发——回传日志，标注**待验证**。
+4. 复制往返：对一段含楼梯/半砖/栅栏/门的真实结构做两角复制 → 蓝图 JSON 应含 `f`/`d`；再落回 → 朝向、门的两格、栅栏接连应与源**目视一致**。
+5. 旋转/镜像：同一蓝图切不同朝向落成 → 楼梯高边、门开向应随整体转动（不是逐格乱转）。
+6. 非法/超界/含未支持块 → 应“导入失败：<原因>”，不污染剪贴板、不部分导入。
+若某族/某变体异常，回传首条 `Warning/Error` 原文 + 完整 `Game.log`，注明阶段（落成/复制/导入）与具体方块；该变体在本文保持**待验证**，不得标兼容。

@@ -16,9 +16,18 @@ namespace BuilderAssistant.Core.Blueprints
         public const string Glass = "Glass";               // windows
         public const string Floor = "Floor";               // interior floor
 
+        // Oriented logical keys (schema v2). The WorldEdit palette maps each to a
+        // vanilla block whose family (stairs/slab/fence/door) owns the cell's data bits;
+        // the generator sets the matching BlockFamily on the cell.
+        public const string RoofStairs  = "RoofStairs";    // stepped roof edges (WoodenStairsBlock)
+        public const string EntryDoor   = "EntryDoor";     // doorway door (WoodenDoorBlock, two-cell)
+        public const string WindowSill  = "WindowSill";    // slab windowsill (StoneSlabBlock)
+        public const string GardenFence = "GardenFence";   // fence accent (WoodenFenceBlock)
+
         public static readonly string[] All =
         {
-            StoneBase, StoneWall, WoodWall, WoodTrim, Roof, Glass, Floor
+            StoneBase, StoneWall, WoodWall, WoodTrim, Roof, Glass, Floor,
+            RoofStairs, EntryDoor, WindowSill, GardenFence,
         };
     }
 }

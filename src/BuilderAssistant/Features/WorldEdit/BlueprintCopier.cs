@@ -13,11 +13,14 @@ namespace BuilderAssistant.Features.WorldEdit
     /// blueprint bridge - it only reads, never writes, so a copy can never damage the
     /// source structure.
     ///
-    /// Fidelity policy (schema 1): only vanilla blocks in
-    /// <see cref="VanillaBlockPalette.SupportedPlainCubes"/> are captured. Every other
+    /// Fidelity policy (schema v2): every vanilla block in
+    /// <see cref="VanillaBlockPalette.SupportedBlocks"/> is captured - plain cubes and
+    /// the oriented stairs / slabs / fences / doors alike - preserving each block's
+    /// authored orientation bits (rotation, top-half, hinge, fence arms). Colors and
+    /// stair corner-joints are engine-derived and intentionally NOT stored. Every other
     /// non-air cell is classified and SKIPPED with a per-type count so the caller can
-    /// tell the user exactly what will not be reproduced (stairs, slabs, oriented
-    /// logs, plants, snow, fluids, entity-bearing blocks). We never write a guessed or
+    /// tell the user exactly what will not be reproduced (plants, snow, fluids,
+    /// oriented logs, entity-bearing / complex blocks). We never write a guessed or
     /// degraded block (AGENTS.md: no garbage), and we never touch fluids/plants at all.
     /// </summary>
     internal static class BlueprintCopier
@@ -32,6 +35,7 @@ namespace BuilderAssistant.Features.WorldEdit
             public int SkippedNotReady;
             public int SkippedUnknown;
             public int SkippedUnsupported;   // non-cube / fluid / plant / unverified block
+            public int SkippedDerived;       // engine-recreated cells (e.g. door upper half)
             public readonly Dictionary<string, int> UnsupportedByType = new Dictionary<string, int>(System.StringComparer.Ordinal);
             public string Failure;            // non-null when the selection is illegal (cap/bounds)
 
@@ -45,7 +49,8 @@ namespace BuilderAssistant.Features.WorldEdit
                 sb.Append("已捕获 ").Append(Copied).Append(" 个可复制方块（空气 ").Append(SkippedAir)
                   .Append("，未就绪 ").Append(SkippedNotReady)
                   .Append("，未知 ").Append(SkippedUnknown)
-                  .Append("，暂不支持 ").Append(SkippedUnsupported).Append("）。");
+                  .Append("，暂不支持 ").Append(SkippedUnsupported)
+                  .Append("，派生跳过 ").Append(SkippedDerived).Append("）。");
                 if (UnsupportedByType.Count > 0)
                 {
                     sb.Append(" 跳过的方块类型：");
@@ -135,14 +140,36 @@ namespace BuilderAssistant.Features.WorldEdit
                             continue;
                         }
 
-                        if (VanillaBlockPalette.SupportedPlainCubes.Contains(typeName))
+                        BlockFamily family;
+                        if (VanillaBlockPalette.TryGetFamily(typeName, out family))
                         {
-                            builder.Set(relative, typeName); // concrete vanilla key the palette can rebuild
-                            result.Copied++;
+                            if (family == BlockFamily.Cube)
+                            {
+                                builder.Set(relative, typeName); // concrete vanilla key the palette can rebuild
+                                result.Copied++;
+                            }
+                            else if (family == BlockFamily.Door && IsDoorUpperHalf(gateway, abs))
+                            {
+                                // Door is two cells; the engine recreates the top from the
+                                // bottom, so capturing both would make the paste try to
+                                // overwrite the auto-created top (target non-air) and abort.
+                                // Capture only the bottom half.
+                                result.SkippedDerived++;
+                            }
+                            else
+                            {
+                                // Capture the live authored orientation (rotation / top-half /
+                                // hinge / fence arms). Terrain.ExtractData gives the raw data
+                                // field; SetOriented normalizes it to the family's owned bits,
+                                // dropping engine-derived stair corners and colors.
+                                int data = Terrain.ExtractData(value);
+                                builder.SetOriented(relative, typeName, family, data);
+                                result.Copied++;
+                            }
                         }
                         else
                         {
-                            // Fluid / plant / snow / stair / slab / oriented / entity block:
+                            // Fluid / plant / snow / oriented-log / entity / complex block:
                             // classify, count and skip. Never copy something we cannot reproduce.
                             result.SkippedUnsupported++;
                             int prev;
@@ -169,6 +196,31 @@ namespace BuilderAssistant.Features.WorldEdit
 
             result.Blueprint = builder.ToBlueprint(result.Name, BlueprintJson.CurrentSchemaVersion);
             return result;
+        }
+
+        /// <summary>
+        /// True when the door cell at <paramref name="abs"/> is the upper half, i.e. the
+        /// world cell directly beneath it is also a door block. The engine recreates this
+        /// half automatically when the bottom is placed, so the copier stores only the
+        /// bottom and lets the build re-derive the top.
+        /// </summary>
+        private static bool IsDoorUpperHalf(GameTerrainGateway gateway, CellPos abs)
+        {
+            int belowValue;
+            if (!gateway.TryGetCellValue(new CellPos(abs.X, abs.Y - 1, abs.Z), out belowValue))
+            {
+                return false; // cannot inspect below -> treat as the authoritative bottom cell
+            }
+            int belowContents = Terrain.ExtractContents(belowValue);
+            if (belowContents == 0)
+            {
+                return false;
+            }
+            string belowType = GameTerrainGateway.TypeNameForContents(belowContents);
+            BlockFamily belowFamily;
+            return belowType != null &&
+                   VanillaBlockPalette.TryGetFamily(belowType, out belowFamily) &&
+                   belowFamily == BlockFamily.Door;
         }
     }
 }

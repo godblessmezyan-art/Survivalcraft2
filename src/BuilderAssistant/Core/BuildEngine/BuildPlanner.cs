@@ -139,7 +139,11 @@ namespace BuilderAssistant.Core.BuildEngine
                 }
 
                 int value;
-                if (!resolver.TryResolve(cell.MaterialKey, out value))
+                // Pass the cell's authored orientation (data 0 for plain cubes). Door
+                // cells are emitted bottom-first: blueprint cells are sorted by ascending
+                // Y, so the lower door half is always written before the upper, and the
+                // engine's SubsystemDoorBlockBehavior auto-creates the matching top cell.
+                if (!resolver.TryResolve(cell.MaterialKey, cell.Data, out value))
                 {
                     if (!sawUnknownMaterial)
                     {

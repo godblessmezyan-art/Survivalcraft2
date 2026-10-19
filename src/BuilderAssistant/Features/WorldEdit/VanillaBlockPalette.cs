@@ -9,22 +9,28 @@ namespace BuilderAssistant.Features.WorldEdit
     /// Resolves a blueprint material key to a real vanilla block value, and does
     /// so by name at runtime - never by a hardcoded index. Two kinds of keys are
     /// accepted:
-    ///  1. A logical cottage key (StoneBase / WoodWall / ...), mapped to a verified
-    ///     plain-cube block type. This is what generators emit and lets a blueprint
-    ///     re-skin later.
-    ///  2. A concrete vanilla block CLR type name (e.g. "CobblestoneBlock") - what a
-    ///     COPY produces. Such a key only resolves when the name is in
-    ///     <see cref="SupportedPlainCubes"/>, so importing a blueprint that references
-    ///     stairs, slabs, oriented logs, plants, fluids or entity-bearing "complex"
-    ///     blocks simply fails to resolve and the build aborts with a clear reason
-    ///     instead of placing a wrong/low-quality block (AGENTS.md: no garbage).
+    ///  1. A logical cottage key (StoneBase / WoodWall / RoofStairs / ...), mapped to a
+    ///     verified vanilla block CLR type. This is what generators emit and lets a
+    ///     blueprint re-skin later.
+    ///  2. A concrete vanilla block CLR type name (e.g. "CobblestoneBlock" or
+    ///     "WoodenStairsBlock") - what a COPY produces. Such a key only resolves when it
+    ///     is in <see cref="SupportedBlocks"/>, so importing a blueprint that references
+    ///     an unknown or entity-bearing "complex" block simply fails to resolve and the
+    ///     build aborts with a clear reason instead of placing a wrong/low-quality block
+    ///     (AGENTS.md: no garbage).
     ///
-    /// Every accepted block is a plain cube that needs no orientation data bits, so
-    /// the packed value is just the block index (light 0, data 0).
+    /// Since schema v2 the palette also packs per-cell AUTHORED orientation: the terrain
+    /// value's DATA field (bits 14-31) carries stair rotation/upside-down, slab top-half,
+    /// fence connection arms and door rotation/open/hinge. Every family's data is first
+    /// masked by <see cref="BlockOrientation.Normalize"/> to the bits the block itself
+    /// owns, so we never bake in engine-derived state (stair corner-joints, all colors) -
+    /// the game's SubsystemStairsBlockBehavior / SubsystemFenceBlockBehavior recompute
+    /// those from neighbors when the block is placed, and a door's upper half is spawned
+    /// automatically by SubsystemDoorBlockBehavior from the bottom cell we write.
     /// </summary>
     internal sealed class VanillaBlockPalette : IBlockValueResolver
     {
-        // logical key -> CLR type name of a verified plain-cube vanilla block.
+        // logical key -> CLR type name of a verified vanilla block.
         private static readonly Dictionary<string, string> KeyToTypeName =
             new Dictionary<string, string>
             {
@@ -35,78 +41,149 @@ namespace BuilderAssistant.Features.WorldEdit
                 { BuildingMaterials.Roof,      "BricksBlock" },      // index 73 (plain cube)
                 { BuildingMaterials.Glass,     "GlassBlock" },       // index 15 (plain cube)
                 { BuildingMaterials.Floor,     "PlanksBlock" },      // index 21
+
+                // v0.9 cottage-oriented keys (schema v2). Families are derived from the
+                // resolved type name below, so these keys need no separate family table.
+                { BuildingMaterials.RoofStairs,   "WoodenStairsBlock" },
+                { BuildingMaterials.EntryDoor,    "WoodenDoorBlock" },
+                { BuildingMaterials.WindowSill,   "StoneSlabBlock" },
+                { BuildingMaterials.GardenFence,  "WoodenFenceBlock" },
             };
 
         /// <summary>
-        /// The set of vanilla blocks Builder Assistant is willing to copy and paste:
-        /// full solid/transparent cubes that render identically with data == 0 and
-        /// carry no per-block entity state. Everything outside it - stairs, slabs,
-        /// oriented logs, fences, glass panes, ladders, plants, snow, water/lava,
-        /// doors, chests/furnaces, gravity sand/gravel and other entity-bearing blocks
-        /// - is NOT reproduced: copy skips it with a clear report, and an imported
-        /// blueprint referencing it aborts with a clear message rather than generating
-        /// a degraded structure.
+        /// Every vanilla block Builder Assistant is willing to build and copy, mapped to
+        /// the family that decides which DATA bits it owns. Plain solid/transparent cubes
+        /// are Cube (data 0). Stairs/slab/fence/door carry the authored orientation bits
+        /// described in <see cref="BlockOrientation"/>. Anything outside this map - plants,
+        /// snow, fluids, gravity sand/gravel, chests/furnaces, oriented logs, glass panes,
+        /// ladders, ladders, redstone and other entity-bearing "complex" blocks - is NOT
+        /// reproduced: copy skips it with a clear report, and an imported blueprint
+        /// referencing it aborts with a clear message rather than a degraded structure.
         ///
-        /// Policy for extension (v0.8.2): a block may be ADDED here once reflection over
-        /// D:\SC\Survivalcraft.exe confirms it is a plain CubeBlock/PaintedCubeBlock with
-        /// no orientation/entity/state data bits. Adding a name is fail-safe at runtime:
-        /// TryResolve looks the type up via BlocksManager.FindBlockByTypeName, so if a
-        /// name is somehow not a registered in-game block it simply returns false and the
-        /// build/import aborts cleanly - it can never place a wrong or guessed block. The
-        /// remaining open question for every newly added entry is on-device RENDERING on
-        /// the 7723 target, which stays 待验证 until confirmed block-by-block (see
-        /// docs/COMPATIBILITY.md). PaintedCube-family members are pasted with the engine
-        /// default color in this phase (per-cell color is not part of the terrain value);
-        /// preserving color is reserved for a later schemaVersion=2 with a color payload.
+        /// Extension policy: a name may be ADDED once reflection over the x25.01.17
+        /// assembly confirms its family + owned data bits, and <see cref="TryResolve(string,int,out int)"/>
+        /// stays fail-safe (an unregistered name resolves to null and aborts cleanly). The
+        /// on-device RENDERING of every oriented block on the 7723 target stays 待验证
+        /// until confirmed block-by-block (see docs/COMPATIBILITY.md). PaintedCube /
+        /// stair / slab colors are NOT part of the terrain value we author, so painted
+        /// sources paste in the engine default color (color preservation is out of scope).
         /// </summary>
-        public static readonly HashSet<string> SupportedPlainCubes =
-            new HashSet<string>(System.StringComparer.Ordinal)
+        public static readonly Dictionary<string, BlockFamily> SupportedBlocks =
+            new Dictionary<string, BlockFamily>(System.StringComparer.Ordinal)
             {
-                // Proven on-device since the cottage (v0.6/v0.7):
-                "CobblestoneBlock", // logical StoneBase   (PaintedCube)
-                "StoneBrickBlock",  // logical StoneWall   (PaintedCube)
-                "PlanksBlock",      // logical WoodWall / WoodTrim / Floor (PaintedCube)
-                "BricksBlock",      // logical Roof        (PaintedCube)
-                "GlassBlock",       // logical Glass       (AlphaTestCube)
+                // ---- Proven plain cubes on-device since the cottage (v0.6/v0.7) ----
+                { "CobblestoneBlock", BlockFamily.Cube }, // StoneBase   (PaintedCube)
+                { "StoneBrickBlock",  BlockFamily.Cube }, // StoneWall   (PaintedCube)
+                { "PlanksBlock",      BlockFamily.Cube }, // WoodWall/WoodTrim/Floor
+                { "BricksBlock",      BlockFamily.Cube }, // Roof        (PaintedCube)
+                { "GlassBlock",       BlockFamily.Cube }, // Glass       (AlphaTestCube)
 
-                // v0.8.2: reflection-verified plain stone/brick cubes. class exists and
-                // data==0 is safe; on-device rendering on 7723 is 待验证 (COMPATIBILITY).
-                "BasaltBlock",      // PaintedCube, plain stone   (待验证)
-                "GraniteBlock",     // PaintedCube, plain stone   (待验证)
-                "MarbleBlock",      // PaintedCube, plain stone   (待验证)
-                "SandstoneBlock",   // PaintedCube, plain stone   (待验证)
-                "ClayBlock",        // PaintedCube, plain block   (待验证)
-                "LimestoneBlock",   // Cube (fixed texture)       (待验证)
-                "MalachiteBlock",   // Cube (fixed texture)       (待验证)
+                // ---- v0.8.2 reflection-verified plain stone/brick cubes (待验证) ----
+                { "BasaltBlock",    BlockFamily.Cube },
+                { "GraniteBlock",   BlockFamily.Cube },
+                { "MarbleBlock",    BlockFamily.Cube },
+                { "SandstoneBlock", BlockFamily.Cube },
+                { "ClayBlock",      BlockFamily.Cube },
+                { "LimestoneBlock", BlockFamily.Cube },
+                { "MalachiteBlock", BlockFamily.Cube },
+
+                // ---- v0.9 stairs (StairsBlock: rotation(0-1)+upsideDown(2); corners/color derived) ----
+                { "WoodenStairsBlock",      BlockFamily.Stairs },
+                { "CobblestoneStairsBlock", BlockFamily.Stairs },
+                { "StoneStairsBlock",       BlockFamily.Stairs },
+                { "StoneBrickStairsBlock",  BlockFamily.Stairs },
+                { "BrickStairsBlock",       BlockFamily.Stairs },
+                { "BasaltStairsBlock",      BlockFamily.Stairs },
+                { "MarbleStairsBlock",      BlockFamily.Stairs },
+                { "SandstoneStairsBlock",   BlockFamily.Stairs },
+                { "DirtStairsBlock",        BlockFamily.Stairs },
+
+                // ---- v0.9 slabs / half-blocks (SlabBlock: isTop(0); color derived) ----
+                { "WoodenSlabBlock",      BlockFamily.Slab },
+                { "CobblestoneSlabBlock", BlockFamily.Slab },
+                { "StoneSlabBlock",       BlockFamily.Slab },
+                { "StoneBrickSlabBlock",  BlockFamily.Slab },
+                { "BrickSlabBlock",       BlockFamily.Slab },
+                { "BasaltSlabBlock",      BlockFamily.Slab },
+                { "MarbleSlabBlock",      BlockFamily.Slab },
+                { "SandstoneSlabBlock",   BlockFamily.Slab },
+                { "DirtSlabBlock",        BlockFamily.Slab },
+
+                // ---- v0.9 fences (FenceBlock: 4 connection arms(0-3), engine-recomputed) ----
+                { "WoodenFenceBlock", BlockFamily.Fence },
+                { "StoneFenceBlock",  BlockFamily.Fence },
+                { "BrickFenceBlock",  BlockFamily.Fence },
+                { "BasaltFenceBlock", BlockFamily.Fence },
+                { "IronFenceBlock",   BlockFamily.Fence },
+
+                // ---- v0.9 doors (DoorBlock: rotation(0-1)+open(2)+rightHanded(3); two-cell) ----
+                { "WoodenDoorBlock", BlockFamily.Door }, // index 56
+                { "IronDoorBlock",   BlockFamily.Door }, // index 57
             };
 
-        private readonly Dictionary<string, int> _resolved = new Dictionary<string, int>();
+        /// <summary>The plain-cube subset, kept for readability/back-compat. Every member
+        /// is also in <see cref="SupportedBlocks"/> tagged as <see cref="BlockFamily.Cube"/>.</summary>
+        public static readonly HashSet<string> SupportedPlainCubes = BuildCubes();
+
+        private static HashSet<string> BuildCubes()
+        {
+            var s = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (KeyValuePair<string, BlockFamily> kv in SupportedBlocks)
+            {
+                if (kv.Value == BlockFamily.Cube) s.Add(kv.Key);
+            }
+            return s;
+        }
+
+        /// <summary>
+        /// Whether a concrete vanilla CLR type name is a block this Mod can build/copy,
+        /// and if so which orientation family it belongs to. The copier uses this to turn
+        /// a live cell into a faithful oriented key; unknown/complex blocks return false.
+        /// </summary>
+        public static bool TryGetFamily(string typeName, out BlockFamily family)
+        {
+            return SupportedBlocks.TryGetValue(typeName ?? string.Empty, out family);
+        }
+
+        private readonly Dictionary<string, int> _resolvedCube = new Dictionary<string, int>();
 
         public bool TryResolve(string materialKey, out int value)
         {
-            int cached;
-            if (_resolved.TryGetValue(materialKey, out cached))
-            {
-                value = cached;
-                return true;
-            }
+            return TryResolve(materialKey, 0, out value);
+        }
 
+        public bool TryResolve(string materialKey, int data, out int value)
+        {
             value = 0;
             if (string.IsNullOrEmpty(materialKey))
             {
                 return false;
             }
 
-            // Resolve the key to a type name: a logical key maps through the table;
-            // a concrete key is used directly only if it is a supported plain cube.
+            // Resolve the key to a type name: a logical key maps through the table; a
+            // concrete key is used directly only if it is a supported block.
             string typeName;
             if (!KeyToTypeName.TryGetValue(materialKey, out typeName))
             {
-                if (!SupportedPlainCubes.Contains(materialKey))
+                if (!SupportedBlocks.ContainsKey(materialKey))
                 {
                     return false; // unknown or unsupported block -> abort, never guess
                 }
                 typeName = materialKey;
+            }
+
+            BlockFamily family = SupportedBlocks[typeName];
+
+            // Plain cubes need no orientation: pack the bare content index (light 0,
+            // data 0). Cache those (the common cottage path) to skip reflection re-lookup.
+            if (family == BlockFamily.Cube)
+            {
+                int cached;
+                if (_resolvedCube.TryGetValue(typeName, out cached))
+                {
+                    value = cached;
+                    return true;
+                }
             }
 
             Block block = BlocksManager.FindBlockByTypeName(typeName, false);
@@ -115,19 +192,22 @@ namespace BuilderAssistant.Features.WorldEdit
                 return false;
             }
 
-            // Plain cube: pack the bare content index (light 0, data 0).
-            int packed = Terrain.MakeBlockValue(block.BlockIndex, 0, 0);
-            _resolved[materialKey] = packed;
+            int packed = Terrain.MakeBlockValue(block.BlockIndex, 0, BlockOrientation.Normalize(family, data));
+
+            if (family == BlockFamily.Cube)
+            {
+                _resolvedCube[typeName] = packed;
+            }
+
             value = packed;
             return true;
         }
 
         /// <summary>
         /// Whether a material key from an imported/copied blueprint is buildable by
-        /// this palette: true for logical cottage keys and for concrete vanilla keys
-        /// in <see cref="SupportedPlainCubes"/>. Used to pre-flight an import so the
-        /// user gets a precise "block type not yet supported" list instead of a bare
-        /// planner failure.
+        /// this palette (logical cottage keys or concrete vanilla keys in
+        /// <see cref="SupportedBlocks"/>). Used to pre-flight an import so the user gets
+        /// a precise "block type not yet supported" list instead of a bare planner failure.
         /// </summary>
         public bool IsResolvableKey(string materialKey)
         {
@@ -137,7 +217,7 @@ namespace BuilderAssistant.Features.WorldEdit
 
         public void Reset()
         {
-            _resolved.Clear();
+            _resolvedCube.Clear();
         }
     }
 }

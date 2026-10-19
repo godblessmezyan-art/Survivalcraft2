@@ -66,7 +66,18 @@ namespace BuilderAssistant.Core.Blueprints
                     int newW = (r == 1 || r == 3) ? l : w;
                     nx = newW - 1 - nx;
                 }
-                result.Add(new BlueprintCell(new CellPos(nx, c.Relative.Y, nz), c.MaterialKey));
+
+                // Orientation must follow the geometry: rotate the authored data by the
+                // same number of clockwise quarter turns the footprint was turned, then
+                // apply the X-mirror only when the footprint was also mirrored (the
+                // mirror operates in the already-rotated frame, matching Reorient).
+                int data = BlockOrientation.Rotate(c.Family, c.Data, r);
+                if (mirrorX)
+                {
+                    data = BlockOrientation.MirrorX(c.Family, data);
+                }
+
+                result.Add(new BlueprintCell(new CellPos(nx, c.Relative.Y, nz), c.MaterialKey, c.Family, data));
             }
 
             // Re-normalize so the min corner is again (0,0,0).
@@ -99,7 +110,7 @@ namespace BuilderAssistant.Core.Blueprints
                 BlueprintCell c = cells[i];
                 shifted.Add(new BlueprintCell(
                     new CellPos(c.Relative.X - minX, c.Relative.Y - minY, c.Relative.Z - minZ),
-                    c.MaterialKey));
+                    c.MaterialKey, c.Family, c.Data));
             }
 
             int sizeX = maxX - minX + 1;

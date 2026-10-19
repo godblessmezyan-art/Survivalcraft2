@@ -8,6 +8,14 @@ namespace BuilderAssistant.Core.Transactions
     /// </summary>
     internal interface IBlockValueResolver
     {
+        /// <summary>Pre-flight / cube resolution: no authored orientation (data 0).</summary>
         bool TryResolve(string materialKey, out int value);
+
+        /// <summary>
+        /// Schema-v2 resolution: pack <paramref name="data"/> (authored orientation)
+        /// into the terrain value, masked to the bits the resolved block's family
+        /// actually owns. Plain cubes ignore <paramref name="data"/> and always pack 0.
+        /// </summary>
+        bool TryResolve(string materialKey, int data, out int value);
     }
 }

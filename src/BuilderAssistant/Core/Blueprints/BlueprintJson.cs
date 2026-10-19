@@ -21,17 +21,27 @@ namespace BuilderAssistant.Core.Blueprints
     ///     "name": "…",
     ///     "size": { "x":…, "y":…, "z":… },         // advisory; authoritatively recomputed
     ///     "materials": [ { "id":0, "key":"StoneBase", "block":"CobblestoneBlock" }, … ],
-    ///     "cells": [ { "x":.., "y":.., "z":.., "m":0 }, … ]   // relative, integer
+    ///     "cells": [ { "x":.., "y":.., "z":.., "m":0, "f":"stairs", "d":5 }, … }  // relative
     ///   }
     ///
+    /// schemaVersion 2 adds two OPTIONAL per-cell fields for oriented vanilla blocks:
+    ///   "f" the authored block family ("cube"|"stairs"|"slab"|"fence"|"door"); omitted = cube
+    ///   "d" the authored DATA bits for that family (rotation/top/hinge/fence-arms); omitted = 0
+    /// Only orientation the block itself owns is stored - stair corner-joints and all
+    /// colors are engine-derived and never written (see BlockOrientation.Normalize).
+    /// A schemaVersion 1 file (no per-cell f/d) still decodes and is read as plain cubes,
+    /// so older blueprints keep working unchanged.
+    ///
     /// Forward-compatibility is *reserved* but never silently faked: if a file
-    /// carries per-cell orientation/data/property payloads or a buildOps list that
-    /// this schema cannot reproduce, Decode rejects it with a clear reason instead
-    /// of placing wrong blocks (AGENTS.md: no garbage writes).
+    /// carries a "props" payload (complex block state such as chest contents or a
+    /// spawned entity) or a buildOps list that this schema cannot reproduce, Decode
+    /// rejects it with a clear reason instead of placing wrong blocks (AGENTS.md: no
+    /// garbage writes).
     /// </summary>
     internal static class BlueprintJson
     {
-        public const int CurrentSchemaVersion = 1;
+        public const int CurrentSchemaVersion = 2;
+        public const int FirstSupportedSchemaVersion = 1;
         public const string KindConstant = "builderassistant.blueprint";
 
         /// <summary>Serialize a blueprint to deterministic, stable JSON text.</summary>
@@ -90,6 +100,16 @@ namespace BuilderAssistant.Core.Blueprints
                 cell.Add("y", JsonValue.NewNumber(c.Relative.Y));
                 cell.Add("z", JsonValue.NewNumber(c.Relative.Z));
                 cell.Add("m", JsonValue.NewNumber(keyToId[c.MaterialKey ?? string.Empty]));
+                // Oriented cells (schema v2) carry family + authored data. Omit both for
+                // plain cubes so a cube-only blueprint stays byte-identical to the v1 shape.
+                if (c.Family != BlockFamily.Cube)
+                {
+                    cell.Add("f", JsonValue.NewString(BlockOrientation.FamilyToTag(c.Family)));
+                }
+                if (c.Data != 0)
+                {
+                    cell.Add("d", JsonValue.NewNumber(c.Data));
+                }
                 cells.Add(cell);
             }
             root.Add("cells", cells);
@@ -143,7 +163,7 @@ namespace BuilderAssistant.Core.Blueprints
                 result.AddError("蓝图 schemaVersion=" + version + " 高于本 Mod 支持的 " + CurrentSchemaVersion + "，请升级 Mod 而非降级重建（拒绝劣质生成）。");
                 return result;
             }
-            if (version < 1)
+            if (version < FirstSupportedSchemaVersion)
             {
                 result.AddError("蓝图 schemaVersion=" + version + " 无效。");
                 return result;
@@ -223,11 +243,12 @@ namespace BuilderAssistant.Core.Blueprints
                     continue;
                 }
 
-                // Reserved compatibility: orientation / data / property payloads that
-                // schema 1 cannot reproduce must be rejected loudly, never guessed.
-                if (HasUnsupportedCellFeature(cell))
+                // Reserved compatibility: complex per-block state ("props", e.g. chest
+                // contents or a spawned entity) cannot be reproduced and must be rejected
+                // loudly, never guessed. Orientation ("d"/"f") is supported since schema 2.
+                if (cell.Get("props") != null)
                 {
-                    result.AddError("cells[" + i + "] 含本版本无法复现的朝向/数据/复杂方块属性（o/d/props），已拒绝以避免劣质生成。");
+                    result.AddError("cells[" + i + "] 含本版本无法复现的复杂方块属性（props，如箱内物品/实体状态），已拒绝以避免劣质生成。");
                     continue;
                 }
 
@@ -258,7 +279,37 @@ namespace BuilderAssistant.Core.Blueprints
                     continue;
                 }
 
-                list.Add(new BlueprintCell(pos, materialKey));
+                // Optional schema-v2 orientation. Absent => plain cube, data 0.
+                BlockFamily family = BlockFamily.Cube;
+                JsonValue famNode = cell.Get("f");
+                if (famNode != null)
+                {
+                    string famTag = famNode.IsString ? famNode.StringValue : null;
+                    if (!IsKnownFamilyTag(famTag))
+                    {
+                        result.AddError("cells[" + i + "] 朝向族标签非法（应为 cube/stairs/slab/fence/door）：" + famTag);
+                        continue;
+                    }
+                    family = BlockOrientation.FamilyFromTag(famTag);
+                }
+
+                int data = 0;
+                JsonValue dataNode = cell.Get("d");
+                if (dataNode != null)
+                {
+                    if (!dataNode.TryAsInt(out data))
+                    {
+                        result.AddError("cells[" + i + "] 的数据位 d 必须是整数。");
+                        continue;
+                    }
+                    if (data < 0)
+                    {
+                        result.AddError("cells[" + i + "] 的数据位 d 不得为负。");
+                        continue;
+                    }
+                }
+
+                list.Add(new BlueprintCell(pos, materialKey, family, data));
             }
 
             if (result.HasErrors)
@@ -310,9 +361,12 @@ namespace BuilderAssistant.Core.Blueprints
             return result;
         }
 
-        private static bool HasUnsupportedCellFeature(JsonValue cell)
+        private static bool IsKnownFamilyTag(string tag)
         {
-            return cell.Get("o") != null || cell.Get("d") != null || cell.Get("props") != null;
+            // A missing/empty tag is valid (means plain cube).
+            if (string.IsNullOrEmpty(tag)) return true;
+            return tag == "cube" || tag == "stairs" || tag == "slab" ||
+                   tag == "fence" || tag == "door";
         }
 
         /// <summary>

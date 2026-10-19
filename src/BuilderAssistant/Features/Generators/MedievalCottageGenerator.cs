@@ -6,17 +6,26 @@ namespace BuilderAssistant.Features.Generators
     /// <summary>
     /// The first playable structure: a medieval fantasy cottage, 9 wide (X),
     /// 11 long (Z), 10 tall (Y). Built from composable relative-coordinate
-    /// modules (foundation, walls, timber frame, windows, doorway, layered hip
-    /// roof, chimney, interior posts) - NOT hardcoded world positions, and NOT
-    /// a hollow box. Uses only plain cube vanilla blocks (no stair/slab/door
-    /// blocks that would need orientation data bits), so every write is safe.
+    /// modules (foundation, walls, timber frame, windows, doorway, stepped roof,
+    /// chimney, interior posts) - NOT hardcoded world positions, and NOT a hollow
+    /// box.
+    ///
+    /// Since schema v2 it also uses the newly supported oriented families:
+    ///   - a wooden door in the front doorway (WoodenDoorBlock, two-cell),
+    ///   - wooden stairs around the eave so the roof reads as a slope
+    ///     (WoodenStairsBlock, exercising all four facings),
+    ///   - stone slabs as windowsills under the front windows (StoneSlabBlock),
+    ///   - wooden fence posts capping the roof ridge ends (WoodenFenceBlock).
+    /// These overwrite cells the plain-cube version already occupied (or fill an
+    /// existing carved opening), so the block count and safety envelope are
+    /// unchanged and every write still flows through the same planner/gateway.
     /// </summary>
     internal sealed class MedievalCottageGenerator : IBuildingGenerator
     {
         public const int Width = 9;   // X: 0..8
         public const int Length = 11; // Z: 0..10
         public const int Height = 10; // Y: 0..9
-        private const int BlueprintVersion = 1;
+        private const int BlueprintVersion = 2;
 
         public string Key { get { return "medieval_cottage"; } }
         public string DisplayName { get { return "中世纪奇幻小屋 9x11x10"; } }
@@ -32,8 +41,12 @@ namespace BuilderAssistant.Features.Generators
             BuildWalls(b, x0, z0, x1, z1);
             AddTimberFrame(b, x0, z0, x1, z1);
             AddWindows(b, x0, z0, x1, z1);
+            AddWindowSills(b, x0, z0, x1, z1);
             CarveDoorway(b, x0, z0, x1, z1);
+            AddDoor(b, x0, z0, x1, z1);
             AddRoof(b, x0, z0, x1, z1);
+            AddStairEaves(b, x0, z0, x1, z1);
+            AddRidgeFence(b, x0, z0, x1, z1);
             AddChimney(b);
             AddInterior(b, x0, z0, x1, z1);
 
@@ -90,10 +103,28 @@ namespace BuilderAssistant.Features.Generators
             b.Set(x1, 2, 7, BuildingMaterials.Glass);
         }
 
-        // A 2x2 doorway opening carved through the front wall (a real hole, not a door block).
+        // Stone slab windowsills (lower half) under the two front windows. The sill
+        // overwrites the wall cell directly beneath each window pane, so it adds no
+        // cells; isTop=0 means the bottom half so it reads as a ledge.
+        private static void AddWindowSills(BlueprintBuilder b, int x0, int z0, int x1, int z1)
+        {
+            b.SetOriented(1, 2, z0, BuildingMaterials.WindowSill, BlockFamily.Slab, 0);
+            b.SetOriented(7, 2, z0, BuildingMaterials.WindowSill, BlockFamily.Slab, 0);
+        }
+
+        // A 2x2 doorway opening carved through the front wall.
         private static void CarveDoorway(BlueprintBuilder b, int x0, int z0, int x1, int z1)
         {
             b.Carve(3, 1, z0, 4, 2, z0);
+        }
+
+        // Fill the left half of the doorway with a wooden door. Only the bottom cell is
+        // authored: writing it makes SubsystemDoorBlockBehavior auto-create the top cell,
+        // and the cell below (foundation at y=0) is solid support, which the engine requires.
+        // Rotation 2 faces +Z (into the room); closed (open bit 0); right-handed (bit3 0).
+        private static void AddDoor(BlueprintBuilder b, int x0, int z0, int x1, int z1)
+        {
+            b.SetOriented(3, 1, z0, BuildingMaterials.EntryDoor, BlockFamily.Door, 2);
         }
 
         // Layered hip roof: full eave plate, then three stepped inset layers to a ridge.
@@ -104,6 +135,46 @@ namespace BuilderAssistant.Features.Generators
             b.Layer(x0 + 2, z0 + 2, x1 - 2, z1 - 2, 7, BuildingMaterials.Roof); // 5x7
             b.Layer(x0 + 3, z0 + 3, x1 - 3, z1 - 3, 8, BuildingMaterials.Roof); // 3x5
             b.FillBox(4, 9, 4, 4, 9, 6, BuildingMaterials.Roof);        // ridge, 1x3
+        }
+
+        // Turn the outer eave ring (y=5 border) into wooden stairs so the roof edge
+        // reads as a slope. Each side faces inward/up so the two step-boxes sit against
+        // the wall below (y=4). This overwrites existing eave cells - no net block added -
+        // and exercises all four stair facings so blueprint rotation is meaningful.
+        private static void AddStairEaves(BlueprintBuilder b, int x0, int z0, int x1, int z1)
+        {
+            const int y = 5;
+            const int up0 = 0; // right-side up
+            // Front (z=z0): high side toward +Z (inward) -> rotation 2.
+            for (int x = x0; x <= x1; x++)
+            {
+                if (x == 3) continue; // leave the doorway header clear of stairs above the door
+                b.SetOriented(x, y, z0, BuildingMaterials.RoofStairs, BlockFamily.Stairs, 2 | up0);
+            }
+            // Back (z=z1): high side toward -Z (inward) -> rotation 0.
+            for (int x = x0; x <= x1; x++)
+            {
+                b.SetOriented(x, y, z1, BuildingMaterials.RoofStairs, BlockFamily.Stairs, 0 | up0);
+            }
+            // Left (x=x0): high side toward +X (inward) -> rotation 3. Interior only (corners done above).
+            for (int z = z0 + 1; z <= z1 - 1; z++)
+            {
+                b.SetOriented(x0, y, z, BuildingMaterials.RoofStairs, BlockFamily.Stairs, 3 | up0);
+            }
+            // Right (x=x1): high side toward -X (inward) -> rotation 1.
+            for (int z = z0 + 1; z <= z1 - 1; z++)
+            {
+                b.SetOriented(x1, y, z, BuildingMaterials.RoofStairs, BlockFamily.Stairs, 1 | up0);
+            }
+        }
+
+        // Wooden fence posts capping the two ends of the ridge, as simple finials. They
+        // overwrite existing ridge cells (no net block added). The engine auto-connects a
+        // lone post to nothing, so both render as single posts; connection bits start 0.
+        private static void AddRidgeFence(BlueprintBuilder b, int x0, int z0, int x1, int z1)
+        {
+            b.SetOriented(4, 9, 4, BuildingMaterials.GardenFence, BlockFamily.Fence, 0);
+            b.SetOriented(4, 9, 6, BuildingMaterials.GardenFence, BlockFamily.Fence, 0);
         }
 
         // Stone chimney stack near the back, poking up past the roof.

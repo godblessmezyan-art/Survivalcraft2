@@ -125,15 +125,33 @@ namespace BuilderAssistant.Tests
     /// </summary>
     internal sealed class FakeResolver : IBlockValueResolver
     {
+        // Diagnostic: the data bits handed to the last TryResolve call, and whether
+        // any call carried a non-zero data (so a test can prove orientation reaches
+        // the resolver rather than being silently dropped in the planner).
+        public int LastData;
+        public bool SawNonZeroData;
+
         public bool TryResolve(string materialKey, out int value)
         {
+            return TryResolve(materialKey, 0, out value);
+        }
+
+        public bool TryResolve(string materialKey, int data, out int value)
+        {
             value = 0;
+            LastData = data;
+            if (data != 0)
+            {
+                SawNonZeroData = true;
+            }
             if (string.IsNullOrEmpty(materialKey) || materialKey == "Nonexistent")
             {
                 return false;
             }
             int hash = materialKey.GetHashCode() & 0x7FFFFFFF;
-            value = 1000 + (hash % 90000);
+            // Mix the authored data in so two cells differing only by orientation get
+            // distinct values - this is what the real palette does via MakeBlockValue.
+            value = 1000 + ((hash + data * 7919) % 90000);
             if (value == 0)
             {
                 value = 1;
@@ -198,7 +216,7 @@ namespace BuilderAssistant.Tests
             TestBlueprintJsonRejectsAxisCap();
             TestBlueprintJsonRejectsUnknownMaterialId();
             TestBlueprintJsonRejectsEmptyCells();
-            TestBlueprintJsonRejectsUnsupportedOrientation();
+            TestBlueprintJsonRejectsBadFamilyAndProps();
             TestBlueprintJsonRejectsBuildOps();
             TestBlueprintJsonRejectsSizeMismatch();
             TestBlueprintJsonRotationTransformReproduces();
@@ -240,6 +258,24 @@ namespace BuilderAssistant.Tests
             // let the resolver be the single gate that accepts or rejects each new name.
             TestBlueprintJsonPreservesConcreteBlockNameKeys();
             TestImportGateAcceptsOrRejectsNewConcreteKeys();
+
+            // v0.9.0: oriented vanilla blocks (stairs/slab/fence/door). The palette +
+            // engine data-bit semantics need the game assembly (net472 build + on-device),
+            // but the TRANSFORM math is pure and must be proven offline: Normalize keeps
+            // only each family's authored bits; Rotate obeys the quarter-turn group law
+            // (four turns = identity) and the correct facing permutation; MirrorX is an
+            // involution and flips a door's hinge side; JSON schema v2 round-trips an
+            // oriented cell verbatim; and the reworked cottage really places oriented
+            // families whose facing survives a blueprint rotation + round-trip.
+            TestBlockOrientationNormalizeMasksAuthoredBits();
+            TestBlockOrientationRotationGroupLaw();
+            TestBlockOrientationStairsFacingPermutation();
+            TestBlockOrientationFenceArmPermutation();
+            TestBlockOrientationMirrorInvolutionAndDoorHinge();
+            TestBlueprintJsonRoundTripsOrientedCells();
+            TestBlueprintJsonStripsEngineDerivedOrientationBits();
+            TestCottageEmitsOrientedFamilies();
+            TestCottageOrientationSurvivesRotationAndRoundTrip();
 
             Console.WriteLine();
             Console.WriteLine(_failures == 0
@@ -1018,13 +1054,40 @@ namespace BuilderAssistant.Tests
             Check(!decode.Success, "an empty cells list is rejected");
         }
 
-        private static void TestBlueprintJsonRejectsUnsupportedOrientation()
+        private static void TestBlueprintJsonRejectsBadFamilyAndProps()
         {
-            Console.WriteLine("[TestBlueprintJsonRejectsUnsupportedOrientation]");
-            string json = "{\"schemaVersion\":1,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\",\"d\":4}]}";
-            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
-            Check(!decode.Success, "a per-cell data/orientation payload (reserved, unreproducible in v1) is rejected");
-            Check(decode.FirstError != null && decode.FirstError.Contains("朝向"), "reason explains the unsupported orientation");
+            Console.WriteLine("[TestBlueprintJsonRejectsBadFamilyAndProps]");
+
+            // Positive control: a legal schema-v2 oriented cell is now ACCEPTED (this is
+            // exactly what schema v1 used to reject). The per-cell orientation is honoured,
+            // not treated as an unsupported payload.
+            BlueprintJsonDecodeResult ok = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"WoodenStairsBlock\",\"f\":\"stairs\",\"d\":2}]}");
+            Check(ok.Success, "a legal oriented cell now decodes (schema v2 accepts f/d)");
+            if (ok.Blueprint != null && ok.Blueprint.Cells.Count == 1)
+            {
+                Check(ok.Blueprint.Cells[0].Family == BlockFamily.Stairs && ok.Blueprint.Cells[0].Data == 2,
+                    "the accepted cell carries the authored stairs family and data");
+            }
+
+            // Negative: an unknown family tag must be rejected loudly (never guessed into a cube).
+            BlueprintJsonDecodeResult badFam = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"StoneBase\",\"f\":\"wobble\"}]}");
+            Check(!badFam.Success, "an unknown family tag is rejected");
+            Check(badFam.FirstError != null && badFam.FirstError.Contains("朝向"),
+                "the reason names the illegal orientation family tag");
+
+            // Negative: unreproducible complex block state (props) is still rejected.
+            BlueprintJsonDecodeResult props = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"ChestBlock\",\"props\":{\"items\":[1,2]}}]}");
+            Check(!props.Success, "a per-cell 'props' payload (unreproducible block state) is rejected");
+            Check(props.FirstError != null && props.FirstError.Contains("props"),
+                "the reason cites the unsupported props payload");
+
+            // Negative: a negative data value is rejected (data bits are unsigned).
+            BlueprintJsonDecodeResult neg = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"WoodenStairsBlock\",\"f\":\"stairs\",\"d\":-3}]}");
+            Check(!neg.Success, "a negative data value d is rejected");
         }
 
         private static void TestBlueprintJsonRejectsBuildOps()
@@ -1419,6 +1482,278 @@ namespace BuilderAssistant.Tests
             return b.ToBlueprint("line", 1);
         }
 
+        // --- v0.9.0: oriented vanilla blocks (stairs / slab / fence / door). ---
+
+        private static void TestBlockOrientationNormalizeMasksAuthoredBits()
+        {
+            Console.WriteLine("[TestBlockOrientationNormalizeMasksAuthoredBits]");
+            // Stairs own bits 0-2 (rotation + upside-down); corner bits 3-4 and colors 5+
+            // are engine-derived and must be stripped so a blueprint never bakes them.
+            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 0xFF) == 0x7,
+                "stairs normalize keeps only rotation+upside-down (0xFF -> 0x7)");
+            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 8) == 0,
+                "stairs normalize drops a lone corner bit (8 -> 0)");
+            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 6) == 6,
+                "stairs normalize preserves a legal rot2+upside (6 -> 6)");
+            // Slab owns only the isTop bit; the color bits are dropped.
+            Check(BlockOrientation.Normalize(BlockFamily.Slab, 0xFF) == 0x1,
+                "slab normalize keeps only isTop (0xFF -> 1)");
+            Check(BlockOrientation.Normalize(BlockFamily.Slab, 2) == 0,
+                "slab normalize drops a lone color bit (2 -> 0)");
+            // Fence and door keep their full authored nibble.
+            Check(BlockOrientation.Normalize(BlockFamily.Fence, 0xFF) == 0xF,
+                "fence normalize keeps all four arms (0xFF -> 0xF)");
+            Check(BlockOrientation.Normalize(BlockFamily.Door, 0x12) == 0x2,
+                "door normalize keeps rotation+open+hinge (0x12 -> 0x2)");
+            // A cube has no authored data at all.
+            Check(BlockOrientation.Normalize(BlockFamily.Cube, 999) == 0,
+                "cube normalize always yields 0");
+        }
+
+        private static void TestBlockOrientationRotationGroupLaw()
+        {
+            Console.WriteLine("[TestBlockOrientationRotationGroupLaw]");
+            // Four clockwise quarter-turns must be the identity for every family, and
+            // -1 step must equal +3 steps (the modulo-4 group), for all data patterns.
+            BlockFamily[] fams = { BlockFamily.Stairs, BlockFamily.Slab, BlockFamily.Fence, BlockFamily.Door };
+            bool fourIsIdentity = true;
+            bool negEqualsThree = true;
+            foreach (BlockFamily f in fams)
+            {
+                for (int d = 0; d <= 0xF; d++)
+                {
+                    // The codec's contract is over authored (normalized) data: an
+                    // unnormalized stair nibble carrying corner/color bits legitimately
+                    // drops them on a turn, so test the law on stored-cell values.
+                    int nd = BlockOrientation.Normalize(f, d);
+                    int base4 = BlockOrientation.Rotate(f, nd, 4);
+                    if (base4 != nd) fourIsIdentity = false;
+                    int seq = nd;
+                    for (int k = 0; k < 4; k++) seq = BlockOrientation.Rotate(f, seq, 1);
+                    if (seq != nd) fourIsIdentity = false;
+                    if (BlockOrientation.Rotate(f, nd, -1) != BlockOrientation.Rotate(f, nd, 3)) negEqualsThree = false;
+                }
+            }
+            Check(fourIsIdentity, "Rotate by 4 (and four sequential +1 steps) is the identity for every family");
+            Check(negEqualsThree, "Rotate(-1) == Rotate(+3) for every family");
+        }
+
+        private static void TestBlockOrientationStairsFacingPermutation()
+        {
+            Console.WriteLine("[TestBlockOrientationStairsFacingPermutation]");
+            // Facing convention rot0=-Z,1=-X,2=+Z,3=+X; one clockwise turn sends
+            // (dx,dz)->(-dz,dx), so newRot=(rot+3)&3: 0->3,1->0,2->1,3->2.
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 0, 1) == 3, "stairs rot0 -> rot3 on a clockwise turn");
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 1, 1) == 0, "stairs rot1 -> rot0");
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 2, 1) == 1, "stairs rot2 -> rot1");
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 3, 1) == 2, "stairs rot3 -> rot2");
+            // The upside-down bit (4) is carried through untouched.
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 4, 1) == 7, "upside-down stair: facing rot0->rot3, upside-down bit kept (4 -> 7)");
+            Check(BlockOrientation.Rotate(BlockFamily.Stairs, 6, 1) == 5, "rot2+upside (6) -> rot1+upside (5)");
+            // A slab is rotation-invariant (isTop doesn't change on a Y-axis turn).
+            Check(BlockOrientation.Rotate(BlockFamily.Slab, 1, 1) == 1, "slab isTop survives rotation unchanged");
+        }
+
+        private static void TestBlockOrientationFenceArmPermutation()
+        {
+            Console.WriteLine("[TestBlockOrientationFenceArmPermutation]");
+            // Arms: bit0=+X, bit1=-X, bit2=+Z, bit3=-Z. A clockwise turn sends
+            // +X->+Z, +Z->-X, -X->-Z, -Z->+X.
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x1, 1) == 0x4, "fence +X arm -> +Z");
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x4, 1) == 0x2, "fence +Z arm -> -X");
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x2, 1) == 0x8, "fence -X arm -> -Z");
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x8, 1) == 0x1, "fence -Z arm -> +X");
+            // A symmetric cross and an empty post are fixed points.
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0xF, 1) == 0xF, "a full cross is rotation-invariant");
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x0, 1) == 0x0, "an isolated post (no arms) stays isolated");
+            // Two opposite arms map to two opposite arms.
+            Check(BlockOrientation.Rotate(BlockFamily.Fence, 0x3, 1) == 0xC, "an X-line (0x3) -> a Z-line (0xC)");
+        }
+
+        private static void TestBlockOrientationMirrorInvolutionAndDoorHinge()
+        {
+            Console.WriteLine("[TestBlockOrientationMirrorInvolutionAndDoorHinge]");
+            // Mirroring about X twice must restore the authored (normalized) data.
+            BlockFamily[] fams = { BlockFamily.Stairs, BlockFamily.Fence, BlockFamily.Door };
+            bool involutive = true;
+            foreach (BlockFamily f in fams)
+            {
+                for (int d = 0; d <= 0xF; d++)
+                {
+                    int m2 = BlockOrientation.MirrorX(f, BlockOrientation.MirrorX(f, d));
+                    if (m2 != BlockOrientation.Normalize(f, d)) involutive = false;
+                }
+            }
+            Check(involutive, "MirrorX applied twice restores the authored data for every family");
+
+            // Stairs facing reverses in X: rot1(-X) <-> rot3(+X), rot0/rot2 are fixed.
+            Check(BlockOrientation.MirrorX(BlockFamily.Stairs, 1) == 3, "stairs facing -X mirrors to +X");
+            Check(BlockOrientation.MirrorX(BlockFamily.Stairs, 3) == 1, "stairs facing +X mirrors to -X");
+            Check(BlockOrientation.MirrorX(BlockFamily.Stairs, 2) == 2, "stairs facing +Z is X-symmetric");
+            Check(BlockOrientation.MirrorX(BlockFamily.Stairs, 6) == 6, "upside-down is preserved by an X mirror");
+
+            // A door's hinge side swaps under mirroring (right-handed bit toggles).
+            Check(BlockOrientation.MirrorX(BlockFamily.Door, 2) == 10, "closed left-hinged door mirrors to right-hinged (2 -> 10)");
+            Check(BlockOrientation.MirrorX(BlockFamily.Door, 10) == 2, "and back again (10 -> 2): hinge flip is involutive");
+
+            // Fence arms: +X/-X swap, +Z/-Z hold.
+            Check(BlockOrientation.MirrorX(BlockFamily.Fence, 0x1) == 0x2, "fence +X arm mirrors to -X");
+            Check(BlockOrientation.MirrorX(BlockFamily.Fence, 0x4) == 0x4, "fence +Z arm is unchanged by an X mirror");
+            // A slab is invariant.
+            Check(BlockOrientation.MirrorX(BlockFamily.Slab, 1) == 1, "slab isTop survives a mirror unchanged");
+        }
+
+        private static void TestBlueprintJsonRoundTripsOrientedCells()
+        {
+            Console.WriteLine("[TestBlueprintJsonRoundTripsOrientedCells]");
+            BlueprintBuilder b = new BlueprintBuilder();
+            b.SetOriented(0, 0, 0, "WoodenStairsBlock", BlockFamily.Stairs, 2);
+            b.SetOriented(1, 0, 0, "StoneSlabBlock", BlockFamily.Slab, 1);
+            b.SetOriented(2, 0, 0, "WoodenFenceBlock", BlockFamily.Fence, 0x5);
+            b.SetOriented(3, 0, 0, "WoodenDoorBlock", BlockFamily.Door, 2);
+            b.Set(4, 0, 0, "CobblestoneBlock"); // a plain cube sibling
+            Blueprint bp = b.ToBlueprint("oriented_mix", 2);
+
+            string json = BlueprintJson.Serialize(bp);
+            Check(json.Contains("\"stairs\"") && json.Contains("\"fence\"") && json.Contains("\"door\""),
+                "oriented cells emit their family tags");
+            Check(!json.Contains("\"cube\""), "plain cubes omit the family tag (stays byte-compatible with v1 shape)");
+
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(decode.Success, "the oriented blueprint decodes cleanly (" + decode.JoinedErrors() + ")");
+            if (!decode.Success) return;
+            Check(SameCellSet(bp, decode.Blueprint), "oriented round-trip reproduces the exact family+data per cell");
+
+            string json2 = BlueprintJson.Serialize(decode.Blueprint);
+            Check(json == json2, "re-serializing the decoded oriented blueprint is byte-identical");
+
+            Check(FindData(bp, 3, 0, 0) == 2 && FindFamily(bp, 3, 0, 0) == BlockFamily.Door, "door bottom half authored with rot2");
+            Check(FindData(bp, 2, 0, 0) == 0x5 && FindFamily(bp, 2, 0, 0) == BlockFamily.Fence, "fence arm mask survives round-trip");
+        }
+
+        private static void TestBlueprintJsonStripsEngineDerivedOrientationBits()
+        {
+            Console.WriteLine("[TestBlueprintJsonStripsEngineDerivedOrientationBits]");
+            // Authoring a stair with corner/color bits present (as a live capture might
+            // hand us) must normalize them away, so the blueprint never stores state the
+            // engine would recompute differently.
+            BlueprintCell stair = new BlueprintCell(new CellPos(0, 0, 0), "WoodenStairsBlock", BlockFamily.Stairs, 0xFF);
+            Check(stair.Data == 0x7, "a stair authored with corner+color bits is normalized to 0x7");
+            BlueprintCell slab = new BlueprintCell(new CellPos(0, 0, 0), "StoneSlabBlock", BlockFamily.Slab, 0xFF);
+            Check(slab.Data == 0x1, "a slab authored with color bits is normalized to isTop only");
+
+            BlueprintBuilder b = new BlueprintBuilder();
+            b.SetOriented(0, 0, 0, "WoodenStairsBlock", BlockFamily.Stairs, 0xFF);
+            Blueprint bp = b.ToBlueprint("stripped", 2);
+            string json = BlueprintJson.Serialize(bp);
+            Check(json.Contains("\"d\":7"), "the stripped data (7) is what gets written, not 255");
+
+            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
+            Check(decode.Success && SameCellSet(bp, decode.Blueprint), "stripped blueprint still round-trips exactly");
+        }
+
+        private static void TestCottageEmitsOrientedFamilies()
+        {
+            Console.WriteLine("[TestCottageEmitsOrientedFamilies]");
+            Blueprint bp = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+
+            int stairs = 0, slabs = 0, fences = 0, doors = 0, cubes = 0;
+            foreach (BlueprintCell c in bp.Cells)
+            {
+                switch (c.Family)
+                {
+                    case BlockFamily.Stairs: stairs++; break;
+                    case BlockFamily.Slab: slabs++; break;
+                    case BlockFamily.Fence: fences++; break;
+                    case BlockFamily.Door: doors++; break;
+                    default: cubes++; break;
+                }
+            }
+            // front(8) + back(9) + left(9) + right(9) eave stairs.
+            Check(stairs == 35, "eave ring is stairs (got " + stairs + ")");
+            Check(slabs == 2, "two stone-slab windowsills (got " + slabs + ")");
+            Check(fences == 2, "two ridge fence finials (got " + fences + ")");
+            Check(doors == 1, "exactly one authored door cell (got " + doors + ")");
+
+            // The eave facings actually differ across sides (exercises all four rotations).
+            Check(FindFamily(bp, 0, 5, 0) == BlockFamily.Stairs && FindData(bp, 0, 5, 0) == 2,
+                "front-left corner stair faces inward (rot2)");
+            Check(FindData(bp, 0, 5, 10) == 0, "back stair faces the other way (rot0)");
+            Check(FindData(bp, 0, 5, 5) == 3, "left-side stair faces +X (rot3)");
+            Check(FindData(bp, 8, 5, 5) == 1, "right-side stair faces -X (rot1)");
+
+            // Door is authored as the BOTTOM half only (facing +Z into the room); the
+            // engine spawns the top at build time, so no door cell sits at y=2.
+            Check(FindFamily(bp, 3, 1, 0) == BlockFamily.Door && FindData(bp, 3, 1, 0) == 2,
+                "door bottom authored at (3,1,0) facing rot2");
+            Check(FindFamily(bp, 3, 2, 0) == BlockFamily.Cube && !HasCell(bp, 3, 2, 0),
+                "the door's top half is NOT authored (derived by the engine at build time)");
+        }
+
+        private static void TestCottageOrientationSurvivesRotationAndRoundTrip()
+        {
+            Console.WriteLine("[TestCottageOrientationSurvivesRotationAndRoundTrip]");
+            Blueprint bp = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
+            Blueprint r1 = bp.Reorient(1, false);
+
+            // A quarter-turn moves the door's facing forward and its footprint position.
+            Check(CountFamily(r1, BlockFamily.Door) == 1, "still exactly one door cell after rotation");
+            // The lone door was rot2 (faces +Z); one clockwise turn -> rot1.
+            int doorRot = -1;
+            foreach (BlueprintCell c in r1.Cells)
+            {
+                if (c.Family == BlockFamily.Door) doorRot = c.Data;
+            }
+            Check(doorRot == 1, "door facing rotates with the footprint (rot2 -> rot1)");
+
+            // Four sequential quarter-turns must restore the exact oriented cell set.
+            Blueprint r4 = r1.Reorient(1, false).Reorient(1, false).Reorient(1, false);
+            Check(SameCellSet(bp, r4), "the whole oriented cottage returns to identity after four quarter-turns");
+
+            // Rotating once then serializing+decoding reproduces the same oriented set.
+            BlueprintJsonDecodeResult dec = BlueprintJson.Decode(BlueprintJson.Serialize(r1));
+            Check(dec.Success && SameCellSet(r1, dec.Blueprint),
+                "a rotated cottage round-trips through JSON with every facing intact");
+        }
+
+        // --- small oriented-test helpers ---
+        private static BlockFamily FindFamily(Blueprint bp, int x, int y, int z)
+        {
+            foreach (BlueprintCell c in bp.Cells)
+            {
+                if (c.Relative.X == x && c.Relative.Y == y && c.Relative.Z == z) return c.Family;
+            }
+            return BlockFamily.Cube; // absent cells read as cube (never present)
+        }
+
+        private static int FindData(Blueprint bp, int x, int y, int z)
+        {
+            foreach (BlueprintCell c in bp.Cells)
+            {
+                if (c.Relative.X == x && c.Relative.Y == y && c.Relative.Z == z) return c.Data;
+            }
+            return -1;
+        }
+
+        private static bool HasCell(Blueprint bp, int x, int y, int z)
+        {
+            foreach (BlueprintCell c in bp.Cells)
+            {
+                if (c.Relative.X == x && c.Relative.Y == y && c.Relative.Z == z) return true;
+            }
+            return false;
+        }
+
+        private static int CountFamily(Blueprint bp, BlockFamily family)
+        {
+            int n = 0;
+            foreach (BlueprintCell c in bp.Cells)
+            {
+                if (c.Family == family) n++;
+            }
+            return n;
+        }
+
         private static bool SameCellSet(Blueprint a, Blueprint b)
         {
             if (a.CellCount != b.CellCount)
@@ -1442,7 +1777,11 @@ namespace BuilderAssistant.Tests
 
         private static string CellKey(BlueprintCell c)
         {
-            return c.Relative.X + "," + c.Relative.Y + "," + c.Relative.Z + "|" + c.MaterialKey;
+            // v2: cell identity now includes the authored family + data, so an oriented
+            // round-trip / rotation law is only proven if a differing stair facing, slab
+            // top, fence arm or door hinge makes the key differ too.
+            return c.Relative.X + "," + c.Relative.Y + "," + c.Relative.Z + "|" + c.MaterialKey
+                + "|" + (int)c.Family + "|" + c.Data;
         }
     }
 }

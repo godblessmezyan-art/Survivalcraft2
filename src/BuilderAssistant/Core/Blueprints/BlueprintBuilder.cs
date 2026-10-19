@@ -7,21 +7,54 @@ namespace BuilderAssistant.Core.Blueprints
     /// position so later writes overwrite earlier ones (last-write-wins), which
     /// is how openings (doors/windows) are carved: draw a solid wall, then
     /// punch air into it. All coordinates are RELATIVE - never world absolute.
+    ///
+    /// Since schema v2 a cell also carries an authored <see cref="BlockFamily"/> and
+    /// data bits. The original cube-only API (Set/Fill/Walls/... with just a material
+    /// key) keeps producing Cube/data-0 cells, so existing generators are unchanged;
+    /// new oriented helpers (SetOriented) are used where a stair/slab/door/fence is
+    /// emitted.
     /// </summary>
     internal sealed class BlueprintBuilder
     {
-        private readonly Dictionary<CellPos, string> _cells = new Dictionary<CellPos, string>();
+        private struct Content
+        {
+            public string MaterialKey;
+            public BlockFamily Family;
+            public int Data;
+        }
+
+        private readonly Dictionary<CellPos, Content> _cells = new Dictionary<CellPos, Content>();
 
         public int Count { get { return _cells.Count; } }
 
         public void Set(int x, int y, int z, string materialKey)
         {
-            _cells[new CellPos(x, y, z)] = materialKey;
+            Set(new CellPos(x, y, z), materialKey);
         }
 
         public void Set(CellPos p, string materialKey)
         {
-            _cells[p] = materialKey;
+            _cells[p] = new Content { MaterialKey = materialKey, Family = BlockFamily.Cube, Data = 0 };
+        }
+
+        /// <summary>Place an oriented block (stairs/slab/fence/door) with authored data.
+        /// The data is normalized to the family's owned bits, so passing engine-derived
+        /// bits (stair corners, color) is harmless - they are stripped.</summary>
+        public void SetOriented(int x, int y, int z, string materialKey, BlockFamily family, int data)
+        {
+            _cells[new CellPos(x, y, z)] = new Content
+            {
+                MaterialKey = materialKey,
+                Family = family,
+                Data = BlockOrientation.Normalize(family, data),
+            };
+        }
+
+        /// <summary>CellPos form of <see cref="SetOriented(int,int,int,string,BlockFamily,int)"/>,
+        /// used by the copier which already holds a relative coordinate.</summary>
+        public void SetOriented(CellPos p, string materialKey, BlockFamily family, int data)
+        {
+            SetOriented(p.X, p.Y, p.Z, materialKey, family, data);
         }
 
         /// <summary>Fill a solid box from (minX,minY,minZ) to (maxX,maxY,maxZ) inclusive.</summary>
@@ -100,9 +133,10 @@ namespace BuilderAssistant.Core.Blueprints
         public Blueprint ToBlueprint(string name, int schemaVersion)
         {
             var list = new List<BlueprintCell>(_cells.Count);
-            foreach (KeyValuePair<CellPos, string> kv in _cells)
+            foreach (KeyValuePair<CellPos, Content> kv in _cells)
             {
-                list.Add(new BlueprintCell(kv.Key, kv.Value));
+                Content c = kv.Value;
+                list.Add(new BlueprintCell(kv.Key, c.MaterialKey, c.Family, c.Data));
             }
             // Deterministic ordering so a blueprint rebuilds identically every time.
             list.Sort(delegate(BlueprintCell a, BlueprintCell b)

@@ -2,7 +2,7 @@
 
 面向 Android 版《生存战争 2.4》联机客户端（Survivalcraft NET / SCNET）的建筑辅助 Mod。首要适配版本是 **Net_x25.01.17**，目标产物为 `.netmod`。
 
-> 当前状态：Phase 1 最小加载已由用户在 Android/7723 客户端确认。v0.4.0 已接入正式快艇贴图，提高推进和速度上限，并开放联机生成与加速测试；联机同步效果仍待主机和客户端分别验证。
+> 当前状态：Phase 1 最小加载已由用户在 Android/7723 客户端确认。功能线（建筑生成、蓝图 JSON、复制/粘贴/旋转、批量建造与撤销）已推进到 **v0.9.0**——自 v0.7.0 的通用 JSON 蓝图、v0.8.0 的库浏览导入、v0.8.1 的剪贴板粘贴导入、v0.8.2 的更多纯立方石/砖块，到 v0.9.0 首次支持**带朝向方块（楼梯 / 半砖 / 栅栏 / 门）**并将蓝图交换格式从 `schemaVersion=1` 升级到 **`schemaVersion=2`**。以上功能均已通过**离线逻辑测试**与对真实 x25.01.17 程序集的 **net472 编译 0 错误 0 警告**；但在 7723 手机上的**渲染与地形写入效果仍为待验证**，任何功能未实机验证前不得标“兼容/已确认”。联机同步效果同样待主机和客户端分别验证。
 
 ## 项目目标
 
@@ -26,13 +26,13 @@
 
 ## 构建
 
-要求：Windows、PowerShell 5.1+、.NET SDK，以及 .NET Framework 4.7.2 Targeting Pack。
+要求：Windows、PowerShell 5.1+、.NET SDK，以及 .NET Framework 4.7.2 Targeting Pack。构建需指向**本机真实的 SCNET 游戏目录**（含 `Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll`）；本机实际路径为 `D:\SCNET`（文档别处出现的 `E:\SCNET` 为历史错误值）：
 
 ```powershell
-./scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'
+./scripts/Build-NetMod.ps1 -GameDir 'D:\SCNET'
 ```
 
-成功后生成：`artifacts/BuilderAssistant.netmod`。脚本只引用本机游戏程序集，不会将其复制进仓库或 Mod 包。
+脚本会依次执行 `Test-Environment.ps1`（程序集指纹/ABI 核验）、`Test-Logic.ps1`（离线单元测试，编译仅含 Core+Generators、不引用游戏程序集），再对真实程序集做 Release 编译并打包 `.netmod`，同时强制校验必需资产、CSV 方块类名唯一与 XDB 合并安全 GUID。成功后生成：`artifacts/BuilderAssistant.netmod`。脚本只引用本机游戏程序集，不会将其复制进仓库或 Mod 包。
 
 ## 安装
 
@@ -46,19 +46,25 @@ Android 的实际 `NetMods` 路径会受客户端构建和 Android 存储权限�
 
 ## 当前功能
 
-- [x] x25.01.17 Windows 程序集与加载入口核验。
-- [x] 最小 Mod 加载日志。
-- [x] `.netmod` 构建、依赖检查和打包脚本。
-- [x] Android/7723 最小 Mod 安装与加载测试（用户实机确认）。
-- [x] 独立快艇方块物品（编号 `900`）、`Speedboat` 实体模板和受限生成逻辑。
-- [x] 原创低多边形占位模型与占位贴图；不打包游戏本体资源。
-- [x] 仅对 `Speedboat` 实体启用有上限的推进，普通木船不受影响。
-- [x] 接入用户提供的 1254×1254 正式 PNG 贴图。
-- [x] v0.4.0 额外推进提高至 `9`，水平速度硬上限提高至 `18`。
-- [x] 移除联机生成与推进的软件禁用条件。
-- [ ] v0.4.0 独立快艇 Android/7723 单机、主机和普通客户端实机测试。
-- [ ] Android 触屏测试按钮。
-- [ ] 地形编辑、撤销、蓝图与联机同步功能。
+建筑助手功能线（均在离线逻辑测试 267/267 与 net472 编译 0/0 层面**已确认**；在 7723 实机层面**待验证**）：
+
+- [x] 内置生成器：原创中世纪小屋 `9×11×10`，走同一“计划→校验→分批执行→记录撤销”管线；v0.9.0 起其檐口为 35 个楼梯、窗台 2 个半砖、屋脊 2 个栅栏、正面 1 扇门（离线测试逐项断言）。
+- [x] 手持工具方块：建造 `901` / 撤销 `902` / 蓝图 `903`（均基于已验证立方基类，编号未被原版 x25.01.17 使用）。
+- [x] 通用 JSON 蓝图交换格式（`BlueprintJson`），无第三方依赖的严格解析/序列化、坐标规范化、尺寸/计数/轴长上限校验；坏蓝图**只精确拒绝、绝不部分导入**。
+- [x] 蓝图持久化到 Mod 自身库目录（`ModsManager.UserDataPath` 下，从不硬编码设备路径）；蓝图工具点击逐份浏览载入并校验。
+- [x] 剪贴板粘贴导入（`Game.ClipboardManager` 守卫适配器）：复制一段蓝图 JSON → 点蓝图工具即导入；纯中文名不再统统塌成 `blueprint`、`ResolveUnique` 永不覆盖同名。
+- [x] 实时区域两角复制（`BlueprintCopier`）把真实方块读成蓝图并自动导出；粘贴复用同一建造/撤销管线。
+- [x] v0.9.0 起支持**带朝向方块**：楼梯（9 变体）、半砖（9 变体）、栅栏（5 变体）、门（2 变体），蓝图 `schemaVersion=2` 携带每格族标签 `f` 与自有数据位 `d`；旋转/镜像经纯 Core `BlockOrientation` 群律变换。门为双格方块，蓝图/复制只存下半格、由引擎 `SubsystemDoorBlockBehavior` 自动补上半格。
+- [x] 安全模型：默认不覆盖非空气 + 显式二次确认、主线程分批写入、区块就绪预检、有界停等、撤销仅恢复玩家未再改动的格。
+- [x] 独立快艇方块物品（编号 `900`）与受限推进逻辑（v0.4.0 起，行为保持）。
+
+尚未完成 / 待验证：
+
+- [ ] 上述功能在 Android/7723 单人创造世界的**实机渲染与地形写入**验证（楼梯/半砖/栅栏/门逐族、小屋整幢、复制往返、旋转镜像）。
+- [ ] 剪贴板 `Game.ClipboardManager` 在 7723 的可用性验证（不可用时已优雅回退到文件库浏览）。
+- [ ] 安卓 SAF 系统文件选择器（仅预留入口桩，恒返回“未接入”，第二阶段）。
+- [ ] 联机（主机 / 普通客户端）分别验证建造、撤销与同步权限。
+- [ ] Android 触屏 UI 在不同分辨率下不遮挡原生控件的验证。
 
 ### v0.4.0 独立快艇使用方法
 
@@ -75,4 +81,4 @@ Android 的实际 `NetMods` 路径会受客户端构建和 Android 存储权限�
 
 `src/BuilderAssistant/` 只承载自动生成建筑、蓝图、批量建造和安全撤销等建筑助手功能。获许可的第三方 Mod 移植统一放在独立的 [`SCIE-Port/`](SCIE-Port/) 工程中，禁止把其代码或资源打入 Builder Assistant。
 
-开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)。
+开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)，兼容性结论见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。

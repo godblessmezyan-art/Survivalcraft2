@@ -52,3 +52,6 @@ FurniturePacks/
 TexturePacks/
 Settings.xml
 ModSettings.xml
+
+# Local build output / packaging artifacts (publish as GitHub Release, never commit)
+outputs/
