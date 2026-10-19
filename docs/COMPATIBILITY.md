@@ -106,7 +106,29 @@
 
 这些哈希只描述当前已检查的 Windows 文件，不能代替 7723 Android 包的验证。
 
-## 尚未确认的能力
+## SCIE-Port v0.7.0 静态工业家具（独立工程）
+
+此结论只适用于 `SCIE-Port/`，不得替代 Builder Assistant 的测试证据。固定 SCIE commit
+`4864d956793b6e670413019f1f6b1cc5c8bb0970` 中的钢齿轮、钢轮、齿轮模具、车轮模具、工业活塞、
+钢瓶六个模型已作为独立 Block ID 917–922 接入。真实 x25.01.17 Windows 程序集环境检查、net472
+Release 0 warning/0 error、模型 Y_UP/节点/顶点和 `.netmod` 包内容为已确认；Windows 游戏运行、
+Android/7723 渲染与保存重载、多人地形同步均为待验证。机器、配方、库存、气体和化学功能不支持。
+
+### SCIE-Port v0.7.1 Kelly 图集修复
+
+用户 Android 日志已确认 v0.7.0 在创造栏绘制 Kelly 果实图标时，`ContentManager` 无法把包内
+`KellyExpansion.webp` 解析为 `Texture2D`，从而退出世界。v0.7.1 改为只在运行包中携带同像素
+转换的 512×512 RGBA PNG，并由打包守卫拒绝 WebP 回归。该缺陷原因与文件/打包修复为已确认；
+Android 翻到植物第三页及后续页面是否不再退出仍为待验证。
+
+### SCIE-Port v0.7.2 载具世界渲染修复
+
+用户反馈飞艇和火车在物品栏颜色正常、生成进三维世界后变黑。已确认飞艇存在确定的加载顺序问题：
+自定义驱动组件写入运行时白贴图后，`ComponentSimpleModel.Load` 仍可按空的 XDB 值覆盖贴图。
+v0.7.2 将飞艇改为 XDB 明确引用包内白色 PNG，并为蒸汽船、飞艇、火车和车厢设定低强度保底自发光，
+避免世界地形光照为零时成为纯黑。目标程序集编译、XDB 与包资源引用检查均已确认；Android 实机视觉结果待验证。
+
+## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。
 - 7723 包内程序集是否与公开 APK 一致（最小加载成功不等于二进制完全一致）。

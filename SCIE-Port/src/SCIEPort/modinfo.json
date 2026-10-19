@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.6.0",
+  "Version": "0.7.2",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. Includes the SCIE transport preview and Kelly Expansion plant resources. Kelly inventory entries keep their original names without port-marker suffixes. Android runtime verification remains pending.",
+  "Description": "Authorized x25.01.17 port workspace. Includes SCIE transport previews, six static SCIE industrial furniture models, and Kelly Expansion plant resources. Android runtime verification remains pending.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

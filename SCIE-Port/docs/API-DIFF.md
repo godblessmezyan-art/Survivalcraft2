@@ -1,5 +1,14 @@
 # SCIE 旧 API 与 SCNET x25.01.17 差异
 
+## 0.7.0 静态模型家具接口
+
+六件工业家具未复用旧 `ItemBlock.Items` 动态数组，而是对真实 x25.01.17 程序集编译绑定：
+`Block.Initialize`、`ContentManager.Get<Model>`、`Model.FindMesh`、`BlockMesh.AppendModelMeshPart`、
+`BlockMesh.CalculateBoundingBox`、`TerrainGeometry.GetGeometry(Texture2D)`、
+`BlockGeometryGenerator.GenerateShadedMeshVertices`、`Block.GetPlacementValue`、
+`Terrain.MakeBlockValue` 与 `Block.GetDropValues`。Release 0 warning/0 error 只确认这些签名可用；
+模型渲染、碰撞和存档仍需 Windows/Android 运行验证。
+
 ## 取证目标
 
 以下结论来自 `E:\SCNET\SCNETx25.01.17` 的实际程序集：

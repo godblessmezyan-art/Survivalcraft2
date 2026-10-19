@@ -13,13 +13,12 @@ namespace SCIEPort.Features.Watercraft
         private readonly BlockMesh m_standaloneBlockMesh = new BlockMesh();
         private static Texture2D s_whiteTexture;
 
-        /// <summary>Returns the shared white texture expected by the original airship model.</summary>
+        /// <summary>Returns the packaged white texture expected by the original airship model.</summary>
         public static Texture2D GetWhiteTexture()
         {
             if (s_whiteTexture == null)
             {
-                s_whiteTexture = new Texture2D(1, 1, 1, ColorFormat.Rgba8888);
-                s_whiteTexture.SetData(0, new byte[] { 255, 255, 255, 255 });
+                s_whiteTexture = ContentManager.Get<Texture2D>("Textures/Airship");
             }
 
             return s_whiteTexture;

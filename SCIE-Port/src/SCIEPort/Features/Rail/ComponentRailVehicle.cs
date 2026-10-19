@@ -1,4 +1,5 @@
 using Engine;
+using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
@@ -37,6 +38,11 @@ namespace SCIEPort.Features.Rail
             m_mount = Entity.FindComponent<ComponentMount>(true);
             m_terrain = Project.FindSubsystem<SubsystemTerrain>(true);
             m_powered = valuesDictionary.GetValue("Powered", false);
+            ComponentModel model = Entity.FindComponent<ComponentModel>(true);
+            model.TextureOverride = ContentManager.Get<Texture2D>(
+                m_powered ? "Textures/Train" : "Textures/Creatures/Jaguar");
+            model.DiffuseColor = Vector3.One;
+            model.EmissionColor = new Vector4(0.12f, 0.12f, 0.12f, 0f);
             SetDirection(valuesDictionary.GetValue("Direction", 0));
         }
 

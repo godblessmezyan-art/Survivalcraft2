@@ -29,7 +29,9 @@ namespace SCIEPort.Features.Watercraft
             Entity.FindComponent<ComponentBoat>(throwOnError: true);
             m_body = Entity.FindComponent<ComponentBody>(throwOnError: true);
             m_mount = Entity.FindComponent<ComponentMount>(throwOnError: true);
-
+            ComponentModel model = Entity.FindComponent<ComponentModel>(throwOnError: true);
+            model.DiffuseColor = Vector3.One;
+            model.EmissionColor = new Vector4(0.12f, 0.12f, 0.12f, 0f);
         }
 
         /// <inheritdoc />

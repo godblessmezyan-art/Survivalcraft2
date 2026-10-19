@@ -187,6 +187,18 @@ UpdateOrder、玩家输入以及实体创建。旧蒸汽机热量、车厢父体
 
 ## 当前可复用与必须重写
 
+## 0.7 静态工业家具审计
+
+第一批只选择固定 SCIE 提交中不需要实体、GUI、库存、电路或配方即可显示的模型：
+`Gear.dae`、`Wheel.dae`、`GearMould.dae`、`WheelMould.dae`、`Piston.dae`、`Cylinder.dae`。
+对应上游规格来自 `Blocks/Items.cs` 与 `Blocks/CommonItems.cs`。旧版依赖动态 `ItemBlock.Items`
+及其 data 数组，本次不复用该注册机制，而是为六件家具分配独立 Block 类型和稳定 ID 917–922。
+
+Gear、Wheel、两种 Mould 和 Piston 的源文件均为 Z_UP，使用同一可复现脚本转换 positions/normals
+为 Y_UP 并保留原节点名；Cylinder 已是 Y_UP，直接按固定上游文件打包。六件家具只提供四向放置、
+静态碰撞、拆除掉落和创造栏入口。上游铸造、机器配方、气体存储和化学用途均为不支持，不能因模型
+可放置而宣称工业功能已移植。Windows/Android 实际比例、颜色和存档往返仍待验证。
+
 已确认可以作为“规格/算法线索”复用，但在获得 SCIE 授权前不能复制表达形式：
 
 - 材料、化学式、机器流程和配方之间的领域关系。

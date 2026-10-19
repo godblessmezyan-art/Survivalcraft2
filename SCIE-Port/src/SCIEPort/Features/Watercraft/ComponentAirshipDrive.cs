@@ -34,6 +34,8 @@ namespace SCIEPort.Features.Watercraft
 
             ComponentModel model = Entity.FindComponent<ComponentModel>(throwOnError: true);
             model.TextureOverride = AirshipBlock.GetWhiteTexture();
+            model.DiffuseColor = Vector3.One;
+            model.EmissionColor = new Vector4(0.12f, 0.12f, 0.12f, 0f);
         }
 
         /// <inheritdoc />
