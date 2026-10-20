@@ -71,4 +71,5 @@ Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`�
 5. 若涉及 UI：Android 触屏可达性、不同分辨率和不遮挡原生控件测试。
 6. 若涉及联机：单机、主机、普通客户端分别记录行为。
 7. 更新 README、兼容性矩阵或测试记录；不要用计划状态冒充已测试状态。
+8. 更新 `docs/blueprint-block-reference.md`（AI 可读方块能力清单），确保新支持/移除/变更的方块、族标签、DATA 范围、限制和注意事项反映最新版本；与代码一并提交并 push，使任何后续 AI 或工具读取该文件后即可生成合规蓝图 JSON、不会触发不支持拒绝。
 
