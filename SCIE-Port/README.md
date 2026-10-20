@@ -73,7 +73,7 @@ fighting native ground drag. Independent persisted turret/gun angle fields are
 ready for a later aiming/fire feature. There is deliberately no fuel, weapon,
 multiplayer authority or Android compatibility claim yet.
 
-Version 0.9.1 responds to Android testing of the base tank. The complete model
+Version 0.9.2 responds to Android testing of the base tank and first cannon build. The complete model
 is enlarged by 35 percent with a matching 3.6×2.1×5.9 native body, smooth-rise
 clearance is increased to 1.05 cells, and the attack/hit touch action fires a
 native musket-ball projectile at 42 cells/second. The turret and gun bones track
@@ -81,6 +81,13 @@ the aiming ray; an owned shell produces a pressure-18 non-incendiary explosion
 when removed after impact, with a 1.6-second cooldown and horizontal recoil.
 Firing, articulation, explosion damage and one-cell climbing remain pending
 Android verification and should first be tested in a disposable world.
+
+Tank v0.3.1 makes turret aim follow the active camera instead of the mounted
+creature eye transform. Shells now start beyond the tank body's actual AABB
+without invoking the native hand-projectile owner correction, which pulled the
+first v0.3 shell back inside the vehicle. Damage ownership is restored after
+creation, and a 1.5-cell arming distance suppresses residual near-tank blasts.
+These corrections pass Release/static tests but still need Android verification.
 
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the

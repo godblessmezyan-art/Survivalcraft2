@@ -64,8 +64,8 @@ Android 或多人测试。
 | T-34 v0.2 模型/贴图 | 已确认（静态/导入） | 项目自有 Y_UP 资源由生成脚本重建为 20 网格；目标 `Engine.Media.ModelData.Load` 实际导入 `TankHull > TankTurret > TankGun` 共 3 骨骼/20 网格，低于七骨骼预算；64×8 PNG 含 8 种不透明颜色。Android 世界渲染仍待验证 |
 | T-34 v0.2 地面驾驶 | 已确认（代码/测试） | 驾驶时关闭原生地面阻力以避免双重阻力；统一处理推进、倒车、制动、滑行、侧滑和转向。仅地形接触允许推进，离地保留惯性，浸水/实体支撑不施加推进。Android 手感和碰撞仍待验证 |
 | T-34 v0.2 碰撞范围 | 已确认（参数/模型范围） | `BoxSize=2.6,1.55,4.4` 覆盖当前车身和炮管坐标范围，`MaxSmoothRiseHeight=0.3`；仍是单一原生长方体 Body，不宣称复合履带/炮管碰撞，狭窄地形待实机验证 |
-| T-34 v0.3 主炮 | 已确认（ABI/编译），Android 待验证 | 使用公开 `PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、原版 `BulletBlock`、`ProjectileRemoved` 和 `SubsystemExplosions.AddExplosion`。弹速 42、冷却 1.6 秒、压力 18、非燃烧；只在单人 `WorkType.Local` 执行 |
-| T-34 v0.3 炮塔骨骼 | 已确认（ABI/导入），Android 待验证 | `ComponentModel.SetBoneTransform` 驱动 `TankTurret` 水平旋转与 `TankGun` 俯仰；保存字段仍为 `TurretYaw`/`GunPitch`，目标 Engine 导入保持 3 骨骼/20 网格 |
+| T-34 v0.3 主炮 | Android 已确认缺陷；v0.3.1 修复待验证 | Android 反馈 v0.3 第一炮会炸到坦克。反编译确认原生 `FireProjectile` 会按传入 owner 的玩家碰撞箱重定位炮口，而骑手位于坦克内部，导致炮弹被拉回车体碰撞箱。v0.3.1 改为保留 AABB 外炮口、创建后恢复 owner，并增加 1.5 格引信保险；Release 编译通过，Android 修复结果待验证。 |
+| T-34 v0.3 炮塔骨骼 | Android 已确认缺陷；v0.3.1 修复待验证 | Android 反馈 v0.3 炮塔不随视角转向。v0.3.1 持续读取 `ActiveCamera.ViewDirection`，触屏开火帧优先使用 `PlayerInput.Hit`，再由 `ComponentModel.SetBoneTransform` 驱动 `TankTurret`/`TankGun`；3 骨骼/20 网格不变。 |
 | T-34 v0.3 尺寸与一格越障 | 已确认（静态/编译），Android 待验证 | 模型坐标整体放大 35%，Body 改为 `3.6,2.1,5.9`，座位与下车偏移同步调整；`MaxSmoothRiseHeight=1.05` 使用原生连续抬升与碰撞/净空检查，不写 Position、不改地形 |
 
 ## 当前包布局

@@ -29,6 +29,11 @@ internal static class Program
         Assert(!TankRules.CanFire(0f, true, .8f), "submerged cannon blocked");
         Assert(TankRules.ShellSpeed > TankRules.ForwardSpeed, "shell faster than tank");
         Assert(TankRules.ShellExplosionPressure > 0f, "shell explosion enabled");
+        Assert(!TankRules.IsShellArmed(TankRules.ShellArmingDistance * TankRules.ShellArmingDistance - .01f), "near-body shell remains unarmed");
+        Assert(TankRules.IsShellArmed(TankRules.ShellArmingDistance * TankRules.ShellArmingDistance), "shell arms at safe distance");
+        Assert(TankRules.MuzzleClearance >= .5f, "muzzle clears inflated body raycast");
+        AssertNear(TankRules.GetBoxExitDistance(0f, 0f, 0f, 0f, 0f, -1f, 1.8f, 1.05f, 2.95f), 2.95f, "forward muzzle exits vehicle box");
+        AssertNear(TankRules.GetBoxExitDistance(0f, .516f, 0f, 1f, 0f, 0f, 1.8f, 1.05f, 2.95f), 1.8f, "side muzzle exits vehicle box");
         Console.WriteLine("Tank drive rule tests passed.");
     }
 

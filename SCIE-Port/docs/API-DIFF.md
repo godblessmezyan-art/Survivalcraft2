@@ -174,6 +174,11 @@ SHA-256）实际反射，并以 net472 Release 绑定验证的接口如下：
 | `ComponentBody.IsGravityEnabled`、`IsGroundDragEnabled` | 交给原生物理保持重力、阻尼和地形/实体碰撞 | 已确认 |
 | `ComponentBody.IsSmoothRiseEnabled`、`MaxSmoothRiseHeight`、`StandingOnValue`、`StandingOnBody` | v0.3 使用 1.05 格原生连续平滑抬升并保留碰撞/顶部净空检查；离地时不施加推力 | 已确认（ABI/编译），Android 一格越障待验证 |
 | `PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、`ProjectileRemoved`、`SubsystemExplosions.AddExplosion` | 单人坦克主炮使用触屏攻击射线、原版弹体和命中后有限压力爆炸 | 已确认（ABI/编译），Android 待验证 |
+
+> 坦克 v0.3.1 补充：`FireProjectileNet` 的 owner 参数不只是伤害归属，还会按 owner 的
+> `ComponentBody.BoundingBox` 改写弹丸起点。骑手位于大型载具内部时不能直接把玩家作为
+> 创建参数，否则炮口会被拉回载具内。当前实现先以空 owner 保留车体 AABB 外的炮口，
+> 创建成功后再设置 `Projectile.Owner`；此路径仅用于明确不支持多人同步的单人坦克阶段。
 | `ComponentModel.SetBoneTransform`、`Model.FindBone` | 分别控制 `TankTurret` 水平旋转和 `TankGun` 俯仰；不旋转车体 | 已确认（ABI/模型导入），Android 待验证 |
 | `ComponentBody.ImmersionFactor` | 断开水面驾驶，深度浸水时下车 | 已确认 |
 | `ComponentCreatureModel.EyeRotation` | 以玩家视线初始方向放置车体 | 已确认 |

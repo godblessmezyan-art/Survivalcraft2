@@ -21,7 +21,13 @@ namespace SCIEPort.Features.Tanks
         private SubsystemProjectiles m_projectiles;
         private SubsystemExplosions m_explosions;
         private SubsystemAudio m_audio;
-        private readonly Dictionary<Projectile, PlayerData> m_shells = new Dictionary<Projectile, PlayerData>();
+        private sealed class ShellState
+        {
+            public PlayerData PlayerData;
+            public Vector3 StartPosition;
+        }
+
+        private readonly Dictionary<Projectile, ShellState> m_shells = new Dictionary<Projectile, ShellState>();
         private ModelBone m_turretBone;
         private ModelBone m_gunBone;
         private float m_turretYaw;
@@ -113,12 +119,18 @@ namespace SCIEPort.Features.Tanks
             float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
 
             Ray3? hitRay = player.ComponentInput.PlayerInput.Hit;
-            AimTurret(hitRay.HasValue ? hitRay.Value.Direction :
-                Matrix.CreateFromQuaternion(player.ComponentCreatureModel.EyeRotation).Forward);
+            // A mounted player's creature eye rotation can remain aligned with the hull while
+            // the third-person camera orbits independently. The active camera is therefore the
+            // authoritative continuous aim source. A tap ray wins on the firing frame so that
+            // non-split touch controls still fire toward the tapped point.
+            Vector3 aimDirection = hitRay.HasValue
+                ? hitRay.Value.Direction
+                : player.GameWidget.ActiveCamera.ViewDirection;
+            AimTurret(aimDirection);
             ApplyArticulation();
             if (TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor))
             {
-                FireMainGun(player, hitRay.Value.Direction);
+                FireMainGun(player, CalculateGunDirection());
             }
 
             if (!TankRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
@@ -178,21 +190,58 @@ namespace SCIEPort.Features.Tanks
             if (m_gunBone != null) m_model.SetBoneTransform(m_gunBone.Index, Matrix.CreateRotationX(m_gunPitch));
         }
 
+        private Vector3 CalculateGunDirection()
+        {
+            Matrix hull = m_body.Matrix;
+            Vector3 horizontal = hull.Forward * MathUtils.Cos(m_turretYaw)
+                - hull.Right * MathUtils.Sin(m_turretYaw);
+            Vector3 direction = horizontal * MathUtils.Cos(m_gunPitch)
+                + hull.Up * MathUtils.Sin(m_gunPitch);
+            return Vector3.Normalize(direction);
+        }
+
+        private Vector3 CalculateSafeMuzzlePosition(Vector3 direction)
+        {
+            BoundingBox box = m_body.BoundingBox;
+            Vector3 origin = m_body.Position + m_body.Matrix.Up * TankRules.GunPivotHeight;
+            // ComponentBody's collision box is axis-aligned even when the hull yaws. Starting
+            // at its center line and calculating the first positive slab exit is therefore
+            // safer than using a fixed barrel distance, especially for diagonal/downward aim.
+            Vector3 center = box.Center();
+            Vector3 halfSize = (box.Max - box.Min) * .5f;
+            float exitDistance = TankRules.GetBoxExitDistance(
+                origin.X - center.X, origin.Y - center.Y, origin.Z - center.Z,
+                direction.X, direction.Y, direction.Z,
+                halfSize.X, halfSize.Y, halfSize.Z);
+            if (exitDistance == float.MaxValue || exitDistance < 0f) exitDistance = 0f;
+            return origin + direction * (exitDistance + TankRules.MuzzleClearance);
+        }
+
         private void FireMainGun(ComponentPlayer player, Vector3 requestedDirection)
         {
             if (requestedDirection.LengthSquared() <= .0001f) return;
             Vector3 direction = Vector3.Normalize(requestedDirection);
-            Vector3 muzzle = m_body.Position + Vector3.UnitY * 1.65f + direction * 3.2f;
+            Vector3 muzzle = CalculateSafeMuzzlePosition(direction);
             int shellValue = Terrain.MakeBlockValue(BulletBlock.Index, 0, 0);
+            ComponentCreature owner = player.Entity.FindComponent<ComponentCreature>(true);
+            // Native FireProjectile owner clearance is designed for a projectile fired from a
+            // creature's hands. Since the rider is inside this much larger vehicle, that code
+            // moves an already-safe muzzle point back to the rider's box and into the tank.
+            // Create without an owner to preserve the muzzle, then restore damage attribution.
             Projectile shell = m_projectiles.FireProjectile(
                 shellValue,
                 muzzle,
                 direction * TankRules.ShellSpeed,
                 Vector3.Zero,
-                player.Entity.FindComponent<ComponentCreature>(true));
+                null);
             if (shell == null) return;
+            shell.Owner = owner;
             shell.ProjectileStoppedAction = ProjectileStoppedAction.Disappear;
-            m_shells[shell] = player.PlayerData;
+            m_shells[shell] = new ShellState
+            {
+                PlayerData = player.PlayerData,
+                StartPosition = muzzle
+            };
             m_fireCooldown = TankRules.FireCooldown;
             m_audio.PlaySound("Audio/MusketFire", 1f, 0f, muzzle, 64f, true);
             Vector3 recoil = new Vector3(direction.X, 0f, direction.Z);
@@ -202,9 +251,15 @@ namespace SCIEPort.Features.Tanks
 
         private void OnProjectileRemoved(Projectile projectile)
         {
-            PlayerData playerData;
-            if (!m_shells.TryGetValue(projectile, out playerData)) return;
+            ShellState state;
+            if (!m_shells.TryGetValue(projectile, out state)) return;
             m_shells.Remove(projectile);
+            float distanceSquared = Vector3.DistanceSquared(state.StartPosition, projectile.Position);
+            if (!TankRules.IsShellArmed(distanceSquared))
+            {
+                Log.Warning("SCIE-Port Tank: suppressed an unarmed shell explosion near the firing vehicle.");
+                return;
+            }
             m_explosions.AddExplosion(
                 Terrain.ToCell(projectile.Position.X),
                 Terrain.ToCell(projectile.Position.Y),
@@ -212,7 +267,7 @@ namespace SCIEPort.Features.Tanks
                 TankRules.ShellExplosionPressure,
                 false,
                 false,
-                playerData);
+                state.PlayerData);
         }
 
         private void WriteDiagnostics(float dt, float throttle, bool terrainGrounded, bool bodyGrounded, string state)
@@ -223,14 +278,16 @@ namespace SCIEPort.Features.Tanks
             Vector3 velocity = m_body.Velocity;
             Log.Information(string.Format(
                 System.Globalization.CultureInfo.InvariantCulture,
-                "SCIE-Port Tank: state={0}, speed={1:0.00}, throttle={2:0.00}, terrainGrounded={3}, bodyGrounded={4}, immersion={5:0.00}, nativeGroundDrag={6}",
+                "SCIE-Port Tank: state={0}, speed={1:0.00}, throttle={2:0.00}, terrainGrounded={3}, bodyGrounded={4}, immersion={5:0.00}, nativeGroundDrag={6}, turretYaw={7:0.00}, gunPitch={8:0.00}",
                 state,
                 new Vector2(velocity.X, velocity.Z).Length(),
                 throttle,
                 terrainGrounded,
                 bodyGrounded,
                 m_body.ImmersionFactor,
-                m_body.IsGroundDragEnabled));
+                m_body.IsGroundDragEnabled,
+                m_turretYaw,
+                m_gunPitch));
         }
     }
 }
