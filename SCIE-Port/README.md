@@ -55,6 +55,12 @@ Native `ComponentBody` continuous smooth rise is set to 1.05 cells and the body
 box now covers the whole visible model, allowing a one-cell step while retaining
 terrain, entity and overhead collision checks. Android results remain pending.
 
+Version 0.8.3 fixes the Android world-model blank result reported for 0.8.2.
+The x25.01.17 renderer exposes seven model-transform slots by default, while the
+old DAE imported as ten bones. The nine geometries now share one identity root
+bone, and the inventory path enumerates all meshes instead of relying on unique
+mesh names. Android confirmation of the rebuilt package remains pending.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

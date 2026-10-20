@@ -273,17 +273,21 @@ try {
         throw 'ATV.dae must be oriented Y_UP.'
     }
     $atvParts = @('ATVBody', 'ATVNose', 'ATVSeat', 'ATVHandlebarStem', 'ATVHandlebar', 'ATVWheelFrontLeft', 'ATVWheelFrontRight', 'ATVWheelRearLeft', 'ATVWheelRearRight')
+    $atvSceneNodes = @($atvModelDocument.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
+    if ($atvSceneNodes.Count -ne 1 -or $atvSceneNodes[0].GetAttribute('name') -ne 'ATV') {
+        throw 'ATV.dae must use exactly one ATV scene node so ComponentSimpleModel stays within the SCNET seven-bone shader limit.'
+    }
+    $nodeMatrix = $atvSceneNodes[0].SelectSingleNode("./*[local-name()='matrix']")
+    if ($null -eq $nodeMatrix -or ($nodeMatrix.InnerText -replace '\s+', ' ').Trim() -ne '1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1') {
+        throw 'ATV.dae must use one identity root matrix; coordinates must be baked to prevent importer-dependent scaling.'
+    }
+    $atvGeometryInstances = @($atvSceneNodes[0].SelectNodes("./*[local-name()='instance_geometry']") | ForEach-Object { $_.GetAttribute('url').TrimStart('#') })
+    if ($atvGeometryInstances.Count -ne $atvParts.Count) {
+        throw "ATV.dae root must reference all $($atvParts.Count) independent geometries; found $($atvGeometryInstances.Count)."
+    }
     foreach ($requiredNode in $atvParts) {
-        if ($null -eq $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']")) {
-            throw "ATV.dae is missing required low-poly node $requiredNode."
-        }
-        $nodeMatrix = $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']/*[local-name()='matrix']")
-        if ($null -eq $nodeMatrix -or ($nodeMatrix.InnerText -replace '\s+', ' ').Trim() -ne '1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1') {
-            throw "ATV.dae node $requiredNode must use an identity matrix; coordinates must be baked to prevent importer-dependent scaling."
-        }
-        $instanceGeometry = $atvModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$requiredNode']/*[local-name()='instance_geometry']")
-        if ($null -eq $instanceGeometry -or $instanceGeometry.GetAttribute('url') -ne "#$requiredNode-mesh") {
-            throw "ATV.dae node $requiredNode must reference only its own independent geometry."
+        if ($atvGeometryInstances -notcontains "$requiredNode-mesh") {
+            throw "ATV.dae root does not reference required geometry $requiredNode-mesh."
         }
         $geometry = $atvModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$requiredNode']")
         if ($null -eq $geometry) { throw "ATV.dae is missing independent geometry $requiredNode." }
@@ -313,6 +317,17 @@ try {
     $atvGeometryNames = @($atvModelDocument.SelectNodes("//*[local-name()='geometry']") | ForEach-Object { $_.GetAttribute('name') })
     if (($atvGeometryNames | Select-Object -Unique).Count -ne $atvParts.Count) {
         throw 'ATV.dae parts must not share or duplicate geometry names.'
+    }
+    $targetEngineAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
+    $targetModelDataType = $targetEngineAssembly.GetType('Engine.Media.ModelData', $true)
+    $targetModelLoad = $targetModelDataType.GetMethod('Load', [Type[]]@([IO.Stream]))
+    $atvModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\ATV.dae'))
+    try {
+        $targetAtvModel = $targetModelLoad.Invoke($null, @($atvModelStream))
+    }
+    finally { $atvModelStream.Dispose() }
+    if ($targetAtvModel.Bones.Count -ne 1 -or $targetAtvModel.Meshes.Count -ne $atvParts.Count) {
+        throw "Target Engine must import ATV.dae as 1 bone/$($atvParts.Count) meshes; found $($targetAtvModel.Bones.Count) bones/$($targetAtvModel.Meshes.Count) meshes. SCNET's default shader budget is seven bones."
     }
     $atvCoordinates = New-Object System.Collections.Generic.List[double]
     foreach ($positionArray in $atvModelDocument.SelectNodes("//*[local-name()='float_array'][contains(@id,'positions-array')]")) {

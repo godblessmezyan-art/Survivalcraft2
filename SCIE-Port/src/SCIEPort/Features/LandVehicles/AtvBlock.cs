@@ -30,13 +30,8 @@ namespace SCIEPort.Features.LandVehicles
         public override void Initialize()
         {
             Model model = ContentManager.Get<Model>("Models/ATV");
-            foreach (string meshName in new[]
+            foreach (ModelMesh mesh in model.Meshes)
             {
-                "ATVBody", "ATVNose", "ATVSeat", "ATVHandlebarStem", "ATVHandlebar",
-                "ATVWheelFrontLeft", "ATVWheelFrontRight", "ATVWheelRearLeft", "ATVWheelRearRight"
-            })
-            {
-                ModelMesh mesh = model.FindMesh(meshName, true);
                 Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone) * Matrix.CreateScale(0.45f);
                 foreach (ModelMeshPart part in mesh.MeshParts)
                 {

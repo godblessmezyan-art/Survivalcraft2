@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; every visible part owns an independent mesh. -->
+<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; all parts share one render bone for SCNET Android. -->
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
   <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-AtvAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
   <library_geometries>
@@ -86,15 +86,17 @@
     </geometry>
   </library_geometries>
   <library_visual_scenes><visual_scene id="Scene" name="Scene">
-      <node id="ATVBody" name="ATVBody" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVBody-mesh" name="ATVBody"/></node>
-      <node id="ATVNose" name="ATVNose" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVNose-mesh" name="ATVNose"/></node>
-      <node id="ATVSeat" name="ATVSeat" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVSeat-mesh" name="ATVSeat"/></node>
-      <node id="ATVHandlebarStem" name="ATVHandlebarStem" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVHandlebarStem-mesh" name="ATVHandlebarStem"/></node>
-      <node id="ATVHandlebar" name="ATVHandlebar" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVHandlebar-mesh" name="ATVHandlebar"/></node>
-      <node id="ATVWheelFrontLeft" name="ATVWheelFrontLeft" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelFrontLeft-mesh" name="ATVWheelFrontLeft"/></node>
-      <node id="ATVWheelFrontRight" name="ATVWheelFrontRight" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelFrontRight-mesh" name="ATVWheelFrontRight"/></node>
-      <node id="ATVWheelRearLeft" name="ATVWheelRearLeft" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelRearLeft-mesh" name="ATVWheelRearLeft"/></node>
-      <node id="ATVWheelRearRight" name="ATVWheelRearRight" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url="#ATVWheelRearRight-mesh" name="ATVWheelRearRight"/></node>
+      <node id="ATV" name="ATV" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#ATVBody-mesh" name="ATVBody"/>
+        <instance_geometry url="#ATVNose-mesh" name="ATVNose"/>
+        <instance_geometry url="#ATVSeat-mesh" name="ATVSeat"/>
+        <instance_geometry url="#ATVHandlebarStem-mesh" name="ATVHandlebarStem"/>
+        <instance_geometry url="#ATVHandlebar-mesh" name="ATVHandlebar"/>
+        <instance_geometry url="#ATVWheelFrontLeft-mesh" name="ATVWheelFrontLeft"/>
+        <instance_geometry url="#ATVWheelFrontRight-mesh" name="ATVWheelFrontRight"/>
+        <instance_geometry url="#ATVWheelRearLeft-mesh" name="ATVWheelRearLeft"/>
+        <instance_geometry url="#ATVWheelRearRight-mesh" name="ATVWheelRearRight"/>
+      </node>
   </visual_scene></library_visual_scenes>
   <scene><instance_visual_scene url="#Scene"/></scene>
 </COLLADA>

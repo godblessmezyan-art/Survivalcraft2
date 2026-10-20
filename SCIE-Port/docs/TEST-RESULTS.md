@@ -51,6 +51,11 @@
 | 0.8.2 Windows 游戏运行 | 待验证 | 按用户此前要求未启动本机游戏；物品/世界渲染、实际速度、相机、骑乘、碰撞和旧实体恢复均未运行验证 |
 | 0.8.2 Android 7723 | 待验证 | 尚未安装到手机；模型、触屏手感、一格越障、狭窄道路、净空和保存重载必须按 `ATV-V0.2-AUDIT.md` 验收 |
 | 0.8.2 多人 | 不支持 | 驱动仍只在 `WorkType.Local` 执行，没有服务端权威输入或状态纠偏 |
+| 0.8.2 Android 世界模型 | 已确认（缺陷） | 用户实测创造栏图标可见、生成到世界后无模型；目标 `ModLoader.GetMaxInstancesCount()` 返回 7，0.8.2 DAE 经目标 `Engine.Media.ModelData.Load` 实际导入为 10 bones/9 meshes，超过世界实例模型的默认变换预算；物品栏路径因预先烘焙网格而不受影响 |
+| 0.8.3 ATV 单骨骼模型 | 已确认（目标 Engine 导入） | 九个独立 geometry 统一挂到一个 identity `ATV` 节点；目标 x25.01.17 `Engine.Media.ModelData.Load` 实际返回 1 bone/9 meshes。打包脚本新增同一真实导入断言，防止模型骨骼预算回归 |
+| 0.8.3 Release/包检查 | 已确认 | 固定程序集 ABI、Kelly 11 项、ATV 23 项、net472 Release 0 warning/0 error、三份 XDB、单骨骼导入和全部资源守卫通过 |
+| 0.8.3 `.netmod` | 已确认 | 368,662 字节；SHA-256 `B8F30E4CF9A49EC65D237E7EF0146BDEF0F702D3D6F1ABB763EEFAA24146EF18`；内置 `SCIEPort.dll` 版本 `0.8.3.0`，不含游戏 DLL/PDB/上游 DLL |
+| 0.8.3 Android 世界渲染 | 待验证 | 单骨骼修复已消除已确认的十骨骼超限，但尚未在用户 Android 7723 客户端重新安装观察，不能提前标记兼容 |
 | 0.6.0 Kelly 原名守卫 | 已确认 | 14 个名称按 CSV 顺序拼接的 UTF-8 SHA-256 为 `5b868dfafcb2fd858f71f73d0997c16779a2cbf7f5696848c1df341651cb3656`；无中英文括号，构建脚本会拒绝改名或追加括号移植标注 |
 | 0.6.0 原版 ID 扫描 | 已确认 | `Test-Environment.ps1 -GameDir D:\SC` 通过；目标程序集读出 260 个原生方块常量，903–916 与 995–1000 均未冲突 |
 | 0.6.0 Release 编译 | 已确认 | 使用已安装 .NET SDK 8.0.400 的 MSBuild 直接构建 net472，`TreatWarningsAsErrors=true`，成功生成 `SCIEPort.dll`，无错误或警告 |

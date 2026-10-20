@@ -4,9 +4,10 @@
 
 - `Assets/Models/ATV.dae` is a project-created, low-poly Y-up model consisting
   of nine independent meshes: body, nose, seat, handlebar/stem and four wheels.
-  Coordinates are baked with identity node matrices. It is not copied from SCIE
+  Coordinates are baked under one identity render bone for the SCNET Android
+  shader budget. It is not copied from SCIE
   or another upstream Mod. SHA-256:
-  `ACF4C36429D0D9AB651D44035A8A96221BC79FB6ABF46994B5A9889235E421FA`.
+  `2D13132BD0BFD7B776971500B40398C20A0ACCF62FDDE760EF28AC6355B877A4`.
 - `Assets/Textures/ATV.png` is a project-created 32×8 opaque four-color palette
   for body, tires, seat and metal parts. SHA-256:
   `D403AB2EC4C5642816832CABB6D39D12D23AA92F161FDEF21E41166B3BEB2702`.

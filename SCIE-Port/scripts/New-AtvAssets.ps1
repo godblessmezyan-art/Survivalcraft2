@@ -43,20 +43,22 @@ function New-CuboidGeometry($part) {
 }
 
 $geometries = ($parts | ForEach-Object { New-CuboidGeometry $_ }) -join "`n"
-$nodes = ($parts | ForEach-Object {
-    "      <node id=`"$($_.Name)`" name=`"$($_.Name)`" type=`"NODE`"><matrix sid=`"transform`">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><instance_geometry url=`"#$($_.Name)-mesh`" name=`"$($_.Name)`"/></node>"
+$geometryInstances = ($parts | ForEach-Object {
+    "        <instance_geometry url=`"#$($_.Name)-mesh`" name=`"$($_.Name)`"/>"
 }) -join "`n"
 
 $document = @"
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; every visible part owns an independent mesh. -->
+<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; all parts share one render bone for SCNET Android. -->
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
   <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-AtvAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
   <library_geometries>
 $geometries
   </library_geometries>
   <library_visual_scenes><visual_scene id="Scene" name="Scene">
-$nodes
+      <node id="ATV" name="ATV" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+$geometryInstances
+      </node>
   </visual_scene></library_visual_scenes>
   <scene><instance_visual_scene url="#Scene"/></scene>
 </COLLADA>

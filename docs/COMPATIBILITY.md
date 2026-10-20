@@ -155,6 +155,16 @@ net472 Release 编译确认：`ComponentBody` 提供地形/body 碰撞、重力�
 静态资源结果为已确认；Windows 游戏、Android 7723 渲染/驾驶/一格越障/保存重载仍为待验证，
 多人仍不支持。
 
+### SCIE-Port v0.8.3 / ATV Android 世界模型修复
+
+用户 Android 7723 实测确认 0.8.2 的 ATV 物品栏图标可见，但生成到世界后实体模型为空白。目标
+x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Media.ModelData.Load` 对
+0.8.2 `ATV.dae` 的实际导入结果为 10 bones/9 meshes。物品栏路径会把各 mesh 烘焙到一个
+`BlockMesh`，世界 `ComponentSimpleModel` 路径则向实例模型着色器提交全部骨骼变换，故只有世界路径
+超过预算。0.8.3 保留九个独立 geometry，但将它们挂到一个 identity `ATV` 根节点；目标 Engine 的
+实际导入结果降为 1 bone/9 meshes，物品栏代码同步改为枚举全部 meshes。该原因与离线导入结果为
+已确认；修复后的 Android 世界渲染仍待用户复测。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。

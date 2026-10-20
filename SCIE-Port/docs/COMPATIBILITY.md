@@ -43,7 +43,9 @@ Android 或多人测试。
 | ATV 地面物理 | 已确认 | 仅在 `WorkType.Local`、原生 body 接地且未浸水时读取触屏 Move；`ComponentBody` 负责碰撞、重力和 `MaxSmoothRiseHeight=0.35` 平滑上台阶。真实手感/坡度/碰撞待验证 |
 | ATV 模型与贴图 | 已确认 | 项目创建的 `ATV.dae` 为 Y_UP，含车身与四个轮节点；`ATV.png` 是项目内白色基础纹理副本，着色由模型组件完成。Android 渲染待验证 |
 | ATV Windows/Android/联机运行 | 待验证 | 未启动 Windows 游戏或 Android 7723 客户端；本阶段明确不实现多人自定义输入同步、燃料和复杂悬挂 |
-| ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry/node，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
+| ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
+| ATV v0.2.1 Android 世界模型空白 | 已确认（缺陷/机理） | 用户在 Android 7723 确认 0.8.2 物品栏图标可见、生成实体无模型；目标 `ModLoader.GetMaxInstancesCount()` 返回 7，而旧 DAE 经目标 `Engine.Media.ModelData.Load` 导入为 10 bones/9 meshes。物品栏将网格烘焙进 `BlockMesh`，世界实体则把 10 个骨骼变换交给实例模型着色器，因此两条路径表现不同 |
+| ATV v0.2.1 单骨骼修复 | 已确认（模型导入/构建） | 0.8.3 保留九个独立 geometry，但都挂到单个 identity `ATV` 场景节点；目标 Engine 实际导入结果为 1 bone/9 meshes，低于七骨骼限制。物品代码改为枚举全部 meshes。Android 世界可见性待复测 |
 | ATV v0.2 阻力修复 | 已确认 | 真实 `ComponentBody.Update` 的 `6*dt` 接地阻力已反编译确认；驾驶时禁用该项并使用帧率无关的纵向/横向控制，无人时恢复。Android 手感待验证 |
 | ATV v0.2 一格越障 | 已确认 | ABI/代码级确认使用原生三轴碰撞和连续 `4.5*dt` smooth rise，`MaxSmoothRiseHeight=1.05`；不写 Position/地形且不抬高实体碰撞。Android 一格台阶与净空仍待验证 |
 | ATV v0.2 诊断日志 | 已确认 | 仅本地单人、有人驾驶时每 5 秒输出速度、油门、地形/实体支撑、离地时间、原生阻力开关和状态；Android 日志格式待验证 |

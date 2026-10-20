@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.8.2",
+  "Version": "0.8.3",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. ATV v0.2 rebuilds rendering, removes competing ground drag, preserves airborne momentum and enables native collision-checked one-cell smooth rise. Android verification remains pending.",
+  "Description": "Authorized x25.01.17 port workspace. ATV v0.2.1 uses a single-bone Android-safe world model, removes competing ground drag, preserves airborne momentum and enables native collision-checked one-cell smooth rise.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",
