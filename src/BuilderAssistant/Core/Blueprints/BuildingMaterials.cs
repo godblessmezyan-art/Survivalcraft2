@@ -34,11 +34,23 @@ namespace BuilderAssistant.Core.Blueprints
         public const string StoneRailing   = "StoneRailing";    // stairwell/terrace rail (StoneFenceBlock)
         public const string FlatDeck       = "FlatDeck";        // flat roof / terrace deck (StoneSlabBlock)
 
+        // v0.12 giant-tree / treehouse logical keys. The concrete vanilla blocks behind
+        // them (OakWoodBlock, SpruceLeavesBlock) were each confirmed against the
+        // x25.01.17 assembly in the M1 audit: logs are opaque solid cubes whose only
+        // authored DATA bit-pair is the cut-face (vertical log = 0), and evergreen spruce
+        // leaves are a data-0 AlphaTestCube that decays only when a nearby log is removed
+        // (SubsystemWoodBlockBehavior radius 3), so a canopy kept within 3 of our logs is
+        // stable across save/reload. See docs/COMPATIBILITY.md v0.12.
+        public const string LogTrunk  = "LogTrunk";    // vertical oak log trunk   (OakWoodBlock, Log, data 0)
+        public const string LogBranch = "LogBranch";   // vertical oak log branch  (OakWoodBlock, Log, data 0)
+        public const string Leaves    = "Leaves";      // evergreen spruce foliage (SpruceLeavesBlock, Cube, data 0)
+
         public static readonly string[] All =
         {
             StoneBase, StoneWall, WoodWall, WoodTrim, Roof, Glass, Floor,
             RoofStairs, EntryDoor, WindowSill, GardenFence,
             InteriorWall, SupportBeam, InteriorStairs, StoneRailing, FlatDeck,
+            LogTrunk, LogBranch, Leaves,
         };
     }
 }

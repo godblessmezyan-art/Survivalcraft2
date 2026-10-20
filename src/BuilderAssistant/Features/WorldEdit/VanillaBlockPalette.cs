@@ -124,6 +124,14 @@ namespace BuilderAssistant.Features.WorldEdit
                 // ---- v0.9 doors (DoorBlock: rotation(0-1)+open(2)+rightHanded(3); two-cell) ----
                 { "WoodenDoorBlock", BlockFamily.Door }, // index 56
                 { "IronDoorBlock",   BlockFamily.Door }, // index 57
+
+                // ---- v0.12 giant tree / treehouse (M1-verified against x25.01.17) ----
+                // OakWoodBlock: opaque solid cube, DATA bit-pair[0-1] = cut-face; the
+                // generator authors vertical logs (data 0 => GetCutFace returns 4 = Y).
+                { "OakWoodBlock",      BlockFamily.Log },   // index 9, trunk/branch
+                // SpruceLeavesBlock: AlphaTestCube, no authored DATA, evergreen (no season
+                // poll); only ever decays if a WoodBlock within Chebyshev 3 is removed.
+                { "SpruceLeavesBlock", BlockFamily.Cube },  // index 14, canopy
             };
 
         /// <summary>The plain-cube subset, kept for readability/back-compat. Every member

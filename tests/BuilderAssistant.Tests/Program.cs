@@ -7,6 +7,7 @@ using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Json;
 using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Core.Transactions;
+using BuilderAssistant.Core.Tree;
 using BuilderAssistant.Core.Workbench;
 using BuilderAssistant.Features.Generators;
 
@@ -167,8 +168,16 @@ namespace BuilderAssistant.Tests
         private static int _failures;
         private static int _checks;
 
-        private static int Main()
+        private static int Main(string[] args)
         {
+            // Offline artifact mode: `dotnet run -c Release -- --preview <dir>` writes the
+            // treehouse manifest, 3-view elevation, layered floor plans and per-phase JSON to
+            // <dir> for human review (task §4: the preview is NOT the same as "tests pass").
+            if (args != null && args.Length >= 2 && args[0] == "--preview")
+            {
+                return DumpTreehouseArtifacts(args[1]);
+            }
+
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
 
             TestCottageShape(blueprint);
@@ -322,11 +331,88 @@ namespace BuilderAssistant.Tests
             TestWorkbenchCancelRestores();
             TestWorkbenchAuthorityGateNotRegressed();
 
+            // v0.12 Giant Fantasy Treehouse (森之王庭): log-orientation semantics, spec rejection,
+            // seed determinism/variation, the phased safety envelope + clean validation, vanilla-only
+            // materials, the leaf-decay-safety invariant (every leaf within Chebyshev 3 of a log),
+            // and structural facts (trunk through the decks, three storeys, one door, real stairs).
+            TestTreehouseLogOrientationSemantics();
+            TestTreehouseSpecValidationRejectsAbsurd();
+            TestTreehouseDeterministic();
+            TestTreehouseValidAndWithinSafetyEnvelope();
+            TestTreehouseEmitsOnlyVanillaBlocks();
+            TestTreehouseLeafDecaySafety();
+            TestTreehouseStructuralFacts();
+
             Console.WriteLine();
             Console.WriteLine(_failures == 0
                 ? "ALL " + _checks + " CHECKS PASSED"
                 : (_checks - _failures) + "/" + _checks + " checks passed, " + _failures + " FAILED");
             return _failures == 0 ? 0 : 1;
+        }
+
+        private static int DumpTreehouseArtifacts(string dir)
+        {
+            TreehouseSpec spec = TreehouseSpec.DefaultKingdomOfTheForest();
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(spec, out canvas, out v);
+
+            string manifest = TreehousePreview.BuildManifest(spec, parts, v);
+            string views =
+                TreehousePreview.RenderElevationFront(canvas, spec) + "\n" +
+                TreehousePreview.RenderElevationSide(canvas, spec) + "\n" +
+                TreehousePreview.RenderTopDown(canvas, spec) + "\n" +
+                TreehousePreview.RenderFloorPlans(canvas, spec);
+
+            // Family tally so the reviewer can see the actual vanilla composition.
+            var famCount = new Dictionary<BlockFamily, int>();
+            var keyCount = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (KeyValuePair<CellPos, PaintedCell> kv in canvas.Cells)
+            {
+                int n;
+                famCount[kv.Value.Family] = (famCount.TryGetValue(kv.Value.Family, out n) ? n : 0) + 1;
+                keyCount[kv.Value.Key] = (keyCount.TryGetValue(kv.Value.Key, out n) ? n : 0) + 1;
+            }
+            var tally = new System.Text.StringBuilder();
+            tally.Append("family tally:\n");
+            foreach (KeyValuePair<BlockFamily, int> kv in famCount)
+                tally.Append("  ").Append(kv.Key).Append(" = ").Append(kv.Value).Append('\n');
+            tally.Append("material key tally:\n");
+            foreach (KeyValuePair<string, int> kv in keyCount)
+                tally.Append("  ").Append(kv.Key).Append(" = ").Append(kv.Value).Append('\n');
+
+            System.IO.Directory.CreateDirectory(dir);
+            var enc = new System.Text.UTF8Encoding(true);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "treehouse_manifest.txt"), manifest, enc);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "treehouse_views.txt"), views, enc);
+            System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "treehouse_tally.txt"), tally.ToString(), enc);
+
+            int idx = 0;
+            foreach (TreehousePart p in parts)
+            {
+                string safe = Sanitize(p.Phase);
+                string json = TreehousePreview.SerializePart(p);
+                System.IO.File.WriteAllText(System.IO.Path.Combine(dir,
+                    "part_" + idx.ToString("D2") + "_" + safe + ".json"), json, enc);
+                idx++;
+            }
+
+            Console.WriteLine(manifest);
+            Console.WriteLine(views);
+            Console.WriteLine(tally);
+            Console.WriteLine("wrote " + idx + " phase blueprints to " + dir);
+            return v.IsValid ? 0 : 1;
+        }
+
+        private static string Sanitize(string s)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (char ch in s)
+            {
+                if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+                else if (ch == '.' || ch == '-' || ch == '_') sb.Append(ch);
+                else sb.Append('_');
+            }
+            return sb.ToString();
         }
 
         private static void Check(bool condition, string label)
@@ -2286,6 +2372,152 @@ namespace BuilderAssistant.Tests
                 }
             }
             return bp.CellCount > 0;
+        }
+
+        // ==================== v0.12 Giant Fantasy Treehouse (森之王庭) ====================
+
+        private static string TreehousePartsSignature(TreehousePart[] parts)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TreehousePart p = parts[i];
+                sb.Append(p.Phase).Append('|').Append(p.CellCount).Append('|')
+                  .Append(p.OffsetInMaster.X).Append(',').Append(p.OffsetInMaster.Y).Append(',').Append(p.OffsetInMaster.Z)
+                  .Append('|').Append(BlueprintSignature(p.Blueprint)).Append(';');
+            }
+            return sb.ToString();
+        }
+
+        private static void TestTreehouseLogOrientationSemantics()
+        {
+            Console.WriteLine("[TestTreehouseLogOrientationSemantics]");
+            Check(BlockOrientation.Normalize(BlockFamily.Log, 0) == 0, "log normalize keeps vertical 0");
+            Check(BlockOrientation.Normalize(BlockFamily.Log, 7) == 3, "log normalize masks to &3");
+            for (int s = 0; s < 4; s++)
+            {
+                Check(BlockOrientation.Rotate(BlockFamily.Log, 0, s) == 0, "vertical log invariant under rotation step " + s);
+            }
+            Check(BlockOrientation.MirrorX(BlockFamily.Log, 0) == 0, "vertical log invariant under mirrorX");
+            int h = BlockOrientation.Rotate(BlockFamily.Log, BlockOrientation.Rotate(BlockFamily.Log, 1, 2), 2);
+            Check(h == 1, "horizontal log obeys 4-quarter-turn identity (got " + h + ")");
+            Check(BlockOrientation.FamilyToTag(BlockFamily.Log) == "log", "log family tag name");
+            Check(BlockOrientation.FamilyFromTag("log") == BlockFamily.Log, "log family parsed from tag");
+        }
+
+        private static void TestTreehouseSpecValidationRejectsAbsurd()
+        {
+            Console.WriteLine("[TestTreehouseSpecValidationRejectsAbsurd]");
+            Check(TreehouseSpec.DefaultKingdomOfTheForest().Validate().IsValid, "default treehouse spec is valid");
+            Check(!(new TreehouseSpec { Width = 64 }).Validate().IsValid, "footprint over 33 rejected");
+            Check(!(new TreehouseSpec { Height = 80 }).Validate().IsValid, "height over 36 rejected");
+            Check(!(new TreehouseSpec { CanopyRadius = 5 }).Validate().IsValid, "canopy radius > 3 rejected (leaf-decay safety)");
+            Check(!(new TreehouseSpec { FloorThreeDeckY = 9, FloorTwoDeckY = 15 }).Validate().IsValid, "storey deck order rejected");
+        }
+
+        private static void TestTreehouseDeterministic()
+        {
+            Console.WriteLine("[TestTreehouseDeterministic]");
+            TreeCanvas c1, c2, c3; TreehouseValidation v1, v2, v3;
+            TreehousePart[] a = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out c1, out v1);
+            TreehousePart[] b = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out c2, out v2);
+            Check(c1.Count == c2.Count, "same seed -> identical block count (" + c1.Count + ")");
+            Check(TreehousePartsSignature(a) == TreehousePartsSignature(b), "same seed -> identical phased parts");
+
+            TreehouseSpec s3 = TreehouseSpec.DefaultKingdomOfTheForest();
+            s3.Seed = s3.Seed + 7;
+            TreehousePart[] c = TreehouseBlueprintSet.Build(s3, out c3, out v3);
+            Check(TreehousePartsSignature(a) != TreehousePartsSignature(c), "different seed -> different layout");
+        }
+
+        private static void TestTreehouseValidAndWithinSafetyEnvelope()
+        {
+            Console.WriteLine("[TestTreehouseValidAndWithinSafetyEnvelope]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+
+            Check(parts.Length >= 9, "sliced into at least 9 legible phases (got " + parts.Length + ")");
+            bool allWithinCaps = true;
+            foreach (TreehousePart p in parts)
+            {
+                if (p.CellCount > BuildSafetyLimits.MaxBlocksPerOperation) allWithinCaps = false;
+                if (p.Blueprint.SizeX > BuildSafetyLimits.MaxSelectionAxisLength ||
+                    p.Blueprint.SizeY > BuildSafetyLimits.MaxSelectionAxisLength ||
+                    p.Blueprint.SizeZ > BuildSafetyLimits.MaxSelectionAxisLength) allWithinCaps = false;
+            }
+            Check(allWithinCaps, "every phase blueprint is within the 1024 / 64-axis safety envelope");
+            Check(v.IsValid, "treehouse validation is clean (" + v.JoinedProblems() + ")");
+        }
+
+        private static void TestTreehouseEmitsOnlyVanillaBlocks()
+        {
+            Console.WriteLine("[TestTreehouseEmitsOnlyVanillaBlocks]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+
+            bool allResolve = true;
+            foreach (KeyValuePair<CellPos, PaintedCell> kv in canvas.Cells)
+            {
+                MaterialCatalog.Entry e;
+                if (!MaterialCatalog.TryGet(kv.Value.Key, out e)) { allResolve = false; break; }
+                // The mod's own tool blocks must never appear as treehouse content.
+                if (e.TypeName == "BuilderToolBlock" || e.TypeName == "UndoToolBlock" ||
+                    e.TypeName == "BlueprintToolBlock" || e.TypeName == "SpeedboatBlock")
+                {
+                    allResolve = false; break;
+                }
+            }
+            Check(allResolve, "every treehouse cell resolves to a cataloged vanilla block (no tool/mod-only block)");
+            Check(canvas.LogCount > 0, "the tree contributes real log blocks (logs=" + canvas.LogCount + ")");
+        }
+
+        private static void TestTreehouseLeafDecaySafety()
+        {
+            Console.WriteLine("[TestTreehouseLeafDecaySafety]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+
+            int leaves = 0; bool allSafe = true;
+            foreach (KeyValuePair<CellPos, PaintedCell> kv in canvas.Cells)
+            {
+                if (kv.Value.Key == TreeCanvas.Leaf)
+                {
+                    leaves++;
+                    if (!canvas.IsNearLog(kv.Key.X, kv.Key.Y, kv.Key.Z, 3)) { allSafe = false; }
+                }
+            }
+            Check(leaves > 0, "the canopy produced foliage (" + leaves + " leaf cells)");
+            Check(allSafe, "EVERY leaf is within Chebyshev 3 of a log (never decays on save/reload)");
+        }
+
+        private static void TestTreehouseStructuralFacts()
+        {
+            Console.WriteLine("[TestTreehouseStructuralFacts]");
+            TreehouseSpec spec = TreehouseSpec.DefaultKingdomOfTheForest();
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehouseBlueprintSet.Build(spec, out canvas, out v);
+            int cx = spec.CenterX, cz = spec.CenterZ;
+
+            // A continuous vertical trunk log column through the dwelling.
+            Check(canvas.IsLog(cx, 0, cz), "trunk log at ground (0)");
+            Check(canvas.IsLog(cx, spec.FloorOneDeckY, cz), "trunk grows through floor 1 deck");
+            Check(canvas.IsLog(cx, spec.FloorThreeDeckY, cz), "trunk grows through floor 3 deck");
+            Check(canvas.IsLog(cx, spec.TrunkTopY - 1, cz), "trunk reaches near the crown");
+
+            // Three decks actually span their storey footprint (an edge cell, not on the trunk).
+            Check(canvas.HasCell(cx - 8, spec.FloorOneDeckY, cz), "floor 1 deck plate present");
+            Check(canvas.HasCell(cx - 6, spec.FloorTwoDeckY, cz), "floor 2 deck plate present");
+            Check(canvas.HasCell(cx - 5, spec.FloorThreeDeckY, cz), "floor 3 deck plate present");
+
+            // Exactly one entry door bottom-half (engine makes the top half at build time).
+            int doors = 0, stairs = 0;
+            foreach (KeyValuePair<CellPos, PaintedCell> kv in canvas.Cells)
+            {
+                if (kv.Value.Family == BlockFamily.Door) doors++;
+                if (kv.Value.Family == BlockFamily.Stairs) stairs++;
+            }
+            Check(doors == 1, "exactly one door bottom cell (got " + doors + ")");
+            Check(stairs > 0, "the dwelling uses real stair blocks (" + stairs + ")");
         }
 
         // ==================== v0.11.0 Visual Building Workbench (pure) ====================

@@ -366,7 +366,7 @@ namespace BuilderAssistant.Core.Blueprints
             // A missing/empty tag is valid (means plain cube).
             if (string.IsNullOrEmpty(tag)) return true;
             return tag == "cube" || tag == "stairs" || tag == "slab" ||
-                   tag == "fence" || tag == "door";
+                   tag == "fence" || tag == "door" || tag == "log";
         }
 
         /// <summary>
