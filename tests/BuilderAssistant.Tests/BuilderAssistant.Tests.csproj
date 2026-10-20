@@ -84,5 +84,7 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseDecorationGenerator.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseBlueprintSet.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehousePreview.cs" />
+    <!-- M4 phased in-world assembler: game-free, reuses BuildPlanner/BuildTask/TransactionHistory. -->
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseAssembly.cs" />
   </ItemGroup>
 </Project>
