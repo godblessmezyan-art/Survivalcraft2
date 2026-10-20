@@ -103,6 +103,9 @@ See `docs/TEST-RESULTS.md` before interpreting any compatibility claim.
 Before creating another vehicle asset, read `docs/VEHICLE-MODEL-GUIDE.md`; it records
 the Android-safe single-bone DAE layout, inventory/world rendering differences,
 texture rules, target-Engine import checks and device acceptance procedure.
+Before implementing a cannon or any other large-vehicle weapon, read
+`docs/LARGE-VEHICLE-WEAPONS.md`; it records the native musket owner-correction
+trap, safe muzzle calculation, fuse rules and mandatory Android first-shot tests.
 Porting rules and licensing requirements are in `AGENTS.md`,
 `docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 

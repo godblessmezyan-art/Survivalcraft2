@@ -18,4 +18,5 @@
 - 每次构建先运行 `scripts/Test-Environment.ps1`，再运行 Release 构建和包内容校验，并把结果写入 `docs/TEST-RESULTS.md`。
 - Android 首测必须使用可丢弃的新建单人世界和存档备份；世界生成应有每区块/每帧预算，禁止一次更新无界扫描或写入。
 - 新建或重做载具模型前必须完整阅读 `docs/VEHICLE-MODEL-GUIDE.md`；静态载具使用单根骨骼，且必须用目标 `Engine.Media.ModelData.Load` 校验实际导入骨骼/网格数，不能只验证物品栏图标或 DAE XML。
+- 新增或修改坦克炮、舰炮、装甲车武器、列车炮、飞艇武器等大型载具攻击功能前，必须完整阅读 `docs/LARGE-VEHICLE-WEAPONS.md`。不得直接照搬原版火枪的 owner 炮口校正；必须验证载具 AABB 外炮口、视觉/弹道一致、近车体引信保险、事件清理以及 Android 第一炮安全。
 
