@@ -33,8 +33,10 @@
     <ComponentTemplate Name="SCIEPortATVDrive" Description="Host-authoritative tandem ATV drive" Guid="e9a8f5aa-5a2c-4df3-a4d4-ec86dc93351a" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
       <Parameter Name="Class" Guid="f0a0a5cd-c7bb-4755-9bd9-263a7a5b7ccf" Value="SCIEPort.Features.LandVehicles.ComponentAtvDrive" Type="string" />
     </ComponentTemplate>
-    <ComponentTemplate Name="SCIEPortATVSeatManager" Description="Authoritative tandem ATV seat allocator" Guid="115f884a-48ba-43d5-a8f9-6547c45f36c1" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
-      <Parameter Name="Class" Guid="4a57df62-f5d1-4533-ad63-8980622c6763" Value="SCIEPort.Features.LandVehicles.ComponentAtvSeatManager" Type="string" />
+    <ComponentTemplate Name="SCIEPortTwoSeatManager" Description="Authoritative reusable two-seat allocator" Guid="115f884a-48ba-43d5-a8f9-6547c45f36c1" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="4a57df62-f5d1-4533-ad63-8980622c6763" Value="SCIEPort.Features.Vehicles.ComponentTwoSeatManager" Type="string" />
+      <Parameter Name="DriverOffset" Guid="229f5bd4-df29-48ea-9a54-4f689de8b160" Value="0,0.9,-0.3" Type="Vector3" />
+      <Parameter Name="PassengerOffset" Guid="c783890d-862f-4c32-925b-04cc3d813ec3" Value="0,0.9,0.62" Type="Vector3" />
     </ComponentTemplate>
   </Folder>
   <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">

@@ -6,17 +6,19 @@ using Game.NetWork.Packages;
 using GameEntitySystem;
 using TemplatesDatabase;
 
-namespace SCIEPort.Features.LandVehicles
+namespace SCIEPort.Features.Vehicles
 {
     /// <summary>
     /// Authoritative two-seat allocator. Both riders remain direct children of the
     /// ATV body, while a discrete server package assigns the non-controlling role.
     /// </summary>
-    public sealed class ComponentAtvSeatManager : Component, IUpdateable
+    public sealed class ComponentTwoSeatManager : Component, IUpdateable
     {
         private readonly HashSet<ushort> m_rejectedRiders = new HashSet<ushort>();
         private ComponentBody m_body;
         private ComponentMount m_mount;
+        private Vector3 m_driverOffset;
+        private Vector3 m_passengerOffset;
         private ushort m_driverId;
         private ushort m_passengerId;
 
@@ -35,6 +37,8 @@ namespace SCIEPort.Features.LandVehicles
             base.Load(valuesDictionary, idToEntityMap);
             m_body = Entity.FindComponent<ComponentBody>(throwOnError: true);
             m_mount = Entity.FindComponent<ComponentMount>(throwOnError: true);
+            m_driverOffset = valuesDictionary.GetValue<Vector3>("DriverOffset");
+            m_passengerOffset = valuesDictionary.GetValue<Vector3>("PassengerOffset");
         }
 
         /// <inheritdoc />
@@ -63,21 +67,21 @@ namespace SCIEPort.Features.LandVehicles
             {
                 ComponentRider first = riders[0];
                 bool savedPassengerOnly = riders.Count == 1 && !first.m_isAnimating &&
-                    DistanceTo(first, AtvSeatRules.PassengerZ) < DistanceTo(first, AtvSeatRules.DriverZ);
+                    DistanceTo(first, m_passengerOffset.Z) < DistanceTo(first, m_driverOffset.Z);
                 if (savedPassengerOnly)
                 {
                     Passenger = first;
                 }
                 else
                 {
-                    Driver = ClosestTo(riders, AtvSeatRules.DriverZ);
+                    Driver = ClosestTo(riders, m_driverOffset.Z);
                     Passenger = FirstExcept(riders, Driver);
                 }
 
                 unassigned.Remove(Driver);
                 unassigned.Remove(Passenger);
-                Assign(Driver, AtvSeatRules.Seat.Driver);
-                Assign(Passenger, AtvSeatRules.Seat.Passenger);
+                Assign(Driver, VehicleSeatRole.Driver);
+                Assign(Passenger, VehicleSeatRole.Passenger);
             }
             else
             {
@@ -85,14 +89,14 @@ namespace SCIEPort.Features.LandVehicles
                 {
                     Driver = unassigned[0];
                     unassigned.RemoveAt(0);
-                    Assign(Driver, AtvSeatRules.Seat.Driver);
+                    Assign(Driver, VehicleSeatRole.Driver);
                 }
 
                 if (Passenger == null && unassigned.Count > 0)
                 {
                     Passenger = unassigned[0];
                     unassigned.RemoveAt(0);
-                    Assign(Passenger, AtvSeatRules.Seat.Passenger);
+                    Assign(Passenger, VehicleSeatRole.Passenger);
                 }
             }
 
@@ -107,7 +111,7 @@ namespace SCIEPort.Features.LandVehicles
         }
 
         /// <summary>Applies one server-issued role on a client replica.</summary>
-        public void ApplyNetworkAssignment(ComponentRider rider, AtvSeatRules.Seat seat)
+        public void ApplyNetworkAssignment(ComponentRider rider, VehicleSeatRole seat)
         {
             if (rider == null)
             {
@@ -120,7 +124,7 @@ namespace SCIEPort.Features.LandVehicles
             }
 
             ApplySeatOffset(rider, seat);
-            if (seat == AtvSeatRules.Seat.Driver)
+            if (seat == VehicleSeatRole.Driver)
             {
                 Driver = rider;
                 m_driverId = rider.Entity.EntityId;
@@ -167,7 +171,7 @@ namespace SCIEPort.Features.LandVehicles
             }
         }
 
-        private void Assign(ComponentRider rider, AtvSeatRules.Seat seat)
+        private void Assign(ComponentRider rider, VehicleSeatRole seat)
         {
             if (rider == null)
             {
@@ -177,15 +181,13 @@ namespace SCIEPort.Features.LandVehicles
             ApplySeatOffset(rider, seat);
             if (CommonLib.WorkType == WorkType.Server)
             {
-                CommonLib.Net.QueuePackage(new AtvSeatAssignmentPackage(Entity, rider, seat));
+                CommonLib.Net.QueuePackage(new TwoSeatAssignmentPackage(Entity, rider, seat));
             }
         }
 
-        private static void ApplySeatOffset(ComponentRider rider, AtvSeatRules.Seat seat)
+        private void ApplySeatOffset(ComponentRider rider, VehicleSeatRole seat)
         {
-            Vector3 seatOffset = seat == AtvSeatRules.Seat.Driver
-                ? new Vector3(AtvSeatRules.DriverX, AtvSeatRules.DriverY, AtvSeatRules.DriverZ)
-                : new Vector3(AtvSeatRules.PassengerX, AtvSeatRules.PassengerY, AtvSeatRules.PassengerZ);
+            Vector3 seatOffset = seat == VehicleSeatRole.Driver ? m_driverOffset : m_passengerOffset;
             rider.m_targetPositionOffset = seatOffset + rider.m_riderOffset;
             rider.m_targetRotationOffset = Quaternion.Identity;
         }

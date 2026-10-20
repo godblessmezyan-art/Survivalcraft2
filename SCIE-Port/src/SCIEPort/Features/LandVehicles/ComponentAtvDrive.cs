@@ -3,6 +3,7 @@ using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.LandVehicles
@@ -19,7 +20,7 @@ namespace SCIEPort.Features.LandVehicles
 
         private ComponentBody m_body;
         private ComponentMount m_mount;
-        private ComponentAtvSeatManager m_seatManager;
+        private ComponentTwoSeatManager m_seatManager;
         private float m_airborneTime;
         private float m_diagnosticTime;
 
@@ -32,7 +33,7 @@ namespace SCIEPort.Features.LandVehicles
             base.Load(valuesDictionary, idToEntityMap);
             m_body = Entity.FindComponent<ComponentBody>(throwOnError: true);
             m_mount = Entity.FindComponent<ComponentMount>(throwOnError: true);
-            m_seatManager = Entity.FindComponent<ComponentAtvSeatManager>(throwOnError: true);
+            m_seatManager = Entity.FindComponent<ComponentTwoSeatManager>(throwOnError: true);
 
             // Do not bypass ComponentBody collision. These values make its native
             // smooth-rise path the explicit ATV slope/step limit.

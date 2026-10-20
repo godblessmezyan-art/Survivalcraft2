@@ -2,7 +2,7 @@ using Game;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.KellyPlants;
-using SCIEPort.Features.LandVehicles;
+using SCIEPort.Features.Vehicles;
 
 namespace SCIEPort.Mod
 {
@@ -17,7 +17,7 @@ namespace SCIEPort.Mod
         {
             if (!s_networkPackageRegistered)
             {
-                PackageManager.RegisterPackage(new AtvSeatAssignmentPackage());
+                PackageManager.RegisterPackage(new TwoSeatAssignmentPackage());
                 s_networkPackageRegistered = true;
             }
 

@@ -2,10 +2,10 @@ using Game;
 using Game.NetWork;
 using GameEntitySystem;
 
-namespace SCIEPort.Features.LandVehicles
+namespace SCIEPort.Features.Vehicles
 {
-    /// <summary>Server-to-client discrete ATV seat-role assignment.</summary>
-    public sealed class AtvSeatAssignmentPackage : IPackage
+    /// <summary>Server-to-client discrete two-seat vehicle role assignment.</summary>
+    public sealed class TwoSeatAssignmentPackage : IPackage
     {
         /// <summary>Reserved SCIE-Port package identifier.</summary>
         public byte ID => 240;
@@ -29,15 +29,15 @@ namespace SCIEPort.Features.LandVehicles
         public ushort RiderId { get; set; }
 
         /// <summary>Authoritative seat role.</summary>
-        public AtvSeatRules.Seat Seat { get; set; }
+        public VehicleSeatRole Seat { get; set; }
 
         /// <summary>Creates an empty package for the decoder.</summary>
-        public AtvSeatAssignmentPackage()
+        public TwoSeatAssignmentPackage()
         {
         }
 
         /// <summary>Creates an authoritative assignment event.</summary>
-        public AtvSeatAssignmentPackage(Entity vehicle, ComponentRider rider, AtvSeatRules.Seat seat)
+        public TwoSeatAssignmentPackage(Entity vehicle, ComponentRider rider, VehicleSeatRole seat)
         {
             VehicleId = vehicle.EntityId;
             RiderId = rider.Entity.EntityId;
@@ -57,14 +57,13 @@ namespace SCIEPort.Features.LandVehicles
         {
             VehicleId = reader.ReadUInt16();
             RiderId = reader.ReadUInt16();
-            Seat = (AtvSeatRules.Seat)reader.ReadByte();
+            Seat = (VehicleSeatRole)reader.ReadByte();
         }
 
         /// <inheritdoc />
         public void Handle(ProjectNet projectNet, NetNode netNode, bool isServer)
         {
-            // Clients never assign seats. Ignore any forged client-to-server packet.
-            if (isServer || (Seat != AtvSeatRules.Seat.Driver && Seat != AtvSeatRules.Seat.Passenger))
+            if (isServer || (Seat != VehicleSeatRole.Driver && Seat != VehicleSeatRole.Passenger))
             {
                 return;
             }
@@ -73,7 +72,7 @@ namespace SCIEPort.Features.LandVehicles
             {
                 projectNet.FindEntityById(RiderId, riderEntity =>
                 {
-                    ComponentAtvSeatManager manager = vehicle.FindComponent<ComponentAtvSeatManager>(throwOnError: false);
+                    ComponentTwoSeatManager manager = vehicle.FindComponent<ComponentTwoSeatManager>(throwOnError: false);
                     ComponentRider rider = riderEntity.FindComponent<ComponentRider>(throwOnError: false);
                     manager?.ApplyNetworkAssignment(rider, Seat);
                 });
