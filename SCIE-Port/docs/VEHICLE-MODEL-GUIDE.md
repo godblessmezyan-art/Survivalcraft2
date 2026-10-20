@@ -24,6 +24,7 @@ ATV 0.8.3 是当前已通过 Android 世界显示验证的最小参考实现：
    `THIRD-PARTY-NOTICES.md` 记录来源、范围和 SHA-256。
 4. 新增物品 ID 前扫描原版及 SCIE-Port 已占用 ID；外部 Mod 冲突仍需提示。
 5. 只引用 `SCNetGameDir`/`SCNET_GAME_DIR` 中的目标程序集，不复制或提交游戏 DLL。
+6. 若载具带有炮塔、炮管、弹丸或爆炸攻击，必须完整阅读 `docs/LARGE-VEHICLE-WEAPONS.md`；模型炮口、碰撞体出口和代码发射方向必须共同设计，不能在模型完成后再用固定距离补炮口。
 
 ## 2. 最重要的渲染限制
 

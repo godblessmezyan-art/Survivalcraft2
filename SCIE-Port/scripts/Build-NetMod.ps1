@@ -227,10 +227,14 @@ try {
     $atvTexture = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']")
     $atvStepHeight = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='MaxSmoothRiseHeight']")
     $atvBox = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
+    $atvMount = $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     if ($null -eq $atvModel -or $atvModel.Value -ne 'Models/ATV') { throw 'ATV ModelName must be Models/ATV.' }
     if ($null -eq $atvTexture -or $atvTexture.Value -ne 'Textures/ATV') { throw 'ATV TextureOverride must be the packaged Textures/ATV.' }
     if ($null -eq $atvStepHeight -or $atvStepHeight.Value -ne '1.05') { throw 'ATV MaxSmoothRiseHeight must provide the audited one-cell clearance of 1.05 cells.' }
-    if ($null -eq $atvBox -or $atvBox.Value -ne '1.7,1.15,2.1') { throw 'ATV collision box must cover the complete rebuilt model at 1.7,1.15,2.1.' }
+    if ($null -eq $atvBox -or $atvBox.Value -ne '1.1,1.25,2.6') { throw 'ATV collision box must cover the tandem motorcycle model at 1.1,1.25,2.6.' }
+    if ($null -eq $atvMount -or $atvMount.Value -ne '0,0.9,-0.3') { throw 'ATV driver mount must remain at the audited front-seat offset.' }
+    if ($null -eq $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='ATVSeatManager']")) { throw 'ATV entity is missing its authoritative seat manager.' }
+    if (@($atvEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) { throw 'ATV must keep exactly one native Mount; passenger role is managed by association.' }
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
     if ($null -eq $tankEntity) { throw 'Tank database is missing SCIEPortT34Tank.' }
@@ -299,7 +303,7 @@ try {
     if ($atvModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'ATV.dae must be oriented Y_UP.'
     }
-    $atvParts = @('ATVBody', 'ATVNose', 'ATVSeat', 'ATVHandlebarStem', 'ATVHandlebar', 'ATVWheelFrontLeft', 'ATVWheelFrontRight', 'ATVWheelRearLeft', 'ATVWheelRearRight')
+    $atvParts = @('BikeFrame', 'BikeEngine', 'BikeFuelTank', 'BikeDriverSeat', 'BikePassengerSeat', 'BikeFrontFork', 'BikeHandlebarStem', 'BikeHandlebar', 'BikeFrontWheel', 'BikeRearWheel', 'BikeFrontFender', 'BikeRearFender')
     $atvSceneNodes = @($atvModelDocument.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
     if ($atvSceneNodes.Count -ne 1 -or $atvSceneNodes[0].GetAttribute('name') -ne 'ATV') {
         throw 'ATV.dae must use exactly one ATV scene node so ComponentSimpleModel stays within the SCNET seven-bone shader limit.'
@@ -365,10 +369,10 @@ try {
     $atvX = for ($i = 0; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
     $atvY = for ($i = 1; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
     $atvZ = for ($i = 2; $i -lt $atvCoordinates.Count; $i += 3) { $atvCoordinates[$i] }
-    if (($atvX | Measure-Object -Minimum).Minimum -lt -0.85 -or ($atvX | Measure-Object -Maximum).Maximum -gt 0.85 -or
-        ($atvY | Measure-Object -Minimum).Minimum -lt 0 -or ($atvY | Measure-Object -Maximum).Maximum -gt 1.15 -or
-        ($atvZ | Measure-Object -Minimum).Minimum -lt -1.05 -or ($atvZ | Measure-Object -Maximum).Maximum -gt 1.05) {
-        throw 'ATV.dae visible geometry exceeds the complete 1.7,1.15,2.1 ComponentBody collision box.'
+    if (($atvX | Measure-Object -Minimum).Minimum -lt -0.55 -or ($atvX | Measure-Object -Maximum).Maximum -gt 0.55 -or
+        ($atvY | Measure-Object -Minimum).Minimum -lt 0 -or ($atvY | Measure-Object -Maximum).Maximum -gt 1.25 -or
+        ($atvZ | Measure-Object -Minimum).Minimum -lt -1.3 -or ($atvZ | Measure-Object -Maximum).Maximum -gt 1.3) {
+        throw 'ATV.dae visible geometry exceeds the tandem motorcycle 1.1,1.25,2.6 ComponentBody collision box.'
     }
     Add-Type -AssemblyName System.Drawing
     $atvBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\ATV.png'))

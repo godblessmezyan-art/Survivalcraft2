@@ -61,6 +61,17 @@ old DAE imported as ten bones. The nine geometries now share one identity root
 bone, and the inventory path enumerates all meshes instead of relying on unique
 mesh names. Android confirmation of the rebuilt package remains pending.
 
+Version 0.10.0 is ATV v0.3. The compact four-wheel visual is replaced by a
+project-created tandem off-road motorcycle while ID 923, `SCIEPortATV`, its
+entity GUID and the v0.2 driving rules remain stable. The driver keeps the
+vehicle's native mount. A separately addressable native mount entity is parented
+to the ATV body for the passenger, avoiding duplicate Mount components and
+per-frame player teleportation. Offline driving and host-player driving compile;
+ordinary clients never write vehicle velocity or another player's position. A
+remote client can be a passenger, but a remote client acting as driver is not
+supported until a server-authoritative input/correction protocol is implemented.
+All Android two-device behavior remains pending real-device verification.
+
 Version 0.9.0 adds an independently implemented, project-created low-poly T-34
 style tank prototype. It uses the native ground body, mount and rider chain
 rather than any boat physics: single-player touch input supports forward,
@@ -73,7 +84,7 @@ fighting native ground drag. Independent persisted turret/gun angle fields are
 ready for a later aiming/fire feature. There is deliberately no fuel, weapon,
 multiplayer authority or Android compatibility claim yet.
 
-Version 0.9.1 responds to Android testing of the base tank. The complete model
+Version 0.9.2 responds to Android testing of the base tank and first cannon build. The complete model
 is enlarged by 35 percent with a matching 3.6×2.1×5.9 native body, smooth-rise
 clearance is increased to 1.05 cells, and the attack/hit touch action fires a
 native musket-ball projectile at 42 cells/second. The turret and gun bones track
@@ -81,6 +92,13 @@ the aiming ray; an owned shell produces a pressure-18 non-incendiary explosion
 when removed after impact, with a 1.6-second cooldown and horizontal recoil.
 Firing, articulation, explosion damage and one-cell climbing remain pending
 Android verification and should first be tested in a disposable world.
+
+Tank v0.3.1 makes turret aim follow the active camera instead of the mounted
+creature eye transform. Shells now start beyond the tank body's actual AABB
+without invoking the native hand-projectile owner correction, which pulled the
+first v0.3 shell back inside the vehicle. Damage ownership is restored after
+creation, and a 1.5-cell arming distance suppresses residual near-tank blasts.
+These corrections pass Release/static tests but still need Android verification.
 
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
@@ -96,6 +114,9 @@ See `docs/TEST-RESULTS.md` before interpreting any compatibility claim.
 Before creating another vehicle asset, read `docs/VEHICLE-MODEL-GUIDE.md`; it records
 the Android-safe single-bone DAE layout, inventory/world rendering differences,
 texture rules, target-Engine import checks and device acceptance procedure.
+Before implementing a cannon or any other large-vehicle weapon, read
+`docs/LARGE-VEHICLE-WEAPONS.md`; it records the native musket owner-correction
+trap, safe muzzle calculation, fuse rules and mandatory Android first-shot tests.
 Porting rules and licensing requirements are in `AGENTS.md`,
 `docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 

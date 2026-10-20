@@ -230,3 +230,29 @@ THIRD-PARTY-NOTICES.md
 - `.netmod`：`artifacts/SCIEPort.netmod`，SHA-256 `4ECB3BFDD070CEBC444CC4B09C8B5F1E2BCE67699C725FB145523B35CE5CAEEB`。
 - Android 新功能：待验证。攻击触屏开炮、炮塔朝向、炮弹命中爆炸、后坐、一格越障和尺寸满意度必须重新实测。
 - 多人联机：不支持。主炮和驾驶当前只在 `WorkType.Local` 执行。
+
+## 0.9.2 坦克 v0.3.1 炮塔与炮口安全修复（2026-10-20）
+
+- Android v0.3：已确认缺陷。用户实测炮塔不转，第一次开炮会炸到坦克。
+- 根因：已确认。目标程序集 `FireProjectileNet` 会依据传入 owner 的玩家包围盒重写起点；骑手位于坦克内，导致车外炮口被拉回车体碰撞箱。
+- 修复：炮塔持续读取活动摄像机方向；发射使用限制后的炮管方向；炮口从车体 AABB 求出口并外移 0.75 格；弹丸创建后恢复伤害 owner；1.5 格内不解锁爆炸。
+- 规则测试：已确认。新增 AABB 前向/侧向出口、炮口净距和引信距离边界测试并通过。
+- Release 构建：已确认。目标 x25.01.17 环境检查、Kelly 11 项、ATV 23 项、Tank 规则测试、net472 编译、XDB 与包内容校验均通过。
+- `.netmod`：`artifacts/SCIEPort.netmod`，SHA-256 `79495495B2BFB4AA2CFBDF2777F22F73A8280BB5D0F07C110A1D668830CDC5A3`。
+- Windows 游戏运行：待验证，本轮未启动游戏。
+- Android v0.3.1：待验证，必须复测炮塔转向、第一炮安全、贴近障碍开炮、远距离命中爆炸。
+- 多人联机：不支持。
+
+## 0.10.0 ATV 双座越野摩托 v0.3（2026-10-20）
+
+- 技术审计：已确认。目标 `ComponentMountPackage` 无座位编号，同实体双 Mount 不可寻址；原生 Body 碰撞只排除直接父子，故放弃会让乘客碰撞祖父车体的多层锚点方案。详见 `ATV-V0.3-DUAL-SEAT-AUDIT.md`。
+- 座位架构：已确认（代码/ABI）。ATV 保持 ID 923、`SCIEPortATV` 和实体 GUID；两名骑手直接挂载 ATV Body，主机/Local 分配驾驶员与乘客，乘客不被 Drive 读取。临时玩家 ID 不写存档，角色由保存的原生座位偏移恢复。
+- 联机包：已确认（ABI/编译）。自定义 `IPackage` ID 240 只由服务器下发离散座位事件；目标原生包实际占 ID 0–38。服务器忽略客户端伪造的同类包，普通客户端不改车辆速度。
+- 模型与贴图：已确认（静态/目标导入）。项目脚本生成 Y_UP 单骨骼、12 meshes 的双座越野摩托和 32×8 四色不透明 PNG；目标 `Engine.Media.ModelData.Load` 导入为 1 bone / 12 meshes，模型范围落在 `1.1,1.25,2.6` Body 内。
+- 规则测试：已确认。`SCIEPort.LandVehicles.Tests` 共 32 项通过，其中新增 9 项覆盖驾驶优先、乘客分配、满员拒绝、重新占座、驾驶权限和固定独立偏移。
+- Release/包检查：已确认。`Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release` 通过；固定程序集/包 ID ABI、Kelly 11 项、ATV 32 项、Tank 规则、net472 Release 0 warning/0 error、XDB、模型和包内容守卫全部通过。
+- `.netmod`：已确认。`artifacts/SCIEPort.netmod`，381,492 字节，SHA-256 `3818392DD24BEECF834080C56CAD73DC0E147BB29F70B18231630BE04C8AB3AA`，版本 0.10.0。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723 单人：待验证。新模型显示、驾驶、一格越障、上下车及保存重载尚未实测。
+- Android 多人：待验证。目标仅为主机驾驶员 + 普通客户端乘客；双人移动、自由观察、上下车、第三人拒绝、死亡/断线及重载需双机测试。
+- 普通客户端驾驶：不支持。原生骑乘 `BodyUpdate` 会同步父车辆状态，必须另做服务器输入、预测和纠偏协议后才能安全开放。

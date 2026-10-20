@@ -15,6 +15,12 @@ namespace SCIEPort.Features.Tanks
         public const float ShellSpeed = 42f;
         /// <summary>Explosion pressure applied when a registered shell stops.</summary>
         public const float ShellExplosionPressure = 18f;
+        /// <summary>Clearance beyond the tank collision box used for shell spawning.</summary>
+        public const float MuzzleClearance = .75f;
+        /// <summary>Distance a shell must travel before its explosive charge is armed.</summary>
+        public const float ShellArmingDistance = 1.5f;
+        /// <summary>Height of the gun pivot above the bottom-center body position.</summary>
+        public const float GunPivotHeight = 1.566f;
         /// <summary>Forward or reverse acceleration in cells per second squared.</summary>
         public const float DriveAcceleration = 6.5f;
         /// <summary>Deceleration before changing direction.</summary>
@@ -66,6 +72,34 @@ namespace SCIEPort.Features.Tanks
         public static bool CanFire(float cooldownRemaining, bool hasHitRay, float immersionFactor)
         {
             return cooldownRemaining <= 0f && hasHitRay && immersionFactor < 0.8f;
+        }
+
+        /// <summary>Prevents a projectile stopped inside or immediately beside the tank from exploding.</summary>
+        public static bool IsShellArmed(float distanceSquared)
+        {
+            return distanceSquared >= ShellArmingDistance * ShellArmingDistance;
+        }
+
+        /// <summary>Returns the first positive exit distance from an axis-aligned box.</summary>
+        public static float GetBoxExitDistance(
+            float offsetX, float offsetY, float offsetZ,
+            float directionX, float directionY, float directionZ,
+            float halfX, float halfY, float halfZ)
+        {
+            float result = float.MaxValue;
+            AccumulateAxisExit(offsetX, directionX, halfX, ref result);
+            AccumulateAxisExit(offsetY, directionY, halfY, ref result);
+            AccumulateAxisExit(offsetZ, directionZ, halfZ, ref result);
+            return result;
+        }
+
+        private static void AccumulateAxisExit(float offset, float direction, float halfSize, ref float result)
+        {
+            float distance;
+            if (direction > .0001f) distance = (halfSize - offset) / direction;
+            else if (direction < -.0001f) distance = (-halfSize - offset) / direction;
+            else return;
+            if (distance >= 0f && distance < result) result = distance;
         }
     }
 }

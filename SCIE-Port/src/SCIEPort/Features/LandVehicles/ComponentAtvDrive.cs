@@ -3,12 +3,13 @@ using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.LandVehicles
 {
     /// <summary>
-    /// Single-player ATV controller. Collision, gravity, step-up and mounted-camera
+    /// Driver-seat ATV controller. Collision, gravity, step-up and mounted-camera
     /// parent-body behavior remain entirely in the target game's native components.
     /// </summary>
     public sealed class ComponentAtvDrive : Component, IUpdateable
@@ -19,6 +20,7 @@ namespace SCIEPort.Features.LandVehicles
 
         private ComponentBody m_body;
         private ComponentMount m_mount;
+        private ComponentTwoSeatManager m_seatManager;
         private float m_airborneTime;
         private float m_diagnosticTime;
 
@@ -31,6 +33,7 @@ namespace SCIEPort.Features.LandVehicles
             base.Load(valuesDictionary, idToEntityMap);
             m_body = Entity.FindComponent<ComponentBody>(throwOnError: true);
             m_mount = Entity.FindComponent<ComponentMount>(throwOnError: true);
+            m_seatManager = Entity.FindComponent<ComponentTwoSeatManager>(throwOnError: true);
 
             // Do not bypass ComponentBody collision. These values make its native
             // smooth-rise path the explicit ATV slope/step limit.
@@ -48,16 +51,18 @@ namespace SCIEPort.Features.LandVehicles
         /// <inheritdoc />
         public void Update(float dt)
         {
-            // No custom input authority is claimed for multiplayer in this phase.
-            if (CommonLib.WorkType != WorkType.Local)
+            // Offline uses the local player. In multiplayer only the host's local
+            // player is allowed to change vehicle velocity; remote clients never do.
+            if (CommonLib.WorkType == WorkType.Client)
             {
                 return;
             }
 
             float boundedDt = MathUtils.Clamp(dt, 0f, 0.1f);
-            ComponentRider rider = m_mount.Rider;
+            ComponentRider rider = m_seatManager.Driver;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            if (player == null || player.ComponentRider != rider)
+            if (player == null || player.ComponentRider != rider ||
+                (CommonLib.WorkType == WorkType.Server && !player.PlayerData.IsMainPlayer))
             {
                 RestoreParkingDrag();
                 return;

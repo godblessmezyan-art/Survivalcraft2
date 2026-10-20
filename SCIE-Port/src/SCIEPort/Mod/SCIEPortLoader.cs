@@ -1,6 +1,8 @@
 using Game;
 using Engine;
+using Game.NetWork;
 using SCIEPort.Features.KellyPlants;
+using SCIEPort.Features.Vehicles;
 
 namespace SCIEPort.Mod
 {
@@ -8,10 +10,17 @@ namespace SCIEPort.Mod
     public sealed class SCIEPortLoader : ModLoader
     {
         private bool m_kellyPlantsReady;
+        private static bool s_networkPackageRegistered;
 
         /// <inheritdoc />
         public override void __ModInitialize()
         {
+            if (!s_networkPackageRegistered)
+            {
+                PackageManager.RegisterPackage(new TwoSeatAssignmentPackage());
+                s_networkPackageRegistered = true;
+            }
+
             ModsManager.RegisterHook("BlocksInitalized", this);
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
         }

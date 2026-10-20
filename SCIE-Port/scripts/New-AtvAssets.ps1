@@ -9,15 +9,18 @@ $texturePath = Join-Path $ProjectRoot 'src\SCIEPort\Assets\Textures\ATV.png'
 $invariant = [Globalization.CultureInfo]::InvariantCulture
 
 $parts = @(
-    @{ Name = 'ATVBody';            Min = @(-0.58, 0.40, -0.82); Max = @( 0.58, 0.78,  0.75); U = 0.125 },
-    @{ Name = 'ATVNose';            Min = @(-0.50, 0.62, -1.02); Max = @( 0.50, 0.90, -0.55); U = 0.125 },
-    @{ Name = 'ATVSeat';            Min = @(-0.38, 0.79, -0.05); Max = @( 0.38, 0.98,  0.58); U = 0.625 },
-    @{ Name = 'ATVHandlebarStem';   Min = @(-0.08, 0.73, -0.72); Max = @( 0.08, 1.12, -0.62); U = 0.875 },
-    @{ Name = 'ATVHandlebar';       Min = @(-0.55, 1.06, -0.75); Max = @( 0.55, 1.14, -0.64); U = 0.875 },
-    @{ Name = 'ATVWheelFrontLeft';  Min = @(-0.82, 0.08, -0.86); Max = @(-0.58, 0.62, -0.34); U = 0.375 },
-    @{ Name = 'ATVWheelFrontRight'; Min = @( 0.58, 0.08, -0.86); Max = @( 0.82, 0.62, -0.34); U = 0.375 },
-    @{ Name = 'ATVWheelRearLeft';   Min = @(-0.82, 0.08,  0.31); Max = @(-0.58, 0.62,  0.83); U = 0.375 },
-    @{ Name = 'ATVWheelRearRight';  Min = @( 0.58, 0.08,  0.31); Max = @( 0.82, 0.62,  0.83); U = 0.375 }
+    @{ Name = 'BikeFrame';          Min = @(-0.18, 0.38, -0.82); Max = @( 0.18, 0.61,  0.82); U = 0.125 },
+    @{ Name = 'BikeEngine';         Min = @(-0.34, 0.34, -0.20); Max = @( 0.34, 0.76,  0.35); U = 0.875 },
+    @{ Name = 'BikeFuelTank';       Min = @(-0.33, 0.68, -0.66); Max = @( 0.33, 0.98, -0.12); U = 0.125 },
+    @{ Name = 'BikeDriverSeat';     Min = @(-0.29, 0.81, -0.14); Max = @( 0.29, 0.96,  0.34); U = 0.625 },
+    @{ Name = 'BikePassengerSeat';  Min = @(-0.30, 0.81,  0.34); Max = @( 0.30, 0.96,  0.88); U = 0.625 },
+    @{ Name = 'BikeFrontFork';      Min = @(-0.11, 0.30, -1.06); Max = @( 0.11, 0.96, -0.94); U = 0.875 },
+    @{ Name = 'BikeHandlebarStem';  Min = @(-0.07, 0.88, -0.98); Max = @( 0.07, 1.14, -0.88); U = 0.875 },
+    @{ Name = 'BikeHandlebar';      Min = @(-0.50, 1.08, -0.99); Max = @( 0.50, 1.16, -0.88); U = 0.875 },
+    @{ Name = 'BikeFrontWheel';     Min = @(-0.15, 0.06, -1.24); Max = @( 0.15, 0.64, -0.72); U = 0.375 },
+    @{ Name = 'BikeRearWheel';      Min = @(-0.17, 0.06,  0.70); Max = @( 0.17, 0.66,  1.24); U = 0.375 },
+    @{ Name = 'BikeFrontFender';    Min = @(-0.25, 0.62, -1.20); Max = @( 0.25, 0.72, -0.73); U = 0.125 },
+    @{ Name = 'BikeRearFender';     Min = @(-0.28, 0.68,  0.70); Max = @( 0.28, 0.78,  1.17); U = 0.125 }
 )
 
 function Format-Number([double]$value) {
@@ -49,7 +52,7 @@ $geometryInstances = ($parts | ForEach-Object {
 
 $document = @"
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Project-created clean-room low-poly ATV. Coordinates are baked Y_UP; all parts share one render bone for SCNET Android. -->
+<!-- Clean-room tandem dirt bike; baked Y_UP, one render bone. -->
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
   <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-AtvAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
   <library_geometries>
@@ -69,10 +72,10 @@ Add-Type -AssemblyName System.Drawing
 $bitmap = New-Object Drawing.Bitmap 32, 8, ([Drawing.Imaging.PixelFormat]::Format32bppArgb)
 try {
     $palette = @(
-        [Drawing.Color]::FromArgb(255, 84, 132, 49),
-        [Drawing.Color]::FromArgb(255, 32, 35, 31),
-        [Drawing.Color]::FromArgb(255, 62, 46, 34),
-        [Drawing.Color]::FromArgb(255, 145, 150, 142)
+        [Drawing.Color]::FromArgb(255, 202, 74, 28),
+        [Drawing.Color]::FromArgb(255, 27, 29, 28),
+        [Drawing.Color]::FromArgb(255, 50, 42, 35),
+        [Drawing.Color]::FromArgb(255, 154, 159, 156)
     )
     for ($x = 0; $x -lt $bitmap.Width; $x++) {
         $color = $palette[[Math]::Min([int]($x / 8), 3)]

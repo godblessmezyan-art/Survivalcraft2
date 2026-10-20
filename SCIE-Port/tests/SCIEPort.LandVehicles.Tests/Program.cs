@@ -1,5 +1,6 @@
 using System;
 using SCIEPort.Features.LandVehicles;
+using SCIEPort.Features.Vehicles;
 
 internal static class Program
 {
@@ -30,6 +31,15 @@ internal static class Program
         AssertEqual(0.55f, AtvDriveRules.GetSteeringScale(11f), "high-speed steering is damped");
         AssertEqual(11f, AtvDriveRules.MaximumForwardSpeed, "v0.2 does not hide drag issues by raising top speed");
         AssertEqual(1.05f, AtvDriveRules.MaximumSmoothRiseHeight, "one-cell native smooth-rise clearance");
+        Assert(TwoSeatRules.SelectSeat(false, false) == VehicleSeatRole.Driver, "first rider receives driver seat");
+        Assert(TwoSeatRules.SelectSeat(true, false) == VehicleSeatRole.Passenger, "second rider receives passenger seat");
+        Assert(TwoSeatRules.SelectSeat(true, true) == VehicleSeatRole.None, "third rider is rejected");
+        Assert(TwoSeatRules.SelectSeat(false, true) == VehicleSeatRole.Driver, "released driver seat can be occupied again");
+        Assert(TwoSeatRules.CanControlVehicle(VehicleSeatRole.Driver), "driver can control vehicle");
+        Assert(!TwoSeatRules.CanControlVehicle(VehicleSeatRole.Passenger), "passenger cannot control vehicle");
+        Assert(AtvSeatRules.DriverZ != AtvSeatRules.PassengerZ, "seat offsets are independent");
+        AssertEqual(-0.3f, AtvSeatRules.DriverZ, "driver longitudinal offset remains fixed");
+        AssertEqual(0.62f, AtvSeatRules.PassengerZ, "passenger longitudinal offset remains fixed");
         Console.WriteLine("ATV drive rule tests passed: " + s_assertions);
         return 0;
     }
