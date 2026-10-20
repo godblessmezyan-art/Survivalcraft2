@@ -22,6 +22,7 @@ namespace BuilderAssistant.Mod
             ModsManager.RegisterHook("BlocksInitalized", this);
             string modVersion = typeof(BuilderAssistantModLoader).Assembly.GetName().Version.ToString();
             Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v" + modVersion + "; speedboat behavior unchanged, world-edit builds run in single player or as the multiplayer host; remote clients are refused).");
+            Log.Information("[BuilderAssistant] Multiplayer note: SCNET's server-side ConnectionRequestPackage.AcceptAclient (x25.01.17) requires every joining client's announced mod list to equal this host's ModsManager.ModList (same count, same PackageName+Version per entry, same ResourcesMd5 except for the survivalcraft built-in entry). Game.ModInfo has NO server-only / client-optional flag, so Builder Assistant installed only on the host will make non-mod clients refuse the join with '客户端没有安装服务器Mod[Builder Assistant 建筑助手:<version>]'. Either let the client use the in-game 'connect to mod server' flow (Game.NetWork.ModFileService.ModFileClient.DownloadModAndJoinServer, availability on Android 7723 待验证), or install this exact .netmod on every participant. Generated buildings still use ONLY vanilla blocks; the tool blocks 900-904 are hand-held items and are never written into the world. This Mod does not modify ConnectionRequestPackage, ResourcesMd5, ModsManager.ModList, or any network handshake surface.");
         }
 
         /// <summary>

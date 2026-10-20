@@ -510,3 +510,174 @@ ABI 取证（非猜测）：`Game.NetWork.WorkType` 经对 `D:\SCNET\Survivalcra
 **本轮明确不做（及原因）：** Phase-2 透明实体幽灵投影——依赖未验证的 Android 渲染/高亮 API；原生 `Dialog`/`ListSelectionDialog`/滑块式选择器——`public-in-reference ≠ Mod 沙箱可安全挂载`，须先真机取证再上，现以 toast+双手势安全回退；独立「取消/还原」按钮——触屏无稳定原生按钮挂载点，改以天空点击回退导航 + 902 撤销覆盖世界级取消；`ComponentGui.DisplayLargeMessage` 大图预览——未真机验证。
 
 **下一步建议：** 真机取证原生 UI 挂载点与 904 索引后，把当前 toast 双手势升级为触屏优先的选择/参数对话框（`ListSelectionDialog` 或自建 widget），并补 Phase-2 轮廓/透明投影渲染；再把工作台与蓝图库/剪贴板导入统一到一个「生成或导入 → 预览 → 落成」的单一触屏流程里。
+
+## v0.11.1 联机连接拒绝根因取证（纯文档 + 加载器多一行说明，不动校验链）
+
+### 用户报的错
+
+房主装 `BuilderAssistant.netmod`，普通客户端未装该 Mod，加入时客户端弹：
+
+```
+[连接拒绝]资源包FastDebug校验不通过
+[客户端]客户端没有安装服务器Mod[Builder Assistant 建筑助手:0.10.1]
+```
+
+### 反编译取证（`ilspycmd --disable-updatecheck -t <Type> D:\SCNET\Survivalcraft.exe`，x25.01.17 Windows 发布包）
+
+**真实拒绝点在服务端**，代码路径完全在 SCNET 游戏本体里、与 Builder Assistant 无关：
+
+- `Game.NetWork.Packages.ConnectionRequestPackage.Handle(projectNet, netNode, isServer)`（服务端处理加入请求）→ `AcceptAclient(token, netNode, ConnectionError, ...)`。
+- `AcceptAclient` 里做**两组双向 for 循环**（源码引用：`Survivalcraft.exe::Game.NetWork.Packages.ConnectionRequestPackage.cs` 反编译行 ~151–~171）：
+  1. `foreach (ModEntity info in modInfos)`（客户端上报的 mod 列表）：`modList.Find(x => x.Equals(info))` 找不到就 append `"服务器没有安装客户端Mod[<Name>:<Version>]"`；找到了但 `modEntity.ResourcesMd5 != info.ResourcesMd5 && info.modInfo.PackageName != "survivalcraft"` 就 append `"资源包<Name>校验不通过"` + `[服务端]<md5>` + `[客户端]<md5>`。
+  2. `foreach (ModEntity item in modList)`（服务端 `ModsManager.ModList`）：客户端上报 `modInfos` 里找不到就 append `"客户端没有安装服务器Mod[<Name>:<Version>]"`。
+- 后面还有一道数量硬闸：`else if (modInfos.Count != modList.Count)` → `"客户端Mod数量和服务器Mod数量不一致"` + 逐条 `[服务器]n.Name:Version` + `[客户端]n.Name:Version` dump。
+- 累积错非空即 `netNode.SendWriterFromPackage(new ConnectionRejectPackage(ConnectionError.ToString()), ...)`，服务端 `Log.Information("Received connection request from <ip>, rejected -- <reasons>")`，客户端把整个 `ConnectionError` 显示出来——用户看到的两行错误正是这段代码里两条 `AppendLine` 的**逐字串**。
+
+**Mod 元数据面**（`ilspycmd -t Game.ModInfo D:\SCNET\Survivalcraft.exe`）：
+
+```csharp
+public class ModInfo {
+    public string Name;
+    public string Version;
+    public string ApiVersion;
+    public string Description;
+    public string ScVersion;
+    public string Link;
+    public string Author;
+    public string PackageName;
+    public List<string> Dependencies;
+}
+```
+
+只有这九个字段。**没有** `ServerOnly` / `ClientOptional` / `Advertise=false` / `SyncMode` 之类可以让一个 mod 只对服务端加载、对客户端隐藏的标志位。`ModEntity.IsSystemMod` 是 virtual 属性，但 `AcceptAclient` 里根本没读它——即便把它 override 为 `true`，Mod 仍会进 `ModsManager.ModList`、仍会被服务端计入 `modInfos.Count` 与逐条比对。结论：**SCNET x25.01.17 的 Mod 加载/联机会话协议不存在"服务端专用 Mod"这个概念**，与 Builder Assistant 的实现无关，也不是本 Mod 可以"绕过"的（AGENTS.md 明确禁止伪造 mod 列表 / 修改校验结果 / 跳过资源完整性验证）。
+
+**Mod 相等定义**（`Game.ModEntity.Equals`）：
+
+```csharp
+public override bool Equals(object obj) {
+    if (obj is ModEntity modEntity) {
+        if (modEntity.modInfo.PackageName == modInfo.PackageName)
+            return modEntity.modInfo.Version == modInfo.Version;
+        return false;
+    }
+    return false;
+}
+```
+
+即 `(PackageName, Version)` 二元组。**同 Mod 名不同版本 → 视为两个不同 Mod**；两条独立错误（一条 `客户端没有安装服务器Mod[BA:x.y.z]`、另一条 `服务器没有安装客户端Mod[BA:x.y.z]`）在版本漂移时可能同时出现。
+
+**资源包哈希**（`Game.ModEntity.ResourcesMd5` + `ConnectionRequestPackage.AcceptAclient`）：同 `PackageName+Version` 情况下若 `ResourcesMd5` 不等且非 `survivalcraft` 内置项，报 `资源包<Name>校验不通过`。
+
+### 用户看到 `资源包FastDebug校验不通过` 的独立成因
+
+FastDebug 是 SCNET 内置的**基础设施 Mod 实体**（`Game.FastDebugModEntity`，`ModInfo.PackageName = "com.fastdebug"`）。它在 `ModsManager` 初始化时**无条件**被塞进 `ModListAll`。`Game.NetWork.ModFileService.Utils.GetModInfoDatas()` 第一行就是：
+
+```csharp
+foreach (var fModFile in ((FastDebugModEntity)modList.Find(px => px.modInfo.PackageName == "com.fastdebug")).FModFiles) { ... }
+```
+
+即 FastDebug 承担「枚举所有 `.netmod` 文件、维护 `FModFiles` 字典」的**目录索引**角色。`AcceptAclient` 会把 FastDebug 视作**一个普通 mod** 参与 `modInfos.Count` / `PackageName+Version` / `ResourcesMd5` 三重比对。用户看到 `资源包FastDebug校验不通过` 意味着：**两台设备的 FastDebug `.netmod` 文件本身的 `ResourcesMd5` 不等**。这**与 Builder Assistant 完全无关**，最常见的两个原因：
+
+1. 两台设备来自**不同 7723 渠道包版本**（例如一台 x25.01.17、另一台是更新的 7723 重打包），或一方是官方 APK、一方是 7723 重打包，FastDebug 的 Assets 与内置 DLL 会不同。
+2. 其中一台 FastDebug 文件被改过、部分解压失败或被其他 Mod 覆盖（FastDebug 承担 `.netmod` 文件索引，被污染后其自身哈希也会漂）。
+
+**修复路径**（属于**用户端**运维，不由 Mod 代码负责）：两台设备必须从**同一渠道包 + 同一版本**重装 SCNET（含 FastDebug），保证两端 FastDebug `.netmod` 文件**字节级相同**。Builder Assistant 依 AGENTS.md 铁律**不会**、也**不能**通过改自己或改 FastDebug 让这条校验"看起来通过"。
+
+### 游戏自带的"客户端自动下载 Mod"通路（`Game.NetWork.ModFileService`）
+
+x25.01.17 **确实有**原生 mod 分发能力：
+
+```csharp
+namespace Game.NetWork.ModFileService;
+
+public static class ModFileServer {
+    public static HttpListener listener = new HttpListener();
+    public static List<ModInfoData> ServerModInfoList = Utils.GetModInfoDatas();
+    public static string ServerModInfoData = JsonConvert.SerializeObject(ServerModInfoList);
+    public static void StartServer(string address) { /* 每个 .netmod 暴露 /{modMd5}/ */ }
+}
+
+public static class ModFileClient {
+    public static void DownloadModAndJoinServer(string address, IPEndPoint ep, string pwd) { ... }
+    public static async void StartClient(string address, IPEndPoint ep, string pwd) {
+        // GET address → 得到 List<ModInfoData>
+        // Utils.ModInfoListsHaveSameMd5s(本地, 远端) 若 true 直接切 GameLoading 屏连接
+        // 否则 Utils.CacheAllModFile() → 对每个不匹配的 mod CopyCachedMod 命中缓存 或 DownloadMod / MultithreadDownloadMod
+        // 下载完成后 SettingsManager.WillEnterServer / WillEnterServerPwd 保存、GameRestarter.RestartGame() 让新 mod 集在下次启动加载
+    }
+}
+
+public static class Utils {
+    public static string ModFileDirectory = Storage.GetSystemPath(ModsManager.ModsPath);
+    public static string CacheModDirectory = Storage.GetSystemPath("app:/ModsCache");
+    public static bool ModInfoListsHaveSameMd5s(List<ModInfoData> a, List<ModInfoData> b) {
+        if (a.Count != b.Count) return false;
+        // 按 modMd5 排序后逐条比对
+    }
+}
+```
+
+`ModInfoData` 字段：`modName`（文件名，形如 `BuilderAssistant.netmod`）、`modMd5`（`GetModMd5(FileInfo)` = 读全文件后 `ModsManager.GetMd5(bytes)`）、`modSize`、`modUrl`、`downloadThread`（多线分片下载）。
+
+**含义**：如果房主侧 `ModFileServer.StartServer(address)` 已被 SCNET 启动、监听端口可达，客户端**从服务器列表点加入**（走 `ModFileClient.DownloadModAndJoinServer`）会**自动**把 `BuilderAssistant.netmod` 拉进自己的 `NetMods/`，然后重启游戏再连上来——所有参与方最终都会加载同一个 Mod，`AcceptAclient` 通过。这就是「房主装、其他人不预装也能加入」的**唯一游戏内合规路径**。
+
+**Android 7723 待验证清单**（本 Mod 无法从桌面证明）：
+
+1. 7723 Android 客户端在房主开房时**是否**真的启动了 `ModFileServer.HttpListener`？绑定的地址是内网 IP + 端口还是 `127.0.0.1`？端口是否被 Android 系统或厂商 ROM 防火墙拦截？
+2. 客户端从服务器列表点加入**是否**走的是 `ModFileClient.DownloadModAndJoinServer`，还是直接连 `IPEndPoint` 触发 `ConnectionRequestPackage`？（前者是完整 mod 分发流程、后者会直接被 `AcceptAclient` 拒。）UI 上这两个入口是否合并、是否可关？
+3. `Utils.ModFileDirectory = Storage.GetSystemPath(ModsManager.ModsPath)` 在 Android scoped storage 下**能否**被应用自己写入（非 root）？`File.Copy` / `FileStream(FileMode.Create)` 是否会因权限或只读挂载失败？
+4. `GameRestarter.RestartGame()` 在 7723 上能否真正重启（还是仅关闭 Activity 需玩家手动点开）？
+5. `Utils.GetModInfoDatas` 依赖 `ModList.Find(px => px.modInfo.PackageName == "com.fastdebug")` 返回非 null——若客户端或房主端 FastDebug 未加载或损坏，`modList.Find` 返回 null、`FModFiles` 抛 NRE，整段 mod 分发在"获取服务器 mod 列表"阶段就失败。
+6. `SettingsManager.WillEnterServer / WillEnterServerPwd` 保存 + 重启后**能否**自动重连（Android 进程被杀可能丢 Settings.xml）。
+
+**若上述任一条不通过**，「房主独装」这条路径在 7723 上就走不通，用户必须回到方案 2：**所有参与方每台设备都手动装同一 SHA-256 的 `BuilderAssistant.netmod`**。因本 Mod 落建全是原版方块（离线 `TestBuildEmitsOnlyVanillaBlocks` 已证明），所有装了 Mod 的玩家看到的建筑完全一致、方块映射不会漂移，只是**每个玩家物品栏里都会多出 900/901/902/903/904**（这是 SCNET 架构决定的，不可回避）。
+
+### 房主独装在当前版本是否可行（结论）
+
+**不支持。** 依据：
+
+| 依据 | 结论 | 状态 |
+| --- | --- | --- |
+| `Game.ModInfo` 无 `ServerOnly` / `ClientOptional` 字段 | 游戏协议层根本没这个概念 | **已确认（反编译）** |
+| `ConnectionRequestPackage.AcceptAclient` 双向 for 循环、任一方向缺失即拒 | 服务端硬拒不对称 | **已确认（反编译）** |
+| `ModEntity.IsSystemMod` 存在但校验不使用 | 即便声称是系统 Mod 也参与比对 | **已确认（反编译）** |
+| 游戏**有**原生 mod 分发（`ModFileServer`/`ModFileClient.DownloadModAndJoinServer`/`GameRestarter.RestartGame`） | 「客户端预装」可由游戏代劳，但仍**要求**两端加载同一 Mod 集 | **已确认（反编译）** |
+| Android 7723 上 HttpListener 可绑定 / `NetMods/` 非 root 可写 / 服务器列表 UI 触发的是下载路径 | 决定独装是否真的可行 | **待验证**（桌面无从判定） |
+
+按 AGENTS.md："没有证据时不得假定客户端修改会同步"、"不得通过伪造 Mod 列表、修改安全校验结果或跳过资源完整性验证实现连接"——**Builder Assistant 不会**（也无法）绕过这条硬约束。
+
+### 本轮实际修改（v0.11.1，纯文档 + 一行日志）
+
+- `src/BuilderAssistant/Mod/BuilderAssistantModLoader.cs`：`__ModInitialize` 里**追加**一条 `Log.Information`，把上述结论原样打印到 `Game.log`（不改任何既有行为，不加任何网络侧读取，不访问 `ModsManager.ModList`——避免使用未验证的 Mod 沙箱可访问性）。
+- `src/BuilderAssistant/modinfo.json`：Version `0.11.0 → 0.11.1`；`Description` **前置**一段 v0.11.1 取证段（含类/方法/字段名、错误消息模板、两条受支持路径、FastDebug 正交说明）。旧内容一律保留、纯追加。
+- `src/BuilderAssistant/BuilderAssistant.csproj`：`Version/AssemblyVersion/FileVersion` 三项 `0.11.0* → 0.11.1*`。
+- `README.md`：状态段与「当前功能」「尚未完成 / 待验证」两处补 v0.11.1 说明。
+- `docs/COMPATIBILITY.md`：本节（v0.11.1 取证）。
+- **未修改**：`WorldEditRuntime`、`TerrainAuthority`、`BuildPlanner`、`BuildTask`、`TransactionHistory`、`BuildingWorkbench`、`WorkbenchSession`、`WorkbenchToolBlock`、`SubsystemWorkbenchToolBlockBehavior`、`BuildingSpec/Composer/Validator`、`BlueprintJson`、`BlockOrientation`、`VanillaBlockPalette`、`Building.xdb`、`BuilderTools.csv`、任何 `.cs` 的既有逻辑行、任何 GUID、任何 CSV 字段、SCIE-Port、快艇、ATV、蓝图 schema、1024/32/64 限额、`TreatWarningsAsErrors`/`GenerateDocumentationFile` 约束。**未新增依赖、未新增方块、未新增子系统模板。**
+
+### 6 场景真机验证协议（用可丢弃的新建世界 + 备份，禁止直接改主存档）
+
+| 场景 | 主机 | 客户端 | 预期 | 状态 |
+| --- | --- | --- | --- | --- |
+| ① | 不装 | 不装 | 正常进；无 900–904；无自动建造 | 待验证 |
+| ② | 装 v0.11.1（`modinfo Version=0.11.1`） | 装 v0.11.1 同 SHA-256 | 正常进；主机 `904` 落建 → 客户端能看到落成；`902` 撤销能同步 | 待验证 |
+| ③ | 装 v0.11.1 | **不装** | 客户端拒绝 `客户端没有安装服务器Mod[Builder Assistant 建筑助手:0.11.1]` + `客户端Mod数量和服务器Mod数量不一致`；若同时报 `资源包FastDebug校验不通过`，说明两台设备 7723 渠道包不同，先重装同渠道 | 待验证 |
+| ④ | **不装** | 装 v0.11.1 | 服务端拒绝 `服务器没有安装客户端Mod[Builder Assistant 建筑助手:0.11.1]` | 待验证 |
+| ⑤ | 装 v0.11.1、走房主独装 + 期望自动下载 | 不预装，加入时走游戏服务器列表 UI | 若路径正确：客户端 `ModFileClient.DownloadModAndJoinServer` 显示 `正在连接至模组服务器 / 正在下载模组(1/N) xx.xx%`，完成后 `GameRestarter.RestartGame`，重启后自动重连、进入世界，落成同步；若失败：直接落回场景③。此路径**是否**在 Android 7723 上真能跑通是决定独装方案可行性的**关键待验证项** | **待验证** |
+| ⑥ | 装 v0.11.1 | 装 v0.11.1 | 房主 904 建两层住宅 → 客户端**退出**、**重新加入** → 建筑仍在（`SubsystemTerrain` 从房主存档/区块流送读回） | 待验证 |
+
+每个场景请回传：主机 `Game.log` 与客户端 `Game.log` 首屏（尤其 `Received connection request from <ip>, rejected -- <reasons>` 或 `accepted` 那行），以及若客户端报 `资源包FastDebug校验不通过` 时**两端** FastDebug 文件的 SHA-256（`Get-FileHash` / `sha256sum`）。
+
+### 已跑验证（本机 Windows，桌面）
+
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true`+`GenerateDocumentationFile=true` 下加载器追加的那一行 `Log.Information` 只是字符串常量、无新引用；编译通过即 ABI 无变化）。
+- 离线逻辑测试仍 **379/379**（本轮**未新增/删除**任何断言；纯文档 + 一行日志）。
+- XDB 合并安全守卫仍 **7/7**（本轮**未改**任何 `.xdb`，未新增 GUID；`ea25b78e` 复用缺陷未回退）。
+- `.netmod` 重打包，`modinfo.json Version=0.11.1`、`BuilderAssistant.dll` 反射 `AssemblyVersion=0.11.1.0` / `FileVersion=0.11.1.0`；随包 `Building.xdb` 与 `BuilderTools.csv` 与 v0.11.0 逐字节一致（本轮未改）。
+- 未新增任何对 `IPackage` / `PackageManager` / `ConnectionRequestPackage` / `ConnectionRejectPackage` / `ModEntity` / `ModsManager.ModList` / `ModInfo` / `ResourcesMd5` / `ModFileService.*` 的引用或反射调用（`grep -rn --include='*.cs'` 命中 0），符合 AGENTS.md：本 Mod 完全不参与、也不试图影响网络握手。
+
+### 尚未确认 / 未做
+
+- Android 7723 场景⑤（自动下载通路）是否可用——决定「房主独装」是否有合规路径。桌面无从判定，须两台真机。
+- FastDebug 在两台设备的 SHA-256 差异来源（是否 7723 渠道包版本 / 是否被其他 Mod 污染）。用户端排查。
+- 是否要给 Mod 加一个「房主开房时按 Mod 名清单提示『每个玩家都要装这 N 个 mod』」的 UI 按钮——**不支持**：本 Mod 无法在 Android Mod 沙箱下访问 `ModsManager.ModList`（未取证），且这属于纯信息展示，`Log.Information` 已足够；若真机确认 Mod 沙箱可读再考虑做成 904 上的一步提示。
