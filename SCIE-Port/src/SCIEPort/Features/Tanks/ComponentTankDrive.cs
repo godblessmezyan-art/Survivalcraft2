@@ -254,16 +254,25 @@ namespace SCIEPort.Features.Tanks
             ShellState state;
             if (!m_shells.TryGetValue(projectile, out state)) return;
             m_shells.Remove(projectile);
-            float distanceSquared = Vector3.DistanceSquared(state.StartPosition, projectile.Position);
-            if (!TankRules.IsShellArmed(distanceSquared))
+            float travelDistanceSquared = Vector3.DistanceSquared(state.StartPosition, projectile.Position);
+            int explosionX = Terrain.ToCell(projectile.Position.X);
+            int explosionY = Terrain.ToCell(projectile.Position.Y);
+            int explosionZ = Terrain.ToCell(projectile.Position.Z);
+            Vector3 explosionCenter = new Vector3(explosionX + .5f, explosionY + .5f, explosionZ + .5f);
+            BoundingBox tankBox = m_body.BoundingBox;
+            if (!TankRules.CanShellExplode(
+                travelDistanceSquared,
+                explosionCenter.X, explosionCenter.Y, explosionCenter.Z,
+                tankBox.Min.X, tankBox.Min.Y, tankBox.Min.Z,
+                tankBox.Max.X, tankBox.Max.Y, tankBox.Max.Z))
             {
-                Log.Warning("SCIE-Port Tank: suppressed an unarmed shell explosion near the firing vehicle.");
+                Log.Warning("SCIE-Port Tank: suppressed a shell explosion inside the firing vehicle blast-safety envelope.");
                 return;
             }
             m_explosions.AddExplosion(
-                Terrain.ToCell(projectile.Position.X),
-                Terrain.ToCell(projectile.Position.Y),
-                Terrain.ToCell(projectile.Position.Z),
+                explosionX,
+                explosionY,
+                explosionZ,
                 TankRules.ShellExplosionPressure,
                 false,
                 false,

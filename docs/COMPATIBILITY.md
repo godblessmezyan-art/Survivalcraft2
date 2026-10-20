@@ -166,6 +166,14 @@ x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Me
 已确认；2026-10-20 用户在 Android 7723 确认 0.8.3 测试通过，物品栏与世界模型均可见。
 此实测只确认渲染修复，不自动确认驾驶手感、一格越障、保存重载或多人同步。
 
+### SCIE-Port v0.12.1 坦克点击自爆二次修复
+
+用户 Android 7723 反馈含 v0.3.1 炮口修复的后续移植包仍会在点击开炮时自爆。源码复核确认：
+原 1.5 格引信只量炮弹从炮口起点的行程；弹速 42 格/秒时可在一个较长物理步内解锁，但爆点仍在
+压力 18 能覆盖大型车体的近地/近墙区域。v0.12.1 保留车体 AABB 外炮口与创建后恢复 owner，另要求
+实际整数爆炸格中心距坦克当前 AABB 至少 8 格，包络内一律不调用 `AddExplosion`。新增纯规则测试、
+`D:\SC` 固定程序集环境检查、net472 Release 与 `.netmod` 包校验已通过；Android 修复结果仍为待验证。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。
@@ -191,7 +199,7 @@ x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Me
 | 方块编号 901/902（建造/撤销工具） | 原版 0–263 空闲；与快艇 900、SCIE-Port 编号不冲突（打包脚本校验类名唯一） | 已确认（静态/打包） |
 | 数据库合并安全 `Building.xdb` 复用原版 `BlockBehaviors`(00c97f0f…) 与 `Project`(85023bf8…) GUID | 避免 SCIE-Port 曾遇到的“同名不同 GUID 生成 rogue 重复文件夹”合并异常；打包脚本强制校验 | 已确认（静态/打包） |
 
-安全逻辑（默认不覆盖非空气、单事务 ≤2756（2026-10-20 由 1024 上调，见 v0.13.1）、单批 ≤32、坐标与高度上限、区块未加载即失败、写入前抓快照、失败/取消回滚、撤销不覆盖玩家后续改动、蓝图重建确定性、旋转/镜像）由 `tests/BuilderAssistant.Tests` 以纯 C# 离线验证。这些断言不依赖游戏程序集。
+安全逻辑（默认不覆盖非空气、单事务 ≤10000（2026-10-20 由 2756 上调，历史 1024→2756→10000，见 v0.13.1/v0.14.0）、单批 ≤32、坐标与高度上限、区块未加载即失败、写入前抓快照、失败/取消回滚、撤销不覆盖玩家后续改动、蓝图重建确定性、旋转/镜像）由 `tests/BuilderAssistant.Tests` 以纯 C# 离线验证。这些断言不依赖游戏程序集。
 
 尚未确认（Android 实机）：
 
@@ -878,3 +886,47 @@ public static class Utils {
 | 真机一次导入 >1024 且 ≤2756 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
 | 新上限下真机存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
 | 联机房主权威下更大单事务同步 | 待验证 |
+
+
+## Builder Assistant v0.14.0 — 再次上调单事务方块上限 2756 → 10000
+
+本轮由项目所有者 2026-10-20 明确指令（「解除限制到 1 万个方块」），只做**一处**行为改动：把 `Core/Safety/BuildSafetyLimits.MaxBlocksPerOperation` 由 `2756` 再上调为 `10000`，以放宽单次导入/建造事务的方块数量闸门。
+
+### 未改动（逐条核对 AGENTS 铁律）
+
+| 项 | 状态 |
+| --- | --- |
+| `MaxBlocksPerBatch`（每帧/每批写入）= 32 | 不变 ✔（10000 格分 ≈313 批、每批 32 格逐帧写入，**绝不**单帧写万格，符合 AGENTS「分批处理、禁止单帧写入数万方块」） |
+| `MaxSelectionAxisLength`（任一轴上限）= 64 | 不变 ✔（空间范围仍受限，10000 只是聚合数量闸） |
+| `MaxIdleAdvanceCallsDuringBuild`（有界停等）= 240 | 不变 ✔（语义是「连续**零进度**帧」计数，任何一次真实写入即归零，故上调事务上限**不会**拉长它，也不会误判大建筑超时） |
+| `allowOverride`（默认不覆盖非空气） | 恒 `false` ✔ |
+| 计划→校验→分批执行→记录撤销管线 | 一字未改 ✔ |
+| 蓝图 `schemaVersion=2`、坐标/高度上限、撤销/延迟回滚、权限闸 | 不变 ✔ |
+| 工具块 900–904 永不落进世界 | 不变 ✔ |
+| 快艇 / ATV / SCIE-Port / 参数化引擎 / 树屋生成器 | 未触碰 ✔ |
+| `.xdb` / `.csv` / 任何 GUID | 未改动、无新增（不引入新方块/子系统） ✔ |
+
+### 树屋可单层导入（不再被迫分阶段）
+
+默认大型树屋 `2765` 方块现已**落在单事务 10000 上限之内**，因此可作为一份扁平蓝图 JSON 直接导入。出厂默认的 `TreehouseAssembly` 逐阶段（9 段）装配路径**保持不变且仍可用**——阶段切分是为真机分步可读/逐阶段撤销，而非受限于上限。每轴 ≤64 约束仍在。
+
+### 本轮实际修改
+
+- `Core/Safety/BuildSafetyLimits.cs`：`MaxBlocksPerOperation` `2756 → 10000`，补注释记录 1024→2756→10000 由来与仍受 batch/axis 约束。
+- `tests/BuilderAssistant.Tests/Program.cs`：把 `TestPlanRejectsCountCap` 与 `TestBlueprintJsonRejectsOverCap` 两个越界夹具改为**按 `MaxBlocksPerOperation` 动态计算**刚好超一点的结构，未来再调上限无需改测试。
+- `docs/blueprint-block-reference.md`：cells 上限、安全限制表、机器可读 JSON `maxCells` 三处 `2756 → 10000`，树屋注释改为「2765 现可单层导入」；`modVersion`/页脚 → `0.14.0`。
+- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.13.1 → 0.14.0`；modinfo 描述追加 v0.14.0 段并把 v0.13.1 降为历史。
+
+### 已跑验证（本机 Windows，桌面）
+
+- 离线逻辑测试 **444/444** 全通过（动态夹具在新上限下仍正确触发计数/轴两类拒绝）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SC`）Release **0 错误 0 警告**。
+- `.netmod` 重打包 SHA-256 `046AC0C803AE962110DE8DA655DD96ABB7C9DEC48D4AE44309EBE8D52FDCC0FB`（2,378,314 字节，取代 v0.13.1 的 `237D9480…`）；解压内嵌 `BuilderAssistant.dll` 反射 `AssemblyVersion=0.14.0.0` / `FileVersion=0.14.0.0` / `ProductVersion=0.14.0+4b2ad3e…`，`modinfo.json Version=0.14.0`，无任何 `0.13.1` 残留。方块类名唯一性守卫输出 `BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock, WorkbenchToolBlock`；XDB 合并安全守卫通过。
+
+### 待验证（Android 7723 真机，实测前不得标兼容/已确认）
+
+| 项 | 状态 |
+| --- | --- |
+| 真机一次导入 >2756 且 ≤10000 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
+| 10000 格单事务下存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
+| 联机房主权威下单事务 10000 格原版方块同步到未装 Mod 客户端 | 待验证 |

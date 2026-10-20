@@ -118,6 +118,15 @@ the shared seat manager. Ground propulsion is independent from boat physics and
 uses native gravity, collision and 1.05-cell smooth rise. Android appearance,
 driving, save/reload and host-driver/client-passenger behavior remain pending.
 
+Version 0.12.1 fixes the remaining tank self-explosion path found by Android
+testing. The old 1.5-cell fuse only measured travel from the muzzle, so a fast
+shell could arm in one frame and detonate beside the large vehicle after a
+near-ground or near-wall tap. Explosion eligibility now also measures the
+rounded explosion-cell center against the tank's current collision AABB and
+suppresses every blast within an 8-cell safety envelope. Android confirmation
+of the fix remains pending; the 0.12.1 Release build and package guards pass
+against the fixed x25.01.17 Windows assemblies.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.
