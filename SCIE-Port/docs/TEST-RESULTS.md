@@ -256,3 +256,25 @@ THIRD-PARTY-NOTICES.md
 - Android 7723 单人：待验证。新模型显示、驾驶、一格越障、上下车及保存重载尚未实测。
 - Android 多人：待验证。目标仅为主机驾驶员 + 普通客户端乘客；双人移动、自由观察、上下车、第三人拒绝、死亡/断线及重载需双机测试。
 - 普通客户端驾驶：不支持。原生骑乘 `BodyUpdate` 会同步父车辆状态，必须另做服务器输入、预测和纠偏协议后才能安全开放。
+
+## 0.11.0 双人快艇（2026-10-20）
+
+- 目标环境检查：已确认。`scripts/Test-Environment.ps1` 对 `E:\SCNET\SCNETx25.01.17` 验证
+  `Survivalcraft.exe` 2.4.0.0、API 1.42、SC 2.4.10.6、net472 及所需载具 ABI。
+- Release 编译：已确认。`scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+  -Configuration Release` 完成，0 warning、0 error。
+- 规则测试：已确认。Kelly 11 项、ATV 32 项、快艇 16 项及坦克规则全部通过。快艇覆盖模型
+  边界、座位间距、上下船位置、水面门控、推进限速和首人驾驶/次人乘客/第三人拒绝。
+- 数据库：已确认（静态）。四份 XDB 验证通过；快艇保留 ID 999、实体名/GUID与唯一原生 Mount，
+  含共享双座管理器且不含会接受所有骑手输入的原生 Boat。
+- 模型：已确认（静态/目标导入）。Y_UP、`Cylinder`、98 顶点和 2.3×1.75×5.6 边界守卫通过；
+  目标 `Engine.Media.ModelData.Load` 实际导入为 1 bone/1 mesh。派生模型 SHA-256
+  `E399E94FCEE8ABBEB8BCEFA04369E8A57C8ED31B72A6A5A9B38C3D71D5B1EBCF`。
+- `.netmod`：已确认（打包级）。`artifacts/SCIEPort.netmod`，382,932 字节，SHA-256
+  `25442AD084930955B6E8458EE5DD7860066D71A94C53C7D1A723C6E9A73EB852`，内置版本 0.11.0；
+  包清单、PNG 限制和禁止游戏 DLL 规则通过。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723 单人：待验证。生成、显示、驾驶、两座上下车、沉没及保存重载尚未实测。
+- Android 双人联机：待验证。支持目标为主机驾驶员 + 普通客户端乘客；普通客户端驾驶员不支持。
+
+详细设计和十项 Android 验收步骤见 `docs/SPEEDBOAT-V0.4-DUAL-SEAT-AUDIT.md`。

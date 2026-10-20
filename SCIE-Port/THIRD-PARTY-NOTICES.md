@@ -30,6 +30,10 @@
   authorized Z-up source geometry into SCNET's Y-up coordinate convention.
   The packaged `Gear`, `Wheel`, `GearMould`, `WheelMould`, and `Piston`
   models are likewise Y-up derivatives; `Cylinder.dae` was already Y-up.
+- The packaged `SteamBoat.dae` additionally lifts the authorized geometry so its
+  lowest Y coordinate is zero; it keeps the original scale, `Cylinder` node and
+  98 vertices. Packaged derivative SHA-256:
+  `E399E94FCEE8ABBEB8BCEFA04369E8A57C8ED31B72A6A5A9B38C3D71D5B1EBCF`.
 - Authorization basis: the user commissioning this port stated on 2026-10-17
   that explicit permission to use and redistribute the project assets has been
   obtained, and requested migration of further SCIE furniture resources on

@@ -46,6 +46,9 @@ if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" 
 $atvTests = Join-Path $projectRoot 'tests\SCIEPort.LandVehicles.Tests\SCIEPort.LandVehicles.Tests.csproj'
 & $dotnetPath run --project $atvTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "ATV drive rule tests failed: $LASTEXITCODE" }
+$watercraftTests = Join-Path $projectRoot 'tests\SCIEPort.Watercraft.Tests\SCIEPort.Watercraft.Tests.csproj'
+& $dotnetPath run --project $watercraftTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
 $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
 & $dotnetPath run --project $tankTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
@@ -220,6 +223,33 @@ try {
             throw "Watercraft database references missing PNG Texture2D resource: $textureEntry"
         }
     }
+    $steamBoatEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortSteamBoat']")
+    if ($null -eq $steamBoatEntity) { throw 'Watercraft database is missing SCIEPortSteamBoat.' }
+    foreach ($requiredSteamBoatComponent in @('TwoSeatManager', 'SteamBoatDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body', 'Damage')) {
+        if ($null -eq $steamBoatEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$requiredSteamBoatComponent']")) {
+            throw "Speedboat entity is missing component: $requiredSteamBoatComponent"
+        }
+    }
+    if ($null -ne $steamBoatEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Boat']")) {
+        throw 'Dual-seat speedboat must not include native ComponentBoat because passenger input would overwrite driver input.'
+    }
+    if (@($steamBoatEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) {
+        throw 'Speedboat must keep exactly one native Mount; passenger role is managed by association.'
+    }
+    $steamBoatSeats = $steamBoatEntity.SelectSingleNode("./MemberComponentTemplate[@Name='TwoSeatManager']")
+    $steamBoatMount = $steamBoatEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']")
+    $steamBoatBody = $steamBoatEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']")
+    if ($steamBoatSeats.SelectSingleNode("./Parameter[@Name='DriverOffset']").Value -ne '-0.42,1,-0.45' -or
+        $steamBoatSeats.SelectSingleNode("./Parameter[@Name='PassengerOffset']").Value -ne '0.42,1,-0.45') {
+        throw 'Speedboat seat offsets differ from the audited side-by-side layout.'
+    }
+    if ($steamBoatMount.SelectSingleNode("./Parameter[@Name='MountOffset']").Value -ne '-0.42,1,-0.45' -or
+        $steamBoatMount.SelectSingleNode("./Parameter[@Name='DismountOffset']").Value -ne '1.65,0.5,0') {
+        throw 'Speedboat mount or safe side-dismount offset differs from the audited layout.'
+    }
+    if ($steamBoatBody.SelectSingleNode("./Parameter[@Name='BoxSize']").Value -ne '2.3,1.75,5.6') {
+        throw 'Speedboat collision box must cover the authorized model at 2.3,1.75,5.6.'
+    }
     [xml]$landVehiclesDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\LandVehicles.xdb')
     $atvEntity = $landVehiclesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortATV']")
     if ($null -eq $atvEntity) { throw 'LandVehicles database is missing SCIEPortATV.' }
@@ -285,6 +315,26 @@ try {
     if ($posCount -ne 294) {
         throw "SteamBoat.dae positions array should hold 98 vertices (294 floats); found $posCount. The orientation fix may have altered geometry."
     }
+    $steamBoatCoordinates = @($posArray.InnerText -split '\s+' | Where-Object { $_ -ne '' } | ForEach-Object {
+        [double]::Parse($_, [Globalization.CultureInfo]::InvariantCulture)
+    })
+    $steamBoatX = for ($i = 0; $i -lt $steamBoatCoordinates.Count; $i += 3) { $steamBoatCoordinates[$i] }
+    $steamBoatY = for ($i = 1; $i -lt $steamBoatCoordinates.Count; $i += 3) { $steamBoatCoordinates[$i] }
+    $steamBoatZ = for ($i = 2; $i -lt $steamBoatCoordinates.Count; $i += 3) { $steamBoatCoordinates[$i] }
+    if (($steamBoatX | Measure-Object -Minimum).Minimum -lt -1.15 -or ($steamBoatX | Measure-Object -Maximum).Maximum -gt 1.15 -or
+        ($steamBoatY | Measure-Object -Minimum).Minimum -lt -0.0001 -or ($steamBoatY | Measure-Object -Maximum).Maximum -gt 1.75 -or
+        ($steamBoatZ | Measure-Object -Minimum).Minimum -lt -2.8 -or ($steamBoatZ | Measure-Object -Maximum).Maximum -gt 2.8) {
+        throw 'SteamBoat.dae visible geometry exceeds the 2.3,1.75,5.6 ComponentBody collision box.'
+    }
+    $targetEngineAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
+    $targetModelDataType = $targetEngineAssembly.GetType('Engine.Media.ModelData', $true)
+    $targetModelLoad = $targetModelDataType.GetMethod('Load', [Type[]]@([IO.Stream]))
+    $steamBoatModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\SteamBoat.dae'))
+    try { $targetSteamBoatModel = $targetModelLoad.Invoke($null, @($steamBoatModelStream)) }
+    finally { $steamBoatModelStream.Dispose() }
+    if ($targetSteamBoatModel.Bones.Count -ne 1 -or $targetSteamBoatModel.Meshes.Count -ne 1) {
+        throw "Target Engine must import SteamBoat.dae as 1 bone/1 mesh; found $($targetSteamBoatModel.Bones.Count) bones/$($targetSteamBoatModel.Meshes.Count) meshes."
+    }
 
     [xml]$airshipModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Airship.dae')
     $airshipMeshNode = $airshipModel.SelectSingleNode("//*[local-name()='node' and @name='Airship']")
@@ -349,9 +399,6 @@ try {
     if (($atvGeometryNames | Select-Object -Unique).Count -ne $atvParts.Count) {
         throw 'ATV.dae parts must not share or duplicate geometry names.'
     }
-    $targetEngineAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
-    $targetModelDataType = $targetEngineAssembly.GetType('Engine.Media.ModelData', $true)
-    $targetModelLoad = $targetModelDataType.GetMethod('Load', [Type[]]@([IO.Stream]))
     $atvModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\ATV.dae'))
     try {
         $targetAtvModel = $targetModelLoad.Invoke($null, @($atvModelStream))

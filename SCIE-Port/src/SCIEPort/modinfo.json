@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.10.0",
+  "Version": "0.11.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. ATV v0.3 uses a project-created tandem dirt-bike model, host-authoritative driver seat and native parented passenger mount; Android two-device verification is required.",
+  "Description": "Authorized x25.01.17 port workspace. Adds a correctly sized dual-seat speedboat with driver-only control; Android and two-device verification are required.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",
