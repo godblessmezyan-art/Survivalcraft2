@@ -213,7 +213,7 @@ THIRD-PARTY-NOTICES.md
 - 模型导入：已确认。目标 `Engine.Media.ModelData.Load` 实际结果为 3 骨骼、20 网格；Y_UP、层级、法线、UV、三角形和 64×8 八色不透明 PNG 均通过构建守卫。
 - 数据库：已确认。`Tanks.xdb` 的 Body/Mount/Spawn/Damage/TankDrive 继承与内部 GUID 校验通过；ID 924 保持不变。
 - Release 编译：已确认。0 warning、0 error。
-- `.netmod`：已确认生成并完成包内容检查。路径 `artifacts/SCIEPort.netmod`，SHA-256 `79F0C12219235C4D4D4F55AAA880F03746167CE1F79311869AC4B00D45A9EFBD`。
+- `.netmod`：已确认从 `main` 重新生成并完成包内容检查。路径 `artifacts/SCIEPort.netmod`，SHA-256 `5B2625728D76D39B4DA060FB36F7259D16B2AB2A0F4B9DF4E7CF1ADA676E0A67`。
 - Windows 游戏运行：待验证；本轮未启动游戏。
 - Android 7723 实机：待验证；不得依据 Windows 编译结果标记兼容。
 - 多人联机：不支持；本阶段驱动只在 `WorkType.Local` 运行。
