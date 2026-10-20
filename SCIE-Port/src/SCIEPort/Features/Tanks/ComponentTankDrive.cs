@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using Engine;
+using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
@@ -15,16 +17,24 @@ namespace SCIEPort.Features.Tanks
 
         private ComponentBody m_body;
         private ComponentMount m_mount;
+        private ComponentModel m_model;
+        private SubsystemProjectiles m_projectiles;
+        private SubsystemExplosions m_explosions;
+        private SubsystemAudio m_audio;
+        private readonly Dictionary<Projectile, PlayerData> m_shells = new Dictionary<Projectile, PlayerData>();
+        private ModelBone m_turretBone;
+        private ModelBone m_gunBone;
         private float m_turretYaw;
         private float m_gunPitch;
         private float m_diagnosticTime;
+        private float m_fireCooldown;
 
-        /// <summary>Saved independent turret angle, reserved for phase-two aiming.</summary>
+        /// <summary>Saved independent turret yaw used by the main-gun aiming controller.</summary>
         public float TurretYaw => m_turretYaw;
-        /// <summary>Saved independent gun pitch, reserved for phase-two aiming.</summary>
+        /// <summary>Saved independent gun pitch used by the main-gun aiming controller.</summary>
         public float GunPitch => m_gunPitch;
 
-        /// <summary>Updates persisted turret state for a future aiming controller without affecting hull steering.</summary>
+        /// <summary>Updates persisted turret state without affecting hull steering.</summary>
         public void SetTurretAngles(float yaw, float pitch)
         {
             m_turretYaw = MathUtils.Remainder(yaw, MathUtils.PI * 2f);
@@ -39,18 +49,36 @@ namespace SCIEPort.Features.Tanks
             base.Load(valuesDictionary, idToEntityMap);
             m_body = Entity.FindComponent<ComponentBody>(true);
             m_mount = Entity.FindComponent<ComponentMount>(true);
+            m_model = Entity.FindComponent<ComponentModel>(true);
+            m_projectiles = Project.FindSubsystem<SubsystemProjectiles>(true);
+            m_explosions = Project.FindSubsystem<SubsystemExplosions>(true);
+            m_audio = Project.FindSubsystem<SubsystemAudio>(true);
             m_turretYaw = valuesDictionary.GetValue("TurretYaw", 0f);
             m_gunPitch = valuesDictionary.GetValue("GunPitch", 0f);
             m_body.IsGravityEnabled = true;
             m_body.IsGroundDragEnabled = true;
             m_body.IsSmoothRiseEnabled = true;
             m_body.MaxSmoothRiseHeight = TankRules.StepHeight;
-            ComponentModel model = Entity.FindComponent<ComponentModel>(true);
-            model.TextureOverride = TankBlock.Texture;
+            m_model.TextureOverride = TankBlock.Texture;
             // The palette already contains the armor/track colors. A near-white
             // diffuse multiplier preserves them instead of multiplying green by green.
-            model.DiffuseColor = new Vector3(.85f, .9f, .8f);
-            model.EmissionColor = new Vector4(.04f, .04f, .03f, 0f);
+            m_model.DiffuseColor = new Vector3(.85f, .9f, .8f);
+            m_model.EmissionColor = new Vector4(.04f, .04f, .03f, 0f);
+        }
+
+        /// <inheritdoc />
+        public override void OnEntityAdded()
+        {
+            base.OnEntityAdded();
+            m_projectiles.ProjectileRemoved += OnProjectileRemoved;
+        }
+
+        /// <inheritdoc />
+        public override void OnEntityRemoved()
+        {
+            m_projectiles.ProjectileRemoved -= OnProjectileRemoved;
+            m_shells.Clear();
+            base.OnEntityRemoved();
         }
 
         /// <inheritdoc />
@@ -66,6 +94,8 @@ namespace SCIEPort.Features.Tanks
         {
             if (CommonLib.WorkType != WorkType.Local) return;
             float t = MathUtils.Clamp(dt, 0f, .1f);
+            m_fireCooldown = MathUtils.Max(0f, m_fireCooldown - t);
+            ApplyArticulation();
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
             if (player == null || player.ComponentRider != rider)
@@ -81,6 +111,16 @@ namespace SCIEPort.Features.Tanks
             bool bodyGrounded = m_body.StandingOnBody != null;
             Vector3 input = player.ComponentInput.PlayerInput.Move;
             float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
+
+            Ray3? hitRay = player.ComponentInput.PlayerInput.Hit;
+            AimTurret(hitRay.HasValue ? hitRay.Value.Direction :
+                Matrix.CreateFromQuaternion(player.ComponentCreatureModel.EyeRotation).Forward);
+            ApplyArticulation();
+            if (TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor))
+            {
+                FireMainGun(player, hitRay.Value.Direction);
+            }
+
             if (!TankRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
             {
                 // Preserve horizontal momentum while airborne. Gravity, collision and
@@ -108,6 +148,71 @@ namespace SCIEPort.Features.Tanks
                 m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * TurnRate * scale * t);
             }
             WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
+        }
+
+        private void AimTurret(Vector3 direction)
+        {
+            direction.Y = MathUtils.Clamp(direction.Y, -.75f, .55f);
+            if (direction.LengthSquared() <= .0001f) return;
+            direction = Vector3.Normalize(direction);
+            Vector3 horizontal = new Vector3(direction.X, 0f, direction.Z);
+            if (horizontal.LengthSquared() > .0001f)
+            {
+                horizontal = Vector3.Normalize(horizontal);
+                m_turretYaw = MathUtils.Atan2(
+                    -Vector3.Dot(horizontal, m_body.Matrix.Right),
+                    Vector3.Dot(horizontal, m_body.Matrix.Forward));
+            }
+            m_gunPitch = MathUtils.Clamp(
+                MathUtils.Atan2(direction.Y, new Vector2(direction.X, direction.Z).Length()),
+                -.2f,
+                .35f);
+        }
+
+        private void ApplyArticulation()
+        {
+            if (m_model.Model == null) return;
+            if (m_turretBone == null) m_turretBone = m_model.Model.FindBone("TankTurret", false);
+            if (m_gunBone == null) m_gunBone = m_model.Model.FindBone("TankGun", false);
+            if (m_turretBone != null) m_model.SetBoneTransform(m_turretBone.Index, Matrix.CreateRotationY(m_turretYaw));
+            if (m_gunBone != null) m_model.SetBoneTransform(m_gunBone.Index, Matrix.CreateRotationX(m_gunPitch));
+        }
+
+        private void FireMainGun(ComponentPlayer player, Vector3 requestedDirection)
+        {
+            if (requestedDirection.LengthSquared() <= .0001f) return;
+            Vector3 direction = Vector3.Normalize(requestedDirection);
+            Vector3 muzzle = m_body.Position + Vector3.UnitY * 1.65f + direction * 3.2f;
+            int shellValue = Terrain.MakeBlockValue(BulletBlock.Index, 0, 0);
+            Projectile shell = m_projectiles.FireProjectile(
+                shellValue,
+                muzzle,
+                direction * TankRules.ShellSpeed,
+                Vector3.Zero,
+                player.Entity.FindComponent<ComponentCreature>(true));
+            if (shell == null) return;
+            shell.ProjectileStoppedAction = ProjectileStoppedAction.Disappear;
+            m_shells[shell] = player.PlayerData;
+            m_fireCooldown = TankRules.FireCooldown;
+            m_audio.PlaySound("Audio/MusketFire", 1f, 0f, muzzle, 64f, true);
+            Vector3 recoil = new Vector3(direction.X, 0f, direction.Z);
+            if (recoil.LengthSquared() > .0001f)
+                m_body.Velocity -= Vector3.Normalize(recoil) * .45f;
+        }
+
+        private void OnProjectileRemoved(Projectile projectile)
+        {
+            PlayerData playerData;
+            if (!m_shells.TryGetValue(projectile, out playerData)) return;
+            m_shells.Remove(projectile);
+            m_explosions.AddExplosion(
+                Terrain.ToCell(projectile.Position.X),
+                Terrain.ToCell(projectile.Position.Y),
+                Terrain.ToCell(projectile.Position.Z),
+                TankRules.ShellExplosionPressure,
+                false,
+                false,
+                playerData);
         }
 
         private void WriteDiagnostics(float dt, float throttle, bool terrainGrounded, bool bodyGrounded, string state)

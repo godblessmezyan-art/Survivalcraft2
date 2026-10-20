@@ -58,12 +58,15 @@ Android 或多人测试。
 | T-34 实体/XDB/资源布局 | 已确认 | `Tanks.xdb` 复用原版文件夹 GUID；静态构建守卫检查实体组件、模型、纹理、0.3 格台阶限制与三处模型节点 |
 | T-34 单人地面驱动代码 | 已确认 | 仅 `WorkType.Local`；真实程序集反射检查 Mount/Rider/Input/Body/CreatureModel 所需表面，且 Release 编译通过后方可维持该状态 |
 | T-34 Windows 游戏运行 | 待验证 | 未启动游戏；生成、骑乘、触屏/键鼠驱动、碰撞、坡度、下车、视角与存档恢复均待验证 |
-| T-34 Android 7723 运行 | 待验证 | 未安装到 Android；Windows ABI/构建不能证明渠道包兼容 |
+| T-34 Android 7723 基础运行 | 已确认 | 2026-10-20 用户确认坦克测试通过；模型显示、生成、骑乘与基础驾驶可继承该实测结论。用户同时确认旧版不能开炮、不能跨越完整一格且占地偏小；这些缺陷不属于通过项 |
 | T-34 多人同步 | 不支持 | 第一阶段明确只在 `WorkType.Local` 驱动，未实现服务器权威输入、状态复制或纠偏 |
 
 | T-34 v0.2 模型/贴图 | 已确认（静态/导入） | 项目自有 Y_UP 资源由生成脚本重建为 20 网格；目标 `Engine.Media.ModelData.Load` 实际导入 `TankHull > TankTurret > TankGun` 共 3 骨骼/20 网格，低于七骨骼预算；64×8 PNG 含 8 种不透明颜色。Android 世界渲染仍待验证 |
 | T-34 v0.2 地面驾驶 | 已确认（代码/测试） | 驾驶时关闭原生地面阻力以避免双重阻力；统一处理推进、倒车、制动、滑行、侧滑和转向。仅地形接触允许推进，离地保留惯性，浸水/实体支撑不施加推进。Android 手感和碰撞仍待验证 |
 | T-34 v0.2 碰撞范围 | 已确认（参数/模型范围） | `BoxSize=2.6,1.55,4.4` 覆盖当前车身和炮管坐标范围，`MaxSmoothRiseHeight=0.3`；仍是单一原生长方体 Body，不宣称复合履带/炮管碰撞，狭窄地形待实机验证 |
+| T-34 v0.3 主炮 | 已确认（ABI/编译），Android 待验证 | 使用公开 `PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、原版 `BulletBlock`、`ProjectileRemoved` 和 `SubsystemExplosions.AddExplosion`。弹速 42、冷却 1.6 秒、压力 18、非燃烧；只在单人 `WorkType.Local` 执行 |
+| T-34 v0.3 炮塔骨骼 | 已确认（ABI/导入），Android 待验证 | `ComponentModel.SetBoneTransform` 驱动 `TankTurret` 水平旋转与 `TankGun` 俯仰；保存字段仍为 `TurretYaw`/`GunPitch`，目标 Engine 导入保持 3 骨骼/20 网格 |
+| T-34 v0.3 尺寸与一格越障 | 已确认（静态/编译），Android 待验证 | 模型坐标整体放大 35%，Body 改为 `3.6,2.1,5.9`，座位与下车偏移同步调整；`MaxSmoothRiseHeight=1.05` 使用原生连续抬升与碰撞/净空检查，不写 Position、不改地形 |
 
 ## 当前包布局
 

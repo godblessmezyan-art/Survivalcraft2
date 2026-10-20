@@ -245,10 +245,10 @@ try {
     $tankBox = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
     $tankMount = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $tankDismount = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
-    if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '0.3') {
+    if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '1.05') {
         throw 'Tank entity model, texture or ground-step parameters are not the audited values.'
     }
-    if ($tankBox.Value -ne '2.6,1.55,4.4' -or $tankMount.Value -ne '0,1.28,0.15' -or $tankDismount.Value -ne '1.65,0.4,0') {
+    if ($tankBox.Value -ne '3.6,2.1,5.9' -or $tankMount.Value -ne '0,1.72,0.2' -or $tankDismount.Value -ne '2.25,0.4,0') {
         throw 'Tank collision or seat parameters differ from the audited low-poly model envelope.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
@@ -397,6 +397,11 @@ try {
     $tankGun = $tankTurret.SelectSingleNode("./*[local-name()='node' and @name='TankGun']")
     if ($null -eq $tankGun) {
         throw 'T34Tank.dae must use TankHull > TankTurret > TankGun articulated hierarchy.'
+    }
+    $tankTurretTranslation = ($tankTurret.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+', ' ').Trim()
+    $tankGunTranslation = ($tankGun.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+', ' ').Trim()
+    if ($tankTurretTranslation -ne '0 1.242 0' -or $tankGunTranslation -ne '0 0.324 -0.7425') {
+        throw 'T34Tank.dae articulated pivots must retain the audited 1.35x model scale.'
     }
     $tankParts = @('LowerHull','UpperHull','Glacis','TrackLeft','TrackRight',
         'WheelL1','WheelL2','WheelL3','WheelL4','WheelL5',

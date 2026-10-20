@@ -8,7 +8,13 @@ namespace SCIEPort.Features.Tanks
         /// <summary>Maximum reverse ground speed in cells per second.</summary>
         public const float ReverseSpeed = 3f;
         /// <summary>Maximum native smooth-rise height.</summary>
-        public const float StepHeight = 0.3f;
+        public const float StepHeight = 1.05f;
+        /// <summary>Minimum time between main-gun shots.</summary>
+        public const float FireCooldown = 1.6f;
+        /// <summary>Main-gun projectile speed in cells per second.</summary>
+        public const float ShellSpeed = 42f;
+        /// <summary>Explosion pressure applied when a registered shell stops.</summary>
+        public const float ShellExplosionPressure = 18f;
         /// <summary>Forward or reverse acceleration in cells per second squared.</summary>
         public const float DriveAcceleration = 6.5f;
         /// <summary>Deceleration before changing direction.</summary>
@@ -54,6 +60,12 @@ namespace SCIEPort.Features.Tanks
             float t = (absoluteSpeed - 4f) / (ForwardSpeed - 4f);
             if (t > 1f) t = 1f;
             return 1f - 0.4f * t;
+        }
+
+        /// <summary>Checks the single-player main-gun safety and cooldown gates.</summary>
+        public static bool CanFire(float cooldownRemaining, bool hasHitRay, float immersionFactor)
+        {
+            return cooldownRemaining <= 0f && hasHitRay && immersionFactor < 0.8f;
         }
     }
 }

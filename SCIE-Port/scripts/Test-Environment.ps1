@@ -55,6 +55,9 @@ $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
 $playerInput = $componentInput.GetProperty('PlayerInput').PropertyType
 $creatureSpawn = $assembly.GetType('Game.SubsystemCreatureSpawn', $true)
+$subsystemProjectiles = $assembly.GetType('Game.SubsystemProjectiles', $true)
+$subsystemExplosions = $assembly.GetType('Game.SubsystemExplosions', $true)
+$bulletBlock = $assembly.GetType('Game.BulletBlock', $true)
 
 if (-not $modLoader.GetMethod('__ModInitialize', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'Game.ModLoader.__ModInitialize was not found.'
@@ -105,6 +108,19 @@ if (-not $componentRider.GetMethod('StartDismounting', [Reflection.BindingFlags]
 if (-not $componentPlayer.GetProperty('ComponentInput') -or -not $componentPlayer.GetProperty('ComponentRider') -or -not $playerInput.GetField('Move', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentPlayer -> ComponentInput -> PlayerInput.Move chain required by the tank was not found.'
 }
+if (-not $playerInput.GetField('Hit', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'PlayerInput.Hit touch/attack ray required by the tank main gun was not found.'
+}
+if (-not ($subsystemProjectiles.GetMethods() | Where-Object { $_.Name -eq 'FireProjectile' -and $_.GetParameters().Count -eq 5 })) {
+    throw 'SubsystemProjectiles.FireProjectile(value, position, velocity, angularVelocity, owner) was not found.'
+}
+if (-not ($subsystemExplosions.GetMethods() | Where-Object { $_.Name -eq 'AddExplosion' -and $_.GetParameters().Count -eq 7 })) {
+    throw 'SubsystemExplosions.AddExplosion required by tank shell impacts was not found.'
+}
+$bulletIndex = $bulletBlock.GetField('Index', [Reflection.BindingFlags]'Public,Static,FlattenHierarchy')
+if ($null -eq $bulletIndex -or $bulletIndex.GetRawConstantValue() -ne 214) {
+    throw 'The audited native BulletBlock.Index 214 is unavailable.'
+}
 if (-not ($creatureSpawn.GetMethods() | Where-Object { $_.Name -eq 'SpawnCreature' })) {
     throw 'SubsystemCreatureSpawn.SpawnCreature was not found.'
 }
@@ -115,6 +131,9 @@ foreach ($propertyName in @('IsGravityEnabled', 'IsGroundDragEnabled', 'IsSmooth
 }
 if (-not $componentModel.GetProperty('TextureOverride')) {
     throw 'ComponentModel.TextureOverride required by the airship was not found.'
+}
+if (-not ($componentModel.GetMethods() | Where-Object { $_.Name -eq 'SetBoneTransform' -and $_.GetParameters().Count -eq 2 })) {
+    throw 'ComponentModel.SetBoneTransform required by tank turret articulation was not found.'
 }
 $componentCreatureModel = $assembly.GetType('Game.ComponentCreatureModel', $true)
 if (-not $componentCreatureModel.GetProperty('EyeRotation')) {

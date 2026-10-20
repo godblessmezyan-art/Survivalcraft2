@@ -219,3 +219,14 @@ THIRD-PARTY-NOTICES.md
 - 多人联机：不支持；本阶段驱动只在 `WorkType.Local` 运行。
 
 详细根因、参数和实机清单见 `docs/TANK-V0.2-AUDIT.md`。
+
+## 0.9.1 坦克 v0.3 主炮、尺寸与越障（2026-10-20）
+
+- Android 基础坦克：已确认。用户反馈“坦克测试通过”，同时明确旧包无法开炮、无法跨越完整一格、占地太小。
+- 目标 ABI：已确认。`PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、`BulletBlock.Index=214`、`ProjectileRemoved`、`SubsystemExplosions.AddExplosion` 与 `ComponentModel.SetBoneTransform` 均由固定 x25.01.17 程序集守卫确认。
+- 规则测试：已确认。新增冷却、输入射线、深水禁射、弹速、爆炸压力及 1.05 格 smooth-rise 检查，全部通过。
+- 模型：已确认（离线）。坐标放大 35%，目标 Engine 仍实际导入 3 骨骼/20 网格；世界 Body、座位与下车偏移同步扩大。
+- Release 编译与数据库/包校验：已确认，0 warning、0 error。
+- `.netmod`：`artifacts/SCIEPort.netmod`，SHA-256 `4ECB3BFDD070CEBC444CC4B09C8B5F1E2BCE67699C725FB145523B35CE5CAEEB`。
+- Android 新功能：待验证。攻击触屏开炮、炮塔朝向、炮弹命中爆炸、后坐、一格越障和尺寸满意度必须重新实测。
+- 多人联机：不支持。主炮和驾驶当前只在 `WorkType.Local` 执行。

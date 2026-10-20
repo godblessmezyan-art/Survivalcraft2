@@ -172,7 +172,9 @@ SHA-256）实际反射，并以 net472 Release 绑定验证的接口如下：
 | `ComponentPlayer.ComponentInput` → `ComponentInput.PlayerInput.Move` | 读取 Android 触屏映射后的前后/左右输入 | 已确认 |
 | `ComponentBody.Velocity`、`Rotation`、`Matrix` | 只施加水平驱动与车体转向，不直接写位置 | 已确认 |
 | `ComponentBody.IsGravityEnabled`、`IsGroundDragEnabled` | 交给原生物理保持重力、阻尼和地形/实体碰撞 | 已确认 |
-| `ComponentBody.IsSmoothRiseEnabled`、`MaxSmoothRiseHeight`、`StandingOnValue`、`StandingOnBody` | 仅允许 0.3 格原生平滑上坡；离地时不施加推力 | 已确认 |
+| `ComponentBody.IsSmoothRiseEnabled`、`MaxSmoothRiseHeight`、`StandingOnValue`、`StandingOnBody` | v0.3 使用 1.05 格原生连续平滑抬升并保留碰撞/顶部净空检查；离地时不施加推力 | 已确认（ABI/编译），Android 一格越障待验证 |
+| `PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、`ProjectileRemoved`、`SubsystemExplosions.AddExplosion` | 单人坦克主炮使用触屏攻击射线、原版弹体和命中后有限压力爆炸 | 已确认（ABI/编译），Android 待验证 |
+| `ComponentModel.SetBoneTransform`、`Model.FindBone` | 分别控制 `TankTurret` 水平旋转和 `TankGun` 俯仰；不旋转车体 | 已确认（ABI/模型导入），Android 待验证 |
 | `ComponentBody.ImmersionFactor` | 断开水面驾驶，深度浸水时下车 | 已确认 |
 | `ComponentCreatureModel.EyeRotation` | 以玩家视线初始方向放置车体 | 已确认 |
 | `ComponentModel.TextureOverride` | 引用包内 PNG，避免世界实体无纹理 | 已确认 |

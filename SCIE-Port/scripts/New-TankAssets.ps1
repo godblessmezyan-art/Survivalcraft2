@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 $modelPath = Join-Path $ProjectRoot 'src\SCIEPort\Assets\Models\T34Tank.dae'
 $texturePath = Join-Path $ProjectRoot 'src\SCIEPort\Assets\Textures\T34Tank.png'
 $invariant = [Globalization.CultureInfo]::InvariantCulture
+$modelScale = 1.35
 
 # Clean-room, project-created geometry. Child coordinates are local to their
 # pivots so the turret and gun can later be animated without rebuilding assets.
@@ -36,8 +37,8 @@ $parts = @(
 function Format-Number([double]$value) { return $value.ToString('0.######', $invariant) }
 
 function New-CuboidGeometry($part) {
-    $x0 = Format-Number $part.Min[0]; $y0 = Format-Number $part.Min[1]; $z0 = Format-Number $part.Min[2]
-    $x1 = Format-Number $part.Max[0]; $y1 = Format-Number $part.Max[1]; $z1 = Format-Number $part.Max[2]
+    $x0 = Format-Number ($part.Min[0] * $modelScale); $y0 = Format-Number ($part.Min[1] * $modelScale); $z0 = Format-Number ($part.Min[2] * $modelScale)
+    $x1 = Format-Number ($part.Max[0] * $modelScale); $y1 = Format-Number ($part.Max[1] * $modelScale); $z1 = Format-Number ($part.Max[2] * $modelScale)
     $u = Format-Number $part.U; $name = $part.Name
     return @"
     <geometry id="$name-mesh" name="$name"><mesh>
@@ -67,9 +68,9 @@ $document = @"
   <library_visual_scenes><visual_scene id="Scene" name="Scene">
     <node id="TankHull" name="TankHull" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
 $hull
-      <node id="TankTurret" name="TankTurret" type="NODE"><translate>0 0.92 0</translate>
+      <node id="TankTurret" name="TankTurret" type="NODE"><translate>0 1.242 0</translate>
 $turret
-        <node id="TankGun" name="TankGun" type="NODE"><translate>0 0.24 -0.55</translate>
+        <node id="TankGun" name="TankGun" type="NODE"><translate>0 0.324 -0.7425</translate>
 $gun
         </node>
       </node>

@@ -698,5 +698,14 @@ public static class Utils {
 | 固定 Windows x25.01.17 ABI 编译 | 已确认 | 独立 `SCIE-Port` net472 工程引用并哈希校验 `E:\SCNET\SCNETx25.01.17` 的实际程序集；不包含游戏 DLL。 |
 | T-34 物品、实体、保存字段和资源包布局 | 已确认 | 新的 `Features/Tanks`、ID 924、`Tanks.xdb`、包内 Y_UP 模型、PNG 及静态守卫完成构建校验。 |
 | T-34 Windows 游戏运行 | 待验证 | 本次未启动游戏；不以编译推断生成、骑乘、碰撞、坡度、第三人称或重载。 |
-| T-34 Android 7723 实测 | 待验证 | 尚未安装/启动 Android 渠道客户端；其程序集哈希也未由本轮重新取得。 |
+| T-34 Android 7723 基础实测 | 已确认 | 2026-10-20 用户确认基础坦克测试通过，并报告旧包不能开炮、不能跨越完整一格、占地偏小；因此只确认旧版模型显示、生成、骑乘和基础驾驶，不确认主炮与越障。 |
 | T-34 多人同步 | 不支持 | 驱动仅在 `WorkType.Local` 运行；尚未有主机权威输入、实体状态同步或客户端纠偏。 |
+
+## SCIE-Port 0.9.1 坦克 v0.3
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 主炮 ABI 与 Release 编译 | 已确认 | 固定 x25.01.17 程序集确认 `PlayerInput.Hit`、`SubsystemProjectiles.FireProjectile`、`BulletBlock.Index=214`、`ProjectileRemoved`、`SubsystemExplosions.AddExplosion` 和 `ComponentModel.SetBoneTransform`；net472 0 warning/0 error。 |
+| 主炮 Android 7723 | 待验证 | 攻击触屏射线发射弹速 42 的原版弹体，1.6 秒冷却，命中移除后产生压力 18 非燃烧爆炸；炮塔/炮管跟随瞄准。须在可丢弃世界实测。 |
+| 尺寸与一格越障 | 待验证 | 模型放大 35%，Body 为 `3.6,2.1,5.9`；`MaxSmoothRiseHeight=1.05` 仅使用原生碰撞和平滑抬升，不瞬移、不改地形。 |
+| 多人主炮 | 不支持 | 本阶段仍只在 `WorkType.Local` 生成炮弹和爆炸，没有服务器权威或同步验证。 |

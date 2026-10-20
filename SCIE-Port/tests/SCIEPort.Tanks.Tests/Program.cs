@@ -22,7 +22,13 @@ internal static class Program
         Assert(!TankRules.CanApplyDrive(false, false, 0f), "airborne propulsion blocked");
         Assert(!TankRules.CanApplyDrive(true, true, 0f), "body-supported propulsion blocked");
         Assert(!TankRules.CanApplyDrive(true, false, .25f), "water propulsion blocked");
-        if (TankRules.StepHeight <= 0f || TankRules.StepHeight > .5f) throw new InvalidOperationException("Tank step limit must be conservative.");
+        AssertNear(TankRules.StepHeight, 1.05f, "one-cell smooth rise clearance");
+        Assert(TankRules.CanFire(0f, true, 0f), "ready cannon can fire");
+        Assert(!TankRules.CanFire(.1f, true, 0f), "cannon cooldown enforced");
+        Assert(!TankRules.CanFire(0f, false, 0f), "cannon requires hit ray");
+        Assert(!TankRules.CanFire(0f, true, .8f), "submerged cannon blocked");
+        Assert(TankRules.ShellSpeed > TankRules.ForwardSpeed, "shell faster than tank");
+        Assert(TankRules.ShellExplosionPressure > 0f, "shell explosion enabled");
         Console.WriteLine("Tank drive rule tests passed.");
     }
 

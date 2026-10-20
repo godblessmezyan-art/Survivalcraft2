@@ -92,7 +92,7 @@ renamed or redistributed; code and database bindings are rewritten for SCNET.
   authored for this port. It is not extracted from a game or a third-party
   vehicle asset. It contains 20 low-poly cuboid meshes grouped under the
   articulated `TankHull` > `TankTurret` > `TankGun` hierarchy; SHA-256
-  `2C9CDBE734232CED018C8AD5CC8892E751F619398F261FAB83EB2EF01558A2FB`.
+  `0BA959AD4CCF6140A9538326975318CC0842BB35C27BEA870A6D6206836F1EB1`.
 - `Assets/Textures/T34Tank.png` is a project-created opaque 64×8 PNG palette
   containing eight armor, track, wheel and metal colors. Its SHA-256 is
   `9F124EC309D91D91A33DD573E0A797DF79FFCDB1B11BAF1675C51D09A2D7DCCD`.
