@@ -1,0 +1,238 @@
+# Blueprint Block Reference
+
+> 本文件是 Builder Assistant v0.13.0 蓝图导入的**唯一权威方块能力清单**。
+> 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
+> 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
+> 不在此文件中的方块一律**不支持**，导入会触发"未知材料键"干净拒绝。
+
+## 蓝图 JSON Schema
+
+```json
+{
+  "schemaVersion": 2,
+  "kind": "builderassistant.blueprint",
+  "name": "建筑名称",
+  "size": { "x": 10, "y": 8, "z": 12 },
+  "materials": [
+    { "id": 0, "key": "PlanksBlock", "block": "PlanksBlock" }
+  ],
+  "cells": [
+    { "x": 0, "y": 0, "z": 0, "m": 0, "f": "cube", "d": 0 }
+  ]
+}
+```
+
+- `schemaVersion`：必须 ≤ 2（v1 无 `f`/`d` 字段时视为纯 cube）。
+- `kind`：必须为 `"builderassistant.blueprint"` 或省略。
+- `size`：advisory，导入后按 cells 包围盒重新计算；若声明与实际不一致则拒绝。
+- `cells`：数组长度 ≤ **1024**（每事务硬上限），坐标为相对值（最小角归一化到 0）。
+- 每轴尺寸 ≤ **64**。
+- 每格 `m` 为 `materials` 数组中的 `id` 索引。
+- `f` 可选：方块族标签（见下表），缺省为 `"cube"`。
+- `d` 可选：族内的 authored DATA 值（见合法范围），缺省为 `0`。
+
+## 支持的方块族与 DATA 合法范围
+
+| 族标签 `f` | BlockFamily | 合法 `d` | DATA 位含义 | 备注 |
+|---|---|---|---|---|
+| `cube` | Cube | 仅 `0` | 无 | 普通实心/透明立方，无朝向。 |
+| `stairs` | Stairs | `0`–`7` | [0-1]=rotation(0-3), [2]=upsideDown(0-1) | 引擎自动补 corner-joint 和颜色。 |
+| `slab` | Slab | `0`–`1` | [0]=isTop(0=下半,1=上半) | 颜色由引擎派生。 |
+| `fence` | Fence | `0`–`15` | [0]=+X, [1]=-X, [2]=+Z, [3]=-Z 连接臂 | 引擎根据邻格自动重算，写任意值均安全。 |
+| `door` | Door | `0`–`15` | [0-1]=rotation(0-3), [2]=open, [3]=rightHanded | **只写下半格**，引擎 SubsystemDoorBlockBehavior 自动补上半。 |
+| `log` | Log | 仅 `0` | CutFace=Y（竖向原木） | 横向原木（face 1/2）**不支持**，未取证轴映射。 |
+
+## 可导入的方块：具体原版类型名
+
+以下 CLR 类型名均可直接作为 `key`（或 `materials[].block`）使用：
+
+### Cube（无朝向，data 必须为 0）
+
+| 类型名 | 用途说明 |
+|---|---|
+| `CobblestoneBlock` | 鹅卵石 (PaintedCube) |
+| `StoneBrickBlock` | 石砖 (PaintedCube) |
+| `PlanksBlock` | 木板 |
+| `BricksBlock` | 砖块 (PaintedCube) |
+| `GlassBlock` | 玻璃 (AlphaTestCube) |
+| `BasaltBlock` | 玄武岩 |
+| `GraniteBlock` | 花岗岩 |
+| `MarbleBlock` | 大理石 |
+| `SandstoneBlock` | 砂岩 |
+| `ClayBlock` | 粘土 |
+| `LimestoneBlock` | 石灰岩 |
+| `MalachiteBlock` | 孔雀石 |
+| `SpruceLeavesBlock` | 常青云杉叶 (AlphaTestCube, 不落叶) |
+
+### Stairs（data 0–7）
+
+| 类型名 |
+|---|
+| `WoodenStairsBlock` |
+| `CobblestoneStairsBlock` |
+| `StoneStairsBlock` |
+| `StoneBrickStairsBlock` |
+| `BrickStairsBlock` |
+| `BasaltStairsBlock` |
+| `MarbleStairsBlock` |
+| `SandstoneStairsBlock` |
+| `DirtStairsBlock` |
+
+### Slab（data 0–1）
+
+| 类型名 |
+|---|
+| `WoodenSlabBlock` |
+| `CobblestoneSlabBlock` |
+| `StoneSlabBlock` |
+| `StoneBrickSlabBlock` |
+| `BrickSlabBlock` |
+| `BasaltSlabBlock` |
+| `MarbleSlabBlock` |
+| `SandstoneSlabBlock` |
+| `DirtSlabBlock` |
+
+### Fence（data 0–15）
+
+| 类型名 |
+|---|
+| `WoodenFenceBlock` |
+| `StoneFenceBlock` |
+| `BrickFenceBlock` |
+| `BasaltFenceBlock` |
+| `IronFenceBlock` |
+
+### Door（data 0–15，只写下半格）
+
+| 类型名 |
+|---|
+| `WoodenDoorBlock` |
+| `IronDoorBlock` |
+
+### Log（data 仅 0 = 竖向）
+
+| 类型名 |
+|---|
+| `OakWoodBlock` |
+
+## 可导入的方块：逻辑材料键
+
+除上面的具体类型名外，以下逻辑键同样接受（通过 `MaterialCatalog` 映射到具体类型）：
+
+| 逻辑键 | 映射到 | 族 |
+|---|---|---|
+| `StoneBase` | CobblestoneBlock | Cube |
+| `StoneWall` | StoneBrickBlock | Cube |
+| `WoodWall` | PlanksBlock | Cube |
+| `WoodTrim` | PlanksBlock | Cube |
+| `Roof` | BricksBlock | Cube |
+| `Glass` | GlassBlock | Cube |
+| `Floor` | PlanksBlock | Cube |
+| `RoofStairs` | WoodenStairsBlock | Stairs |
+| `InteriorStairs` | WoodenStairsBlock | Stairs |
+| `EntryDoor` | WoodenDoorBlock | Door |
+| `WindowSill` | StoneSlabBlock | Slab |
+| `FlatDeck` | StoneSlabBlock | Slab |
+| `GardenFence` | WoodenFenceBlock | Fence |
+| `StoneRailing` | StoneFenceBlock | Fence |
+| `InteriorWall` | PlanksBlock | Cube |
+| `SupportBeam` | PlanksBlock | Cube |
+| `LogTrunk` | OakWoodBlock | Log |
+| `LogBranch` | OakWoodBlock | Log |
+| `Leaves` | SpruceLeavesBlock | Cube |
+
+逻辑键**不携带 `f`/`d`** 信息（因为逻辑键的族由 MaterialCatalog 固定，data 始终取 0）。要使用非零 data（楼梯朝向、门旋转等），必须用具体类型名并在 `cells` 中写明 `f` 和 `d`。
+
+## 明确不支持的方块
+
+以下类型的方块**绝不可出现在蓝图 JSON 中**，出现则整份导入失败：
+
+- 所有流体：WaterBlock、LavaBlock
+- 所有植物（除 SpruceLeavesBlock）：花、高草、枯丛、树苗、落叶树叶
+- 所有雪/冰：SnowBlock、IceBlock
+- 受重力影响的方块：SandBlock、GravelBlock
+- 带实体/容器/随机状态的方块：箱子、熔炉、TNT、音符盒、附魔台、酿造台等
+- 梯子 LadderBlock（带朝向+攀爬实体）
+- 玻璃板 GlassPaneBlock（连接臂算法不同）
+- 红石/按钮/杠杆/压力板/中继器等电路组件
+- 横向原木（OakWoodBlock data≠0）
+- 火把 TorchBlock（带实体）
+- 任何 x25.01.17 中不存在或本 Mod 未逐一确认的类型
+
+## 安全限制（生成时必须遵守）
+
+| 参数 | 值 | 来源 |
+|---|---|---|
+| 每份蓝图最大格数 | **1024** | `BuildSafetyLimits.MaxBlocksPerOperation` |
+| 每轴最大尺寸 | **64** | `BuildSafetyLimits.MaxSelectionAxisLength` |
+| 每批写入最大格数 | **32** | `BuildSafetyLimits.MaxBlocksPerBatch`（运行时执行器用，不影响导入） |
+
+超过这些值的蓝图文件在 `BlueprintJson.Decode` 阶段即被拒绝，不会部分导入。
+
+## 生成蓝图 JSON 的注意事项
+
+1. **坐标为相对值**：蓝图中所有 cells 的 x/y/z 是相对于包围盒最小角的偏移。最小角自动归一化为 (0,0,0)。
+2. **门只写下半格**：`WoodenDoorBlock`/`IronDoorBlock` 只需给出 bottom 那一格；引擎的 `SubsystemDoorBlockBehavior` 会在下半写入后自动补出上半。写上半格会因找不到对应的下半格而报错。
+3. **原木仅竖向**：`OakWoodBlock` 的 `d` 字段只能是 `0`（竖向/Y 轴朝向）。横向原木不支持。
+4. **f 字段可省略**：若所有方块都是 cube，可以完全省略每个 cell 的 `f` 和 `d`（缺省为 cube + data 0）。
+5. **材质表可去重**：同一类型名多次使用只需在 `materials` 数组中登记一次，cells 的 `m` 指向它的 `id`。
+6. **SpruceLeavesBlock 是常青的**：它不会因缺少相邻原木而腐烂消失（落叶树不支持）。
+7. **树叶腐坏规则**（真机行为）：`SpruceLeavesBlock` 如果在 Chebyshev 距离 3 内找不到任何 WoodBlock（原木），引擎的 `SubsystemWoodBlockBehavior` 会在更新时让它腐坏消失。生成蓝图时务必确保叶团有原木在半径 3 内贯穿。
+
+## 扩展策略
+
+添加新的支持方块必须满足以下条件（按 AGENTS.md 铁律）：
+
+1. 该方块在 x25.01.17 程序集中真实存在（反编译取证）。
+2. 通过反射确认其 `BlockFamily` 归属与自有 DATA 位范围。
+3. 加入 `VanillaBlockPalette.SupportedBlocks` 字典和（可选）`MaterialCatalog`。
+4. 本文件对应表格追加该方块。
+5. net472 Release 0 错误 0 警告。
+6. 该方块在 7723 真机上的渲染标为**待验证**直到确认。
+7. 带实体/容器/随机/流体属性的方块一律**不支持、不添加**。
+
+## 机器可读摘要
+
+以下 JSON 对象供 AI agent 程序化解析，与本文件上半部表格内容等价，若有出入以表格文字为准：
+
+```json
+{
+  "modVersion": "0.13.0",
+  "targetGame": "Survivalcraft NET x25.01.17",
+  "schemaVersion": 2,
+  "limits": { "maxCells": 1024, "maxAxis": 64, "maxPerBatch": 32 },
+  "families": {
+    "cube":   { "dataRange": [0, 0],  "tags": ["cube"] },
+    "stairs": { "dataRange": [0, 7],  "tags": ["stairs"] },
+    "slab":   { "dataRange": [0, 1],  "tags": ["slab"] },
+    "fence":  { "dataRange": [0, 15], "tags": ["fence"] },
+    "door":   { "dataRange": [0, 15], "tags": ["door"], "note": "only bottom half in JSON" },
+    "log":    { "dataRange": [0, 0],  "tags": ["log"],  "note": "vertical only" }
+  },
+  "supportedBlocks": {
+    "cube": ["CobblestoneBlock","StoneBrickBlock","PlanksBlock","BricksBlock","GlassBlock","BasaltBlock","GraniteBlock","MarbleBlock","SandstoneBlock","ClayBlock","LimestoneBlock","MalachiteBlock","SpruceLeavesBlock"],
+    "stairs": ["WoodenStairsBlock","CobblestoneStairsBlock","StoneStairsBlock","StoneBrickStairsBlock","BrickStairsBlock","BasaltStairsBlock","MarbleStairsBlock","SandstoneStairsBlock","DirtStairsBlock"],
+    "slab": ["WoodenSlabBlock","CobblestoneSlabBlock","StoneSlabBlock","StoneBrickSlabBlock","BrickSlabBlock","BasaltSlabBlock","MarbleSlabBlock","SandstoneSlabBlock","DirtSlabBlock"],
+    "fence": ["WoodenFenceBlock","StoneFenceBlock","BrickFenceBlock","BasaltFenceBlock","IronFenceBlock"],
+    "door": ["WoodenDoorBlock","IronDoorBlock"],
+    "log": ["OakWoodBlock"]
+  },
+  "logicalKeys": {
+    "StoneBase":"CobblestoneBlock","StoneWall":"StoneBrickBlock","WoodWall":"PlanksBlock",
+    "WoodTrim":"PlanksBlock","Roof":"BricksBlock","Glass":"GlassBlock","Floor":"PlanksBlock",
+    "RoofStairs":"WoodenStairsBlock","InteriorStairs":"WoodenStairsBlock","EntryDoor":"WoodenDoorBlock",
+    "WindowSill":"StoneSlabBlock","FlatDeck":"StoneSlabBlock","GardenFence":"WoodenFenceBlock",
+    "StoneRailing":"StoneFenceBlock","InteriorWall":"PlanksBlock","SupportBeam":"PlanksBlock",
+    "LogTrunk":"OakWoodBlock","LogBranch":"OakWoodBlock","Leaves":"SpruceLeavesBlock"
+  },
+  "notSupported": [
+    "fluids","plants(except SpruceLeavesBlock)","snow","ice","gravity blocks",
+    "entity-bearing blocks","ladders","glass panes","redstone","torches","saplings",
+    "horizontal logs","furniture blocks"
+  ]
+}
+```
+
+---
+
+最后更新：v0.13.0（2026-10-20）。下次 Mod 版本更新时必须同步修改本文件。
