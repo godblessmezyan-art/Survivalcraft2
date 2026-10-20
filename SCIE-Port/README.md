@@ -64,9 +64,9 @@ mesh names. Android confirmation of the rebuilt package remains pending.
 Version 0.10.0 is ATV v0.3. The compact four-wheel visual is replaced by a
 project-created tandem off-road motorcycle while ID 923, `SCIEPortATV`, its
 entity GUID and the v0.2 driving rules remain stable. The driver keeps the
-vehicle's native mount. A separately addressable native mount entity is parented
-to the ATV body for the passenger, avoiding duplicate Mount components and
-per-frame player teleportation. Offline driving and host-player driving compile;
+vehicle's native mount. A reusable seat manager associates both riders directly
+with the vehicle body, avoiding duplicate Mount components, nested collision
+anchors and per-frame player teleportation. Offline driving and host-player driving compile;
 ordinary clients never write vehicle velocity or another player's position. A
 remote client can be a passenger, but a remote client acting as driver is not
 supported until a server-authoritative input/correction protocol is implemented.
@@ -99,6 +99,24 @@ without invoking the native hand-projectile owner correction, which pulled the
 first v0.3 shell back inside the vehicle. Damage ownership is restored after
 creation, and a 1.5-cell arming distance suppresses residual near-tank blasts.
 These corrections pass Release/static tests but still need Android verification.
+
+Version 0.11.0 upgrades the authorized SCIE steam boat into a correctly sized
+two-person speedboat while preserving block ID 999, entity name and GUID. The
+Y-up model is lifted to ground level and enclosed by a 2.3×1.75×5.6 body; driver
+and passenger sit side-by-side at X=-0.42/+0.42. The shared seat manager assigns
+the first rider as driver, the second as passenger and rejects a third. Native
+`ComponentBoat` is deliberately absent because it accepts input from every rider;
+the replacement controller consumes only driver input while `ComponentBody`
+retains buoyancy, drag, collision and persistence. Android rendering, dual-device
+riding and save/reload remain pending real-device verification.
+
+Version 0.12.0 adds a separate project-created side-by-side two-seat off-road
+car at content ID 925. Its open 4x4 body, four wheels, seats and roll cage fit a
+2.4×1.55×4.0 native collision body; the seats are 0.9 cells apart. The first
+rider drives, the second is a non-driving passenger, and a third is rejected by
+the shared seat manager. Ground propulsion is independent from boat physics and
+uses native gravity, collision and 1.05-cell smooth rise. Android appearance,
+driving, save/reload and host-driver/client-passenger behavior remain pending.
 
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the

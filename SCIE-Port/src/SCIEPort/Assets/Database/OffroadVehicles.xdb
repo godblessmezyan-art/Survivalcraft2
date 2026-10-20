@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortOffroadVehicles>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortOffroadCar" Guid="263f4995-a879-47b9-b383-b93447233bc1">
+      <MemberComponentTemplate Name="TwoSeatManager" Guid="2592dd7e-c029-4cd7-95eb-0906e43bce42" InheritanceParent="115f884a-48ba-43d5-a8f9-6547c45f36c1">
+        <Parameter Name="DriverOffset" Guid="e9bd2613-eb6d-4a3c-838c-5f553954e110" Value="-0.45,0.86,0.18" Type="Vector3" />
+        <Parameter Name="PassengerOffset" Guid="4353f280-8831-4c8f-8317-bd31ae957d90" Value="0.45,0.86,0.18" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="OffroadCarDrive" Guid="27444607-80be-49e4-acce-949995e3e88f" InheritanceParent="b062bf10-a8c4-4eaf-b5d6-d6c0ac91269c" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="0e97c28b-c812-419c-a413-68ad1853b214" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="df18c897-23d1-4d5d-8291-754cafa36b94" Value="Models/OffroadCar" Type="string" />
+        <Parameter Name="CastsShadow" Guid="e1805b18-1726-4861-9434-abd531175af1" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="eb793553-c825-4e00-ad75-ff2626b9babf" Value="Textures/OffroadCar" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="c839ab35-1b64-4211-9fb5-1f586ffcea31" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="0479ee82-9396-442a-8b42-b82eea6fa76a" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="06128215-d38b-4332-be26-bfacb80b9581" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="ab2c8a53-f91b-4946-848f-9dfda3a1caf9" Value="-0.45,0.86,0.18" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="589ddeff-07dc-44c7-82e4-a200d443bbe4" Value="1.72,0.45,0.18" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="62cb9535-6999-4469-a27a-3b83bcb6a192" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="MaxSmoothRiseHeight" Guid="14418866-b739-4549-a58a-ac3603c205bc" Value="1.05" Type="float" />
+        <Parameter Name="BoxSize" Guid="2f1a22bc-c215-4b86-af06-ecda14a305e6" Value="2.4,1.55,4" Type="Vector3" />
+        <Parameter Name="Mass" Guid="61b365a5-227f-466a-9216-378e2c69fc11" Value="620" Type="float" />
+        <Parameter Name="AirDrag" Guid="d667112e-064c-4312-be06-38c22e97dae0" Value="0.45,0.75" Type="Vector2" />
+        <Parameter Name="WaterDrag" Guid="a185b834-db59-4459-834f-4e6f85a7595b" Value="2.5,3.5" Type="Vector2" />
+        <Parameter Name="Density" Guid="3055cf8f-d659-4c94-8478-d350ad57057a" Value="4.5" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="467c7fff-2e56-4872-b7d9-fbd7e1c98691" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="482b8db5-1abe-422a-b7d5-c10e8057a5cb" Value="260" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="Gameplay" Guid="d3d4b692-acc9-4128-9b99-a5acf1de1fbb">
+    <ComponentTemplate Name="SCIEPortTwoSeatManager" Description="Authoritative reusable two-seat allocator" Guid="115f884a-48ba-43d5-a8f9-6547c45f36c1" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="4a57df62-f5d1-4533-ad63-8980622c6763" Value="SCIEPort.Features.Vehicles.ComponentTwoSeatManager" Type="string" />
+      <Parameter Name="DriverOffset" Guid="229f5bd4-df29-48ea-9a54-4f689de8b160" Value="0,0.9,-0.3" Type="Vector3" />
+      <Parameter Name="PassengerOffset" Guid="c783890d-862f-4c32-925b-04cc3d813ec3" Value="0,0.9,0.62" Type="Vector3" />
+    </ComponentTemplate>
+    <ComponentTemplate Name="SCIEPortOffroadCarDrive" Description="Host-authoritative two-seat off-road car drive" Guid="b062bf10-a8c4-4eaf-b5d6-d6c0ac91269c" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="0ee229db-f2da-4986-8036-5de819fc8fe5" Value="SCIEPort.Features.OffroadVehicles.ComponentOffroadCarDrive" Type="string" />
+    </ComponentTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortOffroadCarBlockBehavior" Guid="e3cf79a1-0cb6-4102-9e8f-37870b1f746f" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="cabfa719-4d58-483b-9217-76a80fbf599d" Value="SCIEPort.Features.OffroadVehicles.SubsystemOffroadCarBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortOffroadCarBlockBehavior" Guid="0d50b030-a0da-4c33-80b4-914fa4f71e0f" InheritanceParent="e3cf79a1-0cb6-4102-9e8f-37870b1f746f" />
+  </ProjectTemplate>
+</SCIEPortOffroadVehicles>

@@ -167,16 +167,38 @@ target 调用无组件名的 `FindComponent<ComponentMount>()`。因此同一 AT
 
 原生 `ComponentBody.FindBodiesCollisionBoxes` 只排除直接父 Body 和直接子 Body，不排除祖父
 Body。“ATV → 乘客锚点 → 玩家”会让玩家继续与 ATV 车体碰撞，故未采用该静态可编译但运行风险
-明确的方案。两名乘员均作为 ATV Body 的直接子 Body，由 `ComponentAtvSeatManager` 维护稳定的
+明确的方案。两名乘员均作为 ATV Body 的直接子 Body，由可复用的 `ComponentTwoSeatManager` 维护稳定的
 驾驶员/乘客关联，并只在上车或重载角色恢复时设置 `ComponentRider.m_targetPositionOffset`。
 
 `PackageManager.RegisterPackage(IPackage)` 在 Mod DLL 加载前已完成原生包初始化，目标程序集中原生
-包 ID 为 0–38，ID 240 未占用。`AtvSeatAssignmentPackage` 仅由服务器发送，服务器收到同类客户端
+包 ID 为 0–38，ID 240 未占用。`TwoSeatAssignmentPackage` 仅由服务器发送，服务器收到同类客户端
 包时直接忽略；普通客户端只发送原生 Mount/Dismount request。该包是座位事件，不是逐帧位置同步。
 
 目标 `ComponentPlayerPackage.BodyUpdate` 在骑乘时仍会发送父车辆 Body 状态，因此远程普通客户端
 作为驾驶员不符合服务器权威要求。v0.3 只允许 `WorkType.Local` 或 Server 的 `IsMainPlayer` 驾驶，
 主机驾驶 + 客户端乘客待 Android 双机验证；远程客户端驾驶明确为不支持。
+
+## 0.11.0 双人快艇接口取证
+
+目标程序集中的原生 `ComponentPlayer.Update` 会在骑手父实体含 `ComponentBoat` 时，把每名骑手的
+移动输入写入同一组 `MoveOrder`/`TurnOrder`。它没有“驾驶座”参数，因此原生 Boat 不能直接用于
+双人驾驶权限隔离。0.11.0 从快艇实体移除该组件，由 `ComponentSteamBoatDrive` 仅读取
+`ComponentTwoSeatManager.Driver`；浮力、阻力、碰撞与保存仍交给目标原生 `ComponentBody`。
+
+双座寻址沿用已审计的直接子 Body 关联方式：实体只含一个原生 Mount，座位角色由服务端离散包
+ID 240 同步。客户端不写车辆速度。当前可验证权限为 Local 及 Server 主机本地驾驶员；普通客户端
+驾驶需要新的服务器输入/预测/纠偏协议，0.11.0 明确不支持。详细尺寸与验收边界见
+`SPEEDBOAT-V0.4-DUAL-SEAT-AUDIT.md`。
+
+## 0.12.0 双人越野车接口取证
+
+新车继续使用目标原生 `ComponentBody` 的三轴碰撞、重力、父 Body 骑乘跟随、
+`StandingOnValue`/`StandingOnBody` 接地状态与 `MaxSmoothRiseHeight`，没有复用
+`ComponentBoat` 或轨道居中逻辑。实体仍只挂一个原生 `ComponentMount`，由
+`ComponentTwoSeatManager` 分配左右座位；`ComponentOffroadCarDrive` 只读取 Driver。
+
+联机权限与现有双座载具保持一致：Local 或 Server 主机本地玩家可以驾驶，普通 Client 不写
+车辆速度或其他玩家位置。普通客户端驾驶需要额外的服务器输入、预测和纠偏协议，本版本不支持。
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail
