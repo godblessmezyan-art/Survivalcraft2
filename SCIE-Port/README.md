@@ -61,6 +61,17 @@ old DAE imported as ten bones. The nine geometries now share one identity root
 bone, and the inventory path enumerates all meshes instead of relying on unique
 mesh names. Android confirmation of the rebuilt package remains pending.
 
+Version 0.10.0 is ATV v0.3. The compact four-wheel visual is replaced by a
+project-created tandem off-road motorcycle while ID 923, `SCIEPortATV`, its
+entity GUID and the v0.2 driving rules remain stable. The driver keeps the
+vehicle's native mount. A separately addressable native mount entity is parented
+to the ATV body for the passenger, avoiding duplicate Mount components and
+per-frame player teleportation. Offline driving and host-player driving compile;
+ordinary clients never write vehicle velocity or another player's position. A
+remote client can be a passenger, but a remote client acting as driver is not
+supported until a server-authoritative input/correction protocol is implemented.
+All Android two-device behavior remains pending real-device verification.
+
 Version 0.9.0 adds an independently implemented, project-created low-poly T-34
 style tank prototype. It uses the native ground body, mount and rider chain
 rather than any boat physics: single-player touch input supports forward,

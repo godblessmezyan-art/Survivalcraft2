@@ -158,6 +158,25 @@ ATV 没有复用 `ComponentBoat`：该组件的推进、浮力和水面转向语
 `StandingOnValue` 表示地形支撑，`StandingOnBody` 表示实体支撑。v0.2 只有前者且后者为空时才施加
 驱动力；两者都为空时保留水平惯性，由原生重力和空气阻力处理。这样短暂离地不再触发 v0.1 的
 `7 * dt` 强制水平刹停，也不会借站在其它实体上获得越障推进。
+
+## 0.10.0 ATV v0.3 双座接口取证
+
+目标 `ComponentMountPackage` 只序列化 rider 实体 ID、target 实体 ID和事件类型；接收端对
+target 调用无组件名的 `FindComponent<ComponentMount>()`。因此同一 ATV 实体放置两个 Mount
+无法寻址第二个座位，v0.3 保持恰好一个原生 Mount。
+
+原生 `ComponentBody.FindBodiesCollisionBoxes` 只排除直接父 Body 和直接子 Body，不排除祖父
+Body。“ATV → 乘客锚点 → 玩家”会让玩家继续与 ATV 车体碰撞，故未采用该静态可编译但运行风险
+明确的方案。两名乘员均作为 ATV Body 的直接子 Body，由 `ComponentAtvSeatManager` 维护稳定的
+驾驶员/乘客关联，并只在上车或重载角色恢复时设置 `ComponentRider.m_targetPositionOffset`。
+
+`PackageManager.RegisterPackage(IPackage)` 在 Mod DLL 加载前已完成原生包初始化，目标程序集中原生
+包 ID 为 0–38，ID 240 未占用。`AtvSeatAssignmentPackage` 仅由服务器发送，服务器收到同类客户端
+包时直接忽略；普通客户端只发送原生 Mount/Dismount request。该包是座位事件，不是逐帧位置同步。
+
+目标 `ComponentPlayerPackage.BodyUpdate` 在骑乘时仍会发送父车辆 Body 状态，因此远程普通客户端
+作为驾驶员不符合服务器权威要求。v0.3 只允许 `WorkType.Local` 或 Server 的 `IsMainPlayer` 驾驶，
+主机驾驶 + 客户端乘客待 Android 双机验证；远程客户端驾驶明确为不支持。
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

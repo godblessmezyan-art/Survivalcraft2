@@ -53,6 +53,8 @@ $componentBody = $assembly.GetType('Game.ComponentBody', $true)
 $componentModel = $assembly.GetType('Game.ComponentModel', $true)
 $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
+$packageManager = $assembly.GetType('Game.NetWork.PackageManager', $true)
+$packageInterface = $assembly.GetType('Game.NetWork.IPackage', $true)
 $playerInput = $componentInput.GetProperty('PlayerInput').PropertyType
 $creatureSpawn = $assembly.GetType('Game.SubsystemCreatureSpawn', $true)
 $subsystemProjectiles = $assembly.GetType('Game.SubsystemProjectiles', $true)
@@ -107,6 +109,23 @@ if (-not $componentRider.GetMethod('StartDismounting', [Reflection.BindingFlags]
 }
 if (-not $componentPlayer.GetProperty('ComponentInput') -or -not $componentPlayer.GetProperty('ComponentRider') -or -not $playerInput.GetField('Move', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentPlayer -> ComponentInput -> PlayerInput.Move chain required by the tank was not found.'
+}
+if (-not $packageManager.GetMethod('RegisterPackage', [Reflection.BindingFlags]'Public,Static')) {
+    throw 'PackageManager.RegisterPackage required by the ATV seat association was not found.'
+}
+$nativePackageIds = @()
+foreach ($type in $loadedTypes) {
+    if ($packageInterface.IsAssignableFrom($type) -and -not $type.IsInterface -and -not $type.IsAbstract) {
+        try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
+    }
+}
+if ($nativePackageIds -contains 240) {
+    throw 'ATV seat package ID 240 conflicts with a native x25.01.17 package.'
+}
+foreach ($fieldName in @('m_riderOffset', 'm_targetPositionOffset', 'm_targetRotationOffset')) {
+    if (-not $componentRider.GetField($fieldName, [Reflection.BindingFlags]'Public,Instance')) {
+        throw "ComponentRider.$fieldName required by discrete ATV seat assignment was not found."
+    }
 }
 if (-not $playerInput.GetField('Hit', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'PlayerInput.Hit touch/attack ray required by the tank main gun was not found.'

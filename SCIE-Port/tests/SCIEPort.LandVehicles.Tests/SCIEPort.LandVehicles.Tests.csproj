@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\LandVehicles\AtvDriveRules.cs" Link="AtvDriveRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\LandVehicles\AtvSeatRules.cs" Link="AtvSeatRules.cs" />
   </ItemGroup>
 </Project>
