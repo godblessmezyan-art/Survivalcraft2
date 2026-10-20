@@ -31,6 +31,17 @@ namespace BuilderAssistant.Core.Blueprints
         /// (SubsystemDoorBlockBehavior.OnBlockAdded), so a blueprint stores only the
         /// bottom half and the top is derived at build time.</summary>
         Door = 4,
+        /// <summary>Vanilla log / wood block (Game.WoodBlock subclass, e.g. OakWoodBlock).
+        /// An opaque SOLID cube; its DATA carries only a 2-bit cut-face: the direction the
+        /// growth rings face. Confirmed from the decompiled x25.01.17 WoodBlock:
+        ///   GetCutFace(data) = (data &amp; 3) switch {0 -> 4(Y), 1 -> 0, else -> 1}
+        ///   SetCutFace(data, face): face 0/2 -> bits 1, face 1/3 -> bits 2, else -> bits 0.
+        /// So data 0 = a VERTICAL log (rings on the top/bottom faces) — the tree-trunk
+        /// orientation. A vertical log is invariant under both Y-rotation and X-mirror.
+        /// Horizontal logs (bits 1/2) swap axes on a quarter turn; the v0.12 treehouse only
+        /// ever authors vertical logs, so horizontal-axis mirror correctness is deliberately
+        /// out of scope here (kept group-law consistent, but not device-verified).</summary>
+        Log = 5,
     }
 
     /// <summary>
@@ -77,6 +88,8 @@ namespace BuilderAssistant.Core.Blueprints
                     return data & 0xF; // four arms
                 case BlockFamily.Door:
                     return data & 0xF; // rotation + open + rightHanded
+                case BlockFamily.Log:
+                    return data & 0x3; // cut-face axis only (0 = vertical)
                 case BlockFamily.Cube:
                 default:
                     return 0;
@@ -123,6 +136,16 @@ namespace BuilderAssistant.Core.Blueprints
                     }
                     return mask;
                 }
+                case BlockFamily.Log:
+                {
+                    int bits = data & 0x3; // 0 = vertical (invariant)
+                    if (bits == 0)
+                    {
+                        return 0;
+                    }
+                    // Horizontal axis toggles once per quarter turn; an even count is identity.
+                    return ((r & 1) == 0) ? bits : (bits == 1 ? 2 : 1);
+                }
                 case BlockFamily.Slab:
                 case BlockFamily.Cube:
                 default:
@@ -163,6 +186,14 @@ namespace BuilderAssistant.Core.Blueprints
                     int z = mask & 0xC; // +Z / -Z unchanged
                     return ((x0 << 1) | (x1 >> 1) | z) & 0xF;
                 }
+                case BlockFamily.Log:
+                {
+                    // Vertical logs (the only kind the generator authors) are mirror-invariant.
+                    // Horizontal-log mirror axis mapping is intentionally not modeled here:
+                    // the v0.12 treehouse never emits a horizontal log, and the exact face->axis
+                    // mirror behaviour is not device-verified (kept honest, not guessed).
+                    return data;
+                }
                 case BlockFamily.Slab:
                 case BlockFamily.Cube:
                 default:
@@ -194,6 +225,7 @@ namespace BuilderAssistant.Core.Blueprints
                 case "slab": return BlockFamily.Slab;
                 case "fence": return BlockFamily.Fence;
                 case "door": return BlockFamily.Door;
+                case "log": return BlockFamily.Log;
                 case "cube":
                 default: return BlockFamily.Cube;
             }
@@ -207,6 +239,7 @@ namespace BuilderAssistant.Core.Blueprints
                 case BlockFamily.Slab: return "slab";
                 case BlockFamily.Fence: return "fence";
                 case BlockFamily.Door: return "door";
+                case BlockFamily.Log: return "log";
                 case BlockFamily.Cube:
                 default: return "cube";
             }

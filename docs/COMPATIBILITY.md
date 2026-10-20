@@ -709,7 +709,6 @@ public static class Utils {
 | 主炮 Android 7723 | 待验证 | 攻击触屏射线发射弹速 42 的原版弹体，1.6 秒冷却，命中移除后产生压力 18 非燃烧爆炸；炮塔/炮管跟随瞄准。须在可丢弃世界实测。 |
 | 尺寸与一格越障 | 待验证 | 模型放大 35%，Body 为 `3.6,2.1,5.9`；`MaxSmoothRiseHeight=1.05` 仅使用原生碰撞和平滑抬升，不瞬移、不改地形。 |
 | 多人主炮 | 不支持 | 本阶段仍只在 `WorkType.Local` 生成炮弹和爆炸，没有服务器权威或同步验证。 |
-
 ## SCIE-Port 0.9.2 坦克 v0.3.1 炮塔与炮口安全修复
 
 | 能力 | 状态 | 证据与边界 |
@@ -721,3 +720,64 @@ public static class Utils {
 | v0.3.1 炮塔修复 | 已确认（源码/编译），Android 待验证 | 持续使用活动摄像机方向计算炮塔角度；触屏命中帧使用实际 `Hit` 射线，发射方向由限制后的炮塔/炮管角度重建。 |
 | Windows 游戏运行 | 待验证 | 本轮按用户要求未启动本机游戏。 |
 | 多人主炮 | 不支持 | 未实现服务器权威炮塔、炮弹或爆炸同步。 |
+
+## v0.12.0 大型奇幻树屋「森之王庭」（M1 原版方块取证 + M2 程序化生成，纯追加）
+
+本轮严格按任务 §7 交付里程碑 M1（原版方块支持审计）与 M2（第一个可导入的大型树屋蓝图集）。全部改动仅落在 `src/BuilderAssistant/Core/Tree`（新增）、`Core/Blueprints`（Log 族与三个键，纯追加）、`Core/Building/MaterialCatalog`（三条映射，纯追加）、`Features/WorldEdit/VanillaBlockPalette`（两条映射，纯追加）与对应离线测试；**未触碰** SCIE-Port、快艇、ATV、WorldEditRuntime、BuildPlanner、BuildTask、TransactionHistory、BuildingWorkbench、蓝图 schema v2、1024/32/64 限额、`TreatWarningsAsErrors`/`GenerateDocumentationFile`、任何 `.xdb`/`.csv`/GUID。
+
+### M1：原版方块白名单取证（决定"什么是安全的"）
+
+反编译 `D:\SCNET\Survivalcraft.exe`（x25.01.17 Windows 发布包）逐一验证后才纳入：
+
+| 候选 | 结论 | 状态 | 证据 |
+| --- | --- | --- | --- |
+| `OakWoodBlock` | 纳入为**原木**，仅竖向 | 已确认（反编译） | `Index=9`，`Game.WoodBlock` 不透明实心立方；DATA 位对 [0-1]=切面朝哪：`GetCutFace(0)=4`＝Y 轴朝向＝竖立原木（年轮在上下顶底面）。树屋只作者化竖向原木（data 0），竖向原木对绕 Y 旋转与 X 镜像皆不变，故 `BlockOrientation` 只对 `bits==0` 定义不变、刻意**不**建模横向原木的轴映射（生成器绝不产出横向原木，见下方"不支持"）。 |
+| `SpruceLeavesBlock` | 纳入为**树叶**，data 0 | 已确认（反编译） | `Index=14`，`AlphaTestCube`（半透明镂空渲染），无作者化 DATA。常青种：`DeciduousLeavesBlock` 会把季节 `TimeOfYear` 存进 DATA（存档后随游戏内季节变化而换相）→ 排除，避免蓝图烘焙引擎会重算的状态。 |
+| 树叶腐坏不变式 | 纳入生成器硬约束 | 已确认（反编译） | `SubsystemWoodBlockBehavior` 仅当某树叶 Chebyshev 距离 3 内**无** `WoodBlock` 时才使其腐坏。故树冠以半径 2 的团簇贴着**已证实的原木锚点**生长（留 1 格安全余量），`TreehouseBlueprintSet.Validate` 在**最终画布**（非绘制时）逐格复核"每片叶 3 格内有原木"，离线断言 `TestTreehouseLeafDecaySafety` 证明无叶会在存读档后消失。 |
+| 梯子 / 火把 / 家具 / 树苗 | 排除 | 不支持 | `LadderBlock`/`TorchBlock`/`FurnaceBlock` 等带实体或方块状态、`SaplingBlock` 会随机长成树；x25.01.17 Mod 沙箱下"可靠创建 + 存读档不丢状态"未取证，§5 允许用木/半砖/楼梯**组合件**替代，第一版树屋不强依赖家具。 |
+| Builder Assistant 自有工具块 | 绝不落世界 | 已确认（离线） | 900–904 是 Mod 工具/物品，任务 §1 明令禁入建筑体。`TestTreehouseEmitsOnlyVanillaBlocks` 逐格反查每个单元都能被 `MaterialCatalog` 解析为**原版方块**，工具块绝不出现。 |
+
+### M2：确定性程序化大型树屋生成器
+
+新增五个游戏无关、可离线单测的 Core 生成类（任务 §3 要求的类名一一对应）：
+
+| 类 | 职责 | 关键取证点 |
+| --- | --- | --- |
+| `GiantTreeGenerator` | 主树干：底部 3 格外扩树根裙→中段半径 2→上段半径 1 的收窄轮廓，rim 抖动 `rng.Chance(72)` 求自然不规则，顶端 3×3 树冠结（TrunkUpper），全部竖向原木 data 0 | 树干从 Y=0 长到 `TrunkTopY=30`，穿过每一层楼板 |
+| `TreeBranchGenerator` | 6 条侧枝：整数八方位罗盘 `compX/compZ`（不依赖 `Math.Cos/Sin`，跨运行时逐位一致），基座 Y 随机、每步爬升 +1、末端记录锚点 | 枝干 spine 单元登记进 `Anchors`，供树冠在"已证实原木位"挂叶簇 |
+| `TreeCanopyGenerator` | 贴着枝/冠锚点吹半径 `CanopyRadius` 的叶团，壳层变薄 `rng.Chance(78)` 去方盒子感，遇原木/已占位跳过 | `IsNearLog(...,3)` 守卫 + `SetIfEmpty`，绝不擦除树干 |
+| `TreehouseGenerator` | 三层木屋：地板/墙/角柱/女儿墙/玻璃窗/窗台/歇山屋顶/室内楼梯，全用 `SetStructural` | 入口层北墙留门洞（门上方留空、内侧可通行），楼梯真实可上 |
+| `TreehouseDecorationGenerator` | 门、门廊台阶、8 向楼板斜撑、前+侧露台 | 门 `if(!IsLog)` 才写，只作者化**下半格**（上半由引擎自动补） |
+
+装配与合规：`TreehouseBlueprintSet.Build` 先在一张主 `TreeCanvas` 上按固定顺序（树干→枝→树冠→房屋→装饰）**一次性**作者化，再按阶段切成每段都满足安全包络（≤1024 单元、任一轴 ≤64）的 `TreehousePart` 蓝图；超限阶段**自动按 Y 分层**、绝不上调 1024 硬闸（任务 §6）。每格相对坐标 = 主坐标 − 该桶最小角，执行端落在 `anchor + OffsetInMaster + cell.Relative`，从而**复用**既有 `BuildPlanner/BuildTask/undo` 管线不改动。`Blueprint.Normalize` 归零 + `TreehousePreview` 输出正/侧立面、俯视、分层平面与逐阶段可导入 JSON（任务 §4 离线预览）。连通性用 **26 邻接**（楼梯/攀爬枝是棱连接，6 邻接会误判多块）。
+
+### 默认种子产物（33×36×33，seed=20261020）
+
+9 个阶段、合计 2765 方块，校验干净、逐字节确定：Roots 175 / Trunk-Lower 199 / Trunk-Upper 220 / Branches 37 / Canopy 488 / Floor1 650 / Floor2 395 / Floor3 519 / Decor 82。族计数 Log=631、Cube=1829、Stairs=134、Slab=48、Fence=122、Door=1。
+
+### 本轮实际修改
+
+- 新增：`Core/Tree/{TreehouseSpec,TreeCanvas,GiantTreeGenerator,TreeBranchGenerator,TreeCanopyGenerator,TreehouseGenerator,TreehouseDecorationGenerator,TreehouseBlueprintSet,TreehousePreview}.cs`（SDK glob 自动纳入工程）。
+- 纯追加：`BlockFamily.Log`、`BlockOrientation` 的 `log` 族标签与竖向不变式、`BuildingMaterials` 三键（`LogTrunk/LogBranch/Leaves`）、`MaterialCatalog` 与 `VanillaBlockPalette` 各两映射（`OakWoodBlock→Log`、`SpruceLeavesBlock→Cube`）。
+- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.11.1 → 0.12.0`；`modinfo.json` 顺带修复上一轮遗留的一处非法 JSON（重复尾块），现已通过 `JSON.parse` 校验。
+- `tests/BuilderAssistant.Tests`：`csproj` 纳入 Core/Tree 编译项；新增 7 组树屋测试（朝向语义、规格拒绝、确定性、安全包络、纯原版、叶腐坏不变式、结构事实）；离线 **413/413** 通过。
+- `docs/COMPATIBILITY.md`：本节。
+
+### 已跑验证（本机 Windows，桌面）
+
+- 离线逻辑测试 **413/413** 全通过。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true`+`GenerateDocumentationFile=true`，编译通过即 ABI 无变化）。
+- XDB 合并安全守卫通过；方块类名唯一性守卫输出 `BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock, WorkbenchToolBlock`。
+- `.netmod` 重打包 SHA-256 `E9E3BD0260B2B1EEAB39461126EFE31BCC46D74CF73E3D38F0A047BCACB33544`（2,373,852 字节）；`BuilderAssistant.dll` 反射 `AssemblyVersion=0.12.0.0` / `FileVersion=0.12.0.0` / `ProductVersion=0.12.0`。
+
+### 尚未确认 / 待验证（不以离线通过冒充真机成功，任务 §8）
+
+| 项 | 状态 |
+| --- | --- |
+| 蓝图 JSON 能被 Android 7723 客户端**导入**（`Blueprint Tool` 903 剪贴板/库导入） | 待验证（须真机） |
+| 导入后能被 Builder Assistant **逐阶段落建**（当前只有手动两按确认落建与工作台；一次点击按主锚点自动装配多阶段是 M4，尚未接入） | 不支持（执行器无一键多阶段装配，本轮只产蓝图与离线预览） |
+| `OakWoodBlock` 竖向原木在 7723 的**实际渲染/朝向**、`SpruceLeavesBlock` 的 `AlphaTestCube` 半透明渲染 | 待验证 |
+| 落建后**存读档**：原木保持竖向、树叶不腐坏、门自动补上半格、楼梯可攀爬连通 | 待验证 |
+| 联机房主权威下这些**原版方块**能否区块同步到未装 Mod 客户端 | 待验证（理由同 v0.10.1：产出皆原版方块故应能同步，但真机双端未证） |
+| 横向原木轴映射 / 家具方块 | 不支持（未取证，见 M1） |
+

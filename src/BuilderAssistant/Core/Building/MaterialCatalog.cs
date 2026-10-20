@@ -56,6 +56,14 @@ namespace BuilderAssistant.Core.Building
 
             Add(d, BuildingMaterials.InteriorWall, "PlanksBlock", BlockFamily.Cube);
             Add(d, BuildingMaterials.SupportBeam, "PlanksBlock", BlockFamily.Cube);
+
+            // v0.12 giant-tree blocks. OakWoodBlock / SpruceLeavesBlock were each confirmed
+            // to exist in the x25.01.17 assembly in the M1 audit (OakWoodBlock Index=9,
+            // SpruceLeavesBlock Index=14). Logs are authored vertical (data 0); leaves carry
+            // no authored data. VanillaBlockPalette maps both concrete names to these families.
+            Add(d, BuildingMaterials.LogTrunk,  "OakWoodBlock",     BlockFamily.Log);
+            Add(d, BuildingMaterials.LogBranch, "OakWoodBlock",     BlockFamily.Log);
+            Add(d, BuildingMaterials.Leaves,    "SpruceLeavesBlock", BlockFamily.Cube);
             return d;
         }
 

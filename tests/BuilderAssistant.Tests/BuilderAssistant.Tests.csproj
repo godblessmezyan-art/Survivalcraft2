@@ -69,5 +69,20 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildingSelectionService.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\WorkbenchStage.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Workbench\BuildingWorkbench.cs" />
+    <!-- v0.12 giant fantasy treehouse (森之王庭). Pure, game-free Core/Tree generators +
+         phased slicing + validator + offline preview. They depend only on the Core
+         abstractions compiled above (Blueprint/BlockOrientation/MaterialCatalog/
+         DeterministicRandom/BuildSafetyLimits/BlueprintJson), never the game assembly, so the
+         whole trunk->branches->canopy->floors->decoration pipeline and its decay-safety +
+         per-transaction-cap validation run offline. Live in-world placement is 待验证. -->
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseSpec.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreeCanvas.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\GiantTreeGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreeBranchGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreeCanopyGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseDecorationGenerator.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehouseBlueprintSet.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Tree\TreehousePreview.cs" />
   </ItemGroup>
 </Project>
