@@ -55,3 +55,7 @@ ModSettings.xml
 
 # Local build output / packaging artifacts (publish as GitHub Release, never commit)
 outputs/
+
+# Forensic staging: decompiled game-assembly source derived from proprietary
+# Survivalcraft.exe / Engine.dll. Read-only ABI evidence only; never commit.
+build_stage/
