@@ -72,6 +72,9 @@ native 2.5-block mount search can reach the pilot seat.
 ```
 
 See `docs/TEST-RESULTS.md` before interpreting any compatibility claim.
+Before creating another vehicle asset, read `docs/VEHICLE-MODEL-GUIDE.md`; it records
+the Android-safe single-bone DAE layout, inventory/world rendering differences,
+texture rules, target-Engine import checks and device acceptance procedure.
 Porting rules and licensing requirements are in `AGENTS.md`,
 `docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 

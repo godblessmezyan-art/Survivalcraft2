@@ -17,4 +17,5 @@
 - 兼容性状态只使用：`已确认`、`待验证`、`不支持`。
 - 每次构建先运行 `scripts/Test-Environment.ps1`，再运行 Release 构建和包内容校验，并把结果写入 `docs/TEST-RESULTS.md`。
 - Android 首测必须使用可丢弃的新建单人世界和存档备份；世界生成应有每区块/每帧预算，禁止一次更新无界扫描或写入。
+- 新建或重做载具模型前必须完整阅读 `docs/VEHICLE-MODEL-GUIDE.md`；静态载具使用单根骨骼，且必须用目标 `Engine.Media.ModelData.Load` 校验实际导入骨骼/网格数，不能只验证物品栏图标或 DAE XML。
 

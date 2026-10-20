@@ -163,7 +163,8 @@ x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Me
 `BlockMesh`，世界 `ComponentSimpleModel` 路径则向实例模型着色器提交全部骨骼变换，故只有世界路径
 超过预算。0.8.3 保留九个独立 geometry，但将它们挂到一个 identity `ATV` 根节点；目标 Engine 的
 实际导入结果降为 1 bone/9 meshes，物品栏代码同步改为枚举全部 meshes。该原因与离线导入结果为
-已确认；修复后的 Android 世界渲染仍待用户复测。
+已确认；2026-10-20 用户在 Android 7723 确认 0.8.3 测试通过，物品栏与世界模型均可见。
+此实测只确认渲染修复，不自动确认驾驶手感、一格越障、保存重载或多人同步。
 
 ## 尚未确认的能力（Builder Assistant）
 
