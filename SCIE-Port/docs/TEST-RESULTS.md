@@ -205,3 +205,17 @@ THIRD-PARTY-NOTICES.md
 5. 对 0.3 格以内小台阶、1 格墙、斜坡边缘、建筑墙和悬崖逐项测试：只应由原生 Body 碰撞/重力处理，不得穿墙、穿地或飞行。
 6. 保存退出并重进，确认实体模板、位置、车体方向及日志正常；本阶段 `TurretYaw`/`GunPitch` 只是持久化预留字段，尚无操控/动画。
 7. 若失败，回传首次 `Warning/Error` 原文、完整日志、设备型号、Android 版本、7723 客户端版本/文件指纹与复现步骤；不要仅凭后续的“Database not loaded”判断根因。
+
+## 0.9.0 坦克 v0.2 稳定化（2026-10-20）
+
+- 环境检查：已确认。`E:\SCNET\SCNETx25.01.17`，`Survivalcraft.exe` 2.4.0.0，API 1.42，SC 2.4.10.6，net472。
+- 规则测试：已确认。坦克推进、倒车、滑行、反向制动、限速、转向及接地许可测试通过。
+- 模型导入：已确认。目标 `Engine.Media.ModelData.Load` 实际结果为 3 骨骼、20 网格；Y_UP、层级、法线、UV、三角形和 64×8 八色不透明 PNG 均通过构建守卫。
+- 数据库：已确认。`Tanks.xdb` 的 Body/Mount/Spawn/Damage/TankDrive 继承与内部 GUID 校验通过；ID 924 保持不变。
+- Release 编译：已确认。0 warning、0 error。
+- `.netmod`：已确认生成并完成包内容检查。路径 `artifacts/SCIEPort.netmod`，SHA-256 `79F0C12219235C4D4D4F55AAA880F03746167CE1F79311869AC4B00D45A9EFBD`。
+- Windows 游戏运行：待验证；本轮未启动游戏。
+- Android 7723 实机：待验证；不得依据 Windows 编译结果标记兼容。
+- 多人联机：不支持；本阶段驱动只在 `WorkType.Local` 运行。
+
+详细根因、参数和实机清单见 `docs/TANK-V0.2-AUDIT.md`。

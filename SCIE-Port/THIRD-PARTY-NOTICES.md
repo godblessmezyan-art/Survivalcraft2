@@ -90,12 +90,11 @@ renamed or redistributed; code and database bindings are rewritten for SCNET.
 
 - `Assets/Models/T34Tank.dae` is an original, project-created low-poly model,
   authored for this port. It is not extracted from a game or a third-party
-  vehicle asset. Its required independent meshes are `TankHull`, `TankTurret`
-  and `TankGun`; SHA-256
-  `4B237A24196F6C959F7415D1B05D1517B23C4025EF71285E28F33F89616E8B3E`.
-- `Assets/Textures/T34Tank.png` is a project-created opaque-white 1×1 PNG,
-  reused as a neutral material input and tinted by the tank entity's diffuse
-  color. Its SHA-256 is
-  `D5A51B6AED15684EC8C123E30FE5703155359D6543B6D7B47CB5766EF44939DE`.
+  vehicle asset. It contains 20 low-poly cuboid meshes grouped under the
+  articulated `TankHull` > `TankTurret` > `TankGun` hierarchy; SHA-256
+  `2C9CDBE734232CED018C8AD5CC8892E751F619398F261FAB83EB2EF01558A2FB`.
+- `Assets/Textures/T34Tank.png` is a project-created opaque 64×8 PNG palette
+  containing eight armor, track, wheel and metal colors. Its SHA-256 is
+  `9F124EC309D91D91A33DD573E0A797DF79FFCDB1B11BAF1675C51D09A2D7DCCD`.
 - The visual design is a generic, low-poly T-34-style silhouette; no claimed
   manufacturer artwork, texture, sound or source-game asset is included.

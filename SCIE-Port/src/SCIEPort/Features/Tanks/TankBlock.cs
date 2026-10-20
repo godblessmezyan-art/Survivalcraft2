@@ -18,14 +18,12 @@ namespace SCIEPort.Features.Tanks
         public override void Initialize()
         {
             Model model = ContentManager.Get<Model>("Models/T34Tank");
-            foreach (string name in new[] { "TankHull", "TankTurret", "TankGun" })
+            foreach (ModelMesh mesh in model.Meshes)
             {
-                ModelMesh mesh = model.FindMesh(name, true);
                 Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone) * Matrix.CreateScale(0.3f);
                 foreach (ModelMeshPart part in mesh.MeshParts)
                 {
                     m_mesh.AppendModelMeshPart(part, transform, false, false, false, false, Color.White);
-                    m_mesh.AppendModelMeshPart(part, transform, false, true, false, false, Color.White);
                 }
             }
             _ = Texture;
@@ -39,6 +37,12 @@ namespace SCIEPort.Features.Tanks
         public override void DrawBlock(PrimitivesRenderer3D primitivesRenderer, int value, Color color, float size, ref Matrix matrix, DrawBlockEnvironmentData environmentData)
         {
             BlocksManager.DrawMeshBlock(primitivesRenderer, m_mesh, Texture, color, size, ref matrix, environmentData);
+        }
+
+        /// <inheritdoc />
+        public override Vector3 GetIconViewOffset(int value, DrawBlockEnvironmentData environmentData)
+        {
+            return new Vector3(-0.75f, 0.3f, -1.1f);
         }
     }
 }

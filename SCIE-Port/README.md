@@ -65,10 +65,13 @@ Version 0.9.0 adds an independently implemented, project-created low-poly T-34
 style tank prototype. It uses the native ground body, mount and rider chain
 rather than any boat physics: single-player touch input supports forward,
 reverse, hull steering, braking, gravity, collision and a conservative
-0.3-block smooth-rise limit. The hull, turret and gun are separate named model
-nodes; hull movement state and independent persisted turret/gun angle fields
-are ready for a later aiming/fire feature. There is deliberately no fuel,
-weapon, multiplayer authority or Android compatibility claim yet.
+0.3-block smooth-rise limit. The rebuilt model contains hull, tracks, ten road
+wheels, turret, hatch, gun and muzzle meshes grouped under three articulated
+bones, with an opaque eight-color palette. Occupied driving uses one explicit
+longitudinal/lateral calculation and preserves airborne inertia instead of
+fighting native ground drag. Independent persisted turret/gun angle fields are
+ready for a later aiming/fire feature. There is deliberately no fuel, weapon,
+multiplayer authority or Android compatibility claim yet.
 
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the

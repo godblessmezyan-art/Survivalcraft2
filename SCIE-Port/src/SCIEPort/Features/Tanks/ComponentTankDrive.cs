@@ -9,10 +9,15 @@ namespace SCIEPort.Features.Tanks
     /// <summary>Single-player tracked ground drive; native ComponentBody owns all collision and gravity.</summary>
     public sealed class ComponentTankDrive : Component, IUpdateable
     {
+        private const float TurnRate = 1.1f;
+        private const float LateralGrip = 7f;
+        private const float DiagnosticPeriod = 5f;
+
         private ComponentBody m_body;
         private ComponentMount m_mount;
         private float m_turretYaw;
         private float m_gunPitch;
+        private float m_diagnosticTime;
 
         /// <summary>Saved independent turret angle, reserved for phase-two aiming.</summary>
         public float TurretYaw => m_turretYaw;
@@ -42,8 +47,10 @@ namespace SCIEPort.Features.Tanks
             m_body.MaxSmoothRiseHeight = TankRules.StepHeight;
             ComponentModel model = Entity.FindComponent<ComponentModel>(true);
             model.TextureOverride = TankBlock.Texture;
-            model.DiffuseColor = new Vector3(.28f, .42f, .15f);
-            model.EmissionColor = new Vector4(.12f, .12f, .12f, 0f);
+            // The palette already contains the armor/track colors. A near-white
+            // diffuse multiplier preserves them instead of multiplying green by green.
+            model.DiffuseColor = new Vector3(.85f, .9f, .8f);
+            model.EmissionColor = new Vector4(.04f, .04f, .03f, 0f);
         }
 
         /// <inheritdoc />
@@ -61,31 +68,64 @@ namespace SCIEPort.Features.Tanks
             float t = MathUtils.Clamp(dt, 0f, .1f);
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
-            if (player == null || player.ComponentRider != rider) { Coast(t); return; }
-            bool grounded = m_body.StandingOnValue.HasValue || m_body.StandingOnBody != null;
-            if (!grounded || m_body.ImmersionFactor >= .25f) { Coast(t); if (m_body.ImmersionFactor >= .8f) rider.StartDismounting(); return; }
+            if (player == null || player.ComponentRider != rider)
+            {
+                m_body.IsGroundDragEnabled = true;
+                return;
+            }
+
+            // ComponentBody otherwise applies native ground drag after this controller,
+            // producing the same double-drag failure previously found on the ATV.
+            m_body.IsGroundDragEnabled = false;
+            bool terrainGrounded = m_body.StandingOnValue.HasValue;
+            bool bodyGrounded = m_body.StandingOnBody != null;
+            Vector3 input = player.ComponentInput.PlayerInput.Move;
+            float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
+            if (!TankRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
+            {
+                // Preserve horizontal momentum while airborne. Gravity, collision and
+                // native air/water drag remain owned by ComponentBody.
+                if (m_body.ImmersionFactor >= .8f) rider.StartDismounting();
+                WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "drive-blocked");
+                return;
+            }
+
             Vector3 forward = m_body.Matrix.Forward; forward.Y = 0f;
             if (forward.LengthSquared() < .0001f) return;
             forward = Vector3.Normalize(forward);
-            Vector3 input = player.ComponentInput.PlayerInput.Move;
             Vector3 velocity = m_body.Velocity;
             Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
             float speed = Vector3.Dot(horizontal, forward);
-            horizontal += forward * TankRules.Acceleration(speed, MathUtils.Clamp(input.Z, -1f, 1f)) * t;
-            float clamped = MathUtils.Clamp(Vector3.Dot(horizontal, forward), -TankRules.ReverseSpeed, TankRules.ForwardSpeed);
-            m_body.Velocity = new Vector3((forward * clamped).X, velocity.Y, (forward * clamped).Z);
+            speed = TankRules.IntegrateForwardSpeed(speed, throttle, t);
+            Vector3 lateral = horizontal - forward * Vector3.Dot(horizontal, forward);
+            lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(LateralGrip * t));
+            horizontal = forward * speed + lateral;
+            m_body.Velocity = new Vector3(horizontal.X, velocity.Y, horizontal.Z);
             if (MathUtils.Abs(input.X) >= .05f)
             {
-                float direction = speed < -.1f ? -1f : 1f;
-                m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * 1.25f * t);
+                float direction = TankRules.GetSteeringDirection(speed);
+                float scale = TankRules.GetSteeringScale(MathUtils.Abs(speed));
+                m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * TurnRate * scale * t);
             }
+            WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
         }
 
-        private void Coast(float dt)
+        private void WriteDiagnostics(float dt, float throttle, bool terrainGrounded, bool bodyGrounded, string state)
         {
-            Vector3 v = m_body.Velocity;
-            Vector3 h = Vector3.Lerp(new Vector3(v.X, 0f, v.Z), Vector3.Zero, MathUtils.Saturate(4f * dt));
-            m_body.Velocity = new Vector3(h.X, v.Y, h.Z);
+            m_diagnosticTime += dt;
+            if (m_diagnosticTime < DiagnosticPeriod) return;
+            m_diagnosticTime = 0f;
+            Vector3 velocity = m_body.Velocity;
+            Log.Information(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "SCIE-Port Tank: state={0}, speed={1:0.00}, throttle={2:0.00}, terrainGrounded={3}, bodyGrounded={4}, immersion={5:0.00}, nativeGroundDrag={6}",
+                state,
+                new Vector2(velocity.X, velocity.Z).Length(),
+                throttle,
+                terrainGrounded,
+                bodyGrounded,
+                m_body.ImmersionFactor,
+                m_body.IsGroundDragEnabled));
         }
     }
 }

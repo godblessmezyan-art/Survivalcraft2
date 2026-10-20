@@ -242,8 +242,14 @@ try {
     $tankModel = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']")
     $tankTexture = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']")
     $tankStep = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='MaxSmoothRiseHeight']")
+    $tankBox = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']/Parameter[@Name='BoxSize']")
+    $tankMount = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
+    $tankDismount = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
     if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '0.3') {
         throw 'Tank entity model, texture or ground-step parameters are not the audited values.'
+    }
+    if ($tankBox.Value -ne '2.6,1.55,4.4' -or $tankMount.Value -ne '0,1.28,0.15' -or $tankDismount.Value -ne '1.65,0.4,0') {
+        throw 'Tank collision or seat parameters differ from the audited low-poly model envelope.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
@@ -384,17 +390,28 @@ try {
     if ($tankModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'T34Tank.dae must be oriented Y_UP.'
     }
-    foreach ($tankMeshName in @('TankHull', 'TankTurret', 'TankGun')) {
-        if ($null -eq $tankModelDocument.SelectSingleNode("//*[local-name()='node' and @name='$tankMeshName']")) {
-            throw "T34Tank.dae is missing required node $tankMeshName."
-        }
+    $tankRoot = $tankModelDocument.SelectSingleNode("//*[local-name()='visual_scene']/*[local-name()='node' and @name='TankHull']")
+    if ($null -eq $tankRoot) { throw 'T34Tank.dae is missing the TankHull root.' }
+    $tankTurret = $tankRoot.SelectSingleNode("./*[local-name()='node' and @name='TankTurret']")
+    if ($null -eq $tankTurret) { throw 'T34Tank.dae is missing the TankTurret child.' }
+    $tankGun = $tankTurret.SelectSingleNode("./*[local-name()='node' and @name='TankGun']")
+    if ($null -eq $tankGun) {
+        throw 'T34Tank.dae must use TankHull > TankTurret > TankGun articulated hierarchy.'
+    }
+    $tankParts = @('LowerHull','UpperHull','Glacis','TrackLeft','TrackRight',
+        'WheelL1','WheelL2','WheelL3','WheelL4','WheelL5',
+        'WheelR1','WheelR2','WheelR3','WheelR4','WheelR5',
+        'TurretBase','TurretRoof','Hatch','GunBarrel','GunMuzzle')
+    foreach ($tankMeshName in $tankParts) {
         $tankGeometry = $tankModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$tankMeshName']")
-        if ($null -eq $tankGeometry) {
-            throw "T34Tank.dae is missing independent geometry $tankMeshName."
+        if ($null -eq $tankGeometry) { throw "T34Tank.dae is missing geometry $tankMeshName." }
+        $tankPositions = $tankGeometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        if ((@($tankPositions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24) {
+            throw "T34Tank.dae geometry $tankMeshName must contain 8 cuboid positions."
         }
         $tankTriangles = $tankGeometry.SelectSingleNode(".//*[local-name()='triangles']")
         if ($null -eq $tankTriangles -or $tankTriangles.GetAttribute('count') -ne '12') {
-            throw "T34Tank.dae geometry $tankMeshName must contain 12 low-poly box triangles."
+            throw "T34Tank.dae geometry $tankMeshName must contain 12 low-poly triangles."
         }
         foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
             if ($null -eq $tankTriangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
@@ -402,6 +419,27 @@ try {
             }
         }
     }
+    $tankModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\T34Tank.dae'))
+    try { $targetTankModel = $targetModelLoad.Invoke($null, @($tankModelStream)) }
+    finally { $tankModelStream.Dispose() }
+    if ($targetTankModel.Bones.Count -ne 3 -or $targetTankModel.Meshes.Count -ne $tankParts.Count) {
+        throw "Target Engine must import T34Tank.dae as 3 bones/$($tankParts.Count) meshes; found $($targetTankModel.Bones.Count) bones/$($targetTankModel.Meshes.Count) meshes."
+    }
+    Add-Type -AssemblyName System.Drawing
+    $tankBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\T34Tank.png'))
+    try {
+        if ($tankBitmap.Width -ne 64 -or $tankBitmap.Height -ne 8) { throw 'T34Tank.png must be the audited 64x8 opaque palette.' }
+        $tankColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x = 0; $x -lt $tankBitmap.Width; $x++) {
+            for ($y = 0; $y -lt $tankBitmap.Height; $y++) {
+                $pixel = $tankBitmap.GetPixel($x, $y)
+                if ($pixel.A -ne 255) { throw "T34Tank.png contains transparent pixel at $x,$y." }
+                [void]$tankColors.Add($pixel.ToArgb())
+            }
+        }
+        if ($tankColors.Count -ne 8) { throw "T34Tank.png must contain exactly eight opaque palette colors; found $($tankColors.Count)." }
+    }
+    finally { $tankBitmap.Dispose() }
 
     [xml]$trainModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Train.dae')
     if ($null -eq $trainModel.SelectSingleNode("//*[local-name()='node' and @name='Cylinder']")) {
