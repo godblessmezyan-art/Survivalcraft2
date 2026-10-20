@@ -555,11 +555,11 @@ namespace BuilderAssistant.Tests
         {
             Console.WriteLine("[TestPlanRejectsCountCap]");
             BlueprintBuilder b = new BlueprintBuilder();
-            b.FillBox(0, 0, 0, 22, 1, 22, BuildingMaterials.StoneBase); // 23*23*2 = 1058 cells
+            b.FillBox(0, 0, 0, 32, 2, 32, BuildingMaterials.StoneBase); // 33*3*33 = 3267 > 2756 cap
             Blueprint bp = b.ToBlueprint("too_big", 1);
             FakeTerrain terrain = new FakeTerrain();
             BuildPlan plan = BuildPlanner.Plan(bp, new CellPos(0, 10, 0), new FakeResolver(), terrain, true);
-            Check(!plan.Success, "plan fails when cell count exceeds the 1024 cap");
+            Check(!plan.Success, "plan fails when cell count exceeds the " + BuildSafetyLimits.MaxBlocksPerOperation + " cap");
             Check(terrain.Writes == 0, "over-cap plan writes nothing");
         }
 
@@ -1148,13 +1148,14 @@ namespace BuilderAssistant.Tests
         private static void TestBlueprintJsonRejectsOverCap()
         {
             Console.WriteLine("[TestBlueprintJsonRejectsOverCap]");
-            // 23 x 23 x 2 = 1058 cells > the 1024 per-transaction cap.
+            // 39 x 39 x 2 = 3042 cells > the per-transaction cap.
             var sb = new System.Text.StringBuilder();
             sb.Append("{\"schemaVersion\":1,\"materials\":[{\"id\":0,\"key\":\"StoneBase\"}],\"cells\":[");
+            int cap = BuildSafetyLimits.MaxBlocksPerOperation;
             int n = 0;
-            for (int x = 0; x < 23 && n < 1058; x++)
-                for (int z = 0; z < 23 && n < 1058; z++)
-                    for (int y = 0; y < 2 && n < 1058; y++, n++)
+            for (int x = 0; x < 39 && n <= cap; x++)
+                for (int z = 0; z < 39 && n <= cap; z++)
+                    for (int y = 0; y < 2 && n <= cap; y++, n++)
                     {
                         if (n > 0) sb.Append(',');
                         sb.Append("{\"x\":").Append(x).Append(",\"y\":").Append(y)
@@ -1162,7 +1163,7 @@ namespace BuilderAssistant.Tests
                     }
             sb.Append("]}");
             BlueprintJsonDecodeResult decode = BlueprintJson.Decode(sb.ToString());
-            Check(!decode.Success, "an over-cap blueprint (>1024 cells) is rejected on import");
+            Check(!decode.Success, "an over-cap blueprint (>" + cap + " cells) is rejected on import");
             Check(decode.FirstError != null && decode.FirstError.Contains("上限"), "reason mentions the block cap");
         }
 
@@ -2075,7 +2076,7 @@ namespace BuilderAssistant.Tests
             Check(!win.Validate().IsValid, "window density outside 0..100 is rejected");
 
             BuildingSpec tall = BuildingSpec.DefaultCottage();
-            tall.Floors = 4; tall.WallHeight = 8; // 4*(8+1)=36 slab + roof -> beyond single-axis 64
+            tall.Floors = 4; tall.WallHeight = 16; // 4*(16+1)=68 total height > 64 axis cap
             Check(!tall.Validate().IsValid, "over-tall stack (total height > 64) is rejected");
 
             BuildingSpec monster = BuildingSpec.DefaultCottage();

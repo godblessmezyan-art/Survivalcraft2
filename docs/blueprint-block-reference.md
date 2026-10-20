@@ -25,7 +25,7 @@
 - `schemaVersion`：必须 ≤ 2（v1 无 `f`/`d` 字段时视为纯 cube）。
 - `kind`：必须为 `"builderassistant.blueprint"` 或省略。
 - `size`：advisory，导入后按 cells 包围盒重新计算；若声明与实际不一致则拒绝。
-- `cells`：数组长度 ≤ **1024**（每事务硬上限），坐标为相对值（最小角归一化到 0）。
+- `cells`：数组长度 ≤ **2756**（每事务硬上限，2026-10-20 由 1024 上调），坐标为相对值（最小角归一化到 0）。
 - 每轴尺寸 ≤ **64**。
 - 每格 `m` 为 `materials` 数组中的 `id` 索引。
 - `f` 可选：方块族标签（见下表），缺省为 `"cube"`。
@@ -163,11 +163,13 @@
 
 | 参数 | 值 | 来源 |
 |---|---|---|
-| 每份蓝图最大格数 | **1024** | `BuildSafetyLimits.MaxBlocksPerOperation` |
+| 每份蓝图最大格数 | **2756** | `BuildSafetyLimits.MaxBlocksPerOperation`（2026-10-20 由 1024 上调） |
 | 每轴最大尺寸 | **64** | `BuildSafetyLimits.MaxSelectionAxisLength` |
 | 每批写入最大格数 | **32** | `BuildSafetyLimits.MaxBlocksPerBatch`（运行时执行器用，不影响导入） |
 
 超过这些值的蓝图文件在 `BlueprintJson.Decode` 阶段即被拒绝，不会部分导入。
+
+> **注意（大型结构）**：即便上限已升至 2756，默认大型树屋蓝图（2765 格）仍超出单事务上限，因此它**不是**以一份扁平蓝图 JSON 导入的，而是走 Treehouse 运行模式，按阶段（9 个 phase，每段各自 ≤ 2756）顺序装配。若你要用单份 JSON 导入，cells 必须 ≤ 2756；超过请拆分为多份蓝图或改用分阶段装配。
 
 ## 生成蓝图 JSON 的注意事项
 
@@ -197,10 +199,10 @@
 
 ```json
 {
-  "modVersion": "0.13.0",
+  "modVersion": "0.13.1",
   "targetGame": "Survivalcraft NET x25.01.17",
   "schemaVersion": 2,
-  "limits": { "maxCells": 1024, "maxAxis": 64, "maxPerBatch": 32 },
+  "limits": { "maxCells": 2756, "maxAxis": 64, "maxPerBatch": 32 },
   "families": {
     "cube":   { "dataRange": [0, 0],  "tags": ["cube"] },
     "stairs": { "dataRange": [0, 7],  "tags": ["stairs"] },

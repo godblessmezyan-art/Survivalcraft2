@@ -6,8 +6,14 @@ namespace BuilderAssistant.Core.Safety
     /// </summary>
     public static class BuildSafetyLimits
     {
-        /// <summary>Maximum number of cells planned by one future operation.</summary>
-        public const int MaxBlocksPerOperation = 1024;
+        /// <summary>
+        /// Maximum number of cells in one operation (BuildTask transaction).
+        /// Raised from 1024 to 2756 on 2026-10-20 per project-owner decision,
+        /// sized to keep the giant treehouse (2765 blocks) within 1-2 phases.
+        /// Per-frame write cost is still governed by MaxBlocksPerBatch (32) and
+        /// spatial scope by MaxSelectionAxisLength (64).
+        /// </summary>
+        public const int MaxBlocksPerOperation = 2756;
 
         /// <summary>Maximum number of cells applied by one future update batch.</summary>
         public const int MaxBlocksPerBatch = 32;
