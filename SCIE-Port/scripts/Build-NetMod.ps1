@@ -46,6 +46,9 @@ if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" 
 $atvTests = Join-Path $projectRoot 'tests\SCIEPort.LandVehicles.Tests\SCIEPort.LandVehicles.Tests.csproj'
 & $dotnetPath run --project $atvTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "ATV drive rule tests failed: $LASTEXITCODE" }
+$offroadTests = Join-Path $projectRoot 'tests\SCIEPort.OffroadVehicles.Tests\SCIEPort.OffroadVehicles.Tests.csproj'
+& $dotnetPath run --project $offroadTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Off-road car rule tests failed: $LASTEXITCODE" }
 $watercraftTests = Join-Path $projectRoot 'tests\SCIEPort.Watercraft.Tests\SCIEPort.Watercraft.Tests.csproj'
 & $dotnetPath run --project $watercraftTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
@@ -119,10 +122,12 @@ try {
         'Assets/Blocks/KellyPlants.csv',
         'Assets/Blocks/IndustrialFurniture.csv',
         'Assets/Blocks/LandVehicles.csv',
+        'Assets/Blocks/OffroadVehicles.csv',
         'Assets/Blocks/Tanks.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
+        'Assets/Database/OffroadVehicles.xdb',
         'Assets/Database/Tanks.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
@@ -135,12 +140,14 @@ try {
         'Assets/Models/WheelMould.dae',
         'Assets/Models/Cylinder.dae',
         'Assets/Models/Minecart.dae',
+        'Assets/Models/OffroadCar.dae',
         'Assets/Models/SteamBoat.dae',
         'Assets/Models/T34Tank.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
         'Assets/Textures/ATV.png',
+        'Assets/Textures/OffroadCar.png',
         'Assets/Textures/KellyExpansion.png',
         'Assets/Textures/T34Tank.png'
     )) {
@@ -265,6 +272,33 @@ try {
     if ($null -eq $atvMount -or $atvMount.Value -ne '0,0.9,-0.3') { throw 'ATV driver mount must remain at the audited front-seat offset.' }
     if ($null -eq $atvEntity.SelectSingleNode("./MemberComponentTemplate[@Name='ATVSeatManager']")) { throw 'ATV entity is missing its authoritative seat manager.' }
     if (@($atvEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) { throw 'ATV must keep exactly one native Mount; passenger role is managed by association.' }
+    [xml]$offroadDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\OffroadVehicles.xdb')
+    $offroadEntity = $offroadDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortOffroadCar']")
+    if ($null -eq $offroadEntity) { throw 'OffroadVehicles database is missing SCIEPortOffroadCar.' }
+    foreach ($component in @('TwoSeatManager','OffroadCarDrive','SimpleModel','Spawn','Mount','Body','Damage')) {
+        if ($null -eq $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
+            throw "Off-road car entity is missing component: $component"
+        }
+    }
+    if (@($offroadEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) {
+        throw 'Off-road car must keep exactly one native Mount; passenger role is managed by association.'
+    }
+    $offroadSeats = $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='TwoSeatManager']")
+    $offroadMount = $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']")
+    $offroadBody = $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']")
+    if ($offroadSeats.SelectSingleNode("./Parameter[@Name='DriverOffset']").Value -ne '-0.45,0.86,0.18' -or
+        $offroadSeats.SelectSingleNode("./Parameter[@Name='PassengerOffset']").Value -ne '0.45,0.86,0.18') {
+        throw 'Off-road car seat offsets differ from the audited side-by-side layout.'
+    }
+    if ($offroadMount.SelectSingleNode("./Parameter[@Name='DismountOffset']").Value -ne '1.72,0.45,0.18' -or
+        $offroadBody.SelectSingleNode("./Parameter[@Name='BoxSize']").Value -ne '2.4,1.55,4' -or
+        $offroadBody.SelectSingleNode("./Parameter[@Name='MaxSmoothRiseHeight']").Value -ne '1.05') {
+        throw 'Off-road car collision, step or dismount parameters differ from the audited layout.'
+    }
+    if ($offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/OffroadCar' -or
+        $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/OffroadCar') {
+        throw 'Off-road car model or texture resource mapping is invalid.'
+    }
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
     if ($null -eq $tankEntity) { throw 'Tank database is missing SCIEPortT34Tank.' }
@@ -436,6 +470,76 @@ try {
         if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
     }
     finally { $atvBitmap.Dispose() }
+
+    [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
+    if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
+    $offroadNodes = @($offroadModel.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
+    if ($offroadNodes.Count -ne 1 -or $offroadNodes[0].GetAttribute('name') -ne 'OffroadCar') {
+        throw 'OffroadCar.dae must use exactly one OffroadCar scene node.'
+    }
+    $offroadMatrix = ($offroadNodes[0].SelectSingleNode("./*[local-name()='matrix']").InnerText -replace '\s+',' ').Trim()
+    if ($offroadMatrix -ne '1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1') { throw 'OffroadCar.dae root matrix must be identity.' }
+    $offroadGeometries = @($offroadModel.SelectNodes("//*[local-name()='geometry']"))
+    $offroadInstances = @($offroadNodes[0].SelectNodes("./*[local-name()='instance_geometry']"))
+    if ($offroadGeometries.Count -ne 24 -or $offroadInstances.Count -ne 24) {
+        throw "OffroadCar.dae must contain/reference 24 clean-room parts; found $($offroadGeometries.Count)/$($offroadInstances.Count)."
+    }
+    $offroadGeometryIds = @($offroadGeometries | ForEach-Object { $_.GetAttribute('id') })
+    $offroadInstanceIds = @($offroadInstances | ForEach-Object { $_.GetAttribute('url').TrimStart('#') })
+    if (($offroadGeometryIds | Select-Object -Unique).Count -ne 24 -or
+        ($offroadInstanceIds | Select-Object -Unique).Count -ne 24 -or
+        @($offroadGeometryIds | Where-Object { $offroadInstanceIds -notcontains $_ }).Count -ne 0) {
+        throw 'OffroadCar.dae geometry IDs must be unique and each must be referenced exactly once by the root node.'
+    }
+    $offroadCoordinates = New-Object System.Collections.Generic.List[double]
+    foreach ($geometry in $offroadGeometries) {
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
+            throw "OffroadCar.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
+        }
+        foreach ($semantic in @('VERTEX','NORMAL','TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "OffroadCar.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
+            }
+        }
+        $indices = @($triangles.SelectSingleNode("./*[local-name()='p']").InnerText -split '\s+' | Where-Object { $_ } | ForEach-Object { [int]$_ })
+        if ($indices.Count -ne 108) { throw "OffroadCar.dae geometry $($geometry.GetAttribute('name')) must contain 108 interleaved indices." }
+        for ($i=0; $i -lt $indices.Count; $i+=3) {
+            if ($indices[$i] -lt 0 -or $indices[$i] -gt 7 -or $indices[$i+1] -lt 0 -or $indices[$i+1] -gt 5 -or $indices[$i+2] -ne 0) {
+                throw "OffroadCar.dae geometry $($geometry.GetAttribute('name')) contains an out-of-range face index."
+            }
+        }
+        foreach ($coordinate in @($positions.InnerText -split '\s+' | Where-Object { $_ })) {
+            $offroadCoordinates.Add([double]::Parse($coordinate,[Globalization.CultureInfo]::InvariantCulture))
+        }
+    }
+    $offroadX = for ($i=0; $i -lt $offroadCoordinates.Count; $i+=3) { $offroadCoordinates[$i] }
+    $offroadY = for ($i=1; $i -lt $offroadCoordinates.Count; $i+=3) { $offroadCoordinates[$i] }
+    $offroadZ = for ($i=2; $i -lt $offroadCoordinates.Count; $i+=3) { $offroadCoordinates[$i] }
+    if (($offroadX | Measure-Object -Minimum).Minimum -lt -1.2 -or ($offroadX | Measure-Object -Maximum).Maximum -gt 1.2 -or
+        ($offroadY | Measure-Object -Minimum).Minimum -lt 0 -or ($offroadY | Measure-Object -Maximum).Maximum -gt 1.55 -or
+        ($offroadZ | Measure-Object -Minimum).Minimum -lt -2 -or ($offroadZ | Measure-Object -Maximum).Maximum -gt 2) {
+        throw 'OffroadCar.dae visible geometry exceeds the 2.4,1.55,4 ComponentBody.'
+    }
+    $offroadStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\OffroadCar.dae'))
+    try { $targetOffroadModel = $targetModelLoad.Invoke($null,@($offroadStream)) }
+    finally { $offroadStream.Dispose() }
+    if ($targetOffroadModel.Bones.Count -ne 1 -or $targetOffroadModel.Meshes.Count -ne 24) {
+        throw "Target Engine must import OffroadCar.dae as 1 bone/24 meshes; found $($targetOffroadModel.Bones.Count)/$($targetOffroadModel.Meshes.Count)."
+    }
+    $offroadBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\OffroadCar.png'))
+    try {
+        if ($offroadBitmap.Width -ne 40 -or $offroadBitmap.Height -ne 8) { throw 'OffroadCar.png must be 40x8.' }
+        $offroadColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x=0; $x -lt 40; $x++) { for ($y=0; $y -lt 8; $y++) {
+            $pixel = $offroadBitmap.GetPixel($x,$y)
+            if ($pixel.A -ne 255) { throw "OffroadCar.png contains transparency at $x,$y." }
+            [void]$offroadColors.Add($pixel.ToArgb())
+        }}
+        if ($offroadColors.Count -ne 5) { throw "OffroadCar.png must contain five opaque palette colors; found $($offroadColors.Count)." }
+    }
+    finally { $offroadBitmap.Dispose() }
 
     [xml]$tankModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\T34Tank.dae')
     if ($tankModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {

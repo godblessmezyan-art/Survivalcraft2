@@ -110,6 +110,14 @@ the replacement controller consumes only driver input while `ComponentBody`
 retains buoyancy, drag, collision and persistence. Android rendering, dual-device
 riding and save/reload remain pending real-device verification.
 
+Version 0.12.0 adds a separate project-created side-by-side two-seat off-road
+car at content ID 925. Its open 4x4 body, four wheels, seats and roll cage fit a
+2.4×1.55×4.0 native collision body; the seats are 0.9 cells apart. The first
+rider drives, the second is a non-driving passenger, and a third is rejected by
+the shared seat manager. Ground propulsion is independent from boat physics and
+uses native gravity, collision and 1.05-cell smooth rise. Android appearance,
+driving, save/reload and host-driver/client-passenger behavior remain pending.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

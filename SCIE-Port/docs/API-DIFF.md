@@ -189,6 +189,16 @@ Body。“ATV → 乘客锚点 → 玩家”会让玩家继续与 ATV 车体碰�
 ID 240 同步。客户端不写车辆速度。当前可验证权限为 Local 及 Server 主机本地驾驶员；普通客户端
 驾驶需要新的服务器输入/预测/纠偏协议，0.11.0 明确不支持。详细尺寸与验收边界见
 `SPEEDBOAT-V0.4-DUAL-SEAT-AUDIT.md`。
+
+## 0.12.0 双人越野车接口取证
+
+新车继续使用目标原生 `ComponentBody` 的三轴碰撞、重力、父 Body 骑乘跟随、
+`StandingOnValue`/`StandingOnBody` 接地状态与 `MaxSmoothRiseHeight`，没有复用
+`ComponentBoat` 或轨道居中逻辑。实体仍只挂一个原生 `ComponentMount`，由
+`ComponentTwoSeatManager` 分配左右座位；`ComponentOffroadCarDrive` 只读取 Driver。
+
+联机权限与现有双座载具保持一致：Local 或 Server 主机本地玩家可以驾驶，普通 Client 不写
+车辆速度或其他玩家位置。普通客户端驾驶需要额外的服务器输入、预测和纠偏协议，本版本不支持。
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

@@ -53,6 +53,10 @@ Android 或多人测试。
 | ATV v0.3 原生双 Mount 可行性 | 不支持 | `ComponentMountPackage` 只传目标实体 ID，接收端取首个 Mount；同实体第二个 Mount 无法寻址。多层乘客锚点又会因原生碰撞只排除直接父子 Body 而让乘客碰撞祖父车体 |
 | ATV v0.3 座位关联 ABI | 已确认 | 两名玩家均直接挂 ATV Body；座位管理器由 Local/Server 最终分配，服务端以自定义 `IPackage` ID 240 下发离散角色/偏移。目标原生包占 ID 0–38，240 未占用；其它 Mod 冲突仍待安装时检查 |
 | ATV v0.3 联机权威 | 待验证/部分不支持 | 主机本地驾驶员 + 普通客户端乘客为本轮实机目标；Client 只发原生上/下车请求并应用服务器座位事件，不改车辆速度。普通客户端作为驾驶员因原生父车 BodyUpdate 权威路径而不支持 |
+| 双人越野车 ID 925 | 已确认 | 固定 x25.01.17 的原生方块常量反射扫描未占用 925，且与本工程其它 ID 无内部冲突；其它 Mod 冲突仍需安装时检查 |
+| 双人越野车模型与尺寸 | 已确认（静态/目标导入） | 项目原创 Y_UP 模型为 1 bone/24 meshes，范围 X±1.15、Y 0.08..1.48、Z -1.78..1.68，完整落入 2.4×1.55×4.0 Body；40×8 五色 PNG 全不透明。Android 世界显示待验证 |
+| 双人越野车驾驶与双座 | 已确认（代码/规则） | 独立地面驱动，不使用船物理；原生 Body 负责重力、碰撞与 1.05 格 smooth rise。驾驶/乘客为左右固定座位，只有驾驶员输入进入 Drive；Windows/Android 运行待验证 |
+| 双人越野车联机 | 待验证/部分不支持 | 目标为主机驾驶员 + 普通客户端乘客；普通 Client 不写车辆速度。普通客户端驾驶员仍不支持，原因与 ATV 相同 |
 | SCIE 工业家具 ID 917–922 | 已确认 | x25.01.17 的 260 个原生方块常量反射扫描未占用；本工程内部无重复，其他 Mod 冲突仍待安装时检查 |
 | SCIE 工业家具模型 | 已确认 | Gear、Wheel、GearMould、WheelMould、Piston 已从 Z_UP 转为 Y_UP，Cylinder 源文件本身为 Y_UP；节点名、position float 数和包内资源由构建脚本校验 |
 | SCIE 工业家具代码 | 已确认 | 六件静态可放置方块、四向 data、碰撞箱、掉落路径对 x25.01.17 Release 编译通过后方可维持此状态；不含机器语义 |
@@ -82,13 +86,16 @@ Assets/Blocks/Watercraft.csv
 Assets/Blocks/KellyPlants.csv
 Assets/Blocks/IndustrialFurniture.csv
 Assets/Blocks/LandVehicles.csv
+Assets/Blocks/OffroadVehicles.csv
 Assets/Blocks/Tanks.csv
 Assets/Database/Watercraft.xdb
 Assets/Database/KellyPlants.xdb
 Assets/Database/LandVehicles.xdb
+Assets/Database/OffroadVehicles.xdb
 Assets/Database/Tanks.xdb
 Assets/Models/Airship.dae
 Assets/Models/ATV.dae
+Assets/Models/OffroadCar.dae
 Assets/Models/KellyFruits.dae
 Assets/Models/Gear.dae
 Assets/Models/GearMould.dae
@@ -103,6 +110,7 @@ Assets/Models/T34Tank.dae
 Assets/Textures/SteamBoat.png
 Assets/Textures/Train.png
 Assets/Textures/ATV.png
+Assets/Textures/OffroadCar.png
 Assets/Textures/KellyExpansion.png
 Assets/Textures/T34Tank.png
 THIRD-PARTY-NOTICES.md

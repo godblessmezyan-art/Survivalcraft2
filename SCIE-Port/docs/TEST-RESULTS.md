@@ -278,3 +278,27 @@ THIRD-PARTY-NOTICES.md
 - Android 双人联机：待验证。支持目标为主机驾驶员 + 普通客户端乘客；普通客户端驾驶员不支持。
 
 详细设计和十项 Android 验收步骤见 `docs/SPEEDBOAT-V0.4-DUAL-SEAT-AUDIT.md`。
+
+## 0.12.0 双人越野车 v0.1（2026-10-20）
+
+- 目标环境：已确认。`Test-Environment.ps1` 验证固定 `E:\SCNET\SCNETx25.01.17` 的
+  `Survivalcraft.exe` 2.4.0.0、API 1.42、SC 2.4.10.6、net472 和所需载具 ABI；ID 925
+  未被 260 个原生方块常量占用。
+- Release 编译：已确认。`scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+  -Configuration Release` 通过，0 warning、0 error。
+- 回归与规则：已确认。Kelly 11 项、ATV 32 项、双人越野车 20 项、快艇 16 项和坦克规则
+  全部通过。新测试覆盖尺寸、座位、地面/实体/深水门控、加速、倒车、制动、滑行、限速、
+  转向和驾驶权限。
+- 数据库：已确认（静态）。五份 XDB 验证通过；`SCIEPortOffroadCar` 含唯一原生 Mount、共享
+  双座管理器、独立 Drive、SimpleModel、Spawn、Body 和 Damage，且 `AutoDespawn=False`。
+- 模型与贴图：已确认（静态/目标导入）。项目原创 `OffroadCar.dae` 为 Y_UP、单 identity node、
+  24 个独立 cuboid geometry；目标 Engine 实际导入为 1 bone/24 meshes。可见范围完整落入
+  2.4×1.55×4.0 Body；40×8 PNG 含五种不透明颜色。
+- `.netmod`：已确认（打包级）。`artifacts/SCIEPort.netmod`，390,558 字节，SHA-256
+  `D4090670D2B5F7390A8BCD990A7EF9FC268D36974CDE33A0C46A648C27BF29A2`，版本 0.12.0；
+  包资源映射、模型导入、PNG、XDB、重复类名和禁带游戏 DLL 检查全部通过。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723：待验证。物品栏、世界模型、驾驶、一格台阶、碰撞、双座、下车和保存重载待实测。
+- Android 多人：待验证。支持目标为主机驾驶员 + 普通客户端副驾驶；普通客户端驾驶员不支持。
+
+尺寸依据、原创资源说明和 Android 验收步骤见 `docs/OFFROAD-CAR-V0.1-AUDIT.md`。
