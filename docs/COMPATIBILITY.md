@@ -781,3 +781,56 @@ public static class Utils {
 | 联机房主权威下这些**原版方块**能否区块同步到未装 Mod 客户端 | 待验证（理由同 v0.10.1：产出皆原版方块故应能同步，但真机双端未证） |
 | 横向原木轴映射 / 家具方块 | 不支持（未取证，见 M1） |
 
+
+## Builder Assistant v0.13.0 — 森之王庭 M4 一键分阶段自动装配（任务 §8 收口）
+
+本轮把"蓝图已能离线生成并逐阶段切分、但游戏内还不能一键装配"的 §8 缺口补上：新增一个**游戏无关**的 `Core/Tree/TreehouseAssembly` 编排器，并把 `Features/WorldEdit` 追加一条 `RuntimeMode.Treehouse` 驱动。**纯追加，未改**快艇 / ATV / SCIE-Port、未改五个生成器、未改 `BuildPlanner/BuildTask/TransactionHistory`、未改 schema v2、未改 1024/32/64 安全闸、未改 xdb/CSV/GUID。
+
+### M4 执行器设计（复用既有管线，绝不上调任何上限）
+
+| 要点 | 实现 |
+| --- | --- |
+| 落点合成 | 每阶段绝对格 = `anchor + part.OffsetInMaster + cell.Relative`；因蓝图已按最小角归一化，把逐段偏移折进 `BuildPlanner.Plan` 的单个 `origin` 参数即可，**规划器零改动** |
+| 严格串行 | 同一时刻只有一个在途 `BuildTask`，阶段间绝不交错写入；`Advance` 每次至多写 32 格（`MaxBlocksPerBatch`，未上调） |
+| 逐段撤销 | 每个完成阶段 `_history.Record(task)` 进共享撤销栈，撤销工具逐段回退 |
+| 默认不覆盖 | `allowOverride` 恒 `false`；实心/玩家建筑硬阻碍 → 规划硬失败即**停止后续批次**，绝不级联半截写入 |
+| 取消语义 | `Cancel()` 只回滚在途阶段，已完成阶段留在世界且仍可逐段撤销；延迟回滚（区块未就绪）由后续 `Advance` 续跑 |
+| 阻塞分类 | 规划失败区分：全可恢复（区块未就绪）→ `WaitingChunks` 不写世界；仅植被/积雪且未授权清理 → `BlockedBySoft`；否则硬失败 |
+
+### Features 触屏接入（`RuntimeMode.Treehouse`，模式循环 小屋→复制→粘贴→树屋）
+
+- 对准地面**两按**确认落点（第一次选点、第二次装配）；落点按**整片主包围盒**水平居中、底部落在地面上方一格，玩家无需手叠 Y 偏移。
+- `Tick` 每帧至多推进一段（≤32 格），主线程分批写入。
+- 逐阶段区块等待镜像小屋 preflight（≤150 帧上限，等待期间**绝不写**）；超时即取消装配。
+- 某阶段仅被植被/积雪挡 → 停帧等待，需**再次点击建造工具**显式确认"清理植被后继续"（默认永不清理）。
+- 装配中点击**撤销工具**取消（与撤销已建成区分）；`IsBusy` 现也纳入树屋，工作台绝不与之交错。
+- `ResetSession` 清理在途树屋与等待预算；确定性蓝图集缓存（无世界状态）保留复用。
+
+### 默认种子产物
+
+同 v0.12：33×36×33，seed=20261020，9 阶段共 2765 方块（Log 631 / Cube 1829 / Stairs 134 / Slab 48 / Fence 122 / Door 1），校验干净。执行器把这 9 段从**一个**主锚点逐段装配进世界。
+
+### 本轮实际修改
+
+- 新增 `Core/Tree/TreehouseAssembly.cs`（游戏无关分阶段编排器）。
+- `Features/WorldEdit/WorldEditRuntime.cs`：追加 `RuntimeMode.Treehouse` 及 `_treehouse/_treehouseWaitFrames/_treehouseAwaitSoft` 与确定性蓝图集缓存；`OnBuildTool`/`OnUndoTool`/`Tick`/`CycleMode`/`SetMode`/`IsBusy`/`ResetSession` 各追加树屋分支，**不改动**原小屋/复制/粘贴/工作台路径。
+- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.12.0 → 0.13.0`；modinfo 描述追加 v0.13.0 段（仍 `JSON.parse` 通过）。
+- `tests/BuilderAssistant.Tests`：`csproj` 纳入 `TreehouseAssembly.cs`；新增 6 组 M4 测试；离线 **413 → 444/444** 通过。
+
+### 已跑验证（本机 Windows，桌面）
+
+- 离线逻辑测试 **444/444** 全通过（含 6 组 M4 证明：整体落建世界并集==主画布且零越界/零多余写入、阶段严格串行、单帧写入≤32、中途取消只留完成段、实心阻碍中止且后续阶段零改动、逐段撤销不覆盖玩家改过的块、同种子装配逐位一致）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true`+`GenerateDocumentationFile=true`，编译通过即 ABI 无变化）。
+- 方块类名唯一性守卫输出 `BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock, WorkbenchToolBlock`；XDB 合并安全守卫通过。
+- `.netmod` 重打包 SHA-256 `34EBBE28B755DC425147110EA423807FE8C5FC08F7F9C15288BB806E7587873C`（2,377,568 字节）；`BuilderAssistant.dll` 反射 `AssemblyVersion=0.13.0.0` / `FileVersion=0.13.0.0` / `ProductVersion=0.13.0`。
+
+### 尚未确认 / 待验证（不以离线/编译通过冒充真机兼容，任务 §8）
+
+| 项 | 状态 |
+| --- | --- |
+| Android 7723 上两按确认落点、天空/地面射线区分、建造/撤销工具手势触达树屋分支 | 待验证 |
+| 真机区块流式加载下 ≤150 帧等待能否让跨多区块的 2765 格逐段落建不中断 | 待验证 |
+| 2765 格分批写入在 Android 上的**帧耗时/卡顿** | 待验证 |
+| 竖向原木/常青树叶渲染、门自动补上半格、楼梯可攀爬、存读档不腐坏 | 待验证（沿用 M1 结论，须真机复核） |
+| 联机房主权威下树屋原版方块能否区块同步到未装 Mod 客户端 | 待验证 |
+| 横向原木 / 家具方块 | 不支持（未取证，见 M1） |

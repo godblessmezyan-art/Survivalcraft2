@@ -3,6 +3,7 @@ using BuilderAssistant.Core;
 using BuilderAssistant.Core.Blueprints;
 using BuilderAssistant.Core.BuildEngine;
 using BuilderAssistant.Core.Safety;
+using BuilderAssistant.Core.Tree;
 using BuilderAssistant.Core.Workbench;
 using BuilderAssistant.Features.Generators;
 using BuilderAssistant.Infrastructure;
@@ -77,9 +78,39 @@ namespace BuilderAssistant.Features.WorldEdit
             Cottage,
             Copy,
             Paste,
+            Treehouse,
         }
 
         private static RuntimeMode _mode = RuntimeMode.Cottage;
+
+        // v0.13 M4: the phased giant-treehouse assembler ("森之王庭"). A single confirmed tap
+        // grows the whole structure stage by stage through the game-free TreehouseAssembly,
+        // which reuses the SAME BuildPlanner / BuildTask / TransactionHistory pipeline the
+        // manual tools use (per-phase undo lives in the shared _history stack). It is null
+        // whenever a treehouse is not currently being assembled.
+        private static TreehouseAssembly _treehouse;
+
+        // Bounded main-thread chunk-wait budget for the treehouse (mirrors MaxPreflightFrames).
+        // Reset each time a phase makes real progress; exhausted -> cancel so a phase whose
+        // chunks never stream in cannot hang forever. Writing nothing while waiting.
+        private static int _treehouseWaitFrames;
+
+        // True while the current treehouse phase is blocked ONLY by walk-through plants/snow.
+        // We stop pumping (no spin) and wait for an explicit build-tool re-confirm to clear
+        // them, exactly like the cottage clear-soft second tap. Never assumed by default.
+        private static bool _treehouseAwaitSoft;
+
+        // The default phased blueprint set is deterministic (fixed seed) and carries no world
+        // state, so it is built once and cached: the master bounding box drives drop-point
+        // centering, and the part list is handed straight to TreehouseAssembly on confirm.
+        private static TreehousePart[] _treehouseParts;
+        private static bool _treehousePartsBuilt;
+        private static int _treehouseMasterX;
+        private static int _treehouseMasterY;
+        private static int _treehouseMasterZ;
+        private static int _treehouseMinX;
+        private static int _treehouseMinY;
+        private static int _treehouseMinZ;
 
         // The blueprint waiting to be pasted (from a copy or an imported JSON file),
         // the quarter-turn rotation to apply (0..3) and the name it came from. NOTE:
@@ -156,6 +187,13 @@ namespace BuilderAssistant.Features.WorldEdit
             _blueprintPathShown = false;
             _lastClipboardImportHash = 0;
 
+            // Reset the v0.13 treehouse assembly too: a fresh world must never inherit a
+            // half-grown 森之王庭 or its pending chunk-wait. The deterministic blueprint-set
+            // cache (no world state) is deliberately kept so the next build re-uses it.
+            _treehouse = null;
+            _treehouseWaitFrames = 0;
+            _treehouseAwaitSoft = false;
+
             // Reset the v0.11 guided workbench session too: a fresh world starts the
             // Visual Building Workbench at its first step with no stale preview.
             WorkbenchSession.Reset();
@@ -196,6 +234,27 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
+            // v0.13 M4: a treehouse is mid-assembly. The phased pump runs on Tick, so here we
+            // only consume taps. The one useful gesture is re-confirming the clear-soft opt-in
+            // when a stage is blocked purely by walk-through plants/snow (mirrors the cottage
+            // second tap). We never start a second assembly and never dig the block beneath.
+            if (_treehouse != null)
+            {
+                if (_treehouseAwaitSoft)
+                {
+                    _treehouse.ClearSoft = true;
+                    _treehouseAwaitSoft = false;
+                    _treehouseWaitFrames = MaxPreflightFrames;
+                    Notify(gui, "已确认清理植被，继续装配「森之王庭」（仅替换草/花/枯枝/雪，绝不破坏实心地形或你的建筑）。");
+                }
+                else
+                {
+                    Notify(gui, "「森之王庭」正在逐阶段生长（" + _treehouse.CompletedPhaseCount + "/" +
+                        _treehouse.PhaseCount + " 阶段已完成），请稍候；如需中止请点击撤销工具。");
+                }
+                return true;
+            }
+
             TerrainRaycastResult? hit = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Interaction);
             if (!hit.HasValue)
             {
@@ -220,6 +279,23 @@ namespace BuilderAssistant.Features.WorldEdit
 
             if (!_hasPending)
             {
+                if (_mode == RuntimeMode.Treehouse)
+                {
+                    TreehousePart[] parts = DefaultTreehouseParts();
+                    if (parts == null || parts.Length == 0)
+                    {
+                        Notify(gui, "「森之王庭」蓝图集在本版本离线校验未通过，无法开始装配（未改动世界）。");
+                        return true;
+                    }
+                    _pendingOrigin = ComputeTreehouseOrigin(surface);
+                    _hasPending = true;
+                    _clearSoftArmed = false;
+                    Notify(gui, "树屋落点已选定 " + _pendingOrigin + "（居中覆盖整片树冠）。共 " +
+                        parts.Length + " 个阶段、约 " + TotalTreehouseCells(parts) +
+                        " 方块，将逐段生长。再次点击建造工具以确认装配。");
+                    return true;
+                }
+
                 _pendingOrigin = _mode == RuntimeMode.Paste
                     ? ComputeOrigin(effective, surface)
                     : ComputeOrigin(surface);
@@ -243,6 +319,10 @@ namespace BuilderAssistant.Features.WorldEdit
             {
                 BeginBuildBlueprint(miner, gui, effective, origin);
             }
+            else if (_mode == RuntimeMode.Treehouse)
+            {
+                BeginTreehouse(miner, gui, origin);
+            }
             else
             {
                 BeginBuild(miner, gui, origin);
@@ -264,6 +344,21 @@ namespace BuilderAssistant.Features.WorldEdit
 
             if (!CanMutateWorld(gui))
             {
+                return true;
+            }
+
+            // v0.13 M4: a treehouse is assembling. An undo tap requests cancellation of the
+            // phased assembly (distinct from undoing a finished one). We leave _treehouse in
+            // place so Tick keeps pumping the deferred rollback to a clean terminal state; the
+            // already-completed stages remain in the shared _history and stay individually
+            // undoable once this halts.
+            if (_treehouse != null)
+            {
+                _treehouseAwaitSoft = false;
+                bool cleanCancel = _treehouse.Cancel();
+                Notify(gui, cleanCancel
+                    ? "已取消「森之王庭」装配：正在生长的阶段已回滚，之前完成的阶段可用撤销工具逐段回退。"
+                    : "已请求取消「森之王庭」：个别方块因区块未就绪会稍后自动回滚，完成阶段仍可逐段撤销。");
                 return true;
             }
 
@@ -353,6 +448,52 @@ namespace BuilderAssistant.Features.WorldEdit
         /// </summary>
         public static void Tick(ComponentGui gui)
         {
+            // v0.13 M4: while a treehouse is assembling it owns this frame. Each call advances
+            // at most MaxBlocksPerBatch cells of the current stage through the SAME BuildTask
+            // machinery, so writes stay batched on the main thread and never interleave.
+            if (_treehouse != null)
+            {
+                // Paused for an explicit clear-soft confirmation: do not re-plan or spin.
+                if (_treehouseAwaitSoft) return;
+
+                TreehouseAdvanceResult r = _treehouse.Advance(BuildSafetyLimits.MaxBlocksPerBatch);
+
+                if (_treehouse.IsTerminal)
+                {
+                    // Completed / Failed / Cancelled halt (rollback already drained clean).
+                    Notify(gui, _treehouse.LastMessage);
+                    _treehouse = null;
+                    _treehouseAwaitSoft = false;
+                    _treehouseWaitFrames = 0;
+                    return;
+                }
+
+                switch (r)
+                {
+                    case TreehouseAdvanceResult.WaitingChunks:
+                        // Chunks for this stage are not ready yet; nothing has been written.
+                        _treehouseWaitFrames--;
+                        if (_treehouseWaitFrames <= 0)
+                        {
+                            _treehouse.Cancel();
+                            Notify(gui, "等待区块超时，正在中止「森之王庭」装配（未改动后续阶段；完成阶段可逐段撤销）。");
+                        }
+                        break;
+                    case TreehouseAdvanceResult.BlockedBySoft:
+                        _treehouseAwaitSoft = true;
+                        Notify(gui, _treehouse.LastMessage);
+                        break;
+                    case TreehouseAdvanceResult.PhaseCompleted:
+                        _treehouseWaitFrames = MaxPreflightFrames;
+                        Notify(gui, _treehouse.LastMessage);
+                        break;
+                    default:
+                        _treehouseWaitFrames = MaxPreflightFrames;
+                        break;
+                }
+                return;
+            }
+
             if (_activeTask != null)
             {
                 if (_activeGateway == null)
@@ -427,6 +568,128 @@ namespace BuilderAssistant.Features.WorldEdit
             }
 
             PlanAndStart(miner, gui, blueprint, origin);
+        }
+
+        /// <summary>
+        /// Build (once, then cache) the deterministic phased blueprint set for 森之王庭. The
+        /// layout is a fixed seed with no world dependency, so the same part list is reused
+        /// across the session and its master bounding box is known for centering. Returns null
+        /// (and never caches a partial) when generation or offline validation fails, so a
+        /// broken treehouse can never reach the world.
+        /// </summary>
+        private static TreehousePart[] DefaultTreehouseParts()
+        {
+            if (_treehousePartsBuilt) return _treehouseParts;
+            _treehousePartsBuilt = true;
+
+            TreeCanvas canvas; TreehouseValidation validation;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(
+                TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out validation);
+
+            if (parts == null || parts.Length == 0 || validation == null || !validation.IsValid)
+            {
+                _treehouseParts = null;
+                return null;
+            }
+
+            // Global master bounding box. Part cells are absolute master coords already
+            // normalized per part (each part.OffsetInMaster IS its master min corner), so the
+            // union min is the smallest offset and the union max is that plus its size minus 1.
+            int minX = int.MaxValue, minY = int.MaxValue, minZ = int.MaxValue;
+            int maxX = int.MinValue, maxY = int.MinValue, maxZ = int.MinValue;
+            bool any = false;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TreehousePart p = parts[i];
+                if (p == null || p.Blueprint == null || p.Blueprint.CellCount == 0) continue;
+                any = true;
+                int px0 = p.OffsetInMaster.X, py0 = p.OffsetInMaster.Y, pz0 = p.OffsetInMaster.Z;
+                int px1 = px0 + p.Blueprint.SizeX - 1;
+                int py1 = py0 + p.Blueprint.SizeY - 1;
+                int pz1 = pz0 + p.Blueprint.SizeZ - 1;
+                if (px0 < minX) minX = px0;
+                if (py0 < minY) minY = py0;
+                if (pz0 < minZ) minZ = pz0;
+                if (px1 > maxX) maxX = px1;
+                if (py1 > maxY) maxY = py1;
+                if (pz1 > maxZ) maxZ = pz1;
+            }
+
+            if (!any)
+            {
+                _treehouseParts = null;
+                return null;
+            }
+
+            _treehouseMinX = minX;
+            _treehouseMinY = minY;
+            _treehouseMinZ = minZ;
+            _treehouseMasterX = maxX - minX + 1;
+            _treehouseMasterY = maxY - minY + 1;
+            _treehouseMasterZ = maxZ - minZ + 1;
+            _treehouseParts = parts;
+            return parts;
+        }
+
+        private static int TotalTreehouseCells(TreehousePart[] parts)
+        {
+            int total = 0;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (parts[i] != null) total += parts[i].CellCount;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// The master anchor for a treehouse aimed at <c>surface</c>: chosen so the whole master
+        /// bounding box is centered horizontally on the aimed cell and its lowest layer sits one
+        /// block above the surface. Every part is then stamped at anchor + OffsetInMaster, so a
+        /// single tap grows the entire footprint without the player stacking phases by hand.
+        /// </summary>
+        private static CellPos ComputeTreehouseOrigin(CellPos surface)
+        {
+            int anchorX = surface.X - (2 * _treehouseMinX + _treehouseMasterX - 1) / 2;
+            int anchorZ = surface.Z - (2 * _treehouseMinZ + _treehouseMasterZ - 1) / 2;
+            int anchorY = surface.Y + 1 - _treehouseMinY;
+            return new CellPos(anchorX, anchorY, anchorZ);
+        }
+
+        /// <summary>
+        /// Treehouse start entry. Hands the game-free phased assembler the live palette resolver,
+        /// a fresh terrain gateway over the current terrain, and the SHARED undo stack, so every
+        /// completed stage is recorded as its own reversible transaction (per-stage undo) while
+        /// all AGENTS safety rules stay enforced downstream by BuildPlanner/BuildTask. It never
+        /// touches _activeTask: the assembly drives its own staged BuildTasks from Tick.
+        /// </summary>
+        private static void BeginTreehouse(ComponentMiner miner, ComponentGui gui, CellPos origin)
+        {
+            if (miner.m_subsystemTerrain == null)
+            {
+                Notify(gui, "地形尚未就绪，无法装配树屋。");
+                return;
+            }
+            if (_palette == null)
+            {
+                Notify(gui, "方块调色板尚未就绪，请稍候再试。");
+                return;
+            }
+
+            TreehousePart[] parts = DefaultTreehouseParts();
+            if (parts == null || parts.Length == 0)
+            {
+                Notify(gui, "「森之王庭」蓝图集无效，未改动世界。");
+                return;
+            }
+
+            GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
+            _treehouse = new TreehouseAssembly(parts, origin, _palette, gateway, _history);
+            _treehouseWaitFrames = MaxPreflightFrames;
+            _treehouseAwaitSoft = false;
+            _clearSoftArmed = false;
+
+            Notify(gui, "开始装配「森之王庭」，共 " + parts.Length + " 个阶段（逐段建造、可逐段撤销）。" +
+                "随时点击撤销工具可中止当前阶段。");
         }
 
         private static void PlanAndStart(ComponentMiner miner, ComponentGui gui, Blueprint blueprint, CellPos origin)
@@ -734,6 +997,7 @@ namespace BuilderAssistant.Features.WorldEdit
             {
                 case RuntimeMode.Cottage: next = RuntimeMode.Copy; break;
                 case RuntimeMode.Copy: next = RuntimeMode.Paste; break;
+                case RuntimeMode.Paste: next = RuntimeMode.Treehouse; break;
                 default: next = RuntimeMode.Cottage; break;
             }
             SetMode(next, gui);
@@ -766,6 +1030,9 @@ namespace BuilderAssistant.Features.WorldEdit
                     {
                         Notify(gui, "模式：粘贴。将放置蓝图「" + _clipboardSourceName + "」，对准地面两次点击确认落点。");
                     }
+                    break;
+                case RuntimeMode.Treehouse:
+                    Notify(gui, "模式：树屋（森之王庭）。对准地面两次点击确认落点，将逐阶段自动装配一座大型原版方块奇幻树屋（可逐段撤销，随时点击撤销工具可中止）。");
                     break;
                 default:
                     Notify(gui, "模式：小屋。点击建造工具将放置内置的中世纪小屋。");
@@ -1082,7 +1349,7 @@ namespace BuilderAssistant.Features.WorldEdit
         /// </summary>
         internal static bool IsBusy
         {
-            get { return (_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0; }
+            get { return (_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0 || _treehouse != null; }
         }
 
         /// <summary>The live world authority, classified into the game-free enum the workbench gate understands.</summary>

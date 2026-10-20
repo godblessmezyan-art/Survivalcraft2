@@ -343,6 +343,19 @@ namespace BuilderAssistant.Tests
             TestTreehouseLeafDecaySafety();
             TestTreehouseStructuralFacts();
 
+            // v0.13 M4 phased in-world assembly: proves the game-free TreehouseAssembly grows the
+            // whole treehouse from one anchor through the existing plan/execute/undo pipeline --
+            // full-canvas coverage + no strays, strict phase ordering (no interleaving), the 32/batch
+            // cap, mid-assembly cancel (rolls back the partial, keeps completed phases), a solid
+            // obstruction halting all later phases without touching them, per-phase undo that honors
+            // a player's post-build edits, and determinism. Live placement on 7723 stays 待验证.
+            TestTreehouseAssemblyFullBuildMatchesMasterCanvas();
+            TestTreehouseAssemblyStrictlySequential();
+            TestTreehouseAssemblyCancelRollsBackCurrentKeepsCompleted();
+            TestTreehouseAssemblyHardFailureHaltsLaterPhases();
+            TestTreehouseAssemblyPerPhaseUndoHonorsLaterEdits();
+            TestTreehouseAssemblyDeterministic();
+
             Console.WriteLine();
             Console.WriteLine(_failures == 0
                 ? "ALL " + _checks + " CHECKS PASSED"
@@ -2518,6 +2531,255 @@ namespace BuilderAssistant.Tests
             }
             Check(doors == 1, "exactly one door bottom cell (got " + doors + ")");
             Check(stairs > 0, "the dwelling uses real stair blocks (" + stairs + ")");
+        }
+
+        // ==================== v0.13 M4 Phased In-World Assembly (TreehouseAssembly) ====================
+
+        /// <summary>Absolute world cell of one blueprint cell of a part, stamped at the anchor.</summary>
+        private static CellPos AssemblyAbsolute(CellPos anchor, TreehousePart part, BlueprintCell cell)
+        {
+            return anchor.Add(part.OffsetInMaster).Add(cell.Relative);
+        }
+
+        /// <summary>How many of the master footprint cells are currently non-air in the fake world.</summary>
+        private static int CountAssemblyOccupied(TreehousePart[] parts, CellPos anchor, FakeTerrain t)
+        {
+            int n = 0;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TreehousePart p = parts[i];
+                foreach (BlueprintCell c in p.Blueprint.Cells)
+                {
+                    if (t.ValueAt(AssemblyAbsolute(anchor, p, c)) != 0) n++;
+                }
+            }
+            return n;
+        }
+
+        /// <summary>Total cells across the first k phases (the "should already be in the world" count).</summary>
+        private static int CumulativeCells(TreehousePart[] parts, int k)
+        {
+            int s = 0;
+            for (int i = 0; i < k && i < parts.Length; i++) s += parts[i].CellCount;
+            return s;
+        }
+
+        /// <summary>Drive the assembly to a terminal state, recording the largest single-step write burst.</summary>
+        private static TreehouseAdvanceResult PumpToTerminal(TreehouseAssembly asm, FakeTerrain t, int maxSteps, out int maxWritesPerAdvance)
+        {
+            maxWritesPerAdvance = 0;
+            TreehouseAdvanceResult last = TreehouseAdvanceResult.Steady;
+            for (int i = 0; i < maxSteps; i++)
+            {
+                int before = t.Writes;
+                last = asm.Advance(BuildSafetyLimits.MaxBlocksPerBatch);
+                int d = t.Writes - before;
+                if (d > maxWritesPerAdvance) maxWritesPerAdvance = d;
+                if (asm.IsTerminal) return last;
+            }
+            return last; // guard: caller asserts terminal separately
+        }
+
+        private static void TestTreehouseAssemblyFullBuildMatchesMasterCanvas()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyFullBuildMatchesMasterCanvas]");
+            TreehouseSpec spec = TreehouseSpec.DefaultKingdomOfTheForest();
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(spec, out canvas, out v);
+            Check(v.IsValid, "phased blueprint set validates clean (" + v.JoinedProblems() + ")");
+
+            CellPos anchor = new CellPos(5, 64, 5);
+            FakeTerrain t = new FakeTerrain();
+            FakeResolver r = new FakeResolver();
+            TransactionHistory h = new TransactionHistory();
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, r, t, h);
+
+            Check(asm.TotalPlannedCells == canvas.Count, "planned grand total == master canvas (" + canvas.Count + ")");
+
+            int maxBatch;
+            TreehouseAdvanceResult res = PumpToTerminal(asm, t, 50000, out maxBatch);
+            Check(res == TreehouseAdvanceResult.AllCompleted, "one anchored tap grows the whole treehouse (all phases complete)");
+            Check(asm.IsCompleted && !asm.IsHalted, "terminal state is a clean completion (not a halt)");
+            Check(maxBatch <= BuildSafetyLimits.MaxBlocksPerBatch,
+                "no single Advance wrote more than " + BuildSafetyLimits.MaxBlocksPerBatch + " cells (burst was " + maxBatch + ")");
+
+            var set = new HashSet<CellPos>();
+            bool missing = false;
+            for (int i = 0; i < parts.Length; i++)
+            {
+                TreehousePart p = parts[i];
+                foreach (BlueprintCell c in p.Blueprint.Cells)
+                {
+                    CellPos a = AssemblyAbsolute(anchor, p, c);
+                    set.Add(a);
+                    if (t.ValueAt(a) == 0) missing = true;
+                }
+            }
+            Check(set.Count == canvas.Count, "phase cells map to exactly the master footprint, disjoint with no duplication (got " + set.Count + "/" + canvas.Count + ")");
+            Check(!missing, "every master cell physically present in the world after assembly");
+            Check(t.Writes == canvas.Count, "total writes equals canvas cells: no stray or double writes (got " + t.Writes + ")");
+            Check(asm.CompletedPhaseCount == parts.Length, "all " + parts.Length + " phases completed");
+            Check(h.Count == parts.Length, "undo stack holds one reversible transaction per phase (" + h.Count + ")");
+            Check(asm.AppliedSoFar == canvas.Count, "applied-so-far reconciles with the total placed (" + asm.AppliedSoFar + ")");
+        }
+
+        private static void TestTreehouseAssemblyStrictlySequential()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyStrictlySequential]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+            CellPos anchor = new CellPos(5, 64, 5);
+            FakeTerrain t = new FakeTerrain();
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, new FakeResolver(), t, new TransactionHistory());
+
+            int boundaries = 0;
+            bool lookahead = false; // a phase beyond the just-completed one wrote before its turn
+            for (int i = 0; i < 50000; i++)
+            {
+                TreehouseAdvanceResult res = asm.Advance(BuildSafetyLimits.MaxBlocksPerBatch);
+                if (res == TreehouseAdvanceResult.PhaseCompleted)
+                {
+                    int k = asm.CompletedPhaseCount;
+                    // At a boundary nothing of a not-yet-started phase may be in the world:
+                    // world writes so far must equal exactly the completed phases' cells.
+                    if (t.Writes != CumulativeCells(parts, k)) lookahead = true;
+                    boundaries++;
+                }
+                if (asm.IsTerminal) break;
+            }
+            Check(boundaries == parts.Length - 1, "emitted one completion signal per non-final phase (" + boundaries + " of " + (parts.Length - 1) + ")");
+            Check(!lookahead, "phases run strictly in order: no later phase is ever touched before earlier ones finish (no interleaving)");
+        }
+
+        private static void TestTreehouseAssemblyCancelRollsBackCurrentKeepsCompleted()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyCancelRollsBackCurrentKeepsCompleted]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+            CellPos anchor = new CellPos(5, 64, 5);
+            FakeTerrain t = new FakeTerrain();
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, new FakeResolver(), t, new TransactionHistory());
+
+            // Drive until at least one phase has completed AND the current phase is mid-write
+            // (world has cells beyond the completed phases), so a real partial exists to undo.
+            bool cancelledMid = false;
+            for (int i = 0; i < 50000; i++)
+            {
+                asm.Advance(BuildSafetyLimits.MaxBlocksPerBatch);
+                if (asm.IsTerminal) break;
+                if (asm.CompletedPhaseCount >= 1 &&
+                    t.Writes > CumulativeCells(parts, asm.CompletedPhaseCount))
+                {
+                    asm.Cancel();
+                    cancelledMid = true;
+                    break;
+                }
+            }
+            Check(cancelledMid, "reached a mid-phase window to exercise cancellation");
+
+            TreehouseAdvanceResult res = TreehouseAdvanceResult.Steady;
+            for (int i = 0; i < 50000 && !asm.IsTerminal; i++) res = asm.Advance(BuildSafetyLimits.MaxBlocksPerBatch);
+
+            Check(asm.IsTerminal && res == TreehouseAdvanceResult.Cancelled, "assembly ends in a cancelled halt, not a completion");
+            // The rolled-back in-flight phase leaves only the recorded completed phases in the world.
+            int expected = CumulativeCells(parts, asm.CompletedPhaseCount);
+            Check(CountAssemblyOccupied(parts, anchor, t) == expected,
+                "cancel removed the partial phase and kept exactly the completed phases (world " + expected + " cells)");
+            Check(asm.CompletedPhaseCount < parts.Length, "cancel stopped before all phases ran");
+        }
+
+        private static void TestTreehouseAssemblyHardFailureHaltsLaterPhases()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyHardFailureHaltsLaterPhases]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+            int T = parts.Length / 2;
+            Check(T >= 1 && T < parts.Length, "there is a genuine middle phase to obstruct (index " + T + "/" + parts.Length + ")");
+
+            CellPos anchor = new CellPos(5, 64, 5);
+            FakeTerrain t = new FakeTerrain();
+            // Pre-place a SOLID block on one target cell of the middle phase -> hard plan failure.
+            CellPos abs = AssemblyAbsolute(anchor, parts[T], parts[T].Blueprint.Cells[0]);
+            t.Occupy(abs, 999);
+
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, new FakeResolver(), t, new TransactionHistory());
+            int maxBatch;
+            TreehouseAdvanceResult res = PumpToTerminal(asm, t, 50000, out maxBatch);
+
+            Check(res == TreehouseAdvanceResult.Failed && asm.IsHalted, "a solid obstruction aborts the assembly (hard failure, no cascade)");
+            Check(asm.CompletedPhaseCount == T, "only the earlier phases completed before the halt (" + asm.CompletedPhaseCount + " == " + T + ")");
+            Check(t.ValueAt(abs) == 999, "the obstructed cell was never overwritten (default no-overwrite respected)");
+
+            // Nothing of phase T (except the obstruction) or any later phase was written.
+            int lookahead = 0;
+            for (int i = T; i < parts.Length; i++)
+            {
+                foreach (BlueprintCell c in parts[i].Blueprint.Cells)
+                {
+                    CellPos a = AssemblyAbsolute(anchor, parts[i], c);
+                    if (!a.Equals(abs) && t.ValueAt(a) != 0) lookahead++;
+                }
+            }
+            Check(lookahead == 0, "the failing phase and every later phase were left untouched (停止后续批次)");
+        }
+
+        private static void TestTreehouseAssemblyPerPhaseUndoHonorsLaterEdits()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyPerPhaseUndoHonorsLaterEdits]");
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out canvas, out v);
+            CellPos anchor = new CellPos(5, 64, 5);
+            FakeTerrain t = new FakeTerrain();
+            TransactionHistory h = new TransactionHistory();
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, new FakeResolver(), t, h);
+            int maxBatch; PumpToTerminal(asm, t, 50000, out maxBatch);
+            Check(asm.IsCompleted, "built fully before testing undo granularity");
+
+            CellPos lastCell = AssemblyAbsolute(anchor, parts[parts.Length - 1], parts[parts.Length - 1].Blueprint.Cells[0]);
+            CellPos firstCell = AssemblyAbsolute(anchor, parts[0], parts[0].Blueprint.Cells[0]);
+
+            int pending;
+            int restored = h.UndoLast(t, out pending);
+            Check(pending == 0, "the per-phase undo fully reverted (nothing left un-restorable)");
+            Check(restored == parts[parts.Length - 1].CellCount, "one undo tap reverts exactly the LAST phase's cells (" + restored + ")");
+            Check(t.ValueAt(lastCell) == 0, "the last-phase cell is back to air after undo");
+            Check(t.ValueAt(firstCell) != 0, "earlier phases are NOT disturbed by undoing the newest one");
+            Check(h.Count == parts.Length - 1, "undo pops one transaction at a time (" + h.Count + " remain)");
+
+            // A player edits a first-phase block after the build; undoing back to it must preserve the edit.
+            t.Occupy(firstCell, 4242);
+            for (int i = 0; i < parts.Length; i++)
+            {
+                int p2;
+                h.UndoLast(t, out p2);
+            }
+            Check(t.ValueAt(firstCell) == 4242, "undo never clobbers a block the player edited after the build");
+            Check(!h.HasUndoable, "the whole phased build is undoable down to empty");
+        }
+
+        private static void TestTreehouseAssemblyDeterministic()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyDeterministic]");
+            TreeCanvas c1, c2; TreehouseValidation v1, v2;
+            TreehousePart[] p1 = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out c1, out v1);
+            TreehousePart[] p2 = TreehouseBlueprintSet.Build(TreehouseSpec.DefaultKingdomOfTheForest(), out c2, out v2);
+            CellPos anchor = new CellPos(5, 64, 5);
+
+            FakeTerrain t1 = new FakeTerrain(); int mb1;
+            PumpToTerminal(new TreehouseAssembly(p1, anchor, new FakeResolver(), t1, new TransactionHistory()), t1, 50000, out mb1);
+            FakeTerrain t2 = new FakeTerrain(); int mb2;
+            PumpToTerminal(new TreehouseAssembly(p2, anchor, new FakeResolver(), t2, new TransactionHistory()), t2, 50000, out mb2);
+
+            bool identical = t1.Writes == t2.Writes;
+            foreach (TreehousePart p in p1)
+            {
+                foreach (BlueprintCell c in p.Blueprint.Cells)
+                {
+                    CellPos a = AssemblyAbsolute(anchor, p, c);
+                    if (t1.ValueAt(a) != t2.ValueAt(a)) { identical = false; }
+                }
+            }
+            Check(identical, "same seed + same anchor -> identical phased in-world result (Android-bit-reproducible)");
         }
 
         // ==================== v0.11.0 Visual Building Workbench (pure) ====================
