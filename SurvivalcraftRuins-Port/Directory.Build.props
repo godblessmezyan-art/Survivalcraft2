@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SCNET_GAME_DIR)' != ''">$(SCNET_GAME_DIR)</SCNetGameDir>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SurvivalcraftDir)' != ''">$(SurvivalcraftDir)</SCNetGameDir>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
+  </PropertyGroup>
+</Project>

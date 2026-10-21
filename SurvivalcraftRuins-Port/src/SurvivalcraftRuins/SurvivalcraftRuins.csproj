@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>SurvivalcraftRuins</AssemblyName>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <InformationalVersion>1.0.0</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <EnableSourceLink>false</EnableSourceLink>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SCNET_GAME_DIR)' != ''">$(SCNET_GAME_DIR)</SCNetGameDir>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SurvivalcraftDir)' != ''">$(SurvivalcraftDir)</SCNetGameDir>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
+  </PropertyGroup>
+
+  <Target Name="ValidateScnetReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(SCNetGameDir)\Survivalcraft.exe')" Text="Missing SCNET x25.01.17 reference: $(SCNetGameDir)\Survivalcraft.exe. Pass -p:SCNetGameDir=... or set SCNET_GAME_DIR." />
+    <Error Condition="!Exists('$(SCNetGameDir)\Engine.dll')" Text="Missing SCNET Engine.dll in $(SCNetGameDir)." />
+    <Error Condition="!Exists('$(SCNetGameDir)\EntitySystem.dll')" Text="Missing SCNET EntitySystem.dll in $(SCNetGameDir)." />
+  </Target>
+
+  <ItemGroup>
+    <Reference Include="Survivalcraft">
+      <HintPath>$(SCNetGameDir)\Survivalcraft.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Engine">
+      <HintPath>$(SCNetGameDir)\Engine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="EntitySystem">
+      <HintPath>$(SCNetGameDir)\EntitySystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="modinfo.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

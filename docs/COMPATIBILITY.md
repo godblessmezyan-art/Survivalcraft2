@@ -987,3 +987,23 @@ public static class Utils {
 | 真机一次导入 >2756 且 ≤10000 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
 | 10000 格单事务下存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
 | 联机房主权威下单事务 10000 格原版方块同步到未装 Mod 客户端 | 待验证 |
+
+## SurvivalcraftRuins SCNET x25.01.17 专项移植（独立工程）
+
+此结论只适用于 `SurvivalcraftRuins-Port/`，不替代 Builder Assistant 或 `SCIE-Port/`
+的任何证据。上游固定为 `godblessmezyan-art/SurvivalcraftRuins` 提交
+`53425779dc499c6f08b94f4b973f329217f92765`，许可证为 Mulan PSL v2。
+
+| 项目 | 状态 | 证据/限制 |
+| --- | --- | --- |
+| x25.01.17 Windows 目标程序集 | 已确认 | `E:\SCNET\SCNETx25.01.17` 三程序集 SHA-256 与本文件登记值一致 |
+| `net472` Release | 已确认 | 0 警告、0 错误；真实引用 `Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll` |
+| Hook 与网络角色 ABI | 已确认 | `OnTerrainContentsGenerated(TerrainChunk)` 位于 pass3 后/pass4 前；`SubsystemUpdate(float)`；`WorkType={Local,Server,Client}` |
+| 23 种结构/方块 Index/data 静态审计 | 已确认 | 85/85 测试通过；未知 BlockName/非法方向 data 硬拒绝，不写 Air |
+| `.netmod` 内容 | 已确认 | 335147 字节；SHA-256 `3FE281D2C32DE5BD44E48B5EA367D300B92BE1D4A97DEC4BA087D1B8870A71F2`；DLL、modinfo、LICENSE、13 模板、loot 均存在 |
+| Android 7723 加载与功能 | 待验证 | 未自动安装、未启动游戏、未修改存档；7723 程序集仍须单独比对 |
+| Server/房主同步 | 待验证 | 代码允许有效 Server 角色写入；区块、箱子、生物同步需真机验证 |
+| Client 主动写入 | 不支持 | 有效 Client 或角色不确定均拒绝地形、实体、守卫和持久化写入 |
+| SCAPI `.scmod` | 不支持 | 专项端口只生成 `.netmod`，不重命名或复用 SCAPI DLL |
+
+完整变更、命令、遗留问题和 Android 测试步骤见 `docs/SCNET-X25-PORT.md`。
