@@ -124,11 +124,13 @@ try {
         'Assets/Blocks/LandVehicles.csv',
         'Assets/Blocks/OffroadVehicles.csv',
         'Assets/Blocks/Tanks.csv',
+        'Assets/Blocks/Creatures.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
         'Assets/Database/OffroadVehicles.xdb',
         'Assets/Database/Tanks.xdb',
+        'Assets/Database/Creatures.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -143,13 +145,15 @@ try {
         'Assets/Models/OffroadCar.dae',
         'Assets/Models/SteamBoat.dae',
         'Assets/Models/T34Tank.dae',
+        'Assets/Models/Fox.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
         'Assets/Textures/ATV.png',
         'Assets/Textures/OffroadCar.png',
         'Assets/Textures/KellyExpansion.png',
-        'Assets/Textures/T34Tank.png'
+        'Assets/Textures/T34Tank.png',
+        'Assets/Textures/Fox.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -165,6 +169,14 @@ try {
     }
     if ($entries | Where-Object { $_ -match '(^|/)(Survivalcraft\.exe|Engine\.dll|EntitySystem\.dll|Jint\.dll|System\.Reflection\.TypeExtensions\.dll)$' }) {
         throw 'Package contains a prohibited game or upstream dependency binary.'
+    }
+    $packagedDlls = @($entries | Where-Object { [IO.Path]::GetExtension($_) -eq '.dll' })
+    if ($packagedDlls.Count -ne 1 -or $packagedDlls[0] -ne 'SCIEPort.dll') {
+        throw ("Package must contain only SCIEPort.dll and no SCAPI/game/third-party DLL: " + ($packagedDlls -join ', '))
+    }
+    $unsupportedCreatureAssets = @($entries | Where-Object { $_ -match '(?i)\.(gltf|glb)$' })
+    if ($unsupportedCreatureAssets.Count -gt 0) {
+        throw ("Package contains glTF/GLB assets unsupported by fixed SCNET x25.01.17: " + ($unsupportedCreatureAssets -join ', '))
     }
 
     $blockClassNames = New-Object System.Collections.Generic.List[string]
@@ -335,6 +347,36 @@ try {
         $tankShellRow[0].ProjectileDamping -ne '1') {
         throw 'TankShellBlock must use the audited non-bouncing first-impact projectile settings.'
     }
+    [xml]$creaturesDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Creatures.xdb')
+    $foxEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortFox']")
+    if ($null -eq $foxEntity -or $foxEntity.InheritanceParent -ne '49a9845c-3810-4092-ba53-df213d10d563') {
+        throw 'SCIEPortFox must inherit the audited native Wolf entity template.'
+    }
+    foreach ($component in @('Creature', 'Body', 'Locomotion', 'Health', 'Spawn', 'HerdBehavior', 'FourLeggedModel')) {
+        if ($null -eq $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
+            throw "SCIEPortFox is missing its audited override component: $component"
+        }
+    }
+    $foxModelParameter = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='ModelName']")
+    $foxTextureParameter = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='TextureOverride']")
+    $foxAutoDespawn = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Spawn']/Parameter[@Name='AutoDespawn']")
+    if ($foxModelParameter.Value -ne 'Models/Fox' -or $foxTextureParameter.Value -ne 'Textures/Fox' -or $foxAutoDespawn.Value -ne 'False') {
+        throw 'Fox model, texture or persistence mapping differs from the audited phase-one values.'
+    }
+    if ($null -ne $foxEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
+        throw 'Phase-one fox must not register an inherited/duplicate native creature egg index.'
+    }
+    $foxBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
+    $foxBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
+    if ($null -eq $foxBehavior -or $null -eq $foxBehaviorMember -or $foxBehaviorMember.InheritanceParent -ne $foxBehavior.Guid) {
+        throw 'Manual fox spawn behavior is missing or not attached to Project.'
+    }
+    $foxRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Creatures.csv'))
+    $foxSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'FoxSpawnBlock' })
+    if ($foxSpawnerRow.Count -ne 1 -or $foxSpawnerRow[0].Behaviors -ne 'SCIEPortFoxSpawnBehavior' -or
+        $foxSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
+        throw 'FoxSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortFoxSpawnBehavior.'
+    }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -486,6 +528,56 @@ try {
         if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
     }
     finally { $atvBitmap.Dispose() }
+
+    [xml]$foxModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Fox.dae')
+    if ($foxModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Fox.dae must be oriented Y_UP.'
+    }
+    $foxBoneNames = @($foxModelDocument.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']") | ForEach-Object { $_.GetAttribute('name') })
+    $requiredFoxBones = @('Body', 'Head', 'Leg1', 'Leg2', 'Leg3', 'Leg4')
+    if ($foxBoneNames.Count -ne 6 -or ($requiredFoxBones | Where-Object { $foxBoneNames -notcontains $_ }).Count -ne 0) {
+        throw "Fox.dae must contain exactly the six native procedural bones: $($requiredFoxBones -join ', ')."
+    }
+    $foxGeometries = @($foxModelDocument.SelectNodes("//*[local-name()='geometry']"))
+    if ($foxGeometries.Count -ne 13) { throw "Fox.dae must contain 13 clean-room cuboid meshes; found $($foxGeometries.Count)." }
+    foreach ($geometry in $foxGeometries) {
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
+            throw "Fox.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
+        }
+        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "Fox.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
+            }
+        }
+    }
+    $foxModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Fox.dae'))
+    try { $targetFoxModel = $targetModelLoad.Invoke($null, @($foxModelStream)) }
+    finally { $foxModelStream.Dispose() }
+    if ($targetFoxModel.Bones.Count -ne 6 -or $targetFoxModel.Meshes.Count -ne 13) {
+        throw "Target Engine must import Fox.dae as 6 bones/13 meshes; found $($targetFoxModel.Bones.Count) bones/$($targetFoxModel.Meshes.Count) meshes."
+    }
+    foreach ($boneName in $requiredFoxBones) {
+        if (-not ($targetFoxModel.Bones | Where-Object { $_.Name -eq $boneName })) {
+            throw "Target Engine did not import required fox bone $boneName."
+        }
+    }
+    Add-Type -AssemblyName System.Drawing
+    $foxBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Fox.png'))
+    try {
+        if ($foxBitmap.Width -ne 32 -or $foxBitmap.Height -ne 8) { throw 'Fox.png must be the audited 32x8 opaque palette.' }
+        $foxColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x = 0; $x -lt $foxBitmap.Width; $x++) {
+            for ($y = 0; $y -lt $foxBitmap.Height; $y++) {
+                $pixel = $foxBitmap.GetPixel($x, $y)
+                if ($pixel.A -ne 255) { throw "Fox.png contains transparent pixel at $x,$y." }
+                [void]$foxColors.Add($pixel.ToArgb())
+            }
+        }
+        if ($foxColors.Count -ne 4) { throw "Fox.png must contain exactly four opaque palette colors; found $($foxColors.Count)." }
+    }
+    finally { $foxBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }

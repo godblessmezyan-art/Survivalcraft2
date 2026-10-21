@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortCreatures>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortFox" Guid="c4a7298e-3f4d-4fd0-91db-3f02e6144110" InheritanceParent="49a9845c-3810-4092-ba53-df213d10d563">
+      <MemberComponentTemplate Name="Creature" Guid="59450ba1-72a1-4bd5-b67c-59d68ad6e4b5">
+        <Parameter Name="DisplayName" Guid="17155acf-5285-4f80-92fb-d0374317f59f" Value="SCIE 狐狸" Type="string" />
+        <Parameter Name="Description" Guid="da798b49-b7c0-44ca-a009-33783351ed3a" Value="手动生成的 SCIE-Port 狐狸验证实体。" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="1823ca65-5df2-4031-8182-e7ec4af7909d">
+        <Parameter Name="BoxSize" Guid="21f42121-f978-4721-8ca3-3c6b4cbe4847" Value="0.62,0.68,0.95" Type="Vector3" />
+        <Parameter Name="Mass" Guid="52428cc8-343a-4f26-8592-c0585ee0cc34" Value="18" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="6b85d6c8-f24e-409d-bea3-bd6df71ce51f">
+        <Parameter Name="WalkSpeed" Guid="090b7ac9-df06-480d-b2d7-31a3bcddadce" Value="3.8" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="c9cf6cf5-57c9-4a44-b1c7-980e8d56efc7" Value="9" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="889a5eab-2079-4c0c-874c-af34de2aa73c" Value="1.35" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="ead85f28-3de0-4cf5-80f8-7dfa7985ea0f">
+        <Parameter Name="AttackResilience" Guid="b93d4ff2-2071-481f-9c7c-2742c3939c50" Value="14" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="18e3d753-1f66-41ce-8f72-08b9fd069c31">
+        <Parameter Name="AutoDespawn" Guid="4a07045e-fded-4ff6-a717-d17e35283c17" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="89e082e0-fd86-4a1c-93bb-1e17f31f60c7">
+        <Parameter Name="HerdName" Guid="20a0b411-a238-497d-85f9-55ef9231b5a8" Value="SCIEPortFox" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="87b2868e-e1b4-4790-b59a-dc2db9a49860">
+        <Parameter Name="ModelName" Guid="9e70be24-9c41-48bd-8577-c6ea99eed6fb" Value="Models/Fox" Type="string" />
+        <Parameter Name="TextureOverride" Guid="660e5e9d-34bd-4020-8470-41c2f2f8547d" Value="Textures/Fox" Type="string" />
+        <Parameter Name="WalkAnimationSpeed" Guid="1ef82532-5910-4215-913d-7ac9d810e314" Value="0.95" Type="float" />
+        <Parameter Name="WalkFrontLegsAngle" Guid="a63b3d76-84cd-49c9-9d30-c15d22ea67ba" Value="0.55" Type="float" />
+        <Parameter Name="WalkHindLegsAngle" Guid="e3d19ae4-4eaf-4be2-9256-8615dc838bbd" Value="0.45" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="7da56c0f-4b8b-4862-8ee0-cad8520cdf19" Value="0.025" Type="float" />
+        <Parameter Name="CanTrot" Guid="5ae78a62-2867-45d1-b8fb-deecb1d94db5" Value="True" Type="bool" />
+        <Parameter Name="CanCanter" Guid="909181c0-0d39-4f7e-ae55-601fab45a404" Value="False" Type="bool" />
+        <Parameter Name="UseCanterSound" Guid="a5f6ebde-6d97-41a6-a031-b17020c5c8c0" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortFoxSpawnBehavior" Guid="d5816ffd-a7ca-4f8b-98b5-df7d2a4a3c22" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="e892b14b-03b6-46ee-a6ed-a03d40798edf" Value="SCIEPort.Features.Creatures.SubsystemFoxSpawnBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortFoxSpawnBehavior" Guid="1bdac495-0343-4bc3-955e-5b252c3c8757" InheritanceParent="d5816ffd-a7ca-4f8b-98b5-df7d2a4a3c22" />
+  </ProjectTemplate>
+</SCIEPortCreatures>
