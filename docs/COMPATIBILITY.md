@@ -999,11 +999,12 @@ public static class Utils {
 | x25.01.17 Windows 目标程序集 | 已确认 | `E:\SCNET\SCNETx25.01.17` 三程序集 SHA-256 与本文件登记值一致 |
 | `net472` Release | 已确认 | 0 警告、0 错误；真实引用 `Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll` |
 | Hook 与网络角色 ABI | 已确认 | `OnTerrainContentsGenerated(TerrainChunk)` 位于 pass3 后/pass4 前；`SubsystemUpdate(float)`；`WorkType={Local,Server,Client}` |
-| 23 种结构/方块 Index/data 静态审计 | 已确认 | 86/86 测试通过；未知 BlockName/非法方向 data 硬拒绝，不写 Air；五组重复战利品池的顺序与数量有专门回归测试 |
-| `.netmod` 1.0.1 内容 | 已确认 | 335181 字节；SHA-256 `C407456D67147DBBFF3F87749E3B781F82A7CC4D4E5242DC82EF76E926D52CA5`；DLL、modinfo、LICENSE、13 模板、loot 均存在 |
+| 23 种结构/方块 Index/data 静态审计 | 已确认 | 87/87 测试通过；未知 BlockName/非法方向 data 硬拒绝，不写 Air；五组重复战利品池的顺序与数量有专门回归测试 |
+| `.netmod` 1.0.2 内容 | 已确认 | 335569 字节；SHA-256 `10350CBF9127BC43D1CB2F56C2E690E4103F73CA95A06C8C9BC2E44CC36A1FD1`；DLL、modinfo、LICENSE、13 个精确模板路径、loot 均存在；最终 DLL 无 `System.Linq.Enumerable` 方法引用 |
 | Android 7723 包导入与 Mod 初始化 | 已确认 | 2026-10-21 用户真机日志已进入 `[Ruins]` 运行路径；渠道程序集哈希仍待比对 |
 | Android 7723 世界生成（1.0.0） | 不支持 | 真机日志确认 `Enumerable.Repeat<T>` 缺失，`World bind failed` 持续重试，故不会生成遗迹 |
-| Android 7723 世界生成（1.0.1） | 待验证 | 已移除五处 `Enumerable.Repeat` 调用并加入打包守卫；须真机看到 `Bound to world` 并在新区块发现结构后才能确认 |
+| Android 7723 世界生成（1.0.1） | 不支持 | 真机确认 `Repeat` 问题消失，但按扩展名遍历资源未加载 `sky_fortress`，世界绑定仍失败 |
+| Android 7723 世界生成（1.0.2） | 待验证 | 改为精确读取全部必需资源、移除所有运行时 LINQ 引用并抑制重复绑定刷屏；须真机看到 `Loaded 13...`、`Bound to world` 并在新区块发现结构后确认 |
 | Server/房主同步 | 待验证 | 代码允许有效 Server 角色写入；区块、箱子、生物同步需真机验证 |
 | Client 主动写入 | 不支持 | 有效 Client 或角色不确定均拒绝地形、实体、守卫和持久化写入 |
 | SCAPI `.scmod` | 不支持 | 专项端口只生成 `.netmod`，不重命名或复用 SCAPI DLL |

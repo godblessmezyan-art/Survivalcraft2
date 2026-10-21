@@ -18,7 +18,25 @@ public static class RuinsRuntime
     private const double SaveIntervalSeconds = 5.0;
 
     private static readonly object s_bindLock = new();
+    private static readonly string[] s_requiredTemplateNames =
+    {
+        "bathhouse",
+        "coliseum",
+        "fishing_hut",
+        "galley",
+        "mushroom_house",
+        "prairie_ruin",
+        "ruined_temple",
+        "sky_blimp",
+        "sky_fortress",
+        "tree_house",
+        "werewolf_den",
+        "windmill",
+        "wishing_well",
+    };
+
     private static WorldState? s_state;
+    private static Project? s_failedProject;
     private static double s_time;
 
     private static IReadOnlyDictionary<string, StructureData>? s_templates;
@@ -32,29 +50,53 @@ public static class RuinsRuntime
             return;
         }
         var templates = new Dictionary<string, StructureData>(StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, LootPool>? pools = null;
-        entity.GetFiles(".json", (name, stream) =>
+        foreach (string expectedName in s_requiredTemplateNames)
         {
-            string normalized = name.Replace('\\', '/');
-            if (normalized.EndsWith("modinfo.json", StringComparison.OrdinalIgnoreCase))
+            string path = "Assets/Structures/" + expectedName + ".json";
+            StructureData data = StructureTemplate.Parse(ReadRequiredAsset(entity, path));
+            if (!string.Equals(data.Name, expectedName, StringComparison.Ordinal))
             {
-                return;
+                throw new InvalidDataException(
+                    $"Structure asset '{path}' declares name '{data.Name}', expected '{expectedName}'.");
             }
-            using var reader = new StreamReader(stream);
-            string json = reader.ReadToEnd();
-            if (normalized.IndexOf("Assets/Structures/", StringComparison.OrdinalIgnoreCase) >= 0)
+            templates.Add(data.Name, data);
+        }
+        Dictionary<string, LootPool> pools = LootConfig.Parse(
+            ReadRequiredAsset(entity, "Assets/Loot/pools.json"));
+        if (pools.Count == 0)
+        {
+            throw new InvalidDataException("Loot asset 'Assets/Loot/pools.json' contains no pools.");
+        }
+        s_templates = templates;
+        s_lootPools = pools;
+        Log.Information($"[Ruins] Loaded {templates.Count} structure templates, {s_lootPools.Count} loot pools.");
+    }
+
+    private static string ReadRequiredAsset(ModEntity entity, string path)
+    {
+        string? contents = null;
+        Exception? readError = null;
+        entity.GetFile(path, stream =>
+        {
+            try
             {
-                var data = StructureTemplate.Parse(json);
-                templates[data.Name] = data;
+                using var reader = new StreamReader(stream);
+                contents = reader.ReadToEnd();
             }
-            else if (normalized.IndexOf("Assets/Loot/", StringComparison.OrdinalIgnoreCase) >= 0)
+            catch (Exception exception)
             {
-                pools = LootConfig.Parse(json);
+                readError = exception;
             }
         });
-        s_templates = templates;
-        s_lootPools = pools ?? new Dictionary<string, LootPool>();
-        Log.Information($"[Ruins] Loaded {templates.Count} structure templates, {s_lootPools.Count} loot pools.");
+        if (readError != null)
+        {
+            throw new InvalidDataException($"Cannot read required mod asset '{path}'.", readError);
+        }
+        if (contents == null)
+        {
+            throw new FileNotFoundException($"Required mod asset '{path}' is missing or has incorrect case.", path);
+        }
+        return contents;
     }
 
     public static void OnChunkGenerated(TerrainChunk chunk)
@@ -94,6 +136,10 @@ public static class RuinsRuntime
     private static WorldState? BindIfNeeded()
     {
         var project = GameManager.Project;
+        if (project != null && ReferenceEquals(s_failedProject, project))
+        {
+            return null;
+        }
         var current = s_state;
         if (current != null && ReferenceEquals(current.Project, project))
         {
@@ -168,6 +214,7 @@ public static class RuinsRuntime
                 state.LoadPersistence(saved);
                 state.Dirty = true;   // records density/layout for worlds that predate them
                 s_state = state;
+                s_failedProject = null;
                 Log.Information(
                     $"[Ruins] Bound to world '{gameInfo.DirectoryName}', seed {gameInfo.WorldSeed}, "
                     + $"layout {layout}, density {density:0.##}, guards {RuinsSettings.Guards:0.##}.");
@@ -175,6 +222,7 @@ public static class RuinsRuntime
             }
             catch (Exception exception)
             {
+                s_failedProject = project;
                 Log.Warning($"[Ruins] World bind failed: {exception.Message}");
                 return null;
             }
@@ -303,7 +351,8 @@ public static class RuinsRuntime
             return;
         }
         List<string>? triggeredIds = null;
-        AmbushState[] ambushes = state.Ambushes.Values.ToArray();
+        var ambushes = new AmbushState[state.Ambushes.Count];
+        state.Ambushes.Values.CopyTo(ambushes, 0);
         if (ambushes.Length == 0)
         {
             return;

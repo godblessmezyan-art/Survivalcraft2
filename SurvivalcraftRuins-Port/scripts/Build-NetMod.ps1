@@ -44,6 +44,13 @@ try {
     New-Item -ItemType Directory -Path (Join-Path $stage 'Assets\Loot') -Force | Out-Null
 
     $dll = Join-Path $source "bin\$Configuration\net472\SurvivalcraftRuins.dll"
+    $modIl = (& ilspycmd --disable-updatecheck -il $dll | Out-String)
+    if ($LASTEXITCODE -ne 0) { throw 'Failed to inspect the built mod DLL.' }
+    if ($modIl -match 'System\.Linq\.Enumerable::') {
+        throw 'Android-incompatible System.Linq.Enumerable method reference remains in the mod DLL.'
+    }
+    Write-Host 'ANDROID ABI OK no System.Linq.Enumerable method references in mod DLL'
+
     $modAssembly = [Reflection.Assembly]::ReflectionOnlyLoadFrom($dll)
     $modFramework = $modAssembly.GetCustomAttributesData() |
         Where-Object { $_.AttributeType.FullName -eq 'System.Runtime.Versioning.TargetFrameworkAttribute' } |
@@ -62,7 +69,22 @@ try {
     $metadata = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $stage 'modinfo.json') | ConvertFrom-Json
     if ($metadata.ApiVersion -ne '1.42' -or $metadata.ScVersion -ne '2.4.10.6') { throw 'modinfo target versions are invalid.' }
     if ($metadata.Dependencies -isnot [Array]) { throw 'modinfo Dependencies must be an array.' }
-    if ((Get-ChildItem -LiteralPath (Join-Path $stage 'Assets\Structures') -Filter '*.json').Count -ne 13) { throw 'Expected 13 packaged JSON templates.' }
+    $expectedStructureEntries = @(
+        'Assets/Structures/bathhouse.json',
+        'Assets/Structures/coliseum.json',
+        'Assets/Structures/fishing_hut.json',
+        'Assets/Structures/galley.json',
+        'Assets/Structures/mushroom_house.json',
+        'Assets/Structures/prairie_ruin.json',
+        'Assets/Structures/ruined_temple.json',
+        'Assets/Structures/sky_blimp.json',
+        'Assets/Structures/sky_fortress.json',
+        'Assets/Structures/tree_house.json',
+        'Assets/Structures/werewolf_den.json',
+        'Assets/Structures/windmill.json',
+        'Assets/Structures/wishing_well.json'
+    )
+    if ((Get-ChildItem -LiteralPath (Join-Path $stage 'Assets\Structures') -Filter '*.json').Count -ne $expectedStructureEntries.Count) { throw 'Expected 13 packaged JSON templates.' }
     if ((Get-ChildItem -LiteralPath (Join-Path $stage 'Assets\Loot') -Filter '*.json').Count -ne 1) { throw 'Expected one packaged loot configuration.' }
     $forbidden = Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object {
         $_.Name -in @('Engine.dll', 'EntitySystem.dll', 'Survivalcraft.exe', 'Survivalcraft.dll', 'Content.scpak') -or $_.Extension -in @('.apk', '.pdb')
@@ -95,7 +117,12 @@ try {
         foreach ($required in @('SurvivalcraftRuins.dll', 'modinfo.json', 'LICENSE', 'Assets/Loot/pools.json')) {
             if ($names -notcontains $required) { throw "Package missing $required" }
         }
-        if (($names | Where-Object { $_ -like 'Assets/Structures/*.json' }).Count -ne 13) { throw 'Package structure template count mismatch.' }
+        $actualStructureEntries = @($names | Where-Object { $_ -like 'Assets/Structures/*.json' })
+        $missingStructureEntries = @($expectedStructureEntries | Where-Object { $actualStructureEntries -notcontains $_ })
+        $extraStructureEntries = @($actualStructureEntries | Where-Object { $expectedStructureEntries -notcontains $_ })
+        if ($missingStructureEntries.Count -ne 0 -or $extraStructureEntries.Count -ne 0) {
+            throw "Package structure manifest mismatch. Missing=[$($missingStructureEntries -join ', ')] Extra=[$($extraStructureEntries -join ', ')]"
+        }
     }
     finally { $archive.Dispose() }
 

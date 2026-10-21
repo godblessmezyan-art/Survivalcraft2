@@ -86,15 +86,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
   -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
 ```
 
-结果：环境/哈希/ABI 检查通过；原测试与新增兼容性/安全测试共 `86/86` 通过；
+结果：环境/哈希/ABI 检查通过；原测试与新增兼容性/安全测试共 `87/87` 通过；
 `net472 Release` 为 0 警告、0 错误。包内容含 `SurvivalcraftRuins.dll`、
 `modinfo.json`、`LICENSE`、`Assets/Structures/*.json`（13 个）和
 `Assets/Loot/pools.json`，路径大小写已校验，且不含游戏 DLL、APK、PDB、
 `Content.scpak` 或存档。
 
 - 产物：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins.netmod`
-- 大小：`335181` 字节
-- SHA-256：`C407456D67147DBBFF3F87749E3B781F82A7CC4D4E5242DC82EF76E926D52CA5`
+- 大小：`335569` 字节
+- SHA-256：`10350CBF9127BC43D1CB2F56C2E690E4103F73CA95A06C8C9BC2E44CC36A1FD1`
 - 完整日志：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins-build.log`
 - 校验文件：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins.sha256`
 
@@ -149,3 +149,25 @@ Assistant 的可导入蓝图能力。
 `SurvivalcraftRuins.dll` 含本地 `RepeatPools` 且不再引用 `Enumerable.Repeat`。产物大小
 `335181` 字节，SHA-256 为
 `C407456D67147DBBFF3F87749E3B781F82A7CC4D4E5242DC82EF76E926D52CA5`。
+
+## Android 7723 第二轮实测修复（1.0.2）
+
+2026-10-21 真机复测 1.0.1 后，`Enumerable.Repeat` 异常已经消失，但日志确认世界绑定
+仍失败于 `Missing structure template 'sky_fortress'`。包内容复核证明模板文件存在且路径
+大小写正确；问题位于运行时资源发现：1.0.1 使用 `ModEntity.GetFiles(".json", ...)`
+按扩展名遍历 ZIP，而 7723 实际没有把该必需模板交给回调。
+
+1.0.2 不再依赖扩展名遍历，改为通过 `ModEntity.GetFile` 精确读取 13 个固定模板路径和
+`Assets/Loot/pools.json`。任一文件缺失、大小写不符、读取失败、JSON 名称与文件名不符
+或 loot 为空都会在初始化阶段一次性拒绝，不再留下部分资源集合到进世界后才失败。
+同时移除运行 DLL 中剩余两处 LINQ `ToArray()` 扩展调用；构建阶段反编译最终 DLL，若
+仍存在任何 `System.Linq.Enumerable` 方法引用即拒绝打包。包校验也从“模板数量为 13”
+提升为逐项核对 13 个精确 ZIP 路径。永久性的世界绑定异常现在每个世界只记录一次，
+避免按区块重复刷日志。
+
+最终构建通过 `87/87` 测试（新增禁止扩展名遍历、只允许精确资源路径的加载回归测试）、
+`net472 Release` 0 警告 0 错误；IL 守卫确认无任何 `System.Linq.Enumerable` 方法引用。
+1.0.2 产物大小 `335569` 字节，SHA-256 为
+`10350CBF9127BC43D1CB2F56C2E690E4103F73CA95A06C8C9BC2E44CC36A1FD1`。Android 上看到
+`[Ruins] Loaded 13 structure templates`、`[Ruins] Bound to world ...` 并在新区块发现遗迹前，
+世界生成仍保持“待验证”。

@@ -62,6 +62,7 @@ Assert-TypeText 'Game.ModLoader' @(
 )
 Assert-TypeText 'ModsManager' @('void RegisterHook\(string HookName, ModLoader modLoader\)', 'void HookAction')
 Assert-TypeText 'Game.ModInfo' @('List<string> Dependencies')
+Assert-TypeText 'Game.ModEntity' @('bool GetFile\(string filename, Action<Stream> stream\)', 'Dictionary<string, ZipArchiveEntry> ModFiles')
 Assert-TypeText 'Game.ITerrainContentsGenerator' @('CalculateHeight', 'CalculateTemperature', 'CalculateHumidity', 'GenerateChunkContentsPass4')
 Assert-TypeText 'Game.TerrainChunk' @('void SetCellValueFast\(int x, int y, int z, int value\)')
 Assert-TypeText 'Game.SubsystemTerrain' @('ITerrainContentsGenerator TerrainContentsGenerator')

@@ -1,6 +1,6 @@
 {
   "Name": "Survivalcraft Ruins 生存战争·遗迹",
-  "Version": "1.0.1",
+  "Version": "1.0.2",
   "ApiVersion": "1.42",
   "Description": "Adds explorable structures to world generation: desert temples, jungle temples with dart traps, ocean monuments, sky fortresses, coliseums, shipwrecks, werewolf dens, mines, lighthouses and more, each with multi-chest weighted loot and beast guards scaled to the loot on offer. Density and guard strength are configurable. 为世界生成添加可探索结构:沙漠神殿、带机关的丛林神庙、海底神殿、天空堡垒、斗兽场、沉船、狼人巢穴、废弃矿井、灯塔等,均带多箱加权战利品,并按战利品价值配置守卫。遗迹密度与守卫强度可调。",
   "ScVersion": "2.4.10.6",

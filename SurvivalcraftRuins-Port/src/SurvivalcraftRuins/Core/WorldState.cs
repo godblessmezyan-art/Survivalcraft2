@@ -264,7 +264,11 @@ public sealed class WorldState
 
         var sortedChests = s_sortedChests.GetOrAdd(data, static d =>
         {
-            var array = d.Chests.ToArray();
+            var array = new ChestMarker[d.Chests.Count];
+            for (int i = 0; i < d.Chests.Count; i++)
+            {
+                array[i] = d.Chests[i];
+            }
             Array.Sort(array, (a, b) =>
             {
                 int c = a.Y.CompareTo(b.Y);

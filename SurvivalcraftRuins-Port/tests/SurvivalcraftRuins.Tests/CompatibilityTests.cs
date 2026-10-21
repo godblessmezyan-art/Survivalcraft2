@@ -102,6 +102,27 @@ public sealed class CompatibilityTests
         AssertPoolRuns(variants["windmill"].ChestPools, "homestead_cellar", 8, "homestead", 8);
     }
 
+    [Fact]
+    public void AssetLoaderUsesExactManifestInsteadOfExtensionEnumeration()
+    {
+        var entity = new DirectoryModEntity(OutputDirectory);
+
+        RuinsRuntime.LoadAssets(entity);
+
+        var templates = (IReadOnlyDictionary<string, StructureData>)typeof(RuinsRuntime)
+            .GetField("s_templates", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetValue(null)!;
+        var pools = (IReadOnlyDictionary<string, LootPool>)typeof(RuinsRuntime)
+            .GetField("s_lootPools", BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetValue(null)!;
+        Assert.Equal(13, templates.Count);
+        Assert.Contains("sky_fortress", templates.Keys);
+        Assert.NotEmpty(pools);
+        Assert.Equal(14, entity.RequestedPaths.Count);
+        Assert.Contains("Assets/Structures/sky_fortress.json", entity.RequestedPaths);
+        Assert.Contains("Assets/Loot/pools.json", entity.RequestedPaths);
+    }
+
     [Theory]
     [InlineData("WoodenStairsBlock", 8)]
     [InlineData("WoodenSlabBlock", 2)]
@@ -191,6 +212,36 @@ public sealed class CompatibilityTests
         for (int i = 0; i < secondCount; i++)
         {
             Assert.Equal(second, actual[firstCount + i]);
+        }
+    }
+
+    private sealed class DirectoryModEntity : ModEntity
+    {
+        private readonly string m_root;
+
+        public DirectoryModEntity(string root)
+        {
+            m_root = root;
+        }
+
+        public List<string> RequestedPaths { get; } = new();
+
+        public override void GetFiles(string extension, Action<string, Stream> action)
+        {
+            throw new InvalidOperationException("Extension enumeration is forbidden by this compatibility test.");
+        }
+
+        public override bool GetFile(string filename, Action<Stream> action)
+        {
+            RequestedPaths.Add(filename);
+            string path = Path.Combine(m_root, filename.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+            using Stream stream = File.OpenRead(path);
+            action(stream);
+            return true;
         }
     }
 }
