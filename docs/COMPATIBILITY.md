@@ -878,3 +878,61 @@ public static class Utils {
 | 真机一次导入 >1024 且 ≤2756 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
 | 新上限下真机存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
 | 联机房主权威下更大单事务同步 | 待验证 |
+
+
+## Builder Assistant v0.13.2 — 一键清障模式（显式、默认关闭；纯串接 allowOverride）
+
+本轮直接回应项目所有者 2026-10-20 指令「优化生成器，生成时不要出现太多限制，生成直接清除周围所有障碍方块」。既有、且已在离线证明可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 自早期即支持），此前在**建造、粘贴、树屋一键装配、工作台**四条落建路径里一律写死 `false`。本轮只是把这个已有形参**串接**到一个新的、显式、默认关闭的运行模式开关上——不新增方块、不新增子系统、不上调任何限额、不改管线。三条设计决定（项目所有者确认）：清除范围 = **占用格内无条件全清（含流体，不做流体保护）**；周边留白 = **不留，只清 footprint**；触发方式 = **显式模式开关，默认 OFF**。
+
+### 行为定义
+
+| 开关状态 | 行为 |
+| --- | --- |
+| 清障 OFF（默认） | 与 v0.13.1 **逐字节相同**：默认不覆盖非空气；footprint 内遇实心/流体即规划拒绝，并写明“实心方块”冲突，一格不写。 |
+| 清障 ON | footprint 内**每一格无条件替换**：实心方块与水/岩浆流体一并清除；**不留周边留白**（footprint 外一格不动）；开启后不再逐格中止、也不再走软清除的重复两按确认（开关本身即“显式二次确认”）。 |
+| 撤销 | 两种状态下写入前都先捕获原值进 `BlockUndoRecord`；清障覆盖掉的实心方块与流体都能经 `902` 逐段/逐事务精确还原。 |
+
+### 触屏触发（`RuntimeMode` 循环由 4 步扩为 6 步，无新增工具块）
+
+沿用撤销工具 `902` 的空闲点击循环，避免新增 905 方块带来的 `.xdb`/GUID/打包风险。循环：`Cottage → Copy → Paste → Treehouse`（`SetMode`）；到 `Treehouse` 后再点一次即 `_clearObstaclesArmed = true`（**装填清障**，仍留在 `Treehouse`，toast 前缀 `[清障模式]`）；装填态下再点即 `_clearObstaclesArmed = false` 并回 `Cottage`。开关**跨模式切换持久**，`SetMode` 结束时若仍开启会 toast 提醒。装填/解除均受上游 `CanMutateWorld` 权限闸约束（非权威联机客户端拒绝）。
+
+### 未改动（逐条核对 AGENTS 铁律）
+
+| 项 | 状态 |
+| --- | --- |
+| `MaxBlocksPerOperation`（每事务）= 2756、`MaxBlocksPerBatch` = 32、`MaxSelectionAxisLength` = 64、`MaxIdleAdvanceCallsDuringBuild` = 240 | 不变 ✔ |
+| 坐标/高度边界、写入前先抓撤销快照、失败/取消回滚、撤销不覆盖玩家后续改动 | 不变 ✔ |
+| 仅主线程分批写入、区块就绪预检、有界停等 | 不变 ✔ |
+| 计划→校验→分批执行→记录撤销管线、`schemaVersion=2` | 一字未改 ✔ |
+| 权限闸（单人或房主可建，拒绝 `WorkType.Client`）、`TerrainAuthority` | 不变 ✔ |
+| 工具块 900–904 永不落进世界 | 不变 ✔ |
+| 快艇 / ATV / SCIE-Port / 参数化引擎 / 树屋五个生成器 | 未触碰 ✔ |
+| `.xdb` / `.csv` / 任何 GUID | 未改动、无新增（复用既有 `902`，不引入新方块/子系统） ✔ |
+
+### 本轮实际修改
+
+- `Core/Tree/TreehouseAssembly.cs`：新增 `public bool ClearObstacles { get; set; }`，把 `BuildPlanner.Plan(..., ClearObstacles, ClearSoft)` 与 `new BuildTask(..., ClearObstacles, ClearSoft)` 里原先写死的 `false` 换成该开关。
+- `Features/WorldEdit/WorldEditRuntime.cs`：新增会话级 `_clearObstaclesArmed`（默认 false）与 `_preflightClearObstacles`；`ResetSession` 归零；`PlanAndStart`/`AdvancePreflight`/`StartBuild`/`BeginTreehouse` 把该开关透传给规划器/执行器/树屋装配器；`CycleMode` 扩为 6 步以装填/解除清障；`SetMode` 结束时若开启则 toast 提醒；新增只读闸面 `internal static bool IsClearObstaclesActive`。
+- `Core/Workbench/WorkbenchStage.cs`：`BuildStartDescriptor` 增 `readonly bool AllowOverride`（默认 `false`）。
+- `Core/Workbench/BuildingWorkbench.cs`：`PreviewAt(..., bool allowOverride = false)` 透传至 `BuildPreviewComposer.Compose`；`_previewOverride` 字段随预览记录、`ClearPreview` 归零；`TryBeginBuild` 用 `_previewOverride` 跑权威规划并写进 `BuildStartDescriptor`。
+- `Features/WorldEdit/WorkbenchSession.cs`：预览调用接 `WorldEditRuntime.IsClearObstaclesActive` 作 `allowOverride`，保证预览允许判定与最终建造同一口径。
+- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.13.1 → 0.13.2`；modinfo 描述追加 v0.13.2 段（仍 `JSON.parse` 通过）。
+- `tests/BuilderAssistant.Tests/Program.cs`：新增 5 组清障夹具；离线 **444 → 474/474** 通过。
+- `docs/COMPATIBILITY.md` / `docs/blueprint-block-reference.md` / `README.md`：本节与对应清障说明。
+
+### 已跑验证（本机 Windows，桌面）
+
+- 离线逻辑测试 **474/474** 全通过。新增 5 组断言：`TestClearObstaclesReplacesSolidAndFluidWithUndo`（覆盖实心+流体且撤销可还原、override 计划不被误报为 soft-only、每格都是计划写入、建造跑到完成）、`TestClearObstaclesOffKeepsDefaultNoOverwrite`（OFF 仍拒覆盖占用格、实心/流体不作为可清 soft 提供、原因文案沿用 v0.13.1、拒时零写入）、`TestClearObstaclesOnlyWithinFootprintNoMargin`（footprint 内障碍被清、footprint 外一格原样保留）、`TestTreehouseAssemblyClearObstaclesOverSolidAndFluid`（OFF 首段被拒、ON 越障装配到 `AllCompleted`、批量仍 ≤32、footprint 内障碍格皆被建成块替换）、`TestPreviewOverrideMatchesBuildOverride`（OFF 预览拒占用 footprint、ON 预览允许、ON 预览为每 footprint 格计划写入、预览 allowed 与权威规划器成功一致）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true`+`GenerateDocumentationFile=true`，编译通过即 ABI 无变化）。
+- `.netmod` 重打包 SHA-256 `3D730AA08F29D735690D80C3EA7350278C527E8ACA0C6087F8FF97153E7B97C7`（2,379,423 字节）；`BuilderAssistant.dll` 反射 `AssemblyVersion=0.13.2.0` / `FileVersion=0.13.2.0` / `ProductVersion=0.13.2`，打包 DLL 与构建产物逐字节一致。
+
+### 尚未确认 / 待验证（不以离线/编译通过冒充真机兼容）
+
+| 项 | 状态 |
+| --- | --- |
+| Android 7723 上 6 步模式循环手感、`[清障模式]` 前缀与“仍开启”提醒 toast 的分辨率可读性/不遮挡 | 待验证 |
+| 真机清障是否**确实**无条件替换 footprint 内实心方块与**水/岩浆流体**、footprint 外是否一格未动 | 待验证 |
+| 被清除的原版方块与**流体**经 `902` 撤销**精确还原**（尤其流体在真机存档回到原样） | 待验证 |
+| 树屋分阶段越障装配到 `AllCompleted` 的真机帧耗时/卡顿、有界停等表现 | 待验证 |
+| 联机房主权威下清障写入与撤销能否同步到未装 Mod 客户端 | 待验证（产出皆原版方块故应能同步，但真机双端未证） |
+| 关闭开关后回到 v0.13.1 默认不覆盖行为 | 待验证（离线已证，真机复核） |

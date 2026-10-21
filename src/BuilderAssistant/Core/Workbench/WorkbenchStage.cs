@@ -61,12 +61,18 @@ namespace BuilderAssistant.Core.Workbench
         public readonly string Name;
         public readonly bool ClearSoftObstructions;
 
-        public BuildStartDescriptor(Blueprint blueprint, CellPos origin, string name, bool clearSoft)
+        /// <summary>v0.13.2 "clear obstacles within footprint": when true the resulting build
+        /// runs with allowOverride, replacing every footprint cell unconditionally (solid /
+        /// structure / fluid). Mirrors the armed toggle at preview time so preview and build agree.</summary>
+        public readonly bool AllowOverride;
+
+        public BuildStartDescriptor(Blueprint blueprint, CellPos origin, string name, bool clearSoft, bool allowOverride = false)
         {
             Blueprint = blueprint;
             Origin = origin;
             Name = name;
             ClearSoftObstructions = clearSoft;
+            AllowOverride = allowOverride;
         }
     }
 

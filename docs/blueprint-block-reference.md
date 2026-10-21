@@ -1,6 +1,6 @@
 # Blueprint Block Reference
 
-> 本文件是 Builder Assistant v0.13.0 蓝图导入的**唯一权威方块能力清单**。
+> 本文件是 Builder Assistant v0.13.2 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
 > 不在此文件中的方块一律**不支持**，导入会触发"未知材料键"干净拒绝。
@@ -171,6 +171,16 @@
 
 > **注意（大型结构）**：即便上限已升至 2756，默认大型树屋蓝图（2765 格）仍超出单事务上限，因此它**不是**以一份扁平蓝图 JSON 导入的，而是走 Treehouse 运行模式，按阶段（9 个 phase，每段各自 ≤ 2756）顺序装配。若你要用单份 JSON 导入，cells 必须 ≤ 2756；超过请拆分为多份蓝图或改用分阶段装配。
 
+## 建造期清障模式（v0.13.2 运行时开关，**不改变蓝图格式**）
+
+这是一个**运行时（落建时）**的显式开关，默认关闭，通过手持撤销工具 `902` 点击天空进入模式循环、在 `Treehouse` 后再点一次“装填清障”开启。**它对蓝图 JSON 的 schema、可作者化的方块集合、`cells`/`materials` 结构没有任何影响**，AI 生成蓝图时**无需**为其写任何额外字段。它只改变“落建那一刻，蓝图 footprint 若被世界里已有的方块占据”时的处理方式：
+
+- **关闭（默认）**：footprint 内若已有实心方块或水/岩浆，`BuildPlanner` 会**拒绝**该次建造并写明冲突（“实心方块”），一格都不写。此时若你想让蓝图落进去，须先手动清掉障碍。
+- **开启**：footprint 内的**每一格被无条件替换**——已有的实心方块、以及**水/岩浆流体**一并被清掉并换成蓝图方块；**不留任何周边留白**（只动蓝图精确写入的那些格，footprint 之外一格不碰）。开启本身即“显式二次确认”，不再逐格中止、也不再走软清除的重复两按。
+- **撤销**：无论开关状态，写入前都会捕获原值进撤销栈。清障模式下被覆盖掉的实心方块与**流体**都能经 `902` 精确还原到建造前的样子。
+
+对 AI 的实际含义：**上面“明确不支持的方块”一节仍然成立**——你不能在水/岩浆/植物/实体方块等类型里挑选蓝图方块，蓝图里只能出现本文件列出的原版方块。但清障模式意味着：**你不必担心目标 footprint 在现实世界里已被地形或玩家建筑占据**——用户开启清障后，建造会无条件扫清 footprint 内的一切障碍（含流体）。生成器可放心按理想空地上产蓝图，落建障碍交由运行时开关处理。真机上流体清除与还原效果仍为**待验证**。
+
 ## 生成蓝图 JSON 的注意事项
 
 1. **坐标为相对值**：蓝图中所有 cells 的 x/y/z 是相对于包围盒最小角的偏移。最小角自动归一化为 (0,0,0)。
@@ -199,7 +209,7 @@
 
 ```json
 {
-  "modVersion": "0.13.1",
+  "modVersion": "0.13.2",
   "targetGame": "Survivalcraft NET x25.01.17",
   "schemaVersion": 2,
   "limits": { "maxCells": 2756, "maxAxis": 64, "maxPerBatch": 32 },
@@ -231,10 +241,21 @@
     "fluids","plants(except SpruceLeavesBlock)","snow","ice","gravity blocks",
     "entity-bearing blocks","ladders","glass panes","redstone","torches","saplings",
     "horizontal logs","furniture blocks"
-  ]
+  ],
+  "buildBehavior": {
+    "clearObstaclesMode": {
+      "default": "off",
+      "scope": "blueprint-footprint-only",
+      "clears": "every existing block inside the footprint is unconditionally replaced, including solid terrain AND fluids (water/lava)",
+      "margin": "none (cells outside the exact footprint are never touched)",
+      "affectsSchema": false,
+      "undoRestores": "cleared blocks including displaced fluids are captured before write and restored by the Undo tool (902)",
+      "note": "runtime build-time toggle only; blueprint JSON needs no extra fields for it. AI generators do NOT need to worry about pre-existing terrain/player obstacles in the target footprint — with the mode armed the build clears them."
+    }
+  }
 }
 ```
 
 ---
 
-最后更新：v0.13.0（2026-10-20）。下次 Mod 版本更新时必须同步修改本文件。
+最后更新：v0.13.2（2026-10-20），新增“建造期清障模式（v0.13.2 运行时开关）”一节与机器可读 `buildBehavior.clearObstaclesMode`。下次 Mod 版本更新时必须同步修改本文件。

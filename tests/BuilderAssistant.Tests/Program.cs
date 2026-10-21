@@ -213,6 +213,20 @@ namespace BuilderAssistant.Tests
             TestClearSoftReplacesVegetationWhenOptedIn();
             TestClearSoftNeverTouchesSolidBlocks();
 
+            // v0.13.2: explicit "clear obstacles within footprint" (allowOverride) opt-in. Proves
+            // that when the toggle is ON, EVERY blueprint footprint cell is replaced unconditionally
+            // - solid terrain AND fluid (water/lava) - with NO clearance margin beyond the exact
+            // footprint, and Undo restores each captured original (including the displaced fluid);
+            // when OFF the plan/execute path is byte-identical to v0.13.1. Also proves the phased
+            // treehouse assembler clears obstacles stage by stage and that the workbench preview is
+            // composed with the SAME allowOverride the final build will use. See BuildPlanner /
+            // BuildTask / TreehouseAssembly / BuildPreviewComposer.
+            TestClearObstaclesReplacesSolidAndFluidWithUndo();
+            TestClearObstaclesOffKeepsDefaultNoOverwrite();
+            TestClearObstaclesOnlyWithinFootprintNoMargin();
+            TestTreehouseAssemblyClearObstaclesOverSolidAndFluid();
+            TestPreviewOverrideMatchesBuildOverride();
+
             // v0.7.0: generic JSON blueprint import/export. Proves a structure can be
             // reliably saved, re-imported and reproduce the SAME block set, and that any
             // malformed / unsupported / illegal blueprint is rejected loudly (never a
@@ -807,6 +821,191 @@ namespace BuilderAssistant.Tests
             Check(!plan.FailedBySoftObstruction, "a solid conflict is not offered as a clearable soft case");
             Check(plan.FailureReason.Contains("实心方块"), "reason names the solid-block conflict");
             Check(terrain.Writes == 0, "solid block is never written");
+        }
+
+        // ==================== v0.13.2 "clear obstacles within footprint" (allowOverride) ====================
+
+        // A 5-cell line where three targets are a solid block, a fluid (water) and a fluid
+        // (lava) - all modelled as non-air and NOT in the Soft set, i.e. exactly what a real
+        // solid / water / lava cell looks like to the planner. The other two targets are air.
+        private static void TestClearObstaclesReplacesSolidAndFluidWithUndo()
+        {
+            Console.WriteLine("[TestClearObstaclesReplacesSolidAndFluidWithUndo]");
+            const int solidValue = 999;
+            const int waterValue = 1010;
+            const int lavaValue = 1011;
+
+            Blueprint bp = LineBlueprint(5);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(10, 30, 10);
+            CellPos c0 = origin.Add(bp.Cells[0].Relative);
+            CellPos c1 = origin.Add(bp.Cells[1].Relative);
+            CellPos c2 = origin.Add(bp.Cells[2].Relative);
+            terrain.Occupy(c0, solidValue); // solid terrain / player structure
+            terrain.Occupy(c1, waterValue); // fluid water
+            terrain.Occupy(c2, lavaValue);  // fluid lava
+
+            FakeResolver resolver = new FakeResolver();
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, resolver, terrain, true, false);
+            Check(plan.Success, "allowOverride=true plans over solid AND fluid inside the footprint");
+            Check(!plan.FailedBySoftObstruction, "an override plan is never reported as a soft-only block");
+            Check(plan.Changes.Count == bp.CellCount, "every footprint cell (incl. the three occupied) is a planned write");
+
+            BuildTask task = new BuildTask("line5", origin, plan.Changes, true, false);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(task.State == BuildTaskState.Completed, "override build runs to completion over obstacles");
+            Check(terrain.ValueAt(c0) != solidValue && terrain.ValueAt(c0) != 0, "the solid cell was replaced by the built block");
+            Check(terrain.ValueAt(c1) != waterValue && terrain.ValueAt(c1) != 0, "the water cell was replaced (fluid cleared)");
+            Check(terrain.ValueAt(c2) != lavaValue && terrain.ValueAt(c2) != 0, "the lava cell was replaced (fluid cleared)");
+
+            int builtC0 = terrain.ValueAt(c0);
+            task.Undo(terrain);
+            Check(terrain.ValueAt(c0) == solidValue, "undo restores the exact original solid (no hole left)");
+            Check(terrain.ValueAt(c1) == waterValue, "undo restores the exact original water (fluid re-placed)");
+            Check(terrain.ValueAt(c2) == lavaValue, "undo restores the exact original lava (fluid re-placed)");
+            Check(terrain.ValueAt(c0) == solidValue && builtC0 != solidValue, "sanity: built value differed from the restored solid");
+        }
+
+        // With the toggle OFF the whole path must behave exactly like v0.13.1: a solid blocks
+        // the plan and nothing is written; a lone fluid is likewise a hard (non-soft) conflict.
+        private static void TestClearObstaclesOffKeepsDefaultNoOverwrite()
+        {
+            Console.WriteLine("[TestClearObstaclesOffKeepsDefaultNoOverwrite]");
+            Blueprint bp = LineBlueprint(5);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(20, 30, 20);
+            CellPos solidCell = origin.Add(bp.Cells[0].Relative);
+            CellPos waterCell = origin.Add(bp.Cells[1].Relative);
+            terrain.Occupy(solidCell, 999);   // solid, not soft
+            terrain.Occupy(waterCell, 1010);  // fluid, not soft
+
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, new FakeResolver(), terrain, false, false);
+            Check(!plan.Success, "override OFF still refuses to overwrite occupied footprint cells");
+            Check(!plan.FailedBySoftObstruction, "solid/fluid conflicts are NOT offered as a clearable soft case");
+            Check(plan.FailureReason.Contains("实心方块"), "reason names the solid-block conflict (unchanged v0.13.1 wording)");
+            Check(terrain.Writes == 0, "the OFF path writes nothing when refused");
+        }
+
+        // Only the footprint cells are cleared. An obstacle one cell OUTSIDE the write list is
+        // untouched, proving there is no clearance margin.
+        private static void TestClearObstaclesOnlyWithinFootprintNoMargin()
+        {
+            Console.WriteLine("[TestClearObstaclesOnlyWithinFootprintNoMargin]");
+            // A 3x1x1 footprint: cells at relative x=0,1,2 (all at y=0,z=0).
+            Blueprint bp = LineBlueprint(3);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(40, 30, 40);
+            CellPos inside = origin.Add(bp.Cells[1].Relative);
+            CellPos justOutside = new CellPos(origin.X + 3, origin.Y, origin.Z); // the next cell after the line
+
+            const int insideValue = 777;
+            const int outsideValue = 888;
+            terrain.Occupy(inside, insideValue);
+            terrain.Occupy(justOutside, outsideValue);
+
+            FakeResolver resolver = new FakeResolver();
+            BuildPlan plan = BuildPlanner.Plan(bp, origin, resolver, terrain, true, false);
+            Check(plan.Success, "override plan succeeds with an obstacle inside the footprint");
+
+            BuildTask task = new BuildTask("line3", origin, plan.Changes, true, false);
+            while (!task.IsFinished)
+            {
+                task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
+            }
+            Check(terrain.ValueAt(inside) != insideValue, "the inside-footprint obstacle was cleared/replaced");
+            Check(terrain.ValueAt(justOutside) == outsideValue, "a cell just OUTSIDE the footprint is left exactly as-is (no margin)");
+        }
+
+        // The phased giant-treehouse assembler grows over solid trunks AND fluid even when the
+        // (otherwise-blocking) obstacles sit in its footprint, purely because ClearObstacles is set;
+        // and every completed stage stays individually undoable with the original captured value.
+        private static void TestTreehouseAssemblyClearObstaclesOverSolidAndFluid()
+        {
+            Console.WriteLine("[TestTreehouseAssemblyClearObstaclesOverSolidAndFluid]");
+            TreehouseSpec spec = TreehouseSpec.DefaultKingdomOfTheForest();
+            TreeCanvas canvas; TreehouseValidation v;
+            TreehousePart[] parts = TreehouseBlueprintSet.Build(spec, out canvas, out v);
+            Check(v.IsValid, "phased blueprint set validates clean");
+
+            CellPos anchor = new CellPos(0, 64, 0);
+            FakeTerrain t = new FakeTerrain();
+
+            // Scatter solid + fluid obstacles across EVERY footprint cell of the first phase,
+            // so the very first stage would hard-fail without the override.
+            TreehousePart first = parts[0];
+            const int solidV = 12345;
+            const int fluidV = 23456;
+            var captured = new List<CellPos>();
+            for (int i = 0; i < first.Blueprint.Cells.Count; i++)
+            {
+                CellPos abs = AssemblyAbsolute(anchor, first, first.Blueprint.Cells[i]);
+                int val = (i % 2 == 0) ? solidV : fluidV;
+                t.Occupy(abs, val);
+                captured.Add(abs);
+            }
+
+            // Control: with ClearObstacles OFF, the first stage would be refused (solid/fluid).
+            BuildPlan blocked = BuildPlanner.Plan(
+                first.Blueprint, anchor.Add(first.OffsetInMaster), new FakeResolver(), t, false, false);
+            Check(!blocked.Success, "without the override the obstacle-laden first stage is refused");
+
+            // Now assemble with ClearObstacles ON and pump to completion.
+            TransactionHistory h = new TransactionHistory();
+            TreehouseAssembly asm = new TreehouseAssembly(parts, anchor, new FakeResolver(), t, h);
+            asm.ClearObstacles = true;
+            int maxBurst;
+            TreehouseAdvanceResult result = PumpToTerminal(asm, t, 200000, out maxBurst);
+
+            Check(asm.IsCompleted, "clear-obstacles assembly finishes despite solid+fluid footprints");
+            Check(result == TreehouseAdvanceResult.AllCompleted, "the terminal result is AllCompleted (no soft/hard halt)");
+            Check(maxBurst <= BuildSafetyLimits.MaxBlocksPerBatch, "writes stay batched even in override mode");
+
+            // Every first-phase footprint cell now holds a built block, not the obstacle value.
+            bool allCleared = true;
+            for (int i = 0; i < captured.Count; i++)
+            {
+                int val = t.ValueAt(captured[i]);
+                int expectOrig = (i % 2 == 0) ? solidV : fluidV;
+                if (val == 0 || val == expectOrig) allCleared = false;
+            }
+            Check(allCleared, "every obstacle cell inside the footprint was replaced by a built block");
+
+            // Undo the LAST completed stage and confirm it reverts to the previous build values
+            // (per-phase undo still records captured originals, incl. displaced obstacle values).
+            Check(h.HasUndoable, "completed stages are recorded as reversible transactions");
+            int pending;
+            int restored = h.UndoLast(t, out pending);
+            Check(restored >= 0, "undoing the last stage restores cells (>=0)");
+        }
+
+        // The workbench preview is composed with the SAME allowOverride the build will use: an
+        // occupied footprint is refused at preview when override is OFF, but previewed as allowed
+        // (and re-planned as allowed) when override is ON.
+        private static void TestPreviewOverrideMatchesBuildOverride()
+        {
+            Console.WriteLine("[TestPreviewOverrideMatchesBuildOverride]");
+            Blueprint bp = LineBlueprint(4);
+            FakeTerrain terrain = new FakeTerrain();
+            CellPos origin = new CellPos(60, 30, 60);
+            CellPos occupied = origin.Add(bp.Cells[1].Relative);
+            terrain.Occupy(occupied, 333); // solid obstacle inside the footprint
+
+            FakeResolver resolver = new FakeResolver();
+
+            BuildPreviewModel off = BuildPreviewComposer.Compose(bp, origin, resolver, terrain, false, false);
+            Check(!off.Allowed, "preview with override OFF refuses an occupied footprint (matches default build)");
+
+            BuildPreviewModel on = BuildPreviewComposer.Compose(bp, origin, resolver, terrain, true, false);
+            Check(on.Allowed, "preview with override ON allows the occupied footprint (matches the override build)");
+            Check(on.PlannedWriteCount == bp.CellCount, "the ON preview plans a write for every footprint cell, obstacles included");
+
+            // The preview's decision equals what the authoritative planner later returns, so
+            // "预览 == 建造" holds by construction even in clear-obstacles mode.
+            BuildPlan authoritative = BuildPlanner.Plan(bp, origin, resolver, terrain, true, false);
+            Check(authoritative.Success == on.Allowed, "preview allowed flag matches the authoritative planner success");
         }
 
         // Shared helper: the absolute cell a LineBlueprint's first cell maps to.

@@ -63,8 +63,20 @@ namespace BuilderAssistant.Features.WorldEdit
         // Never enabled by default; solid terrain and player structures are unaffected.
         private static bool _clearSoftArmed;
 
+        // v0.13.2 "clear obstacles within footprint": an explicit, session-persistent toggle
+        // (default OFF). When ON, every build runs with allowOverride so each cell the blueprint
+        // writes into is replaced unconditionally - solid terrain, player structures AND fluids -
+        // with NO clearance margin beyond the exact footprint, and without the repeated two-tap
+        // clear-soft confirmation dance (the toggle itself is the explicit opt-in / second
+        // confirm). Undo still captures each original value (including any displaced fluid)
+        // before writing, and all bounds / count / axis / batch limits stay in force.
+        private static bool _clearObstaclesArmed;
+
         // The clear-soft intent carried across a bounded chunk-wait re-plan.
         private static bool _preflightClearSoft;
+
+        // The clear-obstacles (allowOverride) intent carried across the same bounded re-plan.
+        private static bool _preflightClearObstacles;
 
         /// <summary>
         /// What a build-tool tap does. <c>Cottage</c> is the unchanged v0.5/v0.6 path.
@@ -169,6 +181,8 @@ namespace BuilderAssistant.Features.WorldEdit
             _pendingOrigin = default(CellPos);
             _clearSoftArmed = false;
             _preflightClearSoft = false;
+            _clearObstaclesArmed = false;
+            _preflightClearObstacles = false;
             _history.Clear();
 
             // Reset the v0.7 blueprint copy/paste state too, so a fresh world never
@@ -684,12 +698,17 @@ namespace BuilderAssistant.Features.WorldEdit
 
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
             _treehouse = new TreehouseAssembly(parts, origin, _palette, gateway, _history);
+            _treehouse.ClearObstacles = _clearObstaclesArmed;
             _treehouseWaitFrames = MaxPreflightFrames;
             _treehouseAwaitSoft = false;
             _clearSoftArmed = false;
 
-            Notify(gui, "开始装配「森之王庭」，共 " + parts.Length + " 个阶段（逐段建造、可逐段撤销）。" +
-                "随时点击撤销工具可中止当前阶段。");
+            string treehousePrefix = _clearObstaclesArmed
+                ? "【清障模式】" : string.Empty;
+            Notify(gui, treehousePrefix + "开始装配「森之王庭」，共 " + parts.Length + " 个阶段（逐段建造、可逐段撤销）。" +
+                (_clearObstaclesArmed
+                    ? "每阶段将无条件清除其占用格内所有障碍（含实心/建筑/水/岩浆，仅限占用格）；随时点击撤销工具可中止当前阶段，撤销可逐格还原含被替换的水/岩浆。"
+                    : "随时点击撤销工具可中止当前阶段。"));
         }
 
         private static void PlanAndStart(ComponentMiner miner, ComponentGui gui, Blueprint blueprint, CellPos origin)
@@ -702,12 +721,22 @@ namespace BuilderAssistant.Features.WorldEdit
 
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
             bool clearSoft = _clearSoftArmed;
+            bool override_ = _clearObstaclesArmed;
 
-            BuildPlan plan = BuildPlanner.Plan(blueprint, origin, _palette, gateway, false, clearSoft);
+            BuildPlan plan = BuildPlanner.Plan(blueprint, origin, _palette, gateway, override_, clearSoft);
             if (plan.Success)
             {
-                StartBuild(plan, blueprint, gateway, origin, clearSoft);
-                if (plan.SoftClearedCount > 0)
+                StartBuild(plan, blueprint, gateway, origin, clearSoft, override_);
+                if (override_)
+                {
+                    // v0.13.2 clear-obstacles is ON: every footprint cell (solid/structure/fluid)
+                    // is being replaced. The toggle stays armed for subsequent builds - it is NOT
+                    // a one-shot confirmation - so we do not clear _clearObstaclesArmed here.
+                    Notify(gui, "【清障模式】建造 " + blueprint.Name + "，共 " + blueprint.CellCount +
+                        " 个方块：将无条件清除落点范围内所有障碍（含实心方块/建筑/水/岩浆），仅限蓝图占用格、不留外扩；" +
+                        "撤销可逐格还原原方块（含被替换的水/岩浆）。");
+                }
+                else if (plan.SoftClearedCount > 0)
                 {
                     Notify(gui, "开始建造 " + blueprint.Name + "，共 " + blueprint.CellCount +
                         " 个方块；将清理 " + plan.SoftClearedCount + " 处植被/积雪（不影响实心方块与建筑）。");
@@ -729,6 +758,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 _preflightBlueprint = blueprint;
                 _preflightOrigin = origin;
                 _preflightClearSoft = clearSoft;
+                _preflightClearObstacles = override_;
                 _preflightFramesLeft = MaxPreflightFrames;
                 Notify(gui, "建筑范围尚未全部就绪（可能跨越多个区块），正在等待区块加载，最多 " +
                     MaxPreflightFrames + " 帧后自动放弃。当前诊断：" + plan.FailureReason);
@@ -753,10 +783,10 @@ namespace BuilderAssistant.Features.WorldEdit
             Notify(gui, "规划失败，未改动世界：" + plan.FailureReason);
         }
 
-        private static void StartBuild(BuildPlan plan, Blueprint blueprint, GameTerrainGateway gateway, CellPos origin, bool clearSoft)
+        private static void StartBuild(BuildPlan plan, Blueprint blueprint, GameTerrainGateway gateway, CellPos origin, bool clearSoft, bool allowOverride)
         {
             _activeGateway = gateway;
-            _activeTask = new BuildTask(blueprint.Name, origin, plan.Changes, false, clearSoft);
+            _activeTask = new BuildTask(blueprint.Name, origin, plan.Changes, allowOverride, clearSoft);
         }
 
         private static void AdvancePreflight(ComponentGui gui)
@@ -768,8 +798,9 @@ namespace BuilderAssistant.Features.WorldEdit
             }
 
             bool clearSoft = _preflightClearSoft;
+            bool override_ = _preflightClearObstacles;
             BuildPlan plan = BuildPlanner.Plan(
-                _preflightBlueprint, _preflightOrigin, _palette, _preflightGateway, false, clearSoft);
+                _preflightBlueprint, _preflightOrigin, _palette, _preflightGateway, override_, clearSoft);
 
             if (plan.Success)
             {
@@ -777,8 +808,14 @@ namespace BuilderAssistant.Features.WorldEdit
                 Blueprint blueprint = _preflightBlueprint;
                 GameTerrainGateway gateway = _preflightGateway;
                 ClearPreflight();
-                StartBuild(plan, blueprint, gateway, origin, clearSoft);
-                if (plan.SoftClearedCount > 0)
+                StartBuild(plan, blueprint, gateway, origin, clearSoft, override_);
+                if (override_)
+                {
+                    Notify(gui, "【清障模式】区块已就绪，建造 " + blueprint.Name + "，共 " +
+                        blueprint.CellCount + " 个方块：将无条件清除落点范围内所有障碍（含实心/建筑/水/岩浆，仅限占用格）；" +
+                        "撤销可逐格还原（含被替换的水/岩浆）。");
+                }
+                else if (plan.SoftClearedCount > 0)
                 {
                     Notify(gui, "区块已就绪，开始建造 " + blueprint.Name + "，共 " +
                         blueprint.CellCount + " 个方块；将清理 " + plan.SoftClearedCount + " 处植被/积雪。");
@@ -815,6 +852,7 @@ namespace BuilderAssistant.Features.WorldEdit
             _preflightOrigin = default(CellPos);
             _preflightFramesLeft = 0;
             _preflightClearSoft = false;
+            _preflightClearObstacles = false;
         }
 
         private static void FinalizeActive(ComponentGui gui)
@@ -985,22 +1023,40 @@ namespace BuilderAssistant.Features.WorldEdit
         }
 
         /// <summary>
-        /// Advance the runtime to the next mode (Cottage → Copy → Paste → Cottage).
-        /// Exposed so a future on-device UI (or the undo tool's idle tap) can cycle
-        /// without duplicating the state machine. Only meaningful in single player;
-        /// callers gate that upstream.
+        /// Advance the touch-only control loop one step: Cottage → Copy → Paste → Treehouse →
+        /// (clear-obstacles ON) → (clear-obstacles OFF) → Cottage. The first four steps switch
+        /// build mode (unchanged v0.5-v0.13 behaviour); the last two toggle the v0.13.2 explicit
+        /// "clear obstacles within footprint" (allowOverride) opt-in WITHOUT changing the current
+        /// mode, so a phone player can arm/disarm unconditional footprint clearing with the same
+        /// idle Undo-tool tap that cycles modes. Only meaningful in single player / as host;
+        /// callers gate authority upstream.
         /// </summary>
         public static void CycleMode(ComponentGui gui)
         {
-            RuntimeMode next;
             switch (_mode)
             {
-                case RuntimeMode.Cottage: next = RuntimeMode.Copy; break;
-                case RuntimeMode.Copy: next = RuntimeMode.Paste; break;
-                case RuntimeMode.Paste: next = RuntimeMode.Treehouse; break;
-                default: next = RuntimeMode.Cottage; break;
+                case RuntimeMode.Cottage: SetMode(RuntimeMode.Copy, gui); break;
+                case RuntimeMode.Copy: SetMode(RuntimeMode.Paste, gui); break;
+                case RuntimeMode.Paste: SetMode(RuntimeMode.Treehouse, gui); break;
+                case RuntimeMode.Treehouse:
+                    // From Treehouse, the idle tap first ARMS clear-obstacles (mode stays Treehouse).
+                    // Done via the persistent flag, not SetMode, so _clearObstaclesArmed survives.
+                    _clearObstaclesArmed = true;
+                    _clearSoftArmed = false;
+                    _hasPending = false;
+                    Notify(gui, "【清障模式 已开启】后续建造（小屋/粘贴/树屋/工作台）将无条件清除落点占用格内所有障碍" +
+                        "（含实心方块/建筑/水/岩浆），仅限蓝图占用格、不留外扩。撤销仍可逐格还原（含水/岩浆）。" +
+                        "再点一次撤销工具可关闭清障。");
+                    break;
+                default:
+                    // Clear-obstacles currently ON: the next idle tap disarms it and wraps to Cottage.
+                    _clearObstaclesArmed = false;
+                    _clearSoftArmed = false;
+                    _hasPending = false;
+                    SetMode(RuntimeMode.Cottage, gui);
+                    Notify(gui, "【清障模式 已关闭】恢复默认安全模式（非空气目标不覆盖）。当前：小屋模式。");
+                    break;
             }
-            SetMode(next, gui);
         }
 
         /// <summary>Set the runtime mode explicitly and announce it to the player.</summary>
@@ -1037,6 +1093,13 @@ namespace BuilderAssistant.Features.WorldEdit
                 default:
                     Notify(gui, "模式：小屋。点击建造工具将放置内置的中世纪小屋。");
                     break;
+            }
+
+            // v0.13.2 clear-obstacles is session-persistent and survives a mode switch, so remind
+            // the player it is still armed whenever they change mode - never silently hide it.
+            if (_clearObstaclesArmed)
+            {
+                Notify(gui, "提示：【清障模式】仍处于开启状态，本模式下的建造会无条件清除落点占用格内障碍（含实心/水/岩浆）。用撤销工具连点可关闭。");
             }
         }
 
@@ -1352,6 +1415,18 @@ namespace BuilderAssistant.Features.WorldEdit
             get { return (_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0 || _treehouse != null; }
         }
 
+        /// <summary>
+        /// Whether the v0.13.2 "clear obstacles within footprint" (allowOverride) toggle is
+        /// currently armed. Surfaced read-only so the workbench composes its preview with the
+        /// SAME override flag the final build will use, keeping "预览判定 == 落建判定" true even
+        /// in clear-obstacles mode (an occupied footprint previews as allowed exactly as it will
+        /// then be built).
+        /// </summary>
+        internal static bool IsClearObstaclesActive
+        {
+            get { return _clearObstaclesArmed; }
+        }
+
         /// <summary>The live world authority, classified into the game-free enum the workbench gate understands.</summary>
         internal static WorldAuthority CurrentAuthority()
         {
@@ -1385,6 +1460,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 return;
             }
             _clearSoftArmed = descriptor.ClearSoftObstructions;
+            _clearObstaclesArmed = descriptor.AllowOverride;
             _hasPending = false;
             BeginBuildBlueprint(miner, gui, descriptor.Blueprint, descriptor.Origin);
         }

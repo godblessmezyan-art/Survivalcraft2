@@ -212,7 +212,7 @@ namespace BuilderAssistant.Features.WorldEdit
             GameTerrainGateway gateway = new GameTerrainGateway(miner.m_subsystemTerrain);
 
             BuildPreviewModel model;
-            WorkbenchStatus status = _workbench.PreviewAt(origin, gateway, WorldEditRuntime.Palette, out model);
+            WorkbenchStatus status = _workbench.PreviewAt(origin, gateway, WorldEditRuntime.Palette, out model, WorldEditRuntime.IsClearObstaclesActive);
 
             if (status == null || model == null)
             {

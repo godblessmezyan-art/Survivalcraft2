@@ -96,6 +96,14 @@ namespace BuilderAssistant.Core.Tree
         /// Only ever set by an explicit player confirmation upstream; never the default.</summary>
         public bool ClearSoft { get; set; }
 
+        /// <summary>v0.13.2 explicit "clear obstacles within footprint" opt-in. When true each
+        /// phase is planned and executed with allowOverride, so EVERY cell the blueprint writes
+        /// into is replaced unconditionally - solid terrain, player structures and fluids alike -
+        /// with NO clearance margin beyond the exact footprint, and no per-phase soft/hard abort.
+        /// Only ever set by an explicit on-device toggle upstream; never the default. Undo still
+        /// captures each original value (including the displaced fluid) before writing.</summary>
+        public bool ClearObstacles { get; set; }
+
         /// <summary>Human-readable status for the last step, used by the caller to toast.</summary>
         public string LastMessage { get; private set; }
 
@@ -195,7 +203,7 @@ namespace BuilderAssistant.Core.Tree
 
             TreehousePart part = _parts[_phaseIndex];
             CellPos origin = _anchor.Add(part.OffsetInMaster);
-            BuildPlan plan = BuildPlanner.Plan(part.Blueprint, origin, _resolver, _gateway, false, ClearSoft);
+            BuildPlan plan = BuildPlanner.Plan(part.Blueprint, origin, _resolver, _gateway, ClearObstacles, ClearSoft);
 
             if (!plan.Success)
             {
@@ -219,7 +227,7 @@ namespace BuilderAssistant.Core.Tree
                 return TreehouseAdvanceResult.Failed;
             }
 
-            _current = new BuildTask(part.Phase, origin, plan.Changes, false, ClearSoft);
+            _current = new BuildTask(part.Phase, origin, plan.Changes, ClearObstacles, ClearSoft);
             return TreehouseAdvanceResult.Steady;
         }
 

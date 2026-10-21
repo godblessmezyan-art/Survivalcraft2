@@ -60,6 +60,7 @@ namespace BuilderAssistant.Core.Workbench
         private BuildPreviewModel _preview;
         private Blueprint _previewBlueprint;
         private CellPos _previewOrigin;
+        private bool _previewOverride;
 
         // The last CONFIRMED-good building, used by Cancel to restore ("还原").
         private bool _hasApplied;
@@ -339,7 +340,7 @@ namespace BuilderAssistant.Core.Workbench
         /// </summary>
         public WorkbenchStatus PreviewAt(
             CellPos origin, ITerrainGateway gateway, IBlockValueResolver resolver,
-            out BuildPreviewModel model)
+            out BuildPreviewModel model, bool allowOverride = false)
         {
             model = null;
             if (_choice == null)
@@ -357,9 +358,10 @@ namespace BuilderAssistant.Core.Workbench
                 return WorkbenchStatus.Fail("还没有可预览的建筑，请先选择并生成。");
             }
 
-            BuildPreviewModel m = BuildPreviewComposer.Compose(effective, origin, resolver, gateway, false, false);
+            BuildPreviewModel m = BuildPreviewComposer.Compose(effective, origin, resolver, gateway, allowOverride, false);
             model = m;
             _preview = m;
+            _previewOverride = allowOverride;
             _previewBlueprint = effective;
             _previewOrigin = origin;
             _previewVersion = _version;
@@ -408,14 +410,14 @@ namespace BuilderAssistant.Core.Workbench
             // 落建前必须用最新地形重新校验" guard. A chunk that unloaded, a player block placed
             // in the footprint, or a height change since the preview all fail here - and nothing
             // is written.
-            BuildPlan plan = BuildPlanner.Plan(_previewBlueprint, _previewOrigin, resolver, gateway, false, false);
+            BuildPlan plan = BuildPlanner.Plan(_previewBlueprint, _previewOrigin, resolver, gateway, _previewOverride, false);
             if (!plan.Success)
             {
                 ClearPreview();
                 return WorkbenchStatus.Fail("建造前目标地形已变化或被占用，已拒绝施工：" + plan.FailureReason);
             }
 
-            descriptor = new BuildStartDescriptor(_previewBlueprint, _previewOrigin, _choice.DisplayName, false);
+            descriptor = new BuildStartDescriptor(_previewBlueprint, _previewOrigin, _choice.DisplayName, false, _previewOverride);
             // Keep the preview so a follow-up could re-confirm, but the caller will immediately
             // hand the descriptor to the executor; the executor's own per-cell re-check still
             // applies (unchanged v0.6 pipeline).
@@ -485,6 +487,7 @@ namespace BuilderAssistant.Core.Workbench
             _preview = null;
             _previewBlueprint = null;
             _previewOrigin = default(CellPos);
+            _previewOverride = false;
             _previewVersion = -1;
         }
 
