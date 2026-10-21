@@ -302,7 +302,7 @@ try {
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
     if ($null -eq $tankEntity) { throw 'Tank database is missing SCIEPortT34Tank.' }
-    foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body', 'Damage')) {
+    foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body')) {
         if ($null -eq $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$requiredTankComponent']")) {
             throw "Tank entity is missing component: $requiredTankComponent"
         }
@@ -315,6 +315,9 @@ try {
     $tankDismount = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
     if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '1.05') {
         throw 'Tank entity model, texture or ground-step parameters are not the audited values.'
+    }
+    if ($null -ne $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Damage']")) {
+        throw 'Tank must not contain ComponentDamage; v0.12.2 armor is intentionally non-depleting.'
     }
     if ($tankBox.Value -ne '3.6,2.1,5.9' -or $tankMount.Value -ne '0,1.72,0.2' -or $tankDismount.Value -ne '2.25,0.4,0') {
         throw 'Tank collision or seat parameters differ from the audited low-poly model envelope.'

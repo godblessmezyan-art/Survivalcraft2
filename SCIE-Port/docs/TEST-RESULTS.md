@@ -315,3 +315,26 @@ THIRD-PARTY-NOTICES.md
 - Windows 游戏运行：待验证。
 - Android 7723：待验证。需卸载旧同名包并冷启动后复测第一炮、连续点击、近地/贴墙发射，以及 8 格外命中爆炸。
 - 多人联机：不支持，结论不变。
+
+## 0.12.2 坦克炮塔、无限耐久与破坏性主炮（2026-10-21）
+
+- 固定内容包取证：已确认。只读解包 `E:\SCNET\SCNETx25.01.17\Content.scpak`（SHA-256
+  `13A86223C791D23093D9DF15D9E424F8ADF5BEB0FE1BE8DFB7AC62ECC07E6C34`），`Assets/BlocksData.txt`
+  记录 ID 107 `LargeGunpowderKegBlock.DefaultExplosionPressure=2160`；小/中型桶分别为 60/360。
+- 炮塔规则：已确认（源码/规则测试）。活动摄像机连续给出目标角，炮塔以 1.2 rad/s、炮管以
+  0.65 rad/s 逐步追随；点击只触发开火，炮弹方向由当前保存的 `TurretYaw/GunPitch` 计算。
+  新测试覆盖转速上限、跨 ±π 最短转向、俯仰速率及无过冲。
+- 无限耐久：已确认（XDB/打包守卫）。`SCIEPortT34Tank` 不再包含 `ComponentDamage`；完整构建会在
+  Damage 被重新加入时失败。此结论只表示原生生物/爆炸耐久不可扣减，不包括强制移除实体或乘员免伤。
+- 爆炸：已确认（源码/固定内容包/编译）。主炮压力由 18 提升为 2160，继续复用原生
+  `SubsystemExplosions.AddExplosion`，因此具备原生方块破坏链；发射载具安全包络由 8 扩至 12 格。
+- 自动测试：已确认。Kelly 11 项、ATV 32 项、双人越野车 20 项、快艇 16 项、Tank 规则全部通过；
+  `git diff --check` 通过。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+  -Configuration Release` 完成 ABI、net472、五份 XDB、模型/PNG、包清单和禁带 DLL 校验，0 warning、
+  0 error。`artifacts/SCIEPort.netmod` 为 390,936 字节，SHA-256
+  `F23737C1570216553446B14A43047F7D1108D34A50D43D24AF887FD6A5AB2924`，版本 0.12.2。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723：待验证。必须在可丢弃世界验证炮塔可见转动、炮弹沿炮管、方块破坏、12 格近爆
+  抑制、狼连续攻击不消失、乘员是否受爆炸波及，以及保存重载。
+- 多人联机：不支持。驾驶、瞄准和开火仍仅在 `WorkType.Local` 执行。

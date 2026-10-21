@@ -127,6 +127,18 @@ suppresses every blast within an 8-cell safety envelope. Android confirmation
 of the fix remains pending; the 0.12.1 Release build and package guards pass
 against the fixed x25.01.17 Windows assemblies.
 
+Version 0.12.2 changes tank aiming from click-to-hit to visible mechanical
+traversal. The active camera continuously commands the turret (1.2 rad/s) and
+gun elevation (0.65 rad/s); a touch hit now only triggers the shot, whose
+trajectory is calculated from the current articulated barrel angles. The tank
+entity no longer contains the native depleting `ComponentDamage`, making its
+armor non-depleting against animals and explosion damage. Main-gun blast
+pressure is raised to 2160, the exact `LargeGunpowderKegBlock` value audited
+from the fixed x25.01.17 `Content.scpak`, and therefore uses the native block
+destruction/particle/sound pipeline. The firing-vehicle exclusion is widened to
+12 cells. Release/static/package tests pass; all new behavior remains pending
+Android verification in a disposable world.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.12.1",
+  "Version": "0.12.2",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. Adds a two-seat off-road car and a tank cannon blast-safety envelope fix; Android verification is required.",
+  "Description": "Authorized x25.01.17 port workspace. Tank v0.12.2 adds camera-traversed barrel aiming, non-depleting armor and native large-keg block destruction; Android verification is required.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

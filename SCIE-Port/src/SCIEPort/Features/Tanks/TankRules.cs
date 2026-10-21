@@ -13,14 +13,26 @@ namespace SCIEPort.Features.Tanks
         public const float FireCooldown = 1.6f;
         /// <summary>Main-gun projectile speed in cells per second.</summary>
         public const float ShellSpeed = 42f;
-        /// <summary>Explosion pressure applied when a registered shell stops.</summary>
-        public const float ShellExplosionPressure = 18f;
+        /// <summary>
+        /// Explosion pressure applied when a registered shell stops. This is the exact
+        /// DefaultExplosionPressure of LargeGunpowderKegBlock (ID 107) in the audited
+        /// Net_x25.01.17 Content.scpak, so native explosion propagation destroys blocks.
+        /// </summary>
+        public const float ShellExplosionPressure = 2160f;
         /// <summary>Clearance beyond the tank collision box used for shell spawning.</summary>
         public const float MuzzleClearance = .75f;
         /// <summary>Distance a shell must travel before its explosive charge is armed.</summary>
         public const float ShellArmingDistance = 1.5f;
         /// <summary>Minimum distance from the tank collision box to an explosion cell center.</summary>
-        public const float ShellVehicleSafetyClearance = 8f;
+        public const float ShellVehicleSafetyClearance = 12f;
+        /// <summary>Maximum horizontal turret traverse speed in radians per second.</summary>
+        public const float TurretTraverseSpeed = 1.2f;
+        /// <summary>Maximum gun elevation speed in radians per second.</summary>
+        public const float GunElevationSpeed = .65f;
+        /// <summary>Minimum gun depression angle.</summary>
+        public const float MinimumGunPitch = -.2f;
+        /// <summary>Maximum gun elevation angle.</summary>
+        public const float MaximumGunPitch = .35f;
         /// <summary>Height of the gun pivot above the bottom-center body position.</summary>
         public const float GunPivotHeight = 1.566f;
         /// <summary>Forward or reverse acceleration in cells per second squared.</summary>
@@ -74,6 +86,33 @@ namespace SCIEPort.Features.Tanks
         public static bool CanFire(float cooldownRemaining, bool hasHitRay, float immersionFactor)
         {
             return cooldownRemaining <= 0f && hasHitRay && immersionFactor < 0.8f;
+        }
+
+        /// <summary>Wraps an angle to [-PI, PI] for shortest-path turret traversal.</summary>
+        public static float NormalizeAngle(float angle)
+        {
+            float twoPi = 2f * (float)System.Math.PI;
+            while (angle > (float)System.Math.PI) angle -= twoPi;
+            while (angle < -(float)System.Math.PI) angle += twoPi;
+            return angle;
+        }
+
+        /// <summary>Moves a wrapped angle toward a target without snapping or taking the long arc.</summary>
+        public static float MoveAngleTowards(float current, float target, float maximumDelta)
+        {
+            float delta = NormalizeAngle(target - current);
+            if (delta > maximumDelta) delta = maximumDelta;
+            else if (delta < -maximumDelta) delta = -maximumDelta;
+            return NormalizeAngle(current + delta);
+        }
+
+        /// <summary>Moves a scalar toward a target by a bounded amount.</summary>
+        public static float MoveTowards(float current, float target, float maximumDelta)
+        {
+            float delta = target - current;
+            if (delta > maximumDelta) return current + maximumDelta;
+            if (delta < -maximumDelta) return current - maximumDelta;
+            return target;
         }
 
         /// <summary>Prevents a projectile stopped inside or immediately beside the tank from exploding.</summary>
