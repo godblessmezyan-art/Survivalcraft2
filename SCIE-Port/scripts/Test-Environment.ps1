@@ -93,7 +93,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..926) + (995..1000))) {
+foreach ($reservedId in @((903..927) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -158,9 +158,29 @@ $componentCreatureModel = $assembly.GetType('Game.ComponentCreatureModel', $true
 if (-not $componentCreatureModel.GetProperty('EyeRotation')) {
     throw 'ComponentCreatureModel.EyeRotation required by the tank spawn orientation was not found.'
 }
+$componentCreature = $assembly.GetType('Game.ComponentCreature', $true)
+$fourLeggedModel = $assembly.GetType('Game.ComponentFourLeggedModel', $true)
+if (-not $componentCreature.GetProperty('ConstantSpawn') -or -not $componentCreature.GetProperty('ComponentCreatureModel')) {
+    throw 'ComponentCreature persistence/model API required by the fox was not found.'
+}
+if ($fourLeggedModel.BaseType -ne $componentCreatureModel -or
+    -not $fourLeggedModel.GetMethod('SetModel', [Reflection.BindingFlags]'Public,Instance') -or
+    -not $fourLeggedModel.GetField('m_bodyBone', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'Native ComponentFourLeggedModel bone animation API required by the fox was not found.'
+}
+$spawnSignature = @($creatureSpawn.GetMethods() | Where-Object {
+    $_.Name -eq 'SpawnCreature' -and
+    $_.GetParameters().Count -eq 3 -and
+    $_.GetParameters()[0].ParameterType.FullName -eq 'System.String' -and
+    $_.GetParameters()[1].ParameterType.FullName -eq 'Engine.Vector3' -and
+    $_.GetParameters()[2].ParameterType.FullName -eq 'System.Boolean'
+}) | Select-Object -First 1
+if ($null -eq $spawnSignature) {
+    throw 'SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool) required by the manual fox spawner was not found.'
+}
 
 Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, Kelly plant, industrial furniture, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'

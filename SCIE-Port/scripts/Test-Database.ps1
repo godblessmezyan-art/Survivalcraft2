@@ -58,6 +58,7 @@ $KnownVanillaParents = @{
     'b05700ed-7e4e-4679-98f5-b597f421496b' = 'Drive base (ComponentTemplate)'
     'fefb9590-4972-4893-b02a-76063611b745' = 'Boat block behavior base (SubsystemTemplate)'
     '85023bf8-1c90-4dd1-9442-e6c13691d078' = 'Project (ProjectTemplate)'
+    '49a9845c-3810-4092-ba53-df213d10d563' = 'Wolf (EntityTemplate)'
 }
 
 if (-not (Test-Path -LiteralPath $DatabaseDir -PathType Container)) {

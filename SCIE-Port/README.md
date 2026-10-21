@@ -149,6 +149,16 @@ calculate an unused reflected velocity later in that same update, but the shell
 is removed before another frame can display or simulate a rebound. Release/static/package checks
 pass; size, color and first-impact behavior remain pending Android verification.
 
+Version 0.13.0 adds the first creature migration probe: a manually spawned fox.
+The reference SCAPI projects are pinned and license-audited, but their glTF/GLB,
+animation controller and SCAPI binaries are not shipped because the fixed SCNET
+runtime only exposes DAE/JSON/OBJ readers and native procedural creature models.
+`SCIEPortFox` inherits the target database's real Wolf template and therefore
+reuses native AI, locomotion, health, sound and four-legged animation components.
+Its clean-room Y_UP model imports as six bones and thirteen meshes. There is no
+natural spawning, client-side entity authority or multiplayer compatibility
+claim in this phase; Windows gameplay and Android 7723 remain pending.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

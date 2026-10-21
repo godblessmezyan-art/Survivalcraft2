@@ -359,3 +359,35 @@ THIRD-PARTY-NOTICES.md
 - Android 7723：待验证。需验证黑色球形炮弹尺寸和可见性，并分别命中石头、木材、玻璃、斜面、
   实体及水面，确认首次碰撞爆炸且无可见反弹、无重复爆炸。
 - 多人联机：不支持，结论不变。
+
+## 0.13.0 首个狐狸生物移植验证（2026-10-21）
+
+- 上游基线：已确认。`SurvivalcraftTemplateModForAPI` 固定为
+  `a8a9f09aea2ede595b2d677f10907772a2a716c3`；`AdvancedGltfFoxModForSC`
+  固定为 `82c1ea541751045804968a71216f9153e2dd400e`。两个仓库 LICENSE 均为 MIT。
+- 素材许可：已确认/部分待验证。模板 `Fox.gltf` 自述为 CC BY 4.0
+  第三方模型；高级 `Fox2.glb` 没有内嵌原始出处。本轮均未复制或打包，包内
+  `Fox.dae`/`Fox.png` 为项目脚本从零生成。
+- 目标 ABI：已确认。`Test-Environment.ps1` 对固定 SHA-256 的
+  x25.01.17 程序集反射确认 `ComponentCreature`、
+  `ComponentFourLeggedModel.SetModel`、`ComponentCreature.ConstantSpawn` 和
+  `SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool)`；260 个原生
+  Block.Index 中未占用 927。
+- XDB：已确认（静态）。`Test-Database.ps1` 扫描六个 XDB 通过；
+  `Creatures.xdb` 使用真实原版 Entities/BlockBehaviors GUID，实体继承目标
+  Wolf GUID，生成行为正确挂入 Project，没有声明 `CreatureEggData`。
+- 模型/贴图：已确认（离线）。目标 `Engine.Media.ModelData.Load` 实际导入
+  `Fox.dae` 为 6 bones/13 meshes，必需骨骼均存在；`Fox.png` 为 32×8、四种
+  全不透明颜色，包内引用与 UV 结构检查通过。
+- 自动回归：已确认。Kelly 11、ATV 32、越野车 20、快艇 16、Tank 规则测试
+  全部通过；`git diff --check` 待提交前复核。
+- Release / `.netmod`：已确认。执行
+  `Build-NetMod.ps1 -Configuration Release` 完成环境、net472、XDB、目标模型
+  导入、PNG、包清单和禁带 DLL 校验，0 error。最终产物 398,264 字节，SHA-256
+  `0440DFFF7B960B346D87C4DB3ED3F2E72575D8AA921C465CDC44E9A68995D47D`，版本 0.13.0。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723：待验证。需验证创造栏图标、生成、模型比例、UV、四足动画、
+  AI、碰撞、死亡和退出重进恢复；不得因编译或离线导入通过标记为兼容。
+- 自然生成：不支持。第一阶段没有添加任何自然生成注册或地形 Hook。
+- 多人联机：不支持。普通 Client 不会在本地创建狐狸，但尚未实现请求、服务端
+  确认、实体复制和断线状态专项协议。
