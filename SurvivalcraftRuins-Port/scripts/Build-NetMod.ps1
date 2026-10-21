@@ -31,6 +31,13 @@ try {
     & dotnet build $project -c $Configuration "-p:SCNetGameDir=$GameDir" --no-restore
     if ($LASTEXITCODE -ne 0) { throw 'Release build failed.' }
 
+    $repeatCalls = Get-ChildItem -LiteralPath $source -Recurse -Filter '*.cs' -File |
+        Select-String -Pattern '\bEnumerable\.Repeat\s*\('
+    if ($repeatCalls) {
+        throw "Android-incompatible Enumerable.Repeat call found: $($repeatCalls.Path -join ', ')"
+    }
+    Write-Host 'ANDROID ABI OK no Enumerable.Repeat calls'
+
     if ([IO.Path]::GetFullPath($stage) -ne (Join-Path $artifacts 'stage')) { throw 'Unsafe stage path.' }
     if (Test-Path -LiteralPath $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
     New-Item -ItemType Directory -Path (Join-Path $stage 'Assets\Structures') -Force | Out-Null

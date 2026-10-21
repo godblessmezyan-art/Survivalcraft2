@@ -88,6 +88,20 @@ public sealed class CompatibilityTests
         Assert.InRange(maximumCells, 1, WorldGenerationLimits.MaxCellsPerStructure);
     }
 
+    [Fact]
+    public void AndroidSafePoolExpansionPreservesOriginalOrderAndCounts()
+    {
+        var variants = StructureRegistry.CreateDefs(LoadTemplates())
+            .SelectMany(definition => definition.Variants)
+            .ToDictionary(variant => variant.Name, StringComparer.Ordinal);
+
+        AssertPoolRuns(variants["sky_fortress"].ChestPools, "sky_cache", 12, "vault", 4);
+        AssertPoolRuns(variants["ruined_temple"].ChestPools, "offering", 6, "vault", 2);
+        AssertPoolRuns(variants["bathhouse"].ChestPools, "trader_goods", 14, "offering", 4);
+        AssertPoolRuns(variants["galley"].ChestPools, "ship_supply", 8, "ship_treasure", 3);
+        AssertPoolRuns(variants["windmill"].ChestPools, "homestead_cellar", 8, "homestead", 8);
+    }
+
     [Theory]
     [InlineData("WoodenStairsBlock", 8)]
     [InlineData("WoodenSlabBlock", 2)]
@@ -160,5 +174,23 @@ public sealed class CompatibilityTests
             }
         }
         return maximum;
+    }
+
+    private static void AssertPoolRuns(
+        IReadOnlyList<string> actual,
+        string first,
+        int firstCount,
+        string second,
+        int secondCount)
+    {
+        Assert.Equal(firstCount + secondCount, actual.Count);
+        for (int i = 0; i < firstCount; i++)
+        {
+            Assert.Equal(first, actual[i]);
+        }
+        for (int i = 0; i < secondCount; i++)
+        {
+            Assert.Equal(second, actual[firstCount + i]);
+        }
     }
 }

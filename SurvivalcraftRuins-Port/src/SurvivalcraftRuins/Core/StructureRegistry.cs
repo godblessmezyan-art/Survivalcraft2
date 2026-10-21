@@ -60,7 +60,7 @@ public static class StructureRegistry
                     {
                         Name = "sky_fortress",
                         Provider = Template("sky_fortress"),
-                        ChestPools = Enumerable.Repeat("sky_cache", 12).Concat(Enumerable.Repeat("vault", 4)).ToArray(),
+                        ChestPools = RepeatPools("sky_cache", 12, "vault", 4),
                         // The richest loot in the mod; it now costs a fight.
                         Guards = new GuardSpec
                         {
@@ -119,7 +119,7 @@ public static class StructureRegistry
                     {
                         Name = "ruined_temple",
                         Provider = Template("ruined_temple"),
-                        ChestPools = Enumerable.Repeat("offering", 6).Concat(Enumerable.Repeat("vault", 2)).ToArray(),
+                        ChestPools = RepeatPools("offering", 6, "vault", 2),
                         Weather = s_stoneRuin,
                         SinkDepth = 2,
                         FoundationBlock = "CobblestoneBlock",
@@ -136,7 +136,7 @@ public static class StructureRegistry
                     {
                         Name = "bathhouse",
                         Provider = Template("bathhouse"),
-                        ChestPools = Enumerable.Repeat("trader_goods", 14).Concat(Enumerable.Repeat("offering", 4)).ToArray(),
+                        ChestPools = RepeatPools("trader_goods", 14, "offering", 4),
                         Weather = s_stoneRuin,
                         SinkDepth = 2,
                         FoundationBlock = "CobblestoneBlock",
@@ -259,7 +259,7 @@ public static class StructureRegistry
                     {
                         Name = "galley",
                         Provider = Template("galley"),
-                        ChestPools = Enumerable.Repeat("ship_supply", 8).Concat(Enumerable.Repeat("ship_treasure", 3)).ToArray(),
+                        ChestPools = RepeatPools("ship_supply", 8, "ship_treasure", 3),
                         SinkDepth = 2,
                         Weather = new WeatherProfile { DecayChance = 0.03f },
                         Guards = new GuardSpec
@@ -422,7 +422,7 @@ public static class StructureRegistry
                     {
                         Name = "windmill",
                         Provider = Template("windmill"),
-                        ChestPools = Enumerable.Repeat("homestead_cellar", 8).Concat(Enumerable.Repeat("homestead", 8)).ToArray(),
+                        ChestPools = RepeatPools("homestead_cellar", 8, "homestead", 8),
                         Weather = new WeatherProfile { DecayChance = 0.03f },
                         SinkDepth = 1,
                         FoundationBlock = "CobblestoneBlock",
@@ -552,5 +552,19 @@ public static class StructureRegistry
         };
 
         return defs;
+    }
+
+    private static string[] RepeatPools(string first, int firstCount, string second, int secondCount)
+    {
+        var result = new string[firstCount + secondCount];
+        for (int i = 0; i < firstCount; i++)
+        {
+            result[i] = first;
+        }
+        for (int i = 0; i < secondCount; i++)
+        {
+            result[firstCount + i] = second;
+        }
+        return result;
     }
 }

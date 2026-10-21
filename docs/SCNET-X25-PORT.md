@@ -86,15 +86,15 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
   -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
 ```
 
-结果：环境/哈希/ABI 检查通过；原测试与新增兼容性/安全测试共 `85/85` 通过；
+结果：环境/哈希/ABI 检查通过；原测试与新增兼容性/安全测试共 `86/86` 通过；
 `net472 Release` 为 0 警告、0 错误。包内容含 `SurvivalcraftRuins.dll`、
 `modinfo.json`、`LICENSE`、`Assets/Structures/*.json`（13 个）和
 `Assets/Loot/pools.json`，路径大小写已校验，且不含游戏 DLL、APK、PDB、
 `Content.scpak` 或存档。
 
 - 产物：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins.netmod`
-- 大小：`335147` 字节
-- SHA-256：`3FE281D2C32DE5BD44E48B5EA367D300B92BE1D4A97DEC4BA087D1B8870A71F2`
+- 大小：`335181` 字节
+- SHA-256：`C407456D67147DBBFF3F87749E3B781F82A7CC4D4E5242DC82EF76E926D52CA5`
 - 完整日志：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins-build.log`
 - 校验文件：`SurvivalcraftRuins-Port/artifacts/SurvivalcraftRuins.sha256`
 
@@ -131,3 +131,21 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File `
 本移植不改变 Builder Assistant 的蓝图支持方块、族标签或 DATA 范围，因此
 `docs/blueprint-block-reference.md` 无内容变更；不得把本 Mod 的 palette 当作 Builder
 Assistant 的可导入蓝图能力。
+
+## Android 7723 首轮实测修复（1.0.1）
+
+2026-10-21 真机日志确认 1.0.0 能被加载，但进入世界后每次绑定均失败：
+`Method not found: System.Linq.Enumerable.Repeat<T>(T,int)`。因此 1.0.0 在该 7723
+运行时不会创建 `WorldState`，也不会生成任何遗迹；这不是生成概率或旧区块导致。
+
+1.0.1 将结构注册表中的五处 `Enumerable.Repeat(...).Concat(...).ToArray()` 全部改为
+本地数组填充，不再引用该运行时缺失的方法；构建脚本新增源码守卫，发现
+`Enumerable.Repeat` 即拒绝打包。此修复不改变结构数量、战利品池顺序、生成概率、
+权限规则或存档内容。桌面构建与测试通过后仍须在同一 Android 7723 客户端复测；在
+出现 `[Ruins] Bound to world ...` 且新区块实际生成遗迹前，Android 世界生成功能保持
+“待验证”。
+
+1.0.1 最终构建通过 `86/86` 测试、`net472 Release` 0 警告 0 错误；IL 复核确认
+`SurvivalcraftRuins.dll` 含本地 `RepeatPools` 且不再引用 `Enumerable.Repeat`。产物大小
+`335181` 字节，SHA-256 为
+`C407456D67147DBBFF3F87749E3B781F82A7CC4D4E5242DC82EF76E926D52CA5`。
