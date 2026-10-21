@@ -63,7 +63,8 @@ Android 或多人测试。
 | SCIE 工业家具 Windows/Android 运行 | 待验证 | 创造栏、模型比例/颜色、四向放置、碰撞、拆除掉落、保存重载尚未进游戏验证 |
 | SCIE 工业家具机器/配方/库存功能 | 不支持 | 0.7.0 明确只移植静态家具外观，不伪造上游工业逻辑 |
 | T-34 坦克 ID 924 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 程序集扫描 260 个原生方块常量；924 未被原版占用，仍需安装时检查其他 Mod 冲突 |
-| T-34 实体/XDB/资源布局 | 已确认 | `Tanks.xdb` 复用原版文件夹 GUID；静态构建守卫检查实体组件、模型、纹理、0.3 格台阶限制与三处模型节点 |
+| T-34 内部炮弹 ID 926 | 已确认 | 固定 x25.01.17 原生常量扫描未占用 926，且本工程无内部冲突；`TankShellBlock.GetCreativeValues()` 返回空，不在创造栏显示。其他 Mod 的 926 冲突仍需安装时检查 |
+| T-34 实体/XDB/资源布局 | 已确认 | `Tanks.xdb` 复用原版文件夹 GUID；静态构建守卫检查实体组件、模型、纹理、1.05 格台阶限制与三处模型节点；v0.12.2 明确禁止重新加入 `Damage` 组件 |
 | T-34 单人地面驱动代码 | 已确认 | 仅 `WorkType.Local`；真实程序集反射检查 Mount/Rider/Input/Body/CreatureModel 所需表面，且 Release 编译通过后方可维持该状态 |
 | T-34 Windows 游戏运行 | 待验证 | 未启动游戏；生成、骑乘、触屏/键鼠驱动、碰撞、坡度、下车、视角与存档恢复均待验证 |
 | T-34 Android 7723 基础运行 | 已确认 | 2026-10-20 用户确认坦克测试通过；模型显示、生成、骑乘与基础驾驶可继承该实测结论。用户同时确认旧版不能开炮、不能跨越完整一格且占地偏小；这些缺陷不属于通过项 |
@@ -72,8 +73,11 @@ Android 或多人测试。
 | T-34 v0.2 模型/贴图 | 已确认（静态/导入） | 项目自有 Y_UP 资源由生成脚本重建为 20 网格；目标 `Engine.Media.ModelData.Load` 实际导入 `TankHull > TankTurret > TankGun` 共 3 骨骼/20 网格，低于七骨骼预算；64×8 PNG 含 8 种不透明颜色。Android 世界渲染仍待验证 |
 | T-34 v0.2 地面驾驶 | 已确认（代码/测试） | 驾驶时关闭原生地面阻力以避免双重阻力；统一处理推进、倒车、制动、滑行、侧滑和转向。仅地形接触允许推进，离地保留惯性，浸水/实体支撑不施加推进。Android 手感和碰撞仍待验证 |
 | T-34 v0.2 碰撞范围 | 已确认（参数/模型范围） | `BoxSize=2.6,1.55,4.4` 覆盖当前车身和炮管坐标范围，`MaxSmoothRiseHeight=0.3`；仍是单一原生长方体 Body，不宣称复合履带/炮管碰撞，狭窄地形待实机验证 |
-| T-34 v0.3 主炮 | Android 已确认缺陷；v0.3.1 修复待验证 | Android 反馈 v0.3 第一炮会炸到坦克。反编译确认原生 `FireProjectile` 会按传入 owner 的玩家碰撞箱重定位炮口，而骑手位于坦克内部，导致炮弹被拉回车体碰撞箱。v0.3.1 改为保留 AABB 外炮口、创建后恢复 owner，并增加 1.5 格引信保险；Release 编译通过，Android 修复结果待验证。 |
-| T-34 v0.3 炮塔骨骼 | Android 已确认缺陷；v0.3.1 修复待验证 | Android 反馈 v0.3 炮塔不随视角转向。v0.3.1 持续读取 `ActiveCamera.ViewDirection`，触屏开火帧优先使用 `PlayerInput.Hit`，再由 `ComponentModel.SetBoneTransform` 驱动 `TankTurret`/`TankGun`；3 骨骼/20 网格不变。 |
+| T-34 v0.12.2 主炮 | 已确认（源码/固定内容包/编译），Android 待验证 | 炮弹继续从 AABB 外生成、创建后恢复 owner，并保留 1.5 格引信；发射载具安全包络由 8 扩至 12 格。爆炸压力 2160 来自固定 `Content.scpak` 中 ID 107 `LargeGunpowderKegBlock.DefaultExplosionPressure`，调用原生 `AddExplosion`，可进入原生方块破坏、粒子和声音链。实际破坏范围、驾驶员安全和性能须 Android 可丢弃世界复测。 |
+| T-34 v0.12.2 炮塔骨骼 | 已确认（源码/规则/编译），Android 待验证 | 活动摄像机每帧给出目标角，`TankTurret` 以 1.2 rad/s、`TankGun` 以 0.65 rad/s 逐步追随；点击射线只作为开火触发，不再覆盖瞄准方向。视觉骨骼和炮弹共同读取当前 `TurretYaw/GunPitch`，避免“点哪里瞬间打哪里”。 |
+| T-34 v0.12.2 无限耐久 | 已确认（XDB/构建守卫），Android 待验证 | 坦克实体移除原生 `ComponentDamage`；狼攻击和原生爆炸后处理找不到可扣减的载具耐久，构建脚本会拒绝任何重新加入 Damage 的坦克模板。实体销毁、掉出世界及其它 Mod 强制删实体不属于耐久保证。 |
+| T-34 v0.12.3 炮弹外观 | 已确认（源码/编译），Android 待验证 | 专用 `TankShellBlock` 复用目标运行时内置 `Models/Snowball` 网格，不打包游戏资源；以纯黑顶点色和 3.5 倍原生投射物绘制比例替代旧 `BulletBlock` 的 0.3 平面贴片。Android 实际尺寸、光照可见性待验证。 |
+| T-34 v0.12.3 首次命中爆炸 | 已确认（ABI/XDB/构建守卫），Android 待验证 | `SCIEPortTankShellBehavior.OnHitAsProjectile` 在原生反弹计算前同步通知所属坦克，按命中方块中心立即调用既有安全引信/12 格包络及爆炸链，移除状态后标记弹丸销毁；CSV 同时固定 `DisintegratesOnHit=TRUE`、`IsStickable=FALSE`、`ProjectileDamping=1`，避免最终停止后再次爆炸。 |
 | T-34 v0.3 尺寸与一格越障 | 已确认（静态/编译），Android 待验证 | 模型坐标整体放大 35%，Body 改为 `3.6,2.1,5.9`，座位与下车偏移同步调整；`MaxSmoothRiseHeight=1.05` 使用原生连续抬升与碰撞/净空检查，不写 Position、不改地形 |
 
 ## 当前包布局

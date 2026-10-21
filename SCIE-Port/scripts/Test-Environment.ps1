@@ -59,7 +59,7 @@ $playerInput = $componentInput.GetProperty('PlayerInput').PropertyType
 $creatureSpawn = $assembly.GetType('Game.SubsystemCreatureSpawn', $true)
 $subsystemProjectiles = $assembly.GetType('Game.SubsystemProjectiles', $true)
 $subsystemExplosions = $assembly.GetType('Game.SubsystemExplosions', $true)
-$bulletBlock = $assembly.GetType('Game.BulletBlock', $true)
+$snowballBlock = $assembly.GetType('Game.SnowballBlock', $true)
 
 if (-not $modLoader.GetMethod('__ModInitialize', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'Game.ModLoader.__ModInitialize was not found.'
@@ -93,7 +93,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..925) + (995..1000))) {
+foreach ($reservedId in @((903..926) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -136,9 +136,9 @@ if (-not ($subsystemProjectiles.GetMethods() | Where-Object { $_.Name -eq 'FireP
 if (-not ($subsystemExplosions.GetMethods() | Where-Object { $_.Name -eq 'AddExplosion' -and $_.GetParameters().Count -eq 7 })) {
     throw 'SubsystemExplosions.AddExplosion required by tank shell impacts was not found.'
 }
-$bulletIndex = $bulletBlock.GetField('Index', [Reflection.BindingFlags]'Public,Static,FlattenHierarchy')
-if ($null -eq $bulletIndex -or $bulletIndex.GetRawConstantValue() -ne 214) {
-    throw 'The audited native BulletBlock.Index 214 is unavailable.'
+$snowballIndex = $snowballBlock.GetField('Index', [Reflection.BindingFlags]'Public,Static,FlattenHierarchy')
+if ($null -eq $snowballIndex -or $snowballIndex.GetRawConstantValue() -ne 85) {
+    throw 'The audited native SnowballBlock.Index 85 used by the tank-shell sphere is unavailable.'
 }
 if (-not ($creatureSpawn.GetMethods() | Where-Object { $_.Name -eq 'SpawnCreature' })) {
     throw 'SubsystemCreatureSpawn.SpawnCreature was not found.'

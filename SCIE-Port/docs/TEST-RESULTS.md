@@ -302,3 +302,60 @@ THIRD-PARTY-NOTICES.md
 - Android 多人：待验证。支持目标为主机驾驶员 + 普通客户端副驾驶；普通客户端驾驶员不支持。
 
 尺寸依据、原创资源说明和 Android 验收步骤见 `docs/OFFROAD-CAR-V0.1-AUDIT.md`。
+
+## 0.12.1 坦克点击自爆二次修复（2026-10-20）
+
+- Android 反馈：已确认缺陷。用户确认安装含 v0.3.1 炮口修复的后续移植包后，坦克点击开炮仍会自爆。
+- 源码根因：已确认。既有引信只要求弹丸从炮口移动 1.5 格；42 格/秒弹丸可在一个物理步内越过该阈值，而爆点仍位于压力 18 能覆盖坦克的近地/近墙区域。
+- 修复：已完成源码。保留 AABB 外炮口和创建后恢复 owner；爆炸格中心到坦克当前 AABB 还必须至少为 8 格，否则炮弹只消失且记录一次安全抑制日志。
+- 纯规则测试：已确认。Kelly 11 项、ATV 32 项、双人越野车 20 项、快艇 16 项及 Tank 测试均通过；Tank 新增车旁已解锁弹、远处未解锁弹、8 格边界与点到 AABB 最近距离断言。
+- `git diff --check`：已确认，通过。
+- 环境检查：已确认。Windows PowerShell 下 `Test-Environment.ps1 -GameDir D:\SC` 验证三份固定哈希、程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472、260 个原生方块常量及载具 ABI。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir D:\SC -Configuration Release` 完成全部规则、net472 编译、五份 XDB、模型/PNG/清单与禁带 DLL 守卫；`artifacts/SCIEPort.netmod` 为 390,766 字节，内置程序集版本 0.12.1.0，SHA-256 `228E3DFC3F15439C97023794684161423F3DC4336F231942A6F43B9825C4D63F`。
+- Windows 游戏运行：待验证。
+- Android 7723：待验证。需卸载旧同名包并冷启动后复测第一炮、连续点击、近地/贴墙发射，以及 8 格外命中爆炸。
+- 多人联机：不支持，结论不变。
+
+## 0.12.2 坦克炮塔、无限耐久与破坏性主炮（2026-10-21）
+
+- 固定内容包取证：已确认。只读解包 `E:\SCNET\SCNETx25.01.17\Content.scpak`（SHA-256
+  `13A86223C791D23093D9DF15D9E424F8ADF5BEB0FE1BE8DFB7AC62ECC07E6C34`），`Assets/BlocksData.txt`
+  记录 ID 107 `LargeGunpowderKegBlock.DefaultExplosionPressure=2160`；小/中型桶分别为 60/360。
+- 炮塔规则：已确认（源码/规则测试）。活动摄像机连续给出目标角，炮塔以 1.2 rad/s、炮管以
+  0.65 rad/s 逐步追随；点击只触发开火，炮弹方向由当前保存的 `TurretYaw/GunPitch` 计算。
+  新测试覆盖转速上限、跨 ±π 最短转向、俯仰速率及无过冲。
+- 无限耐久：已确认（XDB/打包守卫）。`SCIEPortT34Tank` 不再包含 `ComponentDamage`；完整构建会在
+  Damage 被重新加入时失败。此结论只表示原生生物/爆炸耐久不可扣减，不包括强制移除实体或乘员免伤。
+- 爆炸：已确认（源码/固定内容包/编译）。主炮压力由 18 提升为 2160，继续复用原生
+  `SubsystemExplosions.AddExplosion`，因此具备原生方块破坏链；发射载具安全包络由 8 扩至 12 格。
+- 自动测试：已确认。Kelly 11 项、ATV 32 项、双人越野车 20 项、快艇 16 项、Tank 规则全部通过；
+  `git diff --check` 通过。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+  -Configuration Release` 完成 ABI、net472、五份 XDB、模型/PNG、包清单和禁带 DLL 校验，0 warning、
+  0 error。`artifacts/SCIEPort.netmod` 为 390,936 字节，SHA-256
+  `F23737C1570216553446B14A43047F7D1108D34A50D43D24AF887FD6A5AB2924`，版本 0.12.2。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723：待验证。必须在可丢弃世界验证炮塔可见转动、炮弹沿炮管、方块破坏、12 格近爆
+  抑制、狼连续攻击不消失、乘员是否受爆炸波及，以及保存重载。
+- 多人联机：不支持。驾驶、瞄准和开火仍仅在 `WorkType.Local` 执行。
+
+## 0.12.3 大型黑色炮弹与首次命中爆炸（2026-10-21）
+
+- 原生机理：已确认。目标 `SubsystemProjectiles.Update` 在碰撞后仍会按命中面把速度乘以
+  `-0.3/0.3` 形成反弹；`ProjectileStoppedAction.Disappear` 只在速度低于停止阈值后执行，不能保证命中即爆。
+- 炮弹外观：已确认（源码/编译）。新增内部 ID 926 `TankShellBlock`，复用目标运行时
+  `Models/Snowball`/`Snowball` 网格，不复制或打包游戏模型；纯黑绘制，使用原生 0.3 投射物尺寸的
+  3.5 倍比例，并从创造栏枚举中隐藏。
+- 命中处理：已确认（代码/ABI/XDB）。新增 `SCIEPortTankShellBehavior`，在首次 terrain/body 碰撞
+  回调中按命中格触发已有引信、安全包络和压力 2160 爆炸，随后从所有权表移除并标记 projectile 删除；
+  `ProjectileRemoved` 不会重复爆炸。
+- 数据守卫：已确认。ID 926 未与 260 个原生方块常量或本工程 ID 冲突；完整构建要求行为已挂入
+  Project，并固定 `DisintegratesOnHit=TRUE`、`IsStickable=FALSE`、`ProjectileDamping=1`。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+  -Configuration Release` 完成 Kelly 11、ATV 32、越野车 20、快艇 16、Tank 规则、net472、五份 XDB、
+  模型/PNG/清单及禁带 DLL 校验，0 warning、0 error。`artifacts/SCIEPort.netmod` 为 392,066 字节，
+  SHA-256 `946D2E35BF197B9A4234CFCCD7C6FF8698CA8A655DC6242FA5BA30C215215F2D`，版本 0.12.3。
+- Windows 游戏运行：待验证。遵照用户要求，本机未启动游戏。
+- Android 7723：待验证。需验证黑色球形炮弹尺寸和可见性，并分别命中石头、木材、玻璃、斜面、
+  实体及水面，确认首次碰撞爆炸且无可见反弹、无重复爆炸。
+- 多人联机：不支持，结论不变。

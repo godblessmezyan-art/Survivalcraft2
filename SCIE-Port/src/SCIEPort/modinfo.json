@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.12.0",
+  "Version": "0.12.3",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. Adds a project-created side-by-side two-seat off-road car with driver-only control; Android and two-device verification are required.",
+  "Description": "Authorized x25.01.17 port workspace. Tank v0.12.3 adds a large solid-black shell and first-impact detonation without projectile rebound; Android verification is required.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

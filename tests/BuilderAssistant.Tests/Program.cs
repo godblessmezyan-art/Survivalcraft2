@@ -569,7 +569,12 @@ namespace BuilderAssistant.Tests
         {
             Console.WriteLine("[TestPlanRejectsCountCap]");
             BlueprintBuilder b = new BlueprintBuilder();
-            b.FillBox(0, 0, 0, 32, 2, 32, BuildingMaterials.StoneBase); // 33*3*33 = 3267 > 2756 cap
+            // Build a (side+1) x 3 x (side+1) slab that is guaranteed to exceed the current
+            // per-transaction cap while every axis stays within the 64-per-axis limit.
+            int cap = BuildSafetyLimits.MaxBlocksPerOperation;
+            int side = (int)System.Math.Ceiling(System.Math.Pow(cap / 3.0, 1.0 / 2.0)) + 1;
+            if (side > 62) side = 62;
+            b.FillBox(0, 0, 0, side, 2, side, BuildingMaterials.StoneBase); // volume > cap
             Blueprint bp = b.ToBlueprint("too_big", 1);
             FakeTerrain terrain = new FakeTerrain();
             BuildPlan plan = BuildPlanner.Plan(bp, new CellPos(0, 10, 0), new FakeResolver(), terrain, true);
@@ -1347,14 +1352,17 @@ namespace BuilderAssistant.Tests
         private static void TestBlueprintJsonRejectsOverCap()
         {
             Console.WriteLine("[TestBlueprintJsonRejectsOverCap]");
-            // 39 x 39 x 2 = 3042 cells > the per-transaction cap.
+            // Emit exactly (cap+1) cells laid out side x side x 3, so the count trips the
+            // per-transaction guard while every coordinate stays within the 64-per-axis limit.
             var sb = new System.Text.StringBuilder();
             sb.Append("{\"schemaVersion\":1,\"materials\":[{\"id\":0,\"key\":\"StoneBase\"}],\"cells\":[");
             int cap = BuildSafetyLimits.MaxBlocksPerOperation;
+            int side = (int)System.Math.Ceiling(System.Math.Sqrt((cap + 1) / 3.0));
+            if (side > 63) side = 63;
             int n = 0;
-            for (int x = 0; x < 39 && n <= cap; x++)
-                for (int z = 0; z < 39 && n <= cap; z++)
-                    for (int y = 0; y < 2 && n <= cap; y++, n++)
+            for (int x = 0; x < side && n <= cap; x++)
+                for (int z = 0; z < side && n <= cap; z++)
+                    for (int y = 0; y < 3 && n <= cap; y++, n++)
                     {
                         if (n > 0) sb.Append(',');
                         sb.Append("{\"x\":").Append(x).Append(",\"y\":").Append(y)
@@ -2279,7 +2287,7 @@ namespace BuilderAssistant.Tests
             Check(!tall.Validate().IsValid, "over-tall stack (total height > 64) is rejected");
 
             BuildingSpec monster = BuildingSpec.DefaultCottage();
-            monster.Width = 40; monster.Length = 40; monster.Floors = 1;
+            monster.Width = 64; monster.Length = 64; monster.Floors = 1; monster.WallHeight = 8;
             Check(!monster.Validate().IsValid, "over-budget footprint is rejected before generation");
 
             // Rejected specs must produce NO blueprint at all (no partial structure).

@@ -13,12 +13,28 @@ namespace SCIEPort.Features.Tanks
         public const float FireCooldown = 1.6f;
         /// <summary>Main-gun projectile speed in cells per second.</summary>
         public const float ShellSpeed = 42f;
-        /// <summary>Explosion pressure applied when a registered shell stops.</summary>
-        public const float ShellExplosionPressure = 18f;
+        /// <summary>World draw multiplier for the native 0.3 projectile render size.</summary>
+        public const float ShellVisualScale = 3.5f;
+        /// <summary>
+        /// Explosion pressure applied when a registered shell stops. This is the exact
+        /// DefaultExplosionPressure of LargeGunpowderKegBlock (ID 107) in the audited
+        /// Net_x25.01.17 Content.scpak, so native explosion propagation destroys blocks.
+        /// </summary>
+        public const float ShellExplosionPressure = 2160f;
         /// <summary>Clearance beyond the tank collision box used for shell spawning.</summary>
         public const float MuzzleClearance = .75f;
         /// <summary>Distance a shell must travel before its explosive charge is armed.</summary>
         public const float ShellArmingDistance = 1.5f;
+        /// <summary>Minimum distance from the tank collision box to an explosion cell center.</summary>
+        public const float ShellVehicleSafetyClearance = 12f;
+        /// <summary>Maximum horizontal turret traverse speed in radians per second.</summary>
+        public const float TurretTraverseSpeed = 1.2f;
+        /// <summary>Maximum gun elevation speed in radians per second.</summary>
+        public const float GunElevationSpeed = .65f;
+        /// <summary>Minimum gun depression angle.</summary>
+        public const float MinimumGunPitch = -.2f;
+        /// <summary>Maximum gun elevation angle.</summary>
+        public const float MaximumGunPitch = .35f;
         /// <summary>Height of the gun pivot above the bottom-center body position.</summary>
         public const float GunPivotHeight = 1.566f;
         /// <summary>Forward or reverse acceleration in cells per second squared.</summary>
@@ -74,10 +90,68 @@ namespace SCIEPort.Features.Tanks
             return cooldownRemaining <= 0f && hasHitRay && immersionFactor < 0.8f;
         }
 
+        /// <summary>Wraps an angle to [-PI, PI] for shortest-path turret traversal.</summary>
+        public static float NormalizeAngle(float angle)
+        {
+            float twoPi = 2f * (float)System.Math.PI;
+            while (angle > (float)System.Math.PI) angle -= twoPi;
+            while (angle < -(float)System.Math.PI) angle += twoPi;
+            return angle;
+        }
+
+        /// <summary>Moves a wrapped angle toward a target without snapping or taking the long arc.</summary>
+        public static float MoveAngleTowards(float current, float target, float maximumDelta)
+        {
+            float delta = NormalizeAngle(target - current);
+            if (delta > maximumDelta) delta = maximumDelta;
+            else if (delta < -maximumDelta) delta = -maximumDelta;
+            return NormalizeAngle(current + delta);
+        }
+
+        /// <summary>Moves a scalar toward a target by a bounded amount.</summary>
+        public static float MoveTowards(float current, float target, float maximumDelta)
+        {
+            float delta = target - current;
+            if (delta > maximumDelta) return current + maximumDelta;
+            if (delta < -maximumDelta) return current - maximumDelta;
+            return target;
+        }
+
         /// <summary>Prevents a projectile stopped inside or immediately beside the tank from exploding.</summary>
         public static bool IsShellArmed(float distanceSquared)
         {
             return distanceSquared >= ShellArmingDistance * ShellArmingDistance;
+        }
+
+        /// <summary>
+        /// Requires both normal fuse travel and a blast-safe separation from the firing vehicle.
+        /// The second gate prevents a fast shell from arming in one frame and exploding beside
+        /// the tank after a near-ground or near-wall tap.
+        /// </summary>
+        public static bool CanShellExplode(
+            float travelDistanceSquared,
+            float explosionX, float explosionY, float explosionZ,
+            float boxMinX, float boxMinY, float boxMinZ,
+            float boxMaxX, float boxMaxY, float boxMaxZ)
+        {
+            if (!IsShellArmed(travelDistanceSquared)) return false;
+            float distanceSquared = GetSquaredDistanceToBox(
+                explosionX, explosionY, explosionZ,
+                boxMinX, boxMinY, boxMinZ,
+                boxMaxX, boxMaxY, boxMaxZ);
+            return distanceSquared >= ShellVehicleSafetyClearance * ShellVehicleSafetyClearance;
+        }
+
+        /// <summary>Returns squared distance from a point to an axis-aligned box (zero inside).</summary>
+        public static float GetSquaredDistanceToBox(
+            float pointX, float pointY, float pointZ,
+            float boxMinX, float boxMinY, float boxMinZ,
+            float boxMaxX, float boxMaxY, float boxMaxZ)
+        {
+            float dx = GetAxisDistance(pointX, boxMinX, boxMaxX);
+            float dy = GetAxisDistance(pointY, boxMinY, boxMaxY);
+            float dz = GetAxisDistance(pointZ, boxMinZ, boxMaxZ);
+            return dx * dx + dy * dy + dz * dz;
         }
 
         /// <summary>Returns the first positive exit distance from an axis-aligned box.</summary>
@@ -100,6 +174,13 @@ namespace SCIEPort.Features.Tanks
             else if (direction < -.0001f) distance = (-halfSize - offset) / direction;
             else return;
             if (distance >= 0f && distance < result) result = distance;
+        }
+
+        private static float GetAxisDistance(float point, float minimum, float maximum)
+        {
+            if (point < minimum) return minimum - point;
+            if (point > maximum) return point - maximum;
+            return 0f;
         }
     }
 }

@@ -166,6 +166,14 @@ x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Me
 已确认；2026-10-20 用户在 Android 7723 确认 0.8.3 测试通过，物品栏与世界模型均可见。
 此实测只确认渲染修复，不自动确认驾驶手感、一格越障、保存重载或多人同步。
 
+### SCIE-Port v0.12.1 坦克点击自爆二次修复
+
+用户 Android 7723 反馈含 v0.3.1 炮口修复的后续移植包仍会在点击开炮时自爆。源码复核确认：
+原 1.5 格引信只量炮弹从炮口起点的行程；弹速 42 格/秒时可在一个较长物理步内解锁，但爆点仍在
+压力 18 能覆盖大型车体的近地/近墙区域。v0.12.1 保留车体 AABB 外炮口与创建后恢复 owner，另要求
+实际整数爆炸格中心距坦克当前 AABB 至少 8 格，包络内一律不调用 `AddExplosion`。新增纯规则测试、
+`D:\SC` 固定程序集环境检查、net472 Release 与 `.netmod` 包校验已通过；Android 修复结果仍为待验证。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。
@@ -191,7 +199,7 @@ x25.01.17 的 `ModLoader.GetMaxInstancesCount()` 返回 7，而目标 `Engine.Me
 | 方块编号 901/902（建造/撤销工具） | 原版 0–263 空闲；与快艇 900、SCIE-Port 编号不冲突（打包脚本校验类名唯一） | 已确认（静态/打包） |
 | 数据库合并安全 `Building.xdb` 复用原版 `BlockBehaviors`(00c97f0f…) 与 `Project`(85023bf8…) GUID | 避免 SCIE-Port 曾遇到的“同名不同 GUID 生成 rogue 重复文件夹”合并异常；打包脚本强制校验 | 已确认（静态/打包） |
 
-安全逻辑（默认不覆盖非空气、单事务 ≤2756（2026-10-20 由 1024 上调，见 v0.13.1）、单批 ≤32、坐标与高度上限、区块未加载即失败、写入前抓快照、失败/取消回滚、撤销不覆盖玩家后续改动、蓝图重建确定性、旋转/镜像）由 `tests/BuilderAssistant.Tests` 以纯 C# 离线验证。这些断言不依赖游戏程序集。
+安全逻辑（默认不覆盖非空气、单事务 ≤10000（2026-10-20 由 2756 上调，历史 1024→2756→10000，见 v0.13.1/v0.14.0）、单批 ≤32、坐标与高度上限、区块未加载即失败、写入前抓快照、失败/取消回滚、撤销不覆盖玩家后续改动、蓝图重建确定性、旋转/镜像）由 `tests/BuilderAssistant.Tests` 以纯 C# 离线验证。这些断言不依赖游戏程序集。
 
 尚未确认（Android 实机）：
 
@@ -880,15 +888,15 @@ public static class Utils {
 | 联机房主权威下更大单事务同步 | 待验证 |
 
 
-## Builder Assistant v0.13.2 — 一键清障模式（显式、默认关闭；纯串接 allowOverride）
+## Builder Assistant v0.15.0 — 一键清障模式（显式、默认关闭；纯串接 allowOverride）
 
-本轮直接回应项目所有者 2026-10-20 指令「优化生成器，生成时不要出现太多限制，生成直接清除周围所有障碍方块」。既有、且已在离线证明可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 自早期即支持），此前在**建造、粘贴、树屋一键装配、工作台**四条落建路径里一律写死 `false`。本轮只是把这个已有形参**串接**到一个新的、显式、默认关闭的运行模式开关上——不新增方块、不新增子系统、不上调任何限额、不改管线。三条设计决定（项目所有者确认）：清除范围 = **占用格内无条件全清（含流体，不做流体保护）**；周边留白 = **不留，只清 footprint**；触发方式 = **显式模式开关，默认 OFF**。
+本版本把「一键清障」功能合并到 v0.14.0 的单事务上限 10000 之上，是对项目所有者 2026-10-20 指令「优化生成器，生成时不要出现太多限制，生成直接清除周围所有障碍方块」的实现。既有、且已在离线证明可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 自早期即支持），此前在**建造、粘贴、树屋一键装配、工作台**四条落建路径里一律写死 `false`。本轮只是把这个已有形参**串接**到一个新的、显式、默认关闭的运行模式开关上——不新增方块、不新增子系统、不上调任何限额（沿用 v0.14.0 的 10000 上限）、不改管线。三条设计决定（项目所有者确认）：清除范围 = **占用格内无条件全清（含流体，不做流体保护）**；周边留白 = **不留，只清 footprint**；触发方式 = **显式模式开关，默认 OFF**。
 
 ### 行为定义
 
 | 开关状态 | 行为 |
 | --- | --- |
-| 清障 OFF（默认） | 与 v0.13.1 **逐字节相同**：默认不覆盖非空气；footprint 内遇实心/流体即规划拒绝，并写明“实心方块”冲突，一格不写。 |
+| 清障 OFF（默认） | 与 v0.14.0 **逐字节相同**：默认不覆盖非空气；footprint 内遇实心/流体即规划拒绝，并写明“实心方块”冲突，一格不写。 |
 | 清障 ON | footprint 内**每一格无条件替换**：实心方块与水/岩浆流体一并清除；**不留周边留白**（footprint 外一格不动）；开启后不再逐格中止、也不再走软清除的重复两按确认（开关本身即“显式二次确认”）。 |
 | 撤销 | 两种状态下写入前都先捕获原值进 `BlockUndoRecord`；清障覆盖掉的实心方块与流体都能经 `902` 逐段/逐事务精确还原。 |
 
@@ -900,7 +908,7 @@ public static class Utils {
 
 | 项 | 状态 |
 | --- | --- |
-| `MaxBlocksPerOperation`（每事务）= 2756、`MaxBlocksPerBatch` = 32、`MaxSelectionAxisLength` = 64、`MaxIdleAdvanceCallsDuringBuild` = 240 | 不变 ✔ |
+| `MaxBlocksPerOperation`（每事务）= 10000（沿用 v0.14.0）、`MaxBlocksPerBatch` = 32、`MaxSelectionAxisLength` = 64、`MaxIdleAdvanceCallsDuringBuild` = 240 | 不变 ✔ |
 | 坐标/高度边界、写入前先抓撤销快照、失败/取消回滚、撤销不覆盖玩家后续改动 | 不变 ✔ |
 | 仅主线程分批写入、区块就绪预检、有界停等 | 不变 ✔ |
 | 计划→校验→分批执行→记录撤销管线、`schemaVersion=2` | 一字未改 ✔ |
@@ -916,15 +924,15 @@ public static class Utils {
 - `Core/Workbench/WorkbenchStage.cs`：`BuildStartDescriptor` 增 `readonly bool AllowOverride`（默认 `false`）。
 - `Core/Workbench/BuildingWorkbench.cs`：`PreviewAt(..., bool allowOverride = false)` 透传至 `BuildPreviewComposer.Compose`；`_previewOverride` 字段随预览记录、`ClearPreview` 归零；`TryBeginBuild` 用 `_previewOverride` 跑权威规划并写进 `BuildStartDescriptor`。
 - `Features/WorldEdit/WorkbenchSession.cs`：预览调用接 `WorldEditRuntime.IsClearObstaclesActive` 作 `allowOverride`，保证预览允许判定与最终建造同一口径。
-- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.13.1 → 0.13.2`；modinfo 描述追加 v0.13.2 段（仍 `JSON.parse` 通过）。
-- `tests/BuilderAssistant.Tests/Program.cs`：新增 5 组清障夹具；离线 **444 → 474/474** 通过。
-- `docs/COMPATIBILITY.md` / `docs/blueprint-block-reference.md` / `README.md`：本节与对应清障说明。
+- `BuilderAssistant.csproj` / `modinfo.json`：合并版本 `Version/AssemblyVersion/FileVersion` 与 modinfo `Version` 定为 `0.15.0`；modinfo 描述追加 v0.15.0 段并把 v0.14.0 保留为历史（仍 `JSON.parse` 通过）。
+- `tests/BuilderAssistant.Tests/Program.cs`：合并保留 v0.14.0 的动态越界夹具与本轮新增 5 组清障夹具；离线 **474/474** 通过。
+- `docs/COMPATIBILITY.md` / `docs/blueprint-block-reference.md` / `README.md`：本节与对应清障/上限合并说明。
 
 ### 已跑验证（本机 Windows，桌面）
 
-- 离线逻辑测试 **474/474** 全通过。新增 5 组断言：`TestClearObstaclesReplacesSolidAndFluidWithUndo`（覆盖实心+流体且撤销可还原、override 计划不被误报为 soft-only、每格都是计划写入、建造跑到完成）、`TestClearObstaclesOffKeepsDefaultNoOverwrite`（OFF 仍拒覆盖占用格、实心/流体不作为可清 soft 提供、原因文案沿用 v0.13.1、拒时零写入）、`TestClearObstaclesOnlyWithinFootprintNoMargin`（footprint 内障碍被清、footprint 外一格原样保留）、`TestTreehouseAssemblyClearObstaclesOverSolidAndFluid`（OFF 首段被拒、ON 越障装配到 `AllCompleted`、批量仍 ≤32、footprint 内障碍格皆被建成块替换）、`TestPreviewOverrideMatchesBuildOverride`（OFF 预览拒占用 footprint、ON 预览允许、ON 预览为每 footprint 格计划写入、预览 allowed 与权威规划器成功一致）。
+- 离线逻辑测试 **474/474** 全通过（v0.14.0 动态越界夹具 + 本轮 5 组清障断言：覆盖实心+流体且撤销可还原、OFF 仍维持 v0.14.0 默认不覆盖、footprint 外一格不动、树屋分阶段越过障碍装配到底、预览与建造同一 `allowOverride` 口径）。
 - `net472` 对真实 x25.01.17 程序集（`D:\SCNET`）Release **0 错误 0 警告**（`TreatWarningsAsErrors=true`+`GenerateDocumentationFile=true`，编译通过即 ABI 无变化）。
-- `.netmod` 重打包 SHA-256 `3D730AA08F29D735690D80C3EA7350278C527E8ACA0C6087F8FF97153E7B97C7`（2,379,423 字节）；`BuilderAssistant.dll` 反射 `AssemblyVersion=0.13.2.0` / `FileVersion=0.13.2.0` / `ProductVersion=0.13.2`，打包 DLL 与构建产物逐字节一致。
+- `.netmod` 重打包 SHA-256 `BF63A814AB3B3AC1A41C6594C3FC6CBC547455E356E90AD1A9DAE9F8E8A05912`（2,379,816 字节）；`BuilderAssistant.dll` 反射 `AssemblyVersion=0.15.0.0` / `FileVersion=0.15.0.0` / `ProductVersion=0.15.0`，打包 DLL 与构建产物逐字节一致。方块类名唯一性守卫输出 `BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock, WorkbenchToolBlock`；XDB 合并安全守卫通过。
 
 ### 尚未确认 / 待验证（不以离线/编译通过冒充真机兼容）
 
@@ -935,4 +943,47 @@ public static class Utils {
 | 被清除的原版方块与**流体**经 `902` 撤销**精确还原**（尤其流体在真机存档回到原样） | 待验证 |
 | 树屋分阶段越障装配到 `AllCompleted` 的真机帧耗时/卡顿、有界停等表现 | 待验证 |
 | 联机房主权威下清障写入与撤销能否同步到未装 Mod 客户端 | 待验证（产出皆原版方块故应能同步，但真机双端未证） |
-| 关闭开关后回到 v0.13.1 默认不覆盖行为 | 待验证（离线已证，真机复核） |
+| 关闭开关后回到 v0.14.0 默认不覆盖行为 | 待验证（离线已证，真机复核） |
+
+## Builder Assistant v0.14.0 — 再次上调单事务方块上限 2756 → 10000
+
+本轮由项目所有者 2026-10-20 明确指令（「解除限制到 1 万个方块」），只做**一处**行为改动：把 `Core/Safety/BuildSafetyLimits.MaxBlocksPerOperation` 由 `2756` 再上调为 `10000`，以放宽单次导入/建造事务的方块数量闸门。
+
+### 未改动（逐条核对 AGENTS 铁律）
+
+| 项 | 状态 |
+| --- | --- |
+| `MaxBlocksPerBatch`（每帧/每批写入）= 32 | 不变 ✔（10000 格分 ≈313 批、每批 32 格逐帧写入，**绝不**单帧写万格，符合 AGENTS「分批处理、禁止单帧写入数万方块」） |
+| `MaxSelectionAxisLength`（任一轴上限）= 64 | 不变 ✔（空间范围仍受限，10000 只是聚合数量闸） |
+| `MaxIdleAdvanceCallsDuringBuild`（有界停等）= 240 | 不变 ✔（语义是「连续**零进度**帧」计数，任何一次真实写入即归零，故上调事务上限**不会**拉长它，也不会误判大建筑超时） |
+| `allowOverride`（默认不覆盖非空气） | 恒 `false` ✔ |
+| 计划→校验→分批执行→记录撤销管线 | 一字未改 ✔ |
+| 蓝图 `schemaVersion=2`、坐标/高度上限、撤销/延迟回滚、权限闸 | 不变 ✔ |
+| 工具块 900–904 永不落进世界 | 不变 ✔ |
+| 快艇 / ATV / SCIE-Port / 参数化引擎 / 树屋生成器 | 未触碰 ✔ |
+| `.xdb` / `.csv` / 任何 GUID | 未改动、无新增（不引入新方块/子系统） ✔ |
+
+### 树屋可单层导入（不再被迫分阶段）
+
+默认大型树屋 `2765` 方块现已**落在单事务 10000 上限之内**，因此可作为一份扁平蓝图 JSON 直接导入。出厂默认的 `TreehouseAssembly` 逐阶段（9 段）装配路径**保持不变且仍可用**——阶段切分是为真机分步可读/逐阶段撤销，而非受限于上限。每轴 ≤64 约束仍在。
+
+### 本轮实际修改
+
+- `Core/Safety/BuildSafetyLimits.cs`：`MaxBlocksPerOperation` `2756 → 10000`，补注释记录 1024→2756→10000 由来与仍受 batch/axis 约束。
+- `tests/BuilderAssistant.Tests/Program.cs`：把 `TestPlanRejectsCountCap` 与 `TestBlueprintJsonRejectsOverCap` 两个越界夹具改为**按 `MaxBlocksPerOperation` 动态计算**刚好超一点的结构，未来再调上限无需改测试。
+- `docs/blueprint-block-reference.md`：cells 上限、安全限制表、机器可读 JSON `maxCells` 三处 `2756 → 10000`，树屋注释改为「2765 现可单层导入」；`modVersion`/页脚 → `0.14.0`。
+- `BuilderAssistant.csproj` / `modinfo.json`：`Version/AssemblyVersion/FileVersion` 与 modinfo `Version` `0.13.1 → 0.14.0`；modinfo 描述追加 v0.14.0 段并把 v0.13.1 降为历史。
+
+### 已跑验证（本机 Windows，桌面）
+
+- 离线逻辑测试 **444/444** 全通过（动态夹具在新上限下仍正确触发计数/轴两类拒绝）。
+- `net472` 对真实 x25.01.17 程序集（`D:\SC`）Release **0 错误 0 警告**。
+- `.netmod` 重打包 SHA-256 `046AC0C803AE962110DE8DA655DD96ABB7C9DEC48D4AE44309EBE8D52FDCC0FB`（2,378,314 字节，取代 v0.13.1 的 `237D9480…`）；解压内嵌 `BuilderAssistant.dll` 反射 `AssemblyVersion=0.14.0.0` / `FileVersion=0.14.0.0` / `ProductVersion=0.14.0+4b2ad3e…`，`modinfo.json Version=0.14.0`，无任何 `0.13.1` 残留。方块类名唯一性守卫输出 `BlueprintToolBlock, BuilderToolBlock, SpeedboatBlock, UndoToolBlock, WorkbenchToolBlock`；XDB 合并安全守卫通过。
+
+### 待验证（Android 7723 真机，实测前不得标兼容/已确认）
+
+| 项 | 状态 |
+| --- | --- |
+| 真机一次导入 >2756 且 ≤10000 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
+| 10000 格单事务下存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
+| 联机房主权威下单事务 10000 格原版方块同步到未装 Mod 客户端 | 待验证 |
