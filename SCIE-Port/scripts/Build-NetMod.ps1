@@ -302,6 +302,12 @@ try {
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
     if ($null -eq $tankEntity) { throw 'Tank database is missing SCIEPortT34Tank.' }
+    $tankShellBehavior = $tankDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortTankShellBehavior']")
+    $tankShellMember = $tankDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortTankShellBehavior']")
+    if ($null -eq $tankShellBehavior -or $null -eq $tankShellMember -or
+        $tankShellMember.InheritanceParent -ne $tankShellBehavior.Guid) {
+        throw 'Tank shell first-impact behavior is missing or not attached to Project.'
+    }
     foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body')) {
         if ($null -eq $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$requiredTankComponent']")) {
             throw "Tank entity is missing component: $requiredTankComponent"
@@ -321,6 +327,13 @@ try {
     }
     if ($tankBox.Value -ne '3.6,2.1,5.9' -or $tankMount.Value -ne '0,1.72,0.2' -or $tankDismount.Value -ne '2.25,0.4,0') {
         throw 'Tank collision or seat parameters differ from the audited low-poly model envelope.'
+    }
+    $tankRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Tanks.csv'))
+    $tankShellRow = @($tankRows | Where-Object { $_.'Class Name' -eq 'TankShellBlock' })
+    if ($tankShellRow.Count -ne 1 -or $tankShellRow[0].Behaviors -ne 'SCIEPortTankShellBehavior' -or
+        $tankShellRow[0].DisintegratesOnHit -ne 'TRUE' -or $tankShellRow[0].IsStickable -ne 'FALSE' -or
+        $tankShellRow[0].ProjectileDamping -ne '1') {
+        throw 'TankShellBlock must use the audited non-bouncing first-impact projectile settings.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")

@@ -28,6 +28,7 @@ internal static class Program
         Assert(!TankRules.CanFire(0f, false, 0f), "cannon requires hit ray");
         Assert(!TankRules.CanFire(0f, true, .8f), "submerged cannon blocked");
         Assert(TankRules.ShellSpeed > TankRules.ForwardSpeed, "shell faster than tank");
+        AssertNear(TankRules.ShellVisualScale, 3.5f, "large tank-shell visual scale");
         AssertNear(TankRules.ShellExplosionPressure, 2160f, "shell matches audited large gunpowder keg pressure");
         AssertNear(TankRules.MoveAngleTowards(0f, 1f, .25f), .25f, "turret traverse rate limited");
         AssertNear(TankRules.MoveAngleTowards(3.1f, -3.1f, .05f), -3.133185f, "turret takes wrapped shortest path");

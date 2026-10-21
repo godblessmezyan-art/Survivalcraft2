@@ -139,6 +139,16 @@ destruction/particle/sound pipeline. The firing-vehicle exclusion is widened to
 12 cells. Release/static/package tests pass; all new behavior remains pending
 Android verification in a disposable world.
 
+Version 0.12.3 replaces the tiny flat musket-ball projectile with an internal
+ID 926 tank shell. It reuses the target runtime's `Models/Snowball` geometry
+without redistributing that asset, draws the sphere solid black at a 3.5 render
+multiplier, and hides it from the creative inventory. A dedicated block
+behavior receives the native first-collision callback, queues the tank blast at
+the hit cell and marks the shell for removal. The native routine can still
+calculate an unused reflected velocity later in that same update, but the shell
+is removed before another frame can display or simulate a rebound. Release/static/package checks
+pass; size, color and first-impact behavior remain pending Android verification.
+
 Version 0.5.1 packages Y-up derivatives of the authorized SteamBoat, Airship
 and Train models. The Airship collision body is limited to its cabin so the
 native 2.5-block mount search can reach the pilot seat.

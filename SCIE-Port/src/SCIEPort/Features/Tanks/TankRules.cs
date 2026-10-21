@@ -13,6 +13,8 @@ namespace SCIEPort.Features.Tanks
         public const float FireCooldown = 1.6f;
         /// <summary>Main-gun projectile speed in cells per second.</summary>
         public const float ShellSpeed = 42f;
+        /// <summary>World draw multiplier for the native 0.3 projectile render size.</summary>
+        public const float ShellVisualScale = 3.5f;
         /// <summary>
         /// Explosion pressure applied when a registered shell stops. This is the exact
         /// DefaultExplosionPressure of LargeGunpowderKegBlock (ID 107) in the audited

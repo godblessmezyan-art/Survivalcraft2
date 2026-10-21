@@ -21,6 +21,7 @@ namespace SCIEPort.Features.Tanks
         private SubsystemProjectiles m_projectiles;
         private SubsystemExplosions m_explosions;
         private SubsystemAudio m_audio;
+        private SubsystemTankShellBlockBehavior m_shellBehavior;
         private sealed class ShellState
         {
             public PlayerData PlayerData;
@@ -59,6 +60,7 @@ namespace SCIEPort.Features.Tanks
             m_projectiles = Project.FindSubsystem<SubsystemProjectiles>(true);
             m_explosions = Project.FindSubsystem<SubsystemExplosions>(true);
             m_audio = Project.FindSubsystem<SubsystemAudio>(true);
+            m_shellBehavior = Project.FindSubsystem<SubsystemTankShellBlockBehavior>(true);
             m_turretYaw = valuesDictionary.GetValue("TurretYaw", 0f);
             m_gunPitch = valuesDictionary.GetValue("GunPitch", 0f);
             m_body.IsGravityEnabled = true;
@@ -77,12 +79,14 @@ namespace SCIEPort.Features.Tanks
         {
             base.OnEntityAdded();
             m_projectiles.ProjectileRemoved += OnProjectileRemoved;
+            m_shellBehavior.ShellHit += OnShellHit;
         }
 
         /// <inheritdoc />
         public override void OnEntityRemoved()
         {
             m_projectiles.ProjectileRemoved -= OnProjectileRemoved;
+            m_shellBehavior.ShellHit -= OnShellHit;
             m_shells.Clear();
             base.OnEntityRemoved();
         }
@@ -226,7 +230,7 @@ namespace SCIEPort.Features.Tanks
             if (requestedDirection.LengthSquared() <= .0001f) return;
             Vector3 direction = Vector3.Normalize(requestedDirection);
             Vector3 muzzle = CalculateSafeMuzzlePosition(direction);
-            int shellValue = Terrain.MakeBlockValue(BulletBlock.Index, 0, 0);
+            int shellValue = Terrain.MakeBlockValue(TankShellBlock.Index, 0, 0);
             ComponentCreature owner = player.Entity.FindComponent<ComponentCreature>(true);
             // Native FireProjectile owner clearance is designed for a projectile fired from a
             // creature's hands. Since the rider is inside this much larger vehicle, that code
@@ -258,10 +262,27 @@ namespace SCIEPort.Features.Tanks
             ShellState state;
             if (!m_shells.TryGetValue(projectile, out state)) return;
             m_shells.Remove(projectile);
-            float travelDistanceSquared = Vector3.DistanceSquared(state.StartPosition, projectile.Position);
-            int explosionX = Terrain.ToCell(projectile.Position.X);
-            int explosionY = Terrain.ToCell(projectile.Position.Y);
-            int explosionZ = Terrain.ToCell(projectile.Position.Z);
+            TryExplodeShell(state, projectile.Position);
+        }
+
+        private void OnShellHit(Projectile projectile, CellFace? cellFace, ComponentBody hitBody)
+        {
+            ShellState state;
+            if (!m_shells.TryGetValue(projectile, out state)) return;
+            m_shells.Remove(projectile);
+            projectile.ToRemove = true;
+            Vector3 impactPosition = cellFace.HasValue
+                ? new Vector3(cellFace.Value.X + .5f, cellFace.Value.Y + .5f, cellFace.Value.Z + .5f)
+                : projectile.Position;
+            TryExplodeShell(state, impactPosition);
+        }
+
+        private void TryExplodeShell(ShellState state, Vector3 impactPosition)
+        {
+            float travelDistanceSquared = Vector3.DistanceSquared(state.StartPosition, impactPosition);
+            int explosionX = Terrain.ToCell(impactPosition.X);
+            int explosionY = Terrain.ToCell(impactPosition.Y);
+            int explosionZ = Terrain.ToCell(impactPosition.Z);
             Vector3 explosionCenter = new Vector3(explosionX + .5f, explosionY + .5f, explosionZ + .5f);
             BoundingBox tankBox = m_body.BoundingBox;
             if (!TankRules.CanShellExplode(
