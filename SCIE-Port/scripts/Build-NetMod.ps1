@@ -146,6 +146,7 @@ try {
         'Assets/Models/SteamBoat.dae',
         'Assets/Models/T34Tank.dae',
         'Assets/Models/Fox.dae',
+        'Assets/Models/Rabbit.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
@@ -153,7 +154,8 @@ try {
         'Assets/Textures/OffroadCar.png',
         'Assets/Textures/KellyExpansion.png',
         'Assets/Textures/T34Tank.png',
-        'Assets/Textures/Fox.png'
+        'Assets/Textures/Fox.png',
+        'Assets/Textures/Rabbit.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -377,6 +379,34 @@ try {
         $foxSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
         throw 'FoxSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortFoxSpawnBehavior.'
     }
+    $rabbitEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortRabbit']")
+    if ($null -eq $rabbitEntity -or $rabbitEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
+        throw 'SCIEPortRabbit must inherit the audited native Alpaca grazer entity template.'
+    }
+    foreach ($component in @('Creature', 'Body', 'Locomotion', 'Health', 'Spawn', 'HerdBehavior', 'FourLeggedModel')) {
+        if ($null -eq $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
+            throw "SCIEPortRabbit is missing its audited override component: $component"
+        }
+    }
+    $rabbitModelParameter = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='ModelName']")
+    $rabbitTextureParameter = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='TextureOverride']")
+    $rabbitAutoDespawn = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Spawn']/Parameter[@Name='AutoDespawn']")
+    if ($rabbitModelParameter.Value -ne 'Models/Rabbit' -or $rabbitTextureParameter.Value -ne 'Textures/Rabbit' -or $rabbitAutoDespawn.Value -ne 'False') {
+        throw 'Rabbit model, texture or persistence mapping differs from the audited phase-one values.'
+    }
+    if ($null -ne $rabbitEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
+        throw 'Phase-one rabbit must not register an inherited/duplicate native creature egg index.'
+    }
+    $rabbitBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortRabbitSpawnBehavior']")
+    $rabbitBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortRabbitSpawnBehavior']")
+    if ($null -eq $rabbitBehavior -or $null -eq $rabbitBehaviorMember -or $rabbitBehaviorMember.InheritanceParent -ne $rabbitBehavior.Guid) {
+        throw 'Manual rabbit spawn behavior is missing or not attached to Project.'
+    }
+    $rabbitSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'RabbitSpawnBlock' })
+    if ($rabbitSpawnerRow.Count -ne 1 -or $rabbitSpawnerRow[0].Behaviors -ne 'SCIEPortRabbitSpawnBehavior' -or
+        $rabbitSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
+        throw 'RabbitSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortRabbitSpawnBehavior.'
+    }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -578,6 +608,56 @@ try {
         if ($foxColors.Count -ne 4) { throw "Fox.png must contain exactly four opaque palette colors; found $($foxColors.Count)." }
     }
     finally { $foxBitmap.Dispose() }
+
+    [xml]$rabbitModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Rabbit.dae')
+    if ($rabbitModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Rabbit.dae must be oriented Y_UP.'
+    }
+    $rabbitBoneNames = @($rabbitModelDocument.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']") | ForEach-Object { $_.GetAttribute('name') })
+    $requiredRabbitBones = @('Body', 'Head', 'Leg1', 'Leg2', 'Leg3', 'Leg4')
+    if ($rabbitBoneNames.Count -ne 6 -or ($requiredRabbitBones | Where-Object { $rabbitBoneNames -notcontains $_ }).Count -ne 0) {
+        throw "Rabbit.dae must contain exactly the six native procedural bones: $($requiredRabbitBones -join ', ')."
+    }
+    $rabbitGeometries = @($rabbitModelDocument.SelectNodes("//*[local-name()='geometry']"))
+    if ($rabbitGeometries.Count -ne 12) { throw "Rabbit.dae must contain 12 clean-room cuboid meshes; found $($rabbitGeometries.Count)." }
+    foreach ($geometry in $rabbitGeometries) {
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
+            throw "Rabbit.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
+        }
+        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "Rabbit.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
+            }
+        }
+    }
+    $rabbitModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Rabbit.dae'))
+    try { $targetRabbitModel = $targetModelLoad.Invoke($null, @($rabbitModelStream)) }
+    finally { $rabbitModelStream.Dispose() }
+    if ($targetRabbitModel.Bones.Count -ne 6 -or $targetRabbitModel.Meshes.Count -ne 12) {
+        throw "Target Engine must import Rabbit.dae as 6 bones/12 meshes; found $($targetRabbitModel.Bones.Count) bones/$($targetRabbitModel.Meshes.Count) meshes."
+    }
+    foreach ($boneName in $requiredRabbitBones) {
+        if (-not ($targetRabbitModel.Bones | Where-Object { $_.Name -eq $boneName })) {
+            throw "Target Engine did not import required rabbit bone $boneName."
+        }
+    }
+    Add-Type -AssemblyName System.Drawing
+    $rabbitBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Rabbit.png'))
+    try {
+        if ($rabbitBitmap.Width -ne 32 -or $rabbitBitmap.Height -ne 8) { throw 'Rabbit.png must be the audited 32x8 opaque palette.' }
+        $rabbitColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x = 0; $x -lt $rabbitBitmap.Width; $x++) {
+            for ($y = 0; $y -lt $rabbitBitmap.Height; $y++) {
+                $pixel = $rabbitBitmap.GetPixel($x, $y)
+                if ($pixel.A -ne 255) { throw "Rabbit.png contains transparent pixel at $x,$y." }
+                [void]$rabbitColors.Add($pixel.ToArgb())
+            }
+        }
+        if ($rabbitColors.Count -ne 4) { throw "Rabbit.png must contain exactly four opaque palette colors; found $($rabbitColors.Count)." }
+    }
+    finally { $rabbitBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
