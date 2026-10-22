@@ -161,6 +161,24 @@ namespace BuilderAssistant.Tests
             }
             return true;
         }
+
+        public bool TryResolve(
+            string materialKey,
+            BlockFamily family,
+            int data,
+            out int value,
+            out string error)
+        {
+            if (!BlockOrientation.IsValidAuthoredData(family, data))
+            {
+                value = 0;
+                error = "invalid family data";
+                return false;
+            }
+            bool ok = TryResolve(materialKey, data, out value);
+            error = ok ? null : "unknown material";
+            return ok;
+        }
     }
 
     internal static class Program
@@ -242,6 +260,8 @@ namespace BuilderAssistant.Tests
             TestBlueprintJsonRejectsUnknownMaterialId();
             TestBlueprintJsonRejectsEmptyCells();
             TestBlueprintJsonRejectsBadFamilyAndProps();
+            TestBlueprintJsonRejectsFamilyMismatchAndIllegalData();
+            TestVanillaCapabilityCatalogFirstExpansion();
             TestBlueprintJsonRejectsBuildOps();
             TestBlueprintJsonRejectsSizeMismatch();
             TestBlueprintJsonRotationTransformReproduces();
@@ -1442,6 +1462,89 @@ namespace BuilderAssistant.Tests
             Check(!neg.Success, "a negative data value d is rejected");
         }
 
+        private static void TestBlueprintJsonRejectsFamilyMismatchAndIllegalData()
+        {
+            Console.WriteLine("[TestBlueprintJsonRejectsFamilyMismatchAndIllegalData]");
+
+            BlueprintJsonDecodeResult wrongFamily = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
+                "\"key\":\"WoodenStairsBlock\",\"f\":\"cube\",\"d\":0}]}");
+            Check(!wrongFamily.Success, "a concrete material whose f disagrees with its audited family is rejected");
+            Check(wrongFamily.FirstError != null && wrongFamily.FirstError.Contains("不一致"),
+                "family mismatch error is explicit");
+
+            BlueprintJsonDecodeResult wrongLogicalFamily = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
+                "\"key\":\"RoofStairs\",\"f\":\"slab\",\"d\":0}]}");
+            Check(!wrongLogicalFamily.Success, "a logical material key cannot spoof another family");
+
+            BlueprintJsonDecodeResult cubeData = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
+                "\"key\":\"BricksBlock\",\"f\":\"cube\",\"d\":1}]}");
+            Check(!cubeData.Success, "nonzero cube DATA is rejected instead of silently dropped");
+
+            BlueprintJsonDecodeResult stairData = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
+                "\"key\":\"WoodenStairsBlock\",\"f\":\"stairs\",\"d\":8}]}");
+            Check(!stairData.Success, "stair DATA outside 0..7 is rejected");
+
+            BlueprintJsonDecodeResult logData = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
+                "\"key\":\"BirchWoodBlock\",\"f\":\"log\",\"d\":1}]}");
+            Check(!logData.Success, "horizontal log DATA remains explicitly unsupported");
+
+            BlueprintJsonDecodeResult materialMismatch = BlueprintJson.Decode(
+                "{\"schemaVersion\":2,\"materials\":[{\"id\":0,\"key\":\"IronBlock\"," +
+                "\"block\":\"CopperBlock\"}],\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"m\":0}]}");
+            Check(!materialMismatch.Success, "materials[].key/block disagreement is rejected");
+        }
+
+        private static void TestVanillaCapabilityCatalogFirstExpansion()
+        {
+            Console.WriteLine("[TestVanillaCapabilityCatalogFirstExpansion]");
+            Check(VanillaBlockCapabilities.Count == 60,
+                "the first audited expansion contains exactly 60 authorable vanilla block types");
+
+            string[] newStatic =
+            {
+                "CoalBlock", "CoalOreBlock", "CopperBlock", "CopperOreBlock",
+                "DiamondBlock", "DiamondOreBlock", "GermaniumOreBlock", "IronBlock",
+                "IronOreBlock", "SaltpeterOreBlock", "SemiconductorBlock", "SulphurOreBlock",
+                "FramedGlassBlock", "WindowBlock", "WickerLampBlock",
+            };
+            bool allStatic = true;
+            for (int i = 0; i < newStatic.Length; i++)
+            {
+                VanillaBlockCapability capability;
+                if (!VanillaBlockCapabilities.TryGetByTypeName(newStatic[i], out capability) ||
+                    capability.Family != BlockFamily.Cube ||
+                    capability.Kind != BlockCapabilityKind.Static)
+                {
+                    allStatic = false;
+                }
+            }
+            Check(allStatic, "all 15 first-batch mineral/metal/glass/lamp additions are static data-0 capabilities");
+
+            VanillaBlockCapability cellDoor;
+            Check(VanillaBlockCapabilities.TryGetByTypeName("CellDoorBlock", out cellDoor) &&
+                  cellDoor.Family == BlockFamily.Door,
+                "CellDoorBlock reuses the audited Door codec");
+
+            foreach (string wood in new[] { "BirchWoodBlock", "SpruceWoodBlock", "MimosaWoodBlock", "PoplarWoodBlock" })
+            {
+                VanillaBlockCapability capability;
+                Check(VanillaBlockCapabilities.TryGetByTypeName(wood, out capability) &&
+                      capability.Family == BlockFamily.Log,
+                    wood + " is registered as vertical-log-only");
+            }
+
+            VanillaBlockCapability unsupported;
+            Check(!VanillaBlockCapabilities.TryGetByTypeName("ChestBlock", out unsupported),
+                "entity/container blocks remain outside the authoring registry");
+            Check(!VanillaBlockCapabilities.TryGetByTypeName("WaterBlock", out unsupported),
+                "fluids remain outside the authoring registry");
+        }
+
         private static void TestBlueprintJsonRejectsBuildOps()
         {
             Console.WriteLine("[TestBlueprintJsonRejectsBuildOps]");
@@ -1986,22 +2089,28 @@ namespace BuilderAssistant.Tests
         private static void TestBlueprintJsonStripsEngineDerivedOrientationBits()
         {
             Console.WriteLine("[TestBlueprintJsonStripsEngineDerivedOrientationBits]");
-            // Authoring a stair with corner/color bits present (as a live capture might
-            // hand us) must normalize them away, so the blueprint never stores state the
-            // engine would recompute differently.
-            BlueprintCell stair = new BlueprintCell(new CellPos(0, 0, 0), "WoodenStairsBlock", BlockFamily.Stairs, 0xFF);
-            Check(stair.Data == 0x7, "a stair authored with corner+color bits is normalized to 0x7");
-            BlueprintCell slab = new BlueprintCell(new CellPos(0, 0, 0), "StoneSlabBlock", BlockFamily.Slab, 0xFF);
-            Check(slab.Data == 0x1, "a slab authored with color bits is normalized to isTop only");
+            int authored;
+            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x1F, out authored) && authored == 0x7,
+                "live stair corner bits are the only derived bits stripped during copy");
+            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x27, out authored),
+                "a painted stair is rejected instead of silently losing its color");
+            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Slab, 0x2, out authored),
+                "a painted slab is rejected instead of silently losing its color");
+            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Cube, 0x1, out authored),
+                "a painted cube is rejected instead of silently becoming unpainted");
+            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Log, 0x1, out authored),
+                "a horizontal log is rejected while only vertical data 0 is supported");
 
-            BlueprintBuilder b = new BlueprintBuilder();
-            b.SetOriented(0, 0, 0, "WoodenStairsBlock", BlockFamily.Stairs, 0xFF);
-            Blueprint bp = b.ToBlueprint("stripped", 2);
-            string json = BlueprintJson.Serialize(bp);
-            Check(json.Contains("\"d\":7"), "the stripped data (7) is what gets written, not 255");
-
-            BlueprintJsonDecodeResult decode = BlueprintJson.Decode(json);
-            Check(decode.Success && SameCellSet(bp, decode.Blueprint), "stripped blueprint still round-trips exactly");
+            bool threw = false;
+            try
+            {
+                new BlueprintCell(new CellPos(0, 0, 0), "WoodenStairsBlock", BlockFamily.Stairs, 0xFF);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                threw = true;
+            }
+            Check(threw, "programmatic authoring rejects illegal DATA instead of masking it");
         }
 
         private static void TestCottageEmitsOrientedFamilies()

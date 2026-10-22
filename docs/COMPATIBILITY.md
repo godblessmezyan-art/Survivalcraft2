@@ -1,5 +1,23 @@
 # 兼容性矩阵
 
+## 2026-10-22：Builder Assistant v0.16.0 方块能力第一阶段
+
+本轮以公开的 SCNET x25.01.17 Windows 包为取证对象。程序集/内容证据与 Android 结论严格分开：
+
+| 证据层 | 结果 | 状态 |
+| --- | --- | --- |
+| `Survivalcraft.exe` SHA-256 | `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD` | 已确认（公开 Windows 包） |
+| `Engine.dll` SHA-256 | `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694` | 已确认（公开 Windows 包） |
+| `EntitySystem.dll` SHA-256 | `7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C` | 已确认（公开 Windows 包） |
+| 实际 `Block` 具体类型 / `BlocksData.IsPlaceable=TRUE` | 258 / 165 | 已确认（程序集 + 同包 `Content.scpak`） |
+| 第一阶段能力目录 | 60 种；原 39 种保持，新增 21 种安全静态/竖直原木/门 | 离线已确认；Android 待验证 |
+| schemaVersion 1/2 | 继续读取；未引入破坏性格式变化 | 离线已确认 |
+| 7723 Android 渠道包程序集哈希、渲染、放置、存读档、撤销、联机同步 | 尚未执行 | 待验证 |
+
+完整的 165 项清单、六组件审计和后续路线见 `docs/blueprint-block-audit-x25.01.17.md`。运行时结构改为“能力元数据 → 实际 `BlocksManager` 注册表 → 按族严格编解码”：材料键与 `materials[].block` 冲突、cell 的 `f` 与真实方块族冲突、非法 DATA、颜色/横向原木等 schema 1/2 无法无损表示的状态均明确拒绝，不再掩码或静默降级。楼梯只剥离已经程序集验证为邻接派生的 corner 位。
+
+安全机制未改变：每事务 10000、每批 32、每轴 64、主线程写入、区块就绪检查、取消、写入前捕获撤销、失败回滚和 `WorkType.Client` 权限拒绝均沿用。容器/方块实体、电路、流体及动态世界状态未开放；它们分别需要实体子系统快照、电路队列/拓扑恢复、流体行为与级联恢复等跨子系统事务能力，不能只保存 terrain value。
+
 公开证据：
 
 - [SCNET x25.01.17 发布页](https://github.com/survivalcraft-net/survivalcraft-net/releases/tag/x25.01.17)

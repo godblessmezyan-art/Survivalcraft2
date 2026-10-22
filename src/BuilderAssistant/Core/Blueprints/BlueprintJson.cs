@@ -25,10 +25,11 @@ namespace BuilderAssistant.Core.Blueprints
     ///   }
     ///
     /// schemaVersion 2 adds two OPTIONAL per-cell fields for oriented vanilla blocks:
-    ///   "f" the authored block family ("cube"|"stairs"|"slab"|"fence"|"door"); omitted = cube
+    ///   "f" the authored block family ("cube"|"stairs"|"slab"|"fence"|"door"|"log"); omitted = cube
     ///   "d" the authored DATA bits for that family (rotation/top/hinge/fence-arms); omitted = 0
-    /// Only orientation the block itself owns is stored - stair corner-joints and all
-    /// colors are engine-derived and never written (see BlockOrientation.Normalize).
+    /// Only the authored state this version can reproduce is stored. Stair corner
+    /// joints are derived and stripped; painted/color state is not representable in
+    /// schema 1/2 and is rejected instead of silently degrading to a default color.
     /// A schemaVersion 1 file (no per-cell f/d) still decodes and is read as plain cubes,
     /// so older blueprints keep working unchanged.
     ///
@@ -207,6 +208,28 @@ namespace BuilderAssistant.Core.Blueprints
                         result.AddError("materials 存在重复 id " + id + "。");
                         continue;
                     }
+
+                    string declaredBlock;
+                    if (mat.TryGetString("block", out declaredBlock) && !string.IsNullOrEmpty(declaredBlock))
+                    {
+                        VanillaBlockCapability capability;
+                        string expectedType;
+                        if (VanillaBlockCapabilities.TryGetByMaterialKey(key, out capability, out expectedType))
+                        {
+                            if (!string.Equals(declaredBlock, expectedType, StringComparison.Ordinal))
+                            {
+                                result.AddError("materials[" + i + "] 的 block=" + declaredBlock +
+                                    " 与 key=" + key + " 实际映射 " + expectedType + " 不一致。");
+                                continue;
+                            }
+                        }
+                        else if (IsBlockTypeName(key) &&
+                                 !string.Equals(declaredBlock, key, StringComparison.Ordinal))
+                        {
+                            result.AddError("materials[" + i + "] 的具体方块 key/block 不一致。");
+                            continue;
+                        }
+                    }
                     idToKey[id] = key;
                 }
             }
@@ -285,12 +308,11 @@ namespace BuilderAssistant.Core.Blueprints
                 if (famNode != null)
                 {
                     string famTag = famNode.IsString ? famNode.StringValue : null;
-                    if (!IsKnownFamilyTag(famTag))
+                    if (!BlockOrientation.TryParseFamilyTag(famTag, out family))
                     {
-                        result.AddError("cells[" + i + "] 朝向族标签非法（应为 cube/stairs/slab/fence/door）：" + famTag);
+                        result.AddError("cells[" + i + "] 朝向/方块族标签非法（应为 cube/stairs/slab/fence/door/log）：" + famTag);
                         continue;
                     }
-                    family = BlockOrientation.FamilyFromTag(famTag);
                 }
 
                 int data = 0;
@@ -302,11 +324,27 @@ namespace BuilderAssistant.Core.Blueprints
                         result.AddError("cells[" + i + "] 的数据位 d 必须是整数。");
                         continue;
                     }
-                    if (data < 0)
-                    {
-                        result.AddError("cells[" + i + "] 的数据位 d 不得为负。");
-                        continue;
-                    }
+                }
+
+                if (!BlockOrientation.IsValidAuthoredData(family, data))
+                {
+                    result.AddError("cells[" + i + "] 的 DATA d=" + data + " 对族 " +
+                        BlockOrientation.FamilyToTag(family) + " 非法（允许 " +
+                        BlockOrientation.AuthoredDataRange(family) + "），已拒绝而非静默截断。");
+                    continue;
+                }
+
+                VanillaBlockCapability materialCapability;
+                string concreteTypeName;
+                if (VanillaBlockCapabilities.TryGetByMaterialKey(
+                        materialKey, out materialCapability, out concreteTypeName) &&
+                    materialCapability.Family != family)
+                {
+                    result.AddError("cells[" + i + "] 的 f=" +
+                        BlockOrientation.FamilyToTag(family) + " 与材料 " + materialKey +
+                        " 的实际族 " + BlockOrientation.FamilyToTag(materialCapability.Family) +
+                        " 不一致。");
+                    continue;
                 }
 
                 list.Add(new BlueprintCell(pos, materialKey, family, data));
@@ -359,14 +397,6 @@ namespace BuilderAssistant.Core.Blueprints
 
             result.Blueprint = bp;
             return result;
-        }
-
-        private static bool IsKnownFamilyTag(string tag)
-        {
-            // A missing/empty tag is valid (means plain cube).
-            if (string.IsNullOrEmpty(tag)) return true;
-            return tag == "cube" || tag == "stairs" || tag == "slab" ||
-                   tag == "fence" || tag == "door" || tag == "log";
         }
 
         /// <summary>

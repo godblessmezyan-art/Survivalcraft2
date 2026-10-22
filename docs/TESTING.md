@@ -1,5 +1,15 @@
 # 测试记录
 
+## 2026-10-22：v0.16.0 方块能力审计与第一批扩展
+
+- 取证命令：`scripts/Audit-BuilderAssistantBlocks.ps1 -GameDir 'D:\tmp\builderassistant-block-audit-x25.01.17\game' -OutputPath 'docs/blueprint-block-audit-x25.01.17.md'`。
+- 取证结果：目标哈希门通过；从实际程序集反射得到 258 个具体 `Block` 类型，从同包 `Content.scpak/Assets/BlocksData.txt` 得到 165 个 `IsPlaceable=TRUE` 项；生成完整 165 行能力表，能力目录启用 60 种。
+- 离线测试：`scripts/Test-Logic.ps1`，`ALL 492 CHECKS PASSED`。新增覆盖具体 key/逻辑 key 的 `f` 族冲突、`materials[].block` 冲突、各族非法 DATA、彩色状态和横向原木拒绝、60 项目录完整性及容器/流体仍排除。
+- ABI 检查：`scripts/Test-Environment.ps1 -GameDir 'D:\tmp\builderassistant-block-audit-x25.01.17\game'`，程序集哈希、net472、API/SC 版本和既有 ABI 守卫通过。
+- Release 编译：`dotnet build src/BuilderAssistant/BuilderAssistant.csproj -c Release -p:SCNetGameDir='D:\tmp\builderassistant-block-audit-x25.01.17\game'`，0 警告、0 错误。
+- `.netmod` 全流程打包：`scripts/Build-NetMod.ps1 -GameDir 'D:\tmp\builderassistant-block-audit-x25.01.17\game' -Configuration Release` 全部通过；`artifacts/BuilderAssistant.netmod` 为 2,382,028 字节，SHA-256 `55340E2E03711DF1F47CF38B72A36F5AF39DCEA6D167F5BBE1EE282D29D31791`。包内 8 个预期条目，`modinfo.json`/DLL 版本为 0.16.0/0.16.0.0，不含游戏程序集。
+- Android/7723：本轮未在设备执行。60 种方块的渲染、实际放置/朝向、复制往返、存读档、撤销与主机/客户端同步全部为**待验证**；不得用 JSON 解析、桌面离线测试或编译成功替代这些结论。
+
 ## 2026-10-16：Phase 1 Windows 编译前取证
 
 - 目标：SCNET x25.01.17 Windows 发布目录。

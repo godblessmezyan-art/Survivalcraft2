@@ -82,6 +82,7 @@ namespace BuilderAssistant.Core.BuildEngine
             int softClearedCount = 0;
             bool sawUnknownMaterial = false;
             string firstUnknownMaterial = null;
+            string firstResolutionError = null;
 
             int cellCount = blueprint.CellCount;
             for (int i = 0; i < cellCount; i++)
@@ -143,12 +144,15 @@ namespace BuilderAssistant.Core.BuildEngine
                 // cells are emitted bottom-first: blueprint cells are sorted by ascending
                 // Y, so the lower door half is always written before the upper, and the
                 // engine's SubsystemDoorBlockBehavior auto-creates the matching top cell.
-                if (!resolver.TryResolve(cell.MaterialKey, cell.Data, out value))
+                string resolutionError;
+                if (!resolver.TryResolve(
+                        cell.MaterialKey, cell.Family, cell.Data, out value, out resolutionError))
                 {
                     if (!sawUnknownMaterial)
                     {
                         sawUnknownMaterial = true;
                         firstUnknownMaterial = cell.MaterialKey;
+                        firstResolutionError = resolutionError;
                     }
                     continue;
                 }
@@ -189,7 +193,9 @@ namespace BuilderAssistant.Core.BuildEngine
 
             if (sawUnknownMaterial)
             {
-                return BuildPlan.Fail("未知材料键: " + firstUnknownMaterial);
+                return BuildPlan.Fail(!string.IsNullOrEmpty(firstResolutionError)
+                    ? firstResolutionError
+                    : ("未知材料键: " + firstUnknownMaterial));
             }
 
             return BuildPlan.Ok(changes, softClearedCount);

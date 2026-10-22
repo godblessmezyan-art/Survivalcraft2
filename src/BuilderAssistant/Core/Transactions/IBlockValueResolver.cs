@@ -1,3 +1,5 @@
+using BuilderAssistant.Core.Blueprints;
+
 namespace BuilderAssistant.Core.Transactions
 {
     /// <summary>
@@ -12,10 +14,20 @@ namespace BuilderAssistant.Core.Transactions
         bool TryResolve(string materialKey, out int value);
 
         /// <summary>
-        /// Schema-v2 resolution: pack <paramref name="data"/> (authored orientation)
-        /// into the terrain value, masked to the bits the resolved block's family
-        /// actually owns. Plain cubes ignore <paramref name="data"/> and always pack 0.
+        /// Legacy schema-v2 resolution retained for existing callers. Implementations
+        /// must reject non-canonical DATA rather than masking away unsupported state.
         /// </summary>
         bool TryResolve(string materialKey, int data, out int value);
+
+        /// <summary>
+        /// Strict schema-v2 resolution. The declared family must match capability
+        /// metadata and DATA must be canonical; failure includes a diagnostic reason.
+        /// </summary>
+        bool TryResolve(
+            string materialKey,
+            BlockFamily family,
+            int data,
+            out int value,
+            out string error);
     }
 }

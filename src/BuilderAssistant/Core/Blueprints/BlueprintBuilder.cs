@@ -37,16 +37,17 @@ namespace BuilderAssistant.Core.Blueprints
             _cells[p] = new Content { MaterialKey = materialKey, Family = BlockFamily.Cube, Data = 0 };
         }
 
-        /// <summary>Place an oriented block (stairs/slab/fence/door) with authored data.
-        /// The data is normalized to the family's owned bits, so passing engine-derived
-        /// bits (stair corners, color) is harmless - they are stripped.</summary>
+        /// <summary>Place an oriented block with already-canonical authored data.
+        /// Invalid/color/transient bits throw instead of being silently stripped.</summary>
         public void SetOriented(int x, int y, int z, string materialKey, BlockFamily family, int data)
         {
+            // Construct once for the shared strict validation, then store the same values.
+            var validated = new BlueprintCell(new CellPos(x, y, z), materialKey, family, data);
             _cells[new CellPos(x, y, z)] = new Content
             {
-                MaterialKey = materialKey,
-                Family = family,
-                Data = BlockOrientation.Normalize(family, data),
+                MaterialKey = validated.MaterialKey,
+                Family = validated.Family,
+                Data = validated.Data,
             };
         }
 

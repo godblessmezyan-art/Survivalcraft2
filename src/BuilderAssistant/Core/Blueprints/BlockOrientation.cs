@@ -70,6 +70,76 @@ namespace BuilderAssistant.Core.Blueprints
     internal static class BlockOrientation
     {
         /// <summary>
+        /// Validate author-supplied DATA without masking it. JSON/import/planning use
+        /// this strict path so unsupported color, transient or unknown bits can never be
+        /// silently discarded.
+        /// </summary>
+        public static bool IsValidAuthoredData(BlockFamily family, int data)
+        {
+            if (data < 0)
+            {
+                return false;
+            }
+            switch (family)
+            {
+                case BlockFamily.Cube: return data == 0;
+                case BlockFamily.Stairs: return data <= 7;
+                case BlockFamily.Slab: return data <= 1;
+                case BlockFamily.Fence: return data <= 15;
+                case BlockFamily.Door: return data <= 15;
+                case BlockFamily.Log: return data == 0;
+                default: return false;
+            }
+        }
+
+        public static string AuthoredDataRange(BlockFamily family)
+        {
+            switch (family)
+            {
+                case BlockFamily.Stairs: return "0..7";
+                case BlockFamily.Slab: return "0..1";
+                case BlockFamily.Fence:
+                case BlockFamily.Door: return "0..15";
+                case BlockFamily.Cube:
+                case BlockFamily.Log: return "仅 0";
+                default: return "不支持";
+            }
+        }
+
+        /// <summary>
+        /// Decode a live terrain DATA value into the subset schema v2 can faithfully
+        /// author. Stair corner bits (3-4) are engine-derived and may be stripped. Any
+        /// color bit, horizontal-log value or unknown bit fails instead of degrading the
+        /// copied block to an unpainted/default state.
+        /// </summary>
+        public static bool TryDecodeTerrainData(BlockFamily family, int terrainData, out int authoredData)
+        {
+            authoredData = 0;
+            if (terrainData < 0)
+            {
+                return false;
+            }
+            switch (family)
+            {
+                case BlockFamily.Stairs:
+                    // 0-2 authored; 3-4 derived corner. Bit 5+ includes paint/unknown state.
+                    if ((terrainData & ~0x1F) != 0) return false;
+                    authoredData = terrainData & 0x7;
+                    return true;
+                case BlockFamily.Cube:
+                case BlockFamily.Slab:
+                case BlockFamily.Fence:
+                case BlockFamily.Door:
+                case BlockFamily.Log:
+                    if (!IsValidAuthoredData(family, terrainData)) return false;
+                    authoredData = terrainData;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// Keep only the bits that are genuinely authored per cell, dropping any
         /// engine-derived/transient bits (stair corners, all colors, etc.) so a
         /// blueprint never bakes in state the engine would recompute differently.
@@ -214,21 +284,27 @@ namespace BuilderAssistant.Core.Blueprints
             return (b0 << 0) | (b1 << 1) | (b2 << 2) | (b3 << 3);
         }
 
-        /// <summary>Parses a family tag string used in the JSON exchange format. Unknown
-        /// or missing maps to Cube (fail-safe: an untagged cell is a plain cube).</summary>
-        public static BlockFamily FamilyFromTag(string tag)
+        /// <summary>Strictly parses a family tag string used in the JSON exchange format.</summary>
+        public static bool TryParseFamilyTag(string tag, out BlockFamily family)
         {
-            if (string.IsNullOrEmpty(tag)) return BlockFamily.Cube;
+            family = BlockFamily.Cube;
+            if (string.IsNullOrEmpty(tag) || tag == "cube") return true;
             switch (tag)
             {
-                case "stairs": return BlockFamily.Stairs;
-                case "slab": return BlockFamily.Slab;
-                case "fence": return BlockFamily.Fence;
-                case "door": return BlockFamily.Door;
-                case "log": return BlockFamily.Log;
-                case "cube":
-                default: return BlockFamily.Cube;
+                case "stairs": family = BlockFamily.Stairs; return true;
+                case "slab": family = BlockFamily.Slab; return true;
+                case "fence": family = BlockFamily.Fence; return true;
+                case "door": family = BlockFamily.Door; return true;
+                case "log": family = BlockFamily.Log; return true;
+                default: return false;
             }
+        }
+
+        /// <summary>Back-compat helper for already validated internal tags.</summary>
+        public static BlockFamily FamilyFromTag(string tag)
+        {
+            BlockFamily family;
+            return TryParseFamilyTag(tag, out family) ? family : BlockFamily.Cube;
         }
 
         public static string FamilyToTag(BlockFamily family)

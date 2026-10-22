@@ -35,6 +35,7 @@ namespace BuilderAssistant.Features.WorldEdit
             public int SkippedNotReady;
             public int SkippedUnknown;
             public int SkippedUnsupported;   // non-cube / fluid / plant / unverified block
+            public int SkippedUnsupportedState; // supported type, but color/complex DATA cannot round-trip
             public int SkippedDerived;       // engine-recreated cells (e.g. door upper half)
             public readonly Dictionary<string, int> UnsupportedByType = new Dictionary<string, int>(System.StringComparer.Ordinal);
             public string Failure;            // non-null when the selection is illegal (cap/bounds)
@@ -50,6 +51,7 @@ namespace BuilderAssistant.Features.WorldEdit
                   .Append("，未就绪 ").Append(SkippedNotReady)
                   .Append("，未知 ").Append(SkippedUnknown)
                   .Append("，暂不支持 ").Append(SkippedUnsupported)
+                  .Append("，状态不可保真 ").Append(SkippedUnsupportedState)
                   .Append("，派生跳过 ").Append(SkippedDerived).Append("）。");
                 if (UnsupportedByType.Count > 0)
                 {
@@ -143,7 +145,18 @@ namespace BuilderAssistant.Features.WorldEdit
                         BlockFamily family;
                         if (VanillaBlockPalette.TryGetFamily(typeName, out family))
                         {
-                            if (family == BlockFamily.Cube)
+                            int rawData = Terrain.ExtractData(value);
+                            int authoredData;
+                            if (!BlockOrientation.TryDecodeTerrainData(family, rawData, out authoredData))
+                            {
+                                // A known type can still carry unsupported state (paint color,
+                                // horizontal log axis, or future/unknown bits). Skipping it is
+                                // safer than silently writing a visually different block.
+                                result.SkippedUnsupported++;
+                                result.SkippedUnsupportedState++;
+                                CountUnsupported(result, typeName + "(DATA=" + rawData + ")");
+                            }
+                            else if (family == BlockFamily.Cube)
                             {
                                 builder.Set(relative, typeName); // concrete vanilla key the palette can rebuild
                                 result.Copied++;
@@ -158,12 +171,11 @@ namespace BuilderAssistant.Features.WorldEdit
                             }
                             else
                             {
-                                // Capture the live authored orientation (rotation / top-half /
-                                // hinge / fence arms). Terrain.ExtractData gives the raw data
-                                // field; SetOriented normalizes it to the family's owned bits,
-                                // dropping engine-derived stair corners and colors.
-                                int data = Terrain.ExtractData(value);
-                                builder.SetOriented(relative, typeName, family, data);
+                                // Capture the already validated authored orientation
+                                // (rotation / top-half / hinge / fence arms). The decoder above
+                                // strips only verified stair-corner bits; unsupported color or
+                                // other state was rejected before this point.
+                                builder.SetOriented(relative, typeName, family, authoredData);
                                 result.Copied++;
                             }
                         }
@@ -172,9 +184,7 @@ namespace BuilderAssistant.Features.WorldEdit
                             // Fluid / plant / snow / oriented-log / entity / complex block:
                             // classify, count and skip. Never copy something we cannot reproduce.
                             result.SkippedUnsupported++;
-                            int prev;
-                            result.UnsupportedByType.TryGetValue(typeName, out prev);
-                            result.UnsupportedByType[typeName] = prev + 1;
+                            CountUnsupported(result, typeName);
                         }
 
                         if (builder.Count > BuildSafetyLimits.MaxBlocksPerOperation)
@@ -196,6 +206,13 @@ namespace BuilderAssistant.Features.WorldEdit
 
             result.Blueprint = builder.ToBlueprint(result.Name, BlueprintJson.CurrentSchemaVersion);
             return result;
+        }
+
+        private static void CountUnsupported(Result result, string label)
+        {
+            int previous;
+            result.UnsupportedByType.TryGetValue(label, out previous);
+            result.UnsupportedByType[label] = previous + 1;
         }
 
         /// <summary>

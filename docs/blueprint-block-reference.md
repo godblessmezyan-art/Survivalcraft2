@@ -1,6 +1,6 @@
 # Blueprint Block Reference
 
-> 本文件是 Builder Assistant v0.15.0 蓝图导入的**唯一权威方块能力清单**。
+> 本文件是 Builder Assistant v0.16.0 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
 > 不在此文件中的方块一律**不支持**，导入会触发"未知材料键"干净拒绝。
@@ -30,15 +30,17 @@
 - 每格 `m` 为 `materials` 数组中的 `id` 索引。
 - `f` 可选：方块族标签（见下表），缺省为 `"cube"`。
 - `d` 可选：族内的 authored DATA 值（见合法范围），缺省为 `0`。
+- `f` 必须与材料键在能力注册表中的真实族一致；`materials[].block` 若非空也必须与 `key` 的实际映射一致。任何冲突整份拒绝。
+- DATA 采用严格校验，不做掩码降级：彩色方块、彩色楼梯/半砖/栅栏、横向原木或未知高位不会被静默变成默认状态。
 
 ## 支持的方块族与 DATA 合法范围
 
 | 族标签 `f` | BlockFamily | 合法 `d` | DATA 位含义 | 备注 |
 |---|---|---|---|---|
-| `cube` | Cube | 仅 `0` | 无 | 普通实心/透明立方，无朝向。 |
-| `stairs` | Stairs | `0`–`7` | [0-1]=rotation(0-3), [2]=upsideDown(0-1) | 引擎自动补 corner-joint 和颜色。 |
-| `slab` | Slab | `0`–`1` | [0]=isTop(0=下半,1=上半) | 颜色由引擎派生。 |
-| `fence` | Fence | `0`–`15` | [0]=+X, [1]=-X, [2]=+Z, [3]=-Z 连接臂 | 引擎根据邻格自动重算，写任意值均安全。 |
+| `cube` | Cube | 仅 `0` | 无 | 普通实心/透明立方；PaintedCube 仅开放未染色 data 0。 |
+| `stairs` | Stairs | `0`–`7` | [0-1]=rotation(0-3), [2]=upsideDown(0-1) | corner bits 3-4 可从世界复制时剥离；颜色位不支持并拒绝。 |
+| `slab` | Slab | `0`–`1` | [0]=isTop(0=下半,1=上半) | 颜色位不支持并拒绝。 |
+| `fence` | Fence | `0`–`15` | [0]=+X, [1]=-X, [2]=+Z, [3]=-Z 连接臂 | 颜色位不支持并拒绝；连接臂由相邻格行为复核。 |
 | `door` | Door | `0`–`15` | [0-1]=rotation(0-3), [2]=open, [3]=rightHanded | **只写下半格**，引擎 SubsystemDoorBlockBehavior 自动补上半。 |
 | `log` | Log | 仅 `0` | CutFace=Y（竖向原木） | 横向原木（face 1/2）**不支持**，未取证轴映射。 |
 
@@ -62,7 +64,23 @@
 | `ClayBlock` | 粘土 |
 | `LimestoneBlock` | 石灰岩 |
 | `MalachiteBlock` | 孔雀石 |
-| `SpruceLeavesBlock` | 常青云杉叶 (AlphaTestCube, 不落叶) |
+| `CoalBlock` | 煤块 |
+| `CoalOreBlock` | 煤矿石 |
+| `CopperBlock` | 铜块 |
+| `CopperOreBlock` | 铜矿石 |
+| `DiamondBlock` | 钻石块 |
+| `DiamondOreBlock` | 钻石矿石 |
+| `GermaniumOreBlock` | 锗矿石 |
+| `IronBlock` | 铁块 |
+| `IronOreBlock` | 铁矿石 |
+| `SaltpeterOreBlock` | 硝石矿石 |
+| `SemiconductorBlock` | 半导体块 |
+| `SulphurOreBlock` | 硫矿石 |
+| `FramedGlassBlock` | 镶框玻璃（AlphaTestCube） |
+| `WindowBlock` | 原版窗块（AlphaTestCube；不是猜测的 GlassPane 类型） |
+| `WickerLampBlock` | 藤编灯（静态 data 0，默认发光属性来自 BlocksData） |
+| `SpruceLeavesBlock` | 常青云杉叶（AlphaTestCube，无季节 DATA；仍受叶片腐坏规则约束） |
+| `TallSpruceLeavesBlock` | 高云杉叶（EvergreenLeavesBlock，无季节 DATA；仍受腐坏规则约束） |
 
 ### Stairs（data 0–7）
 
@@ -108,12 +126,17 @@
 |---|
 | `WoodenDoorBlock` |
 | `IronDoorBlock` |
+| `CellDoorBlock` |
 
 ### Log（data 仅 0 = 竖向）
 
 | 类型名 |
 |---|
 | `OakWoodBlock` |
+| `BirchWoodBlock` |
+| `SpruceWoodBlock` |
+| `MimosaWoodBlock` |
+| `PoplarWoodBlock` |
 
 ## 可导入的方块：逻辑材料键
 
@@ -141,21 +164,21 @@
 | `LogBranch` | OakWoodBlock | Log |
 | `Leaves` | SpruceLeavesBlock | Cube |
 
-逻辑键**不携带 `f`/`d`** 信息（因为逻辑键的族由 MaterialCatalog 固定，data 始终取 0）。要使用非零 data（楼梯朝向、门旋转等），必须用具体类型名并在 `cells` 中写明 `f` 和 `d`。
+逻辑键的方块族由 `MaterialCatalog` 固定，不能用 `f` 冒充其他族；`d` 仍可在该族的合法范围内取非零值（例如 `RoofStairs` + `f:"stairs"` + `d:3`）。无论逻辑键还是具体类型名，省略 `f`/`d` 都只表示 `cube` + data 0，因此朝向族必须显式写出正确的 `f`。
 
 ## 明确不支持的方块
 
 以下类型的方块**绝不可出现在蓝图 JSON 中**，出现则整份导入失败：
 
 - 所有流体：WaterBlock、LavaBlock
-- 所有植物（除 SpruceLeavesBlock）：花、高草、枯丛、树苗、落叶树叶
+- 所有植物（除 SpruceLeavesBlock / TallSpruceLeavesBlock）：花、高草、枯丛、树苗、落叶树叶
 - 所有雪/冰：SnowBlock、IceBlock
 - 受重力影响的方块：SandBlock、GravelBlock
 - 带实体/容器/随机状态的方块：箱子、熔炉、TNT、音符盒、附魔台、酿造台等
-- 梯子 LadderBlock（带朝向+攀爬实体）
-- 玻璃板 GlassPaneBlock（连接臂算法不同）
+- 木/铁梯子（带依附面、支撑完整性与攀爬行为）
 - 红石/按钮/杠杆/压力板/中继器等电路组件
-- 横向原木（OakWoodBlock data≠0）
+- 任意已开放 WoodBlock 的横向原木（data≠0）
+- 所有染色/涂色状态（PaintedCube、Stairs、Slab、Fence 的颜色 DATA）；当前复制会明确跳过并报告，不会丢色粘贴
 - 火把 TorchBlock（带实体）
 - 任何 x25.01.17 中不存在或本 Mod 未逐一确认的类型
 
@@ -184,12 +207,19 @@
 ## 生成蓝图 JSON 的注意事项
 
 1. **坐标为相对值**：蓝图中所有 cells 的 x/y/z 是相对于包围盒最小角的偏移。最小角自动归一化为 (0,0,0)。
-2. **门只写下半格**：`WoodenDoorBlock`/`IronDoorBlock` 只需给出 bottom 那一格；引擎的 `SubsystemDoorBlockBehavior` 会在下半写入后自动补出上半。写上半格会因找不到对应的下半格而报错。
-3. **原木仅竖向**：`OakWoodBlock` 的 `d` 字段只能是 `0`（竖向/Y 轴朝向）。横向原木不支持。
+2. **门只写下半格**：`WoodenDoorBlock`/`IronDoorBlock`/`CellDoorBlock` 只需给出 bottom 那一格；引擎的 `SubsystemDoorBlockBehavior` 会在下半写入后自动补出上半。写上半格会因找不到对应的下半格而报错。
+3. **原木仅竖向**：五种已开放 WoodBlock 的 `d` 字段都只能是 `0`（竖向/Y 轴朝向）。横向原木不支持。
 4. **f 字段可省略**：若所有方块都是 cube，可以完全省略每个 cell 的 `f` 和 `d`（缺省为 cube + data 0）。
 5. **材质表可去重**：同一类型名多次使用只需在 `materials` 数组中登记一次，cells 的 `m` 指向它的 `id`。
-6. **SpruceLeavesBlock 是常青的**：它不会因缺少相邻原木而腐烂消失（落叶树不支持）。
-7. **树叶腐坏规则**（真机行为）：`SpruceLeavesBlock` 如果在 Chebyshev 距离 3 内找不到任何 WoodBlock（原木），引擎的 `SubsystemWoodBlockBehavior` 会在更新时让它腐坏消失。生成蓝图时务必确保叶团有原木在半径 3 内贯穿。
+6. **两种云杉叶是常青的**：`SpruceLeavesBlock`/`TallSpruceLeavesBlock` 没有落叶树的季节 DATA；“常青”不等于不会腐坏。
+7. **树叶腐坏规则**（程序集已取证，真机效果待验证）：上述叶块如果在 Chebyshev 距离 3 内找不到任何 WoodBlock（原木），`SubsystemWoodBlockBehavior` 会让它腐坏。生成蓝图时务必确保叶团有原木在半径 3 内贯穿。
+
+## 能力架构与完整审计
+
+- `VanillaBlockCapabilities` 是游戏无关的能力元数据目录；当前精确列出 60 个可作者化类型及其族。
+- `VanillaBlockRegistry` 在游戏运行时逐项调用 `BlocksManager.FindBlockByTypeName`，并核对实际基类族；目标客户端缺类型或族不符时不会激活。
+- `BlockOrientation` 是按族编解码器：JSON 走严格 authored DATA 校验，世界复制走 `TryDecodeTerrainData`，仅楼梯 corner 派生位允许剥离。
+- 公开 Windows x25.01.17 的 258 个具体 Block 类型、165 个 `IsPlaceable=TRUE` 类型及逐项阶段结论见 [完整方块审计](blueprint-block-audit-x25.01.17.md)。
 
 ## 扩展策略
 
@@ -197,7 +227,7 @@
 
 1. 该方块在 x25.01.17 程序集中真实存在（反编译取证）。
 2. 通过反射确认其 `BlockFamily` 归属与自有 DATA 位范围。
-3. 加入 `VanillaBlockPalette.SupportedBlocks` 字典和（可选）`MaterialCatalog`。
+3. 加入 `VanillaBlockCapabilities`；运行时注册表必须能找到精确类型并核对其实际基类族。
 4. 本文件对应表格追加该方块。
 5. net472 Release 0 错误 0 警告。
 6. 该方块在 7723 真机上的渲染标为**待验证**直到确认。
@@ -209,7 +239,7 @@
 
 ```json
 {
-  "modVersion": "0.15.0",
+  "modVersion": "0.16.0",
   "targetGame": "Survivalcraft NET x25.01.17",
   "schemaVersion": 2,
   "limits": { "maxCells": 10000, "maxAxis": 64, "maxPerBatch": 32 },
@@ -222,12 +252,12 @@
     "log":    { "dataRange": [0, 0],  "tags": ["log"],  "note": "vertical only" }
   },
   "supportedBlocks": {
-    "cube": ["CobblestoneBlock","StoneBrickBlock","PlanksBlock","BricksBlock","GlassBlock","BasaltBlock","GraniteBlock","MarbleBlock","SandstoneBlock","ClayBlock","LimestoneBlock","MalachiteBlock","SpruceLeavesBlock"],
+    "cube": ["CobblestoneBlock","StoneBrickBlock","PlanksBlock","BricksBlock","GlassBlock","BasaltBlock","GraniteBlock","MarbleBlock","SandstoneBlock","ClayBlock","LimestoneBlock","MalachiteBlock","CoalBlock","CoalOreBlock","CopperBlock","CopperOreBlock","DiamondBlock","DiamondOreBlock","GermaniumOreBlock","IronBlock","IronOreBlock","SaltpeterOreBlock","SemiconductorBlock","SulphurOreBlock","FramedGlassBlock","WindowBlock","WickerLampBlock","SpruceLeavesBlock","TallSpruceLeavesBlock"],
     "stairs": ["WoodenStairsBlock","CobblestoneStairsBlock","StoneStairsBlock","StoneBrickStairsBlock","BrickStairsBlock","BasaltStairsBlock","MarbleStairsBlock","SandstoneStairsBlock","DirtStairsBlock"],
     "slab": ["WoodenSlabBlock","CobblestoneSlabBlock","StoneSlabBlock","StoneBrickSlabBlock","BrickSlabBlock","BasaltSlabBlock","MarbleSlabBlock","SandstoneSlabBlock","DirtSlabBlock"],
     "fence": ["WoodenFenceBlock","StoneFenceBlock","BrickFenceBlock","BasaltFenceBlock","IronFenceBlock"],
-    "door": ["WoodenDoorBlock","IronDoorBlock"],
-    "log": ["OakWoodBlock"]
+    "door": ["WoodenDoorBlock","IronDoorBlock","CellDoorBlock"],
+    "log": ["OakWoodBlock","BirchWoodBlock","SpruceWoodBlock","MimosaWoodBlock","PoplarWoodBlock"]
   },
   "logicalKeys": {
     "StoneBase":"CobblestoneBlock","StoneWall":"StoneBrickBlock","WoodWall":"PlanksBlock",
@@ -238,9 +268,9 @@
     "LogTrunk":"OakWoodBlock","LogBranch":"OakWoodBlock","Leaves":"SpruceLeavesBlock"
   },
   "notSupported": [
-    "fluids","plants(except SpruceLeavesBlock)","snow","ice","gravity blocks",
-    "entity-bearing blocks","ladders","glass panes","redstone","torches","saplings",
-    "horizontal logs","furniture blocks"
+    "fluids","plants(except SpruceLeavesBlock/TallSpruceLeavesBlock)","snow","ice","gravity blocks",
+    "entity-bearing blocks","ladders","redstone","torches","saplings",
+    "horizontal logs","painted/colored DATA","furniture blocks"
   ],
   "buildBehavior": {
     "clearObstaclesMode": {
@@ -258,4 +288,4 @@
 
 ---
 
-最后更新：v0.15.0（2026-10-20），合并版——含远端 v0.14.0 的每事务上限 2756→10000（`maxCells`/cells/安全表/大型结构说明已同步为 10000），以及本轮新增的“建造期清障模式（v0.15.0 运行时开关）”一节与机器可读 `buildBehavior.clearObstaclesMode`。下次 Mod 版本更新时必须同步修改本文件。
+最后更新：v0.16.0（2026-10-22），方块能力第一阶段——从真实 x25.01.17 程序集与 BlocksData 审计 165 个可放置类型，能力注册表由 39 扩到 60，加入严格族/DATA 校验与有损状态拒绝；Android 7723 渲染/存读档仍待验证。下次 Mod 版本更新时必须同步修改本文件。

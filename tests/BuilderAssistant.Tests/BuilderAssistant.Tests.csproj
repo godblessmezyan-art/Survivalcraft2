@@ -16,6 +16,7 @@
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\BuildSafetyLimits.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\TerrainAuthority.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlockOrientation.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\VanillaBlockCapabilities.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintCell.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\Blueprint.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintBuilder.cs" />
