@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortFlaxBehavior" Guid="7704d031-a78c-413c-8307-9eda5c1d905e" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="ff748ff9-8d39-4208-8bc4-9988de4e8e82" Value="SCIEPort.Features.Flax.SubsystemFlaxBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortFlaxBehavior" Guid="46d0562e-0c55-453c-abb2-12135a16a59f" InheritanceParent="7704d031-a78c-413c-8307-9eda5c1d905e" />
+  </ProjectTemplate>
+</DatabaseObjects>

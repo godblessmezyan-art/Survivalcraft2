@@ -185,3 +185,16 @@ THIRD-PARTY-NOTICES.md
 | Windows 游戏运行 | 待验证 | 本机未启动游戏；种植、逐段堆叠、砍伐塌落、建材放置与存读档均未运行。 |
 | Android 7723 | 待验证 | 两方块渲染、贴图、生长动画、塌落、建材实心碰撞与退出重进恢复均需真机新世界验证。 |
 | 多人联机 | 待验证 | `OnPoll`/`OnNeighborBlockChanged` 已在 `WorkType.Client` 直接返回，仅权威端堆叠，但真实主机/客户端同步与一致性未实测。 |
+
+## 0.16.0 亚麻作物基础验证（多阶段生长 + 纤维收获，静态/离线阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 亚麻两块注册（Plant 934 / Fiber 935） | 已确认（静态 ABI） | `FlaxPlantBlock:CrossBlock`（Index 934，0..7 阶段）与 `FlaxFiberBlock:FlatBlock`（Index 935，纤维成品），各带 `public const int Index`。`Test-Environment.ps1` 保留区间扩至 903–935，反射扫描 x25.01.17 全部原生 `Block.Index` 无占用冲突。 |
+| 生长规则（离线纯逻辑） | 已确认（净8 无游戏依赖） | `Features/Flax/FlaxRules.cs`：`MaxFlaxSize=7`、尺寸=data&7、`SetSize` 保掩码外位（测 0x40）、最低光照 8、生长间隔 7 基值（水利 -2、氮肥 -2、低温≤4 +6、高温≥12 -1）、放置需顶面土壤、收获 2 纤维 + 1 可重种种子、权限闸 `!isClient`。配套 `tests/SCIEPort.Flax.Tests` 29 条断言全部通过，不引用游戏程序集。 |
+| 轮询行为接线 | 已确认（代码） | `SubsystemFlaxBlockBehavior:SubsystemPollableBlockBehavior`（`HandledBlocks={934}`）在 `WorkType.Client` 直接返回（联机仅权威端推进），校验 skylight≥8、size<7、下方土壤，读 `SoilBlock.GetHydration`（`Boolean` 直取）、`GetNitrogen`、季节温度与高度调整，`ChangeCell` 推进 size+1，成熟时消耗土壤氮 1；`OnNeighborBlockChanged` 土壤被移除则摧毁。真实主机/客户端推进与联机同步待实测。 |
+| Flax.csv 元数据 | 已确认（打包校验） | 表头 + 2 行（植株/纤维），UTF-8 CRLF、每行 79 列（node 读 Crops.csv 表头按列名改写生成，植株复用玉米茎 CrossBlock 模板、纤维复用玉米种 FlatBlock 模板，非手抄）。`Build-NetMod.ps1` 断言两者属 Crops 类可放置且 `DefaultTextureSlot` 分别 0 / 8。 |
+| Flax.xdb 轮询行为挂载 | 已确认（合并/结构） | 根 `DatabaseObjects`；`Folder BlockBehaviors` 用真实原版 GUID `00c97f0f-...`；`SubsystemTemplate SCIEPortFlaxBehavior` 继承固定父 `fefb9590-...`，`Parameter Class=SCIEPort.Features.Flax.SubsystemFlaxBlockBehavior`；`ProjectTemplate`（真实 GUID `85023bf8-...`）挂 `MemberSubsystemTemplate`。轮询走世界子系统非 CSV Behaviors 列。叶子 GUID 由 `randomUUID()` 生成，`Build-NetMod.ps1` 校验继承父与成员 GUID 一致。 |
+| 自绘图集 Flax.png | 待验证 | 512×512 `Format32bppArgb`，slot 0..7 亚麻植株逐阶段（细茎随阶段增高、成熟期顶端蓝色亚麻花）、slot 8 纤维束，slot 12 留空。`Build-NetMod.ps1` 断言尺寸/格式、slot 0..8 有不透明像素、slot 12 全透明；生成器自检阶段 0..7 不透明像素单调增长（18→36→54→72→90→114→132→154）、纤维 271。据网格公式自绘的图集真机采样/alpha/图标待验证。 |
+| Windows 游戏运行 | 待验证 | 本机未启动游戏；种植、逐阶段生长、成熟收获（纤维 + 可重种种子）、掉落与存读档均未运行。 |
+| Android 7723 | 待验证 | 两方块渲染、贴图、蓝花阶段、种植交互、收获与退出重进均需真机新世界验证，不提前宣称已修复。 |

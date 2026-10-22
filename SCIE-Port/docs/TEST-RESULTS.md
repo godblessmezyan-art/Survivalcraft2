@@ -442,3 +442,29 @@ THIRD-PARTY-NOTICES.md
   验证，不得因编译或离线测试通过标记为兼容。
 - 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回，仅权威端堆叠，真实同步
   一致性未实测。
+
+## 0.16.0 亚麻作物垂直切片（2026-10-21）
+
+- 自动回归：已确认。离线规则测试全绿——Kelly 11、ATV 32、越野车 20、快艇 16、
+  Tank 规则、Ecology 25、Crops 26、Bamboo 25，新增 **Flax 29**（尺寸掩码往返、
+  掩码外位 0x40 保留、成熟阈、间隔干 7/水利 5/水肥 3/低温 13/高温 6/理想 2、
+  放置需顶面土壤、收获 2 纤维 + 1 种子、权限闸 `!isClient`）。Flax.Tests 已接入
+  `Build-NetMod.ps1`。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 0
+  compile warning/error（`TreatWarningsAsErrors`），DATABASE VALIDATION PASSED，
+  47 条目（新增 `Assets/Blocks/Flax.csv`、`Assets/Database/Flax.xdb`、
+  `Assets/Textures/Flax.png`），产物 SHA-256
+  `6A9C19EDE0692B7DED34DEF2E0AF7E0F83FE1F70FF88FA409170FC66F3CF798B`。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.16.0.0`，
+  `ProductVersion` = `0.16.0+13b7579f...`（竹子 commit 之后）。
+- 自绘图集：结构已确认（打包断言 512×512 RGBA、slot 0..8 有像素、slot 12 全透明；
+  生成器自检阶段 0..7 不透明像素单调增长）；真机采样/蓝花渲染/图标 待验证。
+- Windows 游戏运行：待验证。本机未启动游戏；种植、逐阶段生长、成熟收获（纤维 +
+  可重种种子）、掉落、存读档均未运行。
+- Android 7723：待验证。两方块渲染、贴图、种植交互、生长轮询、收获与退出重进恢复
+  均需真机新世界验证，不得因编译或离线测试通过标记为兼容。
+- 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回，仅权威端推进，真实同步
+  一致性未实测。
+
+至此第一批资源（玉米、竹子、亚麻 + 前置的狐狸/兔子）基础功能全部落地并单独提交，
+均处于「静态/离线已确认、真机待验证」状态，等待统一联网/真机验证阶段。

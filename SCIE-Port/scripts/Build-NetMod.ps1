@@ -64,6 +64,9 @@ if ($LASTEXITCODE -ne 0) { throw "Corn crop rule tests failed: $LASTEXITCODE" }
 $bambooTests = Join-Path $projectRoot 'tests\SCIEPort.Bamboo.Tests\SCIEPort.Bamboo.Tests.csproj'
 & $dotnetPath run --project $bambooTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Bamboo rule tests failed: $LASTEXITCODE" }
+$flaxTests = Join-Path $projectRoot 'tests\SCIEPort.Flax.Tests\SCIEPort.Flax.Tests.csproj'
+& $dotnetPath run --project $flaxTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Flax crop rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -136,6 +139,7 @@ try {
         'Assets/Blocks/Creatures.csv',
         'Assets/Blocks/Crops.csv',
         'Assets/Blocks/Bamboo.csv',
+        'Assets/Blocks/Flax.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -144,6 +148,7 @@ try {
         'Assets/Database/Creatures.xdb',
         'Assets/Database/Crops.xdb',
         'Assets/Database/Bamboo.xdb',
+        'Assets/Database/Flax.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -170,7 +175,8 @@ try {
         'Assets/Textures/Fox.png',
         'Assets/Textures/Rabbit.png',
         'Assets/Textures/Corn.png',
-        'Assets/Textures/Bamboo.png'
+        'Assets/Textures/Bamboo.png',
+        'Assets/Textures/Flax.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -477,6 +483,33 @@ try {
     if ($bambooBlockRow[0].IsPlaceable -ne 'TRUE' -or $bambooBlockRow[0].IsCollidable -ne 'TRUE' -or
         $bambooBlockRow[0].IsTransparent -ne 'FALSE' -or $bambooBlockRow[0].DefaultTextureSlot -ne '2') {
         throw 'BambooBlock must be a solid, collidable, opaque building cube drawn on atlas slot 2.'
+    }
+    [xml]$flaxDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Flax.xdb')
+    $flaxBehavior = $flaxDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFlaxBehavior']")
+    if ($null -eq $flaxBehavior -or $flaxBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
+        throw 'SCIEPortFlaxBehavior must inherit the native pollable block behavior base.'
+    }
+    $flaxBehaviorClass = $flaxBehavior.SelectSingleNode("./Parameter[@Name='Class']")
+    if ($null -eq $flaxBehaviorClass -or $flaxBehaviorClass.Value -ne 'SCIEPort.Features.Flax.SubsystemFlaxBlockBehavior') {
+        throw 'SCIEPortFlaxBehavior must bind the flax pollable subsystem class.'
+    }
+    $flaxBehaviorMember = $flaxDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortFlaxBehavior']")
+    if ($null -eq $flaxBehaviorMember -or $flaxBehaviorMember.InheritanceParent -ne $flaxBehavior.Guid) {
+        throw 'Flax growth behavior is missing or not attached to Project.'
+    }
+    $flaxRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Flax.csv'))
+    $flaxPlantRow = @($flaxRows | Where-Object { $_.'Class Name' -eq 'FlaxPlantBlock' })
+    $flaxFiberRow = @($flaxRows | Where-Object { $_.'Class Name' -eq 'FlaxFiberBlock' })
+    if ($flaxPlantRow.Count -ne 1 -or $flaxFiberRow.Count -ne 1) {
+        throw 'Flax.csv must contain exactly one row for FlaxPlantBlock and FlaxFiberBlock.'
+    }
+    if ($flaxPlantRow[0].DefaultCategory -ne 'Crops' -or $flaxPlantRow[0].IsPlaceable -ne 'TRUE' -or
+        $flaxPlantRow[0].DefaultTextureSlot -ne '0') {
+        throw 'FlaxPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
+    }
+    if ($flaxFiberRow[0].DefaultCategory -ne 'Crops' -or $flaxFiberRow[0].IsPlaceable -ne 'TRUE' -or
+        $flaxFiberRow[0].DefaultTextureSlot -ne '8') {
+        throw 'FlaxFiberBlock must be a placeable Crops item drawn on atlas slot 8.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
@@ -788,6 +821,34 @@ try {
         if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..2 belong to this atlas.' }
     }
     finally { $bambooBitmap.Dispose() }
+
+    Add-Type -AssemblyName System.Drawing
+    $flaxBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Flax.png'))
+    try {
+        if ($flaxBitmap.Width -ne 512 -or $flaxBitmap.Height -ne 512) { throw 'Flax.png must be the clean-room 512x512 flax atlas.' }
+        if ($flaxBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Flax.png must be 32-bit RGBA (Format32bppArgb).' }
+        for ($slot = 0; $slot -le 8; $slot++) {
+            $originX = ($slot % 16) * 32
+            $originY = [int]([Math]::Floor($slot / 16)) * 32
+            $opaque = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($flaxBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
+                }
+            }
+            if ($opaque -eq 0) { throw "Flax.png texture slot $slot is empty; the atlas must fill plant stages 0..7 and the fiber bundle in slot 8." }
+        }
+        $flaxSpareX = (12 % 16) * 32
+        $flaxSpareY = [int]([Math]::Floor(12 / 16)) * 32
+        $flaxSpareAny = $false
+        for ($x = 0; $x -lt 32; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($flaxBitmap.GetPixel($flaxSpareX + $x, $flaxSpareY + $y).A -gt 0) { $flaxSpareAny = $true }
+            }
+        }
+        if ($flaxSpareAny) { throw 'Flax.png slot 12 must be transparent; only flax tiles 0..8 belong to this atlas.' }
+    }
+    finally { $flaxBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
