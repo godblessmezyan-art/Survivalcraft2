@@ -268,3 +268,22 @@ THIRD-PARTY-NOTICES.md
 | Android 7723 | 待验证 | 图标、模型、UV、程序化步态、碰撞、生成与退出重进恢复均需真机新世界验证，不得因编译或离线导入校验通过标记为兼容。 |
 | 多人联机 | 待验证 | 生成已在 `WorkType.Client` 直接返回，仅权威端生成实体；真实同步一致性未实测。 |
 | 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增鸡切片（块/行为/CSV 行/XDB 实体与行为/资产生成脚本/构建校验/版本号），未改其他 mod、未吞异常、未动既有作物/生物行为，符合「按阶段推进、每片独立提交」。 |
+
+## 0.21.0 批次2第三片：苹果结果实植物基础验证（复用作物管线 + 野果结果位范式，静态/离线）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 架构取证与选型 | 已确认（取证后决策） | 用户选定「复用结果实植物范式（低风险）」：苹果 = 成熟前按茎叶作物分阶段生长（size 落 DATA 低 0..3 位，仿已验证亚麻/向日葵）+ 成熟后按 Dedicated 结果位承载可摘果实（DATA bit 3，仿已审计 `WildBerryPlantBlock` 的 `GetFruiting/SetFruiting` 与季节日驱动 + 破坏结果丛掉果）。完整 sapling→树干体因需未反编译的私有 `Game.SubsystemSaplingBlockBehavior`/Saplings ParameterSet 本阶段明确**不支持**，避免臆造 ABI。 |
+| clean-room 取证 | 已确认（资产实测） | 反射前已从 `Content.scpak` 解出的真实原版 `Assets/Database.xml` 检索：无 apple 任何痕迹，确认苹果为 clean-room 新增，非移植。ID 枚举确认作物带止于 937（向日葵）、938 鸡生成器、939/940 空闲、995..999 载具保留段；苹果植株取 939、果实取 940，无冲突。 |
+| 温带作物签名 | 已确认（纯逻辑差异） | 非向日葵换名：苹果为温带多年生——基础生长间隔 10（慢于一年生向日葵 8，木本），水/氮各 −2，**冷（≤2）+6 硬冻停摆**，但普通温暖**不加速**（区别于向日葵暖 ≥12 −2 的加速签名）；`MinLightToGrow=10` 全日照；仅秋结果季且植株成熟方结果（`ShouldBearFruit = 成熟 && 结果季`）。 |
+| 食物语义 | 已确认（既有可食对照，不臆造） | 可食纯由 CSV `DefaultNutritionalValue>0` 驱动（沿用 Kelly 野果 nutr 0.08..0.15/rotPeriod 120..170 已证 Android 可跑数据带）。苹果果实按 cat=Food / nutr=0.13 / rotPeriod=160 建模，与渲染路径（FlatBlock + `GetFaceTextureSlot` 覆盖）正交；成熟结果丛掉落 `AppleBlock×2` + 可重种 stage-0 植株 `×1`。 |
+| 纯决策（离线可测） | 已确认（net8 无游戏依赖） | `tests/SCIEPort.Apple.Tests` 49 断言：DATA 位 0..7 往返、越界钳制且保结果位、结果位 8 往返、结果位与 size 相互独立、成熟阈值、生长间隔（底 10、水 8、水+氮 6、冷 16，并断言「温带签名=热==温和、冷 > 温和」与「冷减速 > 暖加速」对照、下限 1）、光照阈值（==10 且 >耐阴亚麻 8、≤15）、结果季门（成熟&&季）、放置需顶面土壤、收获 2 果 + 1 可重种株、权限闸 `!isClient`。 |
+| 自绘图集 | 结构已确认 | `New-AppleAssets.ps1` 生成 `Textures/Apple.png`：512×512、Format32bppArgb、16×16 格 32px；slot 0..7 生长阶段（绿芽→幼苗→木质丛→树冠）、slot 8 结果态树冠缀红果、slot 9 单枚苹果（果身+梗+叶），其余全透明（cross-face alpha test）。打包逐格断言：0..9 每格非空（自检不透明计数 slot0=30 递增至 slot7=408、slot8=425、slot9=153、slot12=0）、slot 12 全透明。真机采样/结果渲染/图标 待验证。 |
+| XDB GUID 唯一性 | 已确认 | 新行为模板 `SCIEPortAppleBehavior` Guid `d7c6e2aa-…`、Class 参数 `81e1072b-…`、Project 成员 `9ca07594-…` 均 `node randomUUID()` 生成、全局唯一；仅复用允许跨 xdb 重复的容器根（BlockBehaviors `00c97f0f-…`、Project `85023bf8-…`）。曾修一处手抄遗留：Project 成员 `InheritanceParent` 初指废弃 Guid，已全量替换为 `d7c6e2aa-…` 并复核 match。`Build-NetMod.ps1` XDB 校验 + `Test-Database` 通过（DATABASE VALIDATION PASSED）。 |
+| CSV 结构修复 | 已确认 | `Apple.csv` 初生成时缺 79 列英文表头且为 LF；已 Node 从已验证 `Sunflower.csv` 取表头（纯 ASCII）前置到两数据行、改写 UTF-8 无 BOM、CRLF，复核 CR=行数=3、每行 79 列。Build 断言恰一行植株（Crops/可放/slot0）+ 一行果实（Food/可放/slot9/nutr>0 经 `[double]::TryParse`）。 |
+| 打包校验 | 已确认 | `Build-NetMod.ps1` 新增：跑 Apple 测试；requiredEntry 加 `Apple.csv/xdb/png`；XDB 断言 `SCIEPortAppleBehavior` 继承原生 pollable 基 `fefb9590-…` 且 `Class` 绑子系统类、Project 成员挂该行为 Guid；CSV 断言植株/果实两行各恰一且类别/slot/nutr 正确；atlas 逐格像素校验 0..9 非空 + slot12 透明。 |
+| 编译产物 | 已确认 | `Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0（`TreatWarningsAsErrors` + `GenerateDocumentationFile` → 0 warning / 0 error），57 条目（新增 `Assets/Blocks/Apple.csv`、`Assets/Database/Apple.xdb`、`Assets/Textures/Apple.png`），DLL `[AssemblyName]`/`FileVersion`=`0.21.0.0`、`ProductVersion`=`0.21.0+8eac0a4`（SourceRevisionId 取构建时 HEAD）。二进制内按命名空间+裸类型名分别确含 `SCIEPort.Features.Apple` 与 `AppleRules/ApplePlantBlock/AppleBlock/SubsystemAppleBlockBehavior/AppleTextures/ApplePlacement/GetAppleGrowthInterval/ShouldBearFruit/GetAppleYield/MinLightToGrow`（连写全名探测为假阴，已按元数据分离存储法复核；同名 sunflower sanity 通过证探测有效）。产物 `.netmod` 425,632 字节，SHA-256 `30C62468FF6D58EE3734BABD6AB3AEEF57AED013658F040E82923E4DD37DE038`（磁盘复核一致）。 |
+| Windows 游戏运行 | 待验证 | 本机有可运行 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测：种植、逐阶段生长、成熟转结果季、摘果/掉果、吃掉苹果回饥饿、存读档、卸载均未运行。 |
+| Android 7723 | 待验证 | 两方块渲染、贴图、种植交互、生长/结果轮询、季节判定、收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。 |
+| 多人联机 | 待验证 | 轮询已在 `WorkType.Client` 直接返回，仅权威端推进生长/结果；真实同步一致性未实测。 |
+| 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增苹果切片（Rules/Blocks/行为/CSV/XDB/图集脚本/构建校验/版本号），未改其他 mod、未吞异常、未动既有作物/生物行为，符合「按阶段推进、每片独立提交」。 |

@@ -70,6 +70,9 @@ if ($LASTEXITCODE -ne 0) { throw "Flax crop rule tests failed: $LASTEXITCODE" }
 $sunflowerTests = Join-Path $projectRoot 'tests\SCIEPort.Sunflower.Tests\SCIEPort.Sunflower.Tests.csproj'
 & $dotnetPath run --project $sunflowerTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Sunflower crop rule tests failed: $LASTEXITCODE" }
+$appleTests = Join-Path $projectRoot 'tests\SCIEPort.Apple.Tests\SCIEPort.Apple.Tests.csproj'
+& $dotnetPath run --project $appleTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -144,6 +147,7 @@ try {
         'Assets/Blocks/Bamboo.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
+        'Assets/Blocks/Apple.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -154,6 +158,7 @@ try {
         'Assets/Database/Bamboo.xdb',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
+        'Assets/Database/Apple.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -184,7 +189,8 @@ try {
         'Assets/Textures/Corn.png',
         'Assets/Textures/Bamboo.png',
         'Assets/Textures/Flax.png',
-        'Assets/Textures/Sunflower.png'
+        'Assets/Textures/Sunflower.png',
+        'Assets/Textures/Apple.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -588,6 +594,35 @@ try {
         $sunflowerSeedRow[0].DefaultTextureSlot -ne '8' -or
         -not [double]::TryParse($sunflowerSeedRow[0].DefaultNutritionalValue, [ref] $sunflowerSeedNutrition) -or $sunflowerSeedNutrition -le 0.0) {
         throw 'SunflowerSeedBlock must be a placeable Food item drawn on atlas slot 8 with a positive nutritional value.'
+    }
+    [xml]$appleDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Apple.xdb')
+    $appleBehavior = $appleDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortAppleBehavior']")
+    if ($null -eq $appleBehavior -or $appleBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
+        throw 'SCIEPortAppleBehavior must inherit the native pollable block behavior base.'
+    }
+    $appleBehaviorClass = $appleBehavior.SelectSingleNode("./Parameter[@Name='Class']")
+    if ($null -eq $appleBehaviorClass -or $appleBehaviorClass.Value -ne 'SCIEPort.Features.Apple.SubsystemAppleBlockBehavior') {
+        throw 'SCIEPortAppleBehavior must bind the apple pollable subsystem class.'
+    }
+    $appleBehaviorMember = $appleDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortAppleBehavior']")
+    if ($null -eq $appleBehaviorMember -or $appleBehaviorMember.InheritanceParent -ne $appleBehavior.Guid) {
+        throw 'Apple growth behavior is missing or not attached to Project.'
+    }
+    $appleRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Apple.csv'))
+    $applePlantRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'ApplePlantBlock' })
+    $appleFruitRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'AppleBlock' })
+    if ($applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
+        throw 'Apple.csv must contain exactly one row for ApplePlantBlock and AppleBlock.'
+    }
+    if ($applePlantRow[0].DefaultCategory -ne 'Crops' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
+        $applePlantRow[0].DefaultTextureSlot -ne '0') {
+        throw 'ApplePlantBlock must be a placeable Crops item drawn on atlas slot 0.'
+    }
+    $appleFruitNutrition = 0.0
+    if ($appleFruitRow[0].DefaultCategory -ne 'Food' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
+        $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
+        -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
+        throw 'AppleBlock must be a placeable Food item drawn on atlas slot 9 with a positive nutritional value.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
@@ -1004,6 +1039,34 @@ try {
         if ($sunflowerSpareAny) { throw 'Sunflower.png slot 12 must be transparent; only sunflower tiles 0..8 belong to this atlas.' }
     }
     finally { $sunflowerBitmap.Dispose() }
+
+    Add-Type -AssemblyName System.Drawing
+    $appleBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Apple.png'))
+    try {
+        if ($appleBitmap.Width -ne 512 -or $appleBitmap.Height -ne 512) { throw 'Apple.png must be the clean-room 512x512 apple atlas.' }
+        if ($appleBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Apple.png must be 32-bit RGBA (Format32bppArgb).' }
+        for ($slot = 0; $slot -le 9; $slot++) {
+            $originX = ($slot % 16) * 32
+            $originY = [int]([Math]::Floor($slot / 16)) * 32
+            $opaque = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($appleBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
+                }
+            }
+            if ($opaque -eq 0) { throw "Apple.png texture slot $slot is empty; the atlas must fill plant stages 0..7, the fruiting canopy in slot 8 and the apple fruit in slot 9." }
+        }
+        $appleSpareX = (12 % 16) * 32
+        $appleSpareY = [int]([Math]::Floor(12 / 16)) * 32
+        $appleSpareAny = $false
+        for ($x = 0; $x -lt 32; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($appleBitmap.GetPixel($appleSpareX + $x, $appleSpareY + $y).A -gt 0) { $appleSpareAny = $true }
+            }
+        }
+        if ($appleSpareAny) { throw 'Apple.png slot 12 must be transparent; only apple tiles 0..9 belong to this atlas.' }
+    }
+    finally { $appleBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
