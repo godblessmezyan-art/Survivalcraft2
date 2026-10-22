@@ -508,3 +508,53 @@ THIRD-PARTY-NOTICES.md
   未实测。
 - 生态互动（狐追捕兔）：待验证（未接线）。`IsEligiblePredation` 纯谓词已测，实际追捕仍委托
   原生 Wolf 衍生 AI，本阶段不接线，留作独立阶段。
+
+
+## 0.18.0 生态互动：狐追捕兔（数据式委托原生 Wolf AI，2026-10-22）
+
+- 自动回归：已确认。离线规则测试全绿——Kelly 11、ATV 32、越野车 20、快艇 16、
+  Tank 规则、Crops 26、Bamboo 25、Flax 29，Ecology 由 37 增至 **47**（新增 10 条
+  捕食接线断言，核心不变量「狐 `AutoChaseMask` 必须覆盖兔 `Category`」「狐
+  `ChaseNonPlayerProbability` 必须高于狼基线 0.03」，另含 `IsCategoryChased`
+  对 `"0"`/null/空/大小写/逐段 trim 的边界）。
+- 捕食机制取证（先取证再动手）：已确认。反射 x25.01.17 确认原生
+  `Game.ComponentChaseBehavior` 拥有 `FindTarget()`/`ScoreTarget(ComponentCreature)`/
+  `IsTargetInAttackRange`，字段 `m_autoChaseMask : Game.CreatureCategory`；
+  `Game.CreatureCategory` 为 `[Flags]`。再用 `Game.SurvivalCraftModEntity.GetDecipherStream`
+  解出 `Content.scpak` 内真实 `Assets/Database.xml`（463,610 字节，987 条目）实测：基类
+  `ChaseBehavior`(`31894441-…`) 默认 `AutoChaseMask="LandOther, Bird"`、
+  `ChaseNonPlayerProbability=0`；`Wolf`(`49a9845c-…`，狐继承父) 只覆写
+  `ChaseNonPlayerProbability=0.03`；`Alpaca`(`8e62c6e4-…`，兔继承父) `Category="LandOther"`。
+  据此狐本就把 LandOther 列为可追对象、兔本就在其猎物集合内。
+- 不臆造 API：已确认。`Database.xml` 基类 `ChaseBehavior` 参数集不含 `IsAttack`
+  （`m_isAttack` 为运行时字段而非可序列化模板参数），本阶段未在模板里写 `IsAttack`；
+  咬击伤害来自狐继承的狼 `Miner.AttackPower=1` 与追捕进入攻击距离后的原生结算。
+- 数据式接线（委托原生 AI）：已确认（代码/数据）。仅在 `SCIEPortFox` `EntityTemplate`
+  增加一个 `ChaseBehavior` `MemberComponentTemplate` 覆盖：`AutoChaseMask="LandOther"`
+  （锁定陆生猎物，不再顺带含基类默认 Bird）与 `ChaseNonPlayerProbability="0.35"`
+  （狼基线 0.03 过低几乎不主动猎非玩家动物，提高使捕食可观察）。不写任何 C# 转向/
+  寻路/攻击逻辑，全部交给原生 `ComponentChaseBehavior`；匹配方式与工作区既有覆盖一致
+  （`Name` 关联继承组件、`Parameter` 按 `Name` 覆写字段、各用唯一 Guid）。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 0 compile
+  warning/error（`TreatWarningsAsErrors`），DATABASE VALIDATION PASSED，51 条目（本阶段
+  无新增包内文件，改的是既有 `Assets/Database/Creatures.xdb`），产物
+  SHA-256 `C063A77AE2E9F204154800D88001089350339F58A4CE7E7FEE8D496A098A61C8`
+  （414,365 字节）。
+- 打包校验：已确认。`Build-NetMod.ps1` 对 `SCIEPortFox` 断言存在 `ChaseBehavior` 覆盖、
+  其 `AutoChaseMask` 逗号集合含 `LandOther`、`ChaseNonPlayerProbability` 可解析为 float
+  且 > 0.03；缺失或过小即抛错。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.18.0.0`，
+  `ProductVersion` = `0.18.0+c5ba1de...`（自然生成 spawner commit 之后、本阶段提交前工作树）。
+- 实机捕食激活：**待验证**。静态/数据 ABI 与纯规则已确认，但狐在真机是否确实发现、追捕
+  并杀死兔、0.35 概率的手感与频率、与羊群互助/逃跑行为的交互、退出重进一致性，均未在
+  Windows 客户端或 Android 7723 观测；按要求不提前宣称已修复。
+- Windows 游戏运行：待验证。本机存在可运行的 `Survivalcraft.exe`（x25.01.17），但本阶段
+  未启动游戏实测捕食行为。
+- Android 7723：待验证。低端机上捕食 AI 的开销、可见性与稳定性需真机新世界验证，不得因
+  编译或离线测试通过标记为兼容。
+- 多人联机：待验证。追捕/攻击由实体权威端（Local 或主机/服务端）仿真，普通客户端不本地
+  生成实体；权威端捕食结果向客户端的实体状态同步、房主与加入者观感一致性未实测。
+
+至此自然生态与资源扩展的「基础功能 + 自然生成 + 生态互动（狐→兔）」均落地并单独提交，
+处于「静态/数据 ABI 与离线测试已确认、实机行为待验证」状态，等待统一的 Windows +
+Android 7723 联网/真机验证阶段。

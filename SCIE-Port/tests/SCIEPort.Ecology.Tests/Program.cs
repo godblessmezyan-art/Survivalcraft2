@@ -19,6 +19,7 @@ namespace SCIEPort.Ecology.Tests
                 TestHabitatSuitability();
                 TestPredationEligibility();
                 TestSpawnChanceAndBudget();
+                TestPredationWiring();
                 Console.WriteLine("Ecology rule tests passed: " + s_assertions);
                 return 0;
             }
@@ -117,6 +118,31 @@ namespace SCIEPort.Ecology.Tests
                 "Attempts at the per-chunk ceiling must be blocked.");
             Assert(!EcologyRules.CanSpawnWithinBudget(EcologyRules.MaxSpawnAttemptsPerChunk + 5),
                 "Attempts beyond the ceiling must be blocked.");
+        }
+
+        private static void TestPredationWiring()
+        {
+            Assert(EcologyRules.IsCategoryChased("LandOther", "LandOther"),
+                "An exact single-category mask must chase that category.");
+            Assert(EcologyRules.IsCategoryChased("LandPredator, LandOther, Bird", "LandOther"),
+                "A membership check must find a category inside a comma-separated mask.");
+            Assert(EcologyRules.IsCategoryChased("LandOther, Bird", "Bird"),
+                "The last entry of a mask must still match.");
+            Assert(EcologyRules.IsCategoryChased("landother", "LandOther"),
+                "Category matching is case-insensitive, mirroring the enum names in the DB.");
+            Assert(!EcologyRules.IsCategoryChased("0", "LandOther"),
+                "The serialized None mask (0) must chase nothing.");
+            Assert(!EcologyRules.IsCategoryChased("LandPredator", "LandOther"),
+                "A mask that omits the prey category must not chase it.");
+            Assert(!EcologyRules.IsCategoryChased(null, "LandOther"),
+                "A null mask must not chase.");
+            Assert(!EcologyRules.IsCategoryChased("LandOther", ""),
+                "An empty category must never match.");
+
+            Assert(EcologyRules.IsCategoryChased(EcologyRules.FoxAutoChaseMask, EcologyRules.RabbitCreatureCategory),
+                "The fox AutoChaseMask must cover the rabbit's inherited category, or predation never targets rabbits.");
+            Assert(EcologyRules.FoxChaseNonPlayerProbability > EcologyRules.VanillaWolfChaseNonPlayerProbability,
+                "The fox chase probability must be raised above the vanilla wolf baseline to be observable.");
         }
 
         private static void Assert(bool condition, string message)

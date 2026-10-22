@@ -198,5 +198,76 @@ namespace SCIEPort.Features.Ecology
         {
             return attemptsSoFarThisChunk < MaxSpawnAttemptsPerChunk;
         }
+
+        /// <summary>
+        /// The <c>AutoChaseMask</c> we write onto the fox's inherited
+        /// <c>ComponentChaseBehavior</c>. It is deliberately scoped to
+        /// <c>LandOther</c> (the category rabbits inherit from the vanilla Alpaca
+        /// parent), so the native chase AI treats the SCIE-Port rabbit as eligible
+        /// prey. The value here is the single source of truth that the XDB override
+        /// and the packaging validation must agree with.
+        /// </summary>
+        public const string FoxAutoChaseMask = "LandOther";
+
+        /// <summary>
+        /// The <c>Creature.Category</c> the SCIE-Port rabbit carries by inheritance
+        /// from the vanilla Alpaca template. Fox predation works because this value
+        /// is a member of <see cref="FoxAutoChaseMask"/>.
+        /// </summary>
+        public const string RabbitCreatureCategory = "LandOther";
+
+        /// <summary>
+        /// The vanilla wolf's own <c>ChaseNonPlayerProbability</c>, read directly
+        /// from <c>Content.scpak</c> / <c>Database.xml</c>. It is very low (0.03)
+        /// because real wolves mostly avoid non-player prey; that baseline is why an
+        /// untouched fox inheritance would almost never hunt a rabbit.
+        /// </summary>
+        public const float VanillaWolfChaseNonPlayerProbability = 0.03f;
+
+        /// <summary>
+        /// The raised <c>ChaseNonPlayerProbability</c> we write onto the fox so the
+        /// predator actually pursues rabbits at an ecologically meaningful rate. It
+        /// must be strictly greater than <see cref="VanillaWolfChaseNonPlayerProbability"/>
+        /// for predation to be observable, and stays a data value handled entirely by
+        /// the native AI (no steering is reimplemented).
+        /// </summary>
+        public const float FoxChaseNonPlayerProbability = 0.35f;
+
+        /// <summary>
+        /// Mirrors the native <c>ComponentChaseBehavior</c> category-in-mask test:
+        /// a creature is auto-chased when its <c>CreatureCategory</c> name appears in
+        /// the comma-separated <c>AutoChaseMask</c> list exactly as the shipped DB
+        /// serializes it. A numeric mask of <c>"0"</c> (the serialized <c>None</c>),
+        /// and null/empty inputs, never match. Comparison is case-insensitive after
+        /// trimming, matching how the enum names are written in <c>Database.xml</c>.
+        /// </summary>
+        public static bool IsCategoryChased(string autoChaseMask, string category)
+        {
+            if (string.IsNullOrEmpty(autoChaseMask) || string.IsNullOrEmpty(category))
+            {
+                return false;
+            }
+
+            string trimmedMask = autoChaseMask.Trim();
+
+            // "0" is how the database serializes the CreatureCategory.None value;
+            // such a predator auto-chases nothing.
+            if (trimmedMask == "0")
+            {
+                return false;
+            }
+
+            string wanted = category.Trim();
+            string[] entries = trimmedMask.Split(',');
+            for (int i = 0; i < entries.Length; i++)
+            {
+                if (string.Equals(entries[i].Trim(), wanted, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

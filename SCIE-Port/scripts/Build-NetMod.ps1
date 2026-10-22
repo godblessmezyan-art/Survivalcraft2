@@ -389,6 +389,19 @@ try {
     if ($null -ne $foxEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
         throw 'Phase-one fox must not register an inherited/duplicate native creature egg index.'
     }
+    $foxChase = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='ChaseBehavior']")
+    if ($null -eq $foxChase) {
+        throw 'SCIEPortFox must carry an explicit ChaseBehavior override so it hunts the rabbit via the native AI.'
+    }
+    $foxAutoChaseMask = $foxChase.SelectSingleNode("./Parameter[@Name='AutoChaseMask']")
+    $foxChaseProbability = $foxChase.SelectSingleNode("./Parameter[@Name='ChaseNonPlayerProbability']")
+    if ($null -eq $foxAutoChaseMask -or ($foxAutoChaseMask.Value -split ',') -notcontains 'LandOther') {
+        throw 'Fox ChaseBehavior AutoChaseMask must include LandOther (the rabbit category) for predation to target rabbits.'
+    }
+    $foxChaseProbabilityValue = 0.0
+    if ($null -eq $foxChaseProbability -or -not [double]::TryParse($foxChaseProbability.Value, [ref] $foxChaseProbabilityValue) -or $foxChaseProbabilityValue -le 0.03) {
+        throw 'Fox ChaseNonPlayerProbability must exceed the vanilla wolf baseline (0.03) so predation is observable.'
+    }
     $foxBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
     $foxBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
     if ($null -eq $foxBehavior -or $null -eq $foxBehaviorMember -or $foxBehaviorMember.InheritanceParent -ne $foxBehavior.Guid) {

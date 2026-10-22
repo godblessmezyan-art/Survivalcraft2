@@ -35,6 +35,10 @@
         <Parameter Name="CanCanter" Guid="909181c0-0d39-4f7e-ae55-601fab45a404" Value="False" Type="bool" />
         <Parameter Name="UseCanterSound" Guid="a5f6ebde-6d97-41a6-a031-b17020c5c8c0" Value="False" Type="bool" />
       </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ChaseBehavior" Guid="b8e3cebb-d26d-44b0-b96c-738cfba9f513">
+        <Parameter Name="AutoChaseMask" Guid="60d23cc8-1056-4a84-9a15-966538a7a3d5" Value="LandOther" Type="Game.CreatureCategory" />
+        <Parameter Name="ChaseNonPlayerProbability" Guid="7e78e276-c2b8-42fd-b467-84851a3499ec" Value="0.35" Type="float" />
+      </MemberComponentTemplate>
     </EntityTemplate>
     <EntityTemplate Name="SCIEPortRabbit" Guid="5e3e7d1c-2997-4fa5-a64d-98d261916233" InheritanceParent="8e62c6e4-a544-4c09-a3fb-59fd37d5b998">
       <MemberComponentTemplate Name="Creature" Guid="ea6fe7a6-8acb-41f8-a0b3-a2af9c6b25bd">
