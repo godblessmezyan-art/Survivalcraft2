@@ -665,7 +665,8 @@ Android 7723 联网/真机验证阶段。
   改 UTF-8 无 BOM、CRLF（CR=行=3、每行 79 列）：植株 `ApplePlantBlock;苹果树;Crops;…;339;…slot0`、
   果实 `AppleBlock;苹果;Food;…;340;…nutr 0.13;…rot 160;…slot9`。DATABASE VALIDATION PASSED。
 - Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0
-  （`TreatWarningsAsErrors` + `GenerateDocumentationFile` → 0 warning / 0 error），**57 条目**（新增
+  （`TreatWarningsAsErrors` + `GenerateDocumentationFile` → 0 warning / 0 error），`.netmod` zip 实测
+  **59 条目**（requiredEntry 校验清单 57 项，另有 modinfo/SCIEPort.dll/THIRD-PARTY-NOTICES 及未逐项校验的既有资产；含新增
   `Assets/Blocks/Apple.csv`、`Assets/Database/Apple.xdb`、`Assets/Textures/Apple.png`），产物 425,632
   字节，SHA-256 `30C62468FF6D58EE3734BABD6AB3AEEF57AED013658F040E82923E4DD37DE038`（磁盘复核一致）。
 - DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.21.0.0`，`ProductVersion` =
