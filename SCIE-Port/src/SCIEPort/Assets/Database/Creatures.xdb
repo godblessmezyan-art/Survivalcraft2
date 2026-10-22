@@ -73,6 +73,39 @@
         <Parameter Name="CanTrot" Guid="fda5e05f-16a3-42ae-9fc0-3788e0f545cc" Value="True" Type="bool" />
       </MemberComponentTemplate>
     </EntityTemplate>
+    <EntityTemplate Name="SCIEPortChicken" Guid="af17b030-f4ba-4805-afbd-33b4f455da09" InheritanceParent="8e62c6e4-a544-4c09-a3fb-59fd37d5b998">
+      <MemberComponentTemplate Name="Creature" Guid="9232f9ec-f3a8-4b94-ac15-642d1c3c461b">
+        <Parameter Name="DisplayName" Guid="defaa51e-0ffd-429b-8581-cb9e33569fac" Value="SCIE 鸡" Type="string" />
+        <Parameter Name="Description" Guid="690b443c-dd11-4d2f-885e-53b2f413e0b4" Value="手动生成的 SCIE-Port 鸡验证实体，复用原生食草/群居/逃跑 AI。" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="70ad203b-015d-4b58-8e33-5f7d82cbc630">
+        <Parameter Name="BoxSize" Guid="712d7c70-884a-40cb-885f-f1ce7fb35f1b" Value="0.32,0.44,0.5" Type="Vector3" />
+        <Parameter Name="Mass" Guid="0170a348-3c6f-473e-9b41-9060bb19658a" Value="3" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="f3be93a7-fe51-445c-aa87-6fc4e61d5358">
+        <Parameter Name="WalkSpeed" Guid="e1773dda-88e7-47b2-a1ab-6ea5b59d02ca" Value="3.0" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="b9d03f25-add6-4632-b228-1f5c5efe3a1c" Value="12" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="ca6d80e4-7ca2-4b35-b6db-52fad8a161d3" Value="1.5" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="69b61c23-78b2-4f6c-9c97-73b0218315fb">
+        <Parameter Name="AttackResilience" Guid="3abf7315-d03f-461d-948f-adfb3be3be3e" Value="2" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="c372bedf-9820-487e-a96e-c6f8801e2942">
+        <Parameter Name="AutoDespawn" Guid="2f8b6710-380d-49fc-b404-ddabba25fe5d" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="153d283c-aa1c-4d08-81c9-b3ce60b6adca">
+        <Parameter Name="HerdName" Guid="30ef7e70-9a8b-4c77-abe7-ebbc76f56a44" Value="SCIEPortChicken" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="fe69dca2-a428-432a-9361-cfbcc129b429">
+        <Parameter Name="ModelName" Guid="e38abb2f-424e-47bc-b955-85032d6cfa8e" Value="Models/Chicken" Type="string" />
+        <Parameter Name="TextureOverride" Guid="1ce19c13-54f4-43a0-9bf2-82b04ac3d996" Value="Textures/Chicken" Type="string" />
+        <Parameter Name="WalkAnimationSpeed" Guid="21e61e59-2a17-4658-8fc5-99d74063f876" Value="1.6" Type="float" />
+        <Parameter Name="WalkFrontLegsAngle" Guid="78188e4a-7261-40b7-aea6-ece175e381da" Value="0.5" Type="float" />
+        <Parameter Name="WalkHindLegsAngle" Guid="997182ff-1559-4a76-87fa-1bb3193dad67" Value="0.5" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="3c368574-057e-4cfa-8316-bf931f1dca31" Value="0.05" Type="float" />
+        <Parameter Name="CanTrot" Guid="d1bab5b9-96aa-4827-97fe-e99d096e86af" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
   </Folder>
   <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
     <SubsystemTemplate Name="SCIEPortFoxSpawnBehavior" Guid="d5816ffd-a7ca-4f8b-98b5-df7d2a4a3c22" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
@@ -81,9 +114,13 @@
     <SubsystemTemplate Name="SCIEPortRabbitSpawnBehavior" Guid="deca144f-67eb-4c6c-8316-178cbf5274da" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
       <Parameter Name="Class" Guid="294918da-f3f1-4d54-ae16-ed68467360da" Value="SCIEPort.Features.Creatures.SubsystemRabbitSpawnBlockBehavior" Type="string" />
     </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortChickenSpawnBehavior" Guid="e9a26952-7a51-41e1-b5cb-f52620ba20a0" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="6849e022-c97f-4b40-815b-9ad37df2aac4" Value="SCIEPort.Features.Creatures.SubsystemChickenSpawnBlockBehavior" Type="string" />
+    </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
     <MemberSubsystemTemplate Name="SCIEPortFoxSpawnBehavior" Guid="1bdac495-0343-4bc3-955e-5b252c3c8757" InheritanceParent="d5816ffd-a7ca-4f8b-98b5-df7d2a4a3c22" />
     <MemberSubsystemTemplate Name="SCIEPortRabbitSpawnBehavior" Guid="af999e47-6900-4a0c-b8e7-84bb9b474c11" InheritanceParent="deca144f-67eb-4c6c-8316-178cbf5274da" />
+    <MemberSubsystemTemplate Name="SCIEPortChickenSpawnBehavior" Guid="f11b08fb-1f22-4508-957d-dea679c101f2" InheritanceParent="e9a26952-7a51-41e1-b5cb-f52620ba20a0" />
   </ProjectTemplate>
 </SCIEPortCreatures>

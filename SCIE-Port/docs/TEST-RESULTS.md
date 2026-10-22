@@ -596,3 +596,44 @@ Android 7723 联网/真机验证阶段。
 - Android 7723：待验证。两方块渲染、贴图、种植交互、生长轮询、收获与退出重进恢复均需真机
   新世界验证，不得因编译或离线测试通过标记为兼容。
 - 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回，仅权威端推进，真实同步一致性未实测。
+
+## 0.20.0 批次2第二片：鸡生物（复用生物切片管线，手动生成器阶段，2026-10-22）
+
+- 自动回归：已确认（既有套件不变、全链绿）。本阶段为**生物切片**，与已验证的狐/兔同路径——
+  不新增 net8 单测工程（狐/兔先例即无独立每生物测，靠 `Build-NetMod.ps1` 的**目标引擎离线导入
+  `ModelData.Load`** 逐骨骼/网格校验 + XDB/CSV/打包断言兜底）。既有套件随全链构建一并通过且
+  计数不变：Kelly 11、ATV 32、越野车 20、快艇 16、Tank 规则、Crops 26、Bamboo 25、Flax 29、
+  Sunflower 33、Ecology 47。
+- 复用与取证（先取证再动手）：已确认。逐字镜像狐/兔生物切片七件套（EntityTemplate 覆写 7 组件 /
+  clean-room COLLADA 六骨骼 / 32×8 四色 PNG / SpawnBlock / SubsystemBlockBehavior / CSV 行 /
+  构建校验）。反射前已从真实 `Database.xml` 检索确认原版无 chicken/hen/rooster（clean-room）。
+  枚举 `Index = 9xx` 确认作物带止于 937、938 空闲、995+ 载具保留；鸡取 938、DisplayOrder 911。
+  鸡继承 Alpaca（`8e62c6e4-…`）得 `Category=LandOther`，数据层天然落入狐 `AutoChaseMask`
+  捕食目标集（仅记录结论，追捕仍待真机）。
+- 四足 rig 适配：已确认。鸡仅两腿，但保留原生强制六骨骼完整性（Body/Head/Leg1-4）：前二骨骼挂
+  可见腿、后二骨骼挂靠后短腿，读作鸟 stance。`Build-NetMod.ps1` 用目标 `Engine.Media.ModelData.Load`
+  实测导入 `Chicken.dae` 为 **6 bones / 10 meshes** 并逐骨骼名校验、Y_UP 断言；`New-ChickenAssets.ps1`
+  产 `Chicken.png` 32×8 四色不透明，Build 断言每像素 A=255、恰 4 种 ARGB（白/红/橙/暗）。
+- XDB/CSV：已确认。`Creatures.xdb` 加 `SCIEPortChicken` 实体（覆写 7 组件、DisplayName「SCIE 鸡」、
+  ModelName/TextureOverride 指向 Chicken、AutoDespawn False、不注册原生 CreatureEggData）+ 行为
+  `SCIEPortChickenSpawnBehavior`（继基 `fefb9590-…`、Class 绑 `SCIEPort.Features.Creatures.
+  SubsystemChickenSpawnBlockBehavior`）+ Project 成员；实体/行为/成员各用 `randomUUID()` 全局唯一，
+  仅复用允许重复容器根。`Creatures.csv` 鸡行由 Node 按列名从**已验证兔行**派生（`鸡` 字直接取自
+  xdb 已提交 DisplayName，禁手抄 CJK），UTF-8 无 BOM、CRLF。DATABASE VALIDATION PASSED。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0
+  （`TreatWarningsAsErrors` + `GenerateDocumentationFile` → 0 warning / 0 error），54 条目（新增
+  `Assets/Models/Chicken.dae`、`Assets/Textures/Chicken.png`），产物 421,326 字节，SHA-256
+  `246CFD35A066D90BAE2116E293FAD4A320D9540BD45E668C991A450F434EEDC9`（磁盘复核一致）。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.20.0.0`，`ProductVersion` =
+  `0.20.0+2151279...`（SourceRevisionId 取构建时 HEAD，即向日葵 commit 之后、本阶段提交前工作树）；
+  符号串扫描确认 `ChickenSpawnBlock`/`SubsystemChickenSpawnBlockBehavior`/`SCIEPort.Features.Creatures`
+  已编译进 DLL（`GetTypes` 因 net472 DLL 引用 Engine/Game 无法在本机 PS 加载而抛
+  ReflectionTypeLoadException，属探测方式局限、非构建问题）。
+- 已知缺口：本阶段鸡仅**创造栏手动生成器**，`Load` 刻意不调 `CreatureWorldSpawn.SetProject`，
+  不接自然生成；不接线吃籽/下蛋等跨切片互动（避免臆造 ABI）。批次2剩余两项（苹果=树+果实新结构、
+  蜂=飞行/群体风险最高）尚未开始。
+- Windows 游戏运行：待验证。本机未启动游戏；图标方块渲染、使用生成、行走/群居/逃跑 AI、碰撞、
+  死亡与存读档均未运行。
+- Android 7723：待验证。图标、模型、UV、程序化步态、碰撞、生成与退出重进恢复均需真机新世界验证，
+  不得因编译或离线导入校验通过标记为兼容。
+- 多人联机：待验证。生成已在 `WorkType.Client` 直接返回，仅权威端生成实体，真实同步一致性未实测。

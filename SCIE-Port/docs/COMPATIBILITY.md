@@ -248,3 +248,23 @@ THIRD-PARTY-NOTICES.md
 | Android 7723 | 待验证 | 两方块渲染、贴图、种植交互、生长轮询、收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。 |
 | 多人联机 | 待验证 | 轮询已在 `WorkType.Client` 直接返回，仅权威端推进；真实同步一致性未实测。 |
 | 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增向日葵切片，未改其他 mod、未吞异常、未动既有作物/生物行为，符合“按阶段推进、每片独立提交”。 |
+
+## 0.20.0 批次2第二片：鸡生物基础验证（复用已验证生物切片管线，手动生成器阶段，静态/离线）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 复用已验证生物切片 | 已确认（代码/数据） | 完全镜像本工作区已充分验证的狐/兔垂直切片结构：`EntityTemplate` 覆写 7 组件（Creature/Body/Locomotion/Health/Spawn/HerdBehavior/FourLeggedModel）+ clean-room COLLADA 六骨骼模型 + 32×8 四色 PNG + `ChickenSpawnBlock : Block`（把模型网格 AppendModelMeshPart 进 BlockMesh 作创造图标方块）+ `SubsystemChickenSpawnBlockBehavior : SubsystemBlockBehavior`（`OnUse` 经 `SubsystemCreatureSpawn.SpawnCreature(string,Vector3,bool)` 生成）。不引入任何新的 ABI 面，只复用原生四足模型/食草 AI。 |
+| 原生 AI 继承 | 已确认（静态） | `SCIEPortChicken` 继承原版 Alpaca 食草动物模板 GUID `8e62c6e4-a544-4c09-a3fb-59fd37d5b998`（LandAnimal 后代），复用原生四足步态 + 吃拾取物/群居/逃跑 AI，与兔的复用路径一致。鸡的 `Category` 因此为 `LandOther`，天然落入狐 `ChaseBehavior.AutoChaseMask=LandOther` 的捕食目标集，与生态阶段 synergy 一致（本阶段仅记录该数据层结论，实际追捕仍待真机验证）。 |
+| 四足 rig 适配 | 已确认（离线导入） | 鸡仅两条真实腿：保留原生强制六骨骼（Body/Head/Leg1-4）完整性——前两条骨骼挂可见腿、后两条挂靠后收起的短腿，视觉读作鸟 stance。`Build-NetMod.ps1` 用目标 `Engine.Media.ModelData.Load` 实测导入 `Chicken.dae` 为 6 bones/10 meshes 并逐骨骼名（Body/Head/Leg1-4）校验；Y_UP 断言。 |
+| clean-room 模型/贴图 | 已确认（资产实测） | 项目自制 `New-ChickenAssets.ps1` 生成 `Models/Chicken.dae`（10 立方网格，每网格 24 顶点/12 三角，无蒙皮/控制器/导入动画，纯程序化步态）与 `Textures/Chicken.png`（32×8、四色不透明：白身/红冠髯/橙喙腿/暗尾；U 值 0.125/0.375/0.625/0.875 选列）。`Build-NetMod.ps1` PNG 断言 32×8、每像素 A=255、恰 4 种 ARGB。 |
+| ID 取证 | 已确认（枚举） | 编译单元内 `public const int Index` 全量枚举：作物带止于 937（向日葵瓜子），938..994 空闲，995..999 载具保留段。鸡生成器取 938，无冲突；`Creatures.csv` DisplayOrder 取 911（兔 910 之后）。 |
+| CSV 行为绑定 | 已确认 | `ChickenSpawnBlock;SCIE 鸡生成器;Spawner Eggs;SCIEPortChickenSpawnBehavior;911;…;scieport-chicken-spawner;…`，由 Node 脚本按列名从已验证的兔行派生（禁手抄 CJK，`鸡` 字直接取自 `Creatures.xdb` 已提交 DisplayName），UTF-8 无 BOM、CRLF；`Build-NetMod.ps1` 断言恰一行 `ChickenSpawnBlock`、Behaviors/Category 正确。 |
+| XDB GUID 唯一性 | 已确认 | 新实体 `SCIEPortChicken`、行为 `SCIEPortChickenSpawnBehavior`（继原生 pollable/behavior 基 `fefb9590-…`）与 Project 成员各用 `node randomUUID()` 生成的全局唯一 Guid；仅复用允许跨 xdb 重复的容器根（Entities `5fcdf35f-…`、BlockBehaviors `00c97f0f-…`、Project `85023bf8-…`）。文件内 Guid 无重复、CR=LF=126 一致。`Test-Database.ps1` 通过（DATABASE VALIDATION PASSED）。 |
+| 权限闸（联机） | 已确认（代码/规则） | `SubsystemChickenSpawnBlockBehavior.OnUse` 在 `CommonLib.WorkType == WorkType.Client` 时直接返回不生成，避免普通客户端本地制造未同步实体；与兔一致。真实主机/客户端同步效果待联机实测。 |
+| 自然生成 | 不支持（本阶段） | 仅创造栏手动生成器（`Spawner Eggs` 类）。`SubsystemChickenSpawnBlockBehavior.Load` 刻意**不**调用 `CreatureWorldSpawn.SetProject`，不注册 `CreatureType`、不接地形生成 Hook——鸡暂不进入既有狐/兔自然生成 spawner，留待基础加载/存读档实机验证后再单独成阶段。 |
+| 跨切片互动（喂籽/下蛋） | 不支持（本阶段） | 不接线鸡吃向日葵/亚麻籽、下蛋等行为；本阶段只做「可手动生成的鸡实体」这一独立基础功能，食性/繁殖留作后续增强，避免臆造 ABI。 |
+| 编译产物 | 已确认 | `Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0（`TreatWarningsAsErrors` + `GenerateDocumentationFile` → 0 warning / 0 error），54 条目（含 `Assets/Models/Chicken.dae`、`Assets/Textures/Chicken.png`），DLL `[AssemblyName]`/`FileVersion`=`0.20.0.0`、`ProductVersion`=`0.20.0+2151279`（SourceRevisionId 取构建时 HEAD）。二进制内确含 `ChickenSpawnBlock/SubsystemChickenSpawnBlockBehavior/SCIEPort.Features.Creatures`。产物 `.netmod` 421,326 字节，SHA-256 `246CFD35A066D90BAE2116E293FAD4A320D9540BD45E668C991A450F434EEDC9`（磁盘复核一致）。 |
+| Windows 游戏运行 | 待验证 | 本机有可运行 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测：图标方块渲染、使用生成、行走/群居/逃跑 AI、碰撞、死亡与存读档均未运行。 |
+| Android 7723 | 待验证 | 图标、模型、UV、程序化步态、碰撞、生成与退出重进恢复均需真机新世界验证，不得因编译或离线导入校验通过标记为兼容。 |
+| 多人联机 | 待验证 | 生成已在 `WorkType.Client` 直接返回，仅权威端生成实体；真实同步一致性未实测。 |
+| 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增鸡切片（块/行为/CSV 行/XDB 实体与行为/资产生成脚本/构建校验/版本号），未改其他 mod、未吞异常、未动既有作物/生物行为，符合「按阶段推进、每片独立提交」。 |
