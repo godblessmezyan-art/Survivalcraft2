@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortSunflowerBehavior" Guid="eccfc7fa-ac34-43eb-b3e2-ee03c8bf508c" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="6dd1c1e3-06a3-4f94-a82f-e52c366e8501" Value="SCIEPort.Features.Sunflower.SubsystemSunflowerBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortSunflowerBehavior" Guid="37706394-3583-464e-b440-988fa7dd456f" InheritanceParent="eccfc7fa-ac34-43eb-b3e2-ee03c8bf508c" />
+  </ProjectTemplate>
+</DatabaseObjects>

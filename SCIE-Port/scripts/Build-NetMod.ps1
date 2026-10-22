@@ -67,6 +67,9 @@ if ($LASTEXITCODE -ne 0) { throw "Bamboo rule tests failed: $LASTEXITCODE" }
 $flaxTests = Join-Path $projectRoot 'tests\SCIEPort.Flax.Tests\SCIEPort.Flax.Tests.csproj'
 & $dotnetPath run --project $flaxTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Flax crop rule tests failed: $LASTEXITCODE" }
+$sunflowerTests = Join-Path $projectRoot 'tests\SCIEPort.Sunflower.Tests\SCIEPort.Sunflower.Tests.csproj'
+& $dotnetPath run --project $sunflowerTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Sunflower crop rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -140,6 +143,7 @@ try {
         'Assets/Blocks/Crops.csv',
         'Assets/Blocks/Bamboo.csv',
         'Assets/Blocks/Flax.csv',
+        'Assets/Blocks/Sunflower.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -149,6 +153,7 @@ try {
         'Assets/Database/Crops.xdb',
         'Assets/Database/Bamboo.xdb',
         'Assets/Database/Flax.xdb',
+        'Assets/Database/Sunflower.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -176,7 +181,8 @@ try {
         'Assets/Textures/Rabbit.png',
         'Assets/Textures/Corn.png',
         'Assets/Textures/Bamboo.png',
-        'Assets/Textures/Flax.png'
+        'Assets/Textures/Flax.png',
+        'Assets/Textures/Sunflower.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -524,6 +530,35 @@ try {
         $flaxFiberRow[0].DefaultTextureSlot -ne '8') {
         throw 'FlaxFiberBlock must be a placeable Crops item drawn on atlas slot 8.'
     }
+    [xml]$sunflowerDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Sunflower.xdb')
+    $sunflowerBehavior = $sunflowerDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortSunflowerBehavior']")
+    if ($null -eq $sunflowerBehavior -or $sunflowerBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
+        throw 'SCIEPortSunflowerBehavior must inherit the native pollable block behavior base.'
+    }
+    $sunflowerBehaviorClass = $sunflowerBehavior.SelectSingleNode("./Parameter[@Name='Class']")
+    if ($null -eq $sunflowerBehaviorClass -or $sunflowerBehaviorClass.Value -ne 'SCIEPort.Features.Sunflower.SubsystemSunflowerBlockBehavior') {
+        throw 'SCIEPortSunflowerBehavior must bind the sunflower pollable subsystem class.'
+    }
+    $sunflowerBehaviorMember = $sunflowerDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortSunflowerBehavior']")
+    if ($null -eq $sunflowerBehaviorMember -or $sunflowerBehaviorMember.InheritanceParent -ne $sunflowerBehavior.Guid) {
+        throw 'Sunflower growth behavior is missing or not attached to Project.'
+    }
+    $sunflowerRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Sunflower.csv'))
+    $sunflowerPlantRow = @($sunflowerRows | Where-Object { $_.'Class Name' -eq 'SunflowerPlantBlock' })
+    $sunflowerSeedRow = @($sunflowerRows | Where-Object { $_.'Class Name' -eq 'SunflowerSeedBlock' })
+    if ($sunflowerPlantRow.Count -ne 1 -or $sunflowerSeedRow.Count -ne 1) {
+        throw 'Sunflower.csv must contain exactly one row for SunflowerPlantBlock and SunflowerSeedBlock.'
+    }
+    if ($sunflowerPlantRow[0].DefaultCategory -ne 'Crops' -or $sunflowerPlantRow[0].IsPlaceable -ne 'TRUE' -or
+        $sunflowerPlantRow[0].DefaultTextureSlot -ne '0') {
+        throw 'SunflowerPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
+    }
+    $sunflowerSeedNutrition = 0.0
+    if ($sunflowerSeedRow[0].DefaultCategory -ne 'Food' -or $sunflowerSeedRow[0].IsPlaceable -ne 'TRUE' -or
+        $sunflowerSeedRow[0].DefaultTextureSlot -ne '8' -or
+        -not [double]::TryParse($sunflowerSeedRow[0].DefaultNutritionalValue, [ref] $sunflowerSeedNutrition) -or $sunflowerSeedNutrition -le 0.0) {
+        throw 'SunflowerSeedBlock must be a placeable Food item drawn on atlas slot 8 with a positive nutritional value.'
+    }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -862,6 +897,34 @@ try {
         if ($flaxSpareAny) { throw 'Flax.png slot 12 must be transparent; only flax tiles 0..8 belong to this atlas.' }
     }
     finally { $flaxBitmap.Dispose() }
+
+    Add-Type -AssemblyName System.Drawing
+    $sunflowerBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Sunflower.png'))
+    try {
+        if ($sunflowerBitmap.Width -ne 512 -or $sunflowerBitmap.Height -ne 512) { throw 'Sunflower.png must be the clean-room 512x512 sunflower atlas.' }
+        if ($sunflowerBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Sunflower.png must be 32-bit RGBA (Format32bppArgb).' }
+        for ($slot = 0; $slot -le 8; $slot++) {
+            $originX = ($slot % 16) * 32
+            $originY = [int]([Math]::Floor($slot / 16)) * 32
+            $opaque = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($sunflowerBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
+                }
+            }
+            if ($opaque -eq 0) { throw "Sunflower.png texture slot $slot is empty; the atlas must fill plant stages 0..7 and the seed pile in slot 8." }
+        }
+        $sunflowerSpareX = (12 % 16) * 32
+        $sunflowerSpareY = [int]([Math]::Floor(12 / 16)) * 32
+        $sunflowerSpareAny = $false
+        for ($x = 0; $x -lt 32; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($sunflowerBitmap.GetPixel($sunflowerSpareX + $x, $sunflowerSpareY + $y).A -gt 0) { $sunflowerSpareAny = $true }
+            }
+        }
+        if ($sunflowerSpareAny) { throw 'Sunflower.png slot 12 must be transparent; only sunflower tiles 0..8 belong to this atlas.' }
+    }
+    finally { $sunflowerBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }

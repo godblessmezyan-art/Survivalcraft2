@@ -558,3 +558,41 @@ THIRD-PARTY-NOTICES.md
 至此自然生态与资源扩展的「基础功能 + 自然生成 + 生态互动（狐→兔）」均落地并单独提交，
 处于「静态/数据 ABI 与离线测试已确认、实机行为待验证」状态，等待统一的 Windows +
 Android 7723 联网/真机验证阶段。
+
+
+## 0.19.0 批次2首片：向日葵作物（2026-10-22）
+
+- 自动回归：已确认。离线规则测试全绿——新增 `SCIEPort.Sunflower.Tests` **33** 条
+  （DATA 位往返/钳制保外位、成熟阈值、生长间隔含“冷减速>暖加速”温季签名、光照阈值
+  10>亚麻 8 且 ≤15、顶面土壤放置、收获 4 食籽+1 可重种籽、权限闸）。既有套件随全链
+  构建一并通过：Kelly 11、ATV 32、越野车 20、快艇 16、Tank 规则、Crops 26、Bamboo 25、
+  Flax 29、Ecology 47。向日葵测工程已接入 `Build-NetMod.ps1`。
+- 复用与取证（先取证再动手）：已确认。镜像亚麻切片（Rules/Blocks/Subsystem/CSV/XDB/
+  atlas/Build 校验）；枚举 `Index = 9xx` 确认作物带止于 935、936/937 空闲；从真实
+  `Database.xml` 检索确认原版无 sunflower/chicken/bee/apple（批次2皆 clean-room）；
+  以 `KellyFruitBlock`（实为 `Block` 子类、可食性纯由 CSV `DefaultNutritionalValue` 驱动、
+  已证 Android 可跑）为对照给种子设 Food/nutr 0.12/rotPeriod 160，不臆造食性 ABI。
+- XDB/CSV：已确认。Sunflower.xdb 行为模板 `SCIEPortSunflowerBehavior` 继承原生 pollable 基
+  `fefb9590-…`、`Class` 绑 `SCIEPort.Features.Sunflower.SubsystemSunflowerBlockBehavior`、
+  Project 成员挂该行为 Guid；三个新 Guid 由 `randomUUID()` 生成全局唯一，仅复用允许重复的
+  容器根。Sunflower.csv 由 Node 按列名从亚麻模板派生（禁手抄 CJK），UTF-8 无 BOM、CRLF；
+  植株 Crops/可放/slot0、瓜子 Food/可放/slot8/nutr>0。DATABASE VALIDATION PASSED。
+- 自绘图集：结构已确认。`New-SunflowerAssets.ps1` 产 `Sunflower.png` 512×512
+  Format32bppArgb，slot 0..7 生长阶段 + slot 8 瓜子，其余透明；打包逐格断言 0..8 非空、
+  slot 12 全透明（自检 slot 计数 0..8 递增 28→118，slot12=0）。真机渲染/开花/图标 待验证。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0
+  （`TreatWarningsAsErrors` → 0 warning / 0 error），54 条目（新增
+  `Assets/Blocks/Sunflower.csv`、`Assets/Database/Sunflower.xdb`、`Assets/Textures/Sunflower.png`），
+  产物 417,793 字节，SHA-256
+  `C08B52F2ECB9E8E31C6A5C1E1EA7A9B79ABDD6E4BAE69B4A36606763EB58D8C6`（磁盘复核一致）。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.19.0.0`，
+  `ProductVersion` = `0.19.0+5b793cf...`（捕食 commit 之后、本阶段提交前工作树）；二进制内
+  确含五个向日葵符号（`GetTypes` 因 net472 DLL 引用 Engine/Game 无法在本机 PS 加载而抛
+  ReflectionTypeLoadException，属探测方式局限，非构建问题；改用符号串扫描确认已编译进 DLL）。
+- 已知缺口：批次2其余三项（鸡=新实体、苹果=树+果实新结构、蜂=飞行/群体风险最高）尚未开始；
+  向日葵种子目前仅提供营养值，尚未接入“喂鸡/蜂”等跨切片互动（留待对应切片落地）。
+- Windows 游戏运行：待验证。本机未启动游戏；种植、逐阶段生长、成熟收获、吃籽回饥饿、
+  存读档、卸载均未运行。
+- Android 7723：待验证。两方块渲染、贴图、种植交互、生长轮询、收获与退出重进恢复均需真机
+  新世界验证，不得因编译或离线测试通过标记为兼容。
+- 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回，仅权威端推进，真实同步一致性未实测。

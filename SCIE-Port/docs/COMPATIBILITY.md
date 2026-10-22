@@ -229,3 +229,22 @@ THIRD-PARTY-NOTICES.md
 | Windows 游戏运行 | 待验证 | 本机存在可运行的 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测捕食行为。 |
 | Android 7723 | 待验证 | 低端机上捕食 AI 的开销、可见性与稳定性需真机新世界验证；不得因编译或离线测试通过标记为兼容。 |
 | 无越界改动 | 已确认 | 本阶段不新增地形/实体写入路径、不重写寻路，仅一处只读纯谓词 + 一处数据模板覆盖，符合“先独立基础功能、委托原生 Wolf AI”的方向。 |
+
+
+## 0.19.0 批次2首片：向日葵作物（复用已验证作物管线，静态/离线阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 复用已验证作物切片 | 已确认（代码/数据） | 完全镜像本工作区已充分验证的亚麻（Flax）垂直切片结构：`SunflowerRules`（纯逻辑，无游戏依赖）+ `SunflowerPlantBlock : CrossBlock` / `SunflowerSeedBlock : FlatBlock`（自绘 atlas）+ `SubsystemSunflowerBlockBehavior : SubsystemPollableBlockBehavior`（生长轮询）+ CSV 两行 + XDB 行为模板绑 `Class`。不引入任何新的 ABI 面，只复用既有基类。 |
+| ID 取证 | 已确认（枚举） | 编译单元内 `public const int Index = 9xx` 全量枚举：作物带 929..935（玉米 929-931、竹 932-933、亚麻 934-935）连续，936..994 空闲，995..999 为载具保留段。向日葵取 936（植株）/937（瓜子产物），无冲突。 |
+| clean-room 取证 | 已确认（资产实测） | 反射前已从 `Content.scpak` 解出的真实原版 `Assets/Database.xml`（463,610 字节）中检索：无 sunflower、无 chicken/hen/rooster、无 bee/hive、无 apple 任何痕迹，确认批次2四项皆为 clean-room 新增，非移植。 |
+| 食物语义取证 | 已确认（既有可食物对照） | 不臆造“可食”：`KellyFruitBlock` 实测仅为 `Block` 抽象子类，可食性纯由 CSV `DefaultNutritionalValue>0` 驱动（Kelly 野果/浆果 nutr 0.08..0.15、rotPeriod 120..170 为本工作区已证 Android 可跑数据）。据此向日葵种子按 cat=Food / nutr=0.12 / rotPeriod=160 / 无病害建模，与渲染路径（FlatBlock + `GetFaceTextureSlot` 覆盖）正交。 |
+| XDB GUID 唯一性 | 已确认 | 新行为模板 Guid `eccfc7fa-…`、Class 参数 `6dd1c1e3-…`、Project 成员 `37706394-…` 均 `node randomUUID()` 生成、全局唯一；仅复用允许跨 xdb 重复的容器根（BlockBehaviors `00c97f0f-…`、Project `85023bf8-…`）。`Test-Database.ps1` 通过（DATABASE VALIDATION PASSED）。 |
+| 纯决策（离线可测） | 已确认（净8 无游戏依赖） | `tests/SCIEPort.Sunflower.Tests` 33 断言：DATA 位 0..7 往返、越界钳制且保外位、成熟阈值、生长间隔（底 8、水/氮各 −2、冷 ≤4 +8、暖 ≥12 −2，并断言“冷减速 > 暖加速”这一温季作物签名、间隔下限 1）、光照阈值（向日葵全日照 `MinLightToGrow=10` 严格高于耐阴亚麻 8 且 ≤15）、放置需顶面土壤、收获 4 食籽 + 1 可重种籽、权限闸 `!isClient`。 |
+| 自绘图集 | 结构已确认 | `New-SunflowerAssets.ps1` 生成 `Textures/Sunflower.png`：512×512、Format32bppArgb、16×16 格 32px；slot 0..7 生长阶段（绿芽→高茎→顶端黄花盘棕心）、slot 8 瓜子堆，其余全透明（cross-face alpha test）。打包断言：0..8 每格非空、slot 12 全透明。真机采样/开花渲染/图标 待验证。 |
+| 打包校验 | 已确认 | `Build-NetMod.ps1` 新增：跑 Sunflower 测试；requiredEntry 加 `Sunflower.csv/xdb/png`；XDB 断言 `SCIEPortSunflowerBehavior` 继承原生 pollable 基 `fefb9590-…` 且 `Class` 绑定子系统类、Project 成员挂该行为 Guid；CSV 断言恰一行植株（Crops/可放/slot0）+ 一行瓜子（Food/可放/slot8/nutr>0）；atlas 逐格像素校验。 |
+| 编译产物 | 已确认 | `Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0（`TreatWarningsAsErrors` → 0 warning / 0 error），54 条目，DLL `[AssemblyName]`/`FileVersion`=`0.19.0.0`、`ProductVersion`=`0.19.0+5b793cf`。二进制内确含 `SunflowerPlantBlock/SunflowerSeedBlock/SubsystemSunflowerBlockBehavior/SCIEPort.Features.Sunflower/SunflowerRules`。产物 `.netmod` 417,793 字节，SHA-256 `C08B52F2ECB9E8E31C6A5C1E1EA7A9B79ABDD6E4BAE69B4A36606763EB58D8C6`（磁盘复核一致）。 |
+| Windows 游戏运行 | 待验证 | 本机有可运行 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测：种植、逐阶段生长、成熟收获（可食籽 + 可重种籽）、吃掉种子回饥饿、存读档、卸载均未运行。 |
+| Android 7723 | 待验证 | 两方块渲染、贴图、种植交互、生长轮询、收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。 |
+| 多人联机 | 待验证 | 轮询已在 `WorkType.Client` 直接返回，仅权威端推进；真实同步一致性未实测。 |
+| 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增向日葵切片，未改其他 mod、未吞异常、未动既有作物/生物行为，符合“按阶段推进、每片独立提交”。 |
