@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortBambooBehavior" Guid="e6a640d9-2095-4896-b13f-745a7d4ae913" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="1ac0e369-552a-4ea9-bf72-c4299b975082" Value="SCIEPort.Features.Bamboo.SubsystemBambooBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortBambooBehavior" Guid="570def9c-bbaa-4aac-acae-4afc9059a4db" InheritanceParent="e6a640d9-2095-4896-b13f-745a7d4ae913" />
+  </ProjectTemplate>
+</DatabaseObjects>

@@ -416,3 +416,29 @@ THIRD-PARTY-NOTICES.md
   收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。
 - 多人联机：待验证。轮询行为已在 `WorkType.Client` 直接返回，仅权威端推进，
   但真实主机/客户端同步与生长一致性未实测。
+
+## 0.15.0 竹子作物垂直切片（2026-10-21）
+
+- 自动回归：已确认。离线规则测试全绿——Kelly 11、ATV 32、越野车 20、快艇 16、
+  Tank 规则、Ecology 25、Crops 26，新增 **Bamboo 25**（基段位往返/幂等、掩码外
+  位 0x40 与基位共存、上段判定、`CanExtend` 上下界、间隔干暖 3/水利 2/低温 6/
+  水寒 5、放置需顶面有效基座、砍伐每段掉 1、权限闸 `!isClient`）。
+  Bamboo.Tests 已接入 `Build-NetMod.ps1`。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 0
+  compile warning/error（`TreatWarningsAsErrors`），DATABASE VALIDATION PASSED，
+  45 条目（新增 `Assets/Blocks/Bamboo.csv`、`Assets/Database/Bamboo.xdb`、
+  `Assets/Textures/Bamboo.png`），产物 SHA-256
+  `CDABF44485DEA3BEC017BA80FE490C3820E60C7FA618BF45B67CFCD239BA40EA`。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.15.0.0`，
+  `ProductVersion` = `0.15.0+758712cc...`（玉米 commit c325d21 之后）。
+- 实心立方体 API 取证：已确认。反射 x25.01.17 实测
+  `GenerateCubeVertices(...,TerrainGeometrySubset[])` + `DrawCubeBlock(...,Texture2D)`
+  重载存在，`SoilBlock/SandBlock/DirtBlock` 均有公开静态 `Index`。
+- 自绘图集：结构已确认（打包断言 512×512 RGBA、slot 0..2 有像素、slot 2 全 1024
+  不透明、slot 5 全透明）；真机采样/alpha/图标 待验证。
+- Windows 游戏运行：待验证。本机未启动游戏；种植、逐段堆叠、砍伐塌落、建材放置、
+  存读档均未运行。
+- Android 7723：待验证。两方块渲染、生长、塌落、建材碰撞与退出重进均需真机新世界
+  验证，不得因编译或离线测试通过标记为兼容。
+- 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回，仅权威端堆叠，真实同步
+  一致性未实测。

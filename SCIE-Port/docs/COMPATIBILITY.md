@@ -170,3 +170,18 @@ THIRD-PARTY-NOTICES.md
 | 自绘图集 Corn.png | 待验证 | 512×512 `Format32bppArgb`，按已确认的方块面网格公式排布 slot 0..9 于首行（`x=slot*32,y=0`），slot 0..7 茎秆逐阶段、8 种子、9 玉米棒，10/11 留空。`Build-NetMod.ps1` 断言尺寸/像素格式且 slot 0..9 存在不透明像素、10 与 15 全透明；独立 PNG 解码确认阶段 0..7 不透明像素单调增长（4→10→32→38→60→66→96→123）、种子 78、棒 246。但据网格公式自绘的图集能否被加载器在 Android 7723 正确采样（alpha 测试、放大过滤、创造栏图标、跨阶段贴图切换）须真机新世界验证。 |
 | Windows 游戏运行 | 待验证 | 未启动游戏；种植、逐阶段生长、成熟收获、掉落到背包与存读档未在 Windows 运行。 |
 | Android 7723 | 待验证 | 方块渲染、贴图、种植交互、生长轮询、收获掉落、退出重进均需真机新世界验证，不提前宣称已修复。 |
+
+## 0.15.0 竹子作物基础验证（纵向逐段生长 + 建筑方块，静态/离线阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 竹子两块注册（Plant 932 / Block 933） | 已确认（静态 ABI） | `BambooPlantBlock:CrossBlock`（Index 932，逐段堆叠的植株）与 `BambooBlock:Block`（Index 933，实心建筑立方体），各带 `public const int Index`。`Test-Environment.ps1` 保留区间扩至 903–933，反射扫描 x25.01.17 全部原生 `Block.Index` 无占用冲突。`SoilBlock/SandBlock/DirtBlock` 均有公开静态 `Index`（反射实测）作基座判定。 |
+| 实心立方体自绘图集渲染 | 已确认（API 取证）+ 待验证（真机） | 目标程序集实测：`BlockGeometryGenerator.GenerateCubeVertices(block,value,x,y,z,Color,TerrainGeometrySubset[])` 走方块自身 `GetFaceTextureSlot` 并允许按面传入自建图集的 `SubsetOpaque`；图标用 `BlocksManager.DrawCubeBlock(...,Texture2D)` 重载传入 `Textures/Bamboo`。据此 `BambooBlock` 六面采样自绘图集 slot 2。能否在 Android 7723 正确实心渲染待真机验证。 |
+| 逐段纵向生长机制 | 已确认（代码/离线规则） | DATA bit0（`BaseFlagMask=1`）标记“栽下的基段”，仅基段驱动向上堆叠（一段一生长者，防失控）。`OnPoll`：基段脚下需土壤/沙/泥土，向上数连续竹段得高度，`CanExtend(height<8)` 且顶上一格为空气、其上光照≥8，按 `GetGrowthInterval`（基 3、水利 -1、低温≤4 +3、下限 1）用 `pollPass % interval` 节流后在顶端 `ChangeCell` 加一段（bit0 清）。`OnNeighborBlockChanged`：基段失基座销毁，非基段下方非竹销毁（支持逐段塌落）。 |
+| 生长规则（离线纯逻辑） | 已确认（净8 无游戏依赖） | `Features/Bamboo/BambooRules.cs`：`MaxHeight=8`、基段位往返/幂等、掩码外位保留（测 0x40 与基位共存）、上段判定、`CanExtend` 上下界（0 不可、cap 停、超 cap 停）、间隔（干暖 3/水利 2/低温 6/水寒 5）、放置需顶面有效基座、砍伐每段掉 1、权限闸 `!isClient`。配套 `tests/SCIEPort.Bamboo.Tests` 25 条断言全部通过，不引用游戏程序集。 |
+| Bamboo.csv 元数据 | 已确认（打包校验） | 表头 + 2 行（植株/建材），UTF-8 CRLF、每行 79 列（由 node 读 Crops.csv 表头按列名改写生成，非手抄）。`Build-NetMod.ps1` 断言：`BambooPlantBlock` 属 Crops 类可放置且 `DefaultTextureSlot=0`；`BambooBlock` `IsPlaceable=TRUE`、`IsCollidable=TRUE`、`IsTransparent=FALSE`、`DefaultTextureSlot=2`。 |
+| Bamboo.xdb 轮询行为挂载 | 已确认（合并/结构） | 根 `DatabaseObjects`；`Folder BlockBehaviors` 用真实原版 GUID `00c97f0f-...`；`SubsystemTemplate SCIEPortBambooBehavior` 继承固定父 `fefb9590-...`（`SubsystemBlockBehavior` 基），`Parameter Class=SCIEPort.Features.Bamboo.SubsystemBambooBlockBehavior`；`ProjectTemplate`（真实 GUID `85023bf8-...`）挂 `MemberSubsystemTemplate`。轮询走世界子系统 `HandledBlocks={932}`。叶子 GUID 由 `randomUUID()` 生成，`Build-NetMod.ps1` 校验继承父与成员 GUID 一致。 |
+| 自绘图集 Bamboo.png | 待验证 | 512×512 `Format32bppArgb`，slot 0 基段十字面、slot 1 上段十字面、slot 2 建材立方面。`Build-NetMod.ps1` 断言尺寸/格式、slot 0..2 有不透明像素、slot 2 全 1024 像素不透明（实心面）、slot 5 全透明。实际加载/alpha 测试/放大过滤/创造栏图标待真机验证。 |
+| Windows 游戏运行 | 待验证 | 本机未启动游戏；种植、逐段堆叠、砍伐塌落、建材放置与存读档均未运行。 |
+| Android 7723 | 待验证 | 两方块渲染、贴图、生长动画、塌落、建材实心碰撞与退出重进恢复均需真机新世界验证。 |
+| 多人联机 | 待验证 | `OnPoll`/`OnNeighborBlockChanged` 已在 `WorkType.Client` 直接返回，仅权威端堆叠，但真实主机/客户端同步与一致性未实测。 |

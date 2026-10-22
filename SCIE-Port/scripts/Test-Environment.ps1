@@ -93,7 +93,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..931) + (995..1000))) {
+foreach ($reservedId in @((903..933) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }

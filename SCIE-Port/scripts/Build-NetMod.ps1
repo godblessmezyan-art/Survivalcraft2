@@ -61,6 +61,9 @@ if ($LASTEXITCODE -ne 0) { throw "Ecology rule tests failed: $LASTEXITCODE" }
 $cropsTests = Join-Path $projectRoot 'tests\SCIEPort.Crops.Tests\SCIEPort.Crops.Tests.csproj'
 & $dotnetPath run --project $cropsTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Corn crop rule tests failed: $LASTEXITCODE" }
+$bambooTests = Join-Path $projectRoot 'tests\SCIEPort.Bamboo.Tests\SCIEPort.Bamboo.Tests.csproj'
+& $dotnetPath run --project $bambooTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Bamboo rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -132,6 +135,7 @@ try {
         'Assets/Blocks/Tanks.csv',
         'Assets/Blocks/Creatures.csv',
         'Assets/Blocks/Crops.csv',
+        'Assets/Blocks/Bamboo.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -139,6 +143,7 @@ try {
         'Assets/Database/Tanks.xdb',
         'Assets/Database/Creatures.xdb',
         'Assets/Database/Crops.xdb',
+        'Assets/Database/Bamboo.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -164,7 +169,8 @@ try {
         'Assets/Textures/T34Tank.png',
         'Assets/Textures/Fox.png',
         'Assets/Textures/Rabbit.png',
-        'Assets/Textures/Corn.png'
+        'Assets/Textures/Corn.png',
+        'Assets/Textures/Bamboo.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -444,6 +450,33 @@ try {
     if ($cornStalkRow[0].DefaultTextureSlot -ne '0' -or $cornSeedRow[0].DefaultTextureSlot -ne '8' -or
         $cornEarRow[0].DefaultTextureSlot -ne '9') {
         throw 'Corn atlas slots must remain stalk 0..7, seed 8, ear 9 as drawn in Corn.png.'
+    }
+    [xml]$bambooDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Bamboo.xdb')
+    $bambooBehavior = $bambooDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortBambooBehavior']")
+    if ($null -eq $bambooBehavior -or $bambooBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
+        throw 'SCIEPortBambooBehavior must inherit the native pollable block behavior base.'
+    }
+    $bambooBehaviorClass = $bambooBehavior.SelectSingleNode("./Parameter[@Name='Class']")
+    if ($null -eq $bambooBehaviorClass -or $bambooBehaviorClass.Value -ne 'SCIEPort.Features.Bamboo.SubsystemBambooBlockBehavior') {
+        throw 'SCIEPortBambooBehavior must bind the bamboo pollable subsystem class.'
+    }
+    $bambooBehaviorMember = $bambooDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortBambooBehavior']")
+    if ($null -eq $bambooBehaviorMember -or $bambooBehaviorMember.InheritanceParent -ne $bambooBehavior.Guid) {
+        throw 'Bamboo growth behavior is missing or not attached to Project.'
+    }
+    $bambooRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Bamboo.csv'))
+    $bambooPlantRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooPlantBlock' })
+    $bambooBlockRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooBlock' })
+    if ($bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1) {
+        throw 'Bamboo.csv must contain exactly one row for BambooPlantBlock and BambooBlock.'
+    }
+    if ($bambooPlantRow[0].DefaultCategory -ne 'Crops' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
+        $bambooPlantRow[0].DefaultTextureSlot -ne '0') {
+        throw 'BambooPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
+    }
+    if ($bambooBlockRow[0].IsPlaceable -ne 'TRUE' -or $bambooBlockRow[0].IsCollidable -ne 'TRUE' -or
+        $bambooBlockRow[0].IsTransparent -ne 'FALSE' -or $bambooBlockRow[0].DefaultTextureSlot -ne '2') {
+        throw 'BambooBlock must be a solid, collidable, opaque building cube drawn on atlas slot 2.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
@@ -726,6 +759,35 @@ try {
         }
     }
     finally { $cornBitmap.Dispose() }
+
+    Add-Type -AssemblyName System.Drawing
+    $bambooBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Bamboo.png'))
+    try {
+        if ($bambooBitmap.Width -ne 512 -or $bambooBitmap.Height -ne 512) { throw 'Bamboo.png must be the clean-room 512x512 bamboo atlas.' }
+        if ($bambooBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Bamboo.png must be 32-bit RGBA (Format32bppArgb).' }
+        for ($slot = 0; $slot -le 2; $slot++) {
+            $originX = ($slot % 16) * 32
+            $originY = [int]([Math]::Floor($slot / 16)) * 32
+            $opaque = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($bambooBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
+                }
+            }
+            if ($opaque -eq 0) { throw "Bamboo.png texture slot $slot is empty; the atlas must draw the base plant, upper culm and building cube in slots 0..2." }
+            if ($slot -eq 2 -and $opaque -ne 1024) { throw 'Bamboo.png slot 2 (the solid building cube face) must be fully opaque.' }
+        }
+        $spareOriginX = (5 % 16) * 32
+        $spareOriginY = [int]([Math]::Floor(5 / 16)) * 32
+        $spareAny = $false
+        for ($x = 0; $x -lt 32; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($bambooBitmap.GetPixel($spareOriginX + $x, $spareOriginY + $y).A -gt 0) { $spareAny = $true }
+            }
+        }
+        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..2 belong to this atlas.' }
+    }
+    finally { $bambooBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
