@@ -391,3 +391,28 @@ THIRD-PARTY-NOTICES.md
 - 自然生成：不支持。第一阶段没有添加任何自然生成注册或地形 Hook。
 - 多人联机：不支持。普通 Client 不会在本地创建狐狸，但尚未实现请求、服务端
   确认、实体复制和断线状态专项协议。
+
+## 0.14.0 玉米作物垂直切片（2026-10-21）
+
+- 自动回归：已确认。离线规则测试全绿——Kelly 11、ATV 32、越野车 20、快艇 16、
+  Tank 规则、Ecology 25，新增 **Crops 26**（尺寸掩码往返、掩码外位保留 0x40、
+  成熟阈、生长间隔干 8/水利 6/水肥 4/低温 12/高温 3、放置需顶面土壤、收获 1 棒
+  + 2 种、权限闸 `!isClient`）。Crops.Tests 与 Ecology.Tests 均已接入
+  `Build-NetMod.ps1`（修正兔子阶段遗留的 Ecology.Tests 未接线空档）。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 0
+  compile warning/error（`TreatWarningsAsErrors` 开启），DATABASE VALIDATION
+  PASSED，44 条目（新增 `Assets/Blocks/Crops.csv`、`Assets/Database/Crops.xdb`、
+  `Assets/Textures/Corn.png`），产物 406,085 字节，SHA-256
+  `77376DC4506B0891F0F0B524C2DD1C2FD7D2F1FAC3B146F8932EBA903C12DAD2`。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.14.0.0`，
+  `ProductVersion` = `0.14.0+c325d213e5bd133b52c0f54db3d5466e3103ea9d`。
+- 图集取证：已确认（原生资产，非自证）+ 待验证（自绘渲染）。方块面网格 slot→
+  像素公式（每行 16 格 / 32×32，容量 256）已从游戏自带 `Blocks.png`（512×512
+  RGBA）对 5 个原生方块语义颜色取样确认；自绘 `Corn.png` 结构断言（尺寸/格式/
+  各 slot 不透明像素/留空 slot）通过，但实际加载采样待真机验证。
+- Windows 游戏运行：待验证。遵照要求本机未启动游戏；种植、逐阶段生长轮询、
+  成熟收获掉落、存读档均未运行。
+- Android 7723：待验证。玉米三块渲染、贴图、alpha 测试、创造栏图标、生长动画、
+  收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。
+- 多人联机：待验证。轮询行为已在 `WorkType.Client` 直接返回，仅权威端推进，
+  但真实主机/客户端同步与生长一致性未实测。

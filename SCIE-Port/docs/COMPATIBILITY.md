@@ -157,3 +157,16 @@ THIRD-PARTY-NOTICES.md
 | Android 7723 | 待验证 | 图标、模型、UV、动画、碰撞、生成与退出重进均需真机新世界验证。 |
 | 离线逻辑测试 | 已确认（净8 无游戏依赖） | `Features/Ecology/EcologyRules.cs`（种群上限、每块生成预算、确定性 chunk 种子、生物群系适宜度、权限闸、捕食资格、存读档计数钳位）配套 `tests/SCIEPort.Ecology.Tests` 25 条断言通过，不引用游戏程序集。 |
 兼容性结论发生变化时，必须同时更新 `TEST-RESULTS.md` 中的测试证据。
+
+## 0.14.0 玉米作物基础验证（自绘图集 + 多阶段生长，静态/离线阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 玉米三块注册（Stalk 929 / Seed 930 / Ear 931） | 已确认（静态 ABI） | 三个公开 `Block` 子类各带 `public const int Index`（`CornStalkBlock:CrossBlock`、`CornSeedBlock:FlatBlock`、`CornEarBlock:FlatBlock`），遵循 SCNET“类名即注册、CSV `Class Name` 列关联元数据”约定。`Test-Environment.ps1` 保留区间扩至 903–931，反射扫描 x25.01.17 全部原生 `Block.Index` 无占用冲突。 |
+| Crops.csv 元数据 | 已确认（打包校验） | 表头 + 3 行，UTF-8 CRLF、每行 79 列（由脚本读取原生 Kelly CSV 模板生成，非手抄）。`Stalk` 复用 SoybeanBlock 模板、`Seed/Ear` 复用 SoybeanFruitBlock 模板；`Class Name`/`DefaultDisplayName`（玉米/玉米种子/玉米棒）/`DefaultCategory=Crops`/`DisplayOrder=330/331/332`/`DefaultTextureSlot=0/8/9`/`IsPlaceable=TRUE` 均由 `Build-NetMod.ps1` 逐列断言。 |
+| Crops.xdb 轮询行为挂载 | 已确认（合并/结构） | 根 `DatabaseObjects`；`Folder BlockBehaviors` 用真实原版 GUID `00c97f0f-731e-481c-9909-eae9cc5ee940`；`SubsystemTemplate SCIEPortCornBehavior` 继承固定父 `fefb9590-4972-4893-b02a-76063611b745`（`SubsystemBlockBehavior` 基），`Parameter Class=SCIEPort.Features.Crops.SubsystemCornBlockBehavior`；`ProjectTemplate`（真实 GUID `85023bf8-1c90-4dd1-9442-e6c13691d078`）挂 `MemberSubsystemTemplate`。轮询生成走世界子系统 `HandledBlocks={929}`，非 CSV `Behaviors` 列。所有叶子 GUID 由 `randomUUID()` 生成，`Build-NetMod.ps1` 校验继承父与成员 GUID 一致。 |
+| 生长规则（离线纯逻辑） | 已确认（净8 无游戏依赖） | `Features/Crops/CropRules.cs`：尺寸=data&7（0..7 成熟阈 7）、`SetSize` 保留掩码外位（测 0x40）、最低光照 9、生长间隔 8 基值（水利 -2、氮肥 -2、低温≤4 +8、高温≥12 -1）、放置需顶面土壤、收获 1 棒 + 2 种、权限闸 `!isClient`。配套 `tests/SCIEPort.Crops.Tests` 26 条断言全部通过，不引用游戏程序集。 |
+| 轮询行为接线 | 已确认（代码） | `SubsystemCornBlockBehavior.OnPoll` 在 `CommonLib.WorkType==WorkType.Client` 直接返回（联机仅权威端推进），校验 skylight≥9、size<7、下方为土壤，读 `SoilBlock.GetHydration`（反射实测返回 `Boolean`，直取）、`GetNitrogen`、季节温度与 `SubsystemWeather.GetTemperatureAdjustmentAtHeight`，`ChangeCell` 推进 size+1，成熟时消耗土壤氮 1；`OnNeighborBlockChanged` 土壤被移除则摧毁作物。真实主机/客户端推进与联机同步待实测。 |
+| 自绘图集 Corn.png | 待验证 | 512×512 `Format32bppArgb`，按已确认的方块面网格公式排布 slot 0..9 于首行（`x=slot*32,y=0`），slot 0..7 茎秆逐阶段、8 种子、9 玉米棒，10/11 留空。`Build-NetMod.ps1` 断言尺寸/像素格式且 slot 0..9 存在不透明像素、10 与 15 全透明；独立 PNG 解码确认阶段 0..7 不透明像素单调增长（4→10→32→38→60→66→96→123）、种子 78、棒 246。但据网格公式自绘的图集能否被加载器在 Android 7723 正确采样（alpha 测试、放大过滤、创造栏图标、跨阶段贴图切换）须真机新世界验证。 |
+| Windows 游戏运行 | 待验证 | 未启动游戏；种植、逐阶段生长、成熟收获、掉落到背包与存读档未在 Windows 运行。 |
+| Android 7723 | 待验证 | 方块渲染、贴图、种植交互、生长轮询、收获掉落、退出重进均需真机新世界验证，不提前宣称已修复。 |

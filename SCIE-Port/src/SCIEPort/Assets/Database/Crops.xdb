@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortCornBehavior" Guid="a5e82248-37a2-410a-93d8-b95dc3d5382f" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="e45f1c57-3582-402d-b650-70d9192251ad" Value="SCIEPort.Features.Crops.SubsystemCornBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortCornBehavior" Guid="e92cef49-ba1a-4c66-a549-ee2b2e96f2ca" InheritanceParent="a5e82248-37a2-410a-93d8-b95dc3d5382f" />
+  </ProjectTemplate>
+</DatabaseObjects>

@@ -55,6 +55,12 @@ if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
 $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
 & $dotnetPath run --project $tankTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
+$ecologyTests = Join-Path $projectRoot 'tests\SCIEPort.Ecology.Tests\SCIEPort.Ecology.Tests.csproj'
+& $dotnetPath run --project $ecologyTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Ecology rule tests failed: $LASTEXITCODE" }
+$cropsTests = Join-Path $projectRoot 'tests\SCIEPort.Crops.Tests\SCIEPort.Crops.Tests.csproj'
+& $dotnetPath run --project $cropsTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Corn crop rule tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -125,12 +131,14 @@ try {
         'Assets/Blocks/OffroadVehicles.csv',
         'Assets/Blocks/Tanks.csv',
         'Assets/Blocks/Creatures.csv',
+        'Assets/Blocks/Crops.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
         'Assets/Database/OffroadVehicles.xdb',
         'Assets/Database/Tanks.xdb',
         'Assets/Database/Creatures.xdb',
+        'Assets/Database/Crops.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -155,7 +163,8 @@ try {
         'Assets/Textures/KellyExpansion.png',
         'Assets/Textures/T34Tank.png',
         'Assets/Textures/Fox.png',
-        'Assets/Textures/Rabbit.png'
+        'Assets/Textures/Rabbit.png',
+        'Assets/Textures/Corn.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -406,6 +415,35 @@ try {
     if ($rabbitSpawnerRow.Count -ne 1 -or $rabbitSpawnerRow[0].Behaviors -ne 'SCIEPortRabbitSpawnBehavior' -or
         $rabbitSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
         throw 'RabbitSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortRabbitSpawnBehavior.'
+    }
+    [xml]$cropsDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Crops.xdb')
+    $cornBehavior = $cropsDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortCornBehavior']")
+    if ($null -eq $cornBehavior -or $cornBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
+        throw 'SCIEPortCornBehavior must inherit the native pollable block behavior base.'
+    }
+    $cornBehaviorClass = $cornBehavior.SelectSingleNode("./Parameter[@Name='Class']")
+    if ($null -eq $cornBehaviorClass -or $cornBehaviorClass.Value -ne 'SCIEPort.Features.Crops.SubsystemCornBlockBehavior') {
+        throw 'SCIEPortCornBehavior must bind the corn pollable subsystem class.'
+    }
+    $cornBehaviorMember = $cropsDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortCornBehavior']")
+    if ($null -eq $cornBehaviorMember -or $cornBehaviorMember.InheritanceParent -ne $cornBehavior.Guid) {
+        throw 'Corn growth behavior is missing or not attached to Project.'
+    }
+    $cropRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Crops.csv'))
+    $cornStalkRow = @($cropRows | Where-Object { $_.'Class Name' -eq 'CornStalkBlock' })
+    $cornSeedRow = @($cropRows | Where-Object { $_.'Class Name' -eq 'CornSeedBlock' })
+    $cornEarRow = @($cropRows | Where-Object { $_.'Class Name' -eq 'CornEarBlock' })
+    if ($cornStalkRow.Count -ne 1 -or $cornSeedRow.Count -ne 1 -or $cornEarRow.Count -ne 1) {
+        throw 'Crops.csv must contain exactly one row for CornStalkBlock, CornSeedBlock and CornEarBlock.'
+    }
+    foreach ($cropRow in @($cornStalkRow[0], $cornSeedRow[0], $cornEarRow[0])) {
+        if ($cropRow.DefaultCategory -ne 'Crops' -or $cropRow.IsPlaceable -ne 'TRUE') {
+            throw "Crops row $($cropRow.'Class Name') must be a placeable item in the Crops category."
+        }
+    }
+    if ($cornStalkRow[0].DefaultTextureSlot -ne '0' -or $cornSeedRow[0].DefaultTextureSlot -ne '8' -or
+        $cornEarRow[0].DefaultTextureSlot -ne '9') {
+        throw 'Corn atlas slots must remain stalk 0..7, seed 8, ear 9 as drawn in Corn.png.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
@@ -658,6 +696,36 @@ try {
         if ($rabbitColors.Count -ne 4) { throw "Rabbit.png must contain exactly four opaque palette colors; found $($rabbitColors.Count)." }
     }
     finally { $rabbitBitmap.Dispose() }
+
+    Add-Type -AssemblyName System.Drawing
+    $cornBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Corn.png'))
+    try {
+        if ($cornBitmap.Width -ne 512 -or $cornBitmap.Height -ne 512) { throw 'Corn.png must be the clean-room 512x512 crop atlas.' }
+        if ($cornBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Corn.png must be 32-bit RGBA (Format32bppArgb).' }
+        for ($slot = 0; $slot -le 9; $slot++) {
+            $originX = ($slot % 16) * 32
+            $originY = [int]([Math]::Floor($slot / 16)) * 32
+            $opaque = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($cornBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
+                }
+            }
+            if ($opaque -eq 0) { throw "Corn.png texture slot $slot is empty; the crop atlas must fill slots 0..9." }
+        }
+        foreach ($emptySlot in @(10, 15)) {
+            $originX = ($emptySlot % 16) * 32
+            $originY = [int]([Math]::Floor($emptySlot / 16)) * 32
+            $any = $false
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    if ($cornBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $any = $true }
+                }
+            }
+            if ($any) { throw "Corn.png slot $emptySlot must be transparent; only corn tiles 0..9 belong to this atlas." }
+        }
+    }
+    finally { $cornBitmap.Dispose() }
 
     [xml]$offroadModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\OffroadCar.dae')
     if ($offroadModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'OffroadCar.dae must be Y_UP.' }
