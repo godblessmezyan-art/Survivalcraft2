@@ -134,3 +134,26 @@ THIRD-PARTY-NOTICES.md
 | 多人联机 | 不支持 | 普通 Client 被禁止本地创建狐狸；尚无客户端请求、服务器确认与实体复制专项协议。 |
 
 兼容性结论发生变化时，必须同时更新 `TEST-RESULTS.md` 中的测试证据。
+
+## 方块图集 slot→像素映射取证（V1 作物/植物自绘图集前置）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 方块面贴图网格（block face texture slot） | 已确认（原生资源实测，非自证） | 从目标 `Content.scpak` 用 `Game.SurvivalCraftModEntity.GetDecipherStream`（static, NonPublic）解出 ZIP，取 **游戏自带** `Assets/Textures/Blocks.png`：反射 PNG 头实测 `512×512`、bitDepth=8、colorType=6（RGBA）。CSV 第 74 列 `DefaultTextureSlot` 是纯整数（原生实测：Snow=66、Ice=65、Sandstone=176、Water=189、Magma=141）。对同一张**原生**图集按不同“每行 tile 数”假设取样各格平均 RGB：仅 **每行 16 格 / 每格 32×32 像素**（即 `col=slot%16, row=⌊slot/16⌋, 像素矩形左上=(col*32,row*32)`，容量 256 槽）假设下，五个已知方块都落在语义正确颜色——Snow(64,128)=250,252,252 近白、Ice(32,128)=217,227,244 冷蓝、Sandstone(0,352)=196,182,138 黄褐、Magma(416,256)=174,57,5 橙红、Water(416,352)=185,185,185 中性偏蓝；每行 8 格（64px）全部读到 (0,0,0) 越界空白，每行 32 格（16px）读到灰阶错色。结论与自绘 PNG 无关，是对游戏资产的独立验证。 |
+| 命名贴图（模型/部件/GUI 图集）机制 | 已确认（机理区分） | 同一 `Content.scpak` 内 `Assets/Atlases/Atlas.txt`（驱动 `Game.TextureAtlasManager.LoadTextureAtlas(texture, atlasDefinition, prefix)`）是**按名字显式列出每个子图矩形**（`Name x y w h ...`，尺寸 16/24/32/40/64/112/224 不等、位置任意）。因此 `Models/*`、实体 `TextureOverride` 与 GUI 走“具名矩形”通道，与方块面的“固定 16×16 网格整数槽”通道**不同**，两者不可混用；自绘作物方块必须按方块面网格约定排布，不能借用 Atlas.txt 具名机制。 |
+| 自绘作物图集（Crops.png）实际渲染 | 待验证 | 上述网格与槽→像素公式已在原生资产上确认；但据此新建的 512×512 RGBA 自绘图集能否被加载器解析并在 Android 7723 正确采样（尤其 alpha 测试、放大过滤、创造栏图标）须真机新世界验证，不提前宣称已修复。 |
+
+## 0.13.0 兔子生物基础验证（commit cb0f309，手动生成器阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 兔子 XDB/原生 AI 继承 | 已确认（静态） | `SCIEPortRabbit` 继承固定 `Content.scpak` 中原版 Alpaca 食草动物模板 GUID `8e62c6e4-...`（LandAnimal 后代），复用原生四足步态 + 吃拾取物/群居/逃跑 AI，思路与狐狸复用 Wolf 的追捕链一致。`Test-Database.ps1` 已把该 GUID 加入 `$KnownVanillaParents` 白名单；真实 Entities/BlockBehaviors GUID 与 7 个覆盖组件由 `Build-NetMod.ps1` 校验。 |
+| 兔子 DAE/PNG | 已确认（离线导入） | 项目自制 Y_UP `Rabbit.dae`（6 骨骼 Body/Head/Leg1-4 + 12 立方网格，每网格 24 顶点/12 三角）与 32×8 四色不透明 `Rabbit.png`，由 `New-RabbitAssets.ps1` 生成；`Build-NetMod.ps1` 用目标 `Engine.Media.ModelData.Load` 实测导入 6 bones/12 meshes 并逐骨骼名校验，PNG 断言恰好 4 种 A=255 颜色。 |
+| 兔子生成物品 ID 928 | 已确认 | 固定 x25.01.17 的 260 个原生 `Block.Index` 反射扫描未占用 928；`Test-Environment.ps1` 保留区间扩至 903–928 且无原生冲突；其它 Mod 运行时冲突仍需安装时检查。 |
+| 兔子权限闸（联机） | 已确认（代码/规则） | `SubsystemRabbitSpawnBlockBehavior.OnUse` 在 `CommonLib.WorkType == WorkType.Client` 时直接返回不生成，避免普通客户端本地制造未同步实体。真实主机/客户端同步效果待联机实测。 |
+| 自然生成 | 不支持 | 本阶段仅创造栏手动生成器（`Spawner Eggs` 类），未注册 `SubsystemCreatureSpawn.CreatureType` 或地形生成 Hook。 |
+| 生态互动（被捕食/喂食） | 不支持 | 本阶段不接线狐狸追捕兔子、兔子吃作物等互动，留待基础加载存读档实机验证后再单独成阶段。 |
+| Windows 游戏运行 | 待验证 | 按要求未启动游戏；加载、生成、AI、动画、死亡与存读档未在 Windows 运行。 |
+| Android 7723 | 待验证 | 图标、模型、UV、动画、碰撞、生成与退出重进均需真机新世界验证。 |
+| 离线逻辑测试 | 已确认（净8 无游戏依赖） | `Features/Ecology/EcologyRules.cs`（种群上限、每块生成预算、确定性 chunk 种子、生物群系适宜度、权限闸、捕食资格、存读档计数钳位）配套 `tests/SCIEPort.Ecology.Tests` 25 条断言通过，不引用游戏程序集。 |
+兼容性结论发生变化时，必须同时更新 `TEST-RESULTS.md` 中的测试证据。
