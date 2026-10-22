@@ -18,6 +18,7 @@ namespace SCIEPort.Features.Creatures
         {
             base.Load(valuesDictionary);
             m_creatureSpawn = Project.FindSubsystem<SubsystemCreatureSpawn>(true);
+            CreatureWorldSpawn.SetProject(Project);
         }
 
         /// <inheritdoc />

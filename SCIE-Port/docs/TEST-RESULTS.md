@@ -468,3 +468,43 @@ THIRD-PARTY-NOTICES.md
 
 至此第一批资源（玉米、竹子、亚麻 + 前置的狐狸/兔子）基础功能全部落地并单独提交，
 均处于「静态/离线已确认、真机待验证」状态，等待统一联网/真机验证阶段。
+
+## 0.17.0 自然生成 spawner 垂直切片（2026-10-21）
+
+- 自动回归：已确认。离线规则测试全绿——Kelly 11、ATV 32、越野车 20、快艇 16、
+  Tank 规则、Crops 26、Bamboo 25、Flax 29，Ecology 由 25 增至 **37**（新增 12 条：
+  几率单调/上下界、`FoxSpawnChancePercent<RabbitSpawnChancePercent`、每块预算到限/越限）。
+  本阶段实测发现 `ChanceMet(-1,100)` 因 `chance>=100` 短路先于 roll 越界守卫而误判命中，
+  已将 roll 越界守卫置于短路之前并补断言，重跑 Ecology 37/37 通过。
+- 静态 ABI 取证（先取证再动手）：已确认。反射 x25.01.17 实测
+  `TerrainChunk.GetTemperatureFast/GetHumidityFast→Int32`、`Coords.X/Y`、`Origin.X/Y`、
+  `GetTopHeightFast/GetCellValueFast`、`SubsystemGameInfo.WorldSeed→Int32`、
+  `SubsystemCreatureSpawn.SpawnCreature(string,Vector3,bool)` 均存在；`Game.Random(seed).Int`
+  沿用 Kelly 已验证用法；实体类型与狐/兔生成器一致全限定 `GameEntitySystem.Entity`，
+  `Random` 全限定 `Game.Random` 规避 Engine/Game 二义。
+- 生成器接线：已确认（代码）。复用已验证的 `OnTerrainContentsGenerated(TerrainChunk)`
+  块生成钩子，未新增地形写入路径；`CreatureWorldSpawn` 不注册独立 XDB/CSV/GUID，
+  改由狐/兔 `Subsystem...SpawnBlockBehavior.Load` 各调 `SetProject(Project)` 缓存子系统。
+  加载器内植物散布与生物生成各自 `try/catch` 并 `Log.Error` 记录（不吞异常）。
+- Release / `.netmod`：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 0 compile
+  warning/error（`TreatWarningsAsErrors`），DATABASE VALIDATION PASSED，51 条目（本阶段
+  无新增包内文件，复用 `Assets/Database/Creatures.xdb`、`Creatures.csv`），产物
+  SHA-256 `9F12EF87A85C6304B1103EBCB0F1F1C7AB0B2BEF6CF4DF094EAD744A03153B90`
+  （413,808 字节）。
+- DLL 版本反射：已确认。`[AssemblyName]`/`FileVersion` = `0.17.0.0`，
+  `ProductVersion` = `0.17.0+719fa2b7...`（亚麻 commit 之后、本阶段提交前工作树）。
+- 生成器决策（离线纯逻辑）：已确认。种子确定性 `GetChunkSeed(WorldSeed, Coords.X/Y)`、
+  权限闸 `!isClient`、每块预算 2、狐上限 3/兔上限 6、栖息度（温度/湿度/自然地面/树冠）
+  全部委托 `EcologyRules`。
+- 实体生成激活（生成期 `SpawnCreature`）：**待验证**。静态 ABI 与纯规则已确认，但在块生成
+  回调内造实体能否在 Windows/Android 7723 稳定成功、不崩、不阻塞生成、不产生未同步实体
+  尚未观测；按要求不提前宣称已修复。
+- 已知缺口：生物死亡回收（存活计数递减）未接线，计数只增不减并钳到上限——最坏是过早停止
+  生成（保守安全）而非过度繁殖；死亡事件接线留待后续阶段。
+- Windows 游戏运行：待验证。本机未启动游戏；自然生成时机、生成实体存活、存读档、卸载均未运行。
+- Android 7723：待验证。低端机性能、上限表现、与原生生物群系共存、退出重进恢复均需真机新世界
+  验证，不得因编译或离线测试通过标记为兼容。
+- 多人联机：待验证。已拒普通客户端生成，主机权威生成后向客户端的实体同步、房主/加入者一致性
+  未实测。
+- 生态互动（狐追捕兔）：待验证（未接线）。`IsEligiblePredation` 纯谓词已测，实际追捕仍委托
+  原生 Wolf 衍生 AI，本阶段不接线，留作独立阶段。

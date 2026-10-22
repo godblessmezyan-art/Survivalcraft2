@@ -149,5 +149,54 @@ namespace SCIEPort.Features.Ecology
 
             return trackedCount < 0 ? 0 : (trackedCount > ceiling ? ceiling : trackedCount);
         }
+
+        /// <summary>
+        /// Base chance (out of 100) that a qualifying chunk will try to seed a fox.
+        /// Foxes are deliberately rarer than their prey so a fresh map is not
+        /// over-predated before the rabbit population establishes.
+        /// </summary>
+        public const int FoxSpawnChancePercent = 8;
+
+        /// <summary>
+        /// Base chance (out of 100) that a qualifying chunk will try to seed a
+        /// rabbit. Rabbits are the forage base, so they are seeded more often than
+        /// foxes.
+        /// </summary>
+        public const int RabbitSpawnChancePercent = 15;
+
+        /// <summary>
+        /// True when a deterministic roll in the range 0..99 falls below the given
+        /// chance percentage. The roll and chance are both clamped defensively so a
+        /// caller can never exceed the [0,100] band and trigger an out-of-range hit.
+        /// </summary>
+        public static bool ChanceMet(int roll0To99, int chancePercent)
+        {
+            // A draw outside the 0..99 band is invalid input and must never hit,
+            // not even against a full chance. Guard the roll first, before any
+            // chance short-circuit, so no caller can smuggle an out-of-range hit.
+            if (roll0To99 < 0 || roll0To99 > 99)
+            {
+                return false;
+            }
+            if (chancePercent <= 0)
+            {
+                return false;
+            }
+            if (chancePercent >= 100)
+            {
+                return true;
+            }
+            return roll0To99 < chancePercent;
+        }
+
+        /// <summary>
+        /// True while a chunk still has spawn attempts left in its per-chunk budget.
+        /// The budget is the hard ceiling on creatures seeded by one chunk pass so a
+        /// single generation never bursts the frame.
+        /// </summary>
+        public static bool CanSpawnWithinBudget(int attemptsSoFarThisChunk)
+        {
+            return attemptsSoFarThisChunk < MaxSpawnAttemptsPerChunk;
+        }
     }
 }

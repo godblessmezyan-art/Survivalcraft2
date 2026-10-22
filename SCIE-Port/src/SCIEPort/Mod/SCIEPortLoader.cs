@@ -1,6 +1,7 @@
 using Game;
 using Engine;
 using Game.NetWork;
+using SCIEPort.Features.Creatures;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Vehicles;
 
@@ -54,6 +55,22 @@ namespace SCIEPort.Mod
             catch (System.Exception exception)
             {
                 Log.Error("[SCIEPort] Kelly plant world generation failed: " + exception);
+            }
+
+            try
+            {
+                // Natural fox/rabbit seeding is 待验证 on-device: the authority gate, seed
+                // determinism, per-chunk budget and population caps are enforced by the
+                // offline-tested EcologyRules, but the live entity spawn during generation
+                // has not yet been observed to succeed or sync correctly on Android/7723.
+                if (CreatureWorldSpawn.IsReady)
+                {
+                    CreatureWorldSpawn.TrySpawnNaturalCreatures(chunk);
+                }
+            }
+            catch (System.Exception exception)
+            {
+                Log.Error("[SCIEPort] Natural creature world spawn failed: " + exception);
             }
         }
     }

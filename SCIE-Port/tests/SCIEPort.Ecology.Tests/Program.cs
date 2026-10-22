@@ -18,6 +18,7 @@ namespace SCIEPort.Ecology.Tests
                 TestAuthorityGate();
                 TestHabitatSuitability();
                 TestPredationEligibility();
+                TestSpawnChanceAndBudget();
                 Console.WriteLine("Ecology rule tests passed: " + s_assertions);
                 return 0;
             }
@@ -95,6 +96,27 @@ namespace SCIEPort.Ecology.Tests
             Assert(!EcologyRules.IsEligiblePredation(false, true, 1f, 5f), "A dead fox cannot hunt.");
             Assert(!EcologyRules.IsEligiblePredation(true, false, 1f, 5f), "A dead rabbit cannot be targeted.");
             Assert(!EcologyRules.IsEligiblePredation(true, true, 1f, 0f), "A non-positive pursuit radius disables predation.");
+        }
+
+        private static void TestSpawnChanceAndBudget()
+        {
+            Assert(EcologyRules.ChanceMet(0, 50), "A zero roll must meet a mid-band chance.");
+            Assert(EcologyRules.ChanceMet(49, 50), "A roll one below the chance still hits.");
+            Assert(!EcologyRules.ChanceMet(50, 50), "A roll equal to the chance is exclusive and must not hit.");
+            Assert(!EcologyRules.ChanceMet(99, 0), "A zero chance must never hit.");
+            Assert(EcologyRules.ChanceMet(0, 100), "A full chance must always hit.");
+            Assert(!EcologyRules.ChanceMet(-1, 100), "A roll below the band must not hit.");
+            Assert(!EcologyRules.ChanceMet(100, 100), "A roll above the band must not hit.");
+            Assert(EcologyRules.FoxSpawnChancePercent < EcologyRules.RabbitSpawnChancePercent,
+                "The predator must be seeded more rarely than its prey.");
+
+            Assert(EcologyRules.CanSpawnWithinBudget(0), "A fresh chunk has budget for a first attempt.");
+            Assert(EcologyRules.CanSpawnWithinBudget(EcologyRules.MaxSpawnAttemptsPerChunk - 1),
+                "The final allowed attempt stays within budget.");
+            Assert(!EcologyRules.CanSpawnWithinBudget(EcologyRules.MaxSpawnAttemptsPerChunk),
+                "Attempts at the per-chunk ceiling must be blocked.");
+            Assert(!EcologyRules.CanSpawnWithinBudget(EcologyRules.MaxSpawnAttemptsPerChunk + 5),
+                "Attempts beyond the ceiling must be blocked.");
         }
 
         private static void Assert(bool condition, string message)

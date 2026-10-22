@@ -198,3 +198,19 @@ THIRD-PARTY-NOTICES.md
 | 自绘图集 Flax.png | 待验证 | 512×512 `Format32bppArgb`，slot 0..7 亚麻植株逐阶段（细茎随阶段增高、成熟期顶端蓝色亚麻花）、slot 8 纤维束，slot 12 留空。`Build-NetMod.ps1` 断言尺寸/格式、slot 0..8 有不透明像素、slot 12 全透明；生成器自检阶段 0..7 不透明像素单调增长（18→36→54→72→90→114→132→154）、纤维 271。据网格公式自绘的图集真机采样/alpha/图标待验证。 |
 | Windows 游戏运行 | 待验证 | 本机未启动游戏；种植、逐阶段生长、成熟收获（纤维 + 可重种种子）、掉落与存读档均未运行。 |
 | Android 7723 | 待验证 | 两方块渲染、贴图、蓝花阶段、种植交互、收获与退出重进均需真机新世界验证，不提前宣称已修复。 |
+
+## 0.17.0 自然生成 spawner 验证（狐/兔按种子散布，静态/离线阶段）
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 生成器接线（复用已证 Hook） | 已确认（代码） | 自然生成走已被 Kelly 植物散布验证的 `OnTerrainContentsGenerated(TerrainChunk)` 块生成钩子，未新增地形写入路径。`CreatureWorldSpawn` 静态世界侧类不注册独立 SubsystemTemplate/XDB/CSV/GUID：它由 `SubsystemFoxSpawnBlockBehavior.Load` 与 `SubsystemRabbitSpawnBlockBehavior.Load` 各调 `SetProject(Project)` 缓存 `SubsystemCreatureSpawn/SubsystemGameInfo/SubsystemTerrain`（二者已持有经验证的 `Project`），故零新增数据库面。加载器把植物散布与生物生成放在各自 `try/catch` 内、失败 `Log.Error` 记录不吞异常。 |
+| 静态 ABI 取证 | 已确认（反射） | 本阶段先反射目标 x25.01.17 再动手，确认 `TerrainChunk.GetTemperatureFast(x,z)→Int32`、`GetHumidityFast(x,z)→Int32`、`chunk.Coords.X/Y`、`chunk.Origin.X/Y`（世界偏移，与 Kelly 的 `Origin.X+localX/Origin.Y+localZ` 映射一致）、`chunk.GetTopHeightFast/GetCellValueFast`、`SubsystemGameInfo.WorldSeed→Int32`、`SubsystemCreatureSpawn.SpawnCreature(string,Vector3,bool)`（狐/兔手动生成器已用）均存在；`Game.Random(seed).Int(min,max)` 沿用 Kelly 已验证用法。实体类型按狐/兔生成器一致写全限定 `GameEntitySystem.Entity`，`Random` 全限定 `Game.Random` 避免 Engine/Game 二义。 |
+| 决策规则（离线纯逻辑） | 已确认（净8 无游戏依赖） | 一切可纯化的判定委托 `Features/Ecology/EcologyRules.cs`：狐狸基础几率 8 < 兔子 15（捕食者比猎物更稀有，避免新图被过度捕食）；`ChanceMet(roll0To99,chancePercent)` 对越界 roll（<0 或 >99）一律不命中，且该 roll 守卫置于 `chance>=100` 短路之前（本阶段实测发现原实现 `ChanceMet(-1,100)` 误判命中，已改序并新增断言）；`CanSpawnWithinBudget` 每块至多 2 次尝试；`ClampTrackedCount` 钳到物种上限；`IsFoxHabitat/IsRabbitHabitat` 按温度/湿度/自然地面/树冠覆盖。`tests/SCIEPort.Ecology.Tests` 37 条断言全部通过（含新增几率/预算 12 条）。 |
+| 确定性种子 | 已确认（离线）+ 待验证（真机） | 掷骰序列由 `GetChunkSeed(WorldSeed, chunk.Coords.X, chunk.Coords.Y)` 派生，同世界同 chunk 恒定、重进不重排（离线确定性断言通过）。真机跨存档/重进是否一致待验证。 |
+| 权限闸（联机） | 已确认（代码/规则） | `CanAuthoritativeWorldMutation(WorkType==Client)` 令普通客户端直接返回、绝不在本地制造未同步实体；仅单机 Local 与主机/服务端尝试生成。真实主机/客户端同步效果待联机实测。 |
+| 每块预算与种群上限 | 已确认（规则）+ 已知缺口 | 单块生成至多 2 只（不整图扫描、不高帧写入），狐全局上限 3、兔 6。存活计数 `s_trackedFoxes/s_trackedRabbits` 仅在成功生成时自增并钳到上限。生物死亡回收（递减计数）未接线——这是如实声明的已知缺口：计数只增不减，最坏是过早停止生成（保守安全）而非过度繁殖。死亡事件接线留待后续阶段。 |
+| 实体生成激活（生成期 SpawnCreature） | 待验证 | 静态 ABI 与全部纯规则已确认，但“在块生成回调内调用 `SpawnCreature` 造实体”能否在 Windows 与 Android 7723 真机稳定成功、不崩、不阻塞生成、不产生未同步实体，尚未观测；按要求不提前宣称已修复。生成失败经 `Log.Error` 记录（不吞异常）以留下真机证据。 |
+| 生态互动（狐追捕兔） | 待验证（未接线） | `IsEligiblePredation(狐活/兔活/距离²/追捕半径)` 纯谓词已测；实际追捕仍委托原生 Wolf 衍生 AI，本阶段不接线，留作独立阶段。 |
+| Windows 游戏运行 | 待验证 | 本机未启动游戏；自然生成时机、生成实体存活、存读档与卸载均未运行。 |
+| Android 7723 | 待验证 | 生成实体在低端机的性能、上限表现、与原生生物群系的共存、退出重进恢复均需真机新世界验证。 |
+| 多人联机 | 待验证 | 已拒普通客户端生成，但主机权威生成后向客户端的实体同步、以及房主/加入者一致性未实测。 |
