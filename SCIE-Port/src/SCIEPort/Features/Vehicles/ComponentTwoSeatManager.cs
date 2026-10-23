@@ -23,7 +23,7 @@ namespace SCIEPort.Features.Vehicles
         private ushort m_passengerId;
 
         /// <inheritdoc />
-        public UpdateOrder UpdateOrder => UpdateOrder.Default;
+        public UpdateOrder UpdateOrder => UpdateOrder.CreatureModels;
 
         /// <summary>Current authoritative driver.</summary>
         public ComponentRider Driver { get; private set; }
@@ -46,6 +46,14 @@ namespace SCIEPort.Features.Vehicles
         {
             List<ComponentRider> riders = GetRiders();
             RefreshKnownOccupants(riders);
+
+            // ComponentBody's x25.01.17 network authority is selected from
+            // ChildBodies[0]. Keep the assigned driver first on every peer so the
+            // native parent-body BodyUpdate path follows the driver, never the
+            // passenger. This only changes list order; both riders remain direct
+            // children and retain their native saved parent relationship.
+            MoveDriverBodyToFront();
+            SuppressLocalPassengerBodyEcho();
 
             if (!IsAuthority())
             {
@@ -128,6 +136,7 @@ namespace SCIEPort.Features.Vehicles
             {
                 Driver = rider;
                 m_driverId = rider.Entity.EntityId;
+                MoveDriverBodyToFront();
             }
             else
             {
@@ -179,6 +188,10 @@ namespace SCIEPort.Features.Vehicles
             }
 
             ApplySeatOffset(rider, seat);
+            if (seat == VehicleSeatRole.Driver)
+            {
+                MoveDriverBodyToFront();
+            }
             if (CommonLib.WorkType == WorkType.Server)
             {
                 CommonLib.Net.QueuePackage(new TwoSeatAssignmentPackage(Entity, rider, seat));
@@ -190,6 +203,45 @@ namespace SCIEPort.Features.Vehicles
             Vector3 seatOffset = seat == VehicleSeatRole.Driver ? m_driverOffset : m_passengerOffset;
             rider.m_targetPositionOffset = seatOffset + rider.m_riderOffset;
             rider.m_targetRotationOffset = Quaternion.Identity;
+        }
+
+        private void MoveDriverBodyToFront()
+        {
+            ComponentBody driverBody = Driver?.ComponentCreature?.ComponentBody;
+            if (driverBody == null || driverBody.ParentBody != m_body)
+            {
+                return;
+            }
+
+            int index = m_body.m_childBodies.IndexOf(driverBody);
+            if (index > 0)
+            {
+                m_body.m_childBodies.RemoveAt(index);
+                m_body.m_childBodies.Insert(0, driverBody);
+            }
+        }
+
+        private void SuppressLocalPassengerBodyEcho()
+        {
+            if (CommonLib.WorkType != WorkType.Client)
+            {
+                return;
+            }
+
+            ComponentPlayer passengerPlayer = Passenger?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
+            if (passengerPlayer == null || !passengerPlayer.PlayerData.IsMainPlayer)
+            {
+                return;
+            }
+
+            // ComponentPlayer normally sends its ParentBody every 0.1 seconds.
+            // On a passenger peer ComponentBody has just interpolated the driver's
+            // authoritative stream, so echoing those delayed values back to the
+            // server would create a feedback loop. Run after UpdateOrder.Body and
+            // clear only the parent body's pending network deltas.
+            m_body.SendPosition = null;
+            m_body.SendRotation = null;
+            m_body.SendVelocity = null;
         }
 
         private static ComponentRider FindById(List<ComponentRider> riders, ushort id)

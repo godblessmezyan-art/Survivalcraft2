@@ -3,6 +3,7 @@ using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
 using SCIEPort.Features.KellyPlants;
+using SCIEPort.Features.Tanks;
 using SCIEPort.Features.Vehicles;
 
 namespace SCIEPort.Mod
@@ -19,6 +20,7 @@ namespace SCIEPort.Mod
             if (!s_networkPackageRegistered)
             {
                 PackageManager.RegisterPackage(new TwoSeatAssignmentPackage());
+                PackageManager.RegisterPackage(new TankControlPackage());
                 s_networkPackageRegistered = true;
             }
 

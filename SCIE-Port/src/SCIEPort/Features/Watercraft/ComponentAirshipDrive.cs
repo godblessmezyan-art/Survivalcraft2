@@ -45,21 +45,15 @@ namespace SCIEPort.Features.Watercraft
             m_body.IsGroundDragEnabled = false;
 
             float boundedDt = MathUtils.Clamp(dt, 0f, 0.1f);
-            if (m_body.ImmersionFactor > 0.95f)
+            if (CommonLib.WorkType != WorkType.Client && m_body.ImmersionFactor > 0.95f)
             {
                 m_damage.Damage(0.005f * boundedDt);
                 m_mount.Rider?.StartDismounting();
             }
 
-            // Custom vehicle authority is not verified in network play.
-            if (CommonLib.WorkType != WorkType.Local)
-            {
-                return;
-            }
-
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            if (player == null || player.ComponentRider != rider)
+            if (player == null || player.ComponentRider != rider || !player.PlayerData.IsMainPlayer)
             {
                 ClampSpeed();
                 return;

@@ -1,5 +1,17 @@
 # 测试结果
 
+## 0.22.0 全载具联机稳定化（2026-10-23）
+
+- 目标 ABI：已确认。`Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17` 复核三程序集固定哈希、net472、API 1.42、原生包 ID 0–38、`Client.PlayerData`、公开 `ComponentBody.m_childBodies`，并确认保留包 ID 240/241 无原生冲突。
+- 驱动覆盖：已确认（源码守卫/编译）。ATV、双人快艇、双人越野车、飞艇、火车、车厢和坦克均要求本机 `PlayerData.IsMainPlayer` 才运行驾驶输入，不再保留 Local-only 或 Client 直接返回的驱动门。
+- 双座回声保护：已确认（源码/ABI）。驾驶员被稳定移到 `ChildBodies[0]`；座位组件在 `UpdateOrder.CreatureModels` 运行，普通客户端若为乘客则清除父 Body 的 `SendPosition/SendRotation/SendVelocity`，避免插值状态回传。
+- 坦克远程主炮：已确认（代码/规则）。新增包 ID 241；服务端验证包发送者、Rider 实体、Mount、ParentBody、16 位回绕序号、冷却与浸水门。新增 4 条序号规则断言（递增、重复、过期、回绕）；炮弹仍只由 Local/Server 的原生 `FireProjectile` 创建。
+- 全量离线回归：已确认。Kelly 11、ATV 32、越野车 20、快艇 16、Tank（含新增序号断言）、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49 全部通过。
+- Release / 数据库 / 包：已确认。`Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release` exit 0，net472 0 warning/0 error，11 份 XDB 合并验证通过，59 个包条目；产物 427,112 字节，SHA-256 `591BB23A3785119A0286CA299D94B2C1CD654420D809641DACD278736D5BA318`。DLL Assembly/FileVersion 均为 `0.22.0.0`。
+- Windows 游戏运行：待验证。本机未启动游戏。
+- Android 7723：待验证。单机回归、房主驾驶、普通客户端驾驶、双座两种角色互换、断线重连、跨区块及坦克炮塔/爆炸一致性均未实测。
+- 多人兼容结论：待验证。源码已覆盖全部现有载具，但在双 Android 实测通过前不得标记“联机正常”。移动同步继承原生驾驶员客户端信任边界；严格服务器权威为不支持。
+
 日期：2026-10-19
 目标：`Survivalcraft NET 2.4 Net_x25.01.17`
 本机仓库目录：`E:\Survivalcraft2\SCIE-Port`

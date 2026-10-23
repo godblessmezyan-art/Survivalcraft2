@@ -74,6 +74,43 @@ $appleTests = Join-Path $projectRoot 'tests\SCIEPort.Apple.Tests\SCIEPort.Apple.
 & $dotnetPath run --project $appleTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" }
 
+# Every drivable vehicle must allow the local main player to drive on a client;
+# ordinary observers must not run the drive loop. These source guards catch a
+# regression to the former Local-only/Client-return gates before packaging.
+$driveSources = @(
+    'Features\LandVehicles\ComponentAtvDrive.cs',
+    'Features\OffroadVehicles\ComponentOffroadCarDrive.cs',
+    'Features\Watercraft\ComponentSteamBoatDrive.cs',
+    'Features\Watercraft\ComponentAirshipDrive.cs',
+    'Features\Rail\ComponentRailVehicle.cs',
+    'Features\Tanks\ComponentTankDrive.cs'
+)
+foreach ($relativeDriveSource in $driveSources) {
+    $driveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir $relativeDriveSource)
+    if (-not $driveSource.Contains('PlayerData.IsMainPlayer')) {
+        throw "$relativeDriveSource does not gate drive simulation to the local main player."
+    }
+    if ($driveSource -match 'WorkType\s*!=\s*WorkType\.Local\)\s*return' -or
+        $driveSource -match 'WorkType\s*==\s*WorkType\.Client\)\s*\{\s*return;') {
+        throw "$relativeDriveSource regressed to a single-player-only drive gate."
+    }
+}
+$seatManagerSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Vehicles\ComponentTwoSeatManager.cs')
+if (-not $seatManagerSource.Contains('MoveDriverBodyToFront') -or -not $seatManagerSource.Contains('m_childBodies.Insert(0, driverBody)')) {
+    throw 'Two-seat vehicles must keep the driver first for native parent-body network authority.'
+}
+if (-not $seatManagerSource.Contains('SuppressLocalPassengerBodyEcho') -or
+    -not $seatManagerSource.Contains('m_body.SendPosition = null') -or
+    -not $seatManagerSource.Contains('UpdateOrder.CreatureModels')) {
+    throw 'Two-seat passenger peers must suppress delayed parent-body echo after ComponentBody.Update.'
+}
+$loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
+foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage')) {
+    if (-not $loaderSource.Contains("RegisterPackage(new $packageType())")) {
+        throw "SCIEPortLoader does not register $packageType."
+    }
+}
+
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.

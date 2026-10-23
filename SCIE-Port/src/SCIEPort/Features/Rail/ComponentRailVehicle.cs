@@ -64,7 +64,11 @@ namespace SCIEPort.Features.Rail
         /// <inheritdoc />
         public void Update(float dt)
         {
-            if (CommonLib.WorkType != WorkType.Local) return;
+            ComponentRider rider = m_mount.Rider;
+            ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
+            bool localDriver = player != null && player.ComponentRider == rider && player.PlayerData.IsMainPlayer;
+            bool simulateUnoccupiedAuthority = rider == null && CommonLib.WorkType != WorkType.Client;
+            if (!localDriver && !simulateUnoccupiedAuthority) return;
             int railType;
             if (!TryGetRail(out railType)) return;
 
@@ -76,10 +80,8 @@ namespace SCIEPort.Features.Rail
                 return;
             }
 
-            ComponentRider rider = m_mount.Rider;
-            ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
             float throttle = 0f;
-            if (player != null && player.ComponentRider == rider)
+            if (localDriver)
             {
                 throttle = MathUtils.Clamp(player.ComponentInput.PlayerInput.Move.Z, -1f, 1f);
             }

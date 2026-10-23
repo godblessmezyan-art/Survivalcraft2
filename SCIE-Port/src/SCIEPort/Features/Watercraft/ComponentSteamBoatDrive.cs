@@ -40,18 +40,15 @@ namespace SCIEPort.Features.Watercraft
         /// <inheritdoc />
         public void Update(float dt)
         {
-            if (CommonLib.WorkType == WorkType.Client)
-            {
-                return;
-            }
-
             float boundedDt = MathUtils.Clamp(dt, 0f, 0.1f);
-            UpdateDamageAndSinking(boundedDt);
+            if (CommonLib.WorkType != WorkType.Client)
+            {
+                UpdateDamageAndSinking(boundedDt);
+            }
 
             ComponentRider driver = m_seats.Driver;
             ComponentPlayer player = driver?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            bool canDrive = player != null && player.ComponentRider == driver &&
-                (CommonLib.WorkType == WorkType.Local || player.PlayerData.IsMainPlayer);
+            bool canDrive = player != null && player.ComponentRider == driver && player.PlayerData.IsMainPlayer;
             float move = canDrive ? MathUtils.Clamp(player.ComponentInput.PlayerInput.Move.Z, -1f, 1f) : 0f;
             float turn = canDrive ? MathUtils.Clamp(player.ComponentInput.PlayerInput.Move.X, -1f, 1f) : 0f;
 

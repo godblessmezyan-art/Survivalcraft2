@@ -119,8 +119,16 @@ foreach ($type in $loadedTypes) {
         try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
     }
 }
-if ($nativePackageIds -contains 240) {
-    throw 'ATV seat package ID 240 conflicts with a native x25.01.17 package.'
+foreach ($reservedPackageId in @(240, 241)) {
+    if ($nativePackageIds -contains $reservedPackageId) {
+        throw "SCIE-Port package ID $reservedPackageId conflicts with a native x25.01.17 package."
+    }
+}
+if (-not $assembly.GetType('Game.NetWork.Client', $true).GetProperty('PlayerData')) {
+    throw 'Client.PlayerData required for authenticated tank fire requests was not found.'
+}
+if (-not $componentBody.GetField('m_childBodies', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'ComponentBody.m_childBodies required to keep the two-seat driver first was not found.'
 }
 foreach ($fieldName in @('m_riderOffset', 'm_targetPositionOffset', 'm_targetRotationOffset')) {
     if (-not $componentRider.GetField($fieldName, [Reflection.BindingFlags]'Public,Instance')) {

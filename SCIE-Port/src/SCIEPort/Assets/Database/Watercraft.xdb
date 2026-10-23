@@ -125,7 +125,7 @@
       <Parameter Name="DriverOffset" Guid="229f5bd4-df29-48ea-9a54-4f689de8b160" Value="0,0.9,-0.3" Type="Vector3" />
       <Parameter Name="PassengerOffset" Guid="c783890d-862f-4c32-925b-04cc3d813ec3" Value="0,0.9,0.62" Type="Vector3" />
     </ComponentTemplate>
-    <ComponentTemplate Name="SCIEPortSteamBoatDrive" Description="Host-authoritative two-seat speedboat propulsion" Guid="178f2607-acfe-48e4-bd5d-2da2bfd27495" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+    <ComponentTemplate Name="SCIEPortSteamBoatDrive" Description="Native mounted-driver synchronized two-seat speedboat propulsion" Guid="178f2607-acfe-48e4-bd5d-2da2bfd27495" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
       <Parameter Name="Class" Guid="07157607-a690-43d3-919c-193e7e91a472" Value="SCIEPort.Features.Watercraft.ComponentSteamBoatDrive" Type="string" />
     </ComponentTemplate>
     <ComponentTemplate Name="SCIEPortAirshipDrive" Description="Bounded local airship flight" Guid="f3408b0f-0d51-4128-93f1-03cf2cc87601" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">

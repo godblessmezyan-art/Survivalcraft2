@@ -199,6 +199,21 @@ ID 240 同步。客户端不写车辆速度。当前可验证权限为 Local 及
 
 联机权限与现有双座载具保持一致：Local 或 Server 主机本地玩家可以驾驶，普通 Client 不写
 车辆速度或其他玩家位置。普通客户端驾驶需要额外的服务器输入、预测和纠偏协议，本版本不支持。
+
+## 0.22.0 全载具联机接口复核
+
+此前“普通客户端驾驶必须另建服务器输入协议”的结论只适用于严格服务器权威方案。继续反编译
+`ComponentPlayerPackage.BodyUpdate` 与 `ComponentBody.Update` 后确认，x25.01.17 本身已经把骑手的
+父 Body 作为原生同步对象，并以 `ChildBodies[0]` 的本机主玩家身份选择本地仿真/网络插值。
+v0.22.0 因此沿用目标运行时的原生驾驶员同步：所有驱动组件只让本机 `IsMainPlayer` 驾驶，双座
+管理器把驾驶员稳定放在首个子 Body，并在副驾驶客户端于 Body 更新后清除父 Body 的发送脏位，
+避免副驾驶回传延迟插值。该方案不写其他玩家位置，但继承原生客户端驾驶员信任边界，不等同于
+服务器抗作弊物理。
+
+`SubsystemProjectiles.FireProjectile` 在 Client 返回 `null`，故坦克主炮不能沿用移动同步。
+新增 `TankControlPackage`（ID 241）只发送炮塔角和开火请求；服务器按 `From.PlayerData`、Rider ID、
+Mount/ParentBody、16 位序号、冷却及浸水状态复核后创建弹丸，并通过原生 Projectile/Explosion 链同步。
+完整证据和验收边界见 `VEHICLE-MULTIPLAYER-AUDIT.md`。
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

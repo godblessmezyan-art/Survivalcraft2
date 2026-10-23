@@ -39,17 +39,11 @@ namespace SCIEPort.Features.OffroadVehicles
         /// <inheritdoc />
         public void Update(float dt)
         {
-            if (CommonLib.WorkType == WorkType.Client)
-            {
-                return;
-            }
-
             ComponentRider driver = m_seats.Driver;
             ComponentPlayer player = driver?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            if (player == null || player.ComponentRider != driver ||
-                (CommonLib.WorkType == WorkType.Server && !player.PlayerData.IsMainPlayer))
+            if (player == null || player.ComponentRider != driver || !player.PlayerData.IsMainPlayer)
             {
-                m_body.IsGroundDragEnabled = true;
+                m_body.IsGroundDragEnabled = driver == null;
                 return;
             }
 

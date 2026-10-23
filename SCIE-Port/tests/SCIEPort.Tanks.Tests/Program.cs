@@ -27,6 +27,10 @@ internal static class Program
         Assert(!TankRules.CanFire(.1f, true, 0f), "cannon cooldown enforced");
         Assert(!TankRules.CanFire(0f, false, 0f), "cannon requires hit ray");
         Assert(!TankRules.CanFire(0f, true, .8f), "submerged cannon blocked");
+        Assert(TankRules.IsNewerSequence(1, 0), "first later control sequence accepted");
+        Assert(!TankRules.IsNewerSequence(10, 10), "duplicate control sequence rejected");
+        Assert(!TankRules.IsNewerSequence(9, 10), "stale control sequence rejected");
+        Assert(TankRules.IsNewerSequence(0, ushort.MaxValue), "wrapped control sequence accepted");
         Assert(TankRules.ShellSpeed > TankRules.ForwardSpeed, "shell faster than tank");
         AssertNear(TankRules.ShellVisualScale, 3.5f, "large tank-shell visual scale");
         AssertNear(TankRules.ShellExplosionPressure, 2160f, "shell matches audited large gunpowder keg pressure");

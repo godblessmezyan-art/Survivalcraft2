@@ -1,5 +1,14 @@
 # SCIE-Port
 
+Version 0.22.0 adds the first complete multiplayer-driving pass for every current
+vehicle: ATV, two-seat speedboat, off-road car, airship, train, carriage and T-34.
+It follows x25.01.17's native mounted-parent body synchronization, keeps the
+driver first in two-seat body ordering, suppresses passenger state echo, and
+routes remote tank fire through a server-validated request so clients never
+create explosive shells. Release/static checks pass; Android 7723 host/client
+behavior remains pending real-device verification. See
+`docs/VEHICLE-MULTIPLAYER-AUDIT.md`.
+
 Independent migration workspace for authorized third-party Mods targeting
 Survivalcraft NET 2.4 `Net_x25.01.17`. It is deliberately separate from
 Builder Assistant, whose scope remains automatic building and blueprints.

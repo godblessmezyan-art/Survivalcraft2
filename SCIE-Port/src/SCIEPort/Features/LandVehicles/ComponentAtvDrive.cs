@@ -51,20 +51,12 @@ namespace SCIEPort.Features.LandVehicles
         /// <inheritdoc />
         public void Update(float dt)
         {
-            // Offline uses the local player. In multiplayer only the host's local
-            // player is allowed to change vehicle velocity; remote clients never do.
-            if (CommonLib.WorkType == WorkType.Client)
-            {
-                return;
-            }
-
             float boundedDt = MathUtils.Clamp(dt, 0f, 0.1f);
             ComponentRider rider = m_seatManager.Driver;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            if (player == null || player.ComponentRider != rider ||
-                (CommonLib.WorkType == WorkType.Server && !player.PlayerData.IsMainPlayer))
+            if (player == null || player.ComponentRider != rider || !player.PlayerData.IsMainPlayer)
             {
-                RestoreParkingDrag();
+                RestoreParkingDrag(rider == null);
                 return;
             }
 
@@ -124,11 +116,12 @@ namespace SCIEPort.Features.LandVehicles
             WriteDiagnostics(boundedDt, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
         }
 
-        private void RestoreParkingDrag()
+        private void RestoreParkingDrag(bool unoccupied)
         {
-            // An unoccupied ATV uses ComponentBody's native ground drag. Airborne
-            // horizontal velocity is intentionally left intact for gravity/air drag.
-            m_body.IsGroundDragEnabled = true;
+            // An unoccupied ATV uses native parking drag. A remotely driven ATV is
+            // interpolated from the native parent-body stream and must not receive
+            // an extra observer-side ground-drag pass.
+            m_body.IsGroundDragEnabled = unoccupied;
             m_airborneTime = 0f;
         }
 

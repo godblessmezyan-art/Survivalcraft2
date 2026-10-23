@@ -38,7 +38,7 @@
       <Parameter Name="DriverOffset" Guid="229f5bd4-df29-48ea-9a54-4f689de8b160" Value="0,0.9,-0.3" Type="Vector3" />
       <Parameter Name="PassengerOffset" Guid="c783890d-862f-4c32-925b-04cc3d813ec3" Value="0,0.9,0.62" Type="Vector3" />
     </ComponentTemplate>
-    <ComponentTemplate Name="SCIEPortOffroadCarDrive" Description="Host-authoritative two-seat off-road car drive" Guid="b062bf10-a8c4-4eaf-b5d6-d6c0ac91269c" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+    <ComponentTemplate Name="SCIEPortOffroadCarDrive" Description="Native mounted-driver synchronized two-seat off-road car drive" Guid="b062bf10-a8c4-4eaf-b5d6-d6c0ac91269c" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
       <Parameter Name="Class" Guid="0ee229db-f2da-4986-8036-5de819fc8fe5" Value="SCIEPort.Features.OffroadVehicles.ComponentOffroadCarDrive" Type="string" />
     </ComponentTemplate>
   </Folder>

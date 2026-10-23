@@ -35,6 +35,11 @@ namespace SCIEPort.Features.Tanks
         private float m_gunPitch;
         private float m_diagnosticTime;
         private float m_fireCooldown;
+        private float m_networkStateTime;
+        private ushort m_localSequence;
+        private ushort m_remoteSequence;
+        private ushort m_remoteRiderId;
+        private bool m_hasRemoteSequence;
 
         /// <summary>Saved independent turret yaw used by the main-gun aiming controller.</summary>
         public float TurretYaw => m_turretYaw;
@@ -46,6 +51,52 @@ namespace SCIEPort.Features.Tanks
         {
             m_turretYaw = TankRules.NormalizeAngle(yaw);
             m_gunPitch = MathUtils.Clamp(pitch, TankRules.MinimumGunPitch, TankRules.MaximumGunPitch);
+        }
+
+        /// <summary>Applies replicated visual articulation on a non-authoritative peer.</summary>
+        public void ApplyNetworkTurretState(float yaw, float pitch)
+        {
+            SetTurretAngles(yaw, pitch);
+            ApplyArticulation();
+        }
+
+        /// <summary>Validates and applies one remote-driver request on the server.</summary>
+        public bool AcceptRemoteControl(
+            ComponentPlayer player,
+            ushort sequence,
+            float yaw,
+            float pitch,
+            bool fire)
+        {
+            if (CommonLib.WorkType != WorkType.Server || player == null ||
+                player.ComponentRider == null || m_mount.Rider != player.ComponentRider ||
+                player.ComponentBody.ParentBody != m_body)
+            {
+                return false;
+            }
+
+            ushort riderId = player.Entity.EntityId;
+            if (m_remoteRiderId != riderId)
+            {
+                m_remoteRiderId = riderId;
+                m_hasRemoteSequence = false;
+            }
+
+            if (m_hasRemoteSequence && !TankRules.IsNewerSequence(sequence, m_remoteSequence))
+            {
+                return false;
+            }
+
+            m_hasRemoteSequence = true;
+            m_remoteSequence = sequence;
+            SetTurretAngles(yaw, pitch);
+            ApplyArticulation();
+            if (fire && TankRules.CanFire(m_fireCooldown, true, m_body.ImmersionFactor))
+            {
+                FireMainGun(player, CalculateGunDirection());
+            }
+
+            return true;
         }
         /// <inheritdoc />
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
@@ -102,15 +153,16 @@ namespace SCIEPort.Features.Tanks
         /// <inheritdoc />
         public void Update(float dt)
         {
-            if (CommonLib.WorkType != WorkType.Local) return;
             float t = MathUtils.Clamp(dt, 0f, .1f);
             m_fireCooldown = MathUtils.Max(0f, m_fireCooldown - t);
             ApplyArticulation();
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
-            if (player == null || player.ComponentRider != rider)
+            if (player == null || player.ComponentRider != rider || !player.PlayerData.IsMainPlayer)
             {
-                m_body.IsGroundDragEnabled = true;
+                // Remote occupied bodies are fed by SCNET's native parent-body
+                // interpolation. Do not add a second local ground-drag pass.
+                m_body.IsGroundDragEnabled = rider == null;
                 return;
             }
 
@@ -128,9 +180,25 @@ namespace SCIEPort.Features.Tanks
             // unrelated to the barrel. The shell always uses the current articulated angles.
             AimTurret(player.GameWidget.ActiveCamera.ViewDirection, t);
             ApplyArticulation();
-            if (TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor))
+            bool wantsFire = TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor);
+            if (wantsFire && CommonLib.WorkType == WorkType.Client)
+            {
+                // Clients never create explosive projectiles. They only request a
+                // shot; the server revalidates rider, mount, sequence and cooldown.
+                m_fireCooldown = TankRules.FireCooldown;
+                QueueTankControl(rider, fire: true);
+                m_networkStateTime = 0f;
+            }
+            else if (wantsFire)
             {
                 FireMainGun(player, CalculateGunDirection());
+            }
+
+            m_networkStateTime += t;
+            if (CommonLib.WorkType != WorkType.Local && m_networkStateTime >= 0.1f)
+            {
+                m_networkStateTime = 0f;
+                QueueTankControl(rider, fire: false);
             }
 
             if (!TankRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
@@ -160,6 +228,13 @@ namespace SCIEPort.Features.Tanks
                 m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * TurnRate * scale * t);
             }
             WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
+        }
+
+        private void QueueTankControl(ComponentRider rider, bool fire)
+        {
+            m_localSequence++;
+            bool request = CommonLib.WorkType == WorkType.Client;
+            CommonLib.Net.QueuePackage(new TankControlPackage(this, rider, m_localSequence, fire, request));
         }
 
         private void AimTurret(Vector3 direction, float dt)

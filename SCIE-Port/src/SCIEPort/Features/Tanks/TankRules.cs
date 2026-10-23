@@ -90,6 +90,13 @@ namespace SCIEPort.Features.Tanks
             return cooldownRemaining <= 0f && hasHitRay && immersionFactor < 0.8f;
         }
 
+        /// <summary>Wrap-safe ordering for reliable driver control messages.</summary>
+        public static bool IsNewerSequence(ushort candidate, ushort previous)
+        {
+            ushort delta = (ushort)(candidate - previous);
+            return delta != 0 && delta < 32768;
+        }
+
         /// <summary>Wraps an angle to [-PI, PI] for shortest-path turret traversal.</summary>
         public static float NormalizeAngle(float angle)
         {
