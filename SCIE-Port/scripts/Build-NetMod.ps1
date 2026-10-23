@@ -95,6 +95,10 @@ foreach ($relativeDriveSource in $driveSources) {
         throw "$relativeDriveSource regressed to a single-player-only drive gate."
     }
 }
+$railBlockSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Rail\RailVehicleBlocks.cs')
+if ($railBlockSource.Contains('FindMesh(') -or -not $railBlockSource.Contains('foreach (ModelMesh mesh in model.Meshes)')) {
+    throw 'Rail vehicle inventory rendering must enumerate every imported model mesh.'
+}
 $tankDriveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Tanks\ComponentTankDrive.cs')
 $tankDriveUpdateIndex = $tankDriveSource.IndexOf('UpdateDrive(t, rider, input, throttle, terrainGrounded, bodyGrounded);')
 $tankFireGateIndex = $tankDriveSource.IndexOf('bool wantsFire = TankRules.CanFire')
@@ -167,6 +171,45 @@ foreach ($asset in $authorizedAssets) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $asset.Destination) | Out-Null
     Copy-Item -LiteralPath $asset.Source -Destination $asset.Destination
 }
+
+# The authorized Minecart.dae encodes VERTEX/NORMAL/TEXCOORD with the same
+# polygon offset and a single shared index stream. x25.01.17's actual Collada
+# loader expects one interleaved index per declared input and otherwise throws
+# ArgumentOutOfRangeException in Collada.LoadPolygons, leaving the carriage
+# invisible. Produce a deterministic package-only compatibility derivative;
+# the ignored upstream tree remains read-only and byte-identical.
+$stagedMinecart = Join-Path $stage 'Assets\Models\Minecart.dae'
+[xml]$minecartDerivative = Get-Content -Raw -Encoding UTF8 $stagedMinecart
+$minecartNamespaces = New-Object Xml.XmlNamespaceManager($minecartDerivative.NameTable)
+$minecartNamespaces.AddNamespace('c', 'http://www.collada.org/2005/11/COLLADASchema')
+$minecartPolylists = @($minecartDerivative.SelectNodes('//c:geometry/c:mesh/c:polylist', $minecartNamespaces))
+if ($minecartPolylists.Count -ne 1) {
+    throw "Authorized Minecart.dae must contain exactly one polylist; found $($minecartPolylists.Count)."
+}
+foreach ($polylist in $minecartPolylists) {
+    $inputs = @($polylist.SelectNodes('./c:input', $minecartNamespaces))
+    if ($inputs.Count -ne 3 -or ($inputs | ForEach-Object { $_.GetAttribute('semantic') }) -join ',' -ne 'VERTEX,NORMAL,TEXCOORD') {
+        throw 'Authorized Minecart.dae polylist inputs differ from the audited VERTEX/NORMAL/TEXCOORD layout.'
+    }
+    $indicesNode = $polylist.SelectSingleNode('./c:p', $minecartNamespaces)
+    $indices = @($indicesNode.InnerText -split '\s+' | Where-Object { $_ })
+    $vertexCount = (@($polylist.SelectSingleNode('./c:vcount', $minecartNamespaces).InnerText -split '\s+' | Where-Object { $_ }) |
+        Measure-Object -Sum).Sum
+    $offsets = @($inputs | ForEach-Object { $_.GetAttribute('offset') })
+    if (($offsets -join ',') -eq '0,0,0' -and $indices.Count -eq $vertexCount) {
+        for ($i = 0; $i -lt $inputs.Count; $i++) { $inputs[$i].SetAttribute('offset', [string]$i) }
+        $indicesNode.InnerText = (($indices | ForEach-Object { "$_ $_ $_" }) -join ' ')
+    }
+    elseif (($offsets -join ',') -ne '0,1,2' -or $indices.Count -ne 3 * $vertexCount) {
+        throw 'Minecart.dae index layout is neither the audited upstream form nor the normalized SCNET form.'
+    }
+}
+$minecartWriterSettings = New-Object Xml.XmlWriterSettings
+$minecartWriterSettings.Indent = $true
+$minecartWriterSettings.Encoding = New-Object Text.UTF8Encoding($false)
+$minecartWriter = [Xml.XmlWriter]::Create($stagedMinecart, $minecartWriterSettings)
+try { $minecartDerivative.Save($minecartWriter) }
+finally { $minecartWriter.Dispose() }
 
 foreach ($old in @($zip, $package)) {
     if (Test-Path -LiteralPath $old) { Remove-Item -Force -LiteralPath $old }
@@ -1270,12 +1313,23 @@ try {
     if ((@($trainPositions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 660) {
         throw 'Train.dae positions array should hold 220 vertices (660 floats).'
     }
-    [xml]$minecartModel = Get-Content -Raw -Encoding UTF8 (Join-Path $upstream 'IndustrialMod\Models\Minecart.dae')
+    [xml]$minecartModel = Get-Content -Raw -Encoding UTF8 $stagedMinecart
     if ($null -eq $minecartModel.SelectSingleNode("//*[local-name()='node' and @name='obj1']")) {
-        throw 'Authorized Minecart.dae is missing the required obj1 mesh node.'
+        throw 'Normalized Minecart.dae is missing the required obj1 mesh node.'
     }
     if ($minecartModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'Minecart.dae must be oriented Y_UP.'
+    }
+    $minecartInputs = @($minecartModel.SelectNodes("//*[local-name()='geometry']/*[local-name()='mesh']/*[local-name()='polylist']/*[local-name()='input']"))
+    if (($minecartInputs | ForEach-Object { $_.GetAttribute('offset') }) -join ',' -ne '0,1,2') {
+        throw 'Packaged Minecart.dae must use distinct VERTEX/NORMAL/TEXCOORD offsets 0,1,2.'
+    }
+    $minecartModelStream = [IO.File]::OpenRead($stagedMinecart)
+    try { $targetMinecartModel = $targetModelLoad.Invoke($null, @($minecartModelStream)) }
+    finally { $minecartModelStream.Dispose() }
+    if ($targetMinecartModel.Bones.Count -ne 3 -or $targetMinecartModel.Meshes.Count -ne 1 -or
+        $targetMinecartModel.Meshes[0].Name -ne 'obj1') {
+        throw "Target Engine must import Minecart.dae as 3 bones/1 obj1 mesh; found $($targetMinecartModel.Bones.Count) bones/$($targetMinecartModel.Meshes.Count) meshes."
     }
 
     $furnitureModels = @(

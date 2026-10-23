@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.22.2",
+  "Version": "0.22.3",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.2 applies tank recoil on the successful shot frame after drive integration, limits the T-34 gun to -5/+25 degrees, explodes every first physical shell impact regardless of range, and restores finite armored durability with Hitpoints=1 and AttackResilience=600 while retaining fire immunity. v0.22.1 two-seat input/seat fixes and v0.22 multiplayer driving remain included. Remote tank fire stays server-validated; ordinary clients never create explosive shells. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 behavior is pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.3 fixes the invisible carriage by packaging a Collada index layout accepted by the target Engine and rendering every imported rail-vehicle mesh in inventory. v0.22.2 tank recoil, pitch, impact explosion and finite durability fixes remain included, as do v0.22.1 two-seat input/seat fixes and v0.22 multiplayer driving. Remote tank fire stays server-validated; ordinary clients never create explosive shells. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 carriage rendering is pending real-device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

@@ -69,6 +69,9 @@
 - Modified derivatives in the package: `Assets/Models/SteamBoat.dae`,
   `Assets/Models/Airship.dae`, and `Assets/Models/Train.dae` rotate the
   authorized Z-up source geometry into SCNET's Y-up coordinate convention.
+  `Assets/Models/Minecart.dae` preserves the authorized Y-up geometry while
+  expanding its shared polygon index into the interleaved position/normal/UV
+  layout required by the fixed SCNET x25.01.17 Collada loader.
   The packaged `Gear`, `Wheel`, `GearMould`, `WheelMould`, and `Piston`
   models are likewise Y-up derivatives; `Cylinder.dae` was already Y-up.
 - The packaged `SteamBoat.dae` additionally lifts the authorized geometry so its

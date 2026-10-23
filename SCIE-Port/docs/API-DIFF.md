@@ -240,6 +240,20 @@ Mount/ParentBody、16 位序号、冷却及浸水状态复核后创建弹丸，�
 `ProjectileRemoved` 只清理字典，避免寿命/卸载误爆；首次碰撞不检查飞行距离，故贴墙与远距命中行为一致。
 后坐常量为水平速度 1.25，并在驱动积分之后由成功发射路径施加，不在碰撞/移除回调施加。
 
+## 0.22.3 车厢 Collada 导入复核
+
+授权上游 `Minecart.dae` 是合法 XML，但其 polylist 将 `VERTEX`、`NORMAL`、`TEXCOORD` 三个
+输入全部声明为 `offset=0`，并只提供一列共享索引。固定 x25.01.17 的
+`Engine.Media.ModelData.Load(Stream)` 实测不是宽容导入：它在
+`Engine.Media.Collada.LoadPolygons` 访问缺失的第二/第三索引列时抛
+`ArgumentOutOfRangeException`，因此问题发生在纹理、光照与 `ComponentSimpleModel` 绘制之前。
+
+v0.22.3 不修改只读上游树，也不改变 geometry、positions、normals、UV、polylist 面数、节点矩阵、
+实体模板、碰撞体或座位。`Build-NetMod.ps1` 仅在 staging 把三个输入规范为 offset `0/1/2`，并将
+每个共享索引重复为三输入交错索引；随后用目标 Engine 强制导入并断言 3 bones/1 `obj1` mesh。
+三个骨骼分别是导入器空根、`obj1` 和源文件的相机节点，仍低于 `GetMaxInstancesCount()=7`。
+物品渲染同步改为枚举全部 model meshes，避免未来模型拆分后再次只显示首个部件。
+
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

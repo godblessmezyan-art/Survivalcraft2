@@ -1,5 +1,14 @@
 # SCIE-Port
 
+Version 0.22.3 fixes the invisible carriage. The authorized source DAE uses a
+single polygon index for position, normal and UV while declaring all three
+inputs at offset zero; the target x25.01.17 Collada loader throws from
+`LoadPolygons` on that layout. Packaging now emits a deterministic compatible
+derivative with offsets 0/1/2 and interleaved indices, and verifies the result
+with the target Engine as 3 bones/1 `obj1` mesh. Rail-vehicle inventory drawing
+also enumerates every imported mesh. Release/static checks pass; Android 7723
+world and inventory rendering remain pending real-device verification.
+
 Version 0.22.2 corrects the T-34 weapon lifecycle. Recoil is applied immediately
 after a successful shot and after the frame's drive integration, the gun uses a
 realistic -5/+25 degree mechanical pitch range, and every first physical shell

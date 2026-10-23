@@ -91,6 +91,12 @@ ATV 0.8.2 曾把九个部件写成九个并列场景 node。目标 Collada 导�
 - `<triangles>`；
 - 正确的交错索引，且索引不越界。
 
+每个输入必须使用独立 offset（常见为 `VERTEX=0`、`NORMAL=1`、`TEXCOORD=2`），`p` 中每个
+顶点也必须按相同顺序提供三列索引。不要把三种 semantic 都写成 `offset=0` 后只提供一个共享
+索引；即使三份 source 的索引恰好相同，x25.01.17 的 `Collada.LoadPolygons` 仍会访问第二、第三列
+并抛越界异常。SCIE 上游车厢曾因此在物品和世界中都不显示，v0.22.3 的打包派生与目标 Engine
+导入守卫用于兼容这个特例。
+
 禁止事项：
 
 - 不要为每个静态车轮、座椅或车把建立独立场景 node。
@@ -215,6 +221,7 @@ cd E:\Survivalcraft2\SCIE-Port
 |---|---|
 | 物品图标正常，世界模型完全不可见 | 目标 Engine 实际骨骼数、七骨骼预算、世界 `ComponentSimpleModel` 路径 |
 | 物品和世界都缺模型 | 资源路径、DAE 解析、包内是否包含文件、模型节点/geometry |
+| 加载器在 `Collada.LoadPolygons` 越界 | polylist/triangles 各 input 的 offset 是否独立、`p` 是否含完整交错索引 |
 | 世界模型纯黑 | XDB `TextureOverride`、加载顺序、法线、地形光、自发光保底 |
 | 模型竖直或躺倒 | 是否只改了 `up_axis` 而未转换 positions/normals |
 | 部件位置爆炸或比例异常 | 非 identity 节点矩阵、未应用缩放、单位或父子变换 |

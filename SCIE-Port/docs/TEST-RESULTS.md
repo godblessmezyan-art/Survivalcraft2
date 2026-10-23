@@ -1,5 +1,32 @@
 # 测试结果
 
+## 0.22.3 车厢不可见修复（2026-10-24）
+
+- 根因复现：已确认。固定 `D:\SC` 的 `Engine.Media.ModelData.Load` 直接读取授权上游
+  `Minecart.dae`，在 `Engine.Media.Collada.LoadPolygons` 抛出
+  `ArgumentOutOfRangeException`。源 polylist 的 `VERTEX/NORMAL/TEXCOORD` 全为
+  `offset=0`，且 6540 个顶点引用只给出 6540 个共享索引，不符合目标加载器要求的交错输入。
+- 派生模型：已确认。打包脚本保持忽略区上游文件字节不变，只在 staging 生成兼容派生：输入
+  offset 固定为 `0,1,2`，每个共享索引按三输入展开，最终 19620 个索引。派生 DAE 为
+  492,888 字节，SHA-256
+  `526F18CE199D6682D4FD8DA254FFA279761CDB6E51A2D7A1A93BF21AA237CD76`。
+- 目标引擎导入：已确认。构建守卫用 x25.01.17 的真实 `ModelData.Load` 导入包内派生模型，结果
+  为 3 bones/1 mesh，mesh 名 `obj1`，低于七骨骼世界渲染预算；导入异常或布局回退会直接中止打包。
+- 物品路径：已确认（源码/编译）。`RailVehicleBlock.Initialize` 改为枚举 `model.Meshes` 并逐个
+  烘焙其父骨骼绝对变换，不再依赖单一 `FindMesh`；火车和车厢共用该安全路径。
+- 环境与全量回归：已确认。根目录及 SCIE-Port 的 `Test-Environment.ps1 -GameDir D:\SC`
+  通过固定三程序集哈希、API 1.42、SC 2.4.10.6 与 net472 检查；Kelly 11、ATV 35、越野车 20、
+  快艇 16、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49 全部通过。
+- Release / 数据库 / 包：已确认。在隔离的干净 worktree 中仅带入车厢修复执行
+  `Build-NetMod.ps1 -GameDir D:\SC -Configuration Release`，exit 0，net472 0 warning/0 error，
+  11 份 XDB 验证通过，59 个包条目；产物 429,800 字节，SHA-256
+  `75978D899701EF3B7670B2EB31206C1031B418A0D44D766AFE0A16E8D7147770`。DLL
+  Assembly/FileVersion 为 `0.22.3.0`，构建时 ProductVersion 为
+  `0.22.3+2963a91e684062416779e6cd88fe54602b8acf79`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。需删除旧包、冷启动后分别确认创造栏车厢图标与生成后的世界实体可见，
+  再测试日照/阴影/室内、上车驾驶、保存重进、区块重载以及房主/普通客户端观察一致性。
+
 ## 0.22.2 坦克武器与耐久修复（2026-10-24）
 
 - 目标取证：已确认。固定 `D:\SC` x25.01.17 的 `Content.scpak` 中原版 Damage 模板声明 `Hitpoints` 为 0..1、默认 1，并提供 `AttackResilience`；环境脚本反射确认 `ComponentDamage.Hitpoints`、`AttackResilience`、`Damage(float)` 与 `Save(...)`。

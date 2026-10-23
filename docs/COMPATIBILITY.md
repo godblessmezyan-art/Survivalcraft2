@@ -250,6 +250,22 @@ Move 给三种车辆 Drive，再清除两名稳定乘员的个人移动/跳跃�
 （427,650 字节，程序集 0.22.2.0）。Android 发射帧后坐、近/远爆、俯仰显示、耐久保存/报废、火免及
 房主/普通客户端开火同步仍为待验证。
 
+### SCIE-Port v0.22.3 车厢模型导入修复
+
+用户反馈车厢不显示。固定 `D:\SC` x25.01.17 的真实 `Engine.Media.ModelData.Load` 已复现确定根因：
+授权上游 `Minecart.dae` 虽为合法 Y_UP XML，但 polylist 的 `VERTEX/NORMAL/TEXCOORD` 全声明
+`offset=0` 且只给一个共享索引流；目标 `Collada.LoadPolygons` 因缺少第二、第三索引列抛
+`ArgumentOutOfRangeException`，模型在进入世界渲染前即加载失败。
+
+v0.22.3 保持只读上游文件不变，在打包 staging 生成等价兼容派生：offset 改为 `0/1/2`，6540 个
+顶点引用展开为 19620 个交错索引，不改顶点、法线、UV、面数或实体参数。构建用目标 Engine 导入
+并断言结果为 3 bones/1 `obj1` mesh，低于七骨骼预算；物品路径同时枚举全部 meshes。
+
+根/SCIE 环境检查、全套规则、net472 Release 0 警告/0 错误、11 份 XDB 与 59 条包内容校验已通过；
+`.netmod` SHA-256 `75978D899701EF3B7670B2EB31206C1031B418A0D44D766AFE0A16E8D7147770`
+（429,800 字节，程序集 0.22.3.0）。Windows 游戏及 Android 7723 的创造栏/世界车厢显示、低光、
+保存重进、区块重载和联机观察仍为待验证。
+
 ## 尚未确认的能力（Builder Assistant）
 
 - Android 客户端是否使用与 Windows 完全相同的 `Survivalcraft` ABI。
