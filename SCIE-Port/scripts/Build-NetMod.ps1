@@ -796,7 +796,7 @@ try {
     if ($atvModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'ATV.dae must be oriented Y_UP.'
     }
-    $atvParts = @('BikeFrame', 'BikeEngine', 'BikeFuelTank', 'BikeDriverSeat', 'BikePassengerSeat', 'BikeFrontFork', 'BikeHandlebarStem', 'BikeHandlebar', 'BikeFrontWheel', 'BikeRearWheel', 'BikeFrontFender', 'BikeRearFender')
+    $atvParts = @('BikeFrontWheel', 'BikeRearWheel', 'BikeFrontFork', 'BikeHandlebar', 'BikeHeadlight', 'BikeFrame', 'BikeEngine', 'BikeFuelTank', 'BikeSeat', 'BikeSidePanels', 'BikeExhaust', 'BikeSwingarm', 'BikeFenders')
     $atvSceneNodes = @($atvModelDocument.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
     if ($atvSceneNodes.Count -ne 1 -or $atvSceneNodes[0].GetAttribute('name') -ne 'ATV') {
         throw 'ATV.dae must use exactly one ATV scene node so ComponentSimpleModel stays within the SCNET seven-bone shader limit.'
@@ -809,19 +809,59 @@ try {
     if ($atvGeometryInstances.Count -ne $atvParts.Count) {
         throw "ATV.dae root must reference all $($atvParts.Count) independent geometries; found $($atvGeometryInstances.Count)."
     }
+    $atvTriangleBudget = 6000
+    $atvTotalTriangles = 0
     foreach ($requiredNode in $atvParts) {
         if ($atvGeometryInstances -notcontains "$requiredNode-mesh") {
             throw "ATV.dae root does not reference required geometry $requiredNode-mesh."
         }
         $geometry = $atvModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$requiredNode']")
         if ($null -eq $geometry) { throw "ATV.dae is missing independent geometry $requiredNode." }
-        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
-        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24) {
-            throw "ATV.dae geometry $requiredNode must contain 8 cuboid positions (24 floats)."
+
+        $posAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-positions')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        $nrmAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-normals')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        $uvAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-uv')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        if ($null -eq $posAccessor -or $null -eq $nrmAccessor -or $null -eq $uvAccessor) {
+            throw "ATV.dae geometry $requiredNode is missing a positions/normals/uv accessor."
         }
+        if ($posAccessor.GetAttribute('stride') -ne '3' -or $nrmAccessor.GetAttribute('stride') -ne '3' -or $uvAccessor.GetAttribute('stride') -ne '2') {
+            throw "ATV.dae geometry $requiredNode must use stride 3/3/2 for positions/normals/uv."
+        }
+        $vertexCount = [int]$posAccessor.GetAttribute('count')
+        if ($vertexCount -lt 3 -or $vertexCount % 3 -ne 0) {
+            throw "ATV.dae geometry $requiredNode vertex count ($vertexCount) must be a positive multiple of three."
+        }
+        if ([int]$nrmAccessor.GetAttribute('count') -ne $vertexCount -or [int]$uvAccessor.GetAttribute('count') -ne $vertexCount) {
+            throw "ATV.dae geometry $requiredNode positions/normals/uv accessors disagree on the vertex count ($vertexCount)."
+        }
+
+        $posArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $nrmArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'normals-array')]")
+        $uvArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'uv-array')]")
+        if ($null -eq $posArray -or $null -eq $nrmArray -or $null -eq $uvArray) {
+            throw "ATV.dae geometry $requiredNode is missing a positions/normals/uv float_array."
+        }
+        $posFloats = @($posArray.InnerText -split '\s+' | Where-Object { $_ })
+        $nrmFloats = @($nrmArray.InnerText -split '\s+' | Where-Object { $_ })
+        $uvFloats = @($uvArray.InnerText -split '\s+' | Where-Object { $_ })
+        if ($posFloats.Count -ne ($vertexCount * 3) -or $nrmFloats.Count -ne ($vertexCount * 3)) {
+            throw "ATV.dae geometry $requiredNode positions/normals must each hold $($vertexCount * 3) floats."
+        }
+        if ($uvFloats.Count -ne ($vertexCount * 2)) {
+            throw "ATV.dae geometry $requiredNode uv array must hold $($vertexCount * 2) floats; found $($uvFloats.Count)."
+        }
+        foreach ($uvValue in $uvFloats) {
+            $parsedUv = [double]::Parse($uvValue, [Globalization.CultureInfo]::InvariantCulture)
+            if ($parsedUv -lt 0 -or $parsedUv -gt 1) {
+                throw "ATV.dae geometry $requiredNode has a UV coordinate ($parsedUv) outside the 0..1 atlas."
+            }
+        }
+
         $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
-        if ($null -eq $triangles -or $triangles.GetAttribute('count') -ne '12') {
-            throw "ATV.dae geometry $requiredNode must contain exactly 12 triangles."
+        if ($null -eq $triangles) { throw "ATV.dae geometry $requiredNode is missing a triangles element." }
+        $triangleCount = [int]$triangles.GetAttribute('count')
+        if ($triangleCount -ne ($vertexCount / 3)) {
+            throw "ATV.dae geometry $requiredNode triangles count ($triangleCount) must equal vertexCount/3 ($($vertexCount / 3))."
         }
         foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
             if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
@@ -829,14 +869,19 @@ try {
             }
         }
         $faceIndices = @($triangles.SelectSingleNode("./*[local-name()='p']").InnerText -split '\s+' | Where-Object { $_ } | ForEach-Object { [int]$_ })
-        if ($faceIndices.Count -ne 108) { throw "ATV.dae geometry $requiredNode must contain 108 interleaved face indices; found $($faceIndices.Count)." }
-        for ($i = 0; $i -lt $faceIndices.Count; $i += 3) {
-            if ($faceIndices[$i] -lt 0 -or $faceIndices[$i] -gt 7 -or
-                $faceIndices[$i + 1] -lt 0 -or $faceIndices[$i + 1] -gt 5 -or
-                $faceIndices[$i + 2] -ne 0) {
-                throw "ATV.dae geometry $requiredNode contains an out-of-range vertex/normal/UV face index at tuple $($i / 3)."
+        if ($faceIndices.Count -ne ($triangleCount * 9)) {
+            throw "ATV.dae geometry $requiredNode must hold $($triangleCount * 9) interleaved indices; found $($faceIndices.Count)."
+        }
+        $maxFaceIndex = $vertexCount - 1
+        foreach ($faceIndex in $faceIndices) {
+            if ($faceIndex -lt 0 -or $faceIndex -gt $maxFaceIndex) {
+                throw "ATV.dae geometry $requiredNode has an out-of-range face index ($faceIndex); valid range 0..$maxFaceIndex."
             }
         }
+        $atvTotalTriangles += $triangleCount
+    }
+    if ($atvTotalTriangles -gt $atvTriangleBudget) {
+        throw "ATV.dae total triangle count ($atvTotalTriangles) exceeds the mobile budget of $atvTriangleBudget triangles."
     }
     $atvGeometryNames = @($atvModelDocument.SelectNodes("//*[local-name()='geometry']") | ForEach-Object { $_.GetAttribute('name') })
     if (($atvGeometryNames | Select-Object -Unique).Count -ne $atvParts.Count) {
@@ -867,7 +912,7 @@ try {
     Add-Type -AssemblyName System.Drawing
     $atvBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\ATV.png'))
     try {
-        if ($atvBitmap.Width -ne 32 -or $atvBitmap.Height -ne 8) { throw 'ATV.png must be the audited 32x8 opaque palette.' }
+        if ($atvBitmap.Width -ne 64 -or $atvBitmap.Height -ne 64) { throw 'ATV.png must be the 64x64 low-poly material atlas.' }
         $atvColors = New-Object System.Collections.Generic.HashSet[int]
         for ($x = 0; $x -lt $atvBitmap.Width; $x++) {
             for ($y = 0; $y -lt $atvBitmap.Height; $y++) {
@@ -876,7 +921,7 @@ try {
                 [void]$atvColors.Add($pixel.ToArgb())
             }
         }
-        if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
+        if ($atvColors.Count -gt 96) { throw "ATV.png must stay within a 96-color opaque palette; found $($atvColors.Count)." }
     }
     finally { $atvBitmap.Dispose() }
 

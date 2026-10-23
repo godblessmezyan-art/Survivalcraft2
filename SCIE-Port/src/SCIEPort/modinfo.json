@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.22.3",
+  "Version": "0.23.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.3 fixes the invisible carriage by packaging a Collada index layout accepted by the target Engine and rendering every imported rail-vehicle mesh in inventory. v0.22.2 tank recoil, pitch, impact explosion and finite durability fixes remain included, as do v0.22.1 two-seat input/seat fixes and v0.22 multiplayer driving. Remote tank fire stays server-validated; ordinary clients never create explosive shells. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 carriage rendering is pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.23.0 rebuilds the tandem motorcycle visual as the low-poly Wilderness Explorer X1: a 13-part baked model (lofted 16-gon wheels, tubular frame/forks/exhaust, faceted tank, torus-spring shocks) with a 64x64 opaque material atlas, still importing as 1 bone / 13 meshes inside the 1.1,1.25,2.6 collision box. Block 923, the SCIEPortATV GUIDs, two-rider seating, driving, networking and save/load are unchanged; v0.22.3 carriage index-layout fix and all earlier tank/seat/multiplayer fixes remain included. Android/7723 motorcycle rendering is pending real-device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

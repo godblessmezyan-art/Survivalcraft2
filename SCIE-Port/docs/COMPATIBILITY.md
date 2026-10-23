@@ -79,11 +79,12 @@ Android 或多人测试。
 | ATV 物品与 ID 923 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 的 260 个原版方块常量完成扫描；923 未占用且与本工程 903–922、995–1000 无内部冲突。其他 Mod 的 ID 冲突仍待安装时检查 |
 | ATV 实体/XDB 合并 | 已确认 | `SCIEPortATV` 保持实体名、原 GUID、唯一原生 Mount、Body、Spawn、Damage 和 Drive，并新增座位管理组件；`AutoDespawn=False` 继续依赖原生实体保存链 |
 | ATV 地面物理 | 已确认 | v0.22.1 由本机主驾驶缓存读取触屏 Move；乘客输入不进入 Drive。`ComponentBody` 继续负责碰撞、重力和 1.05 格 smooth rise |
-| ATV 模型与贴图 | 已确认（静态/目标导入） | 项目创建的 `ATV.dae` 已改为 12 部件双座越野摩托，Y_UP、单 identity 骨骼、12 meshes；32×8 四色不透明 `ATV.png` 为项目脚本生成。Android 新外观待验证 |
+| ATV 模型与贴图 | 已被 v0.23 取代 | 历史结论：项目创建的 `ATV.dae` 曾为 12 部件双座越野摩托、32×8 四色不透明 `ATV.png`。v0.23 起以「荒野探索者 X1」13 部件低多边形模型与 64×64 材质图集取代，见下条 |
 | ATV Windows/Android/联机运行 | 待验证 | 旧 0.8.3 模型显示结论不自动覆盖 v0.3 新模型。Windows 未运行；Android 单人、保存重载、主机/客户端互换驾驶与乘客、独立观察及上下车均待验证 |
 | ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
 | ATV v0.2.1 Android 世界模型空白 | 已确认（缺陷/机理） | 用户在 Android 7723 确认 0.8.2 物品栏图标可见、生成实体无模型；目标 `ModLoader.GetMaxInstancesCount()` 返回 7，而旧 DAE 经目标 `Engine.Media.ModelData.Load` 导入为 10 bones/9 meshes。物品栏将网格烘焙进 `BlockMesh`，世界实体则把 10 个骨骼变换交给实例模型着色器，因此两条路径表现不同 |
 | ATV v0.2.1 单骨骼修复 | 已确认 | 0.8.3 保留九个独立 geometry，但都挂到单个 identity `ATV` 场景节点；目标 Engine 实际导入结果为 1 bone/9 meshes，低于七骨骼限制。物品代码改为枚举全部 meshes；2026-10-20 用户在 Android 7723 确认物品栏与世界模型显示通过。驾驶、越障、保存和多人不继承此结论 |
+| ATV v0.23 X1 模型 V2 | 已确认（静态/目标导入） | `New-AtvAssets.ps1` 可复现生成「荒野探索者 X1」：13 个独立 Y_UP geometry（放样 16 边轮、管状车架/前叉/排气、多面体油箱、环面弹簧减震、弧板挡泥）全部烘焙并挂单个 identity `ATV` 节点；目标 `Engine.Media.ModelData.Load` 导入为 1 bone/13 meshes，共 3352 三角面（预算 6000）；64×64 不透明材质图集（33 色）；包围盒 X±0.3713/Y0.0032–1.187/Z±1.2868 完全落入 `1.1,1.25,2.6` Body。Block 923、`SCIEPortATV` GUID、双座、驾驶与联机逻辑均未改动。Android/7723 新外观渲染待验证 |
 | ATV v0.2 阻力修复 | 已确认 | 真实 `ComponentBody.Update` 的 `6*dt` 接地阻力已反编译确认；驾驶时禁用该项并使用帧率无关的纵向/横向控制，无人时恢复。Android 手感待验证 |
 | ATV v0.2 一格越障 | 已确认 | ABI/代码级确认使用原生三轴碰撞和连续 `4.5*dt` smooth rise，`MaxSmoothRiseHeight=1.05`；不写 Position/地形且不抬高实体碰撞。Android 一格台阶与净空仍待验证 |
 | ATV v0.2 诊断日志 | 已确认 | 仅本地单人、有人驾驶时每 5 秒输出速度、油门、地形/实体支撑、离地时间、原生阻力开关和状态；Android 日志格式待验证 |

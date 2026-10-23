@@ -762,3 +762,35 @@ Android 7723 联网/真机验证阶段。
 - 运行时联机同步：待验证。静态审计只证明「代码仅权威端写世界」，无法证明同步包实际行为；作物 DATA/实体生成
   回同步、`OnUse`/`OnNeighborBlockChanged` 触发端、载具物理跨端一致均需主机+客户端两台实测（见 COMPATIBILITY
   0.21.1 三档实测清单）。Windows/Android 7723 联机均未开测。
+
+## 0.23.0 荒野探索者 X1 摩托外观 V2
+
+- 生成可复现：已确认。`scripts/New-AtvAssets.ps1 -ProjectRoot <repo>` 从纯参数化几何核（Frustum/Tube/Loft/
+  Torus/ArcPlate/BoxA，内嵌 C#5）确定性产出 `src/SCIEPort/Assets/Models/ATV.dae` 与
+  `src/SCIEPort/Assets/Textures/ATV.png`；不再堆叠小立方体模拟圆。旧 12 部件资产备份于
+  `artifacts/backups/atv-pre-x1/`（gitignore，仅本地）。
+- 部件与面数：已确认。13 个独立 geometry：FrontWheel 600 / RearWheel 600 / FrontFork 172 / Handlebar 220 /
+  Headlight 60 / Frame 348 / Engine 252 / FuelTank 60 / Seat 60 / SidePanels 24 / Exhaust 136 / Swingarm 660 /
+  Fenders 160，合计 **3352 三角面**（移动端预算 6000，构建断言强制）。
+- 目标导入：已确认。`Build-NetMod.ps1` 反射目标 `Engine.Media.ModelData.Load` 实测 **1 bone / 13 meshes**，
+  低于 SCNET 七骨骼实例着色器上限；单 identity `ATV` 场景节点、Y_UP、变换烘焙均通过断言。
+- 包围盒：已确认。X [-0.371265, 0.371265]、Y [0.003218, 1.187]、Z [-1.286782, 1.286397]，完全落入
+  `1.1,1.25,2.6` ComponentBody；碰撞/骑乘/联机/存档代码零改动，Block 923 与 `SCIEPortATV` GUID 不变。
+- 贴图：已确认。64×64 不透明材质图集、33 色（断言上限 96），16 个带 1-texel 内缩的区域（橙/碳黑/银/铬/
+  橡胶/座椅/灯等）；UV 全部位于 [0,1] 且逐区域隔离，构建断言逐 geometry 校验 accessor 步长、浮点个数、
+  索引范围与 triangles count 一致性。
+- 离线验收预览：已确认。`scripts/Render-AtvPreviews.ps1` 输出 7 视角 ×（白模/彩色）共 14 张于
+  `artifacts/previews/atv-x1/`；目检 left/front/front45/rear45/top 均能识别为结构化越野摩托，排气管仅右侧、
+  双座连续、油箱前宽后窄。
+- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过；`Build-NetMod.ps1 -GameDir D:\SC
+  -Configuration Release`（经 DOTNET_ROOT 指向 SDK 9.0.300）全程 exit 0，DATABASE VALIDATION PASSED，
+  产物 **496,289 字节**，SHA-256 `0934145603B1FADE38F94D493D49455DF50D3193AA42FB577A015727E7C78F35`；
+  包内 modinfo 版本 0.23.0。
+- 上游资产恢复：环境备注。本工作区 `upstream/SCIE/`（gitignore 的授权第三方资产）曾被清空导致打包在
+  「Missing authorized upstream asset」中断；用 `scripts/Restore-UpstreamFromPackage.ps1` 从用户自有上一版
+  `SCIEPort.netmod` 还原 SteamBoat.png/Train.png/Cylinder.dae（逐字节同源）与 Minecart.dae（已归一化形态，
+  构建对其 pass-through，包内结果与原版推导一致）。该目录不入库，正式环境仍应使用原始授权文件。
+- Windows 游戏运行：待验证。本机未启动游戏；新外观在物品栏/世界/骑乘态的显示与旧结论不互相继承。
+- Android 7723：待验证。13 部件新模型与 64×64 图集的物品栏图标、世界实体渲染、双人乘坐视觉、不同角度
+  辨识度均需真机新世界验证；编译与离线预览通过不得标记为兼容。
+- 多人联机：待验证。本次仅改视觉资产，未触碰座位/权威/同步代码；双人同乘显示一致性仍需双机实测。
