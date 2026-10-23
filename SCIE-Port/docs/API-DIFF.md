@@ -228,6 +228,18 @@ Mount/ParentBody、16 位序号、冷却及浸水状态复核后创建弹丸，�
 `ParentBodyPositionOffset/ParentBodyRotationOffset`。主管理器仍在 `CreatureModels` 阶段保持驾驶员为
 首子 Body 并抑制普通客户端乘客的父车发送脏位。本实现不反射或改写私有网络包队列。
 
+## 0.22.2 坦克 Damage 与炮弹生命周期复核
+
+从固定 x25.01.17 `Content.scpak/Assets/Database.xml` 读取真实 `Damage` 组件模板（父 GUID
+`17bb7b53-159c-4eb3-b4bc-137b10bba88a`）：`Hitpoints` 说明范围为 0..1，默认 1；
+`AttackResilience` 定义攻击伤害除数。目标程序集反射同时确认公开 `Hitpoints`、`AttackResilience`、
+`Damage(float)` 与 `Save(ValuesDictionary,EntityToIdMap)`。v0.22.2 因此使用 `Hitpoints=1`、
+`AttackResilience=600`，不再沿用旧文档中超出模板声明范围的 Hitpoints=4；实体仍无 `OnFire`。
+
+炮弹继续使用独立 `SubsystemTankShellBlockBehavior.OnHitAsProjectile` 作为唯一爆炸入口。
+`ProjectileRemoved` 只清理字典，避免寿命/卸载误爆；首次碰撞不检查飞行距离，故贴墙与远距命中行为一致。
+后坐常量为水平速度 1.25，并在驱动积分之后由成功发射路径施加，不在碰撞/移除回调施加。
+
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

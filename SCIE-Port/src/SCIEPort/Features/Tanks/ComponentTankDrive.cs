@@ -25,7 +25,6 @@ namespace SCIEPort.Features.Tanks
         private sealed class ShellState
         {
             public PlayerData PlayerData;
-            public Vector3 StartPosition;
         }
 
         private readonly Dictionary<Projectile, ShellState> m_shells = new Dictionary<Projectile, ShellState>();
@@ -180,20 +179,6 @@ namespace SCIEPort.Features.Tanks
             // unrelated to the barrel. The shell always uses the current articulated angles.
             AimTurret(player.GameWidget.ActiveCamera.ViewDirection, t);
             ApplyArticulation();
-            bool wantsFire = TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor);
-            if (wantsFire && CommonLib.WorkType == WorkType.Client)
-            {
-                // Clients never create explosive projectiles. They only request a
-                // shot; the server revalidates rider, mount, sequence and cooldown.
-                m_fireCooldown = TankRules.FireCooldown;
-                QueueTankControl(rider, fire: true);
-                m_networkStateTime = 0f;
-            }
-            else if (wantsFire)
-            {
-                FireMainGun(player, CalculateGunDirection());
-            }
-
             m_networkStateTime += t;
             if (CommonLib.WorkType != WorkType.Local && m_networkStateTime >= 0.1f)
             {
@@ -201,33 +186,63 @@ namespace SCIEPort.Features.Tanks
                 QueueTankControl(rider, fire: false);
             }
 
+            UpdateDrive(t, rider, input, throttle, terrainGrounded, bodyGrounded);
+
+            // Fire after the drive integration so the shot-frame recoil cannot be
+            // overwritten by the normal throttle/traction pass later in this update.
+            bool wantsFire = TankRules.CanFire(m_fireCooldown, hitRay.HasValue, m_body.ImmersionFactor);
+            if (wantsFire && CommonLib.WorkType == WorkType.Client)
+            {
+                // Clients never create explosive projectiles. Apply immediate local
+                // recoil, then ask the server to validate and create the actual shell.
+                Vector3 direction = CalculateGunDirection();
+                m_fireCooldown = TankRules.FireCooldown;
+                ApplyRecoil(direction);
+                QueueTankControl(rider, fire: true);
+                m_networkStateTime = 0f;
+            }
+            else if (wantsFire)
+            {
+                FireMainGun(player, CalculateGunDirection());
+            }
+        }
+
+        private void UpdateDrive(
+            float dt,
+            ComponentRider rider,
+            Vector3 input,
+            float throttle,
+            bool terrainGrounded,
+            bool bodyGrounded)
+        {
             if (!TankRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))
             {
                 // Preserve horizontal momentum while airborne. Gravity, collision and
                 // native air/water drag remain owned by ComponentBody.
                 if (m_body.ImmersionFactor >= .8f) rider.StartDismounting();
-                WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "drive-blocked");
+                WriteDiagnostics(dt, throttle, terrainGrounded, bodyGrounded, "drive-blocked");
                 return;
             }
 
-            Vector3 forward = m_body.Matrix.Forward; forward.Y = 0f;
+            Vector3 forward = m_body.Matrix.Forward;
+            forward.Y = 0f;
             if (forward.LengthSquared() < .0001f) return;
             forward = Vector3.Normalize(forward);
             Vector3 velocity = m_body.Velocity;
             Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
             float speed = Vector3.Dot(horizontal, forward);
-            speed = TankRules.IntegrateForwardSpeed(speed, throttle, t);
+            speed = TankRules.IntegrateForwardSpeed(speed, throttle, dt);
             Vector3 lateral = horizontal - forward * Vector3.Dot(horizontal, forward);
-            lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(LateralGrip * t));
+            lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(LateralGrip * dt));
             horizontal = forward * speed + lateral;
             m_body.Velocity = new Vector3(horizontal.X, velocity.Y, horizontal.Z);
             if (MathUtils.Abs(input.X) >= .05f)
             {
                 float direction = TankRules.GetSteeringDirection(speed);
                 float scale = TankRules.GetSteeringScale(MathUtils.Abs(speed));
-                m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * TurnRate * scale * t);
+                m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -input.X * direction * TurnRate * scale * dt);
             }
-            WriteDiagnostics(t, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
+            WriteDiagnostics(dt, throttle, terrainGrounded, bodyGrounded, "terrain-drive");
         }
 
         private void QueueTankControl(ComponentRider rider, bool fire)
@@ -322,14 +337,18 @@ namespace SCIEPort.Features.Tanks
             shell.ProjectileStoppedAction = ProjectileStoppedAction.Disappear;
             m_shells[shell] = new ShellState
             {
-                PlayerData = player.PlayerData,
-                StartPosition = muzzle
+                PlayerData = player.PlayerData
             };
             m_fireCooldown = TankRules.FireCooldown;
             m_audio.PlaySound("Audio/MusketFire", 1f, 0f, muzzle, 64f, true);
+            ApplyRecoil(direction);
+        }
+
+        private void ApplyRecoil(Vector3 direction)
+        {
             Vector3 recoil = new Vector3(direction.X, 0f, direction.Z);
             if (recoil.LengthSquared() > .0001f)
-                m_body.Velocity -= Vector3.Normalize(recoil) * .45f;
+                m_body.Velocity -= Vector3.Normalize(recoil) * TankRules.RecoilSpeed;
         }
 
         private void OnProjectileRemoved(Projectile projectile)
@@ -337,7 +356,8 @@ namespace SCIEPort.Features.Tanks
             ShellState state;
             if (!m_shells.TryGetValue(projectile, out state)) return;
             m_shells.Remove(projectile);
-            TryExplodeShell(state, projectile.Position);
+            // Lifetime expiry, chunk unload and other non-impact removals are not hits.
+            // The first-impact callback is the only path that creates an explosion.
         }
 
         private void OnShellHit(Projectile projectile, CellFace? cellFace, ComponentBody hitBody)
@@ -349,26 +369,14 @@ namespace SCIEPort.Features.Tanks
             Vector3 impactPosition = cellFace.HasValue
                 ? new Vector3(cellFace.Value.X + .5f, cellFace.Value.Y + .5f, cellFace.Value.Z + .5f)
                 : projectile.Position;
-            TryExplodeShell(state, impactPosition);
+            ExplodeShell(state, impactPosition);
         }
 
-        private void TryExplodeShell(ShellState state, Vector3 impactPosition)
+        private void ExplodeShell(ShellState state, Vector3 impactPosition)
         {
-            float travelDistanceSquared = Vector3.DistanceSquared(state.StartPosition, impactPosition);
             int explosionX = Terrain.ToCell(impactPosition.X);
             int explosionY = Terrain.ToCell(impactPosition.Y);
             int explosionZ = Terrain.ToCell(impactPosition.Z);
-            Vector3 explosionCenter = new Vector3(explosionX + .5f, explosionY + .5f, explosionZ + .5f);
-            BoundingBox tankBox = m_body.BoundingBox;
-            if (!TankRules.CanShellExplode(
-                travelDistanceSquared,
-                explosionCenter.X, explosionCenter.Y, explosionCenter.Z,
-                tankBox.Min.X, tankBox.Min.Y, tankBox.Min.Z,
-                tankBox.Max.X, tankBox.Max.Y, tankBox.Max.Z))
-            {
-                Log.Warning("SCIE-Port Tank: suppressed a shell explosion inside the firing vehicle blast-safety envelope.");
-                return;
-            }
             m_explosions.AddExplosion(
                 explosionX,
                 explosionY,

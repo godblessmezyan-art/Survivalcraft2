@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.22.1",
+  "Version": "0.22.2",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.1 keeps the v0.22 multiplayer-driving path and fixes two-seat ATV, speedboat and off-road car riders: the driver's movement is captured before native rider processing, both riders keep independent seat offsets, horizontal view remains free, and mounted players retain aim, attack, interact and block-use inputs. Tank turret state is replicated separately and remote fire remains server-validated; explosive projectiles are never created by ordinary clients. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 multiplayer behavior is pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.2 applies tank recoil on the successful shot frame after drive integration, limits the T-34 gun to -5/+25 degrees, explodes every first physical shell impact regardless of range, and restores finite armored durability with Hitpoints=1 and AttackResilience=600 while retaining fire immunity. v0.22.1 two-seat input/seat fixes and v0.22 multiplayer driving remain included. Remote tank fire stays server-validated; ordinary clients never create explosive shells. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 behavior is pending real-device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

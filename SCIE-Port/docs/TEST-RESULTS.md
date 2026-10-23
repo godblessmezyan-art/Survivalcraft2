@@ -1,5 +1,16 @@
 # 测试结果
 
+## 0.22.2 坦克武器与耐久修复（2026-10-24）
+
+- 目标取证：已确认。固定 `D:\SC` x25.01.17 的 `Content.scpak` 中原版 Damage 模板声明 `Hitpoints` 为 0..1、默认 1，并提供 `AttackResilience`；环境脚本反射确认 `ComponentDamage.Hitpoints`、`AttackResilience`、`Damage(float)` 与 `Save(...)`。
+- 发射顺序：已确认（源码/编译）。主驾驶更新先完成推进/抓地，再处理开火；成功创建炮弹后立刻施加 `RecoilSpeed=1.25`。普通客户端不创建炮弹，只在发送服务器验证请求时预测同一后坐。
+- 炮弹生命周期：已确认（源码/编译）。只有独立首次命中回调调用爆炸；取消所有飞行距离/发射车辆包络门槛，近距与远距共用路径。`ProjectileRemoved` 只删除状态，生命周期/区块卸载不会爆炸或重复爆炸。
+- 炮管与耐久规则：已确认。纯规则新增 `-5°/+25°` 限位与 `1.25` 后坐断言；XDB/打包守卫要求 Damage 父 GUID、`Hitpoints=1`、`AttackResilience=600`，并禁止 `OnFire`。
+- 全量离线回归：已确认。Kelly 11、ATV 35、越野车 20、快艇 16、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49 全部通过。
+- Release / 数据库 / 包：已确认。执行 `Build-NetMod.ps1 -GameDir D:\SC -Configuration Release`，exit 0，net472 0 warning/0 error，11 份 XDB 验证通过，59 个包条目；产物 427,650 字节，SHA-256 `94B1FFF3D9BBC9140FC2F2E7AF7D748B0331087B9454A52B481FD0BF24C3FD49`。DLL Assembly/FileVersion 为 `0.22.2.0`，构建时 ProductVersion 为 `0.22.2+79d231d5ec93fb15b20837d5fa307c6372aba0cd`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。必须验证发射当帧后坐而非等命中、炮管五向限位/视觉弹道一致、贴墙与远距都只爆一次、非命中消失不爆、耐久保存与归零报废、不可点燃，以及房主/普通客户端开火一致性。
+
 ## 0.22.1 双座输入与座位稳定化（2026-10-24）
 
 - 目标环境：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过三程序集固定哈希、API 1.42、net472，并新增确认 `PlayerInput` 动作字段、公开 `m_playerInput`、`LookOrder`、可写父体偏移、`SubsystemUpdate` 注册接口以及 `-10 < -5 < 0` 调度顺序。

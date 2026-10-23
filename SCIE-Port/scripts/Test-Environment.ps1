@@ -54,6 +54,7 @@ $componentModel = $assembly.GetType('Game.ComponentModel', $true)
 $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
 $componentLocomotion = $assembly.GetType('Game.ComponentLocomotion', $true)
+$componentDamage = $assembly.GetType('Game.ComponentDamage', $true)
 $subsystemUpdate = $assembly.GetType('Game.SubsystemUpdate', $true)
 $packageManager = $assembly.GetType('Game.NetWork.PackageManager', $true)
 $packageInterface = $assembly.GetType('Game.NetWork.IPackage', $true)
@@ -122,6 +123,12 @@ if (-not $componentInput.GetField('m_playerInput', [Reflection.BindingFlags]'Pub
 }
 if (-not $componentLocomotion.GetProperty('LookOrder')) {
     throw 'ComponentLocomotion.LookOrder required by independent mounted aiming was not found.'
+}
+if (-not $componentDamage.GetProperty('Hitpoints') -or
+    -not $componentDamage.GetProperty('AttackResilience') -or
+    -not $componentDamage.GetMethod('Damage', [Reflection.BindingFlags]'Public,Instance') -or
+    -not $componentDamage.GetMethod('Save', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'ComponentDamage durability/save API required by the finite-life tank was not found.'
 }
 $inputUpdateOrder = [int]$componentInput.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentInput), $null)
 $playerUpdateOrder = [int]$componentPlayer.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentPlayer), $null)
@@ -220,4 +227,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'

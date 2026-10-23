@@ -1,5 +1,13 @@
 # SCIE-Port
 
+Version 0.22.2 corrects the T-34 weapon lifecycle. Recoil is applied immediately
+after a successful shot and after the frame's drive integration, the gun uses a
+realistic -5/+25 degree mechanical pitch range, and every first physical shell
+impact explodes regardless of distance while non-impact removal stays silent.
+Finite native durability is restored (`Hitpoints=1`, `AttackResilience=600`),
+with no fire component. Release/static checks pass; Android 7723 behavior
+remains pending real-device verification.
+
 Version 0.22.1 fixes the remaining two-seat rider/input conflict on ATV,
 speedboat and off-road car. Driver movement is captured before native rider
 locomotion, both riders retain distinct seat offsets, horizontal view remains

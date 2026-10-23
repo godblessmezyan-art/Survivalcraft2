@@ -95,6 +95,24 @@ foreach ($relativeDriveSource in $driveSources) {
         throw "$relativeDriveSource regressed to a single-player-only drive gate."
     }
 }
+$tankDriveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Tanks\ComponentTankDrive.cs')
+$tankDriveUpdateIndex = $tankDriveSource.IndexOf('UpdateDrive(t, rider, input, throttle, terrainGrounded, bodyGrounded);')
+$tankFireGateIndex = $tankDriveSource.IndexOf('bool wantsFire = TankRules.CanFire')
+if ($tankDriveUpdateIndex -lt 0 -or $tankFireGateIndex -lt 0 -or $tankDriveUpdateIndex -gt $tankFireGateIndex -or
+    -not $tankDriveSource.Contains('* TankRules.RecoilSpeed')) {
+    throw 'Tank recoil must be applied by the successful shot path after drive integration.'
+}
+$projectileRemovedBody = [regex]::Match($tankDriveSource, '(?s)private void OnProjectileRemoved\(Projectile projectile\)(.*?)private void OnShellHit').Groups[1].Value
+$shellHitBody = [regex]::Match($tankDriveSource, '(?s)private void OnShellHit\(Projectile projectile, CellFace\? cellFace, ComponentBody hitBody\)(.*?)private void ExplodeShell').Groups[1].Value
+if ($projectileRemovedBody.Contains('ExplodeShell') -or -not $shellHitBody.Contains('ExplodeShell(state, impactPosition)')) {
+    throw 'Tank shells must explode only on first physical impact, never on ordinary projectile removal.'
+}
+$tankRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Tanks\TankRules.cs')
+foreach ($removedRangeGate in @('ShellArmingDistance', 'ShellVehicleSafetyClearance', 'CanShellExplode')) {
+    if ($tankRulesSource.Contains($removedRangeGate)) {
+        throw "Tank shell range gate $removedRangeGate must not suppress close-impact explosions."
+    }
+}
 $seatManagerSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Vehicles\ComponentTwoSeatManager.cs')
 if (-not $seatManagerSource.Contains('MoveDriverBodyToFront') -or -not $seatManagerSource.Contains('m_childBodies.Insert(0, driverBody)')) {
     throw 'Two-seat vehicles must keep the driver first for native parent-body network authority.'
@@ -394,7 +412,7 @@ try {
         $tankShellMember.InheritanceParent -ne $tankShellBehavior.Guid) {
         throw 'Tank shell first-impact behavior is missing or not attached to Project.'
     }
-    foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body')) {
+    foreach ($requiredTankComponent in @('TankDrive', 'SimpleModel', 'Spawn', 'Mount', 'Body', 'Damage')) {
         if ($null -eq $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$requiredTankComponent']")) {
             throw "Tank entity is missing component: $requiredTankComponent"
         }
@@ -408,8 +426,14 @@ try {
     if ($tankModel.Value -ne 'Models/T34Tank' -or $tankTexture.Value -ne 'Textures/T34Tank' -or $tankStep.Value -ne '1.05') {
         throw 'Tank entity model, texture or ground-step parameters are not the audited values.'
     }
-    if ($null -ne $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Damage']")) {
-        throw 'Tank must not contain ComponentDamage; v0.12.2 armor is intentionally non-depleting.'
+    $tankDamage = $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Damage']")
+    if ($tankDamage.InheritanceParent -ne '17bb7b53-159c-4eb3-b4bc-137b10bba88a' -or
+        $tankDamage.SelectSingleNode("./Parameter[@Name='Hitpoints']").Value -ne '1' -or
+        $tankDamage.SelectSingleNode("./Parameter[@Name='AttackResilience']").Value -ne '600') {
+        throw 'Tank durability must use audited ComponentDamage with Hitpoints=1 and AttackResilience=600.'
+    }
+    if ($null -ne $tankEntity.SelectSingleNode("./MemberComponentTemplate[@Name='OnFire']")) {
+        throw 'Tank must not contain ComponentOnFire.'
     }
     if ($tankBox.Value -ne '3.6,2.1,5.9' -or $tankMount.Value -ne '0,1.72,0.2' -or $tankDismount.Value -ne '2.25,0.4,0') {
         throw 'Tank collision or seat parameters differ from the audited low-poly model envelope.'
