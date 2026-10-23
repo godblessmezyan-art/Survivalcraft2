@@ -1,6 +1,7 @@
 using System.Linq;
 using Engine;
 using Game;
+using Game.NetWork;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Rail
@@ -18,6 +19,13 @@ namespace SCIEPort.Features.Rail
         /// <inheritdoc />
         public override bool OnUse(Ray3 ray, ComponentMiner componentMiner)
         {
+            // A normal client has no entity-spawn authority; it must not manufacture an
+            // unsynchronized rail vehicle. Mirror the fox/rabbit/chicken spawner guard.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
+            }
+
             int item = Terrain.ExtractContents(componentMiner.ActiveBlockValue);
             TerrainRaycastResult? hit = componentMiner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Digging);
             if (!hit.HasValue) return true;

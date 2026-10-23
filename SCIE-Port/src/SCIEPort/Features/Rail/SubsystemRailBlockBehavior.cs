@@ -1,5 +1,6 @@
 using Engine;
 using Game;
+using Game.NetWork;
 
 namespace SCIEPort.Features.Rail
 {
@@ -18,7 +19,18 @@ namespace SCIEPort.Features.Rail
         public override int[] HandledBlocks => new[] { RailBlock.Index };
 
         /// <inheritdoc />
-        public override void OnBlockAdded(int value, int oldValue, int x, int y, int z) => UpdateShape(value, x, y, z, 1);
+        public override void OnBlockAdded(int value, int oldValue, int x, int y, int z)
+        {
+            // The rail auto-connect recompute writes terrain cells. Only the
+            // authoritative side may run it; a normal client issuing its own
+            // ChangeCell here would desync from the host, whose recomputed
+            // shape is synchronized to clients anyway.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return;
+            }
+            UpdateShape(value, x, y, z, 1);
+        }
 
         private void UpdateShape(int value, int x, int y, int z, int depth)
         {

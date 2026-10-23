@@ -1,6 +1,7 @@
 using System.Linq;
 using Engine;
 using Game;
+using Game.NetWork;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Watercraft
@@ -22,6 +23,13 @@ namespace SCIEPort.Features.Watercraft
             if (Terrain.ExtractContents(componentMiner.ActiveBlockValue) != AirshipBlock.Index)
             {
                 return false;
+            }
+
+            // A normal client has no entity-spawn authority; it must not manufacture an
+            // unsynchronized airship. Mirror the fox/rabbit/chicken spawner guard.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
             }
 
             TerrainRaycastResult? hit = componentMiner.Raycast<TerrainRaycastResult>(

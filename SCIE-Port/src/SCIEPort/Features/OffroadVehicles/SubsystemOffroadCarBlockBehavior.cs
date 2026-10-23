@@ -1,6 +1,7 @@
 using System.Linq;
 using Engine;
 using Game;
+using Game.NetWork;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.OffroadVehicles
@@ -20,6 +21,13 @@ namespace SCIEPort.Features.OffroadVehicles
             if (Terrain.ExtractContents(componentMiner.ActiveBlockValue) != OffroadCarBlock.Index)
             {
                 return false;
+            }
+
+            // A normal client has no entity-spawn authority; it must not manufacture an
+            // unsynchronized vehicle. Mirror the fox/rabbit/chicken spawner guard.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
             }
 
             TerrainRaycastResult? hit = componentMiner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Digging);

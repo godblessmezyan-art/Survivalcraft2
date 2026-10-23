@@ -1,6 +1,7 @@
 using System.Linq;
 using Engine;
 using Game;
+using Game.NetWork;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Tanks
@@ -18,6 +19,14 @@ namespace SCIEPort.Features.Tanks
         public override bool OnUse(Ray3 ray, ComponentMiner miner)
         {
             if (Terrain.ExtractContents(miner.ActiveBlockValue) != TankBlock.Index) return false;
+
+            // A normal client has no entity-spawn authority; it must not manufacture an
+            // unsynchronized tank. Mirror the fox/rabbit/chicken spawner guard.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
+            }
+
             TerrainRaycastResult? hit = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Digging);
             if (!hit.HasValue) return true;
             Vector3 p = new Vector3(hit.Value.CellFace.Point) + new Vector3(.5f, 1.05f, .5f);

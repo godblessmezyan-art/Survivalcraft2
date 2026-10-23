@@ -287,3 +287,27 @@ THIRD-PARTY-NOTICES.md
 | Android 7723 | 待验证 | 两方块渲染、贴图、种植交互、生长/结果轮询、季节判定、收获与退出重进恢复均需真机新世界验证，不得因编译或离线测试通过标记为兼容。 |
 | 多人联机 | 待验证 | 轮询已在 `WorkType.Client` 直接返回，仅权威端推进生长/结果；真实同步一致性未实测。 |
 | 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内新增苹果切片（Rules/Blocks/行为/CSV/XDB/图集脚本/构建校验/版本号），未改其他 mod、未吞异常、未动既有作物/生物行为，符合「按阶段推进、每片独立提交」。 |
+
+## 0.21.1 联机权限加固与全工程联机静态审计（静态代码审计；运行时同步待真机验证）
+
+本节是对整个 `.netmod` 做一次联机维度的静态取证，并把发现的所有「改世界 / 生成实体」路径统一收敛到「仅权威端可写」的模型。这是行为加固、非新增内容，版本按补丁位 0.21.0→0.21.1。
+
+| 项目 | 状态 | 证据与边界 |
+|---|---|---|
+| 权威模型取证 | 已确认（真实程序集反射） | 带 AssemblyResolve 反射 `Survivalcraft.exe` 取到 `Game.NetWork.WorkType`：`Local=0`（单人，权威）、`Server=1`（主机/服务端，权威）、`Client=2`（普通联机客户端，非权威）。故「改世界」只允许在 `Local` 或 `Server`；`Client` 必须让位。目录内存在 `LiteNetLib.dll`+`MessagePack.dll`，证实 SCNET 为真 client/server 架构，非 P2P 对等同步。`WorkType` 三成员同时被本工程代码编译引用（`TreatWarningsAsErrors` exit0），成员存在性由编译证明、非臆测。 |
+| 已确认原本即安全（既有闸） | 已确认（代码） | 狐/兔/鸡创造生成器 `OnUse` 已 `WorkType.Client → return true`；生态学自然生成 `CreatureWorldSpawn.TrySpawnNaturalCreatures` 已 `CanAuthoritativeWorldMutation(WorkType==Client)` 闸 + 世界种子确定性 + 每区块预算；5 个作物 `OnPoll` 生长/结果轮询已 `WorkType.Client → return`。这些是先前切片就正确的路径。 |
+| 本次新补的对称权限闸（12 处） | 已确认（代码/构建） | 修复审计发现的不对称：① 5 作物 `OnNeighborBlockChanged`（Apple/Sunflower/Corn/Flax/Bamboo）的「根部无土自毁 `DestroyCell`」此前无闸，现补 `WorkType.Client → return`（void 早退），与既有 `OnPoll` 闸对称；② 6 载具创造生成 `OnUse`（ATV/越野/蒸汽船/飞艇/轨道车/坦克）此前调 `SpawnCreature` 无闸，现补 `WorkType.Client → return true`（消费点击、不在本地造未同步实体），镜像生物生成器语义；③ 铁轨自动连接 `SubsystemRailBlockBehavior.OnBlockAdded → UpdateShape → ChangeCell` 为同类裸奔地形写，`Client → return`。各文件补 `using Game.NetWork;`。Release 构建 0 warning / 0 error，`DATABASE VALIDATION PASSED`。 |
+| 重载具驾驶联机 | 不支持（联机） | `ComponentTankDrive.Update`、`ComponentRailVehicle`、`ComponentAirshipDrive` 控制回路开头是 `WorkType != Local → return`，即真正的联机局（主机是 `Server` 非 `Local`）里坦克/轨道车/飞艇**开不动、瞄不了、打不出**，仅单人有完整驾驶。此为工业载具移植期的既定范围，明确标注为联机不支持，而非未测。 |
+| 轻载具驾驶联机 | 待验证 | `ComponentAtvDrive`/`ComponentOffroadCarDrive`/`ComponentSteamBoatDrive` 用 `WorkType.Client → return`、`Server` 仍运行并含 `IsMainPlayer` 判定，`ComponentTwoSeatManager.IsAuthority = Local||Server`——代码是联机感知的，但远程客户端输入→主机仿真→回同步这条链未经主机+客户端实测，不标已确认。 |
+| 上游 Kelly 植物 neighbor 反应 | 未纳入本次改动（同类待评估） | `KellyPlantBehaviors` 的 `OnNeighborBlockChanged`/自毁/干燥推进沿用上游原始逻辑，本次对称加固**未**覆盖，属与作物同类的潜在客户端重复写地形风险；因是上游移植且无实测，单列为后续联机阶段待评估项，不在本次宣称范围。 |
+| 部署一致性约束 | 已确认（机制） | SCNET netmod 为主机+客户端各自加载：同一 `SCIEPort.netmod`（0.21.1）必须**主机与每个加入客户端都安装且同版本**，否则未注册方块/实体 ID 在缺失端解析失败。此为 netmod 固有要求，非本工程可选优化。 |
+| 运行时联机同步 | 待验证（真机） | 静态审计只能证明「权限闸在不在、代码是否只在权威端写」，证明不了「同步包实际行为」：作物 DATA/生长随区块更新回同步、实体生成回同步、`OnUse`/`OnNeighborBlockChanged` 到底在哪些端触发、载具物理跨端一致，均需主机+普通客户端两台实测。 |
+| Windows 游戏运行 | 待验证 | 本机有 `Survivalcraft.exe`（x25.01.17），但本阶段未开联机服实测单机/主机/客户端三档。 |
+| Android 7723 联机 | 待验证 | 目标平台真机联机（7723 联机版）未测，不得因编译或静态审计通过标记为兼容。 |
+| 无越界改动 | 已确认 | 本阶段严格限定为联机权限加固：只增对称 `WorkType.Client` 闸（不改任何功能语义、不吞异常、不动既有正确闸），未新增/删除内容，未跨工程引用，产物随版本位递增单独重建并复核 SHA。 |
+
+### 联机三档实测清单（待执行，兑现「一起验证」）
+
+1. 单人（Local）：种 5 作物逐阶段生长→成熟→（苹果秋季结果）摘取→根部无土时自毁；手动生成狐/兔/鸡；自然生成狐兔；放置并驾驶各载具。基线正确性。
+2. 主机（Server）：以上全部在主机侧执行一次；额外验证坦克/轨道车/飞艇按当前设计「联机不可驾驶」是否符合预期，ATV/越野/蒸汽船主机侧可驾驶。
+3. 普通客户端（Client，第二设备同版本加入）：验证 ① 客户端点作物生成器/载具生成器不再本地造幽灵实体（应无反应或仅收到主机回同步结果）；② 作物自毁只由主机触发、客户端收到一致销毁、不出现双毁或残留；③ 铁轨形状两端一致；④ 存读档与退重进后自定义 DATA 一致。任何一项异常记录到本节并降级为「不支持」。

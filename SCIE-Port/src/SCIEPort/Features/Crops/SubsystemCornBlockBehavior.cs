@@ -84,6 +84,14 @@ namespace SCIEPort.Features.Crops
             int neighborY,
             int neighborZ)
         {
+            // Mirror the authoritative-only rule already applied in OnPoll: a normal
+            // client must not issue an independent terrain destroy that could desync
+            // from the authoritative host's own neighbor-change reaction.
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                return;
+            }
+
             Terrain terrain = SubsystemTerrain.Terrain;
             int value = terrain.GetCellValue(x, y, z);
             if (Terrain.ExtractContents(value) != CornStalkBlock.Index || y <= 0)

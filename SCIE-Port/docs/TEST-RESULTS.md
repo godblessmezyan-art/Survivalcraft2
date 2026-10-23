@@ -682,3 +682,23 @@ Android 7723 联网/真机验证阶段。
 - Android 7723：待验证。两方块渲染、贴图、种植交互、生长/结果轮询、季节判定、收获与退出重进恢复均需
   真机新世界验证，不得因编译或离线测试通过标记为兼容。
 - 多人联机：待验证。轮询已在 `WorkType.Client` 直接返回、仅权威端推进生长/结果，真实同步一致性未实测。
+
+## 0.21.1 联机权限加固
+
+- 权威模型取证：已确认。反射真实 `Survivalcraft.exe` 得 `Game.NetWork.WorkType` =
+  `Local=0` / `Server=1` / `Client=2`，权威端为 `Local||Server`；目录含 `LiteNetLib.dll`+`MessagePack.dll`
+  证实真 client/server 架构。据此把全部「改世界/生成实体」路径统一到「Client 让位」。
+- 对称权限闸补齐：已确认（12 处，Release 0 warning / 0 error）。5 作物 `OnNeighborBlockChanged` 自毁
+  （Apple/Sunflower/Corn/Flax/Bamboo）补 `WorkType.Client → return`；6 载具生成 `OnUse`（ATV/越野/蒸汽船/
+  飞艇/轨道车/坦克）补 `WorkType.Client → return true`（镜像生物生成器）；铁轨 `OnBlockAdded` 自动连接
+  `ChangeCell` 补 `Client → return`。各文件加 `using Game.NetWork;`。DATABASE VALIDATION PASSED。
+- 载具联机现状：分类记录。坦克/轨道车/飞艇控制 `WorkType != Local` 硬锁单人，联机**不支持**（非未测）；
+  ATV/越野/蒸汽船/双人座为联机感知代码，**待验证**。上游 Kelly 植物 neighbor 反应沿用原逻辑，本次**未**加固，
+  列为同类待评估项。
+- 部署约束：同一 `SCIEPort.netmod`（0.21.1）须主机与每个客户端同版本安装，否则未知 ID 缺失端报错。
+- 构建 / DLL：已确认。`Build-NetMod.ps1 -GameDir 'D:\SCNET'` 全程 exit 0，59 条目，`FileVersion`=`0.21.1.0`、
+  `ProductVersion`=`0.21.1+f3e4ffc`；产物 425,885 字节，SHA-256
+  `0930726234B4D38092E9CA6E73C3191DE3BE35FF52DB004F731BF26E4F8C0717`（磁盘复核一致）。
+- 运行时联机同步：待验证。静态审计只证明「代码仅权威端写世界」，无法证明同步包实际行为；作物 DATA/实体生成
+  回同步、`OnUse`/`OnNeighborBlockChanged` 触发端、载具物理跨端一致均需主机+客户端两台实测（见 COMPATIBILITY
+  0.21.1 三档实测清单）。Windows/Android 7723 联机均未开测。
