@@ -782,9 +782,10 @@ Android 7723 联网/真机验证阶段。
 - 离线验收预览：已确认。`scripts/Render-AtvPreviews.ps1` 输出 7 视角 ×（白模/彩色）共 14 张于
   `artifacts/previews/atv-x1/`；目检 left/front/front45/rear45/top 均能识别为结构化越野摩托，排气管仅右侧、
   双座连续、油箱前宽后窄。
-- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过；`Build-NetMod.ps1 -GameDir D:\SC
-  -Configuration Release`（经 DOTNET_ROOT 指向 SDK 9.0.300）全程 exit 0，DATABASE VALIDATION PASSED，
-  产物 **496,289 字节**，SHA-256 `0934145603B1FADE38F94D493D49455DF50D3193AA42FB577A015727E7C78F35`；
+- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过；`Build-WithPinnedSdk.ps1 -GameDir D:\SC
+  -Configuration Release`（内部设 DOTNET_ROOT 指向 SDK 9.0.300 后转调 `Build-NetMod.ps1`）全程 exit 0，
+  DATABASE VALIDATION PASSED，产物 **496,443 字节**，SHA-256
+  `79D88624587E6AAACEB2E1BA1743A0220D7B5E4A4964F33358AE2D14B973F0A8`（提交后重建，DLL 内嵌本分支 HEAD）；
   包内 modinfo 版本 0.23.0。
 - 上游资产恢复：环境备注。本工作区 `upstream/SCIE/`（gitignore 的授权第三方资产）曾被清空导致打包在
   「Missing authorized upstream asset」中断；用 `scripts/Restore-UpstreamFromPackage.ps1` 从用户自有上一版

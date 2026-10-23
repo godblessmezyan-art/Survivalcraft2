@@ -17,7 +17,7 @@ Block 923、`SCIEPortATV` 实体 GUID、双座、驾驶、联机权威与存档�
 | 打包断言 | `scripts/Build-NetMod.ps1`（ATV 段） | 泛化几何/索引/UV/面数预算/贴图规格 + 目标 Engine 导入 + 包围盒 |
 | 验收预览 | `artifacts/previews/atv-x1/`（gitignore） | 14 张 PNG，供人工目检 |
 | 旧资产备份 | `artifacts/backups/atv-pre-x1/ATV.v1.dae`、`ATV.v1.png`（gitignore） | 重构前 12 部件版本 |
-| 产物 | `artifacts/SCIEPort.netmod` | 496,289 字节，SHA-256 见 §6 |
+| 产物 | `artifacts/SCIEPort.netmod` | 496,443 字节，SHA-256 见 §6 |
 
 ## 2. 部件清单与面数
 
@@ -66,11 +66,11 @@ Block 923、`SCIEPortATV` 实体 GUID、双座、驾驶、联机权威与存档�
 ## 6. 编译与打包结果
 
 - `scripts/Test-Environment.ps1 -GameDir D:\SC`：通过（260 原版方块常量、ABI、保留 ID 检查）。
-- `scripts/Build-NetMod.ps1 -GameDir D:\SC -Configuration Release`：全程 exit 0；
-  `TreatWarningsAsErrors` + `GenerateDocumentationFile` 下 0 warning / 0 error；DATABASE VALIDATION PASSED；
-  ATV 段全部新断言通过（含目标 Engine 1 bone/13 meshes 与包围盒）。
-- 产物：`artifacts/SCIEPort.netmod`，**496,289 字节**，
-  SHA-256 `0934145603B1FADE38F94D493D49455DF50D3193AA42FB577A015727E7C78F35`；包内 `modinfo.json`
+- `scripts/Build-WithPinnedSdk.ps1 -GameDir D:\SC -Configuration Release`（内部设 DOTNET_ROOT 后转调
+  `Build-NetMod.ps1`）：全程 exit 0；`TreatWarningsAsErrors` + `GenerateDocumentationFile` 下 0 warning /
+  0 error；DATABASE VALIDATION PASSED；ATV 段全部新断言通过（含目标 Engine 1 bone/13 meshes 与包围盒）。
+- 产物：`artifacts/SCIEPort.netmod`，**496,443 字节**（提交后重建，DLL 内嵌本分支 HEAD），
+  SHA-256 `79D88624587E6AAACEB2E1BA1743A0220D7B5E4A4964F33358AE2D14B973F0A8`；包内 `modinfo.json`
   Version=0.23.0，`Assets/Models/ATV.dae` 与 `Assets/Textures/ATV.png` 均为本版资产。
 - 环境备注：打包需 SDK 9.0.300（仓库 `global.json` 钉版），经 `DOTNET_ROOT=%LOCALAPPDATA%\Microsoft\dotnet`
   + `DOTNET_ROLL_FORWARD=Major` 提供；本工作区 gitignore 的 `upstream/SCIE/` 授权资产曾被清空，已用
