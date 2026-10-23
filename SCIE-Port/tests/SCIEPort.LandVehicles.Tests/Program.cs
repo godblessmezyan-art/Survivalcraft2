@@ -37,6 +37,9 @@ internal static class Program
         Assert(TwoSeatRules.SelectSeat(false, true) == VehicleSeatRole.Driver, "released driver seat can be occupied again");
         Assert(TwoSeatRules.CanControlVehicle(VehicleSeatRole.Driver), "driver can control vehicle");
         Assert(!TwoSeatRules.CanControlVehicle(VehicleSeatRole.Passenger), "passenger cannot control vehicle");
+        Assert(TwoSeatRules.ShouldMaintainSeatOffset(true, false), "settled attached rider keeps assigned seat offset");
+        Assert(!TwoSeatRules.ShouldMaintainSeatOffset(true, true), "mount animation owns offset until settled");
+        Assert(!TwoSeatRules.ShouldMaintainSeatOffset(false, false), "detached rider is never forced back into a seat");
         Assert(AtvSeatRules.DriverZ != AtvSeatRules.PassengerZ, "seat offsets are independent");
         AssertEqual(-0.3f, AtvSeatRules.DriverZ, "driver longitudinal offset remains fixed");
         AssertEqual(0.62f, AtvSeatRules.PassengerZ, "passenger longitudinal offset remains fixed");
@@ -57,4 +60,5 @@ internal static class Program
     {
         Assert(Math.Abs(expected - actual) < 0.0001f, message + ": expected " + expected + ", actual " + actual);
     }
+
 }

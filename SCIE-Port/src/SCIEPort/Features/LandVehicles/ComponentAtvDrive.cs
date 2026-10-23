@@ -70,7 +70,7 @@ namespace SCIEPort.Features.LandVehicles
             // deterministic longitudinal coast and frame-rate-independent lateral grip.
             m_body.IsGroundDragEnabled = false;
 
-            Vector3 input = player.ComponentInput.PlayerInput.Move;
+            Vector3 input = m_seatManager.DriverMove;
             float throttle = MathUtils.Clamp(input.Z, -1f, 1f);
             float turn = MathUtils.Clamp(input.X, -1f, 1f);
             if (!AtvDriveRules.CanApplyDrive(terrainGrounded, bodyGrounded, m_body.ImmersionFactor))

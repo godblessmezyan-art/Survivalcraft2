@@ -1,5 +1,13 @@
 # SCIE-Port
 
+Version 0.22.1 fixes the remaining two-seat rider/input conflict on ATV,
+speedboat and off-road car. Driver movement is captured before native rider
+locomotion, both riders retain distinct seat offsets, horizontal view remains
+independent, and mounted players keep native aim, attack, interaction and block
+use. It builds on the v0.22 native mounted-parent multiplayer path. Release,
+ABI, rule, database and package checks pass; Android 7723 two-device behavior
+remains pending real-device verification.
+
 Version 0.22.0 adds the first complete multiplayer-driving pass for every current
 vehicle: ATV, two-seat speedboat, off-road car, airship, train, carriage and T-34.
 It follows x25.01.17's native mounted-parent body synchronization, keeps the

@@ -214,6 +214,20 @@ v0.22.0 因此沿用目标运行时的原生驾驶员同步：所有驱动组件
 新增 `TankControlPackage`（ID 241）只发送炮塔角和开火请求；服务器按 `From.PlayerData`、Rider ID、
 Mount/ParentBody、16 位序号、冷却及浸水状态复核后创建弹丸，并通过原生 Projectile/Explosion 链同步。
 完整证据和验收边界见 `VEHICLE-MULTIPLAYER-AUDIT.md`。
+
+## 0.22.1 双座输入/座位调度复核
+
+固定 x25.01.17 反射确认 `ComponentInput.UpdateOrder=-10`、`ComponentPlayer.UpdateOrder=0`，因此
+双座管理器注册 `-5` 辅助更新：在输入采集后、原生玩家骑乘/步行处理前缓存驾驶位 `Move`，把两名
+稳定骑手的水平 `Look.X` 加入各自 `ComponentLocomotion.LookOrder`，再仅清除个人
+`Move/SneakMove/VrMove/Jump`。`Aim/Dig/Hit/Interact` 等动作字段不写，避免破坏弓箭、挖掘、放置和
+交互。三个双座 Drive 改读缓存，不再依赖已清零的 `ComponentInput.PlayerInput.Move`。
+
+另一个辅助更新使用 `UpdateOrder.Locomotion=1`，位于原生 Rider `Default=0` 与父/子 Body `2/3`
+之间；它只对完成动画且 ParentBody 仍为本车的骑手恢复各自公开可写的
+`ParentBodyPositionOffset/ParentBodyRotationOffset`。主管理器仍在 `CreatureModels` 阶段保持驾驶员为
+首子 Body 并抑制普通客户端乘客的父车发送脏位。本实现不反射或改写私有网络包队列。
+
 ## 0.8.1 坦克地面载具接口审计
 
 坦克没有移植 SCIE 的船舶浮力、`ComponentBoat.MoveOrder`/`TurnOrder`，也没有采用 Rail

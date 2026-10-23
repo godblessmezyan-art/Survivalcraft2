@@ -30,5 +30,15 @@ namespace SCIEPort.Features.Vehicles
         {
             return seat == VehicleSeatRole.Driver;
         }
+
+        /// <summary>
+        /// Returns whether a settled rider's independent seat offset must be restored
+        /// after the native single-Mount rider update.
+        /// </summary>
+        public static bool ShouldMaintainSeatOffset(bool isMountedToVehicle, bool isAnimating)
+        {
+            return isMountedToVehicle && !isAnimating;
+        }
+
     }
 }

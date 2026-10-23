@@ -14,11 +14,51 @@ namespace SCIEPort.Features.Vehicles
     /// </summary>
     public sealed class ComponentTwoSeatManager : Component, IUpdateable
     {
+        private sealed class MountedInputRedirector : IUpdateable
+        {
+            private readonly ComponentTwoSeatManager m_owner;
+
+            public MountedInputRedirector(ComponentTwoSeatManager owner)
+            {
+                m_owner = owner;
+            }
+
+            // ComponentInput is -10 and ComponentPlayer is 0 in x25.01.17.
+            public UpdateOrder UpdateOrder => (UpdateOrder)(-5);
+
+            public void Update(float dt)
+            {
+                m_owner.RedirectMountedInput();
+            }
+        }
+
+        private sealed class SeatOffsetMaintainer : IUpdateable
+        {
+            private readonly ComponentTwoSeatManager m_owner;
+
+            public SeatOffsetMaintainer(ComponentTwoSeatManager owner)
+            {
+                m_owner = owner;
+            }
+
+            // Rider is Default=0 and parent/child bodies are 2/3.
+            public UpdateOrder UpdateOrder => UpdateOrder.Locomotion;
+
+            public void Update(float dt)
+            {
+                m_owner.MaintainAssignedSeats();
+            }
+        }
+
         private readonly HashSet<ushort> m_rejectedRiders = new HashSet<ushort>();
         private ComponentBody m_body;
         private ComponentMount m_mount;
+        private SubsystemUpdate m_subsystemUpdate;
+        private MountedInputRedirector m_inputRedirector;
+        private SeatOffsetMaintainer m_seatOffsetMaintainer;
         private Vector3 m_driverOffset;
         private Vector3 m_passengerOffset;
+        private Vector3 m_driverMove;
         private ushort m_driverId;
         private ushort m_passengerId;
 
@@ -31,14 +71,41 @@ namespace SCIEPort.Features.Vehicles
         /// <summary>Current authoritative non-controlling passenger.</summary>
         public ComponentRider Passenger { get; private set; }
 
+        /// <summary>Driver movement captured before personal locomotion is suppressed.</summary>
+        public Vector3 DriverMove => m_driverMove;
+
         /// <inheritdoc />
         public override void Load(ValuesDictionary valuesDictionary, IdToEntityMap idToEntityMap)
         {
             base.Load(valuesDictionary, idToEntityMap);
             m_body = Entity.FindComponent<ComponentBody>(throwOnError: true);
             m_mount = Entity.FindComponent<ComponentMount>(throwOnError: true);
+            m_subsystemUpdate = Project.FindSubsystem<SubsystemUpdate>(throwOnError: true);
+            m_inputRedirector = new MountedInputRedirector(this);
+            m_seatOffsetMaintainer = new SeatOffsetMaintainer(this);
+            m_subsystemUpdate.AddUpdateable(m_inputRedirector);
+            m_subsystemUpdate.AddUpdateable(m_seatOffsetMaintainer);
             m_driverOffset = valuesDictionary.GetValue<Vector3>("DriverOffset");
             m_passengerOffset = valuesDictionary.GetValue<Vector3>("PassengerOffset");
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            if (m_subsystemUpdate != null)
+            {
+                if (m_inputRedirector != null)
+                {
+                    m_subsystemUpdate.RemoveUpdateable(m_inputRedirector);
+                }
+
+                if (m_seatOffsetMaintainer != null)
+                {
+                    m_subsystemUpdate.RemoveUpdateable(m_seatOffsetMaintainer);
+                }
+            }
+
+            base.Dispose();
         }
 
         /// <inheritdoc />
@@ -54,6 +121,7 @@ namespace SCIEPort.Features.Vehicles
             // children and retain their native saved parent relationship.
             MoveDriverBodyToFront();
             SuppressLocalPassengerBodyEcho();
+            MaintainAssignedSeats();
 
             if (!IsAuthority())
             {
@@ -116,6 +184,47 @@ namespace SCIEPort.Features.Vehicles
             m_driverId = Driver?.Entity.EntityId ?? 0;
             m_passengerId = Passenger?.Entity.EntityId ?? 0;
             ClearDetachedRejections(riders);
+            MaintainAssignedSeats();
+        }
+
+        private void RedirectMountedInput()
+        {
+            m_driverMove = Vector3.Zero;
+            RedirectRiderInput(Driver, captureDriverMove: true);
+            RedirectRiderInput(Passenger, captureDriverMove: false);
+        }
+
+        private void RedirectRiderInput(ComponentRider rider, bool captureDriverMove)
+        {
+            if (rider == null || rider.m_isAnimating ||
+                rider.ComponentCreature.ComponentBody.ParentBody != m_body)
+            {
+                return;
+            }
+
+            ComponentPlayer player = rider.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
+            if (player == null || player.ComponentInput == null)
+            {
+                return;
+            }
+
+            PlayerInput input = player.ComponentInput.m_playerInput;
+            if (captureDriverMove)
+            {
+                m_driverMove = input.Move;
+            }
+
+            ComponentLocomotion locomotion = rider.ComponentCreature.ComponentLocomotion;
+            locomotion.LookOrder += new Vector2(input.Look.X, 0f);
+            input.Look = new Vector2(0f, input.Look.Y);
+
+            // Preserve Aim/Dig/Hit/Interact and inventory/mount controls. Only the
+            // rider's personal movement is suppressed; the vehicle consumes DriverMove.
+            input.Move = Vector3.Zero;
+            input.SneakMove = Vector3.Zero;
+            input.VrMove = null;
+            input.Jump = false;
+            player.ComponentInput.m_playerInput = input;
         }
 
         /// <summary>Applies one server-issued role on a client replica.</summary>
@@ -203,6 +312,35 @@ namespace SCIEPort.Features.Vehicles
             Vector3 seatOffset = seat == VehicleSeatRole.Driver ? m_driverOffset : m_passengerOffset;
             rider.m_targetPositionOffset = seatOffset + rider.m_riderOffset;
             rider.m_targetRotationOffset = Quaternion.Identity;
+            MaintainSeatOffset(rider, seat);
+        }
+
+        private void MaintainAssignedSeats()
+        {
+            MaintainSeatOffset(Driver, VehicleSeatRole.Driver);
+            MaintainSeatOffset(Passenger, VehicleSeatRole.Passenger);
+        }
+
+        private void MaintainSeatOffset(ComponentRider rider, VehicleSeatRole seat)
+        {
+            if (rider == null)
+            {
+                return;
+            }
+
+            ComponentBody riderBody = rider.ComponentCreature.ComponentBody;
+            bool isMountedToVehicle = riderBody.ParentBody == m_body;
+            if (!TwoSeatRules.ShouldMaintainSeatOffset(isMountedToVehicle, rider.m_isAnimating))
+            {
+                return;
+            }
+
+            Vector3 seatOffset = seat == VehicleSeatRole.Driver ? m_driverOffset : m_passengerOffset;
+            Vector3 target = seatOffset + rider.m_riderOffset;
+            rider.m_targetPositionOffset = target;
+            rider.m_targetRotationOffset = Quaternion.Identity;
+            riderBody.ParentBodyPositionOffset = target;
+            riderBody.ParentBodyRotationOffset = Quaternion.Identity;
         }
 
         private void MoveDriverBodyToFront()

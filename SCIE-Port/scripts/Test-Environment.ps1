@@ -53,6 +53,8 @@ $componentBody = $assembly.GetType('Game.ComponentBody', $true)
 $componentModel = $assembly.GetType('Game.ComponentModel', $true)
 $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
+$componentLocomotion = $assembly.GetType('Game.ComponentLocomotion', $true)
+$subsystemUpdate = $assembly.GetType('Game.SubsystemUpdate', $true)
 $packageManager = $assembly.GetType('Game.NetWork.PackageManager', $true)
 $packageInterface = $assembly.GetType('Game.NetWork.IPackage', $true)
 $playerInput = $componentInput.GetProperty('PlayerInput').PropertyType
@@ -110,6 +112,27 @@ if (-not $componentRider.GetMethod('StartDismounting', [Reflection.BindingFlags]
 if (-not $componentPlayer.GetProperty('ComponentInput') -or -not $componentPlayer.GetProperty('ComponentRider') -or -not $playerInput.GetField('Move', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentPlayer -> ComponentInput -> PlayerInput.Move chain required by the tank was not found.'
 }
+foreach ($fieldName in @('Look', 'Move', 'SneakMove', 'VrMove', 'Jump', 'Aim', 'Dig', 'Hit', 'Interact')) {
+    if (-not $playerInput.GetField($fieldName, [Reflection.BindingFlags]'Public,Instance')) {
+        throw "PlayerInput.$fieldName required by mounted input isolation was not found."
+    }
+}
+if (-not $componentInput.GetField('m_playerInput', [Reflection.BindingFlags]'Public,Instance')) {
+    throw 'ComponentInput.m_playerInput required by mounted input isolation was not found.'
+}
+if (-not $componentLocomotion.GetProperty('LookOrder')) {
+    throw 'ComponentLocomotion.LookOrder required by independent mounted aiming was not found.'
+}
+$inputUpdateOrder = [int]$componentInput.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentInput), $null)
+$playerUpdateOrder = [int]$componentPlayer.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentPlayer), $null)
+if ($inputUpdateOrder -ne -10 -or $playerUpdateOrder -ne 0 -or -not ($inputUpdateOrder -lt -5 -and -5 -lt $playerUpdateOrder)) {
+    throw "Mounted input redirect order is invalid: ComponentInput=$inputUpdateOrder, redirect=-5, ComponentPlayer=$playerUpdateOrder."
+}
+foreach ($methodName in @('AddUpdateable', 'RemoveUpdateable')) {
+    if (-not $subsystemUpdate.GetMethod($methodName, [Reflection.BindingFlags]'Public,Instance')) {
+        throw "SubsystemUpdate.$methodName required by two-seat helper scheduling was not found."
+    }
+}
 if (-not $packageManager.GetMethod('RegisterPackage', [Reflection.BindingFlags]'Public,Static')) {
     throw 'PackageManager.RegisterPackage required by the ATV seat association was not found.'
 }
@@ -129,6 +152,12 @@ if (-not $assembly.GetType('Game.NetWork.Client', $true).GetProperty('PlayerData
 }
 if (-not $componentBody.GetField('m_childBodies', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentBody.m_childBodies required to keep the two-seat driver first was not found.'
+}
+foreach ($propertyName in @('ParentBodyPositionOffset', 'ParentBodyRotationOffset')) {
+    $property = $componentBody.GetProperty($propertyName)
+    if (-not $property -or -not $property.CanWrite) {
+        throw "ComponentBody.$propertyName writable property required by stable independent seats was not found."
+    }
 }
 foreach ($fieldName in @('m_riderOffset', 'm_targetPositionOffset', 'm_targetRotationOffset')) {
     if (-not $componentRider.GetField($fieldName, [Reflection.BindingFlags]'Public,Instance')) {
@@ -191,4 +220,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'

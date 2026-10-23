@@ -1,5 +1,15 @@
 # 测试结果
 
+## 0.22.1 双座输入与座位稳定化（2026-10-24）
+
+- 目标环境：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过三程序集固定哈希、API 1.42、net472，并新增确认 `PlayerInput` 动作字段、公开 `m_playerInput`、`LookOrder`、可写父体偏移、`SubsystemUpdate` 注册接口以及 `-10 < -5 < 0` 调度顺序。
+- 双座规则：已确认。ATV 规则由 32 增至 35 条，新增“稳定挂载才维护座位、动画中不抢写、脱离后不拉回”三项；ATV 35、越野车 20、快艇 16 及其余 Kelly 11、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49 全部通过。
+- Release / 数据库 / 包：已确认。执行 `Build-NetMod.ps1 -GameDir D:\SC -Configuration Release`，exit 0，net472 0 warning/0 error，11 份 XDB 验证通过，59 个包条目；产物 427,897 字节，SHA-256 `2A3A7FE7534E9A7E07D2D0395B339383600FA5B3C4354B4A4390EC60A430F919`。DLL Assembly/FileVersion 为 `0.22.1.0`，构建时 ProductVersion 为 `0.22.1+fdddd79898c4646a177ce647d67017510ecd569f`。
+- 输入隔离：已确认（源码/编译）。驾驶 Move 在原生 Player 更新前缓存；骑手个人移动/跳跃清零，水平观察转给各自 LookOrder；Aim/Dig/Hit/Interact 与物品栏/下车输入保持原样。
+- 联机架构：已确认（源码/编译）。保留 v0.22 驾驶员首子 Body、普通客户端乘客父车回声抑制及本机驾驶员原生父体同步；未访问私有 `NetNode.PendingPackages`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。必须验证双人持续乘坐和前进、双方自由转向视角、乘客射箭/挖掘/放置/交互、驾驶角色互换、第三人拒绝、下车及断线重连。
+
 ## 0.22.0 全载具联机稳定化（2026-10-23）
 
 - 目标 ABI：已确认。`Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17` 复核三程序集固定哈希、net472、API 1.42、原生包 ID 0–38、`Client.PlayerData`、公开 `ComponentBody.m_childBodies`，并确认保留包 ID 240/241 无原生冲突。

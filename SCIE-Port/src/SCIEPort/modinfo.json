@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.22.0",
+  "Version": "0.22.1",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.0 enables the local driver on host or ordinary client for ATV, two-seat speedboat, off-road car, airship, train, carriage and T-34 by using SCNET's native mounted-parent BodyUpdate synchronization. Two-seat vehicles keep the assigned driver as the first child body so passengers cannot take movement authority. Tank turret state is replicated separately and remote fire is server-validated; explosive projectiles are never created by ordinary clients. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 multiplayer behavior is pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.22.1 keeps the v0.22 multiplayer-driving path and fixes two-seat ATV, speedboat and off-road car riders: the driver's movement is captured before native rider processing, both riders keep independent seat offsets, horizontal view remains free, and mounted players retain aim, attack, interact and block-use inputs. Tank turret state is replicated separately and remote fire remains server-validated; explosive projectiles are never created by ordinary clients. Existing crops, ecology, creatures, furniture and vehicle resources remain included. Android/7723 multiplayer behavior is pending real-device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

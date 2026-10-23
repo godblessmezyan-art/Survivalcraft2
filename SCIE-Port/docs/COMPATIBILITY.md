@@ -1,5 +1,17 @@
 # SCIE-Port 兼容性记录
 
+## 0.22.1 双座同行、自由观察与乘客武器（2026-10-24）
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 输入调度 ABI | 已确认 | 固定 x25.01.17 上 `ComponentInput=-10`、新增重定向 `-5`、`ComponentPlayer=0`；公开 `PlayerInput` 字段与 `ComponentLocomotion.LookOrder` 经环境脚本反射通过 |
+| ATV/快艇/越野车驾驶输入 | 已确认（代码/编译） | 重定向阶段先缓存驾驶位 Move，三个 Drive 均只读该缓存；随后只清除两名稳定骑手的个人 Move/SneakMove/VrMove/Jump，避免骑手步行物理与车辆争用 |
+| 双座位置稳定 | 已确认（代码/规则） | `Locomotion=1` 辅助更新在 Rider `Default=0` 后恢复两个独立 `ParentBodyPositionOffset/RotationOffset`；动画中或已脱离车辆者不强制回座 |
+| 自由观察、攻击与方块使用 | 已确认（代码/ABI） | 水平 Look 转入各自 `LookOrder`；Aim/Dig/Hit/Interact、物品栏和下车输入不修改。实际触屏手感与弓箭/方块行为待 Android 验证 |
+| v0.22 联机回声保护 | 已确认（代码/编译） | 保留驾驶员首子 Body 与 `CreatureModels` 阶段的普通客户端乘客父车发送脏位抑制，不使用私有网络队列反射 |
+| Windows 游戏运行 | 待验证 | 未启动目标游戏 |
+| Android 7723 单机/主机/普通客户端 | 待验证 | 双人连续同行、角色互换、环视、射箭、放块、下车与断线重连必须双机实测 |
+
 ## 0.22.0 全载具联机稳定化（2026-10-23）
 
 | 项目 | 状态 | 结论 |
@@ -27,10 +39,10 @@ Android 或多人测试。
 | Kelly 植物 ID 903–916 | 已确认 | `Test-Environment.ps1` 对 x25.01.17 的 260 个原生方块常量完成反射扫描，目标区间未占用；其他 Mod 冲突仍需安装时检查 |
 | XDB 合并格式 | 已确认（机理） | `ModsManager.CombineDataBase` 按 `LocalName + Guid` 匹配文件夹后再合并内容。**真正的判别项是文件夹 GUID 是否等于游戏原版值**：原版文件夹（Entities `5fcdf35f…`、Gameplay `d3d4b692…`、BlockBehaviors `00c97f0f…`）若使用自定义 GUID，合并不会并入原版文件夹，而是追加“同名不同 GUID”的游离 `<Folder>`（0.3.1 即此）。根节点用 Mod 容器（`<SCIEPortWatercraft>`，0.3.2 采用）还是 `<DatabaseObjects>`（正常运行的 Builder Assistant 采用）本身都可用——“根节点导致嵌套 `DatabaseObjects` 才报错”属早期误诊，已推翻。`scripts/Test-Database.ps1` 现强制校验该规则。**已用真实原版 `Assets/Database.xml`（解自 `Content.scpak`）+ 游戏真实 `DatabaseManager.LoadDataBaseFromXml` 端到端复现**：0.3.1 的确切首异常是 `Another database object with name "Entities" is already nested in database object "Root".`（`DatabaseObject.set_NestingParent`），0.3.2 与阳性对照 Builder Assistant 均加载成功。 |
 | Boat/Mount/Rider/SpawnCreature ABI | 已确认 | `Test-Environment.ps1` 逐项反射签名通过 |
-| 双人快艇推进代码 | 已确认（编译/规则） | 不再挂原生 `ComponentBoat`，避免乘客覆盖驾驶输入；Local 或 Server 主机玩家为驾驶员时才写车体速度，`ComponentBody` 保留浮力、阻力、碰撞和持久化。Windows/Android 运行待验证 |
+| 双人快艇推进代码 | 已确认（编译/规则） | 不再挂原生 `ComponentBoat`；v0.22.1 缓存本机驾驶位输入并隔离两名骑手个人移动，`ComponentBody` 保留浮力、阻力、碰撞和持久化。Windows/Android 运行待验证 |
 | Windows 游戏加载与驾驶 | 待验证 | 尚未启动目标游戏进行生成、骑乘与存档测试 |
 | Android 7723 数据库加载 | 已确认 | 用户确认 0.3.1 已修复 `Database not loaded`；渠道程序集哈希仍待取得 |
-| 双人快艇联机 | 待验证/部分不支持 | 主机驾驶员 + 普通客户端乘客为实机目标；Client 只接收座位分配且不写车辆速度。普通客户端作为驾驶员尚不支持，缺少服务器输入/预测/纠偏协议 |
+| 双人快艇联机 | 待验证 | v0.22 接入本机驾驶员的原生父体同步，v0.22.1 隔离乘客输入并维持独立座位；主机/普通客户端角色互换仍须 Android 双机验证 |
 | SCIE 燃料/发动机库存 | 不支持 | 0.5.0 未实现，不能以占位代码宣称兼容 |
 | 世界加载（进入世界） | 已确认（桌面真实反序列化 + 手机实测） | `ModsManager.CombineDataBase` 按原版文件夹 GUID 合并；用真实原版 `Assets/Database.xml` + 真实 `DatabaseManager.LoadDataBaseFromXml` 端到端证明修复后无 rogue `Entities`，且手机反馈“经过测试可以了”，能进世界不再报 `Database not loaded`。 |
 | SCIE 蒸汽船纹理 | 待验证 | 64×64 PNG，上游授权文件哈希已确认；游戏渲染待验证 |
@@ -54,9 +66,9 @@ Android 或多人测试。
 | 载具资源引用守卫 | 已确认（打包级） | 构建检查 Watercraft XDB 的每个自有模型/贴图都在包内；仅车厢 `Textures/Creatures/Jaguar` 明确为 x25 原版资源；拒绝任意非 PNG 的 Mod 贴图 |
 | ATV 物品与 ID 923 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 的 260 个原版方块常量完成扫描；923 未占用且与本工程 903–922、995–1000 无内部冲突。其他 Mod 的 ID 冲突仍待安装时检查 |
 | ATV 实体/XDB 合并 | 已确认 | `SCIEPortATV` 保持实体名、原 GUID、唯一原生 Mount、Body、Spawn、Damage 和 Drive，并新增座位管理组件；`AutoDespawn=False` 继续依赖原生实体保存链 |
-| ATV 地面物理 | 已确认 | v0.3 不改变 v0.2 驱动规则；Local 或 Server 主机玩家驾驶时读取触屏 Move，普通 Client 不改车辆速度；`ComponentBody` 继续负责碰撞、重力和 1.05 格 smooth rise |
+| ATV 地面物理 | 已确认 | v0.22.1 由本机主驾驶缓存读取触屏 Move；乘客输入不进入 Drive。`ComponentBody` 继续负责碰撞、重力和 1.05 格 smooth rise |
 | ATV 模型与贴图 | 已确认（静态/目标导入） | 项目创建的 `ATV.dae` 已改为 12 部件双座越野摩托，Y_UP、单 identity 骨骼、12 meshes；32×8 四色不透明 `ATV.png` 为项目脚本生成。Android 新外观待验证 |
-| ATV Windows/Android/联机运行 | 待验证 | 旧 0.8.3 模型显示结论不自动覆盖 v0.3 新模型。Windows 未运行；Android 单人、保存重载、主机驾驶+客户端乘客、独立观察及上下车均待验证；普通客户端驾驶不支持 |
+| ATV Windows/Android/联机运行 | 待验证 | 旧 0.8.3 模型显示结论不自动覆盖 v0.3 新模型。Windows 未运行；Android 单人、保存重载、主机/客户端互换驾驶与乘客、独立观察及上下车均待验证 |
 | ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
 | ATV v0.2.1 Android 世界模型空白 | 已确认（缺陷/机理） | 用户在 Android 7723 确认 0.8.2 物品栏图标可见、生成实体无模型；目标 `ModLoader.GetMaxInstancesCount()` 返回 7，而旧 DAE 经目标 `Engine.Media.ModelData.Load` 导入为 10 bones/9 meshes。物品栏将网格烘焙进 `BlockMesh`，世界实体则把 10 个骨骼变换交给实例模型着色器，因此两条路径表现不同 |
 | ATV v0.2.1 单骨骼修复 | 已确认 | 0.8.3 保留九个独立 geometry，但都挂到单个 identity `ATV` 场景节点；目标 Engine 实际导入结果为 1 bone/9 meshes，低于七骨骼限制。物品代码改为枚举全部 meshes；2026-10-20 用户在 Android 7723 确认物品栏与世界模型显示通过。驾驶、越障、保存和多人不继承此结论 |
@@ -65,11 +77,11 @@ Android 或多人测试。
 | ATV v0.2 诊断日志 | 已确认 | 仅本地单人、有人驾驶时每 5 秒输出速度、油门、地形/实体支撑、离地时间、原生阻力开关和状态；Android 日志格式待验证 |
 | ATV v0.3 原生双 Mount 可行性 | 不支持 | `ComponentMountPackage` 只传目标实体 ID，接收端取首个 Mount；同实体第二个 Mount 无法寻址。多层乘客锚点又会因原生碰撞只排除直接父子 Body 而让乘客碰撞祖父车体 |
 | ATV v0.3 座位关联 ABI | 已确认 | 两名玩家均直接挂 ATV Body；座位管理器由 Local/Server 最终分配，服务端以自定义 `IPackage` ID 240 下发离散角色/偏移。目标原生包占 ID 0–38，240 未占用；其它 Mod 冲突仍待安装时检查 |
-| ATV v0.3 联机权威 | 待验证/部分不支持 | 主机本地驾驶员 + 普通客户端乘客为本轮实机目标；Client 只发原生上/下车请求并应用服务器座位事件，不改车辆速度。普通客户端作为驾驶员因原生父车 BodyUpdate 权威路径而不支持 |
+| ATV v0.3 联机权威 | 待验证 | v0.22 允许本机主玩家在驾驶位沿用原生父车 BodyUpdate；v0.22.1 隔离乘客个人移动并维持独立座位。严格服务器权威仍不支持，Android 双机待验证 |
 | 双人越野车 ID 925 | 已确认 | 固定 x25.01.17 的原生方块常量反射扫描未占用 925，且与本工程其它 ID 无内部冲突；其它 Mod 冲突仍需安装时检查 |
 | 双人越野车模型与尺寸 | 已确认（静态/目标导入） | 项目原创 Y_UP 模型为 1 bone/24 meshes，范围 X±1.15、Y 0.08..1.48、Z -1.78..1.68，完整落入 2.4×1.55×4.0 Body；40×8 五色 PNG 全不透明。Android 世界显示待验证 |
 | 双人越野车驾驶与双座 | 已确认（代码/规则） | 独立地面驱动，不使用船物理；原生 Body 负责重力、碰撞与 1.05 格 smooth rise。驾驶/乘客为左右固定座位，只有驾驶员输入进入 Drive；Windows/Android 运行待验证 |
-| 双人越野车联机 | 待验证/部分不支持 | 目标为主机驾驶员 + 普通客户端乘客；普通 Client 不写车辆速度。普通客户端驾驶员仍不支持，原因与 ATV 相同 |
+| 双人越野车联机 | 待验证 | v0.22 接入普通客户端本机驾驶员的原生父体同步，v0.22.1 隔离乘客输入并维持独立座位；Android 双机角色互换待验证 |
 | SCIE 工业家具 ID 917–922 | 已确认 | x25.01.17 的 260 个原生方块常量反射扫描未占用；本工程内部无重复，其他 Mod 冲突仍待安装时检查 |
 | SCIE 工业家具模型 | 已确认 | Gear、Wheel、GearMould、WheelMould、Piston 已从 Z_UP 转为 Y_UP，Cylinder 源文件本身为 Y_UP；节点名、position float 数和包内资源由构建脚本校验 |
 | SCIE 工业家具代码 | 已确认 | 六件静态可放置方块、四向 data、碰撞箱、掉落路径对 x25.01.17 Release 编译通过后方可维持此状态；不含机器语义 |

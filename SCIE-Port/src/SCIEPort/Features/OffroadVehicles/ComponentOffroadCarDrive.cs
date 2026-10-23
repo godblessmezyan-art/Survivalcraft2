@@ -73,7 +73,7 @@ namespace SCIEPort.Features.OffroadVehicles
             Vector3 velocity = m_body.Velocity;
             Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
             float forwardSpeed = Vector3.Dot(horizontal, forward);
-            Vector3 input = player.ComponentInput.PlayerInput.Move;
+            Vector3 input = m_seats.DriverMove;
             forwardSpeed = OffroadCarRules.IntegrateForwardSpeed(forwardSpeed, MathUtils.Clamp(input.Z, -1f, 1f), boundedDt);
             Vector3 lateral = horizontal - forward * Vector3.Dot(horizontal, forward);
             lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(LateralGrip * boundedDt));

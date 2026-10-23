@@ -1,4 +1,4 @@
-# SCIE-Port 全载具联机稳定化审计（v0.22.0）
+# SCIE-Port 全载具联机稳定化审计（v0.22.1）
 
 日期：2026-10-23
 目标：Survivalcraft NET `Net_x25.01.17` / Android 7723 / `.NET Framework 4.7.2`
@@ -40,6 +40,12 @@
 ATV、快艇和越野车继续只含一个原生 `ComponentMount`，由 `ComponentTwoSeatManager` 分配驾驶/乘客偏移。服务器或本地世界决定座位，ID 240 只复制离散座位角色。
 
 为适配原生网络权威选择，管理器在所有节点把驾驶员 Body 移到 `m_childBodies[0]`。它在 `UpdateOrder.CreatureModels`（晚于 `UpdateOrder.Body`）运行；若本机主玩家是乘客，会清除父车体本帧由插值产生的 `SendPosition/SendRotation/SendVelocity`，防止副驾驶把延迟状态回传服务器。驾驶员状态不被清除。
+
+v0.22.1 另加两个经过目标 ABI 验证的调度阶段。`-5` 位于 `ComponentInput=-10` 与
+`ComponentPlayer=0` 之间：先缓存驾驶位 Move，再抑制两名稳定骑手的个人移动/跳跃，并把水平观察
+送入各自 LookOrder；Aim/Dig/Hit/Interact、物品栏与下车控制不改。`Locomotion=1` 位于 Rider 后、
+Body 前，每帧恢复驾驶员和乘客的独立父体偏移，避免原生单 Mount 偏移使第二人脱座。三个双座 Drive
+都只消费缓存的驾驶输入。该修复沿用上述公开父体同步及回声抑制，不访问私有待发包队列。
 
 ## 坦克炮塔与开火
 
