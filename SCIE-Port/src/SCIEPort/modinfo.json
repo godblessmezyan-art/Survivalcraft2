@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.23.0",
+  "Version": "0.23.1",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.23.0 rebuilds the tandem motorcycle visual as the low-poly Wilderness Explorer X1: a 13-part baked model (lofted 16-gon wheels, tubular frame/forks/exhaust, faceted tank, torus-spring shocks) with a 64x64 opaque material atlas, still importing as 1 bone / 13 meshes inside the 1.1,1.25,2.6 collision box. Block 923, the SCIEPortATV GUIDs, two-rider seating, driving, networking and save/load are unchanged; v0.22.3 carriage index-layout fix and all earlier tank/seat/multiplayer fixes remain included. Android/7723 motorcycle rendering is pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.23.1 fixes the world-rendered motorcycle appearing green by replacing the legacy grass-green instance-model diffuse tint with white, so the X1 atlas shows its true orange/carbon/silver colors in-world (inventory icons were never affected). v0.23.0 rebuilt the tandem motorcycle visual as the low-poly Wilderness Explorer X1: a 13-part baked model (lofted 16-gon wheels, tubular frame/forks/exhaust, faceted tank, torus-spring shocks) with a 64x64 opaque material atlas, still importing as 1 bone / 13 meshes inside the 1.1,1.25,2.6 collision box. Block 923, the SCIEPortATV GUIDs, two-rider seating, driving, networking and save/load are unchanged; v0.22.3 carriage index-layout fix and all earlier tank/seat/multiplayer fixes remain included. Android/7723 motorcycle rendering is pending real-device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

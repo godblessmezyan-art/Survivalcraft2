@@ -44,8 +44,13 @@ namespace SCIEPort.Features.LandVehicles
 
             ComponentModel model = Entity.FindComponent<ComponentModel>(throwOnError: true);
             model.TextureOverride = AtvBlock.Texture;
-            model.DiffuseColor = new Vector3(0.38f, 0.74f, 0.16f);
-            model.EmissionColor = new Vector4(0.04f, 0.06f, 0.02f, 0f);
+            // The instance-model path multiplies the bound texture by DiffuseColor,
+            // so any tint here recolors the whole bike in-world (the inventory icon
+            // bakes into BlockMesh and ignores it). The legacy grass-green tint
+            // matched the old four-color palette but turned the X1 atlas green;
+            // keep white like every other vehicle plus a neutral night floor.
+            model.DiffuseColor = Vector3.One;
+            model.EmissionColor = new Vector4(0.045f, 0.045f, 0.05f, 0f);
         }
 
         /// <inheritdoc />
