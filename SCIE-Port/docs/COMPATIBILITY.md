@@ -1,5 +1,26 @@
 # SCIE-Port 兼容性记录
 
+## 0.24.0 载具激活密码闸（统一激活码，主机校验的按会话授权；编译/离线已确认，Android 弹窗与联机授权待验证，2026-10-24）
+
+在首次对任意 SCIE 载具进行生成/驾驶/乘坐/开火前插入一道触屏密码激活闸：统一激活码 `123456`，成功后整个游戏会话解锁全部七种载具（ATV 摩托、蒸汽快艇、越野车、飞艇、火车、车厢、T-34 坦克），失败或取消则拒绝该操作且**不消耗任何物品**。授权对主机与客户端都要求、按真实玩家会话隔离、由主机校验，并覆盖已在场的载具与坦克开火入口以防绕过。本阶段不改动物品 ID、实体 GUID、旧存档、物理与既有网络协议。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| UI 弹窗 ABI 取证 | 已确认（真实程序集反射） | 反射 x25.01.17 `Engine.dll` 取到 `Engine.Input.Keyboard.ShowKeyboard(String,String,String,Boolean,Action<string>,Action)`：`public static`、六参、第四参 `passwordMode=true` 遮蔽输入——这是原版告示牌编辑同款的触屏文本输入面，满足「不臆造、可用触屏弹出密码框」的前提。`Test-Environment.ps1` 以结构化类型比对（非脆弱的 FullName 字符串比对）逐参断言该签名存在。 |
+| 节流时钟 ABI | 已确认（反射） | `Engine.Time.RealTime` 是 `Engine.Time` 类型上的 `public static double` **属性**（非独立类型），用作弹窗节流时基；`VehicleActivationRules.ShouldPrompt` 以 `PromptInterval=6.0` 秒限制重复弹窗，避免驾驶循环每帧弹。 |
+| 网络包 ABI | 已确认（反射/编译） | 原生 `IPackage` ID 占用 0..38 连续，SCIE-Port 已用 240（双座分配）、241（坦克控制），**242** 空闲→新 `VehicleActivationPackage` 取 242；`Test-Environment.ps1` 保留段扩为 `@(240,241,242)` 并断言与原生无冲突。`PackageManager.RegisterPackage(IPackage)` 为 `public static`；`Client.GUID`、`NetNode.Server`、`NetNode.QueuePackage(IPackage)` 均反射确认存在。 |
+| 包载荷读写 | 已确认（继承契约） | `PackageStreamWriter : System.IO.BinaryWriter`、`PackageStreamReader : System.IO.BinaryReader`；`Write(string)` 与 `ReadString()` 由基类提供。环境脚本改为断言基类继承+基类方法存在（派生类型上枚举 `GetMethods` 会因某未加载 `OpenTK` 重载解析失败），精确反映代码实际调用面。 |
+| 授权模型 | 已确认（代码/规则） | 会话键：每台机器仅一个本地操作玩家，本地会话以全零 `Guid.Empty` 为键；主机额外按 `Client.GUID` 记录每个远程授权。客户端**绝不自我授权**——输入码经 242 包发给主机，主机用 `VehicleActivationRules` 校验、按 `From.GUID` 记账、再**单播**（`To=From`）回执，其它客户端不因广播解锁；客户端仅在主机的肯定回执后把本地 `Guid.Empty` 会话置为已授权。 |
+| 入口覆盖（七载具） | 已确认（代码/构建守卫） | 六处生成 `OnUse`（ATV/越野/蒸汽船/飞艇/轨道车+车厢/坦克）在 `WorkType.Client` 早退之后、射线/生成/`RemoveActiveTool` 之前统一插 `VehicleActivationService.EnsureActivated()` 拒绝闸，未授权先拒后不消耗物品；六处驾驶组件（`ComponentAtvDrive/OffroadCarDrive/SteamBoatDrive/AirshipDrive/RailVehicle/TankDrive`）在主玩家判定内插同一闸，覆盖**已在场**载具；坦克开火入口在 `bool wantsFire = TankRules.CanFire` 之前置闸。`Build-NetMod.ps1` 对每处源码断言闸存在、生成闸先于物品消耗、坦克驾驶闸先于开火路径。 |
+| 远程开火/控制授权 | 已确认（代码/构建守卫） | `TankControlPackage`（241）服务端分支在既有 `sender.Entity.EntityId == RiderId` 之后追加 `VehicleActivationService.IsGranted(From.GUID)` 门，未授权远程玩家的控制/开火请求被丢弃；`Build-NetMod.ps1` 断言该字面门存在。 |
+| 失败安全 | 已确认（代码） | 弹窗调用包在 try/catch：x25.01.17 可编译但 7723 实机行为未观测，抛出异常时保持「拒绝」态而非崩溃驾驶/生成循环，节流窗口后重试。取消即无操作、保持拒绝。 |
+| 纯决策（离线可测） | 已确认（net8 无游戏依赖） | `tests/SCIEPort.VehicleActivation.Tests` 22 断言：`IsValidCode`（含 trim/null/空/纯空白/反序）、`ShouldPrompt`（首次/大于/等于/小于间隔、零经过）、`PromptInterval==6.0`、`ShouldGrantActivation`、`CanOperate`、`IsUsableSessionKey`、`ActivationCode=="123456"`。随全工程 12 个离线测试套件在打包前全绿。 |
+| 编译产物 | 已确认（Release 0/0） | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` 全程 exit 0（`TreatWarningsAsErrors`+`GenerateDocumentationFile`→0 warning/0 error，`DATABASE VALIDATION PASSED`），打包前修复一处命名空间缺漏（服务类需 `using Engine;`+`using Game.NetWork;` 以解析 `Log`/`CommonLib`/`WorkType`/`VehicleActivationPackage`）。产物 `.netmod` **498,017 字节**，SHA-256 `C40A9C5EF5FE46C8578E4C079E7A461DEB4FBC6F9F96925885AE95D7E4D69213`；包内 `modinfo.json` Version=`0.24.0`、`SCIEPort.dll` AssemblyVersion=`0.24.0.0`。 |
+| Windows 游戏运行 | 待验证 | 本机有可运行 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测：弹窗实际出现与遮蔽输入、输入正确/错误码的放行/拒绝、取消、已在场载具拦截、坦克开火拦截均未运行。 |
+| Android 7723 | 待验证 | 目标平台真机的 `Keyboard.ShowKeyboard` 弹窗可达性、密码遮蔽渲染、触屏输入与节流手感均未观测，不得因编译或反射签名匹配标记为兼容；弹窗失败回退为拒绝（安全），但可用性待实测。 |
+| 多人联机授权 | 待验证 | 主机校验+按 `Client.GUID` 隔离+单播回执为代码/ABI 层结论；真实主机+普通客户端两台下的授权隔离、越权拒绝、未授权远程开火被丢弃均需双机实测。 |
+| 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内：新增激活规则/服务/包三类、七载具入口插闸、`TankControlPackage` 增授权门、加载器注册 242、构建/环境守卫与离线测试，未动 Builder Assistant、未改物品 ID/实体 GUID/存档格式/物理/既有网络协议载荷。 |
+
 ## 0.22.2 坦克发射后坐、炮管限位、全距离触炸与有限耐久（2026-10-24）
 
 | 项目 | 状态 | 结论 |

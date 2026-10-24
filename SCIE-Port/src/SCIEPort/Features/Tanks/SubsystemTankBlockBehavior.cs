@@ -2,6 +2,7 @@ using System.Linq;
 using Engine;
 using Game;
 using Game.NetWork;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Tanks
@@ -23,6 +24,14 @@ namespace SCIEPort.Features.Tanks
             // A normal client has no entity-spawn authority; it must not manufacture an
             // unsynchronized tank. Mirror the fox/rabbit/chicken spawner guard.
             if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
+            }
+
+            // Vehicles stay locked until the unified activation code has been entered.
+            // Rejecting here (before RemoveActiveTool) pops the password prompt but never
+            // consumes the deployment item, so a failed or cancelled attempt is free.
+            if (!VehicleActivationService.EnsureActivated())
             {
                 return true;
             }

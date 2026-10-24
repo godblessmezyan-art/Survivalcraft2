@@ -48,7 +48,8 @@ namespace SCIEPort.Features.Watercraft
 
             ComponentRider driver = m_seats.Driver;
             ComponentPlayer player = driver?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
-            bool canDrive = player != null && player.ComponentRider == driver && player.PlayerData.IsMainPlayer;
+            bool canDrive = player != null && player.ComponentRider == driver && player.PlayerData.IsMainPlayer
+                && VehicleActivationService.EnsureActivated();
             Vector3 driverMove = m_seats.DriverMove;
             float move = canDrive ? MathUtils.Clamp(driverMove.Z, -1f, 1f) : 0f;
             float turn = canDrive ? MathUtils.Clamp(driverMove.X, -1f, 1f) : 0f;

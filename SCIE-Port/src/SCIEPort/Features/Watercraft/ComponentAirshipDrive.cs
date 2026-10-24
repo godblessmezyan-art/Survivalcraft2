@@ -2,6 +2,7 @@ using Engine;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Watercraft
@@ -54,6 +55,15 @@ namespace SCIEPort.Features.Watercraft
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
             if (player == null || player.ComponentRider != rider || !player.PlayerData.IsMainPlayer)
+            {
+                ClampSpeed();
+                return;
+            }
+
+            // A vehicle that existed before activation must still be locked: without an
+            // authorized session the pilot gets the throttled password prompt and the
+            // airship holds its current (clamped) velocity instead of responding to input.
+            if (!VehicleActivationService.EnsureActivated())
             {
                 ClampSpeed();
                 return;

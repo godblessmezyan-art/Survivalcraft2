@@ -73,6 +73,9 @@ if ($LASTEXITCODE -ne 0) { throw "Sunflower crop rule tests failed: $LASTEXITCOD
 $appleTests = Join-Path $projectRoot 'tests\SCIEPort.Apple.Tests\SCIEPort.Apple.Tests.csproj'
 & $dotnetPath run --project $appleTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" }
+$activationTests = Join-Path $projectRoot 'tests\SCIEPort.VehicleActivation.Tests\SCIEPort.VehicleActivation.Tests.csproj'
+& $dotnetPath run --project $activationTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXITCODE" }
 
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a
@@ -90,9 +93,31 @@ foreach ($relativeDriveSource in $driveSources) {
     if (-not $driveSource.Contains('PlayerData.IsMainPlayer')) {
         throw "$relativeDriveSource does not gate drive simulation to the local main player."
     }
+    if (-not $driveSource.Contains('VehicleActivationService.EnsureActivated')) {
+        throw "$relativeDriveSource does not require the vehicle activation session, so an already-spawned vehicle could be driven without authorization."
+    }
     if ($driveSource -match 'WorkType\s*!=\s*WorkType\.Local\)\s*return' -or
         $driveSource -match 'WorkType\s*==\s*WorkType\.Client\)\s*\{\s*return;') {
         throw "$relativeDriveSource regressed to a single-player-only drive gate."
+    }
+}
+$spawnSources = @(
+    'Features\LandVehicles\SubsystemAtvBlockBehavior.cs',
+    'Features\OffroadVehicles\SubsystemOffroadCarBlockBehavior.cs',
+    'Features\Watercraft\SubsystemSteamBoatBlockBehavior.cs',
+    'Features\Watercraft\SubsystemAirshipBlockBehavior.cs',
+    'Features\Rail\SubsystemRailVehicleBlockBehavior.cs',
+    'Features\Tanks\SubsystemTankBlockBehavior.cs'
+)
+foreach ($relativeSpawnSource in $spawnSources) {
+    $spawnSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir $relativeSpawnSource)
+    if (-not $spawnSource.Contains('VehicleActivationService.EnsureActivated')) {
+        throw "$relativeSpawnSource does not gate deployment behind the vehicle activation session."
+    }
+    $activationIndex = $spawnSource.IndexOf('VehicleActivationService.EnsureActivated')
+    $consumeIndex = $spawnSource.IndexOf('RemoveActiveTool(1)')
+    if ($consumeIndex -ge 0 -and $activationIndex -gt $consumeIndex) {
+        throw "$relativeSpawnSource must reject an unauthorized attempt before RemoveActiveTool so no item is consumed."
     }
 }
 $railBlockSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Rail\RailVehicleBlocks.cs')
@@ -105,6 +130,10 @@ $tankFireGateIndex = $tankDriveSource.IndexOf('bool wantsFire = TankRules.CanFir
 if ($tankDriveUpdateIndex -lt 0 -or $tankFireGateIndex -lt 0 -or $tankDriveUpdateIndex -gt $tankFireGateIndex -or
     -not $tankDriveSource.Contains('* TankRules.RecoilSpeed')) {
     throw 'Tank recoil must be applied by the successful shot path after drive integration.'
+}
+$tankActivationIndex = $tankDriveSource.IndexOf('VehicleActivationService.EnsureActivated')
+if ($tankActivationIndex -lt 0 -or $tankActivationIndex -gt $tankFireGateIndex) {
+    throw 'Tank drive must require the vehicle activation session before the main-gun fire path so an unactivated tank cannot shoot.'
 }
 $projectileRemovedBody = [regex]::Match($tankDriveSource, '(?s)private void OnProjectileRemoved\(Projectile projectile\)(.*?)private void OnShellHit').Groups[1].Value
 $shellHitBody = [regex]::Match($tankDriveSource, '(?s)private void OnShellHit\(Projectile projectile, CellFace\? cellFace, ComponentBody hitBody\)(.*?)private void ExplodeShell').Groups[1].Value
@@ -127,10 +156,14 @@ if (-not $seatManagerSource.Contains('SuppressLocalPassengerBodyEcho') -or
     throw 'Two-seat passenger peers must suppress delayed parent-body echo after ComponentBody.Update.'
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
-foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage')) {
+foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage', 'VehicleActivationPackage')) {
     if (-not $loaderSource.Contains("RegisterPackage(new $packageType())")) {
         throw "SCIEPortLoader does not register $packageType."
     }
+}
+$tankControlSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Tanks\TankControlPackage.cs')
+if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GUID)')) {
+    throw 'TankControlPackage must require the host-side per-client activation grant before applying remote control or fire.'
 }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need

@@ -21,6 +21,7 @@ namespace SCIEPort.Mod
             {
                 PackageManager.RegisterPackage(new TwoSeatAssignmentPackage());
                 PackageManager.RegisterPackage(new TankControlPackage());
+                PackageManager.RegisterPackage(new VehicleActivationPackage());
                 s_networkPackageRegistered = true;
             }
 

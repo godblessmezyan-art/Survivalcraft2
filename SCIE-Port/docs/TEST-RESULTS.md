@@ -813,3 +813,45 @@ Android 7723 联网/真机验证阶段。
   `9AFE494D3F5E1206BAD68DDCE383E8B03DFDC011ADEC75ABB0F66EEA0F0808EB`；包内 modinfo 版本 0.23.1。
 - Android 7723：待验证。需真机复验世界配色与图集一致（橙/碳黑/银可读）、夜间低光不纯黑；物品栏图标
   本就不受影响，无需复验。
+
+## 0.24.0 载具激活密码闸（统一激活码 123456，主机校验按会话授权）
+
+- 需求：功能落地。首次对任意 SCIE 载具「生成/驾驶/乘坐/开火」前弹触屏密码框，输入统一码 `123456`
+  成功后本会话解锁全部七载具（ATV/蒸汽快艇/越野/飞艇/火车/车厢/T-34）；失败或取消**拒绝操作且不消耗物品**；
+  主机与客户端都需授权、按真实玩家会话隔离、由主机校验，并覆盖已在场载具与坦克开火入口防绕过。
+- UI ABI 取证：已确认（真实反射）。反射 x25.01.17 `Engine.dll` 得
+  `Engine.Input.Keyboard.ShowKeyboard(String,String,String,Boolean,Action<string>,Action)`（public static、
+  `passwordMode` 遮蔽）与 `Engine.Time.RealTime`（`Engine.Time` 上的 public static double 属性，作弹窗节流时基）。
+  `Test-Environment.ps1` 初版用参数 `FullName` 连写串比对签名，因泛型 `Action<string>` 的 `FullName` 是
+  程序集限定形式 `System.Action`1[[System.String, mscorlib, …]]` 而误判「未找到」；改为结构化逐参类型比对
+  （`[Action[string]]` 等）后通过。
+- 网络 ABI 取证：已确认（真实反射/编译）。原生 `IPackage` ID 连续占用 0..38，SCIE-Port 已用 240/241，
+  **242** 空闲→新 `VehicleActivationPackage`；保留段断言扩为 `@(240,241,242)`。反射确认 `PackageManager.RegisterPackage`
+  (public static)、`Client.GUID`、`NetNode.Server`、`NetNode.QueuePackage(IPackage)`。`PackageStreamWriter : BinaryWriter`、
+  `PackageStreamReader : BinaryReader`，`Write(string)`/`ReadString()` 来自基类；环境脚本在派生类型枚举 `GetMethods`
+  会因某未加载 `OpenTK` 重载解析抛异常，故改为断言基类继承+基类方法存在。
+- 入口覆盖：已确认（代码/构建守卫）。六处生成 `OnUse` 在 `WorkType.Client` 早退后、`RemoveActiveTool` 前插
+  `VehicleActivationService.EnsureActivated()` 拒绝闸；六处驾驶组件在主玩家判定内插同一闸（覆盖已在场载具）；
+  坦克开火在 `bool wantsFire = TankRules.CanFire` 前置闸；`TankControlPackage` 服务端在 `RiderId` 校验后加
+  `VehicleActivationService.IsGranted(From.GUID)` 门。`Build-NetMod.ps1` 对每处源码断言闸存在且顺序正确。
+- 授权模型：已确认（代码/规则）。本地会话键 `Guid.Empty`；客户端绝不自我授权，码经 242 包发主机，主机校验、
+  按 `From.GUID` 记账、单播（`To=From`）回执；客户端仅在主机肯定回执后置本地会话为已授权。弹窗包 try/catch，
+  异常保持拒绝态不崩溃，节流 6.0 秒防每帧弹。
+- 离线测试：已确认（net8 无游戏依赖）。`tests/SCIEPort.VehicleActivation.Tests` **22 断言**全绿（码校验/trim/null/
+  空白/反序、节流首次/>/==/</零经过、间隔=6.0、授予/可操作/会话键/常量码）。打包前全工程 12 个离线套件全绿：
+  Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 /
+  Apple 49 / VehicleActivation 22。
+- 编译修复：已确认。首编译报 `VehicleActivationService.cs` 缺 `Log`（Engine 命名空间）、`CommonLib`/`WorkType`/
+  `VehicleActivationPackage`（Game.NetWork 命名空间）——服务类误只 `using Game;`；改 `using Engine;`+`using Game.NetWork;`
+  后编译通过。
+- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过（含新载具激活 ABI 探测）；
+  `Build-WithPinnedSdk.ps1 -GameDir D:\SC -Configuration Release` 全程 exit 0（`TreatWarningsAsErrors`+
+  `GenerateDocumentationFile`→0 warning/0 error），`DATABASE VALIDATION PASSED`；产物 **498,017 字节**，SHA-256
+  `C40A9C5EF5FE46C8578E4C079E7A461DEB4FBC6F9F96925885AE95D7E4D69213`；包内 modinfo Version=`0.24.0`、
+  `SCIEPort.dll` AssemblyVersion=`0.24.0.0`（磁盘复核一致）。
+- Windows 游戏运行：待验证。本机未启动游戏；弹窗实际出现与遮蔽、正确/错误码放行/拒绝、取消、已在场载具拦截、
+  坦克开火拦截均未运行。
+- Android 7723：待验证。目标真机 `Keyboard.ShowKeyboard` 弹窗可达性、密码遮蔽渲染、触屏输入与节流手感均未观测；
+  编译/反射签名匹配不得标记兼容；弹窗失败按拒绝回退（安全），可用性待实测。
+- 多人联机授权：待验证。主机校验+按 `Client.GUID` 隔离+单播回执为代码/ABI 结论；真实主机+普通客户端两台的
+  授权隔离、越权拒绝、未授权远程开火丢弃需双机实测。

@@ -37,7 +37,7 @@ foreach ($marker in @('Initilizing Mods Manager. Api Version: 1.42', '2.4.10.6',
     if (-not $unicode.Contains($marker)) { throw "Missing target marker: $marker" }
 }
 
-[void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
+$engineAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
 [void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'EntitySystem.dll')))
 $assembly = [Reflection.Assembly]::Load($bytes)
 $modLoader = $assembly.GetType('Game.ModLoader', $true)
@@ -149,13 +149,54 @@ foreach ($type in $loadedTypes) {
         try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
     }
 }
-foreach ($reservedPackageId in @(240, 241)) {
+foreach ($reservedPackageId in @(240, 241, 242)) {
     if ($nativePackageIds -contains $reservedPackageId) {
         throw "SCIE-Port package ID $reservedPackageId conflicts with a native x25.01.17 package."
     }
 }
 if (-not $assembly.GetType('Game.NetWork.Client', $true).GetProperty('PlayerData')) {
     throw 'Client.PlayerData required for authenticated tank fire requests was not found.'
+}
+$clientType = $assembly.GetType('Game.NetWork.Client', $true)
+if (-not $clientType.GetProperty('GUID')) {
+    throw 'Client.GUID required as the per-player vehicle activation session key was not found.'
+}
+$netNodeType = $assembly.GetType('Game.NetWork.NetNode', $true)
+if (-not $netNodeType.GetProperty('Server')) {
+    throw 'NetNode.Server required to route a client activation request and reply was not found.'
+}
+if (-not ($netNodeType.GetMethods() | Where-Object { $_.Name -eq 'QueuePackage' -and $_.GetParameters().Count -eq 1 })) {
+    throw 'NetNode.QueuePackage(IPackage) required for vehicle activation request/reply was not found.'
+}
+$keyboardType = $engineAssembly.GetType('Engine.Input.Keyboard', $true)
+$actionStringType = [Action[string]]
+$showKeyboard = @($keyboardType.GetMethods([Reflection.BindingFlags]'Public,Static') | Where-Object {
+    $_.Name -eq 'ShowKeyboard' -and
+    (($_.GetParameters() | ForEach-Object { $_.ParameterType }).Count -eq 6) -and
+    (($_.GetParameters()[0].ParameterType -eq [string]) -and
+     ($_.GetParameters()[1].ParameterType -eq [string]) -and
+     ($_.GetParameters()[2].ParameterType -eq [string]) -and
+     ($_.GetParameters()[3].ParameterType -eq [bool]) -and
+     ($_.GetParameters()[4].ParameterType -eq $actionStringType) -and
+     ($_.GetParameters()[5].ParameterType -eq [Action]))
+})
+if ($showKeyboard.Count -eq 0) {
+    throw 'Engine.Input.Keyboard.ShowKeyboard(string,string,string,bool,Action<string>,Action) required for the touch password popup was not found.'
+}
+$engineTimeType = $engineAssembly.GetType('Engine.Time', $true)
+$realTimeProperty = $engineTimeType.GetProperty('RealTime', [Reflection.BindingFlags]'Public,Static')
+if (-not $realTimeProperty -or $realTimeProperty.PropertyType -ne [double]) {
+    throw 'Engine.Time.RealTime static double required to throttle vehicle activation prompts was not found.'
+}
+$packageWriterType = $assembly.GetType('Game.NetWork.PackageStreamWriter', $true)
+if ($packageWriterType.BaseType -ne [IO.BinaryWriter] -or
+    -not [IO.BinaryWriter].GetMethod('Write', [Reflection.BindingFlags]'Public,Instance', $null, @([string]), $null)) {
+    throw 'PackageStreamWriter.Write(string) (inherited from BinaryWriter) required to serialize the activation code was not found.'
+}
+$packageReaderType = $assembly.GetType('Game.NetWork.PackageStreamReader', $true)
+if ($packageReaderType.BaseType -ne [IO.BinaryReader] -or
+    -not [IO.BinaryReader].GetMethod('ReadString', [Reflection.BindingFlags]'Public,Instance', $null, @(), $null)) {
+    throw 'PackageStreamReader.ReadString() (inherited from BinaryReader) required to deserialize the activation code was not found.'
 }
 if (-not $componentBody.GetField('m_childBodies', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentBody.m_childBodies required to keep the two-seat driver first was not found.'
@@ -227,4 +268,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, vehicle activation popup/network ABI (Client.GUID, NetNode.Server/QueuePackage, Keyboard.ShowKeyboard, Engine.Time.RealTime, package payload) and reserved ID checks passed.'

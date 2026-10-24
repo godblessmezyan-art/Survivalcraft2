@@ -1,5 +1,6 @@
 using Game;
 using Game.NetWork;
+using SCIEPort.Features.Vehicles;
 
 namespace SCIEPort.Features.Tanks
 {
@@ -103,6 +104,13 @@ namespace SCIEPort.Features.Tanks
 
                 ComponentPlayer sender = From.PlayerData?.ComponentPlayer;
                 if (sender == null || sender.Entity.EntityId != RiderId)
+                {
+                    return;
+                }
+
+                // The host verified and recorded this player's activation session by
+                // network GUID; without it a remote driver cannot move or fire the tank.
+                if (!VehicleActivationService.IsGranted(From.GUID))
                 {
                     return;
                 }

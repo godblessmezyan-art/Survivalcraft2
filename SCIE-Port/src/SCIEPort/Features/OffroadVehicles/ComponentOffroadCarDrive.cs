@@ -47,6 +47,15 @@ namespace SCIEPort.Features.OffroadVehicles
                 return;
             }
 
+            // A vehicle that existed before activation must still be locked: without an
+            // authorized session the driver gets the throttled password prompt and the car
+            // holds parking drag instead of responding to throttle or steering.
+            if (!VehicleActivationService.EnsureActivated())
+            {
+                m_body.IsGroundDragEnabled = true;
+                return;
+            }
+
             float boundedDt = MathUtils.Clamp(dt, 0f, 0.1f);
             bool terrainGrounded = m_body.StandingOnValue.HasValue;
             bool bodyGrounded = m_body.StandingOnBody != null;

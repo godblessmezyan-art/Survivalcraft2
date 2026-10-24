@@ -65,6 +65,15 @@ namespace SCIEPort.Features.LandVehicles
                 return;
             }
 
+            // A vehicle that existed before activation must still be locked: without an
+            // authorized session the driver gets the throttled password prompt and the ATV
+            // stays in neutral (no throttle, no steering) rather than responding to input.
+            if (!VehicleActivationService.EnsureActivated())
+            {
+                RestoreParkingDrag(false);
+                return;
+            }
+
             bool terrainGrounded = m_body.StandingOnValue.HasValue;
             bool bodyGrounded = m_body.StandingOnBody != null;
             bool supported = terrainGrounded || bodyGrounded;

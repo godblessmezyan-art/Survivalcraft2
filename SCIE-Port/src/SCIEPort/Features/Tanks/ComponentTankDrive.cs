@@ -4,6 +4,7 @@ using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Tanks
@@ -162,6 +163,15 @@ namespace SCIEPort.Features.Tanks
                 // Remote occupied bodies are fed by SCNET's native parent-body
                 // interpolation. Do not add a second local ground-drag pass.
                 m_body.IsGroundDragEnabled = rider == null;
+                return;
+            }
+
+            // A tank that existed before activation must still be locked: without an
+            // authorized session the local driver gets the throttled password prompt and
+            // neither drive integration nor the main-gun fire path below runs.
+            if (!VehicleActivationService.EnsureActivated())
+            {
+                m_body.IsGroundDragEnabled = true;
                 return;
             }
 

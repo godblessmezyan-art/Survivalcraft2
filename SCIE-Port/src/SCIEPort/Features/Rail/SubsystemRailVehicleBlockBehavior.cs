@@ -2,6 +2,7 @@ using System.Linq;
 using Engine;
 using Game;
 using Game.NetWork;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Rail
@@ -22,6 +23,14 @@ namespace SCIEPort.Features.Rail
             // A normal client has no entity-spawn authority; it must not manufacture an
             // unsynchronized rail vehicle. Mirror the fox/rabbit/chicken spawner guard.
             if (CommonLib.WorkType == WorkType.Client)
+            {
+                return true;
+            }
+
+            // Vehicles stay locked until the unified activation code has been entered.
+            // Rejecting here (before RemoveActiveTool) pops the password prompt but never
+            // consumes the deployment item, so a failed or cancelled attempt is free.
+            if (!VehicleActivationService.EnsureActivated())
             {
                 return true;
             }
