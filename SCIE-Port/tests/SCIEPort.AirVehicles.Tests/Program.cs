@@ -19,6 +19,9 @@ internal static class Program
         Equal(-3.5f, HelicopterFlightRules.GetVerticalTarget(false, true, true, 4.5f, 3.5f, 1.8f), "sneak descends");
         Equal(0f, HelicopterFlightRules.GetVerticalTarget(false, false, true, 4.5f, 3.5f, 1.8f), "neutral hovers");
         Equal(-1.8f, HelicopterFlightRules.GetVerticalTarget(false, false, false, 4.5f, 3.5f, 1.8f), "no pilot auto lands");
+        Assert(HelicopterFlightRules.IsViewClimb(0.9f, HelicopterFlightRules.VerticalPitchDeadzone), "looking up commands climb");
+        Assert(HelicopterFlightRules.IsViewDive(-0.9f, HelicopterFlightRules.VerticalPitchDeadzone), "looking down commands dive");
+        Assert(!HelicopterFlightRules.IsViewClimb(0.1f, HelicopterFlightRules.VerticalPitchDeadzone) && !HelicopterFlightRules.IsViewDive(-0.1f, HelicopterFlightRules.VerticalPitchDeadzone), "level view stays in hover deadzone");
         Assert(HelicopterFlightRules.IntegrateVerticalSpeed(0f, 0f, 0f, 9.8f, 2.8f, 4.5f, 3.5f, 0.1f) < 0f, "unpowered gravity");
         Equal(0f, HelicopterFlightRules.IntegrateVerticalSpeed(0f, 0f, 1f, 9.8f, 2.8f, 4.5f, 3.5f, 0.1f), "full rotor hover compensates gravity");
         Assert(HelicopterFlightRules.IntegrateVerticalSpeed(0f, 4.5f, 1f, 9.8f, 2.8f, 4.5f, 3.5f, 0.1f) > 0f, "powered ascent accelerates");

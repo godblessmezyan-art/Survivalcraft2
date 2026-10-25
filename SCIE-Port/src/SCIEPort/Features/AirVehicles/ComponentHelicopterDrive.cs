@@ -177,8 +177,21 @@ namespace SCIEPort.Features.AirVehicles
 
         private void SimulateFlight(float t, bool grounded, bool authorizedPilot)
         {
-            bool ascend = authorizedPilot && m_seats.DriverJump;
-            bool descend = authorizedPilot && m_seats.DriverSneakMove.LengthSquared() > 0.0025f;
+            // Vertical command. Mounted riders do not reliably emit touch jump input,
+            // so the driver's view elevation is the primary climb/dive channel (this is
+            // the same proven control the airship uses); jump and sneak remain as
+            // secondary inputs so keyboard or alternative bindings still work.
+            float eyeForwardY = 0f;
+            ComponentCreatureModel driverModel = m_seats.Driver?.ComponentCreature?.ComponentCreatureModel;
+            if (driverModel != null)
+            {
+                eyeForwardY = Matrix.CreateFromQuaternion(driverModel.EyeRotation).Forward.Y;
+            }
+
+            bool viewClimb = authorizedPilot && HelicopterFlightRules.IsViewClimb(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
+            bool viewDive = authorizedPilot && HelicopterFlightRules.IsViewDive(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
+            bool ascend = viewClimb || (authorizedPilot && m_seats.DriverJump);
+            bool descend = !ascend && (viewDive || (authorizedPilot && m_seats.DriverSneakMove.LengthSquared() > 0.0025f));
             float targetVertical = HelicopterFlightRules.GetVerticalTarget(
                 ascend,
                 descend,
