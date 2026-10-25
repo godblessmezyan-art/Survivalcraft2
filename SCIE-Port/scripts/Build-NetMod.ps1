@@ -218,6 +218,19 @@ foreach ($hudFallbackEvidence in @('catch (Exception', 'Log.Error')) {
         throw "Helicopter flight HUD must keep its 7723-safe fallback path evidence: $hudFallbackEvidence"
     }
 }
+# Regression guard: CanvasWidget.SetPosition only takes effect when the widget's direct parent is a
+# CanvasWidget. ComponentPlayer.GuiWidget is a plain ContainerWidget, so the HUD must insert its own
+# full-screen CanvasWidget layer and parent the button roots/hit surfaces to it; otherwise the
+# buttons silently collapse to the top-left origin and the climb button cannot be pressed.
+foreach ($hudCanvasLayerEvidence in @(
+    'private readonly CanvasWidget m_layer = new CanvasWidget()',
+    'm_layer.AddChildren(m_ascent.Hit)',
+    'm_layer.AddChildren(m_descent.Hit)',
+    'container.AddChildren(m_layer)')) {
+    if (-not $hudWidgetSource.Contains($hudCanvasLayerEvidence)) {
+        throw "Helicopter flight HUD lost its CanvasWidget positioning layer (buttons would collapse to the origin): $hudCanvasLayerEvidence"
+    }
+}
 foreach ($hudRequiredFile in @('HelicopterControlSurface.cs', 'HelicopterFlightHud.cs')) {
     if (-not (Test-Path -LiteralPath (Join-Path $projectDir ('Features\AirVehicles\Hud\' + $hudRequiredFile)))) {
         throw "Helicopter flight HUD source file is missing: $hudRequiredFile"

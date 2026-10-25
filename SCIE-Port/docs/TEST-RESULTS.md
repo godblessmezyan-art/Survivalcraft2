@@ -1,5 +1,18 @@
 # 测试结果
 
+## 0.27.1 直升机 HUD「点上按钮不能起飞」热修复（2026-10-25）
+
+- 真机现象：Android 7723 上点击上升按钮无法起飞。用户能看到并点击按钮，说明附加与授权门（`authorizedPilot`）均通过，问题在按钮命中定位。
+- 根因（反编译实证 x25.01.17）：`ComponentPlayer.GuiWidget => PlayerData.GameWidget.GuiWidget`，而 `GameWidget.GuiWidget` 以 `Children.Find<ContainerWidget>("Gui")` 取得——它是**普通 `ContainerWidget`**（同文件里 `ControlsContainer` 才用 `Find<CanvasWidget>` 取得，对照可证）。`CanvasWidget.SetPosition(widget,pos)` 的实现是 `(widget.ParentWidget as CanvasWidget)?.SetWidgetPosition(...)`：父节点非 Canvas 时该转换为 null，`?.` 使调用**静默空操作**。于是 `m_root`/`m_hit` 的绝对定位全部失效，四个控件（两根视觉根 + 两个命中面）按默认 `WidgetAlignment.Near` 全部堆叠到左上角原点；命中反编译确认 `HitTestGlobal`/`UpdateWidgetsHierarchy` 对子节点**逆序**遍历（最后加入者最上层），而加入顺序为 ascent.Root→descent.Root→ascent.Hit→descent.Hit，故最上层的命中面是 **descent.Hit（下降）**，点「上」永远命中不到 ascent。另确认 `WidgetInput.UpdateInputFromTouch` 在 `Pressed/Moved` 时**会**写入 `Press`（受输入宿主 `Widget.HitTest` 全屏守卫），`ClickableWidget.Update` 依赖 `input.Press.HasValue && HitTestGlobal(Press)==this`——即触摸通道本身工作正常，先前「触摸不写 Press」的假设被推翻，真因是定位。
+- 修复：在 `HelicopterFlightHud` 内新增自持有的**全屏 `CanvasWidget m_layer`**（`HorizontalAlignment/VerticalAlignment=Stretch` 撑满 GUI，`IsHitTestVisible=false` 使按钮以外的触摸仍穿透到原生摇杆/视角/快捷栏），将两个按钮的 `Root` 与 `Hit` 改为挂到 `m_layer` 下，再把 `m_layer` 挂到宿主 `GuiWidget`。父节点变为真 Canvas 后 `SetPosition` 生效，按钮落到右下计算坐标，上升命中面不再被下降遮挡。附带：`Refresh` 优先用 `m_layer.ActualSize`（回退宿主尺寸）并在尺寸未测量（≤0）时跳过布局，避免首帧退化坐标；`Detach`/`FlightButton.Dispose` 改为从 `m_layer` 摘除且**不再销毁可复用控件实例**，杜绝换驾驶员重挂载时复用已释放控件。
+- 回归守卫：`Build-NetMod.ps1` 新增源码断言，要求 `private readonly CanvasWidget m_layer = new CanvasWidget()`、`m_layer.AddChildren(m_ascent.Hit)`、`m_layer.AddChildren(m_descent.Hit)`、`container.AddChildren(m_layer)` 均在 `HelicopterFlightHud.cs` 中存在，缺失即构建失败，防止定位图层被再次改回而静默回归。
+- 规则单测：已确认。`SCIEPort.AirVehicles.Tests` 直升机 **73 断言**全绿（纯逻辑未改），exit 0。
+- 全量回归：已确认。环境 ABI + Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 73 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- Release/数据库/编译：已确认。`Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release`，本机 9.0.300 SDK（net8 测试 Major roll-forward），net472 主工程 **0 warning / 0 error**（`SCIEPort -> artifacts\build\SCIEPort.dll`），12 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **521,782 字节 / 65 条目**，本次交付 SHA-256 `15BF222634C8C20F04267B31D009BAE7036426334136AD859FEEA9359B34DE45`（含 `Assets/Textures/HeliArrow.png`，modinfo=`0.27.1`，DLL Assembly/FileVersion=`0.27.1.0`）；`.netmod` 的 SHA 每次构建都会变（zip 条目存文件 mtime），字节数与条目数稳定，故以「提交后重建」的包为准。
+- Android 7723 真机：**待验证**。本次为定位链路修复，未在真机复测——上升按钮是否可点并按住持续爬升、下降按钮俯冲、双按归悬停、按钮出现在右下且不遮挡摇杆/快捷栏、按钮以外区域触摸穿透正常、`ImageWidget.RotateAngle` 箭镞朝向、换驾驶员/下机/断线后无残留或幽灵按压、多分辨率/横屏/UIScale 安全区，均需真机执行后方可判定；未通过前一律不声称修复成功。
+- Windows 游戏运行 / 两台真实客户端联机：**待验证**，同上。
+
 ## 0.27.0 双人直升机移动端飞行控制 HUD（2026-10-25）
 
 - 来源审查：已确认（反射实证）。控件类型全部在 `Game.*`（`Survivalcraft.exe`）而非 `Engine.Widgets.*`；逐一确认 `Widget.DesiredSize/ActualSize/Margin/IsVisible/IsHitTestVisible`、`WidgetAlignment{Near/Center/Far/Stretch}`、`ContainerWidget.AddChildren/RemoveChildren/ClearChildren`、`CanvasWidget.SetPosition(Widget,Vector2)` 为静态、`ClickableWidget.IsPressed{get;set}`（持续按压+多点触摸原生通道）、`BevelledRectangleWidget`（程序化圆角半透明）、`ImageWidget.RotateAngle`+`Subtexture(Texture2D,Vector2,Vector2)`、`ComponentGui.ControlsContainerWidget`、`ComponentPlayer.GuiWidget`（本身即 ContainerWidget）、`SettingsManager.UIScale`（公开静态 Single）、`ButtonWidget` 无公开构造函数。`ContentManager.Get<Texture2D>` 沿用 HelicopterBlock 既有范式。

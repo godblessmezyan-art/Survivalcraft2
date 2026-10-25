@@ -38,6 +38,14 @@ namespace SCIEPort.Features.AirVehicles.Hud
         private readonly FlightButton m_ascent = new FlightButton(ChevronUpRotation);
         private readonly FlightButton m_descent = new FlightButton(ChevronDownRotation);
 
+        // The engine only honours absolute placement through CanvasWidget.SetPosition when the
+        // widget's *direct* parent is a CanvasWidget; otherwise the static setter casts the parent
+        // to CanvasWidget, gets null and silently does nothing. The driver's mount point
+        // (ComponentPlayer.GuiWidget) is a plain ContainerWidget, so we insert our own stretched,
+        // full-screen CanvasWidget layer and parent the button roots/hit surfaces to it. This makes
+        // placement work identically whether or not the host container happens to be a canvas.
+        private readonly CanvasWidget m_layer = new CanvasWidget();
+
         private ContainerWidget m_container;
         private bool m_attached;
 
@@ -114,10 +122,22 @@ namespace SCIEPort.Features.AirVehicles.Hud
                 Texture2D arrow = TryGetArrowTexture();
                 m_ascent.Build(arrow);
                 m_descent.Build(arrow);
-                container.AddChildren(m_ascent.Root);
-                container.AddChildren(m_descent.Root);
-                container.AddChildren(m_ascent.Hit);
-                container.AddChildren(m_descent.Hit);
+
+                // Full-screen canvas layer: it stretches to the host size, is itself transparent to
+                // hit-testing (so touches outside the buttons still reach the native joystick /
+                // look / hotbar widgets underneath), and gives the buttons a CanvasWidget parent so
+                // SetPosition places them at the computed lower-right coordinates.
+                m_layer.HorizontalAlignment = WidgetAlignment.Stretch;
+                m_layer.VerticalAlignment = WidgetAlignment.Stretch;
+                m_layer.IsHitTestVisible = false;
+                m_layer.IsVisible = true;
+
+                m_layer.AddChildren(m_ascent.Root);
+                m_layer.AddChildren(m_descent.Root);
+                m_layer.AddChildren(m_ascent.Hit);
+                m_layer.AddChildren(m_descent.Hit);
+                container.AddChildren(m_layer);
+
                 m_container = container;
                 m_attached = true;
                 SetVisible(false);
@@ -152,10 +172,22 @@ namespace SCIEPort.Features.AirVehicles.Hud
                     return;
                 }
 
-                Vector2 surface = m_container.ActualSize;
+                Vector2 surface = m_layer.ActualSize;
+                if (surface.X <= 0f || surface.Y <= 0f)
+                {
+                    surface = m_container.ActualSize;
+                }
+
+                if (surface.X <= 0f || surface.Y <= 0f)
+                {
+                    // Not measured yet (first frame after attach); wait for a valid size rather
+                    // than placing the buttons at degenerate coordinates.
+                    return;
+                }
+
                 HelicopterButtonLayout layout = HelicopterControlSurface.ComputeLayout(surface.X, surface.Y, uiScale);
-                m_ascent.Apply(m_container, layout.Ascent);
-                m_descent.Apply(m_container, layout.Descent);
+                m_ascent.Apply(m_layer, layout.Ascent);
+                m_descent.Apply(m_layer, layout.Descent);
             }
             catch (Exception exception)
             {
@@ -171,12 +203,21 @@ namespace SCIEPort.Features.AirVehicles.Hud
         }
 
         /// <summary>
-        /// Removes and disposes every widget and clears press state. Safe to call when detached.
+        /// Removes every widget from the GUI and clears press state. Safe to call when detached.
+        /// The button roots/hit surfaces live inside <see cref="m_layer"/>, so they are detached
+        /// from the layer first and the layer is then lifted out of the host container; this never
+        /// leaves orphaned widgets behind on a driver change.
         /// </summary>
         public void Detach()
         {
-            m_ascent.Dispose(m_container);
-            m_descent.Dispose(m_container);
+            m_ascent.Dispose(m_layer);
+            m_descent.Dispose(m_layer);
+            if (m_container != null)
+            {
+                m_container.RemoveChildren(m_layer);
+            }
+
+            m_layer.ClearChildren();
             m_container = null;
             m_attached = false;
         }
@@ -258,6 +299,7 @@ namespace SCIEPort.Features.AirVehicles.Hud
                 m_body.CenterColor = new Color(0.1f, 0.13f, 0.18f, 0.42f);
                 m_body.BevelColor = new Color(0.55f, 0.62f, 0.72f, 0.5f);
                 m_body.IsHitTestVisible = false;
+                m_root.IsHitTestVisible = false;
                 m_root.AddChildren(m_body);
 
                 if (arrow != null)
@@ -327,9 +369,10 @@ namespace SCIEPort.Features.AirVehicles.Hud
                     parent.RemoveChildren(m_hit);
                 }
 
-                m_root.ClearChildren();
-                m_root.Dispose();
-                m_hit.Dispose();
+                // The widget instances are reused across attach/detach cycles (a driver change
+                // detaches and later re-attaches the same HUD), so they are intentionally NOT
+                // disposed here; they are simply lifted out of the tree. Resetting the cached
+                // geometry forces the next Apply to re-measure and re-position from scratch.
                 m_lastSize = -1f;
                 m_lastX = float.NaN;
                 m_lastY = float.NaN;
