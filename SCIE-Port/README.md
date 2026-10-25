@@ -1,4 +1,6 @@
-# SCIE-Port
+﻿# SCIE-Port
+
+Version 0.27.0 adds a mobile-specific flight-control HUD to the two-seat helicopter: two rounded, semi-transparent on-screen buttons (climb / dive) anchored bottom-right, shown only for the local authorized driver. They are composed from the native BevelledRectangleWidget, ImageWidget and ClickableWidget so a held finger drives a sustained vertical intent, two-finger multitouch works alongside the unchanged left movement joystick, and simultaneous press cancels to hover. The dedicated buttons take precedence over the driver-view channel and the jump/sneak keys; all sources are merged into one intent by HelicopterControlSurface and integrated through the existing flight rules, never writing entity coordinates directly. The overlay is built once, repositioned only when the resolved layout changes (so held touches are never re-measured), scales with SettingsManager.UIScale and the live container size, and detaches on dismount, seat change or component disposal. Every widget call is wrapped so an unavailable 7723 surface falls back to proven view-only control rather than crashing. Release, 73 helicopter-rule assertions and packaging pass; Android 7723 on-screen touch, hover feel, save/reload and real two-client multiplayer remain pending verification. See `docs/HELICOPTER-HUD-V0.5-AUDIT.md`.
 
 Version 0.26.0 upgrades the existing two-seat helicopter to presentation V0.4
 without replacing its flight, seat, spawn or network paths. The new clean-room

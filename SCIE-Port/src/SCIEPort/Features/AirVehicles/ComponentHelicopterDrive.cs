@@ -4,6 +4,7 @@ using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.AirVehicles.Hud;
 using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
@@ -16,6 +17,8 @@ namespace SCIEPort.Features.AirVehicles
         private ComponentDamage m_damage;
         private ComponentModel m_model;
         private ComponentTwoSeatManager m_seats;
+        private readonly HelicopterFlightHud m_hud = new HelicopterFlightHud();
+        private ComponentPlayer m_hudDriver;
         private SubsystemAudio m_audio;
         private Sound m_rotorSound;
         private ModelBone m_visualRootBone;
@@ -126,6 +129,9 @@ namespace SCIEPort.Features.AirVehicles
         /// <inheritdoc />
         public override void Dispose()
         {
+            m_hud.Detach();
+            m_hudDriver = null;
+
             if (m_rotorSound != null)
             {
                 m_rotorSound.Stop();
@@ -166,21 +172,59 @@ namespace SCIEPort.Features.AirVehicles
                 m_rotorSpeed, m_engineRunning, m_spoolUpTime, m_spoolDownTime, t);
             m_rotorState = HelicopterFlightRules.GetRotorState(m_engineRunning, m_rotorSpeed);
 
+            // The vertical buttons only exist for the local, authorized driver of a living
+            // aircraft. Any other seat holder (passenger, remote replica, empty seat, a vehicle
+            // being destroyed) hides and releases the overlay so a stale widget or phantom press
+            // can never influence another player's session.
+            UpdateFlightHud(localPilot, driver, player, authorizedPilot);
+            bool hudClimb = authorizedPilot && m_hud.IsClimbPressed;
+            bool hudDive = authorizedPilot && m_hud.IsDivePressed;
+
             bool authorityAutoLanding = driver == null && CommonLib.WorkType != WorkType.Client;
             if (authorizedPilot || authorityAutoLanding)
             {
-                SimulateFlight(t, grounded, authorizedPilot);
+                SimulateFlight(t, grounded, authorizedPilot, hudClimb, hudDive);
             }
 
             UpdatePresentation(t, grounded);
         }
 
-        private void SimulateFlight(float t, bool grounded, bool authorizedPilot)
+        private void UpdateFlightHud(bool localPilot, ComponentRider driver, ComponentPlayer player, bool authorizedPilot)
         {
-            // Vertical command. Mounted riders do not reliably emit touch jump input,
-            // so the driver's view elevation is the primary climb/dive channel (this is
-            // the same proven control the airship uses); jump and sneak remain as
-            // secondary inputs so keyboard or alternative bindings still work.
+            ContainerWidget container = localPilot ? player?.GuiWidget : null;
+            bool show = HelicopterControlSurface.ShouldShowControls(localPilot, driver != null, vehicleAlive: true) && authorizedPilot;
+
+            if (!show || container == null)
+            {
+                m_hud.Hide();
+                m_hud.Detach();
+                m_hudDriver = null;
+                return;
+            }
+
+            if (!m_hud.Attach(container))
+            {
+                m_hudDriver = null;
+                return;
+            }
+
+            if (!ReferenceEquals(m_hudDriver, player))
+            {
+                m_hudDriver = player;
+            }
+
+            m_hud.Refresh(true, SettingsManager.UIScale);
+        }
+
+        private void SimulateFlight(float t, bool grounded, bool authorizedPilot, bool hudClimb, bool hudDive)
+        {
+            // Vertical command. Mounted riders do not reliably emit touch jump input, so the
+            // driver's view elevation is the ambient climb/dive channel (the same proven control
+            // the airship uses) and jump/sneak remain secondary keyboard bindings. The dedicated
+            // HUD buttons are the deliberate primary channel. All sources are arbitrated into one
+            // intent by HelicopterControlSurface so buttons override the view, simultaneous
+            // climb+dive cancels to hover, and releasing both settles smoothly, never writing
+            // entity coordinates directly.
             float eyeForwardY = 0f;
             ComponentCreatureModel driverModel = m_seats.Driver?.ComponentCreature?.ComponentCreatureModel;
             if (driverModel != null)
@@ -190,8 +234,12 @@ namespace SCIEPort.Features.AirVehicles
 
             bool viewClimb = authorizedPilot && HelicopterFlightRules.IsViewClimb(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
             bool viewDive = authorizedPilot && HelicopterFlightRules.IsViewDive(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
-            bool ascend = viewClimb || (authorizedPilot && m_seats.DriverJump);
-            bool descend = !ascend && (viewDive || (authorizedPilot && m_seats.DriverSneakMove.LengthSquared() > 0.0025f));
+            bool jumpClimb = authorizedPilot && m_seats.DriverJump;
+            bool sneakDive = authorizedPilot && m_seats.DriverSneakMove.LengthSquared() > 0.0025f;
+
+            HelicopterVerticalIntent intent = HelicopterControlSurface.ResolveIntent(
+                hudClimb, hudDive, viewClimb, viewDive, jumpClimb, sneakDive);
+            HelicopterControlSurface.ToVerticalFlags(intent, out bool ascend, out bool descend);
             float targetVertical = HelicopterFlightRules.GetVerticalTarget(
                 ascend,
                 descend,

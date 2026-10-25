@@ -1,5 +1,6 @@
 using System;
 using SCIEPort.Features.AirVehicles;
+using SCIEPort.Features.AirVehicles.Hud;
 using SCIEPort.Features.Vehicles;
 
 internal static class Program
@@ -52,6 +53,48 @@ internal static class Program
         Assert(HelicopterFlightRules.SmoothVisualAngle(0f, 1f, 4f, 0.1f) > 0f && HelicopterFlightRules.SmoothVisualAngle(0f, 1f, 4f, 0.1f) < 1f, "visual damping is bounded");
         Equal(0f, HelicopterFlightRules.GetRotorBlurBlend(0.6f, 0.75f), "slow rotor uses solid blades");
         Equal(1f, HelicopterFlightRules.GetRotorBlurBlend(0.9f, 0.75f), "fast rotor uses blur geometry");
+
+        // Vertical HUD intent arbitration.
+        Assert(HelicopterControlSurface.ResolveIntent(true, false, false, false, false, false) == HelicopterVerticalIntent.Climb, "climb button climbs");
+        Assert(HelicopterControlSurface.ResolveIntent(false, true, false, false, false, false) == HelicopterVerticalIntent.Dive, "dive button dives");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, false, false, false, false) == HelicopterVerticalIntent.Hover, "no input hovers");
+        Assert(HelicopterControlSurface.ResolveIntent(true, true, false, false, false, false) == HelicopterVerticalIntent.Hover, "both buttons cancel to hover");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, true, false, false, false) == HelicopterVerticalIntent.Climb, "view climb fallback");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, false, true, false, false) == HelicopterVerticalIntent.Dive, "view dive fallback");
+        Assert(HelicopterControlSurface.ResolveIntent(true, false, false, true, false, false) == HelicopterVerticalIntent.Climb, "climb button overrides view dive");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, true, false, false, true) == HelicopterVerticalIntent.Dive, "sneak key overrides view climb");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, true, true, false, false) == HelicopterVerticalIntent.Hover, "conflicting view cancels");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, false, false, true, false) == HelicopterVerticalIntent.Climb, "jump key climbs");
+        Assert(HelicopterControlSurface.ResolveIntent(false, false, false, false, false, true) == HelicopterVerticalIntent.Dive, "sneak key dives");
+        bool hudAscend;
+        bool hudDescend;
+        HelicopterControlSurface.ToVerticalFlags(HelicopterVerticalIntent.Climb, out hudAscend, out hudDescend);
+        Assert(hudAscend && !hudDescend, "climb flag mapping");
+        HelicopterControlSurface.ToVerticalFlags(HelicopterVerticalIntent.Hover, out hudAscend, out hudDescend);
+        Assert(!hudAscend && !hudDescend, "hover flag mapping");
+
+        // HUD visibility: only the local authorized main driver of a living helicopter sees it.
+        Assert(HelicopterControlSurface.ShouldShowControls(true, true, true), "local driver shows HUD");
+        Assert(!HelicopterControlSurface.ShouldShowControls(false, true, true), "remote driver hides HUD");
+        Assert(!HelicopterControlSurface.ShouldShowControls(true, false, true), "passenger hides HUD");
+        Assert(!HelicopterControlSurface.ShouldShowControls(true, true, false), "dead vehicle hides HUD");
+
+        // Responsive button layout math.
+        HelicopterButtonLayout phone = HelicopterControlSurface.ComputeLayout(812f, 375f, 1f);
+        Assert(phone.Ascent.Size >= HelicopterControlSurface.MinButtonSize && phone.Ascent.Size <= HelicopterControlSurface.MaxButtonSize, "phone button size in band");
+        Assert(phone.Ascent.Y < phone.Descent.Y, "ascent stacked above descent");
+        Assert(phone.Descent.Right <= 812f && phone.Ascent.Right <= 812f, "buttons inside right edge");
+        Assert(phone.Ascent.X > 812f / 2f && phone.Descent.X > 812f / 2f, "buttons clear left joystick");
+        Assert(phone.Descent.Bottom <= 375f && phone.Ascent.Bottom <= 375f, "buttons inside bottom edge");
+        Assert(phone.Ascent.X >= 0f && phone.Ascent.Y >= 0f && phone.Descent.X >= 0f && phone.Descent.Y >= 0f, "layout coordinates non-negative");
+        Assert(Math.Abs(phone.Descent.Y - (phone.Ascent.Bottom + 375f * HelicopterControlSurface.VerticalGapFactor)) < 0.01f, "ascent-descent gap honored");
+        float tinyButton = HelicopterControlSurface.ButtonSize(320f, 240f, 1f);
+        Assert(tinyButton >= HelicopterControlSurface.MinButtonSize, "small screen hits minimum size");
+        float bigButton = HelicopterControlSurface.ButtonSize(2048f, 1536f, 1f);
+        Assert(bigButton <= HelicopterControlSurface.MaxButtonSize, "large screen hits maximum size");
+        Equal(1f, HelicopterControlSurface.ClampUiScale(0f), "zero ui scale clamps to one");
+        Equal(HelicopterControlSurface.MinimumUiScale, HelicopterControlSurface.ClampUiScale(0.3f), "low ui scale clamps up");
+        Equal(1.5f, HelicopterControlSurface.ClampUiScale(1.5f), "high ui scale passes through");
         Console.WriteLine("Helicopter rule tests passed: " + s_count);
         return 0;
     }

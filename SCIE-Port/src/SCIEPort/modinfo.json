@@ -1,8 +1,8 @@
-{
+﻿{
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.26.0",
+  "Version": "0.27.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.26.0 upgrades the project-created two-seat helicopter to presentation V0.4: a merged low-poly red/white cabin and tail, visible dual seats and dashboard, independent solid/blur rotor parts, frame-rate-independent rotor states, bounded visual-only flight attitude, and a lifecycle-managed distance-attenuated clean-room WAV loop. Driver-only flight, two-seat roles, native body collision/save and existing network paths are preserved. Android 7723 rendering/audio/save reload and real two-device multiplayer remain pending verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.27.0 adds a mobile-only flight-control HUD to the two-seat helicopter: two rounded translucent on-screen buttons (climb up / dive down) that appear only for the local authorized driver, support continuous press and two-finger multitouch via the native ClickableWidget, and are arbitrated with the driver-view and jump/sneak channels into a single vertical intent. The native left movement joystick and hotbar are untouched, layout is responsive to surface size and UIScale, and the overlay is built once and released on dismount, seat change, death or vehicle disposal. A fail-safe hides the HUD and preserves view-only control if the widget surface is unavailable. No flight, seat, spawn or network path was replaced. Release build, 73 helicopter-rule assertions and packaging pass; Android 7723 on-screen touch, hover feel, save/reload and real two-device multiplayer remain pending verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

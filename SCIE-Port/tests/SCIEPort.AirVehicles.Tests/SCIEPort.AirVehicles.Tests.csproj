@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\AirVehicles\HelicopterFlightRules.cs" Link="HelicopterFlightRules.cs" />
     <Compile Include="..\..\src\SCIEPort\Features\Vehicles\TwoSeatRules.cs" Link="TwoSeatRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\AirVehicles\Hud\HelicopterControlSurface.cs" Link="HelicopterControlSurface.cs" />
   </ItemGroup>
 </Project>

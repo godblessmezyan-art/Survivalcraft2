@@ -192,6 +192,51 @@ if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GU
     throw 'TankControlPackage must require the host-side per-client activation grant before applying remote control or fire.'
 }
 
+$hudSurfaceSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterControlSurface.cs')
+foreach ($hudSurfaceEvidence in @(
+    'enum HelicopterVerticalIntent',
+    'static HelicopterVerticalIntent ResolveIntent',
+    'static HelicopterButtonLayout ComputeLayout')) {
+    if (-not $hudSurfaceSource.Contains($hudSurfaceEvidence)) {
+        throw "Helicopter HUD control surface is missing source evidence: $hudSurfaceEvidence"
+    }
+}
+$hudWidgetSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterFlightHud.cs')
+foreach ($hudWidgetEvidence in @(
+    'new BevelledRectangleWidget()',
+    'new ImageWidget()',
+    'new ClickableWidget()',
+    'm_hit.IsPressed',
+    'ContentManager.Get<Texture2D>(TextureKey)',
+    'Textures/HeliArrow')) {
+    if (-not $hudWidgetSource.Contains($hudWidgetEvidence)) {
+        throw "Helicopter flight HUD widget layer is missing source evidence: $hudWidgetEvidence"
+    }
+}
+foreach ($hudFallbackEvidence in @('catch (Exception', 'Log.Error')) {
+    if (-not $hudWidgetSource.Contains($hudFallbackEvidence)) {
+        throw "Helicopter flight HUD must keep its 7723-safe fallback path evidence: $hudFallbackEvidence"
+    }
+}
+foreach ($hudRequiredFile in @('HelicopterControlSurface.cs', 'HelicopterFlightHud.cs')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $projectDir ('Features\AirVehicles\Hud\' + $hudRequiredFile)))) {
+        throw "Helicopter flight HUD source file is missing: $hudRequiredFile"
+    }
+}
+$helicopterHudDriveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\ComponentHelicopterDrive.cs')
+foreach ($hudDriveEvidence in @(
+    'HelicopterFlightHud',
+    'm_hud.Attach(container)',
+    'm_hud.Refresh(true, SettingsManager.UIScale)',
+    'm_hud.IsClimbPressed',
+    'm_hud.IsDivePressed',
+    'HelicopterControlSurface.ResolveIntent',
+    'm_hud.Detach()')) {
+    if (-not $helicopterHudDriveSource.Contains($hudDriveEvidence)) {
+        throw "Helicopter drive must wire the flight HUD; missing source evidence: $hudDriveEvidence"
+    }
+}
+
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
@@ -352,6 +397,7 @@ try {
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',
+        'Assets/Textures/HeliArrow.png',
         'Assets/Audio/SCIEPortHelicopterLoop.wav'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }

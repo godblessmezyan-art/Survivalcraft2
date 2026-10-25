@@ -1,5 +1,19 @@
 # 测试结果
 
+## 0.27.0 双人直升机移动端飞行控制 HUD（2026-10-25）
+
+- 来源审查：已确认（反射实证）。控件类型全部在 `Game.*`（`Survivalcraft.exe`）而非 `Engine.Widgets.*`；逐一确认 `Widget.DesiredSize/ActualSize/Margin/IsVisible/IsHitTestVisible`、`WidgetAlignment{Near/Center/Far/Stretch}`、`ContainerWidget.AddChildren/RemoveChildren/ClearChildren`、`CanvasWidget.SetPosition(Widget,Vector2)` 为静态、`ClickableWidget.IsPressed{get;set}`（持续按压+多点触摸原生通道）、`BevelledRectangleWidget`（程序化圆角半透明）、`ImageWidget.RotateAngle`+`Subtexture(Texture2D,Vector2,Vector2)`、`ComponentGui.ControlsContainerWidget`、`ComponentPlayer.GuiWidget`（本身即 ContainerWidget）、`SettingsManager.UIScale`（公开静态 Single）、`ButtonWidget` 无公开构造函数。`ContentManager.Get<Texture2D>` 沿用 HelicopterBlock 既有范式。
+- 分层实现：纯逻辑 `HelicopterControlSurface`（意图仲裁/可见性/响应式布局，零引擎依赖）；控件 `HelicopterFlightHud`（CanvasWidget 根 + BevelledRectangleWidget 面板 + ImageWidget 箭镞 + ClickableWidget 命中，一次构建、仅在几何变化时重排、全程 try/catch 回退）；接入 `ComponentHelicopterDrive`（本地授权驾驶位 Attach/Refresh/读键，与视角/跳跃/潜行经 `ResolveIntent` 合并入既有物理，Dispose/下机/断线 Detach）。
+- 规则单测：已确认。`SCIEPort.AirVehicles.Tests` 由 44 增至 **73 断言**（新增 29 条 HUD 意图/可见性/布局断言：双按对冲归 Hover、按键优先于视角、乘客/远端/销毁隐藏、尺寸 Min96/Max190 夹取、上升居下降之上、间隙与右下边距、右侧避开左摇杆、UIScale 零值兜底与下限）；exit 0。
+- 全量回归：已确认。环境 ABI + Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 73 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- 打包守卫：已确认。`Build-NetMod.ps1` 加入 `Assets/Textures/HeliArrow.png` 必需条目，以及三个 HUD 源文件存在性与源码字符串断言（意图枚举/ResolveIntent/ComputeLayout；组合控件/`m_hit.IsPressed`/`Textures/HeliArrow`/异常回退；驱动 Attach/Refresh/IsClimb/IsDive/ResolveIntent/Detach），任一缺失构建即失败。
+- Release/数据库：已确认。`Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release`，本机 9.0.300 SDK（net8 测试 Major roll-forward），net472 主工程 **0 warning/0 error**（首轮 3 处编译错误已修：GuiWidget 容器类型、静态 SetPosition、缺 XML 注释与 cref 解析），12 个 XDB `DATABASE VALIDATION PASSED`。
+- 素材：已确认（文件）。`Assets/Textures/HeliArrow.png` 为透明底 64×64 白色上指箭镞（System.Drawing 绘制），下降键经 `ImageWidget.RotateAngle=π` 复用同图。
+- 打包：已确认。`artifacts/SCIEPort.netmod` 为 **521,449 字节 / 65 条目**，SHA-256 `2CEEAA02429B5A7747E212999EDBB7065C8F7CB18244995EF982356EB60A8E80`；包内含新增 `Assets/Textures/HeliArrow.png`，modinfo=`0.27.0`，DLL AssemblyVersion/FileVersion=`0.27.0.0`。
+- Windows 游戏运行：待验证。未启动游戏，不能声称 HUD 渲染、按住升降、悬停手感、原生 UI 还原或保存重载通过。
+- Android 7723：待验证。控件层是否真正附加到驾驶位 `ControlsContainerWidget`、圆角半透明与箭镞朝向、`ClickableWidget.IsPressed` 持续按压与双手多点触摸、`ImageWidget.RotateAngle` 是否绕中心、不同分辨率/横屏/UIScale 边距安全区、与快捷栏/菜单是否重叠，均未真机执行；若不可用将按 try/catch 回退到视角升降通道。
+- 两台真实客户端：待验证。仅授权驾驶员出按键且可操控、乘客隐藏且不可控、垂直输入经主机校验并随既有一元位置包同步、切换驾驶员清除旧输入无抖动/重复、远端表现，均未执行。
+
 ## 0.26.0 双人直升机 V0.4（2026-10-25）
 
 - 前置环境：直接运行 `Test-Environment.ps1` 首先因机器遗留 `SCNET_GAME_DIR=E:\...`（该盘不存在）失败；显式使用 `-GameDir 'D:\SC'` 后发现 PowerShell 7 的 byte-array Assembly load 无法解析同目录 Engine 依赖，脚本改为对已完成哈希校验的绝对路径使用 `Assembly.LoadFrom`。修正后环境检查 exit 0。

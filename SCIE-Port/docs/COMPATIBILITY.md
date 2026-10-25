@@ -1,5 +1,21 @@
 # SCIE-Port 兼容性记录
 
+## 0.27.0 双人直升机移动端飞行控制 HUD（已编译/离线，Android 触控与双机待验证，2026-10-25）
+
+本阶段只在既有直升机飞行/座次/网络路径上叠加移动端专属的独立上升/下降按键 HUD，未替换任何已验证逻辑；分层设计、反射取证与真机待验清单见 `HELICOPTER-HUD-V0.5-AUDIT.md`。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 控件 ABI 来源 | 已确认（反射实证） | 控件类型均在 `Game.*`（`Survivalcraft.exe`）而非 `Engine.Widgets.*`。逐一确认 `ClickableWidget.IsPressed{get;set}`（持续按压+多点触摸原生通道）、`BevelledRectangleWidget` 圆角半透明、`ImageWidget.RotateAngle`+`Subtexture`、`ContainerWidget.AddChildren/RemoveChildren/ClearChildren`、`CanvasWidget.SetPosition` 为静态、`WidgetAlignment{Near/Center/Far/Stretch}`、`ComponentGui.ControlsContainerWidget`/`ComponentPlayer.GuiWidget`（即 ContainerWidget）、`SettingsManager.UIScale`（公开静态）、`ButtonWidget` 无公开构造函数（故组合而非继承）。 |
+| HUD 架构 | 已确认（代码） | 纯逻辑 `HelicopterControlSurface`（意图仲裁/可见性/响应式布局，零引擎依赖）+ 控件 `HelicopterFlightHud`（每键 CanvasWidget 根+面板+箭镞+命中层，一次构建、仅在几何变化时重排）+ 接入 `ComponentHelicopterDrive`（本地授权驾驶位 Attach/Refresh/读键）。专用按键优先于视角通道，跳跃/潜行为次级，六路经 `ResolveIntent` 归一后复用既有 `GetVerticalTarget`/`IntegrateVerticalSpeed`，绝不直写实体坐标。 |
+| 响应式布局 | 已确认（29 条断言） | 右下角堆叠（上升居下降之上），短边驱动尺寸并夹取 Min96/Max190，间隙与右下边距按分数边距，X 居右半避开原生左摇杆，随 `SettingsManager.UIScale` 缩放并对零/过小值兜底；下机/乘客/远端/销毁态隐藏。 |
+| 7723 安全回退 | 已确认（代码/守卫） | 所有控件与 `ContentManager.Get` 调用包 try/catch，异常仅记 `Log.Error` 并隐藏 HUD、按钮不可读，回退到已验证的视角升降通道，不打断驾驶循环；与 `VehicleActivationService` 同风格。 |
+| 未替换既有路径 | 已确认（代码边界） | 飞行物理、双座角色、`ComponentTwoSeatManager` 输入重定向、`VehicleActivationService` 授权门、原生父 Body 一元位置同步与包 242 均未改；HUD 只新增本地输入源。 |
+| Release 构建/包 | 已确认 | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全量离线套件+ Helicopter 73 断言通过，net472 0 warning/0 error，12 个 XDB 通过，`HeliArrow.png` 与三源文件守卫纳入。`.netmod` **521,449 字节 / 65 条目**，SHA-256 `2CEEAA02429B5A7747E212999EDBB7065C8F7CB18244995EF982356EB60A8E80`；modinfo 0.27.0，DLL 0.27.0.0。 |
+| Windows 游戏运行 | 待验证 | 未启动目标游戏；HUD 是否出现、按住升降、悬停、原生 UI 还原与保存重载未运行。 |
+| Android 7723 单机 | 待验证 | HUD 是否真正附加到驾驶位控件层、圆角/箭镞朝向、单指持续按压、双手多点触摸与左摇杆并用、松开平滑悬停、`ImageWidget.RotateAngle` 是否绕中心、不同分辨率/横屏/UIScale 边距安全区、与快捷栏/菜单重叠，均需真机实测；若不可用则按回退保持视角可飞。 |
+| 两台真实 Android 客户端 | 待验证 | 仅授权驾驶员出按键且可操控、乘客隐藏不可控、垂直输入经主机校验并随既有一元位置包同步、切换驾驶员清除旧输入无抖动/重复、远端表现，必须以相同最终包哈希验证。 |
+
 ## 0.26.0 双人直升机 V0.4（表现升级已编译，Android/双机待验证，2026-10-25）
 
 本阶段只在 0.25.0 可验证直升机核心上叠加模型、旋翼状态/模糊、视觉姿态与音效。仓库没有可定位的 V0.3 提交，故未虚构 V0.3 基线；实际保留范围和源码证据见 `HELICOPTER-V0.4-AUDIT.md`。
