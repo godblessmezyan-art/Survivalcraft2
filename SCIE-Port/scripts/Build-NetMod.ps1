@@ -52,6 +52,9 @@ if ($LASTEXITCODE -ne 0) { throw "Off-road car rule tests failed: $LASTEXITCODE"
 $watercraftTests = Join-Path $projectRoot 'tests\SCIEPort.Watercraft.Tests\SCIEPort.Watercraft.Tests.csproj'
 & $dotnetPath run --project $watercraftTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
+$airVehicleTests = Join-Path $projectRoot 'tests\SCIEPort.AirVehicles.Tests\SCIEPort.AirVehicles.Tests.csproj'
+& $dotnetPath run --project $airVehicleTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Helicopter flight rule tests failed: $LASTEXITCODE" }
 $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
 & $dotnetPath run --project $tankTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
@@ -85,6 +88,7 @@ $driveSources = @(
     'Features\OffroadVehicles\ComponentOffroadCarDrive.cs',
     'Features\Watercraft\ComponentSteamBoatDrive.cs',
     'Features\Watercraft\ComponentAirshipDrive.cs',
+    'Features\AirVehicles\ComponentHelicopterDrive.cs',
     'Features\Rail\ComponentRailVehicle.cs',
     'Features\Tanks\ComponentTankDrive.cs'
 )
@@ -106,6 +110,7 @@ $spawnSources = @(
     'Features\OffroadVehicles\SubsystemOffroadCarBlockBehavior.cs',
     'Features\Watercraft\SubsystemSteamBoatBlockBehavior.cs',
     'Features\Watercraft\SubsystemAirshipBlockBehavior.cs',
+    'Features\AirVehicles\SubsystemHelicopterBlockBehavior.cs',
     'Features\Rail\SubsystemRailVehicleBlockBehavior.cs',
     'Features\Tanks\SubsystemTankBlockBehavior.cs'
 )
@@ -154,6 +159,11 @@ if (-not $seatManagerSource.Contains('SuppressLocalPassengerBodyEcho') -or
     -not $seatManagerSource.Contains('m_body.SendPosition = null') -or
     -not $seatManagerSource.Contains('UpdateOrder.CreatureModels')) {
     throw 'Two-seat passenger peers must suppress delayed parent-body echo after ComponentBody.Update.'
+}
+foreach ($driverInputGuard in @('DriverJump', 'DriverSneakMove', 'm_driverJump = input.Jump', 'm_driverSneakMove = input.SneakMove')) {
+    if (-not $seatManagerSource.Contains($driverInputGuard)) {
+        throw "Two-seat input cache is missing helicopter driver input guard: $driverInputGuard"
+    }
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
 foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage', 'VehicleActivationPackage')) {
@@ -279,6 +289,7 @@ try {
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
+        'Assets/Blocks/Helicopter.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -290,6 +301,7 @@ try {
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
+        'Assets/Database/Helicopter.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -307,6 +319,7 @@ try {
         'Assets/Models/Fox.dae',
         'Assets/Models/Rabbit.dae',
         'Assets/Models/Chicken.dae',
+        'Assets/Models/Helicopter.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
@@ -322,6 +335,7 @@ try {
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/Apple.png'
+        'Assets/Textures/Helicopter.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -478,6 +492,36 @@ try {
     if ($offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/OffroadCar' -or
         $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/OffroadCar') {
         throw 'Off-road car model or texture resource mapping is invalid.'
+    }
+    [xml]$helicopterDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Helicopter.xdb')
+    $helicopterEntity = $helicopterDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortHelicopter']")
+    if ($null -eq $helicopterEntity) { throw 'Helicopter database is missing SCIEPortHelicopter.' }
+    foreach ($component in @('TwoSeatManager','HelicopterDrive','SimpleModel','Spawn','Mount','Body','Damage')) {
+        if ($null -eq $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
+            throw "Helicopter entity is missing component: $component"
+        }
+    }
+    if (@($helicopterEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) {
+        throw 'Helicopter must keep exactly one native Mount; passenger role is managed by association.'
+    }
+    $helicopterSeats = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='TwoSeatManager']")
+    $helicopterMount = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']")
+    $helicopterBody = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']")
+    if ($helicopterSeats.SelectSingleNode("./Parameter[@Name='DriverOffset']").Value -ne '-0.42,1.05,-0.55' -or
+        $helicopterSeats.SelectSingleNode("./Parameter[@Name='PassengerOffset']").Value -ne '0.42,1.05,-0.55' -or
+        $helicopterMount.SelectSingleNode("./Parameter[@Name='DismountOffset']").Value -ne '1.65,0.45,-0.4' -or
+        $helicopterBody.SelectSingleNode("./Parameter[@Name='BoxSize']").Value -ne '2.4,2.2,5.4') {
+        throw 'Helicopter seats, collision body or safe dismount differ from the audited layout.'
+    }
+    if ($helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/Helicopter' -or
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter') {
+        throw 'Helicopter model or texture resource mapping is invalid.'
+    }
+    $helicopterDriveTemplate = $helicopterDatabase.SelectSingleNode("//ComponentTemplate[@Name='SCIEPortHelicopterDrive']")
+    foreach ($parameterName in @('SpoolUpTime','SpoolDownTime','Gravity','VerticalResponse','MaximumAscentSpeed','MaximumDescentSpeed','AutoLandSpeed','HorizontalAcceleration','BrakeAcceleration','HorizontalDrag','LateralGrip','MaximumForwardSpeed','MaximumReverseSpeed','TurnRate','MaximumWorldY')) {
+        if ($null -eq $helicopterDriveTemplate.SelectSingleNode("./Parameter[@Name='$parameterName']")) {
+            throw "Helicopter configurable flight parameter is missing: $parameterName"
+        }
     }
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
@@ -1319,6 +1363,53 @@ try {
         if ($offroadColors.Count -ne 5) { throw "OffroadCar.png must contain five opaque palette colors; found $($offroadColors.Count)." }
     }
     finally { $offroadBitmap.Dispose() }
+
+    [xml]$helicopterModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Helicopter.dae')
+    if ($helicopterModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'Helicopter.dae must be Y_UP.' }
+    $helicopterRoot = $helicopterModel.SelectSingleNode("//*[local-name()='visual_scene']/*[local-name()='node' and @name='HelicopterRoot']")
+    if ($null -eq $helicopterRoot) { throw 'Helicopter.dae is missing the HelicopterRoot bone.' }
+    $mainRotor = $helicopterRoot.SelectSingleNode("./*[local-name()='node' and @name='MainRotor']")
+    $tailRotor = $helicopterRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotor']")
+    if ($null -eq $mainRotor -or $null -eq $tailRotor -or
+        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 3) {
+        throw 'Helicopter.dae must use exactly HelicopterRoot, MainRotor and TailRotor bones.'
+    }
+    $helicopterGeometries = @($helicopterModel.SelectNodes("//*[local-name()='geometry']"))
+    if ($helicopterGeometries.Count -ne 17) { throw "Helicopter.dae must contain 17 clean-room cuboid meshes; found $($helicopterGeometries.Count)." }
+    foreach ($geometry in $helicopterGeometries) {
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
+            throw "Helicopter geometry $($geometry.GetAttribute('name')) must remain an 8-vertex/12-triangle cuboid."
+        }
+        foreach ($semantic in @('VERTEX','NORMAL','TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "Helicopter geometry $($geometry.GetAttribute('name')) is missing $semantic data."
+            }
+        }
+    }
+    $helicopterStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Helicopter.dae'))
+    try { $targetHelicopterModel = $targetModelLoad.Invoke($null,@($helicopterStream)) }
+    finally { $helicopterStream.Dispose() }
+    if ($targetHelicopterModel.Bones.Count -ne 3 -or $targetHelicopterModel.Meshes.Count -ne 17) {
+        throw "Target Engine must import Helicopter.dae as 3 bones/17 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
+    }
+    foreach ($boneName in @('HelicopterRoot','MainRotor','TailRotor')) {
+        if (-not ($targetHelicopterModel.Bones | Where-Object { $_.Name -eq $boneName })) { throw "Target Engine did not import helicopter bone $boneName." }
+    }
+    Add-Type -AssemblyName System.Drawing
+    $helicopterBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Helicopter.png'))
+    try {
+        if ($helicopterBitmap.Width -ne 48 -or $helicopterBitmap.Height -ne 8) { throw 'Helicopter.png must be the audited 48x8 palette.' }
+        $helicopterColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x=0;$x -lt 48;$x++) { for ($y=0;$y -lt 8;$y++) {
+            $pixel=$helicopterBitmap.GetPixel($x,$y)
+            if ($pixel.A -ne 255) { throw "Helicopter.png contains transparency at $x,$y." }
+            [void]$helicopterColors.Add($pixel.ToArgb())
+        }}
+        if ($helicopterColors.Count -ne 6) { throw "Helicopter.png must contain six opaque palette colors; found $($helicopterColors.Count)." }
+    }
+    finally { $helicopterBitmap.Dispose() }
 
     [xml]$tankModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\T34Tank.dae')
     if ($tankModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {

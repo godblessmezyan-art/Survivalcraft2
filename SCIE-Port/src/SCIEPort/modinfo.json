@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.24.0",
+  "Version": "0.25.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.24.0 adds a vehicle activation gate: before the first attempt to spawn, drive, ride or fire any SCIE vehicle a touch-friendly password popup requests the unified 6-digit activation code 123456. On success all seven vehicles (atv motorcycle, steamboat, offroad car, airship, train, carriage, T-34 tank) unlock for the current game session; on failure or cancel the action is rejected without consuming any item. Authorizations are enforced on both host and clients, isolated per real player session and verified by the host (network package ID 242), and the gate also covers already-spawned vehicles and the tank fire entry to prevent bypass. Item IDs, entity GUIDs, old saves, physics and existing network protocols are unchanged; v0.23.1 green world-tint fix, v0.23.0 X1 motorcycle rebuild, v0.22.3 carriage fix and all earlier tank/seat/multiplayer fixes remain included. Android/7723 popup rendering and multiplayer authorization are pending real-device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.25.0 adds a project-created two-seat helicopter (item 941) with driver-only touch control, configurable bounded flight, gravity and hover response, automatic unpiloted landing, native body collision/save behavior, and independently animated main/tail rotor bones. It reuses the existing single-Mount two-seat role protocol; Android 7723 flight, save reload and real two-device multiplayer remain pending verification. v0.24.0 vehicle activation, v0.23.1 tint fix and all earlier vehicle/content fixes remain included.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

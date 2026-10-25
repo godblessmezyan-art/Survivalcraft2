@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortHelicopter>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortHelicopter" Guid="4a9bc8b5-3e93-49e0-99ff-a1626d6c3c31">
+      <MemberComponentTemplate Name="TwoSeatManager" Guid="54d881cb-e995-4a65-b4ff-f368c23b0366" InheritanceParent="115f884a-48ba-43d5-a8f9-6547c45f36c1">
+        <Parameter Name="DriverOffset" Guid="5fffe277-8915-4799-988d-a9f16dd356ee" Value="-0.42,1.05,-0.55" Type="Vector3" />
+        <Parameter Name="PassengerOffset" Guid="dbb729a1-53a4-4414-83fc-9c81b98fec47" Value="0.42,1.05,-0.55" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HelicopterDrive" Guid="13a65742-3c60-4bec-ab79-12323bcc9610" InheritanceParent="9ae4e87b-27cb-4b18-9c3a-6cd11f3f11f5" />
+      <MemberComponentTemplate Name="SimpleModel" Guid="44261b50-3d4b-4cf1-8a5f-755ed438ac98" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="8fd2d251-8e97-4360-9fc9-a243039cae67" Value="Models/Helicopter" Type="string" />
+        <Parameter Name="CastsShadow" Guid="054e450f-fe5f-4c2c-a87d-386fbc217186" Value="True" Type="bool" />
+        <Parameter Name="TextureOverride" Guid="cce73ec6-5ff4-4c10-ba7e-c2a85a26110a" Value="Textures/Helicopter" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="4eb09e21-7f2b-4fa1-b71a-85d486409108" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="8c3bb6ac-0b47-41cf-bcff-76bc7da1a921" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="e14bcc19-6f30-4063-ade1-45f956c2805f" InheritanceParent="d0b14127-39ce-4490-af00-fb4111e9c51e">
+        <Parameter Name="MountOffset" Guid="97f2b2c0-fab3-4397-bff5-913207edfdb6" Value="-0.42,1.05,-0.55" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="53011f3a-0b6d-48dd-a332-953bb09793e8" Value="1.65,0.45,-0.4" Type="Vector3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="2ae78122-0d9d-4245-aa97-2129a05c80c7" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="MaxSmoothRiseHeight" Guid="ac9b3960-7355-495d-8a60-87981022760e" Value="0.3" Type="float" />
+        <Parameter Name="BoxSize" Guid="a56b2813-5639-4b76-a2c4-ff94ff6db37a" Value="2.4,2.2,5.4" Type="Vector3" />
+        <Parameter Name="Mass" Guid="1547667f-30ab-4833-861a-18709cbda244" Value="450" Type="float" />
+        <Parameter Name="AirDrag" Guid="a896163c-c092-4a73-9a23-29a344565f9f" Value="0.2,0.35" Type="Vector2" />
+        <Parameter Name="WaterDrag" Guid="ea474146-5382-4c0e-9eb9-05c054e74cd1" Value="3,4" Type="Vector2" />
+        <Parameter Name="Density" Guid="fa850afe-51e5-473e-8b49-ee50452c9db3" Value="4" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Damage" Guid="cad4f11d-05f1-4dee-a5e7-805307a55e80" InheritanceParent="17bb7b53-159c-4eb3-b4bc-137b10bba88a">
+        <Parameter Name="AttackResilience" Guid="6022c46c-216a-48a2-848e-ff5bcd8d5d51" Value="220" Type="float" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="Gameplay" Guid="d3d4b692-acc9-4128-9b99-a5acf1de1fbb">
+    <ComponentTemplate Name="SCIEPortTwoSeatManager" Description="Authoritative reusable two-seat allocator" Guid="115f884a-48ba-43d5-a8f9-6547c45f36c1" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="4a57df62-f5d1-4533-ad63-8980622c6763" Value="SCIEPort.Features.Vehicles.ComponentTwoSeatManager" Type="string" />
+      <Parameter Name="DriverOffset" Guid="229f5bd4-df29-48ea-9a54-4f689de8b160" Value="0,0.9,-0.3" Type="Vector3" />
+      <Parameter Name="PassengerOffset" Guid="c783890d-862f-4c32-925b-04cc3d813ec3" Value="0,0.9,0.62" Type="Vector3" />
+    </ComponentTemplate>
+    <ComponentTemplate Name="SCIEPortHelicopterDrive" Description="Configurable two-seat bounded helicopter flight" Guid="9ae4e87b-27cb-4b18-9c3a-6cd11f3f11f5" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="8382f2b0-2efb-403d-a80a-daec7af453b1" Value="SCIEPort.Features.AirVehicles.ComponentHelicopterDrive" Type="string" />
+      <Parameter Name="SpoolUpTime" Guid="3e301b33-6190-4744-867a-f626ddff65fa" Value="2.5" Type="float" />
+      <Parameter Name="SpoolDownTime" Guid="4c49dbc8-2e18-4dfa-8f5e-943d100e5c71" Value="3.5" Type="float" />
+      <Parameter Name="Gravity" Guid="50c02062-221c-42b8-a436-f8a69da63be3" Value="9.8" Type="float" />
+      <Parameter Name="VerticalResponse" Guid="d701bd9a-226e-416a-96d1-057536da0f6e" Value="2.8" Type="float" />
+      <Parameter Name="MaximumAscentSpeed" Guid="71d73c55-de0f-45bc-8358-a1ef83d5efe0" Value="4.5" Type="float" />
+      <Parameter Name="MaximumDescentSpeed" Guid="3d43b741-c0f5-41e1-bf39-eb1e77bf4843" Value="3.5" Type="float" />
+      <Parameter Name="AutoLandSpeed" Guid="3989e700-b0b1-4c94-bf56-0f99b6881ad3" Value="1.8" Type="float" />
+      <Parameter Name="HorizontalAcceleration" Guid="2329b75c-79d1-40ca-9516-ce17ae1b786f" Value="5.5" Type="float" />
+      <Parameter Name="BrakeAcceleration" Guid="ac9d584f-d2ed-407c-a0d4-a76f35cc0a85" Value="8" Type="float" />
+      <Parameter Name="HorizontalDrag" Guid="faea7b6c-5ff9-4d9d-a7e8-c4ca357cc749" Value="1.5" Type="float" />
+      <Parameter Name="LateralGrip" Guid="fb358bf9-5767-40fe-9c3e-b4b7d2f1360a" Value="2.5" Type="float" />
+      <Parameter Name="MaximumForwardSpeed" Guid="c5cbcea3-5131-4efe-9d9a-9e1e362f62e4" Value="12" Type="float" />
+      <Parameter Name="MaximumReverseSpeed" Guid="927bd41e-629a-448b-a82f-ef07e5ef7a87" Value="5" Type="float" />
+      <Parameter Name="TurnRate" Guid="9422e98c-ecc6-483a-af66-26c5482e3c89" Value="1.2" Type="float" />
+      <Parameter Name="MaximumWorldY" Guid="15495ced-1557-4115-8549-f81c9c26e6ea" Value="240" Type="float" />
+    </ComponentTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortHelicopterBlockBehavior" Guid="511463f7-9516-40f8-b217-d972a25387c6" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="b7024589-ae1e-4343-8073-6a4bbbd226f8" Value="SCIEPort.Features.AirVehicles.SubsystemHelicopterBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortHelicopterBlockBehavior" Guid="c3d7176d-49bf-407a-b07a-7d099a4fb010" InheritanceParent="511463f7-9516-40f8-b217-d972a25387c6" />
+  </ProjectTemplate>
+</SCIEPortHelicopter>

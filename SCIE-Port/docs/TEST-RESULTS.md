@@ -1,5 +1,19 @@
 # 测试结果
 
+## 0.25.0 双人直升机 V0.1（2026-10-25）
+
+- 审计：已确认。先完成 `docs/HELICOPTER-V0.1-AUDIT.md`，逐项取证 Block+CSV+XDB+Spawn 注册、Body 驱动/碰撞/保存、单 Mount 双座、`SetBoneTransform` 动态部件、原生父 Body 网络路径及其非严格服务器权威边界，再进入实现。
+- 独立实现：已确认（源码/编译）。新增 `Features/AirVehicles`，未复制坦克/越野车接地推进；ID 941、实体 `SCIEPortHelicopter`、新 GUID、一个 Mount、双座管理、可配置飞行 Drive、Local/Server 自动降落与深水副作用均通过源码和 XDB 守卫。
+- 离线规则：已确认。`tests/SCIEPort.AirVehicles.Tests` **28 断言**通过，覆盖平滑积分、旋翼加减速、显式重力/悬停、上升/下降、自动降落、水平前后限速、高度限制和座舱包围盒。
+- 模型/贴图：已确认（文件/目标导入）。`Helicopter.dae` 为 `Y_UP`、恰好三个命名骨骼和 17 个 clean-room cuboid；目标 x25.01.17 `Engine.Media.ModelData.Load` 实际结果 **3 bones/17 meshes**。`Helicopter.png` 为 48×8、全不透明、六个调色板颜色。资源可由 `scripts/New-HelicopterAssets.ps1` 重建。
+- 环境/全工程构建：已确认。运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:\Dev\Survivalcraft2\SCIE-Port\scripts\Build-WithPinnedSdk.ps1' -GameDir 'D:\SC' -Configuration Release`，其先执行 `Test-Environment.ps1`；目标程序集哈希保持兼容记录值，260 个原生方块常量最大 ID 263，ID 941 未占用。
+- 全部测试/数据库：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / **Helicopter 28** / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿；net472 Release **0 warning/0 error**，12 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。最终 `artifacts/SCIEPort.netmod` 为 **506,514 字节 / 63 条目**，SHA-256 `C424E021AD2DA65E255FD796EA77B47E0E2E7C7F5BEE5856CDF6833BB35F1736`，含 Helicopter CSV/XDB/DAE/PNG；包内 modinfo Version=`0.25.0`，DLL AssemblyVersion/FileVersion=`0.25.0.0`。
+- Windows 游戏运行：待验证。未启动游戏验证创造栏、生成、驾驶和保存。
+- Android 7723 单机：待验证。创造模式生成、触屏起飞/升降/悬停/移动/降落、双座、乘客不可控制、安全上下机、碰撞、退出重进均须在可丢弃新世界实测。
+- 两台真实 Android 客户端：待验证。须用相同最终 SHA-256 包测试房主/客户端互换 Driver/Passenger、第三人拒绝、位置/座位/运动、跨区块、驾驶员离开自动降落、断线重连。未通过前不得标记联机已实现。
+- 严格服务器权威：不支持。V0.1 沿用原生驾驶员父 Body 状态源。
+
 ## 0.22.3 车厢不可见修复（2026-10-24）
 
 - 根因复现：已确认。固定 `D:\SC` 的 `Engine.Media.ModelData.Load` 直接读取授权上游

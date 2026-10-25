@@ -1,5 +1,23 @@
 # SCIE-Port 兼容性记录
 
+## 0.25.0 双人直升机 V0.1（最小实现已编译，Android/双机待验证，2026-10-25）
+
+本阶段按 `HELICOPTER-V0.1-AUDIT.md` 的边界新增独立 `Features/AirVehicles` 模块，没有复制越野车或坦克的接地物理，也没有修改已有载具 ID、实体 GUID 或存档。直升机物品使用仓库内未占用 ID **941**，实体模板为 `SCIEPortHelicopter`；外部 Mod 同装冲突仍需安装时检查。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 物品/实体注册 | 已确认（代码/数据库/包） | 新增 `HelicopterBlock`、CSV、`SubsystemHelicopterBlockBehavior` 与独立 XDB 实体；生成只允许 Local/Server，并在生成、扣除物品前经过统一载具激活闸。数据库验证通过，未写世界存档或覆盖既有 ID/GUID。创造栏实际可见与生成仍属 Android 运行项。 |
+| 双座与权限 | 已确认（代码/规则） | 只使用一个原生 `ComponentMount` 和一份 `ComponentTwoSeatManager` 唯一状态；Driver/Passenger 分配继续使用包 ID 240。共享层只缓存 Driver 的 Move/Jump/Sneak，Drive 再校验本机主玩家正是 Driver；Passenger 不进入控制路径。真实上下机、第三人拒绝及断线重连待真机。 |
+| 飞行规则 | 已确认（代码/离线测试） | 独立 `HelicopterFlightRules` 显式实现重力、旋翼升力、垂直响应、水平加减速/阻尼、前后限速、高度上限和机舱边界；28 个无游戏依赖断言通过。参数由 XDB 读取，不与地面载具规则耦合。 |
+| 启动/升降/悬停/转向/降落 | 已确认（代码路径） | 驾驶员入座自动启动并渐进加速旋翼；Jump 上升、Sneak 下降、Move.Z 前后、Move.X yaw；中立输入抵消配置重力并把速度收敛到悬停。驾驶员离开后 Local/Server 有界自动降落，接地后停机；Passenger 仍不能接管。触屏映射手感和实飞结果待 Android。 |
+| 碰撞/保存/安全副作用 | 已确认（结构/编译） | Drive 只写 `ComponentBody.Velocity/Rotation`，不逐帧传送 Position；地形/实体碰撞、父子 Body 与实体保存沿用目标版本原生 Body/Spawn。深水伤害和强制下车只在 Local/Server 结算。碰撞体只包机身，不包旋翼圆盘；实际碰撞和保存重载待运行。 |
+| 模型与动态部件 | 已确认（目标导入） | clean-room `Y_UP` DAE 只有 `HelicopterRoot/MainRotor/TailRotor` 三骨骼、17 个立方体网格，低于目标渲染器七骨骼上限；目标 `Engine.Media.ModelData.Load` 实际导入为 3 bones/17 meshes。主旋翼绕 Y、尾桨绕 X 用已验证的 `ComponentModel.SetBoneTransform` 动画；Android 世界渲染待验证。 |
+| 配置与可复现资源 | 已确认 | XDB 暴露旋翼加减速、重力、垂直响应、升降/自动降落速度、水平加速/制动/阻尼/限速、横移、转向和最大高度；`New-HelicopterAssets.ps1` 可重建三骨骼模型与 48×8、全不透明六色贴图。 |
+| Release 构建/包 | 已确认 | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全部离线套件通过，0 warning/0 error，12 个 XDB 数据库验证通过。最终 `.netmod` **506,514 字节 / 63 条目**，SHA-256 `C424E021AD2DA65E255FD796EA77B47E0E2E7C7F5BEE5856CDF6833BB35F1736`；包内 modinfo Version=`0.25.0`，DLL AssemblyVersion/FileVersion=`0.25.0.0`。 |
+| Android 7723 单机验收 | 待验证 | 创造栏查找/生成、启动、起飞、升降、悬停、前后/转向、降落、安全上下机、双座、碰撞及退出重进均未在目标手机执行。 |
+| 两台真实客户端联机 | 待验证 | 代码复用 x25.01.17 原生骑乘父 Body 位置/旋转/速度通道和包 240 的离散座位角色；未用两台 Android 验证位置、座位、运动、角色互换、断线重连，不能声称联机已实现。 |
+| 严格服务器权威飞行 | 不支持 | 移动继承目标版本的驾驶员客户端父 Body 状态源；V0.1 未 Hook 或替换游戏本体同步协议，不具备抗作弊服务器物理。 |
+
 ## 0.24.0 载具激活密码闸（统一激活码，主机校验的按会话授权；编译/离线已确认，Android 弹窗与联机授权待验证，2026-10-24）
 
 在首次对任意 SCIE 载具进行生成/驾驶/乘坐/开火前插入一道触屏密码激活闸：统一激活码 `123456`，成功后整个游戏会话解锁全部七种载具（ATV 摩托、蒸汽快艇、越野车、飞艇、火车、车厢、T-34 坦克），失败或取消则拒绝该操作且**不消耗任何物品**。授权对主机与客户端都要求、按真实玩家会话隔离、由主机校验，并覆盖已在场的载具与坦克开火入口以防绕过。本阶段不改动物品 ID、实体 GUID、旧存档、物理与既有网络协议。
