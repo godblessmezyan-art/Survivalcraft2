@@ -10,7 +10,7 @@ namespace SCIEPort.Features.Vehicles
 {
     /// <summary>
     /// Authoritative two-seat allocator. Both riders remain direct children of the
-    /// ATV body, while a discrete server package assigns the non-controlling role.
+    /// vehicle body, while a discrete server package assigns the non-controlling role.
     /// </summary>
     public sealed class ComponentTwoSeatManager : Component, IUpdateable
     {
@@ -59,6 +59,8 @@ namespace SCIEPort.Features.Vehicles
         private Vector3 m_driverOffset;
         private Vector3 m_passengerOffset;
         private Vector3 m_driverMove;
+        private Vector3 m_driverSneakMove;
+        private bool m_driverJump;
         private ushort m_driverId;
         private ushort m_passengerId;
 
@@ -73,6 +75,12 @@ namespace SCIEPort.Features.Vehicles
 
         /// <summary>Driver movement captured before personal locomotion is suppressed.</summary>
         public Vector3 DriverMove => m_driverMove;
+
+        /// <summary>Driver sneak movement captured before mounted locomotion is suppressed.</summary>
+        public Vector3 DriverSneakMove => m_driverSneakMove;
+
+        /// <summary>Driver jump input captured before mounted locomotion is suppressed.</summary>
+        public bool DriverJump => m_driverJump;
 
         /// <inheritdoc />
         public override void Load(ValuesDictionary valuesDictionary, IdToEntityMap idToEntityMap)
@@ -190,6 +198,8 @@ namespace SCIEPort.Features.Vehicles
         private void RedirectMountedInput()
         {
             m_driverMove = Vector3.Zero;
+            m_driverSneakMove = Vector3.Zero;
+            m_driverJump = false;
             RedirectRiderInput(Driver, captureDriverMove: true);
             RedirectRiderInput(Passenger, captureDriverMove: false);
         }
@@ -212,6 +222,8 @@ namespace SCIEPort.Features.Vehicles
             if (captureDriverMove)
             {
                 m_driverMove = input.Move;
+                m_driverSneakMove = input.SneakMove;
+                m_driverJump = input.Jump;
             }
 
             ComponentLocomotion locomotion = rider.ComponentCreature.ComponentLocomotion;

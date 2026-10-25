@@ -1,5 +1,62 @@
 # SCIE-Port 兼容性记录
 
+## 0.26.0 双人直升机 V0.4（表现升级已编译，Android/双机待验证，2026-10-25）
+
+本阶段只在 0.25.0 可验证直升机核心上叠加模型、旋翼状态/模糊、视觉姿态与音效。仓库没有可定位的 V0.3 提交，故未虚构 V0.3 基线；实际保留范围和源码证据见 `HELICOPTER-V0.4-AUDIT.md`。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| V0.1 核心兼容 | 已确认（差异/编译） | ID 941、实体/组件 GUID、单 Mount 双座、包 240、驾驶员唯一输入、飞行参数/物理、碰撞体、生成和保存路径未改；原 Update 中物理段只抽成等价 `SimulateFlight`。乘客仍不进入控制路径。 |
+| 模型/枢轴 | 已确认（目标导入） | clean-room Y_UP DAE 为 758 triangles、6 bones/5 merged meshes；真实 x25.01.17 `ModelData.Load(Stream)` 导入结果正是 6/5，低于七骨骼预算。VisualRoot 在座舱中央，主旋翼世界枢轴 `(0,1.80,-0.30)` 绕 Y，尾桨 `(0.30,1.20,2.37)` 绕 X。 |
+| 材质与物品栏 | 已确认（资源/构建） | 96×16 全不透明十二色调色板；机体/玻璃/金属/橡胶/座椅/仪表/灯/blur 分色。物品栏复用同一 DAE/PNG 并隐藏 blur 网格。透明玻璃因未验证逐材质排序而降级为深色不透明。 |
+| 动画状态与姿态 | 已确认（代码/41 规则断言） | Stopped/Starting/Running/Stopping 从既有状态派生；动画按 dt、角度完整回绕。VisualRoot 的俯仰/侧倾有上限和指数阻尼，只改骨骼，不改 Body 权威位置/碰撞/物理。solid/blur 是预建网格，无逐帧网格分配。 |
+| 音效 ABI/资源 | 已确认（真实程序集/目标解码） | 反射确认 `SubsystemAudio.CreateSound/CalculateListenerDistance/CalculateVolume` 与 Sound 生命周期属性/方法；项目生成 WAV 被目标 `SoundData.Load` 解码为 mono PCM16、22050 Hz、22050 样本。Load 只建一个循环声源，Dispose 显式 Stop+Dispose。Android OpenAL 实播仍待验证。 |
+| 联机影响 | 已确认（代码边界）；真机待验证 | 未新增位置/动画/音频包或旋翼实体；继续使用原生父 Body 状态与包 240。远端表现从既有 Body/座位状态派生。两台 Android 对位置、座位、运动、姿态、旋翼、音频及重连仍未执行，不能写成联机通过。 |
+| Release 构建/包 | 已确认 | `Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全部离线套件通过，net472 0 warning/0 error，12 个 XDB 通过。`.netmod` **520,065 字节 / 64 条目**，SHA-256 `23060B72D8D959265E32B8F3A9A86C73F6977CE4201575FDD7CE1276D5177DD1`；modinfo 0.26.0，DLL 0.26.0.0。 |
+| Windows 游戏运行 | 待验证 | 未启动目标游戏；创造栏、世界渲染、起飞、声音和保存重载未运行。 |
+| Android 7723 单机 | 待验证 | 创造栏/生成、触屏飞行、旋翼与姿态、音效、昼夜、切世界/重进、性能均需新建可丢弃世界实测。 |
+| 两台真实 Android 客户端 | 待验证 | 必须以相同最终包哈希验证房主/客户端角色互换、位置/座位/运动、乘客不可控、上下机、断线重连和远端表现。 |
+| 严格服务器权威 | 不支持 | 沿用 x25.01.17 驾驶员客户端父 Body 状态源；V0.4 未替换原生协议。 |
+
+## 0.25.0 双人直升机 V0.1（最小实现已编译，Android/双机待验证，2026-10-25）
+
+本阶段按 `HELICOPTER-V0.1-AUDIT.md` 的边界新增独立 `Features/AirVehicles` 模块，没有复制越野车或坦克的接地物理，也没有修改已有载具 ID、实体 GUID 或存档。直升机物品使用仓库内未占用 ID **941**，实体模板为 `SCIEPortHelicopter`；外部 Mod 同装冲突仍需安装时检查。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 物品/实体注册 | 已确认（代码/数据库/包） | 新增 `HelicopterBlock`、CSV、`SubsystemHelicopterBlockBehavior` 与独立 XDB 实体；生成只允许 Local/Server，并在生成、扣除物品前经过统一载具激活闸。数据库验证通过，未写世界存档或覆盖既有 ID/GUID。创造栏实际可见与生成仍属 Android 运行项。 |
+| 双座与权限 | 已确认（代码/规则） | 只使用一个原生 `ComponentMount` 和一份 `ComponentTwoSeatManager` 唯一状态；Driver/Passenger 分配继续使用包 ID 240。共享层只缓存 Driver 的 Move/Jump/Sneak，Drive 再校验本机主玩家正是 Driver；Passenger 不进入控制路径。真实上下机、第三人拒绝及断线重连待真机。 |
+| 飞行规则 | 已确认（代码/离线测试） | 独立 `HelicopterFlightRules` 显式实现重力、旋翼升力、垂直响应、水平加减速/阻尼、前后限速、高度上限和机舱边界；28 个无游戏依赖断言通过。参数由 XDB 读取，不与地面载具规则耦合。 |
+| 启动/升降/悬停/转向/降落 | 已确认（代码路径） | 驾驶员入座自动启动并渐进加速旋翼；Jump 上升、Sneak 下降、Move.Z 前后、Move.X yaw；中立输入抵消配置重力并把速度收敛到悬停。驾驶员离开后 Local/Server 有界自动降落，接地后停机；Passenger 仍不能接管。触屏映射手感和实飞结果待 Android。 |
+| 碰撞/保存/安全副作用 | 已确认（结构/编译） | Drive 只写 `ComponentBody.Velocity/Rotation`，不逐帧传送 Position；地形/实体碰撞、父子 Body 与实体保存沿用目标版本原生 Body/Spawn。深水伤害和强制下车只在 Local/Server 结算。碰撞体只包机身，不包旋翼圆盘；实际碰撞和保存重载待运行。 |
+| 模型与动态部件 | 已确认（目标导入） | clean-room `Y_UP` DAE 只有 `HelicopterRoot/MainRotor/TailRotor` 三骨骼、17 个立方体网格，低于目标渲染器七骨骼上限；目标 `Engine.Media.ModelData.Load` 实际导入为 3 bones/17 meshes。主旋翼绕 Y、尾桨绕 X 用已验证的 `ComponentModel.SetBoneTransform` 动画；Android 世界渲染待验证。 |
+| 配置与可复现资源 | 已确认 | XDB 暴露旋翼加减速、重力、垂直响应、升降/自动降落速度、水平加速/制动/阻尼/限速、横移、转向和最大高度；`New-HelicopterAssets.ps1` 可重建三骨骼模型与 48×8、全不透明六色贴图。 |
+| Release 构建/包 | 已确认 | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全部离线套件通过，0 warning/0 error，12 个 XDB 数据库验证通过。最终 `.netmod` **506,514 字节 / 63 条目**，SHA-256 `C424E021AD2DA65E255FD796EA77B47E0E2E7C7F5BEE5856CDF6833BB35F1736`；包内 modinfo Version=`0.25.0`，DLL AssemblyVersion/FileVersion=`0.25.0.0`。 |
+| Android 7723 单机验收 | 待验证 | 创造栏查找/生成、启动、起飞、升降、悬停、前后/转向、降落、安全上下机、双座、碰撞及退出重进均未在目标手机执行。 |
+| 两台真实客户端联机 | 待验证 | 代码复用 x25.01.17 原生骑乘父 Body 位置/旋转/速度通道和包 240 的离散座位角色；未用两台 Android 验证位置、座位、运动、角色互换、断线重连，不能声称联机已实现。 |
+| 严格服务器权威飞行 | 不支持 | 移动继承目标版本的驾驶员客户端父 Body 状态源；V0.1 未 Hook 或替换游戏本体同步协议，不具备抗作弊服务器物理。 |
+
+## 0.24.0 载具激活密码闸（统一激活码，主机校验的按会话授权；编译/离线已确认，Android 弹窗与联机授权待验证，2026-10-24）
+
+在首次对任意 SCIE 载具进行生成/驾驶/乘坐/开火前插入一道触屏密码激活闸：统一激活码 `123456`，成功后整个游戏会话解锁全部七种载具（ATV 摩托、蒸汽快艇、越野车、飞艇、火车、车厢、T-34 坦克），失败或取消则拒绝该操作且**不消耗任何物品**。授权对主机与客户端都要求、按真实玩家会话隔离、由主机校验，并覆盖已在场的载具与坦克开火入口以防绕过。本阶段不改动物品 ID、实体 GUID、旧存档、物理与既有网络协议。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| UI 弹窗 ABI 取证 | 已确认（真实程序集反射） | 反射 x25.01.17 `Engine.dll` 取到 `Engine.Input.Keyboard.ShowKeyboard(String,String,String,Boolean,Action<string>,Action)`：`public static`、六参、第四参 `passwordMode=true` 遮蔽输入——这是原版告示牌编辑同款的触屏文本输入面，满足「不臆造、可用触屏弹出密码框」的前提。`Test-Environment.ps1` 以结构化类型比对（非脆弱的 FullName 字符串比对）逐参断言该签名存在。 |
+| 节流时钟 ABI | 已确认（反射） | `Engine.Time.RealTime` 是 `Engine.Time` 类型上的 `public static double` **属性**（非独立类型），用作弹窗节流时基；`VehicleActivationRules.ShouldPrompt` 以 `PromptInterval=6.0` 秒限制重复弹窗，避免驾驶循环每帧弹。 |
+| 网络包 ABI | 已确认（反射/编译） | 原生 `IPackage` ID 占用 0..38 连续，SCIE-Port 已用 240（双座分配）、241（坦克控制），**242** 空闲→新 `VehicleActivationPackage` 取 242；`Test-Environment.ps1` 保留段扩为 `@(240,241,242)` 并断言与原生无冲突。`PackageManager.RegisterPackage(IPackage)` 为 `public static`；`Client.GUID`、`NetNode.Server`、`NetNode.QueuePackage(IPackage)` 均反射确认存在。 |
+| 包载荷读写 | 已确认（继承契约） | `PackageStreamWriter : System.IO.BinaryWriter`、`PackageStreamReader : System.IO.BinaryReader`；`Write(string)` 与 `ReadString()` 由基类提供。环境脚本改为断言基类继承+基类方法存在（派生类型上枚举 `GetMethods` 会因某未加载 `OpenTK` 重载解析失败），精确反映代码实际调用面。 |
+| 授权模型 | 已确认（代码/规则） | 会话键：每台机器仅一个本地操作玩家，本地会话以全零 `Guid.Empty` 为键；主机额外按 `Client.GUID` 记录每个远程授权。客户端**绝不自我授权**——输入码经 242 包发给主机，主机用 `VehicleActivationRules` 校验、按 `From.GUID` 记账、再**单播**（`To=From`）回执，其它客户端不因广播解锁；客户端仅在主机的肯定回执后把本地 `Guid.Empty` 会话置为已授权。 |
+| 入口覆盖（七载具） | 已确认（代码/构建守卫） | 六处生成 `OnUse`（ATV/越野/蒸汽船/飞艇/轨道车+车厢/坦克）在 `WorkType.Client` 早退之后、射线/生成/`RemoveActiveTool` 之前统一插 `VehicleActivationService.EnsureActivated()` 拒绝闸，未授权先拒后不消耗物品；六处驾驶组件（`ComponentAtvDrive/OffroadCarDrive/SteamBoatDrive/AirshipDrive/RailVehicle/TankDrive`）在主玩家判定内插同一闸，覆盖**已在场**载具；坦克开火入口在 `bool wantsFire = TankRules.CanFire` 之前置闸。`Build-NetMod.ps1` 对每处源码断言闸存在、生成闸先于物品消耗、坦克驾驶闸先于开火路径。 |
+| 远程开火/控制授权 | 已确认（代码/构建守卫） | `TankControlPackage`（241）服务端分支在既有 `sender.Entity.EntityId == RiderId` 之后追加 `VehicleActivationService.IsGranted(From.GUID)` 门，未授权远程玩家的控制/开火请求被丢弃；`Build-NetMod.ps1` 断言该字面门存在。 |
+| 失败安全 | 已确认（代码） | 弹窗调用包在 try/catch：x25.01.17 可编译但 7723 实机行为未观测，抛出异常时保持「拒绝」态而非崩溃驾驶/生成循环，节流窗口后重试。取消即无操作、保持拒绝。 |
+| 纯决策（离线可测） | 已确认（net8 无游戏依赖） | `tests/SCIEPort.VehicleActivation.Tests` 22 断言：`IsValidCode`（含 trim/null/空/纯空白/反序）、`ShouldPrompt`（首次/大于/等于/小于间隔、零经过）、`PromptInterval==6.0`、`ShouldGrantActivation`、`CanOperate`、`IsUsableSessionKey`、`ActivationCode=="123456"`。随全工程 12 个离线测试套件在打包前全绿。 |
+| 编译产物 | 已确认（Release 0/0） | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` 全程 exit 0（`TreatWarningsAsErrors`+`GenerateDocumentationFile`→0 warning/0 error，`DATABASE VALIDATION PASSED`），打包前修复一处命名空间缺漏（服务类需 `using Engine;`+`using Game.NetWork;` 以解析 `Log`/`CommonLib`/`WorkType`/`VehicleActivationPackage`）。产物 `.netmod` **498,017 字节**，SHA-256 `C40A9C5EF5FE46C8578E4C079E7A461DEB4FBC6F9F96925885AE95D7E4D69213`；包内 `modinfo.json` Version=`0.24.0`、`SCIEPort.dll` AssemblyVersion=`0.24.0.0`。 |
+| Windows 游戏运行 | 待验证 | 本机有可运行 `Survivalcraft.exe`（x25.01.17），但本阶段未启动游戏实测：弹窗实际出现与遮蔽输入、输入正确/错误码的放行/拒绝、取消、已在场载具拦截、坦克开火拦截均未运行。 |
+| Android 7723 | 待验证 | 目标平台真机的 `Keyboard.ShowKeyboard` 弹窗可达性、密码遮蔽渲染、触屏输入与节流手感均未观测，不得因编译或反射签名匹配标记为兼容；弹窗失败回退为拒绝（安全），但可用性待实测。 |
+| 多人联机授权 | 待验证 | 主机校验+按 `Client.GUID` 隔离+单播回执为代码/ABI 层结论；真实主机+普通客户端两台下的授权隔离、越权拒绝、未授权远程开火被丢弃均需双机实测。 |
+| 无越界改动 | 已确认 | 本阶段严格限定在 SCIE-Port 内：新增激活规则/服务/包三类、七载具入口插闸、`TankControlPackage` 增授权门、加载器注册 242、构建/环境守卫与离线测试，未动 Builder Assistant、未改物品 ID/实体 GUID/存档格式/物理/既有网络协议载荷。 |
+
 ## 0.22.2 坦克发射后坐、炮管限位、全距离触炸与有限耐久（2026-10-24）
 
 | 项目 | 状态 | 结论 |
@@ -79,11 +136,13 @@ Android 或多人测试。
 | ATV 物品与 ID 923 | 已确认 | `Test-Environment.ps1` 对固定 x25.01.17 的 260 个原版方块常量完成扫描；923 未占用且与本工程 903–922、995–1000 无内部冲突。其他 Mod 的 ID 冲突仍待安装时检查 |
 | ATV 实体/XDB 合并 | 已确认 | `SCIEPortATV` 保持实体名、原 GUID、唯一原生 Mount、Body、Spawn、Damage 和 Drive，并新增座位管理组件；`AutoDespawn=False` 继续依赖原生实体保存链 |
 | ATV 地面物理 | 已确认 | v0.22.1 由本机主驾驶缓存读取触屏 Move；乘客输入不进入 Drive。`ComponentBody` 继续负责碰撞、重力和 1.05 格 smooth rise |
-| ATV 模型与贴图 | 已确认（静态/目标导入） | 项目创建的 `ATV.dae` 已改为 12 部件双座越野摩托，Y_UP、单 identity 骨骼、12 meshes；32×8 四色不透明 `ATV.png` 为项目脚本生成。Android 新外观待验证 |
+| ATV 模型与贴图 | 已被 v0.23 取代 | 历史结论：项目创建的 `ATV.dae` 曾为 12 部件双座越野摩托、32×8 四色不透明 `ATV.png`。v0.23 起以「荒野探索者 X1」13 部件低多边形模型与 64×64 材质图集取代，见下条 |
 | ATV Windows/Android/联机运行 | 待验证 | 旧 0.8.3 模型显示结论不自动覆盖 v0.3 新模型。Windows 未运行；Android 单人、保存重载、主机/客户端互换驾驶与乘客、独立观察及上下车均待验证 |
 | ATV v0.2 模型/贴图重建 | 已确认 | 九个独立 Y_UP geometry，identity 矩阵、法线、UV、12 triangles/part；32×8 PNG 为四种不透明颜色；可见范围由构建脚本验证完全落入 `1.7,1.15,2.1` Body |
 | ATV v0.2.1 Android 世界模型空白 | 已确认（缺陷/机理） | 用户在 Android 7723 确认 0.8.2 物品栏图标可见、生成实体无模型；目标 `ModLoader.GetMaxInstancesCount()` 返回 7，而旧 DAE 经目标 `Engine.Media.ModelData.Load` 导入为 10 bones/9 meshes。物品栏将网格烘焙进 `BlockMesh`，世界实体则把 10 个骨骼变换交给实例模型着色器，因此两条路径表现不同 |
 | ATV v0.2.1 单骨骼修复 | 已确认 | 0.8.3 保留九个独立 geometry，但都挂到单个 identity `ATV` 场景节点；目标 Engine 实际导入结果为 1 bone/9 meshes，低于七骨骼限制。物品代码改为枚举全部 meshes；2026-10-20 用户在 Android 7723 确认物品栏与世界模型显示通过。驾驶、越障、保存和多人不继承此结论 |
+| ATV v0.23 X1 模型 V2 | 已确认（静态/目标导入） | `New-AtvAssets.ps1` 可复现生成「荒野探索者 X1」：13 个独立 Y_UP geometry（放样 16 边轮、管状车架/前叉/排气、多面体油箱、环面弹簧减震、弧板挡泥）全部烘焙并挂单个 identity `ATV` 节点；目标 `Engine.Media.ModelData.Load` 导入为 1 bone/13 meshes，共 3352 三角面（预算 6000）；64×64 不透明材质图集（33 色）；包围盒 X±0.3713/Y0.0032–1.187/Z±1.2868 完全落入 `1.1,1.25,2.6` Body。Block 923、`SCIEPortATV` GUID、双座、驾驶与联机逻辑均未改动。Android/7723 新外观渲染待验证 |
+| ATV v0.23.1 世界绿色偏色 | 已确认（缺陷/机理） | 世界实例渲染把绑定贴图乘以 `ComponentModel.DiffuseColor`；v0.23.0 沿袭旧草绿 `(0.38,0.74,0.16)`，与 X1 橙/银图集相乘后整车在世界里发绿，而物品栏图标烘焙进 `BlockMesh` 不乘该色故显示正常。v0.23.1 改为 `Vector3.One` 白漫反射 + 中性低自发光 `(0.045,0.045,0.05,0)`，与越野/蒸汽船/飞艇一致。Android/7723 世界配色待复验 |
 | ATV v0.2 阻力修复 | 已确认 | 真实 `ComponentBody.Update` 的 `6*dt` 接地阻力已反编译确认；驾驶时禁用该项并使用帧率无关的纵向/横向控制，无人时恢复。Android 手感待验证 |
 | ATV v0.2 一格越障 | 已确认 | ABI/代码级确认使用原生三轴碰撞和连续 `4.5*dt` smooth rise，`MaxSmoothRiseHeight=1.05`；不写 Position/地形且不抬高实体碰撞。Android 一格台阶与净空仍待验证 |
 | ATV v0.2 诊断日志 | 已确认 | 仅本地单人、有人驾驶时每 5 秒输出速度、油门、地形/实体支撑、离地时间、原生阻力开关和状态；Android 日志格式待验证 |

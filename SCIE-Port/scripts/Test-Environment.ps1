@@ -37,9 +37,9 @@ foreach ($marker in @('Initilizing Mods Manager. Api Version: 1.42', '2.4.10.6',
     if (-not $unicode.Contains($marker)) { throw "Missing target marker: $marker" }
 }
 
-[void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
-[void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'EntitySystem.dll')))
-$assembly = [Reflection.Assembly]::Load($bytes)
+$engineAssembly = [Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'Engine.dll'))
+[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'EntitySystem.dll'))
+$assembly = [Reflection.Assembly]::LoadFrom($gamePath)
 $modLoader = $assembly.GetType('Game.ModLoader', $true)
 $cubeBlock = $assembly.GetType('Game.CubeBlock', $true)
 $block = $assembly.GetType('Game.Block', $true)
@@ -55,6 +55,8 @@ $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
 $componentLocomotion = $assembly.GetType('Game.ComponentLocomotion', $true)
 $componentDamage = $assembly.GetType('Game.ComponentDamage', $true)
+$subsystemAudio = $assembly.GetType('Game.SubsystemAudio', $true)
+$sound = $engineAssembly.GetType('Engine.Audio.Sound', $true)
 $subsystemUpdate = $assembly.GetType('Game.SubsystemUpdate', $true)
 $packageManager = $assembly.GetType('Game.NetWork.PackageManager', $true)
 $packageInterface = $assembly.GetType('Game.NetWork.IPackage', $true)
@@ -96,7 +98,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in @((903..935) + (995..1000))) {
+foreach ($reservedId in @((903..941) + (995..1000))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -149,13 +151,54 @@ foreach ($type in $loadedTypes) {
         try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
     }
 }
-foreach ($reservedPackageId in @(240, 241)) {
+foreach ($reservedPackageId in @(240, 241, 242)) {
     if ($nativePackageIds -contains $reservedPackageId) {
         throw "SCIE-Port package ID $reservedPackageId conflicts with a native x25.01.17 package."
     }
 }
 if (-not $assembly.GetType('Game.NetWork.Client', $true).GetProperty('PlayerData')) {
     throw 'Client.PlayerData required for authenticated tank fire requests was not found.'
+}
+$clientType = $assembly.GetType('Game.NetWork.Client', $true)
+if (-not $clientType.GetProperty('GUID')) {
+    throw 'Client.GUID required as the per-player vehicle activation session key was not found.'
+}
+$netNodeType = $assembly.GetType('Game.NetWork.NetNode', $true)
+if (-not $netNodeType.GetProperty('Server')) {
+    throw 'NetNode.Server required to route a client activation request and reply was not found.'
+}
+if (-not ($netNodeType.GetMethods() | Where-Object { $_.Name -eq 'QueuePackage' -and $_.GetParameters().Count -eq 1 })) {
+    throw 'NetNode.QueuePackage(IPackage) required for vehicle activation request/reply was not found.'
+}
+$keyboardType = $engineAssembly.GetType('Engine.Input.Keyboard', $true)
+$actionStringType = [Action[string]]
+$showKeyboard = @($keyboardType.GetMethods([Reflection.BindingFlags]'Public,Static') | Where-Object {
+    $_.Name -eq 'ShowKeyboard' -and
+    (($_.GetParameters() | ForEach-Object { $_.ParameterType }).Count -eq 6) -and
+    (($_.GetParameters()[0].ParameterType -eq [string]) -and
+     ($_.GetParameters()[1].ParameterType -eq [string]) -and
+     ($_.GetParameters()[2].ParameterType -eq [string]) -and
+     ($_.GetParameters()[3].ParameterType -eq [bool]) -and
+     ($_.GetParameters()[4].ParameterType -eq $actionStringType) -and
+     ($_.GetParameters()[5].ParameterType -eq [Action]))
+})
+if ($showKeyboard.Count -eq 0) {
+    throw 'Engine.Input.Keyboard.ShowKeyboard(string,string,string,bool,Action<string>,Action) required for the touch password popup was not found.'
+}
+$engineTimeType = $engineAssembly.GetType('Engine.Time', $true)
+$realTimeProperty = $engineTimeType.GetProperty('RealTime', [Reflection.BindingFlags]'Public,Static')
+if (-not $realTimeProperty -or $realTimeProperty.PropertyType -ne [double]) {
+    throw 'Engine.Time.RealTime static double required to throttle vehicle activation prompts was not found.'
+}
+$packageWriterType = $assembly.GetType('Game.NetWork.PackageStreamWriter', $true)
+if ($packageWriterType.BaseType -ne [IO.BinaryWriter] -or
+    -not [IO.BinaryWriter].GetMethod('Write', [Reflection.BindingFlags]'Public,Instance', $null, @([string]), $null)) {
+    throw 'PackageStreamWriter.Write(string) (inherited from BinaryWriter) required to serialize the activation code was not found.'
+}
+$packageReaderType = $assembly.GetType('Game.NetWork.PackageStreamReader', $true)
+if ($packageReaderType.BaseType -ne [IO.BinaryReader] -or
+    -not [IO.BinaryReader].GetMethod('ReadString', [Reflection.BindingFlags]'Public,Instance', $null, @(), $null)) {
+    throw 'PackageStreamReader.ReadString() (inherited from BinaryReader) required to deserialize the activation code was not found.'
 }
 if (-not $componentBody.GetField('m_childBodies', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentBody.m_childBodies required to keep the two-seat driver first was not found.'
@@ -198,6 +241,21 @@ if (-not $componentModel.GetProperty('TextureOverride')) {
 if (-not ($componentModel.GetMethods() | Where-Object { $_.Name -eq 'SetBoneTransform' -and $_.GetParameters().Count -eq 2 })) {
     throw 'ComponentModel.SetBoneTransform required by tank turret articulation was not found.'
 }
+if ($null -eq $subsystemAudio.GetMethod('CreateSound', [Type[]]@([string])) -or
+    $null -eq $subsystemAudio.GetMethod('CalculateListenerDistance', [Type[]]@($engineAssembly.GetType('Engine.Vector3', $true))) -or
+    $null -eq $subsystemAudio.GetMethod('CalculateVolume', [Type[]]@([float], [float], [float]))) {
+    throw 'SubsystemAudio looping sound creation or distance attenuation API required by helicopter V0.4 was not found.'
+}
+foreach ($soundProperty in @('State','Volume','Pitch','IsLooped','DisposeOnStop')) {
+    if ($null -eq $sound.GetProperty($soundProperty)) {
+        throw "Engine.Audio.Sound.$soundProperty required by helicopter V0.4 was not found."
+    }
+}
+foreach ($soundMethod in @('Play','Stop','Dispose')) {
+    if ($null -eq $sound.GetMethod($soundMethod, [Type[]]@())) {
+        throw "Engine.Audio.Sound.$soundMethod() required by helicopter lifecycle cleanup was not found."
+    }
+}
 $componentCreatureModel = $assembly.GetType('Game.ComponentCreatureModel', $true)
 if (-not $componentCreatureModel.GetProperty('EyeRotation')) {
     throw 'ComponentCreatureModel.EyeRotation required by the tank spawn orientation was not found.'
@@ -227,4 +285,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, and reserved ID ABI checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, helicopter audio lifecycle/attenuation, vehicle activation popup/network ABI (Client.GUID, NetNode.Server/QueuePackage, Keyboard.ShowKeyboard, Engine.Time.RealTime, package payload) and reserved ID checks passed.'

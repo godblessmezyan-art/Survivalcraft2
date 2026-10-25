@@ -52,6 +52,9 @@ if ($LASTEXITCODE -ne 0) { throw "Off-road car rule tests failed: $LASTEXITCODE"
 $watercraftTests = Join-Path $projectRoot 'tests\SCIEPort.Watercraft.Tests\SCIEPort.Watercraft.Tests.csproj'
 & $dotnetPath run --project $watercraftTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
+$airVehicleTests = Join-Path $projectRoot 'tests\SCIEPort.AirVehicles.Tests\SCIEPort.AirVehicles.Tests.csproj'
+& $dotnetPath run --project $airVehicleTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Helicopter flight rule tests failed: $LASTEXITCODE" }
 $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
 & $dotnetPath run --project $tankTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
@@ -73,6 +76,9 @@ if ($LASTEXITCODE -ne 0) { throw "Sunflower crop rule tests failed: $LASTEXITCOD
 $appleTests = Join-Path $projectRoot 'tests\SCIEPort.Apple.Tests\SCIEPort.Apple.Tests.csproj'
 & $dotnetPath run --project $appleTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" }
+$activationTests = Join-Path $projectRoot 'tests\SCIEPort.VehicleActivation.Tests\SCIEPort.VehicleActivation.Tests.csproj'
+& $dotnetPath run --project $activationTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXITCODE" }
 
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a
@@ -82,6 +88,7 @@ $driveSources = @(
     'Features\OffroadVehicles\ComponentOffroadCarDrive.cs',
     'Features\Watercraft\ComponentSteamBoatDrive.cs',
     'Features\Watercraft\ComponentAirshipDrive.cs',
+    'Features\AirVehicles\ComponentHelicopterDrive.cs',
     'Features\Rail\ComponentRailVehicle.cs',
     'Features\Tanks\ComponentTankDrive.cs'
 )
@@ -90,9 +97,32 @@ foreach ($relativeDriveSource in $driveSources) {
     if (-not $driveSource.Contains('PlayerData.IsMainPlayer')) {
         throw "$relativeDriveSource does not gate drive simulation to the local main player."
     }
+    if (-not $driveSource.Contains('VehicleActivationService.EnsureActivated')) {
+        throw "$relativeDriveSource does not require the vehicle activation session, so an already-spawned vehicle could be driven without authorization."
+    }
     if ($driveSource -match 'WorkType\s*!=\s*WorkType\.Local\)\s*return' -or
         $driveSource -match 'WorkType\s*==\s*WorkType\.Client\)\s*\{\s*return;') {
         throw "$relativeDriveSource regressed to a single-player-only drive gate."
+    }
+}
+$spawnSources = @(
+    'Features\LandVehicles\SubsystemAtvBlockBehavior.cs',
+    'Features\OffroadVehicles\SubsystemOffroadCarBlockBehavior.cs',
+    'Features\Watercraft\SubsystemSteamBoatBlockBehavior.cs',
+    'Features\Watercraft\SubsystemAirshipBlockBehavior.cs',
+    'Features\AirVehicles\SubsystemHelicopterBlockBehavior.cs',
+    'Features\Rail\SubsystemRailVehicleBlockBehavior.cs',
+    'Features\Tanks\SubsystemTankBlockBehavior.cs'
+)
+foreach ($relativeSpawnSource in $spawnSources) {
+    $spawnSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir $relativeSpawnSource)
+    if (-not $spawnSource.Contains('VehicleActivationService.EnsureActivated')) {
+        throw "$relativeSpawnSource does not gate deployment behind the vehicle activation session."
+    }
+    $activationIndex = $spawnSource.IndexOf('VehicleActivationService.EnsureActivated')
+    $consumeIndex = $spawnSource.IndexOf('RemoveActiveTool(1)')
+    if ($consumeIndex -ge 0 -and $activationIndex -gt $consumeIndex) {
+        throw "$relativeSpawnSource must reject an unauthorized attempt before RemoveActiveTool so no item is consumed."
     }
 }
 $railBlockSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Rail\RailVehicleBlocks.cs')
@@ -105,6 +135,10 @@ $tankFireGateIndex = $tankDriveSource.IndexOf('bool wantsFire = TankRules.CanFir
 if ($tankDriveUpdateIndex -lt 0 -or $tankFireGateIndex -lt 0 -or $tankDriveUpdateIndex -gt $tankFireGateIndex -or
     -not $tankDriveSource.Contains('* TankRules.RecoilSpeed')) {
     throw 'Tank recoil must be applied by the successful shot path after drive integration.'
+}
+$tankActivationIndex = $tankDriveSource.IndexOf('VehicleActivationService.EnsureActivated')
+if ($tankActivationIndex -lt 0 -or $tankActivationIndex -gt $tankFireGateIndex) {
+    throw 'Tank drive must require the vehicle activation session before the main-gun fire path so an unactivated tank cannot shoot.'
 }
 $projectileRemovedBody = [regex]::Match($tankDriveSource, '(?s)private void OnProjectileRemoved\(Projectile projectile\)(.*?)private void OnShellHit').Groups[1].Value
 $shellHitBody = [regex]::Match($tankDriveSource, '(?s)private void OnShellHit\(Projectile projectile, CellFace\? cellFace, ComponentBody hitBody\)(.*?)private void ExplodeShell').Groups[1].Value
@@ -126,11 +160,36 @@ if (-not $seatManagerSource.Contains('SuppressLocalPassengerBodyEcho') -or
     -not $seatManagerSource.Contains('UpdateOrder.CreatureModels')) {
     throw 'Two-seat passenger peers must suppress delayed parent-body echo after ComponentBody.Update.'
 }
+$helicopterDriveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\ComponentHelicopterDrive.cs')
+foreach ($requiredPresentationSource in @(
+    'CreateSound("Audio/SCIEPortHelicopterLoop")',
+    'FindBone("VisualRoot"',
+    'FindBone("MainRotorBlur"',
+    'm_rotorSound.Dispose()',
+    'UpdatePresentation(t, grounded)')) {
+    if (-not $helicopterDriveSource.Contains($requiredPresentationSource)) {
+        throw "Helicopter V0.4 presentation lifecycle is missing source evidence: $requiredPresentationSource"
+    }
+}
+if ($helicopterDriveSource.Contains('CreateSound("Audio/SCIEPortHelicopterLoop")') -and
+    (-not $helicopterDriveSource.Contains('m_rotorSound.DisposeOnStop = false') -or
+     -not $helicopterDriveSource.Contains('m_rotorSound.Stop()'))) {
+    throw 'Helicopter rotor sound must remain reusable while active and be stopped before component disposal.'
+}
+foreach ($driverInputGuard in @('DriverJump', 'DriverSneakMove', 'm_driverJump = input.Jump', 'm_driverSneakMove = input.SneakMove')) {
+    if (-not $seatManagerSource.Contains($driverInputGuard)) {
+        throw "Two-seat input cache is missing helicopter driver input guard: $driverInputGuard"
+    }
+}
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
-foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage')) {
+foreach ($packageType in @('TwoSeatAssignmentPackage', 'TankControlPackage', 'VehicleActivationPackage')) {
     if (-not $loaderSource.Contains("RegisterPackage(new $packageType())")) {
         throw "SCIEPortLoader does not register $packageType."
     }
+}
+$tankControlSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Tanks\TankControlPackage.cs')
+if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GUID)')) {
+    throw 'TankControlPackage must require the host-side per-client activation grant before applying remote control or fire.'
 }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
@@ -246,6 +305,7 @@ try {
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
+        'Assets/Blocks/Helicopter.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -257,6 +317,7 @@ try {
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
+        'Assets/Database/Helicopter.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -274,6 +335,7 @@ try {
         'Assets/Models/Fox.dae',
         'Assets/Models/Rabbit.dae',
         'Assets/Models/Chicken.dae',
+        'Assets/Models/Helicopter.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
@@ -288,7 +350,9 @@ try {
         'Assets/Textures/Bamboo.png',
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
-        'Assets/Textures/Apple.png'
+        'Assets/Textures/Apple.png',
+        'Assets/Textures/Helicopter.png',
+        'Assets/Audio/SCIEPortHelicopterLoop.wav'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -445,6 +509,36 @@ try {
     if ($offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/OffroadCar' -or
         $offroadEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/OffroadCar') {
         throw 'Off-road car model or texture resource mapping is invalid.'
+    }
+    [xml]$helicopterDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Helicopter.xdb')
+    $helicopterEntity = $helicopterDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortHelicopter']")
+    if ($null -eq $helicopterEntity) { throw 'Helicopter database is missing SCIEPortHelicopter.' }
+    foreach ($component in @('TwoSeatManager','HelicopterDrive','SimpleModel','Spawn','Mount','Body','Damage')) {
+        if ($null -eq $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
+            throw "Helicopter entity is missing component: $component"
+        }
+    }
+    if (@($helicopterEntity.SelectNodes("./MemberComponentTemplate[@Name='Mount']")).Count -ne 1) {
+        throw 'Helicopter must keep exactly one native Mount; passenger role is managed by association.'
+    }
+    $helicopterSeats = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='TwoSeatManager']")
+    $helicopterMount = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']")
+    $helicopterBody = $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Body']")
+    if ($helicopterSeats.SelectSingleNode("./Parameter[@Name='DriverOffset']").Value -ne '-0.42,1.05,-0.55' -or
+        $helicopterSeats.SelectSingleNode("./Parameter[@Name='PassengerOffset']").Value -ne '0.42,1.05,-0.55' -or
+        $helicopterMount.SelectSingleNode("./Parameter[@Name='DismountOffset']").Value -ne '1.65,0.45,-0.4' -or
+        $helicopterBody.SelectSingleNode("./Parameter[@Name='BoxSize']").Value -ne '2.4,2.2,5.4') {
+        throw 'Helicopter seats, collision body or safe dismount differ from the audited layout.'
+    }
+    if ($helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/Helicopter' -or
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter') {
+        throw 'Helicopter model or texture resource mapping is invalid.'
+    }
+    $helicopterDriveTemplate = $helicopterDatabase.SelectSingleNode("//ComponentTemplate[@Name='SCIEPortHelicopterDrive']")
+    foreach ($parameterName in @('SpoolUpTime','SpoolDownTime','Gravity','VerticalResponse','MaximumAscentSpeed','MaximumDescentSpeed','AutoLandSpeed','HorizontalAcceleration','BrakeAcceleration','HorizontalDrag','LateralGrip','MaximumForwardSpeed','MaximumReverseSpeed','TurnRate','MaximumWorldY','VisualPitchLimit','VisualRollLimit','VisualResponse','VisualLateralReferenceSpeed','MainRotorAngularSpeed','TailRotorSpeedMultiplier','RotorBlurThreshold','SoundMinDistance','SoundRolloffFactor')) {
+        if ($null -eq $helicopterDriveTemplate.SelectSingleNode("./Parameter[@Name='$parameterName']")) {
+            throw "Helicopter configurable flight parameter is missing: $parameterName"
+        }
     }
     [xml]$tankDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Tanks.xdb')
     $tankEntity = $tankDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortT34Tank']")
@@ -796,7 +890,7 @@ try {
     if ($atvModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
         throw 'ATV.dae must be oriented Y_UP.'
     }
-    $atvParts = @('BikeFrame', 'BikeEngine', 'BikeFuelTank', 'BikeDriverSeat', 'BikePassengerSeat', 'BikeFrontFork', 'BikeHandlebarStem', 'BikeHandlebar', 'BikeFrontWheel', 'BikeRearWheel', 'BikeFrontFender', 'BikeRearFender')
+    $atvParts = @('BikeFrontWheel', 'BikeRearWheel', 'BikeFrontFork', 'BikeHandlebar', 'BikeHeadlight', 'BikeFrame', 'BikeEngine', 'BikeFuelTank', 'BikeSeat', 'BikeSidePanels', 'BikeExhaust', 'BikeSwingarm', 'BikeFenders')
     $atvSceneNodes = @($atvModelDocument.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
     if ($atvSceneNodes.Count -ne 1 -or $atvSceneNodes[0].GetAttribute('name') -ne 'ATV') {
         throw 'ATV.dae must use exactly one ATV scene node so ComponentSimpleModel stays within the SCNET seven-bone shader limit.'
@@ -809,19 +903,59 @@ try {
     if ($atvGeometryInstances.Count -ne $atvParts.Count) {
         throw "ATV.dae root must reference all $($atvParts.Count) independent geometries; found $($atvGeometryInstances.Count)."
     }
+    $atvTriangleBudget = 6000
+    $atvTotalTriangles = 0
     foreach ($requiredNode in $atvParts) {
         if ($atvGeometryInstances -notcontains "$requiredNode-mesh") {
             throw "ATV.dae root does not reference required geometry $requiredNode-mesh."
         }
         $geometry = $atvModelDocument.SelectSingleNode("//*[local-name()='geometry' and @name='$requiredNode']")
         if ($null -eq $geometry) { throw "ATV.dae is missing independent geometry $requiredNode." }
-        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
-        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24) {
-            throw "ATV.dae geometry $requiredNode must contain 8 cuboid positions (24 floats)."
+
+        $posAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-positions')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        $nrmAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-normals')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        $uvAccessor = $geometry.SelectSingleNode(".//*[local-name()='source'][contains(@id,'-uv')]/*[local-name()='technique_common']/*[local-name()='accessor']")
+        if ($null -eq $posAccessor -or $null -eq $nrmAccessor -or $null -eq $uvAccessor) {
+            throw "ATV.dae geometry $requiredNode is missing a positions/normals/uv accessor."
         }
+        if ($posAccessor.GetAttribute('stride') -ne '3' -or $nrmAccessor.GetAttribute('stride') -ne '3' -or $uvAccessor.GetAttribute('stride') -ne '2') {
+            throw "ATV.dae geometry $requiredNode must use stride 3/3/2 for positions/normals/uv."
+        }
+        $vertexCount = [int]$posAccessor.GetAttribute('count')
+        if ($vertexCount -lt 3 -or $vertexCount % 3 -ne 0) {
+            throw "ATV.dae geometry $requiredNode vertex count ($vertexCount) must be a positive multiple of three."
+        }
+        if ([int]$nrmAccessor.GetAttribute('count') -ne $vertexCount -or [int]$uvAccessor.GetAttribute('count') -ne $vertexCount) {
+            throw "ATV.dae geometry $requiredNode positions/normals/uv accessors disagree on the vertex count ($vertexCount)."
+        }
+
+        $posArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $nrmArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'normals-array')]")
+        $uvArray = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'uv-array')]")
+        if ($null -eq $posArray -or $null -eq $nrmArray -or $null -eq $uvArray) {
+            throw "ATV.dae geometry $requiredNode is missing a positions/normals/uv float_array."
+        }
+        $posFloats = @($posArray.InnerText -split '\s+' | Where-Object { $_ })
+        $nrmFloats = @($nrmArray.InnerText -split '\s+' | Where-Object { $_ })
+        $uvFloats = @($uvArray.InnerText -split '\s+' | Where-Object { $_ })
+        if ($posFloats.Count -ne ($vertexCount * 3) -or $nrmFloats.Count -ne ($vertexCount * 3)) {
+            throw "ATV.dae geometry $requiredNode positions/normals must each hold $($vertexCount * 3) floats."
+        }
+        if ($uvFloats.Count -ne ($vertexCount * 2)) {
+            throw "ATV.dae geometry $requiredNode uv array must hold $($vertexCount * 2) floats; found $($uvFloats.Count)."
+        }
+        foreach ($uvValue in $uvFloats) {
+            $parsedUv = [double]::Parse($uvValue, [Globalization.CultureInfo]::InvariantCulture)
+            if ($parsedUv -lt 0 -or $parsedUv -gt 1) {
+                throw "ATV.dae geometry $requiredNode has a UV coordinate ($parsedUv) outside the 0..1 atlas."
+            }
+        }
+
         $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
-        if ($null -eq $triangles -or $triangles.GetAttribute('count') -ne '12') {
-            throw "ATV.dae geometry $requiredNode must contain exactly 12 triangles."
+        if ($null -eq $triangles) { throw "ATV.dae geometry $requiredNode is missing a triangles element." }
+        $triangleCount = [int]$triangles.GetAttribute('count')
+        if ($triangleCount -ne ($vertexCount / 3)) {
+            throw "ATV.dae geometry $requiredNode triangles count ($triangleCount) must equal vertexCount/3 ($($vertexCount / 3))."
         }
         foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
             if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
@@ -829,14 +963,19 @@ try {
             }
         }
         $faceIndices = @($triangles.SelectSingleNode("./*[local-name()='p']").InnerText -split '\s+' | Where-Object { $_ } | ForEach-Object { [int]$_ })
-        if ($faceIndices.Count -ne 108) { throw "ATV.dae geometry $requiredNode must contain 108 interleaved face indices; found $($faceIndices.Count)." }
-        for ($i = 0; $i -lt $faceIndices.Count; $i += 3) {
-            if ($faceIndices[$i] -lt 0 -or $faceIndices[$i] -gt 7 -or
-                $faceIndices[$i + 1] -lt 0 -or $faceIndices[$i + 1] -gt 5 -or
-                $faceIndices[$i + 2] -ne 0) {
-                throw "ATV.dae geometry $requiredNode contains an out-of-range vertex/normal/UV face index at tuple $($i / 3)."
+        if ($faceIndices.Count -ne ($triangleCount * 9)) {
+            throw "ATV.dae geometry $requiredNode must hold $($triangleCount * 9) interleaved indices; found $($faceIndices.Count)."
+        }
+        $maxFaceIndex = $vertexCount - 1
+        foreach ($faceIndex in $faceIndices) {
+            if ($faceIndex -lt 0 -or $faceIndex -gt $maxFaceIndex) {
+                throw "ATV.dae geometry $requiredNode has an out-of-range face index ($faceIndex); valid range 0..$maxFaceIndex."
             }
         }
+        $atvTotalTriangles += $triangleCount
+    }
+    if ($atvTotalTriangles -gt $atvTriangleBudget) {
+        throw "ATV.dae total triangle count ($atvTotalTriangles) exceeds the mobile budget of $atvTriangleBudget triangles."
     }
     $atvGeometryNames = @($atvModelDocument.SelectNodes("//*[local-name()='geometry']") | ForEach-Object { $_.GetAttribute('name') })
     if (($atvGeometryNames | Select-Object -Unique).Count -ne $atvParts.Count) {
@@ -867,7 +1006,7 @@ try {
     Add-Type -AssemblyName System.Drawing
     $atvBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\ATV.png'))
     try {
-        if ($atvBitmap.Width -ne 32 -or $atvBitmap.Height -ne 8) { throw 'ATV.png must be the audited 32x8 opaque palette.' }
+        if ($atvBitmap.Width -ne 64 -or $atvBitmap.Height -ne 64) { throw 'ATV.png must be the 64x64 low-poly material atlas.' }
         $atvColors = New-Object System.Collections.Generic.HashSet[int]
         for ($x = 0; $x -lt $atvBitmap.Width; $x++) {
             for ($y = 0; $y -lt $atvBitmap.Height; $y++) {
@@ -876,7 +1015,7 @@ try {
                 [void]$atvColors.Add($pixel.ToArgb())
             }
         }
-        if ($atvColors.Count -ne 4) { throw "ATV.png must contain exactly four opaque palette colors; found $($atvColors.Count)." }
+        if ($atvColors.Count -gt 96) { throw "ATV.png must stay within a 96-color opaque palette; found $($atvColors.Count)." }
     }
     finally { $atvBitmap.Dispose() }
 
@@ -1241,6 +1380,85 @@ try {
         if ($offroadColors.Count -ne 5) { throw "OffroadCar.png must contain five opaque palette colors; found $($offroadColors.Count)." }
     }
     finally { $offroadBitmap.Dispose() }
+
+    [xml]$helicopterModel = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Helicopter.dae')
+    if ($helicopterModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw 'Helicopter.dae must be Y_UP.' }
+    $helicopterRoot = $helicopterModel.SelectSingleNode("//*[local-name()='visual_scene']/*[local-name()='node' and @name='HelicopterRoot']")
+    if ($null -eq $helicopterRoot) { throw 'Helicopter.dae is missing the HelicopterRoot bone.' }
+    $visualRoot = $helicopterRoot.SelectSingleNode("./*[local-name()='node' and @name='VisualRoot']")
+    $mainRotor = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='MainRotor']")
+    $tailRotor = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotor']")
+    $mainRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='MainRotorBlur']")
+    $tailRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotorBlur']")
+    if ($null -eq $visualRoot -or $null -eq $mainRotor -or $null -eq $tailRotor -or
+        $null -eq $mainRotorBlur -or $null -eq $tailRotorBlur -or
+        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 6) {
+        throw 'Helicopter.dae must use exactly HelicopterRoot, VisualRoot, two rotor and two rotor-blur bones.'
+    }
+    if (($visualRoot.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 1 -0.55' -or
+        ($mainRotor.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 0.80 0.25' -or
+        ($tailRotor.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0.30 0.20 2.92' -or
+        ($mainRotorBlur.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 0.80 0.25' -or
+        ($tailRotorBlur.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0.30 0.20 2.92') {
+        throw 'Helicopter visual attitude and rotor pivot transforms differ from the audited V0.4 layout.'
+    }
+    $helicopterGeometries = @($helicopterModel.SelectNodes("//*[local-name()='geometry']"))
+    if ($helicopterGeometries.Count -ne 5) { throw "Helicopter.dae must contain five merged draw meshes; found $($helicopterGeometries.Count)." }
+    $expectedHelicopterMeshes = @('VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')
+    if ((@($helicopterGeometries | ForEach-Object { $_.GetAttribute('name') } | Sort-Object) -join ',') -ne (($expectedHelicopterMeshes | Sort-Object) -join ',')) {
+        throw 'Helicopter.dae merged mesh names differ from the audited V0.4 layout.'
+    }
+    foreach ($geometry in $helicopterGeometries) {
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
+        $normals = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'normals-array')]")
+        $uvs = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'uv-array')]")
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        $positionCount = @($positions.InnerText -split '\s+' | Where-Object { $_ }).Count
+        $normalCount = @($normals.InnerText -split '\s+' | Where-Object { $_ }).Count
+        $uvCount = @($uvs.InnerText -split '\s+' | Where-Object { $_ }).Count
+        $triangleCount = [int]$triangles.GetAttribute('count')
+        $indexCount = @($triangles.SelectSingleNode("./*[local-name()='p']").InnerText -split '\s+' | Where-Object { $_ }).Count
+        if ($positionCount -le 0 -or ($positionCount % 9) -ne 0 -or $normalCount -ne $positionCount -or
+            $uvCount -ne (($positionCount / 3) * 2) -or $indexCount -ne ($triangleCount * 9)) {
+            throw "Helicopter geometry $($geometry.GetAttribute('name')) has inconsistent position, normal, UV or triangle-index data."
+        }
+        foreach ($semantic in @('VERTEX','NORMAL','TEXCOORD')) {
+            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
+                throw "Helicopter geometry $($geometry.GetAttribute('name')) is missing $semantic data."
+            }
+        }
+    }
+    $helicopterStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Helicopter.dae'))
+    try { $targetHelicopterModel = $targetModelLoad.Invoke($null,@($helicopterStream)) }
+    finally { $helicopterStream.Dispose() }
+    if ($targetHelicopterModel.Bones.Count -ne 6 -or $targetHelicopterModel.Meshes.Count -ne 5) {
+        throw "Target Engine must import Helicopter.dae as 6 bones/5 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
+    }
+    foreach ($boneName in @('HelicopterRoot','VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')) {
+        if (-not ($targetHelicopterModel.Bones | Where-Object { $_.Name -eq $boneName })) { throw "Target Engine did not import helicopter bone $boneName." }
+    }
+    Add-Type -AssemblyName System.Drawing
+    $helicopterBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Helicopter.png'))
+    try {
+        if ($helicopterBitmap.Width -ne 96 -or $helicopterBitmap.Height -ne 16) { throw 'Helicopter.png must be the audited 96x16 V0.4 palette.' }
+        $helicopterColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($x=0;$x -lt 96;$x++) { for ($y=0;$y -lt 16;$y++) {
+            $pixel=$helicopterBitmap.GetPixel($x,$y)
+            if ($pixel.A -ne 255) { throw "Helicopter.png contains transparency at $x,$y." }
+            [void]$helicopterColors.Add($pixel.ToArgb())
+        }}
+        if ($helicopterColors.Count -ne 12) { throw "Helicopter.png must contain twelve opaque palette colors; found $($helicopterColors.Count)." }
+    }
+    finally { $helicopterBitmap.Dispose() }
+    $targetSoundDataType = $targetEngineAssembly.GetType('Engine.Media.SoundData', $true)
+    $targetSoundLoad = $targetSoundDataType.GetMethod('Load', [Type[]]@([IO.Stream]))
+    if ($null -eq $targetSoundLoad) { throw 'Target Engine.Media.SoundData.Load(Stream) ABI is missing.' }
+    $helicopterSoundStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Audio\SCIEPortHelicopterLoop.wav'))
+    try { $targetHelicopterSound = $targetSoundLoad.Invoke($null,@($helicopterSoundStream)) }
+    finally { $helicopterSoundStream.Dispose() }
+    if ($targetHelicopterSound.ChannelsCount -ne 1 -or $targetHelicopterSound.SamplingFrequency -ne 22050 -or $targetHelicopterSound.Data.Length -ne 22050) {
+        throw "Target Engine must decode the helicopter loop as mono PCM, 22050 Hz, 22050 samples; found $($targetHelicopterSound.ChannelsCount) channels/$($targetHelicopterSound.SamplingFrequency) Hz/$($targetHelicopterSound.Data.Length) samples."
+    }
 
     [xml]$tankModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\T34Tank.dae')
     if ($tankModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {

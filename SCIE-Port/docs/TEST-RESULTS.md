@@ -1,5 +1,33 @@
 # 测试结果
 
+## 0.26.0 双人直升机 V0.4（2026-10-25）
+
+- 前置环境：直接运行 `Test-Environment.ps1` 首先因机器遗留 `SCNET_GAME_DIR=E:\...`（该盘不存在）失败；显式使用 `-GameDir 'D:\SC'` 后发现 PowerShell 7 的 byte-array Assembly load 无法解析同目录 Engine 依赖，脚本改为对已完成哈希校验的绝对路径使用 `Assembly.LoadFrom`。修正后环境检查 exit 0。
+- ABI：已确认。固定三程序集哈希、API 1.42、SC 2.4.10.6、net472、260 个原生方块常量继续通过；新增反射确认 `SubsystemAudio.CreateSound/CalculateListenerDistance/CalculateVolume` 及 `Sound` 的状态、音量、音调、循环、Stop/Dispose 生命周期。
+- 规则：已确认。`SCIEPort.AirVehicles.Tests` 从 28 增至 **41 断言**，新增四状态、正负/多圈角回绕、最短 yaw 差、前后俯仰符号、侧倾限幅、阻尼和 rotor blur 阈值；exit 0。
+- 全量回归：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 41 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- Release/数据库：已确认。命令为 `$env:PATH='C:\Users\85196\AppData\Local\Microsoft\dotnet;'+$env:PATH; $env:DOTNET_ROLL_FORWARD='Major'; .\SCIE-Port\scripts\Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release`；使用本机 9.0.300 SDK（测试目标 net8 以 Major roll-forward 运行），net472 主工程 **0 warning/0 error**，12 个 XDB `DATABASE VALIDATION PASSED`。
+- 模型：已确认。`Helicopter.dae` 为 758 triangles；目标 `Engine.Media.ModelData.Load` 实际导入 **6 bones/5 meshes**，骨骼和枢轴名全部通过构建守卫。96×16 PNG 为全不透明十二色。静态正交/斜视诊断图用于检查轮廓与部件位置，但不计作游戏渲染通过。
+- 音频：已确认（文件/目标解码）。`SCIEPortHelicopterLoop.wav` SHA-256 `842D8FF3D950813E85A6F5CD2E3C0639EA69070CA01766AD47184BEFD309B8EC`；真实目标 `SoundData.Load(Stream)` 解码为 1 channel / 22050 Hz / 22050 samples。Android OpenAL 播放未执行。
+- 打包：已确认。`artifacts/SCIEPort.netmod` 为 **520,065 字节 / 64 条目**，SHA-256 `23060B72D8D959265E32B8F3A9A86C73F6977CE4201575FDD7CE1276D5177DD1`；包内含新增 WAV，modinfo=`0.26.0`，DLL AssemblyVersion/FileVersion=`0.26.0.0`。
+- Windows 游戏运行：待验证。未启动游戏，不能声称创造栏、世界渲染、声音、飞行或保存重载通过。
+- Android 7723：待验证。模型/贴图/旋翼/姿态/触屏飞行/声音生命周期、昼夜和帧率都未真机执行。
+- 两台真实客户端：待验证。位置、座位、运动、乘客权限、远端旋翼/姿态/声音、上下机、断线重连均未执行。
+
+## 0.25.0 双人直升机 V0.1（2026-10-25）
+
+- 审计：已确认。先完成 `docs/HELICOPTER-V0.1-AUDIT.md`，逐项取证 Block+CSV+XDB+Spawn 注册、Body 驱动/碰撞/保存、单 Mount 双座、`SetBoneTransform` 动态部件、原生父 Body 网络路径及其非严格服务器权威边界，再进入实现。
+- 独立实现：已确认（源码/编译）。新增 `Features/AirVehicles`，未复制坦克/越野车接地推进；ID 941、实体 `SCIEPortHelicopter`、新 GUID、一个 Mount、双座管理、可配置飞行 Drive、Local/Server 自动降落与深水副作用均通过源码和 XDB 守卫。
+- 离线规则：已确认。`tests/SCIEPort.AirVehicles.Tests` **28 断言**通过，覆盖平滑积分、旋翼加减速、显式重力/悬停、上升/下降、自动降落、水平前后限速、高度限制和座舱包围盒。
+- 模型/贴图：已确认（文件/目标导入）。`Helicopter.dae` 为 `Y_UP`、恰好三个命名骨骼和 17 个 clean-room cuboid；目标 x25.01.17 `Engine.Media.ModelData.Load` 实际结果 **3 bones/17 meshes**。`Helicopter.png` 为 48×8、全不透明、六个调色板颜色。资源可由 `scripts/New-HelicopterAssets.ps1` 重建。
+- 环境/全工程构建：已确认。运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:\Dev\Survivalcraft2\SCIE-Port\scripts\Build-WithPinnedSdk.ps1' -GameDir 'D:\SC' -Configuration Release`，其先执行 `Test-Environment.ps1`；目标程序集哈希保持兼容记录值，260 个原生方块常量最大 ID 263，ID 941 未占用。
+- 全部测试/数据库：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / **Helicopter 28** / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿；net472 Release **0 warning/0 error**，12 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。最终 `artifacts/SCIEPort.netmod` 为 **506,514 字节 / 63 条目**，SHA-256 `C424E021AD2DA65E255FD796EA77B47E0E2E7C7F5BEE5856CDF6833BB35F1736`，含 Helicopter CSV/XDB/DAE/PNG；包内 modinfo Version=`0.25.0`，DLL AssemblyVersion/FileVersion=`0.25.0.0`。
+- Windows 游戏运行：待验证。未启动游戏验证创造栏、生成、驾驶和保存。
+- Android 7723 单机：待验证。创造模式生成、触屏起飞/升降/悬停/移动/降落、双座、乘客不可控制、安全上下机、碰撞、退出重进均须在可丢弃新世界实测。
+- 两台真实 Android 客户端：待验证。须用相同最终 SHA-256 包测试房主/客户端互换 Driver/Passenger、第三人拒绝、位置/座位/运动、跨区块、驾驶员离开自动降落、断线重连。未通过前不得标记联机已实现。
+- 严格服务器权威：不支持。V0.1 沿用原生驾驶员父 Body 状态源。
+
 ## 0.22.3 车厢不可见修复（2026-10-24）
 
 - 根因复现：已确认。固定 `D:\SC` 的 `Engine.Media.ModelData.Load` 直接读取授权上游
@@ -762,3 +790,96 @@ Android 7723 联网/真机验证阶段。
 - 运行时联机同步：待验证。静态审计只证明「代码仅权威端写世界」，无法证明同步包实际行为；作物 DATA/实体生成
   回同步、`OnUse`/`OnNeighborBlockChanged` 触发端、载具物理跨端一致均需主机+客户端两台实测（见 COMPATIBILITY
   0.21.1 三档实测清单）。Windows/Android 7723 联机均未开测。
+
+## 0.23.0 荒野探索者 X1 摩托外观 V2
+
+- 生成可复现：已确认。`scripts/New-AtvAssets.ps1 -ProjectRoot <repo>` 从纯参数化几何核（Frustum/Tube/Loft/
+  Torus/ArcPlate/BoxA，内嵌 C#5）确定性产出 `src/SCIEPort/Assets/Models/ATV.dae` 与
+  `src/SCIEPort/Assets/Textures/ATV.png`；不再堆叠小立方体模拟圆。旧 12 部件资产备份于
+  `artifacts/backups/atv-pre-x1/`（gitignore，仅本地）。
+- 部件与面数：已确认。13 个独立 geometry：FrontWheel 600 / RearWheel 600 / FrontFork 172 / Handlebar 220 /
+  Headlight 60 / Frame 348 / Engine 252 / FuelTank 60 / Seat 60 / SidePanels 24 / Exhaust 136 / Swingarm 660 /
+  Fenders 160，合计 **3352 三角面**（移动端预算 6000，构建断言强制）。
+- 目标导入：已确认。`Build-NetMod.ps1` 反射目标 `Engine.Media.ModelData.Load` 实测 **1 bone / 13 meshes**，
+  低于 SCNET 七骨骼实例着色器上限；单 identity `ATV` 场景节点、Y_UP、变换烘焙均通过断言。
+- 包围盒：已确认。X [-0.371265, 0.371265]、Y [0.003218, 1.187]、Z [-1.286782, 1.286397]，完全落入
+  `1.1,1.25,2.6` ComponentBody；碰撞/骑乘/联机/存档代码零改动，Block 923 与 `SCIEPortATV` GUID 不变。
+- 贴图：已确认。64×64 不透明材质图集、33 色（断言上限 96），16 个带 1-texel 内缩的区域（橙/碳黑/银/铬/
+  橡胶/座椅/灯等）；UV 全部位于 [0,1] 且逐区域隔离，构建断言逐 geometry 校验 accessor 步长、浮点个数、
+  索引范围与 triangles count 一致性。
+- 离线验收预览：已确认。`scripts/Render-AtvPreviews.ps1` 输出 7 视角 ×（白模/彩色）共 14 张于
+  `artifacts/previews/atv-x1/`；目检 left/front/front45/rear45/top 均能识别为结构化越野摩托，排气管仅右侧、
+  双座连续、油箱前宽后窄。
+- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过；`Build-WithPinnedSdk.ps1 -GameDir D:\SC
+  -Configuration Release`（内部设 DOTNET_ROOT 指向 SDK 9.0.300 后转调 `Build-NetMod.ps1`）全程 exit 0，
+  DATABASE VALIDATION PASSED，产物 **496,443 字节**，SHA-256
+  `79D88624587E6AAACEB2E1BA1743A0220D7B5E4A4964F33358AE2D14B973F0A8`（提交后重建，DLL 内嵌本分支 HEAD）；
+  包内 modinfo 版本 0.23.0。
+- 上游资产恢复：环境备注。本工作区 `upstream/SCIE/`（gitignore 的授权第三方资产）曾被清空导致打包在
+  「Missing authorized upstream asset」中断；用 `scripts/Restore-UpstreamFromPackage.ps1` 从用户自有上一版
+  `SCIEPort.netmod` 还原 SteamBoat.png/Train.png/Cylinder.dae（逐字节同源）与 Minecart.dae（已归一化形态，
+  构建对其 pass-through，包内结果与原版推导一致）。该目录不入库，正式环境仍应使用原始授权文件。
+- Windows 游戏运行：待验证。本机未启动游戏；新外观在物品栏/世界/骑乘态的显示与旧结论不互相继承。
+- Android 7723：待验证。13 部件新模型与 64×64 图集的物品栏图标、世界实体渲染、双人乘坐视觉、不同角度
+  辨识度均需真机新世界验证；编译与离线预览通过不得标记为兼容。
+- 多人联机：待验证。本次仅改视觉资产，未触碰座位/权威/同步代码；双人同乘显示一致性仍需双机实测。
+
+## 0.23.1 世界绿色偏色修复
+
+- 用户报告：缺陷复现描述。用户反馈「贴图正常，在世界里是绿色的」：物品栏图标与离线预览配色正确，
+  但世界实体整车发绿。
+- 机理取证：已确认。横向对比六类载具驱动组件的 `ComponentModel.DiffuseColor/EmissionColor`：越野/
+  轨道/飞艇/蒸汽船均为 `Vector3.One` + 中性低自发光，坦克为近白 `(0.85,0.9,0.8)`；**仅 ATV** 沿袭旧版
+  草绿 `(0.38,0.74,0.16)` + 绿自发光 `(0.04,0.06,0.02)`。世界实例渲染把绑定贴图乘以 DiffuseColor：
+  橙 (0.90,0.49,0.13)×绿 → (0.34,0.36,0.02) 橄榄绿、银 (0.78)×绿 → (0.30,0.58,0.13) 中绿，与用户所见
+  一致；物品栏图标烘焙进 `BlockMesh` 不乘该色，故「图标正常、世界发绿」。旧四色贴图时代该绿 tint 与
+  素材配套，X1 橙/银图集下变为缺陷。
+- 修复：已确认。`ComponentAtvDrive` 改 `DiffuseColor = Vector3.One`、`EmissionColor =
+  (0.045,0.045,0.05,0)`（与其他载具同基线，保留夜间不纯黑保底）；Release 0 warning / 0 error。
+- 构建 / 打包：已确认。`Build-WithPinnedSdk.ps1 -GameDir D:\SC -Configuration Release` 全程 exit 0，
+  DATABASE VALIDATION PASSED；产物 **496,553 字节**，SHA-256
+  `9AFE494D3F5E1206BAD68DDCE383E8B03DFDC011ADEC75ABB0F66EEA0F0808EB`；包内 modinfo 版本 0.23.1。
+- Android 7723：待验证。需真机复验世界配色与图集一致（橙/碳黑/银可读）、夜间低光不纯黑；物品栏图标
+  本就不受影响，无需复验。
+
+## 0.24.0 载具激活密码闸（统一激活码 123456，主机校验按会话授权）
+
+- 需求：功能落地。首次对任意 SCIE 载具「生成/驾驶/乘坐/开火」前弹触屏密码框，输入统一码 `123456`
+  成功后本会话解锁全部七载具（ATV/蒸汽快艇/越野/飞艇/火车/车厢/T-34）；失败或取消**拒绝操作且不消耗物品**；
+  主机与客户端都需授权、按真实玩家会话隔离、由主机校验，并覆盖已在场载具与坦克开火入口防绕过。
+- UI ABI 取证：已确认（真实反射）。反射 x25.01.17 `Engine.dll` 得
+  `Engine.Input.Keyboard.ShowKeyboard(String,String,String,Boolean,Action<string>,Action)`（public static、
+  `passwordMode` 遮蔽）与 `Engine.Time.RealTime`（`Engine.Time` 上的 public static double 属性，作弹窗节流时基）。
+  `Test-Environment.ps1` 初版用参数 `FullName` 连写串比对签名，因泛型 `Action<string>` 的 `FullName` 是
+  程序集限定形式 `System.Action`1[[System.String, mscorlib, …]]` 而误判「未找到」；改为结构化逐参类型比对
+  （`[Action[string]]` 等）后通过。
+- 网络 ABI 取证：已确认（真实反射/编译）。原生 `IPackage` ID 连续占用 0..38，SCIE-Port 已用 240/241，
+  **242** 空闲→新 `VehicleActivationPackage`；保留段断言扩为 `@(240,241,242)`。反射确认 `PackageManager.RegisterPackage`
+  (public static)、`Client.GUID`、`NetNode.Server`、`NetNode.QueuePackage(IPackage)`。`PackageStreamWriter : BinaryWriter`、
+  `PackageStreamReader : BinaryReader`，`Write(string)`/`ReadString()` 来自基类；环境脚本在派生类型枚举 `GetMethods`
+  会因某未加载 `OpenTK` 重载解析抛异常，故改为断言基类继承+基类方法存在。
+- 入口覆盖：已确认（代码/构建守卫）。六处生成 `OnUse` 在 `WorkType.Client` 早退后、`RemoveActiveTool` 前插
+  `VehicleActivationService.EnsureActivated()` 拒绝闸；六处驾驶组件在主玩家判定内插同一闸（覆盖已在场载具）；
+  坦克开火在 `bool wantsFire = TankRules.CanFire` 前置闸；`TankControlPackage` 服务端在 `RiderId` 校验后加
+  `VehicleActivationService.IsGranted(From.GUID)` 门。`Build-NetMod.ps1` 对每处源码断言闸存在且顺序正确。
+- 授权模型：已确认（代码/规则）。本地会话键 `Guid.Empty`；客户端绝不自我授权，码经 242 包发主机，主机校验、
+  按 `From.GUID` 记账、单播（`To=From`）回执；客户端仅在主机肯定回执后置本地会话为已授权。弹窗包 try/catch，
+  异常保持拒绝态不崩溃，节流 6.0 秒防每帧弹。
+- 离线测试：已确认（net8 无游戏依赖）。`tests/SCIEPort.VehicleActivation.Tests` **22 断言**全绿（码校验/trim/null/
+  空白/反序、节流首次/>/==/</零经过、间隔=6.0、授予/可操作/会话键/常量码）。打包前全工程 12 个离线套件全绿：
+  Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 /
+  Apple 49 / VehicleActivation 22。
+- 编译修复：已确认。首编译报 `VehicleActivationService.cs` 缺 `Log`（Engine 命名空间）、`CommonLib`/`WorkType`/
+  `VehicleActivationPackage`（Game.NetWork 命名空间）——服务类误只 `using Game;`；改 `using Engine;`+`using Game.NetWork;`
+  后编译通过。
+- 构建 / 打包：已确认。`Test-Environment.ps1 -GameDir D:\SC` 通过（含新载具激活 ABI 探测）；
+  `Build-WithPinnedSdk.ps1 -GameDir D:\SC -Configuration Release` 全程 exit 0（`TreatWarningsAsErrors`+
+  `GenerateDocumentationFile`→0 warning/0 error），`DATABASE VALIDATION PASSED`；产物 **498,017 字节**，SHA-256
+  `C40A9C5EF5FE46C8578E4C079E7A461DEB4FBC6F9F96925885AE95D7E4D69213`；包内 modinfo Version=`0.24.0`、
+  `SCIEPort.dll` AssemblyVersion=`0.24.0.0`（磁盘复核一致）。
+- Windows 游戏运行：待验证。本机未启动游戏；弹窗实际出现与遮蔽、正确/错误码放行/拒绝、取消、已在场载具拦截、
+  坦克开火拦截均未运行。
+- Android 7723：待验证。目标真机 `Keyboard.ShowKeyboard` 弹窗可达性、密码遮蔽渲染、触屏输入与节流手感均未观测；
+  编译/反射签名匹配不得标记兼容；弹窗失败按拒绝回退（安全），可用性待实测。
+- 多人联机授权：待验证。主机校验+按 `Client.GUID` 隔离+单播回执为代码/ABI 结论；真实主机+普通客户端两台的
+  授权隔离、越权拒绝、未授权远程开火丢弃需双机实测。

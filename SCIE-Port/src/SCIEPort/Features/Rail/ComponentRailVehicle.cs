@@ -3,6 +3,7 @@ using Engine.Graphics;
 using Game;
 using Game.NetWork;
 using GameEntitySystem;
+using SCIEPort.Features.Vehicles;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Rail
@@ -66,7 +67,8 @@ namespace SCIEPort.Features.Rail
         {
             ComponentRider rider = m_mount.Rider;
             ComponentPlayer player = rider?.Entity.FindComponent<ComponentPlayer>(false);
-            bool localDriver = player != null && player.ComponentRider == rider && player.PlayerData.IsMainPlayer;
+            bool localDriver = player != null && player.ComponentRider == rider && player.PlayerData.IsMainPlayer
+                && VehicleActivationService.EnsureActivated();
             bool simulateUnoccupiedAuthority = rider == null && CommonLib.WorkType != WorkType.Client;
             if (!localDriver && !simulateUnoccupiedAuthority) return;
             int railType;
