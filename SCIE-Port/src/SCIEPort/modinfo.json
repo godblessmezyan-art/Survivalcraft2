@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.25.0",
+  "Version": "0.26.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.25.0 adds a project-created two-seat helicopter (item 941) with driver-only touch control, configurable bounded flight, gravity and hover response, automatic unpiloted landing, native body collision/save behavior, and independently animated main/tail rotor bones. It reuses the existing single-Mount two-seat role protocol; Android 7723 flight, save reload and real two-device multiplayer remain pending verification. v0.24.0 vehicle activation, v0.23.1 tint fix and all earlier vehicle/content fixes remain included.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.26.0 upgrades the project-created two-seat helicopter to presentation V0.4: a merged low-poly red/white cabin and tail, visible dual seats and dashboard, independent solid/blur rotor parts, frame-rate-independent rotor states, bounded visual-only flight attitude, and a lifecycle-managed distance-attenuated clean-room WAV loop. Driver-only flight, two-seat roles, native body collision/save and existing network paths are preserved. Android 7723 rendering/audio/save reload and real two-device multiplayer remain pending verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

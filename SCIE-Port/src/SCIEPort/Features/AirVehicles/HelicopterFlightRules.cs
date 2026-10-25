@@ -2,6 +2,19 @@ using System;
 
 namespace SCIEPort.Features.AirVehicles
 {
+    /// <summary>Visual and audio rotor lifecycle derived from the existing engine flag and rotor speed.</summary>
+    public enum HelicopterRotorState
+    {
+        /// <summary>Rotor is fully at rest.</summary>
+        Stopped,
+        /// <summary>Rotor is accelerating toward flight speed.</summary>
+        Starting,
+        /// <summary>Rotor is at sustained flight speed.</summary>
+        Running,
+        /// <summary>Rotor is decelerating toward rest.</summary>
+        Stopping
+    }
+
     /// <summary>Game-independent bounded flight rules for the two-seat helicopter.</summary>
     public static class HelicopterFlightRules
     {
@@ -37,6 +50,66 @@ namespace SCIEPort.Features.AirVehicles
             float time = running ? spoolUpTime : spoolDownTime;
             float delta = dt / Math.Max(time, 0.05f);
             return MoveTowards(Clamp(speed, 0f, 1f), target, delta);
+        }
+
+        /// <summary>Maps the existing flight engine flag and normalized rotor speed to an explicit render state.</summary>
+        public static HelicopterRotorState GetRotorState(bool engineRunning, float rotorSpeed)
+        {
+            float speed = Clamp(rotorSpeed, 0f, 1f);
+            if (engineRunning)
+            {
+                return speed >= 0.995f ? HelicopterRotorState.Running : HelicopterRotorState.Starting;
+            }
+
+            return speed <= 0.005f ? HelicopterRotorState.Stopped : HelicopterRotorState.Stopping;
+        }
+
+        /// <summary>Wraps any positive or negative angle into one full turn.</summary>
+        public static float WrapAngle(float angle)
+        {
+            const float fullTurn = 6.2831855f;
+            float wrapped = angle % fullTurn;
+            return wrapped < 0f ? wrapped + fullTurn : wrapped;
+        }
+
+        /// <summary>Returns the shortest signed angular delta from one wrapped angle to another.</summary>
+        public static float ShortestAngleDelta(float from, float to)
+        {
+            const float halfTurn = 3.1415927f;
+            return WrapAngle(to - from + halfTurn) - halfTurn;
+        }
+
+        /// <summary>Calculates a bounded visual-only pitch target from longitudinal velocity.</summary>
+        public static float GetVisualPitch(float forwardSpeed, float maximumForward, float maximumReverse, float maximumPitch)
+        {
+            float denominator = forwardSpeed >= 0f ? Math.Max(maximumForward, 0.01f) : Math.Max(maximumReverse, 0.01f);
+            return -Clamp(forwardSpeed / denominator, -1f, 1f) * Math.Abs(maximumPitch);
+        }
+
+        /// <summary>Calculates a bounded visual-only bank target from lateral velocity and yaw rate.</summary>
+        public static float GetVisualRoll(
+            float lateralSpeed,
+            float lateralReferenceSpeed,
+            float yawRate,
+            float yawReferenceRate,
+            float maximumRoll)
+        {
+            float lateral = Clamp(lateralSpeed / Math.Max(Math.Abs(lateralReferenceSpeed), 0.01f), -1f, 1f);
+            float turn = Clamp(yawRate / Math.Max(Math.Abs(yawReferenceRate), 0.01f), -1f, 1f);
+            return -Clamp(0.65f * lateral + 0.35f * turn, -1f, 1f) * Math.Abs(maximumRoll);
+        }
+
+        /// <summary>Applies frame-rate-independent exponential damping to a visual angle.</summary>
+        public static float SmoothVisualAngle(float current, float target, float response, float dt)
+        {
+            float alpha = 1f - (float)Math.Exp(-Math.Max(response, 0f) * Math.Max(dt, 0f));
+            return current + (target - current) * alpha;
+        }
+
+        /// <summary>Returns a 0..1 blend for the prebuilt high-speed rotor geometry.</summary>
+        public static float GetRotorBlurBlend(float rotorSpeed, float threshold)
+        {
+            return Clamp((rotorSpeed - threshold) / 0.12f, 0f, 1f);
         }
 
         /// <summary>Selects pilot ascent/descent/hover or unattended landing speed.</summary>

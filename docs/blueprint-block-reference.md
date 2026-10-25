@@ -5,7 +5,7 @@
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
 > 不在此文件中的方块一律**不支持**，导入会触发"未知材料键"干净拒绝。
 
-> SCIE-Port 0.25.0 新增的载具部署物品 `HelicopterBlock`（ID 941）不是建筑材料，**不属于 Builder Assistant 蓝图能力**；本清单未加入该键，蓝图导入器应继续以未知材料拒绝。此次 SCIE-Port 更新没有新增、移除或改变任何 Builder Assistant 可导入方块族、DATA 范围或限制。
+> SCIE-Port 0.26.0 仅升级载具部署物品 `HelicopterBlock`（ID 941）的模型、动画、贴图与音频表现；它仍不是建筑材料，**不属于 Builder Assistant 蓝图能力**。本清单未加入该键，蓝图导入器应继续以未知材料拒绝。此次 SCIE-Port 更新没有新增、移除或改变任何 Builder Assistant 可导入方块族、DATA 范围或限制。
 
 ## 蓝图 JSON Schema
 

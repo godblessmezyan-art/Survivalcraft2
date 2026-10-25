@@ -36,6 +36,19 @@ internal static class Program
         Assert(TwoSeatRules.SelectSeat(true, true) == VehicleSeatRole.None, "third rider rejected");
         Assert(TwoSeatRules.CanControlVehicle(VehicleSeatRole.Driver), "driver controls");
         Assert(!TwoSeatRules.CanControlVehicle(VehicleSeatRole.Passenger), "passenger cannot control");
+        Assert(HelicopterFlightRules.GetRotorState(false, 0f) == HelicopterRotorState.Stopped, "rotor stopped state");
+        Assert(HelicopterFlightRules.GetRotorState(true, 0.5f) == HelicopterRotorState.Starting, "rotor starting state");
+        Assert(HelicopterFlightRules.GetRotorState(true, 1f) == HelicopterRotorState.Running, "rotor running state");
+        Assert(HelicopterFlightRules.GetRotorState(false, 0.5f) == HelicopterRotorState.Stopping, "rotor stopping state");
+        Equal(0.5f, HelicopterFlightRules.WrapAngle(6.2831855f * 3f + 0.5f), "multi-turn angle wraps");
+        Equal(6.1831856f, HelicopterFlightRules.WrapAngle(-0.1f), "negative angle wraps");
+        Assert(HelicopterFlightRules.ShortestAngleDelta(6.2f, 0.1f) > 0f, "yaw delta crosses wrap forward");
+        Assert(HelicopterFlightRules.GetVisualPitch(6f, 12f, 5f, 0.12f) < 0f, "forward flight pitches nose down");
+        Assert(HelicopterFlightRules.GetVisualPitch(-2.5f, 12f, 5f, 0.12f) > 0f, "reverse flight pitches nose up");
+        Assert(Math.Abs(HelicopterFlightRules.GetVisualRoll(20f, 4f, 3f, 1.2f, 0.16f)) <= 0.1601f, "visual roll stays bounded");
+        Assert(HelicopterFlightRules.SmoothVisualAngle(0f, 1f, 4f, 0.1f) > 0f && HelicopterFlightRules.SmoothVisualAngle(0f, 1f, 4f, 0.1f) < 1f, "visual damping is bounded");
+        Equal(0f, HelicopterFlightRules.GetRotorBlurBlend(0.6f, 0.75f), "slow rotor uses solid blades");
+        Equal(1f, HelicopterFlightRules.GetRotorBlurBlend(0.9f, 0.75f), "fast rotor uses blur geometry");
         Console.WriteLine("Helicopter rule tests passed: " + s_count);
         return 0;
     }

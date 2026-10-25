@@ -21,6 +21,13 @@ namespace SCIEPort.Features.AirVehicles
             Model model = ContentManager.Get<Model>("Models/Helicopter");
             foreach (ModelMesh mesh in model.Meshes)
             {
+                // World-only high-speed rotor geometry is hidden from the stopped
+                // inventory thumbnail; the solid blades remain fully visible.
+                if (mesh.ParentBone.Name == "MainRotorBlur" || mesh.ParentBone.Name == "TailRotorBlur")
+                {
+                    continue;
+                }
+
                 Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone) * Matrix.CreateScale(0.32f);
                 foreach (ModelMeshPart part in mesh.MeshParts)
                 {

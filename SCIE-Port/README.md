@@ -1,5 +1,19 @@
 # SCIE-Port
 
+Version 0.26.0 upgrades the existing two-seat helicopter to presentation V0.4
+without replacing its flight, seat, spawn or network paths. The new clean-room
+model is a 758-triangle red/white light helicopter with an opaque dark canopy,
+two visible seats, dashboard, tail boom, fins, skids and navigation-light
+geometry. Six bones drive a visual-attitude root plus independent solid/blur
+main and tail rotors; five merged meshes keep draw count bounded. Rotor state,
+pitch/roll damping and blur selection are frame-rate independent and visual
+only. A generated mono PCM WAV loop uses the target `SubsystemAudio` APIs with
+distance attenuation and explicit disposal. The target x25.01.17 Engine imports
+the model as 6 bones/5 meshes and decodes the WAV as 22050 Hz mono PCM. Release,
+database, package and 41 helicopter-rule assertions pass. Android 7723 world/
+inventory rendering, audio lifecycle, save/reload and real two-client behavior
+remain pending. See `docs/HELICOPTER-V0.4-AUDIT.md`.
+
 Version 0.25.0 adds a clean-room two-seat helicopter V0.1 as an isolated
 `Features/AirVehicles` slice. ID 941 creates a dedicated persistent entity with
 one native mount, explicit driver/passenger roles, configurable gravity and

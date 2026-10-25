@@ -37,9 +37,9 @@ foreach ($marker in @('Initilizing Mods Manager. Api Version: 1.42', '2.4.10.6',
     if (-not $unicode.Contains($marker)) { throw "Missing target marker: $marker" }
 }
 
-$engineAssembly = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'Engine.dll')))
-[void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes((Join-Path $GameDir 'EntitySystem.dll')))
-$assembly = [Reflection.Assembly]::Load($bytes)
+$engineAssembly = [Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'Engine.dll'))
+[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'EntitySystem.dll'))
+$assembly = [Reflection.Assembly]::LoadFrom($gamePath)
 $modLoader = $assembly.GetType('Game.ModLoader', $true)
 $cubeBlock = $assembly.GetType('Game.CubeBlock', $true)
 $block = $assembly.GetType('Game.Block', $true)
@@ -55,6 +55,8 @@ $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
 $componentLocomotion = $assembly.GetType('Game.ComponentLocomotion', $true)
 $componentDamage = $assembly.GetType('Game.ComponentDamage', $true)
+$subsystemAudio = $assembly.GetType('Game.SubsystemAudio', $true)
+$sound = $engineAssembly.GetType('Engine.Audio.Sound', $true)
 $subsystemUpdate = $assembly.GetType('Game.SubsystemUpdate', $true)
 $packageManager = $assembly.GetType('Game.NetWork.PackageManager', $true)
 $packageInterface = $assembly.GetType('Game.NetWork.IPackage', $true)
@@ -239,6 +241,21 @@ if (-not $componentModel.GetProperty('TextureOverride')) {
 if (-not ($componentModel.GetMethods() | Where-Object { $_.Name -eq 'SetBoneTransform' -and $_.GetParameters().Count -eq 2 })) {
     throw 'ComponentModel.SetBoneTransform required by tank turret articulation was not found.'
 }
+if ($null -eq $subsystemAudio.GetMethod('CreateSound', [Type[]]@([string])) -or
+    $null -eq $subsystemAudio.GetMethod('CalculateListenerDistance', [Type[]]@($engineAssembly.GetType('Engine.Vector3', $true))) -or
+    $null -eq $subsystemAudio.GetMethod('CalculateVolume', [Type[]]@([float], [float], [float]))) {
+    throw 'SubsystemAudio looping sound creation or distance attenuation API required by helicopter V0.4 was not found.'
+}
+foreach ($soundProperty in @('State','Volume','Pitch','IsLooped','DisposeOnStop')) {
+    if ($null -eq $sound.GetProperty($soundProperty)) {
+        throw "Engine.Audio.Sound.$soundProperty required by helicopter V0.4 was not found."
+    }
+}
+foreach ($soundMethod in @('Play','Stop','Dispose')) {
+    if ($null -eq $sound.GetMethod($soundMethod, [Type[]]@())) {
+        throw "Engine.Audio.Sound.$soundMethod() required by helicopter lifecycle cleanup was not found."
+    }
+}
 $componentCreatureModel = $assembly.GetType('Game.ComponentCreatureModel', $true)
 if (-not $componentCreatureModel.GetProperty('EyeRotation')) {
     throw 'ComponentCreatureModel.EyeRotation required by the tank spawn orientation was not found.'
@@ -268,4 +285,4 @@ Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
-Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, vehicle activation popup/network ABI (Client.GUID, NetNode.Server/QueuePackage, Keyboard.ShowKeyboard, Engine.Time.RealTime, package payload) and reserved ID checks passed.'
+Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, helicopter audio lifecycle/attenuation, vehicle activation popup/network ABI (Client.GUID, NetNode.Server/QueuePackage, Keyboard.ShowKeyboard, Engine.Time.RealTime, package payload) and reserved ID checks passed.'

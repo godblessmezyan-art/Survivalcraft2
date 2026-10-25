@@ -55,6 +55,15 @@
       <Parameter Name="MaximumReverseSpeed" Guid="927bd41e-629a-448b-a82f-ef07e5ef7a87" Value="5" Type="float" />
       <Parameter Name="TurnRate" Guid="9422e98c-ecc6-483a-af66-26c5482e3c89" Value="1.2" Type="float" />
       <Parameter Name="MaximumWorldY" Guid="15495ced-1557-4115-8549-f81c9c26e6ea" Value="240" Type="float" />
+      <Parameter Name="VisualPitchLimit" Guid="cfd6cea6-d4c0-4abd-8c78-e1674fc07686" Value="0.122173" Type="float" />
+      <Parameter Name="VisualRollLimit" Guid="952e8283-0427-467a-ab7d-1cf11395f2eb" Value="0.15708" Type="float" />
+      <Parameter Name="VisualResponse" Guid="ce3573b5-d5a0-4049-8418-e3ab8aa4a256" Value="4" Type="float" />
+      <Parameter Name="VisualLateralReferenceSpeed" Guid="49ee93ec-1909-41ec-a095-e2f50265c604" Value="4" Type="float" />
+      <Parameter Name="MainRotorAngularSpeed" Guid="bed12d27-2a0e-40c3-8a00-6521f3cf5799" Value="30" Type="float" />
+      <Parameter Name="TailRotorSpeedMultiplier" Guid="2c30fa22-f68c-47c5-8640-a9340ff00fb1" Value="3.2" Type="float" />
+      <Parameter Name="RotorBlurThreshold" Guid="07b34299-485b-48f1-8269-bf54b0e40f0e" Value="0.74" Type="float" />
+      <Parameter Name="SoundMinDistance" Guid="8f459176-a2aa-4ff0-998f-c0a46667dbfc" Value="4" Type="float" />
+      <Parameter Name="SoundRolloffFactor" Guid="a63d118f-265a-449e-b81b-ed514793b463" Value="0.08" Type="float" />
     </ComponentTemplate>
   </Folder>
   <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">

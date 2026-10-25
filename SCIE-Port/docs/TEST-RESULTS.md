@@ -1,5 +1,19 @@
 # 测试结果
 
+## 0.26.0 双人直升机 V0.4（2026-10-25）
+
+- 前置环境：直接运行 `Test-Environment.ps1` 首先因机器遗留 `SCNET_GAME_DIR=E:\...`（该盘不存在）失败；显式使用 `-GameDir 'D:\SC'` 后发现 PowerShell 7 的 byte-array Assembly load 无法解析同目录 Engine 依赖，脚本改为对已完成哈希校验的绝对路径使用 `Assembly.LoadFrom`。修正后环境检查 exit 0。
+- ABI：已确认。固定三程序集哈希、API 1.42、SC 2.4.10.6、net472、260 个原生方块常量继续通过；新增反射确认 `SubsystemAudio.CreateSound/CalculateListenerDistance/CalculateVolume` 及 `Sound` 的状态、音量、音调、循环、Stop/Dispose 生命周期。
+- 规则：已确认。`SCIEPort.AirVehicles.Tests` 从 28 增至 **41 断言**，新增四状态、正负/多圈角回绕、最短 yaw 差、前后俯仰符号、侧倾限幅、阻尼和 rotor blur 阈值；exit 0。
+- 全量回归：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 41 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- Release/数据库：已确认。命令为 `$env:PATH='C:\Users\85196\AppData\Local\Microsoft\dotnet;'+$env:PATH; $env:DOTNET_ROLL_FORWARD='Major'; .\SCIE-Port\scripts\Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release`；使用本机 9.0.300 SDK（测试目标 net8 以 Major roll-forward 运行），net472 主工程 **0 warning/0 error**，12 个 XDB `DATABASE VALIDATION PASSED`。
+- 模型：已确认。`Helicopter.dae` 为 758 triangles；目标 `Engine.Media.ModelData.Load` 实际导入 **6 bones/5 meshes**，骨骼和枢轴名全部通过构建守卫。96×16 PNG 为全不透明十二色。静态正交/斜视诊断图用于检查轮廓与部件位置，但不计作游戏渲染通过。
+- 音频：已确认（文件/目标解码）。`SCIEPortHelicopterLoop.wav` SHA-256 `842D8FF3D950813E85A6F5CD2E3C0639EA69070CA01766AD47184BEFD309B8EC`；真实目标 `SoundData.Load(Stream)` 解码为 1 channel / 22050 Hz / 22050 samples。Android OpenAL 播放未执行。
+- 打包：已确认。`artifacts/SCIEPort.netmod` 为 **520,065 字节 / 64 条目**，SHA-256 `23060B72D8D959265E32B8F3A9A86C73F6977CE4201575FDD7CE1276D5177DD1`；包内含新增 WAV，modinfo=`0.26.0`，DLL AssemblyVersion/FileVersion=`0.26.0.0`。
+- Windows 游戏运行：待验证。未启动游戏，不能声称创造栏、世界渲染、声音、飞行或保存重载通过。
+- Android 7723：待验证。模型/贴图/旋翼/姿态/触屏飞行/声音生命周期、昼夜和帧率都未真机执行。
+- 两台真实客户端：待验证。位置、座位、运动、乘客权限、远端旋翼/姿态/声音、上下机、断线重连均未执行。
+
 ## 0.25.0 双人直升机 V0.1（2026-10-25）
 
 - 审计：已确认。先完成 `docs/HELICOPTER-V0.1-AUDIT.md`，逐项取证 Block+CSV+XDB+Spawn 注册、Body 驱动/碰撞/保存、单 Mount 双座、`SetBoneTransform` 动态部件、原生父 Body 网络路径及其非严格服务器权威边界，再进入实现。

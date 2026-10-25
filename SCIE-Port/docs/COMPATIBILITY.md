@@ -1,5 +1,23 @@
 # SCIE-Port 兼容性记录
 
+## 0.26.0 双人直升机 V0.4（表现升级已编译，Android/双机待验证，2026-10-25）
+
+本阶段只在 0.25.0 可验证直升机核心上叠加模型、旋翼状态/模糊、视觉姿态与音效。仓库没有可定位的 V0.3 提交，故未虚构 V0.3 基线；实际保留范围和源码证据见 `HELICOPTER-V0.4-AUDIT.md`。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| V0.1 核心兼容 | 已确认（差异/编译） | ID 941、实体/组件 GUID、单 Mount 双座、包 240、驾驶员唯一输入、飞行参数/物理、碰撞体、生成和保存路径未改；原 Update 中物理段只抽成等价 `SimulateFlight`。乘客仍不进入控制路径。 |
+| 模型/枢轴 | 已确认（目标导入） | clean-room Y_UP DAE 为 758 triangles、6 bones/5 merged meshes；真实 x25.01.17 `ModelData.Load(Stream)` 导入结果正是 6/5，低于七骨骼预算。VisualRoot 在座舱中央，主旋翼世界枢轴 `(0,1.80,-0.30)` 绕 Y，尾桨 `(0.30,1.20,2.37)` 绕 X。 |
+| 材质与物品栏 | 已确认（资源/构建） | 96×16 全不透明十二色调色板；机体/玻璃/金属/橡胶/座椅/仪表/灯/blur 分色。物品栏复用同一 DAE/PNG 并隐藏 blur 网格。透明玻璃因未验证逐材质排序而降级为深色不透明。 |
+| 动画状态与姿态 | 已确认（代码/41 规则断言） | Stopped/Starting/Running/Stopping 从既有状态派生；动画按 dt、角度完整回绕。VisualRoot 的俯仰/侧倾有上限和指数阻尼，只改骨骼，不改 Body 权威位置/碰撞/物理。solid/blur 是预建网格，无逐帧网格分配。 |
+| 音效 ABI/资源 | 已确认（真实程序集/目标解码） | 反射确认 `SubsystemAudio.CreateSound/CalculateListenerDistance/CalculateVolume` 与 Sound 生命周期属性/方法；项目生成 WAV 被目标 `SoundData.Load` 解码为 mono PCM16、22050 Hz、22050 样本。Load 只建一个循环声源，Dispose 显式 Stop+Dispose。Android OpenAL 实播仍待验证。 |
+| 联机影响 | 已确认（代码边界）；真机待验证 | 未新增位置/动画/音频包或旋翼实体；继续使用原生父 Body 状态与包 240。远端表现从既有 Body/座位状态派生。两台 Android 对位置、座位、运动、姿态、旋翼、音频及重连仍未执行，不能写成联机通过。 |
+| Release 构建/包 | 已确认 | `Build-NetMod.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全部离线套件通过，net472 0 warning/0 error，12 个 XDB 通过。`.netmod` **520,065 字节 / 64 条目**，SHA-256 `23060B72D8D959265E32B8F3A9A86C73F6977CE4201575FDD7CE1276D5177DD1`；modinfo 0.26.0，DLL 0.26.0.0。 |
+| Windows 游戏运行 | 待验证 | 未启动目标游戏；创造栏、世界渲染、起飞、声音和保存重载未运行。 |
+| Android 7723 单机 | 待验证 | 创造栏/生成、触屏飞行、旋翼与姿态、音效、昼夜、切世界/重进、性能均需新建可丢弃世界实测。 |
+| 两台真实 Android 客户端 | 待验证 | 必须以相同最终包哈希验证房主/客户端角色互换、位置/座位/运动、乘客不可控、上下机、断线重连和远端表现。 |
+| 严格服务器权威 | 不支持 | 沿用 x25.01.17 驾驶员客户端父 Body 状态源；V0.4 未替换原生协议。 |
+
 ## 0.25.0 双人直升机 V0.1（最小实现已编译，Android/双机待验证，2026-10-25）
 
 本阶段按 `HELICOPTER-V0.1-AUDIT.md` 的边界新增独立 `Features/AirVehicles` 模块，没有复制越野车或坦克的接地物理，也没有修改已有载具 ID、实体 GUID 或存档。直升机物品使用仓库内未占用 ID **941**，实体模板为 `SCIEPortHelicopter`；外部 Mod 同装冲突仍需安装时检查。
