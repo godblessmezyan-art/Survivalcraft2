@@ -1,5 +1,7 @@
 # Blueprint Block Reference
 
+> **v0.17.0 说明**：Portable Fortress Mk.I 本轮新增的是打包的技术白模 DAE 与设计/ABI 验证，不是蓝图方块、材料键或已实现的部署功能。本次没有新增、移除或修改任何 Builder Assistant 蓝图方块族、DATA 范围或导入限制；AI 生成蓝图时不得引用 `PortableFortress_Whitebox` 作为材料。
+
 > 本文件是 Builder Assistant v0.16.0 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。

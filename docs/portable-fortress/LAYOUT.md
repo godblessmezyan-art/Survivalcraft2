@@ -1,0 +1,63 @@
+# Portable Fortress Mk.I — coordinate layout
+
+Coordinates are model-local. X is left/right, Y is height, Z is front/rear; front is `-Z`. Dimensions below are reservation boxes, so production details may move inside them but may not consume a required clear path.
+
+## Vertical datums
+
+| Datum | Y | Notes |
+|---|---:|---|
+| Ground / model minimum | 0.00 | no geometry below deployment plane |
+| Level-1 walking surface | 0.36 | foundation top |
+| Level-1 clear headroom | 0.36–3.55 | nominal 3.19 |
+| Level-2 deck | 3.60–3.84 | true stair opening retained |
+| Level-2 clear headroom | 3.84–7.15 | nominal 3.31 |
+| Roof deck | 7.15–7.41 | true hatch opening retained |
+| Guard-rail top | 8.55 | 1.14 above deck |
+| Highest datum | 9.00 | beacon placeholder only |
+
+## Level 1
+
+| Space | X range | Z range | Contract |
+|---|---:|---:|---|
+| Rear external door | `-1.2..1.2` | at `6.35` | real `2.4 × 2.9` opening |
+| Airlock | `-1.45..1.45` | `3.85..6.23` | two side walls; inner door plane reserved at Z 3.85 |
+| Mandatory free activity area | `-2..2` | `-2..2` | at least 4 × 4, no fixed equipment |
+| Sleep zone | `-4.75..-3.15` | `-1.25..1.45` | two-tier bunk envelope |
+| Heating room | `-4.8..-3.05` | `2.2..4.0` | heat socket/plinth and service clearance |
+| 48-slot store | `3.0..4.5` | `0..4.2` | two 24-slot cabinet banks; UI is one logical container |
+| Work/craft zone | `2.55..4.75` | `-3.85..-2.45` | worktop plus terrain installation faces |
+| Stair | `-4.3..-2.2` | `-4.0..0.25` | eight rises; 2.1 wide; true opening above |
+| Main circulation | `-2.5..2.5` | `-3.5..3.85` | links entrance, activity area and stair |
+
+The lower exterior shell is widest at 11 cells. Its corner armor is clipped; the front is therefore not a plain rectangular facade.
+
+## Level 2
+
+| Space | X range | Z range | Contract |
+|---|---:|---:|---|
+| Stair landing/opening | `-4.3..-2.2` | `-4.0..0.25` | never decked over |
+| Panoramic observation zone | `-3.2..3.2` | `-6.5..-3.2` | centre window plus diagonal left/right bays |
+| Command console | `-2..2` | `-4.4..-3.5` | leaves route behind operator |
+| Left/right side windows | at X `±4.25` | `-4.48..-2.62` and `-2.28..-0.52`, plus rear bays | real openings between sill/header/pillars |
+| Rest benches | `-3.98..-2.72` and `2.72..3.98` | `0.9..4.1` | no obstruction of centre path |
+| Roof access shaft | `2.3..4.0` | `2.7..4.4` | ladder/compact stair volume, aligned to hatch |
+
+Window clear apertures run approximately Y `4.70..6.45`. Final mullion widths may change visually but must preserve the exterior sight lines and the two side observation directions.
+
+## Roof
+
+| Feature | X range | Z range | Contract |
+|---|---:|---:|---|
+| Walkable roof | about `-4.275..4.275` | `-5.9..5.0` | split geometry around hatch |
+| Hatch opening | `2.3..4.0` | `2.7..4.4` | true 1.7 × 1.7 opening |
+| Equipment reserve | `-1.9..1.9` | `0.85..3.85` | 3.8 × 3.0; no permanent whitebox equipment |
+| Guard rails | X `±4.1`, Z `-5.55` and rear segment | open only at hatch-side circulation point |
+
+## Clearance checks encoded in the whitebox
+
+- Door width 2.4 and interior passages ≥1.2 cells.
+- Both occupied levels provide >3 cells of nominal headroom.
+- The stairwell and hatch are holes, not coplanar overlapping slabs.
+- The 4 × 4 activity area contains no authored fixed part.
+
+These are geometric checks only. Native player-body traversal and camera clipping remain pending runtime tests.

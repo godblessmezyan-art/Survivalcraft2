@@ -21,6 +21,7 @@ $packagePath = Join-Path $artifactsDir 'BuilderAssistant.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Logic.ps1')
+& (Join-Path $PSScriptRoot 'Test-PortableFortressWhitebox.ps1') -GameDir $GameDir
 
 New-Item -ItemType Directory -Force -Path $artifactsDir | Out-Null
 foreach ($directory in @($buildDir, $stageDir)) {
@@ -111,6 +112,7 @@ try {
         'Assets/Blocks/Speedboat.csv',
         'Assets/Database/Speedboat.xdb',
         'Assets/Models/Speedboat.dae',
+        'Assets/Models/PortableFortress_Whitebox.dae',
         'Assets/Textures/Speedboat.png',
         'Assets/Blocks/BuilderTools.csv',
         'Assets/Database/Building.xdb'
