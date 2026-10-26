@@ -34,6 +34,9 @@ namespace SCIEPort.Features.OffroadVehicles
             model.TextureOverride = OffroadCarBlock.Texture;
             model.DiffuseColor = Vector3.One;
             model.EmissionColor = new Vector4(0.035f, 0.045f, 0.055f, 0f);
+
+            // Read-only collision audit (authored box vs model bounds); mutates nothing.
+            VehicleCollisionAudit.LogOnce("OffroadCar", m_body, model);
         }
 
         /// <inheritdoc />

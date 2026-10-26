@@ -35,6 +35,9 @@ namespace SCIEPort.Features.Watercraft
             ComponentModel model = Entity.FindComponent<ComponentModel>(throwOnError: true);
             model.DiffuseColor = Vector3.One;
             model.EmissionColor = new Vector4(0.12f, 0.12f, 0.12f, 0f);
+
+            // Read-only collision audit (authored box vs model bounds); mutates nothing.
+            VehicleCollisionAudit.LogOnce("SteamBoat", m_body, model);
         }
 
         /// <inheritdoc />

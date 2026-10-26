@@ -44,6 +44,10 @@ namespace SCIEPort.Features.Rail
                 m_powered ? "Textures/Train" : "Textures/Creatures/Jaguar");
             model.DiffuseColor = Vector3.One;
             model.EmissionColor = new Vector4(0.12f, 0.12f, 0.12f, 0f);
+
+            // Read-only collision audit (authored box vs model bounds); mutates nothing.
+            VehicleCollisionAudit.LogOnce("RailVehicle", m_body, model);
+
             SetDirection(valuesDictionary.GetValue("Direction", 0));
         }
 

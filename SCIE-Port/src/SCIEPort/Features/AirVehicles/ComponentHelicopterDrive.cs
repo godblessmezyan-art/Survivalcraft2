@@ -109,6 +109,9 @@ namespace SCIEPort.Features.AirVehicles
             m_model.DiffuseColor = Vector3.One;
             m_model.EmissionColor = new Vector4(0.045f, 0.045f, 0.05f, 0f);
 
+            // Read-only collision audit (authored box vs model bounds); mutates nothing.
+            VehicleCollisionAudit.LogOnce("Helicopter", m_body, m_model);
+
             m_rotorSound = m_audio.CreateSound("Audio/SCIEPortHelicopterLoop");
             m_rotorSound.IsLooped = true;
             m_rotorSound.DisposeOnStop = false;

@@ -463,3 +463,28 @@ THIRD-PARTY-NOTICES.md
 | Windows/Android/多人运行 | 待验证 | 未启动游戏、未连接 Android 或多人会话；伤害、反伤、HUD、骨骼雷光、天空恢复和性能均不得仅凭编译标记运行通过。 |
 
 完整限制与真机步骤见 `docs/SKYWRATH-V3.2-AUDIT.md`。
+
+## 常见坑：RegisterHook 未知钩子名导致整个 mod 静默失效（2026-10-26）
+
+- 症状：把新版 `.netmod` 导入 Android 7723 客户端后，创造栏里 SCIE-Port 的全部物品同时消失（不只是本次新增的物品），游戏没有明显报错，旧版（V2）却能正常显示同一批物品。此现象意味着"整个 mod 未生效"，而非"某个新方块资源缺失"。
+- 根因：`ModsManager.RegisterHook("<钩子名>", this)` 在 `__ModInitialize` 里按字符串反射向加载器派发。若目标客户端的 `ModsManager` 不认识该钩子名，会抛出异常中断 `__ModInitialize`；初始化一旦异常，该 mod 的程序集注册与数据库导入整体回退，于是所有自定义物品全部消失。此坑只在使用与参考程序集不完全一致的"同名版本"（例如 7723 重打包的安卓客户端）时显现——在 PC 上对着 `Survivalcraft.exe` 反射确认 `Game.ModLoader` 存在对应虚方法、编译 0 错 0 警、`Build-NetMod.ps1` 全流程通过，都不代表目标运行时会接受该钩子名。
+- 触发案例：苍穹之怒 V3.2 首次尝试新增了 `OnCreatureInjure` / `SkyDrawExtra` / `CalculateLighting` / `SetRainAndSnowColor` 四个钩子注册；PC 反射确认这些方法存在于 `Game.ModLoader`，编译与打包均通过，但导入 7723 安卓后整包物品全消失。修复提交 `16acd89 feat(scie-port): rebuild Skywrath V3.2` 仅删除这四个注册即让物品重新出现，同时把反射/近战拆分/骨骼雷光/闪电伤害逻辑改走目标客户端已支持的 `AttackBody` + `OnModelRendererDrawExtra` + `ComponentHealth.Injure`。
+- 预防规则：新增或改动任何 `ModsManager.RegisterHook` 钩子名，必须先在目标客户端（含 7723 重打包，可能同版本号但 ABI 略差）实测"物品能显示、该 Hook 能被调用"，仅编译通过不算；跨版本/跨渠道兼容以"该运行时是否触发初始化异常"为准，PC 反射证据不足以替代真机。若确实需要使用带风险的钩子名，必须 try/catch 做降级注册，禁止让 `__ModInitialize` 因单个钩子名不被识别而抛出并连累整包。
+- 排障提示：升级后"物品全灭 + 无明显错误"应优先怀疑加载器初始化异常（钩子名、程序集静态构造、网络包注册顺序），而不是资源缺失或 xdb GUID 冲突；定位时先构造最小 mod（只保留 `BlocksInitalized` 一类被广泛支持的钩子），再逐个加回可疑钩子名做二分，确认触发初始化异常的那一个。
+
+
+## 模型尺寸与碰撞体一致性（2026-10-26，v0.28.x 家具碰撞专项）
+
+- 状态：`待验证`（PC 编译、打包、离线几何单测通过；真机站立/行走/跨越/重进须 Android 7723 实测）。
+- 范围：仅 `SCIE-Port` 工业家具方块（ID 917-922）碰撞体；未改模型外观、全局玩家移动、车辆物理数值、Builder Assistant。
+- 引擎事实（Mono.Cecil 反编译 `Net_x25.01.17` / 程序集 2.4.0.0，非猜测）：
+  - `Block.GetCustomCollisionBoxes` 基实现返回静态整格盒 `m_defaultCollisionBoxes`；重写即生效。
+  - 站立/行走地形碰撞由 `ComponentBody.FindTerrainCollisionBoxes` 计算，门控字段是 `Block.IsCollidable`（非 `HasCollisionBehavior`），随后直接 `callvirt GetCustomCollisionBoxes`，世界坐标 = 格原点 + 局部 [0,1] 盒；`SubsystemPathfinding.GetBlockWalkingHeight` 同样直接调用。
+  - `Block.HasCollisionBehavior_()`（带下划线方法）全程序集零调用者=死代码；`Block.HasCollisionBehavior` 字段唯一读取点在 `ComponentBody.HandleAxisCollision`，为真时仅额外派发 `SubsystemBlockBehavior.OnCollide`，且落空后仍继续原站位/推回逻辑。
+  - 结论：家具悬空/穿模的真因是「整模型单外接盒」把孔洞/凹槽填满，而非「开关未开」；修复靠几何派生矮盒，`HasCollisionBehavior` 保持默认 false。
+- 局部坐标约定与 `RailBlock`（0.25/0.5/0.75 台阶盒）、`KellyPlantBlocks`（果实体手调矮盒）一致：格内 [0,1]，原点=格最小角，+Y 上一格。低于一格的真实顶高确实决定可踩踏高度。
+- 修复实现：`FurnitureCollisionModel`（纯逻辑：三角面 AABB 体素化 → 边界洪泛区分「实心内部 vs 贯穿开口」→ 贪心 3D 合并 → 确定性排序，`grid<1` 抛异常）+ `FurnitureCollisionBoxes`（Engine 适配 `BlockMesh→float[]/int[]→BoundingBox[]`）+ `FurnitureCollisionOptions`（`Diagnostics` 默认 OFF，`GridX/Z=8`、`GridY=20`、`HeightQuantum=0.05`）。逐朝向烘焙，碰撞随模型旋转。
+- 诊断接线：`SCIEPortLoader.Save/LoadSettings` 新增持久化 `SCIEPortFurnitureCollisionDiagnostics` 与 `SCIEPortVehicleAuditDiagnostics`（此前家具诊断无人接线）。`IndustrialFurnitureBlock.DumpCollisionDiagnostics` 可逐格打印绝对世界包围；车辆侧 `VehicleCollisionAudit.LogOnce` 只读打印作者 `BoxSize`/世界 AABB 与模型 `ModelMesh.BoundingBox` 对比（默认静默，不写物理）。
+- 车辆碰撞体（审计未改）：为单个 `.xdb` 声明的 `ComponentBody.BoxSize`（ATV 1.1×1.25×2.6、越野 2.4×1.55×4、坦克 3.6×2.1×5.9、直升机 2.4×2.2×5.4、汽艇 2.3×1.75×5.6、飞艇 3×2×6），Y 普遍高于可见面，属数据层设计问题，须独立专项评估乘骑/上下车/联机同步后再动，本次仅诊断。
+- `Cylinder.dae`（ID 922）在 `Assets/Models/` 缺失属正常：`Build-NetMod.ps1` 第 226-227 行从 gitignore 的 `upstream/SCIE/IndustrialMod/Models/` 授权注入打包，符合「仓库不提交专有资产」规则。
+- 详细根因、尺寸对照、真机步骤与限制见 `docs/FURNITURE-COLLISION-AUDIT.md`。

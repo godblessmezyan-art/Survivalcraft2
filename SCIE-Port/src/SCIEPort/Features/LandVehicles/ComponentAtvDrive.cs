@@ -51,6 +51,10 @@ namespace SCIEPort.Features.LandVehicles
             // keep white like every other vehicle plus a neutral night floor.
             model.DiffuseColor = Vector3.One;
             model.EmissionColor = new Vector4(0.045f, 0.045f, 0.05f, 0f);
+
+            // Read-only audit: logs the authored collision box versus the model bounds when
+            // VehicleAuditOptions.Diagnostics is on. It mutates nothing in the physics path.
+            VehicleCollisionAudit.LogOnce("ATV", m_body, model);
         }
 
         /// <inheritdoc />

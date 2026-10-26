@@ -922,3 +922,23 @@ Android 7723 联网/真机验证阶段。
 - 模型与资源回归：已确认。既有觉醒锤 1 bone/39 meshes/1604 tris、雷矛历史资源 1 bone/5 meshes/108 tris、1024/256/2048 PNG、UV/挂点/音频签名继续通过；V3.2 不把历史雷矛模型用于主动技能。
 - 产物：已确认。`artifacts/SCIEPort.netmod` 81 条目、2,292,859 bytes，包内 Version=`0.28.0`、DLL AssemblyVersion=`0.28.0.0`，SHA-256 `B261BC031C8B26B8CBA0D463F2F81457F7D87EEF45AEB35D710B53290A19D66B`。
 - Windows 游戏、Android 7723、实际伤害/反伤、触屏、多玩家观察、丢包/延迟、天空恢复和性能：待验证。本轮未启动游戏或连接设备，不能把源码常量与编译通过当作实际扣血和视觉验收。
+
+
+## v0.28.x 家具碰撞体几何派生专项（2026-10-26）
+
+状态：`待验证`（离线全部通过；真机未测）。
+
+构建与静态检查：
+- `dotnet build src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:\SCNET` → 0 警告 0 错误（`TreatWarningsAsErrors` + `GenerateDocumentationFile` 全开）。
+- `powershell scripts/Build-NetMod.ps1 -GameDir D:\SCNET` → EXIT=0，`DATABASE VALIDATION PASSED`，产物 `artifacts/SCIEPort.netmod`，SHA-256 `A80A5043F1AA2D011BB644EE0E2B2FB5E94870180ACC3928BF6A697C25971968`。
+
+离线规则套件（全部通过）：
+- 新增 `SCIEPort.FurnitureCollision.Tests`：Furniture collision tests passed: 40（8 用例：0.25/0.35/0.5/0.75/1.0 验收高度、超限不越一格、框形腔体可通行、实心填满、空网格零盒、体素化随旋转、非法网格抛异常）。
+- 既有 14 套件回归全绿：Kelly 11 / ATV 35 / 越野 20 / 船只 16 / 直升机 41 / Tank 通过 / 生态 47 / 玉米 26 / 竹 25 / 亚麻 29 / 向日葵 33 / 苹果 49 / 载具激活 22 / 家具碰撞 40。
+
+ABI 取证（Mono.Cecil，非猜测）：
+- 确认 `GetCustomCollisionBoxes` 基返回整格盒；地形站立碰撞门控 `IsCollidable` 并直接调用该方法；`HasCollisionBehavior_()` 零调用者；`HasCollisionBehavior` 字段仅在 `HandleAxisCollision` 路由 `OnCollide` 且不影响站位/推回。据此移除投机 `HasCollisionBehavior=true`。
+
+引擎侧真机待验项（本环境无法运行游戏，暂不标「已确认」）：
+- 六家具四朝向的贴合/踩踏/穿模手感；重进世界与旋转后一致；`DumpCollisionDiagnostics` 打印的 `worldMax.Y` 与可见顶误差 ≤ 0.05 格；Host 与普通客户端一致且客户端不写世界；矮方块 `NoSmoothRise`/`NoAutoJump` 台阶抬升的实际表现。
+- 车辆 `BoxSize` 高于可见面的诊断对照（`VehicleAuditOptions.Diagnostics` 开启后 `LogOnce` 输出），确认是否需要独立车辆碰撞专项。

@@ -2,6 +2,7 @@ using Game;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
+using SCIEPort.Features.IndustrialFurniture;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Tanks;
 using SCIEPort.Features.Vehicles;
@@ -121,6 +122,8 @@ namespace SCIEPort.Mod
             element.SetAttributeValue("SCIEPortReducedLightningFlashes", StormhammerOptions.ReducedFlashes);
             element.SetAttributeValue("SCIEPortStormhammerCameraShake", StormhammerOptions.CameraShake);
             element.SetAttributeValue("SCIEPortStormhammerDiagnostics", StormhammerOptions.Diagnostics);
+            element.SetAttributeValue("SCIEPortFurnitureCollisionDiagnostics", FurnitureCollisionOptions.Diagnostics);
+            element.SetAttributeValue("SCIEPortVehicleAuditDiagnostics", VehicleAuditOptions.Diagnostics);
         }
 
         /// <inheritdoc />
@@ -136,6 +139,10 @@ namespace SCIEPort.Mod
             if (shake != null && bool.TryParse(shake.Value, out value)) StormhammerOptions.CameraShake = value;
             XAttribute diagnostics = element.Attribute("SCIEPortStormhammerDiagnostics");
             if (diagnostics != null && bool.TryParse(diagnostics.Value, out value)) StormhammerOptions.Diagnostics = value;
+            XAttribute furnitureDiagnostics = element.Attribute("SCIEPortFurnitureCollisionDiagnostics");
+            if (furnitureDiagnostics != null && bool.TryParse(furnitureDiagnostics.Value, out value)) FurnitureCollisionOptions.Diagnostics = value;
+            XAttribute vehicleAudit = element.Attribute("SCIEPortVehicleAuditDiagnostics");
+            if (vehicleAudit != null && bool.TryParse(vehicleAudit.Value, out value)) VehicleAuditOptions.Diagnostics = value;
         }
 
         /// <inheritdoc />

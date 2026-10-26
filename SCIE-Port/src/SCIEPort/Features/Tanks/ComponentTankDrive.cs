@@ -123,6 +123,9 @@ namespace SCIEPort.Features.Tanks
             // diffuse multiplier preserves them instead of multiplying green by green.
             m_model.DiffuseColor = new Vector3(.85f, .9f, .8f);
             m_model.EmissionColor = new Vector4(.04f, .04f, .03f, 0f);
+
+            // Read-only collision audit (authored box vs model bounds); mutates nothing.
+            VehicleCollisionAudit.LogOnce("Tank", m_body, m_model);
         }
 
         /// <inheritdoc />

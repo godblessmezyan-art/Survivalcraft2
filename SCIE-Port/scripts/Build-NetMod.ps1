@@ -79,6 +79,9 @@ if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" 
 $activationTests = Join-Path $projectRoot 'tests\SCIEPort.VehicleActivation.Tests\SCIEPort.VehicleActivation.Tests.csproj'
 & $dotnetPath run --project $activationTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXITCODE" }
+$furnitureCollisionTests = Join-Path $projectRoot 'tests\SCIEPort.FurnitureCollision.Tests\SCIEPort.FurnitureCollision.Tests.csproj'
+& $dotnetPath run --project $furnitureCollisionTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Furniture collision geometry tests failed: $LASTEXITCODE" }
 
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a

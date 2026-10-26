@@ -13,6 +13,7 @@ namespace SCIEPort.Features.IndustrialFurniture
     {
         private readonly BlockMesh[] m_worldMeshes = new BlockMesh[4];
         private readonly BoundingBox[][] m_collisionBoxes = new BoundingBox[4][];
+        private readonly double[] m_collisionTopY = new double[4];
         private BlockMesh m_iconMesh;
         private static Texture2D s_whiteTexture;
 
@@ -67,7 +68,33 @@ namespace SCIEPort.Features.IndustrialFurniture
 
                 target.GenerateSidesData();
                 m_worldMeshes[rotation] = target;
-                m_collisionBoxes[rotation] = new[] { target.CalculateBoundingBox() };
+
+                // Derive the collider from the actual baked triangle geometry for this
+                // rotation instead of the whole-mesh bounding box. This keeps open
+                // cavities passable, follows the real silhouette, rotates with the model
+                // and never reports a top taller than one block.
+                m_collisionBoxes[rotation] = FurnitureCollisionBoxes.Build(target, out m_collisionTopY[rotation]);
+            }
+
+            // Standing on and walking against these blocks is driven purely by the
+            // per-rotation geometry boxes above: the engine gates terrain collision on the
+            // IsCollidable field (TRUE in the block CSV) and reads GetCustomCollisionBoxes
+            // directly for every collidable cell, so no extra opt-in is required here.
+            // The HasCollisionBehavior field does the opposite of what the hover symptom
+            // suggested - decompiling ComponentBody.HandleAxisCollision shows it only routes
+            // an extra SubsystemBlockBehavior.OnCollide callback per collision. These props
+            // register no block behavior, so we deliberately leave the flag at its default
+            // false rather than pay for a behavior lookup that resolves to nothing.
+
+            if (FurnitureCollisionOptions.Diagnostics)
+            {
+                Log.Information(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "[SCIEPort Furniture] {0} authored collider: boxes={1} localTopY={2:0.###} heightQuantum={3:0.###}",
+                    GetType().Name,
+                    m_collisionBoxes[0].Length,
+                    m_collisionTopY[0],
+                    FurnitureCollisionOptions.HeightQuantum));
             }
 
             m_iconMesh = m_worldMeshes[0];
@@ -85,6 +112,49 @@ namespace SCIEPort.Features.IndustrialFurniture
         public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
         {
             return m_collisionBoxes[GetRotation(Terrain.ExtractData(value))];
+        }
+
+        /// <summary>
+        /// Emits the absolute world-space bounds of every collision box for a placed cell so
+        /// the physical walking surface can be compared against the visible model on a real
+        /// device. Local boxes are expressed in <c>[0, 1]</c> cell fractions; the world bounds
+        /// are that cell origin plus the fraction, so the recorded maximum <c>Y</c> is exactly
+        /// the height at which a player's feet should rest.
+        /// </summary>
+        /// <param name="value">The placed block value whose rotation selects the box set.</param>
+        /// <param name="x">The block cell X coordinate.</param>
+        /// <param name="y">The block cell Y coordinate.</param>
+        /// <param name="z">The block cell Z coordinate.</param>
+        public void DumpCollisionDiagnostics(int value, int x, int y, int z)
+        {
+            if (!FurnitureCollisionOptions.Diagnostics)
+            {
+                return;
+            }
+
+            int rotation = GetRotation(Terrain.ExtractData(value));
+            BoundingBox[] boxes = m_collisionBoxes[rotation];
+            for (int i = 0; i < boxes.Length; i++)
+            {
+                BoundingBox box = boxes[i];
+                Log.Information(string.Format(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    "[SCIEPort Furniture] {0} cell=({1},{2},{3}) rot={4} box[{5}/{6}] worldMin=({7:0.###},{8:0.###},{9:0.###}) worldMax=({10:0.###},{11:0.###},{12:0.###}) height={13:0.###}",
+                    GetType().Name,
+                    x,
+                    y,
+                    z,
+                    rotation,
+                    i,
+                    boxes.Length,
+                    x + box.Min.X,
+                    y + box.Min.Y,
+                    z + box.Min.Z,
+                    x + box.Max.X,
+                    y + box.Max.Y,
+                    z + box.Max.Z,
+                    box.Max.Y - box.Min.Y));
+            }
         }
 
         /// <inheritdoc />
