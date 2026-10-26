@@ -15,7 +15,7 @@ namespace SCIEPort.Features.Stormhammer
             public int LastFrame;
         }
 
-        private static readonly Dictionary<Project, GlowState> s_glows = new Dictionary<Project, GlowState>();
+        private static readonly Dictionary<Project, List<GlowState>> s_glows = new Dictionary<Project, List<GlowState>>();
 
         public static void TouchModelGlow(DrawBlockEnvironmentData environmentData, Matrix matrix, float size, bool awakened = false)
         {
@@ -25,60 +25,65 @@ namespace SCIEPort.Features.Stormhammer
             }
 
             Project project = environmentData.SubsystemTerrain.Project;
-            GlowState state;
-            if (!s_glows.TryGetValue(project, out state))
+            List<GlowState> states;
+            if (!s_glows.TryGetValue(project, out states))
             {
-                SubsystemGlow subsystem = project.FindSubsystem<SubsystemGlow>(false);
-                if (subsystem == null)
-                {
-                    return;
-                }
-
-                state = new GlowState { Subsystem = subsystem, Point = subsystem.AddGlowPoint() };
-                state.Point.Type = GlowPointType.Round;
-                s_glows.Add(project, state);
+                states = new List<GlowState>();
+                s_glows.Add(project, states);
             }
 
             float pulse = 0.5f + 0.16f * MathUtils.Sin((float)Time.RealTime * 2.8f);
+            float ultimate = awakened ? AwakenedStormhammerVisuals.GetStormBlend() : 0f;
             // DrawBlock's matrix is camera-space in first/third person. The engine
             // also provides the corresponding world matrix explicitly.
             Matrix world = environmentData.InWorldMatrix;
-            state.Point.Position = world.Translation + world.Up * (0.60f * size);
+            Vector3 position = world.Translation + world.Up * (0.60f * size);
+            GlowState state = null;
+            foreach (GlowState candidate in states)
+            {
+                if (candidate.LastFrame != Time.FrameIndex && Vector3.DistanceSquared(candidate.Point.Position, position) < 0.36f)
+                {
+                    state = candidate;
+                    break;
+                }
+            }
+            if (state == null)
+            {
+                SubsystemGlow subsystem = project.FindSubsystem<SubsystemGlow>(false);
+                if (subsystem == null || states.Count >= 24) return;
+                state = new GlowState { Subsystem = subsystem, Point = subsystem.AddGlowPoint() };
+                state.Point.Type = GlowPointType.Round;
+                states.Add(state);
+            }
+            state.Point.Position = position;
             state.Point.Right = Vector3.UnitX;
             state.Point.Up = Vector3.UnitY;
             state.Point.Forward = Vector3.UnitZ;
             state.Point.Color = awakened
-                ? new Color(76, 118, 255, (int)(190f * pulse))
+                ? new Color(76, 168, 255, (int)(MathUtils.Min(255f, 190f * pulse + 74f * ultimate)))
                 : new Color(34, 174, 255, (int)(150f * pulse));
-            state.Point.Size = (awakened ? 0.21f : 0.16f) * MathUtils.Clamp(size, 0.25f, 1.4f);
+            state.Point.Size = (awakened ? 0.21f + 0.09f * ultimate : 0.16f) * MathUtils.Clamp(size, 0.25f, 1.4f);
             state.Point.FarSize = state.Point.Size;
             state.LastFrame = Time.FrameIndex;
         }
 
         public static void Update()
         {
-            List<Project> expired = null;
-            foreach (KeyValuePair<Project, GlowState> pair in s_glows)
+            List<Project> empty = null;
+            foreach (KeyValuePair<Project, List<GlowState>> pair in s_glows)
             {
-                if (Time.FrameIndex - pair.Value.LastFrame > 2)
+                for (int i = pair.Value.Count - 1; i >= 0; i--)
                 {
-                    pair.Value.Subsystem.RemoveGlowPoint(pair.Value.Point);
-                    if (expired == null)
+                    GlowState state = pair.Value[i];
+                    if (Time.FrameIndex - state.LastFrame > 2)
                     {
-                        expired = new List<Project>();
+                        state.Subsystem.RemoveGlowPoint(state.Point);
+                        pair.Value.RemoveAt(i);
                     }
-
-                    expired.Add(pair.Key);
                 }
+                if (pair.Value.Count == 0) (empty ?? (empty = new List<Project>())).Add(pair.Key);
             }
-
-            if (expired != null)
-            {
-                foreach (Project project in expired)
-                {
-                    s_glows.Remove(project);
-                }
-            }
+            if (empty != null) foreach (Project project in empty) s_glows.Remove(project);
         }
 
         public static void EmitArc(Project project, Vector3 start, Vector3 end, float strength)

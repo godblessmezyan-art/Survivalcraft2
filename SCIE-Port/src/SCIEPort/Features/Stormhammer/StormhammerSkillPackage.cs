@@ -6,28 +6,30 @@ namespace SCIEPort.Features.Stormhammer
 {
     internal enum StormhammerSkill : byte
     {
-        ThunderLance = 1,
-        ThunderDomain = 2,
-        MyriadTribulation = 3
+        ThunderousJudgment = 1,
+        MyriadTribulation = 2
     }
 
     internal enum StormhammerSkillEvent : byte
     {
         Request = 0,
         Accepted = 1,
-        LanceFlight = 2,
-        LanceImpact = 3,
-        DomainStart = 4,
-        UltimateStart = 5,
-        UltimateWarning = 6,
-        UltimateStrike = 7,
-        UltimateEnd = 8
+        JudgmentCharge = 2,
+        JudgmentBurst = 3,
+        UltimateStart = 4,
+        UltimateLock = 5,
+        UltimateStrike = 6,
+        UltimateMainWarning = 7,
+        UltimateMainStrike = 8,
+        UltimateAftershock = 9,
+        UltimateEnd = 10,
+        AvatarState = 11
     }
 
-    /// <summary>Authenticated skill request and authoritative presentation event.</summary>
+    /// <summary>Authenticated V3.2 skill request and authoritative presentation event.</summary>
     public sealed class StormhammerSkillPackage : IPackage
     {
-        /// <summary>First free SCIE-Port package id after seat/tank control.</summary>
+        /// <inheritdoc />
         public byte ID => 242;
         /// <inheritdoc />
         public Client To { get; set; }
@@ -38,19 +40,25 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public ClientState MinNeedState => ClientState.ProjectLoaded;
 
-        /// <summary>Authoritative caster entity id.</summary>
+        /// <summary>Authoritative caster entity identifier.</summary>
         public ushort CasterId { get; set; }
-        /// <summary>Per-caster replay protection sequence.</summary>
+        /// <summary>Optional authoritative target entity identifier.</summary>
+        public ushort TargetId { get; set; }
+        /// <summary>Per-caster replay-protection sequence.</summary>
         public ushort Sequence { get; set; }
+        /// <summary>Unique authoritative cast identifier.</summary>
+        public uint CastId { get; set; }
+        /// <summary>Authoritative game-time timestamp for phase recovery.</summary>
+        public double ServerTime { get; set; }
         internal StormhammerSkill Skill { get; set; }
         internal StormhammerSkillEvent Event { get; set; }
-        /// <summary>Origin, center, or impact point according to event type.</summary>
+        /// <summary>World-space event position.</summary>
         public Vector3 Position { get; set; }
-        /// <summary>Aim direction or secondary point according to event type.</summary>
+        /// <summary>World-space direction or secondary vector.</summary>
         public Vector3 Direction { get; set; }
-        /// <summary>Charge, duration, radius, cooldown, or damage according to event type.</summary>
+        /// <summary>Event-specific scalar value.</summary>
         public float Value { get; set; }
-        /// <summary>Chain or staged-strike index.</summary>
+        /// <summary>Bounded phase or target index.</summary>
         public byte Step { get; set; }
 
         /// <summary>Creates an empty decoder instance.</summary>
@@ -58,7 +66,7 @@ namespace SCIEPort.Features.Stormhammer
         {
         }
 
-        internal static StormhammerSkillPackage CreateRequest(ComponentPlayer player, ushort sequence, StormhammerSkill skill, Vector3 position, Vector3 direction, float charge)
+        internal static StormhammerSkillPackage CreateRequest(ComponentPlayer player, ushort sequence, StormhammerSkill skill, Vector3 position, Vector3 direction)
         {
             return new StormhammerSkillPackage
             {
@@ -67,16 +75,18 @@ namespace SCIEPort.Features.Stormhammer
                 Skill = skill,
                 Event = StormhammerSkillEvent.Request,
                 Position = position,
-                Direction = direction,
-                Value = charge
+                Direction = direction
             };
         }
 
-        internal static StormhammerSkillPackage CreateEvent(ushort casterId, StormhammerSkill skill, StormhammerSkillEvent kind, Vector3 position, Vector3 direction, float value, byte step = 0)
+        internal static StormhammerSkillPackage CreateEvent(ushort casterId, uint castId, double serverTime, StormhammerSkill skill, StormhammerSkillEvent kind, Vector3 position, Vector3 direction, float value = 0f, byte step = 0, ushort targetId = 0)
         {
             return new StormhammerSkillPackage
             {
                 CasterId = casterId,
+                TargetId = targetId,
+                CastId = castId,
+                ServerTime = serverTime,
                 Skill = skill,
                 Event = kind,
                 Position = position,
@@ -90,7 +100,10 @@ namespace SCIEPort.Features.Stormhammer
         public void WriteData(PackageStreamWriter writer)
         {
             writer.Write(CasterId);
+            writer.Write(TargetId);
             writer.Write(Sequence);
+            writer.Write(CastId);
+            writer.Write(ServerTime);
             writer.Write((byte)Skill);
             writer.Write((byte)Event);
             writer.Write(Position);
@@ -103,7 +116,10 @@ namespace SCIEPort.Features.Stormhammer
         public void ReadData(PackageStreamReader reader)
         {
             CasterId = reader.ReadUInt16();
+            TargetId = reader.ReadUInt16();
             Sequence = reader.ReadUInt16();
+            CastId = reader.ReadUInt32();
+            ServerTime = reader.ReadDouble();
             Skill = (StormhammerSkill)reader.ReadByte();
             Event = (StormhammerSkillEvent)reader.ReadByte();
             Position = reader.ReadVector3();
@@ -116,27 +132,17 @@ namespace SCIEPort.Features.Stormhammer
         public void Handle(ProjectNet projectNet, NetNode netNode, bool isServer)
         {
             SubsystemAwakenedStormhammerBlockBehavior behavior = projectNet.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
-            if (behavior == null)
-            {
-                return;
-            }
-
+            if (behavior == null) return;
             if (isServer)
             {
-                if (Event != StormhammerSkillEvent.Request || From == null)
-                {
-                    return;
-                }
-
+                if (Event != StormhammerSkillEvent.Request || From == null) return;
                 ComponentPlayer sender = From.PlayerData?.ComponentPlayer;
                 if (sender != null && sender.Entity.EntityId == CasterId)
                 {
-                    behavior.AcceptRequest(sender, Skill, Position, Direction, Value, Sequence);
+                    behavior.AcceptRequest(sender, Skill, Position, Direction, Sequence);
                 }
-                return;
             }
-
-            if (Event != StormhammerSkillEvent.Request && From == netNode.Server)
+            else if (Event != StormhammerSkillEvent.Request && From == netNode.Server)
             {
                 behavior.ApplyNetworkEvent(this);
             }

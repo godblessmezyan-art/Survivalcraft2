@@ -1,5 +1,15 @@
 # SCIE-Port
 
+Version 0.28.0 rebuilds the separate awakened Stormhammer as Skywrath V3.2.
+Equipping it now activates a bone-following cyan avatar aura, layered weapon
+glow, authoritative five-point lightning retaliation and one native physical
+plus one controlled lightning melee record. The HUD contains exactly two
+skills: the radial Thunderous Judgment and the target-locked Myriad
+Tribulation. Package 242 now carries cast IDs, server game time and target IDs;
+the original Stormhammer and all vehicle features remain unchanged. Static ABI,
+Release and package checks pass; Android combat values, visual quality and real
+multiplayer timing remain pending. See `docs/SKYWRATH-V3.2-AUDIT.md`.
+
 Version 0.27.0 integrates the original Stormhammer and its separate awakened
 Skywrath V2 form on top of the 0.26.0 helicopter presentation release. It adds
 original weapon models, authored UV/glow/effect textures, three PCM sounds,

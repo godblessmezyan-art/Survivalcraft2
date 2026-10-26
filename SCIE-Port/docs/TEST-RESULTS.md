@@ -912,3 +912,13 @@ Android 7723 联网/真机验证阶段。
 - 产物：已确认。`artifacts/SCIEPort.netmod` 共 81 条目、2,287,868 bytes，包内 `modinfo.json` Version=`0.27.0`、DLL AssemblyVersion=`0.27.0.0`，SHA-256 `497F5A94B6D5A2D755937236D68A4A6D9848A67464622059F957F2813932E4D9`。
 - 固定 SDK 包装器：待验证。`Build-WithPinnedSdk.ps1` 要求 `%LOCALAPPDATA%\Microsoft\dotnet` 中存在固定 SDK，本机该位置不存在；本次使用已安装的系统 SDK 9.0.314 完成相同 `Build-NetMod.ps1` 流程。
 - Windows 游戏、Android 7723 与真实多人联机：待验证。本轮仅执行 ABI、离线测试、目标 Engine 资源导入、编译和包校验，未启动游戏或连接设备。
+
+## 2026-10-26 — SCIE-Port 0.28.0 / 苍穹之怒 V3.2
+
+- 目标 ABI 审计：已确认。`ilspycmd 9.1.0.7988` 对 x25.01.17 `Survivalcraft.exe` 反编译确认 `ComponentMiner.Hit/AttackBody`、`ComponentHealth.Injure/NetInjure/Attacked`、HumanModel 六骨骼、`OnModelRendererDrawExtra`、`ChangeSkyColor`、`ViewFogColor` 与 `SubsystemGlow` 的准确签名和调用顺序。
+- 环境：已确认。`scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472，原生块 260、最大 ID 263。
+- Release：已确认。`dotnet build` 与 `scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` 均 exit 0，0 warning/0 error；Kelly 11、ATV 35、越野 20、Watercraft 16、Helicopter 41、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49、VehicleActivation 22 全部通过；`DATABASE VALIDATION PASSED`。
+- V3.2 构建守卫：已确认。觉醒 CSV `scieport-skywrath-v3`、恰好两个 HUD 按钮、旧技能标识完全移除、40/25/5 与 12/55 常量、`TargetId/CastId/ServerTime` 均由打包脚本锁定。
+- 模型与资源回归：已确认。既有觉醒锤 1 bone/39 meshes/1604 tris、雷矛历史资源 1 bone/5 meshes/108 tris、1024/256/2048 PNG、UV/挂点/音频签名继续通过；V3.2 不把历史雷矛模型用于主动技能。
+- 产物：已确认。`artifacts/SCIEPort.netmod` 81 条目、2,292,859 bytes，包内 Version=`0.28.0`、DLL AssemblyVersion=`0.28.0.0`，SHA-256 `B261BC031C8B26B8CBA0D463F2F81457F7D87EEF45AEB35D710B53290A19D66B`。
+- Windows 游戏、Android 7723、实际伤害/反伤、触屏、多玩家观察、丢包/延迟、天空恢复和性能：待验证。本轮未启动游戏或连接设备，不能把源码常量与编译通过当作实际扣血和视觉验收。

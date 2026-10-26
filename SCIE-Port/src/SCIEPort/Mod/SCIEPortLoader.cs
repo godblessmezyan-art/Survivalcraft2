@@ -31,8 +31,10 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("BlocksInitalized", this);
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
+            ModsManager.RegisterHook("AttackBody", this);
             ModsManager.RegisterHook("SubsystemUpdate", this);
             ModsManager.RegisterHook("GuiUpdate", this);
+            ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
             ModsManager.RegisterHook("ChangeSkyColor", this);
             ModsManager.RegisterHook("ViewFogColor", this);
             ModsManager.RegisterHook("SaveSettings", this);
@@ -57,10 +59,21 @@ namespace SCIEPort.Mod
                 return;
             }
 
-            attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 16f : 12f);
+            attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 40f : 12f);
             playerProbability = 1f;
             creatureProbability = 1f;
             SubsystemStormhammerBlockBehavior.OnMeleeHit(miner, componentBody, hitPoint);
+        }
+
+        /// <inheritdoc />
+        public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
+        {
+            if (target != null && attacker != null && attacker.Project != null)
+            {
+                SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
+                behavior?.PrepareAwakenedMelee(target, attacker, hitPoint, ref attackPower, isMeleeAttack);
+            }
+            return false;
         }
 
         /// <inheritdoc />
@@ -76,12 +89,19 @@ namespace SCIEPort.Mod
         }
 
         /// <inheritdoc />
+        public override void OnModelRendererDrawExtra(SubsystemModelsRenderer modelsRenderer, ComponentModel componentModel, Camera camera, float? alphaThreshold)
+        {
+            AwakenedStormhammerVisuals.TouchAvatar(componentModel, camera);
+        }
+
+        /// <inheritdoc />
         public override Color ChangeSkyColor(Color oldColor, Vector3 direction, float timeOfDay, float precipitationIntensity, int temperature)
         {
             float blend = AwakenedStormhammerVisuals.GetStormBlend();
             if (blend <= 0f) return oldColor;
-            Color storm = direction.Y > 0.15f ? new Color(24, 31, 78) : new Color(42, 35, 86);
-            return Color.Lerp(oldColor, storm, 0.82f * blend);
+            float horizon = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
+            Color storm = Color.Lerp(new Color(35, 22, 67), new Color(10, 16, 49), horizon);
+            return Color.Lerp(oldColor, storm, 0.93f * blend);
         }
 
         /// <inheritdoc />
@@ -90,25 +110,32 @@ namespace SCIEPort.Mod
             float blend = AwakenedStormhammerVisuals.GetStormBlend();
             if (blend > 0f && viewUnderWaterDepth <= 0f && viewUnderMagmaDepth <= 0f)
             {
-                viewFogColor = Color.Lerp(viewFogColor, new Color(33, 47, 91), 0.64f * blend);
+                viewFogColor = Color.Lerp(viewFogColor, new Color(20, 29, 66), 0.82f * blend);
             }
         }
 
         /// <inheritdoc />
         public override void SaveSettings(XElement element)
         {
-            element.SetAttributeValue("SCIEPortReducedLightningEffects", StormhammerOptions.ReducedEffects);
+            element.SetAttributeValue("SCIEPortStormhammerVfxQuality", StormhammerOptions.Quality.ToString());
+            element.SetAttributeValue("SCIEPortReducedLightningFlashes", StormhammerOptions.ReducedFlashes);
+            element.SetAttributeValue("SCIEPortStormhammerCameraShake", StormhammerOptions.CameraShake);
+            element.SetAttributeValue("SCIEPortStormhammerDiagnostics", StormhammerOptions.Diagnostics);
         }
 
         /// <inheritdoc />
         public override void LoadSettings(XElement element)
         {
-            XAttribute attribute = element.Attribute("SCIEPortReducedLightningEffects");
-            bool reduced;
-            if (attribute != null && bool.TryParse(attribute.Value, out reduced))
-            {
-                StormhammerOptions.ReducedEffects = reduced;
-            }
+            StormhammerEffectQuality quality;
+            XAttribute qualityAttribute = element.Attribute("SCIEPortStormhammerVfxQuality");
+            if (qualityAttribute != null && System.Enum.TryParse(qualityAttribute.Value, true, out quality)) StormhammerOptions.Quality = quality;
+            bool value;
+            XAttribute flashes = element.Attribute("SCIEPortReducedLightningFlashes");
+            if (flashes != null && bool.TryParse(flashes.Value, out value)) StormhammerOptions.ReducedFlashes = value;
+            XAttribute shake = element.Attribute("SCIEPortStormhammerCameraShake");
+            if (shake != null && bool.TryParse(shake.Value, out value)) StormhammerOptions.CameraShake = value;
+            XAttribute diagnostics = element.Attribute("SCIEPortStormhammerDiagnostics");
+            if (diagnostics != null && bool.TryParse(diagnostics.Value, out value)) StormhammerOptions.Diagnostics = value;
         }
 
         /// <inheritdoc />

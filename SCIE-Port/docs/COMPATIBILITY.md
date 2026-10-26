@@ -446,3 +446,20 @@ THIRD-PARTY-NOTICES.md
 | 目标 ABI/环境 | 已确认 | `Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；目标程序集哈希、2.4.0.0、API 1.42、SC 2.4.10.6、net472 与现有 Hook/网络 ABI 检查通过。 |
 | Release / 包 | 已确认 | 系统 SDK 9.0.314 执行 `Build-NetMod.ps1` exit 0；0 warning/0 error；全部离线规则测试与数据库校验通过；包 81 条目、2,287,868 bytes，Version/AssemblyVersion `0.27.0`/`0.27.0.0`，SHA-256 `497F5A94B6D5A2D755937236D68A4A6D9848A67464622059F957F2813932E4D9`。 |
 | Android 7723 / Windows 游戏 / 多人联机 | 待验证 | 未启动游戏、未连接 Android 设备或多人主机/客户端；编译、资源导入和静态校验不外推为运行兼容。 |
+
+## 0.28.0 苍穹之怒 V3.2（2026-10-26）
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 原生伤害与受伤 ABI | 已确认 | 目标 `ComponentMiner.AttackBody` 的真实顺序为 `AttackBody` Hook → `ComponentClothing` → `ComponentLevel.ResilienceFactor` → `ComponentHealth.AttackResilience` → `Injure`；`ComponentHealth.Attacked(ComponentCreature)` 在权威有效结算后提供攻击者。目标程序集没有元素伤害枚举。 |
+| 普攻双段/反伤实现 | 已确认（代码/编译） | 物理 40 走原生全链；雷电 25 与反伤 5 使用 `Injure(power/AttackResilience)`，尊重无敌、死亡、权威端和内在韧性，但明确绕过衣甲/等级韧性。延迟雷电段、攻击去重与反伤递归闸已编译；实际扣血待运行。 |
+| 两技能 HUD | 已确认（静态/编译） | 构建守卫断言 `new SkillButton(` 恰好两处，并拒绝旧 `ThunderLance/ThunderDomain/雷狱天矛/雷霆王域`；按钮为雷霆万钧与万象雷劫。Android 多点触控待验证。 |
+| 雷霆万钧 | 已确认（代码/编译） | 权威半径 9，HashSet 单次去重，0–4 格 110、4–9 格线性到 70，冷却 12；客户端只播放 8/10/12 条确定性放射电弧、分叉、爆心与双层雷波。实际范围/伤害待运行。 |
+| 万象雷劫 | 已确认（代码/编译） | 冷却 55；权威中心 24 格快照最多 24 个存活目标；目标雷 130，主雷中心 220/外围 100/半径 7，余震 18×4。玩家目标服从 FriendlyFire，洞穴遮挡不排除。数值与联机待实测。 |
+| 联机演出协议 | 已确认（ABI/编译） | 包 242 新增 `TargetId/CastId/ServerTime`，保留请求序列与服务端发送者绑定；落点/目标由服务端事件决定，并按施法/阶段/目标/步骤去重演出。该载荷与 0.27.x 不兼容，联机双方必须统一升级到 0.28.0；真实丢包、延迟与观察者行为待双机验证。 |
+| 人物/武器/天空渲染 | 已确认（ABI/编译） | 使用真实 `OnModelRendererDrawExtra`、HumanModel 六骨骼、`EmissionColor`、`SubsystemGlow`、`ChangeSkyColor`、`ViewFogColor`；未发现 Bloom、动态灯、云层材质或安全镜头震动 API，未伪造。实际视觉待 Android/Windows 运行。 |
+| 高中低与清理 | 已确认（代码/编译） | High/Medium/Low 控制挂点、电弧间隔、粒子和远雷；GlowPoint 三帧过期，卸装/死亡恢复 emission。断线/切世界实际清理待运行。 |
+| Release / 包 | 已确认 | `Test-Environment.ps1` 与 `Build-NetMod.ps1` exit 0；0 warning/0 error；所有既有离线规则测试和数据库校验通过；81 条目、2,292,859 bytes，Version/AssemblyVersion `0.28.0`/`0.28.0.0`，SHA-256 `B261BC031C8B26B8CBA0D463F2F81457F7D87EEF45AEB35D710B53290A19D66B`。 |
+| Windows/Android/多人运行 | 待验证 | 未启动游戏、未连接 Android 或多人会话；伤害、反伤、HUD、骨骼雷光、天空恢复和性能均不得仅凭编译标记运行通过。 |
+
+完整限制与真机步骤见 `docs/SKYWRATH-V3.2-AUDIT.md`。

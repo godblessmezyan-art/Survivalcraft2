@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.27.0",
+  "Version": "0.28.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.27.0 integrates the original Stormhammer and separate Skywrath V2 awakened form with the v0.26.0 helicopter presentation release. Stormhammer includes original models, authored UV/glow/effect textures, three PCM sounds, exactly three awakened Android HUD skills, server-authoritative skill sequencing, and synchronized presentation package 242; its base form remains independent. Existing helicopter flight, seats, network paths and lifecycle-managed audio are preserved. Android rendering, touch layout, performance and real multiplayer synchronization remain pending device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.28.0 rebuilds the separate Skywrath awakened Stormhammer as V3.2: two Android HUD skills (Thunderous Judgment and Myriad Tribulation), authoritative split melee damage, controlled five-point lightning retaliation, target-locked ultimate sequencing, cast/time synchronized package 242 events, layered avatar/weapon glow and high/medium/low VFX budgets. The original Stormhammer and all v0.27.0 vehicle features remain unchanged. Android rendering, touch layout, combat values and real multiplayer synchronization remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

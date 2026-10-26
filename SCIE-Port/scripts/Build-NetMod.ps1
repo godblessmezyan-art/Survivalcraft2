@@ -1720,12 +1720,23 @@ try {
     }
 
     $awakenedCsv = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')
-    if ($awakenedCsv -notmatch 'StormhammerAwakenedBlock;[^;]+;Weapons;SCIEPortAwakenedStormhammerBehavior' -or $awakenedCsv -notmatch 'scieport-skywrath-v2' -or $awakenedCsv -notmatch ';FALSE;960;') {
-        throw 'Skywrath V2 CSV identity, non-aimable skill-button mode, or durability changed.'
+    if ($awakenedCsv -notmatch 'StormhammerAwakenedBlock;[^;]+;Weapons;SCIEPortAwakenedStormhammerBehavior' -or $awakenedCsv -notmatch 'scieport-skywrath-v3' -or $awakenedCsv -notmatch ';FALSE;960;') {
+        throw 'Skywrath V3.2 CSV identity, non-aimable skill-button mode, or durability changed.'
     }
     $awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
-    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 3) {
-        throw 'Skywrath V2 HUD must instantiate exactly three skills.'
+    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 2) {
+        throw 'Skywrath V3.2 HUD must instantiate exactly two active skills.'
+    }
+    $awakenedBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
+    foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 12f','UltimateCooldown = 55f')) {
+        if (-not $awakenedBehavior.Contains($requiredCombatRule)) { throw "Skywrath V3.2 combat rule missing: $requiredCombatRule" }
+    }
+    foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛','雷霆王域')) {
+        if ($awakenedBehavior.Contains($removedSkill) -or $awakenedSource.Contains($removedSkill)) { throw "Removed Skywrath skill remains active: $removedSkill" }
+    }
+    $skillPackageSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillPackage.cs')
+    foreach ($authoritativeField in @('TargetId','CastId','ServerTime')) {
+        if (-not $skillPackageSource.Contains($authoritativeField)) { throw "Skywrath V3.2 authoritative event field missing: $authoritativeField" }
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))

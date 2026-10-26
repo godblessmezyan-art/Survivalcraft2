@@ -21,9 +21,10 @@ namespace SCIEPort.Features.Stormhammer
 
         public static StormhammerParticleSystem CreateArc(Vector3 start, Vector3 end, float strength)
         {
-            const int count = 28;
+            int count = StormhammerOptions.Quality == StormhammerEffectQuality.Low ? 18 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 30 : 44;
             StormhammerParticleSystem system = new StormhammerParticleSystem(count);
-            Engine.Random random = new Engine.Random((int)(start.X * 97f + end.Z * 193f + Time.FrameIndex));
+            int seed = (int)(start.X * 97f + start.Y * 53f + start.Z * 31f + end.X * 193f + end.Y * 71f + end.Z * 137f);
+            Engine.Random random = new Engine.Random(seed);
             Vector3 direction = end - start;
             for (int i = 0; i < count; i++)
             {
@@ -31,13 +32,16 @@ namespace SCIEPort.Features.Stormhammer
                 float taper = MathUtils.Sin(t * MathUtils.PI);
                 Particle particle = system.Particles[i];
                 particle.IsActive = true;
-                particle.Position = start + direction * t + random.Vector3(0.10f * taper * strength);
-                particle.Size = new Vector2(0.045f + 0.035f * taper);
-                particle.Color = new Color(90, 220, 255, 235);
-                particle.TextureSlot = i % 4;
+                Vector3 jitter = random.Vector3((0.055f + 0.045f * strength) * taper);
+                if (i % 7 == 5) jitter += random.Vector3(0.16f * taper * strength);
+                particle.Position = start + direction * t + jitter;
+                bool core = (i & 1) == 0;
+                particle.Size = new Vector2((core ? 0.035f : 0.075f) + 0.028f * taper * strength);
+                particle.Color = core ? new Color(226, 251, 255, 250) : new Color(48, 154, 255, 205);
+                particle.TextureSlot = core ? 0 : 1 + i % 3;
                 particle.UseAdditiveBlending = true;
                 particle.BillboardingMode = ParticleBillboardingMode.Camera;
-                system.m_lifetimes[i] = 0.12f + random.Float(0f, 0.09f);
+                system.m_lifetimes[i] = 0.15f + random.Float(0f, 0.13f) + 0.025f * strength;
             }
 
             return system;
@@ -45,7 +49,7 @@ namespace SCIEPort.Features.Stormhammer
 
         public static StormhammerParticleSystem CreateBurst(Vector3 position, float strength)
         {
-            const int count = 38;
+            int count = StormhammerOptions.Quality == StormhammerEffectQuality.Low ? 20 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 34 : 48;
             StormhammerParticleSystem system = new StormhammerParticleSystem(count);
             Engine.Random random = new Engine.Random((int)(position.X * 137f + position.Z * 269f + Time.FrameIndex));
             for (int i = 0; i < count; i++)
@@ -54,7 +58,7 @@ namespace SCIEPort.Features.Stormhammer
                 particle.IsActive = true;
                 particle.Position = position + random.Vector3(0.16f);
                 particle.Size = new Vector2(random.Float(0.035f, 0.10f) * strength);
-                particle.Color = new Color(65, 205, 255, 230);
+                particle.Color = i % 3 == 0 ? new Color(231, 252, 255, 245) : new Color(55, 185, 255, 220);
                 particle.TextureSlot = random.Int(0, 3);
                 particle.UseAdditiveBlending = true;
                 particle.BillboardingMode = ParticleBillboardingMode.Camera;
@@ -108,7 +112,8 @@ namespace SCIEPort.Features.Stormhammer
                 particle.Position += m_velocities[i] * dt;
                 m_velocities[i] *= MathUtils.Pow(0.08f, dt);
                 float alpha = MathUtils.Saturate(1f - m_age / m_lifetimes[i]);
-                particle.Color = new Color(80, 215, 255, (int)(235f * alpha));
+                Color baseColor = particle.TextureSlot == 0 ? new Color(226, 251, 255) : new Color(58, 185, 255);
+                particle.Color = new Color(baseColor.R, baseColor.G, baseColor.B, (int)(235f * alpha));
             }
 
             return !any;
