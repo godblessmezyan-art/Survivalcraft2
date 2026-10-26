@@ -306,6 +306,8 @@ try {
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
         'Assets/Blocks/Helicopter.csv',
+        'Assets/Blocks/Stormhammer.csv',
+        'Assets/Blocks/StormhammerAwakened.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -318,6 +320,8 @@ try {
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
         'Assets/Database/Helicopter.xdb',
+        'Assets/Database/Stormhammer.xdb',
+        'Assets/Database/StormhammerAwakened.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -336,6 +340,9 @@ try {
         'Assets/Models/Rabbit.dae',
         'Assets/Models/Chicken.dae',
         'Assets/Models/Helicopter.dae',
+        'Assets/Models/Stormhammer.dae',
+        'Assets/Models/StormhammerAwakened.dae',
+        'Assets/Models/ThunderSpear.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
@@ -352,7 +359,17 @@ try {
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',
-        'Assets/Audio/SCIEPortHelicopterLoop.wav'
+        'Assets/Audio/SCIEPortHelicopterLoop.wav',
+        'Assets/Textures/Stormhammer.png',
+        'Assets/Textures/StormhammerGlow.png',
+        'Assets/Textures/StormhammerEffects.png',
+        'Assets/Textures/StormhammerAwakened.png',
+        'Assets/Textures/StormhammerAwakenedGlow.png',
+        'Assets/Textures/StormhammerAwakenedEffects.png',
+        'Assets/Textures/StormhammerAwakenedSkills.png',
+        'Assets/Audio/Stormhammer/Swing.wav',
+        'Assets/Audio/Stormhammer/Charge.wav',
+        'Assets/Audio/Stormhammer/Thunder.wav'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -1575,6 +1592,140 @@ try {
         if ($positionFloatCount -ne $furnitureModel.Floats) {
             throw "$($furnitureModel.Name).dae positions should contain $($furnitureModel.Floats) floats; found $positionFloatCount."
         }
+    }
+
+    # Stormhammer is an original production asset, not a placeholder. Lock its
+    # topology budget, authored UVs, attachment metadata and target importer ABI.
+    $stormhammerModelPath = Join-Path $projectDir 'Assets\Models\Stormhammer.dae'
+    [xml]$stormhammerModel = Get-Content -Raw -Encoding UTF8 $stormhammerModelPath
+    if ($stormhammerModel.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
+        throw 'Stormhammer.dae must be Y_UP.'
+    }
+    $stormhammerRoots = @($stormhammerModel.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
+    $stormhammerGeometries = @($stormhammerModel.SelectNodes("//*[local-name()='geometry']"))
+    if ($stormhammerRoots.Count -ne 1 -or $stormhammerRoots[0].GetAttribute('name') -ne 'Stormhammer') {
+        throw 'Stormhammer.dae must use one Stormhammer render bone.'
+    }
+    if ($stormhammerGeometries.Count -ne 30) {
+        throw "Stormhammer.dae must contain 30 authored mesh structures; found $($stormhammerGeometries.Count)."
+    }
+    $stormhammerTriangleCount = 0
+    foreach ($geometry in $stormhammerGeometries) {
+        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'-positions-array')]")
+        $uvs = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'-uv-array')]")
+        if ($null -eq $triangles -or $null -eq $positions -or $null -eq $uvs) {
+            throw "Stormhammer geometry $($geometry.GetAttribute('name')) is missing triangles, positions or UVs."
+        }
+        $stormhammerTriangleCount += [int]$triangles.GetAttribute('count')
+        $positionCount = [int]$positions.GetAttribute('count')
+        $uvCount = [int]$uvs.GetAttribute('count')
+        if ($positionCount % 9 -ne 0 -or $uvCount -ne ($positionCount / 3 * 2)) {
+            throw "Stormhammer geometry $($geometry.GetAttribute('name')) has a non-bijective triangle UV layout."
+        }
+    }
+    if ($stormhammerTriangleCount -ne 1368) {
+        throw "Stormhammer triangle budget changed: expected 1368, found $stormhammerTriangleCount."
+    }
+    $attachmentNames = @($stormhammerModel.SelectNodes("//*[local-name()='attachment']") | ForEach-Object { $_.GetAttribute('name') })
+    foreach ($attachment in @('Grip','StrikeLeft','StrikeRight','ArcFront','ArcBack','Pommel')) {
+        if ($attachmentNames -notcontains $attachment) { throw "Stormhammer is missing $attachment attachment metadata." }
+    }
+    $stormhammerStream = [IO.File]::OpenRead($stormhammerModelPath)
+    try { $targetStormhammerModel = $targetModelLoad.Invoke($null, @($stormhammerStream)) }
+    finally { $stormhammerStream.Dispose() }
+    if ($targetStormhammerModel.Bones.Count -ne 1 -or $targetStormhammerModel.Meshes.Count -ne 30) {
+        throw "Target Engine must import Stormhammer.dae as 1 bone/30 meshes; found $($targetStormhammerModel.Bones.Count) bones/$($targetStormhammerModel.Meshes.Count) meshes."
+    }
+
+    $stormhammerTextureChecks = @(
+        @{ Name = 'Stormhammer.png'; Width = 1024; Height = 1024 },
+        @{ Name = 'StormhammerGlow.png'; Width = 1024; Height = 1024 },
+        @{ Name = 'StormhammerEffects.png'; Width = 256; Height = 256 }
+    )
+    foreach ($textureCheck in $stormhammerTextureChecks) {
+        $bitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir ('Assets\Textures\' + $textureCheck.Name)))
+        try {
+            if ($bitmap.Width -ne $textureCheck.Width -or $bitmap.Height -ne $textureCheck.Height) {
+                throw "$($textureCheck.Name) dimensions changed; expected $($textureCheck.Width)x$($textureCheck.Height)."
+            }
+        }
+        finally { $bitmap.Dispose() }
+    }
+    $stormhammerAtlas = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Stormhammer.png'))
+    try {
+        $atlasColors = New-Object System.Collections.Generic.HashSet[int]
+        for ($y = 0; $y -lt 1024; $y += 8) {
+            for ($x = 0; $x -lt 1024; $x += 8) { [void]$atlasColors.Add($stormhammerAtlas.GetPixel($x, $y).ToArgb()) }
+        }
+        if ($atlasColors.Count -lt 350) { throw "Stormhammer atlas lacks authored surface variation; sampled only $($atlasColors.Count) colors." }
+    }
+    finally { $stormhammerAtlas.Dispose() }
+    foreach ($sound in @('Swing.wav','Charge.wav','Thunder.wav')) {
+        $soundBytes = [IO.File]::ReadAllBytes((Join-Path $projectDir ('Assets\Audio\Stormhammer\' + $sound)))
+        if ($soundBytes.Length -lt 4096 -or [Text.Encoding]::ASCII.GetString($soundBytes, 0, 4) -ne 'RIFF' -or
+            [Text.Encoding]::ASCII.GetString($soundBytes, 8, 4) -ne 'WAVE') {
+            throw "Stormhammer audio $sound is not a production PCM WAV resource."
+        }
+    }
+
+    # Skywrath V2 is a separate production item. Validate both the weapon and
+    # visible thunder-spear asset through the target importer, not XML alone.
+    foreach ($awakenedModelCheck in @(
+        @{ File = 'StormhammerAwakened.dae'; Root = 'StormhammerAwakened'; Meshes = 39; Triangles = 1604; Attachments = @('Grip','LanceMuzzle','DomainOrigin','UltimateFocus') },
+        @{ File = 'ThunderSpear.dae'; Root = 'ThunderSpear'; Meshes = 5; Triangles = 108; Attachments = @('Tip','Tail') }
+    )) {
+        $awakenedPath = Join-Path $projectDir ('Assets\Models\' + $awakenedModelCheck.File)
+        [xml]$awakenedXml = Get-Content -Raw -Encoding UTF8 $awakenedPath
+        if ($awakenedXml.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') { throw "$($awakenedModelCheck.File) must be Y_UP." }
+        $root = @($awakenedXml.SelectNodes("//*[local-name()='visual_scene']/*[local-name()='node']"))
+        $geometries = @($awakenedXml.SelectNodes("//*[local-name()='geometry']"))
+        if ($root.Count -ne 1 -or $root[0].GetAttribute('name') -ne $awakenedModelCheck.Root) { throw "$($awakenedModelCheck.File) must have one $($awakenedModelCheck.Root) render bone." }
+        if ($geometries.Count -ne $awakenedModelCheck.Meshes) { throw "$($awakenedModelCheck.File) mesh count changed: $($geometries.Count)." }
+        $triangleCount = 0
+        foreach ($geometry in $geometries) {
+            $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
+            $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'-positions-array')]")
+            $uvs = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'-uv-array')]")
+            if ($null -eq $triangles -or $null -eq $positions -or $null -eq $uvs) { throw "$($awakenedModelCheck.File) has incomplete geometry $($geometry.GetAttribute('name'))." }
+            $triangleCount += [int]$triangles.GetAttribute('count')
+            if ([int]$uvs.GetAttribute('count') -ne ([int]$positions.GetAttribute('count') / 3 * 2)) { throw "$($awakenedModelCheck.File) has invalid UV cardinality." }
+        }
+        if ($triangleCount -ne $awakenedModelCheck.Triangles) { throw "$($awakenedModelCheck.File) triangle count changed: $triangleCount." }
+        $attachmentNames = @($awakenedXml.SelectNodes("//*[local-name()='attachment']") | ForEach-Object { $_.GetAttribute('name') })
+        foreach ($attachment in $awakenedModelCheck.Attachments) { if ($attachmentNames -notcontains $attachment) { throw "$($awakenedModelCheck.File) missing attachment $attachment." } }
+        $stream = [IO.File]::OpenRead($awakenedPath)
+        try { $imported = $targetModelLoad.Invoke($null, @($stream)) } finally { $stream.Dispose() }
+        if ($imported.Bones.Count -ne 1 -or $imported.Meshes.Count -ne $awakenedModelCheck.Meshes) { throw "Target Engine imports $($awakenedModelCheck.File) as $($imported.Bones.Count) bones/$($imported.Meshes.Count) meshes." }
+    }
+
+    foreach ($textureCheck in @(
+        @{ Name = 'StormhammerAwakened.png'; Width = 1024; Height = 1024 },
+        @{ Name = 'StormhammerAwakenedGlow.png'; Width = 1024; Height = 1024 },
+        @{ Name = 'StormhammerAwakenedEffects.png'; Width = 256; Height = 256 },
+        @{ Name = 'StormhammerAwakenedSkills.png'; Width = 2048; Height = 512 }
+    )) {
+        $bitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir ('Assets\Textures\' + $textureCheck.Name)))
+        try {
+            if ($bitmap.Width -ne $textureCheck.Width -or $bitmap.Height -ne $textureCheck.Height) { throw "$($textureCheck.Name) dimensions changed." }
+            if ($textureCheck.Name -eq 'StormhammerAwakenedSkills.png') {
+                for ($slot = 0; $slot -lt 3; $slot++) {
+                    $opaque = 0
+                    for ($y = 0; $y -lt 512; $y += 8) { for ($x = $slot * 512; $x -lt ($slot + 1) * 512; $x += 8) { if ($bitmap.GetPixel($x,$y).A -gt 32) { $opaque++ } } }
+                    if ($opaque -lt 500) { throw "Awakened skill icon slot $slot is empty or unreadable." }
+                }
+            }
+        }
+        finally { $bitmap.Dispose() }
+    }
+
+    $awakenedCsv = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')
+    if ($awakenedCsv -notmatch 'StormhammerAwakenedBlock;[^;]+;Weapons;SCIEPortAwakenedStormhammerBehavior' -or $awakenedCsv -notmatch 'scieport-skywrath-v2' -or $awakenedCsv -notmatch ';FALSE;960;') {
+        throw 'Skywrath V2 CSV identity, non-aimable skill-button mode, or durability changed.'
+    }
+    $awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
+    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 3) {
+        throw 'Skywrath V2 HUD must instantiate exactly three skills.'
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))

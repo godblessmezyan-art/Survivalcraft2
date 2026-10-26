@@ -17,6 +17,14 @@
   `scripts/New-HelicopterAssets.ps1`; no manufacturer artwork, recording,
   extracted game resource or third-party vehicle model is included.
 
+## Stormhammer original assets
+
+`Assets/Models/Stormhammer.dae`, `Assets/Textures/Stormhammer*.png` and
+`Assets/Audio/Stormhammer/*.wav` are original, clean-room project assets generated
+by `scripts/New-StormhammerAssets.py`. They contain no upstream SCIE, game, or
+third-party binary/art source. `docs/images/stormhammer-concept-reference.png` is
+design-process documentation only and is not packaged in the `.netmod`.
+
 ## Creature reference projects and original fox assets
 
 - Research reference: <https://github.com/XiaofengdiZhu/SurvivalcraftTemplateModForAPI>,
@@ -166,3 +174,6 @@ renamed or redistributed; code and database bindings are rewritten for SCNET.
   `9F124EC309D91D91A33DD573E0A797DF79FFCDB1B11BAF1675C51D09A2D7DCCD`.
 - The visual design is a generic, low-poly T-34-style silhouette; no claimed
   manufacturer artwork, texture, sound or source-game asset is included.
+# Skywrath V2 original assets
+
+`StormhammerAwakened.dae`、`ThunderSpear.dae`、觉醒 UV/发光/特效图由本项目 clean-room 脚本原创生成。三枚 HUD 技能徽记使用 OpenAI 内置 ImageGen 根据本项目美术规格生成，原始透明图保存在 `docs/images/stormhammer-awakened-skill-icons-source.png`，打包图集由 `New-AwakenedStormhammerAssets.py` 确定性裁切；未复制第三方游戏或 Mod 资产。

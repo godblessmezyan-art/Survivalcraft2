@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.26.0",
+  "Version": "0.27.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.26.0 upgrades the project-created two-seat helicopter to presentation V0.4: a merged low-poly red/white cabin and tail, visible dual seats and dashboard, independent solid/blur rotor parts, frame-rate-independent rotor states, bounded visual-only flight attitude, and a lifecycle-managed distance-attenuated clean-room WAV loop. Driver-only flight, two-seat roles, native body collision/save and existing network paths are preserved. Android 7723 rendering/audio/save reload and real two-device multiplayer remain pending verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.27.0 integrates the original Stormhammer and separate Skywrath V2 awakened form with the v0.26.0 helicopter presentation release. Stormhammer includes original models, authored UV/glow/effect textures, three PCM sounds, exactly three awakened Android HUD skills, server-authoritative skill sequencing, and synchronized presentation package 242; its base form remains independent. Existing helicopter flight, seats, network paths and lifecycle-managed audio are preserved. Android rendering, touch layout, performance and real multiplayer synchronization remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

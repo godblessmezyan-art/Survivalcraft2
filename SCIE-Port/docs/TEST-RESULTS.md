@@ -883,3 +883,32 @@ Android 7723 联网/真机验证阶段。
   编译/反射签名匹配不得标记兼容；弹窗失败按拒绝回退（安全），可用性待实测。
 - 多人联机授权：待验证。主机校验+按 `Client.GUID` 隔离+单播回执为代码/ABI 结论；真实主机+普通客户端两台的
   授权隔离、越权拒绝、未授权远程开火丢弃需双机实测。
+## Stormhammer 正式资源与技能（合并前构建 0.23.0，2026-10-26）
+
+- 环境/ABI：已确认。`Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` 识别程序集版本 2.4.0.0、API 1.42、SC 2.4.10.6、目标 .NET Framework 4.7.2，原生 block 260 个/最大 263；自定义 ID 941 未与原生或 SCIE-Port 已用 ID 冲突。
+- 资产生成：已确认。`python SCIE-Port/scripts/New-StormhammerAssets.py` 输出 30 meshes / 1368 triangles，并重建 DAE、1024² diffuse、1024² glow mask、256² effects atlas、三段 44.1 kHz PCM16 WAV 和两张真实几何/UV 软件预览。
+- 目标模型导入：已确认。构建内直接调用目标 `Engine.Media.ModelData.Load(Stream)`，得到 1 bone / 30 meshes；逐 geometry 验证 triangles/positions/UV，三角数必须为 1368，六挂点齐全。
+- 贴图/音频校验：已确认。三张 PNG 尺寸锁定，主图集 8px 抽样必须 ≥350 色；三 WAV 文件均 >4096 bytes 且 RIFF/WAVE 签名正确。主贴图、glow、effects 均由真实 `ContentManager.Get<Texture2D>` 路径加载。
+- 自动回归：已确认。Kelly 11、ATV 32、越野车 20、快艇 16、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49 全绿；DATABASE VALIDATION PASSED。
+- Release：已确认。`Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0，0 warning / 0 error；DLL/FileVersion `0.23.0.0`，ProductVersion `0.23.0+fdddd798...`。
+- `.netmod`：已确认。68 个包条目（包含 Stormhammer DAE、3 PNG、3 WAV、CSV、XDB、DLL），781,455 bytes，SHA-256 `0B2BD38528E5226802DB354D377DA92DF89130E60383EC61F4EB4E48AE799FB0`。
+- 安全：已确认（代码）。召雷与链电不调用地形、爆炸或天气雷击 API；Client 不写伤害/耐久；所有粒子有固定数量和生命周期，GlowPoint 停止绘制后两帧移除。
+- Windows 游戏运行：待验证。本轮没有启动客户端，软件预览不是游戏截图。
+- Android 7723：待验证。库存辨识、第一/第三人称手部贴合、掉落比例、光照、音频、10 分钟性能与触屏蓄力均需真机验证。
+- 多人联机：待验证。未实现技能专用请求/VFX 包；客户端召雷明确拒绝，主机执行后的生命同步和远端特效可见性需双设备验证。
+# 2026-10-26 — 苍穹之怒 V2.0（合并前构建 0.24.0）
+
+- 环境：`SCIE-Port/scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'`，exit 0；程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472，原生块常量 260 个。
+- 构建：`SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`，exit 0；Release 0 warning/0 error；全部既有离线规则测试通过；DATABASE VALIDATION PASSED。
+- 资源：目标 Engine 导入觉醒锤 1 bone/39 meshes/1604 tris，雷矛 1 bone/5 meshes/108 tris；四张觉醒 PNG 尺寸、UV 基数、挂点和技能图标三槽通过。
+- 产物：`SCIE-Port/artifacts/SCIEPort.netmod`，76 条目，2,198,186 bytes，SHA-256 `7AF8909F5373B5A741CDF4943C603507CAA17FDD132ED7CC8C5A2E012A5EF013`。
+- Windows 游戏、Android 7723、触屏、多点触控、性能、主机/普通客户端/观察者均未运行，状态为待验证。
+
+## 2026-10-26 — SCIE-Port 0.27.0 合并同步验证
+
+- Git 同步：已确认。`main` 快进至远端 `a2adeca` 后，保留 0.26.0 直升机/载具激活功能并合入雷神之锤与苍穹之怒；共享加载器同时注册 `VehicleActivationPackage` 和 `StormhammerSkillPackage`，共享打包清单同时包含两组资源。
+- 环境/ABI：已确认。`scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472，原生块 260 个、最大 ID 263。为允许 PowerShell 反射加载，仅移除了三份本机目标程序集的 `Zone.Identifier`，未修改程序集内容，哈希检查通过。
+- Release：已确认。系统 .NET SDK `9.0.314` 执行 `scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；全部既有离线规则测试通过，编译 0 warning/0 error，`DATABASE VALIDATION PASSED`。
+- 产物：已确认。`artifacts/SCIEPort.netmod` 共 81 条目、2,287,868 bytes，包内 `modinfo.json` Version=`0.27.0`、DLL AssemblyVersion=`0.27.0.0`，SHA-256 `497F5A94B6D5A2D755937236D68A4A6D9848A67464622059F957F2813932E4D9`。
+- 固定 SDK 包装器：待验证。`Build-WithPinnedSdk.ps1` 要求 `%LOCALAPPDATA%\Microsoft\dotnet` 中存在固定 SDK，本机该位置不存在；本次使用已安装的系统 SDK 9.0.314 完成相同 `Build-NetMod.ps1` 流程。
+- Windows 游戏、Android 7723 与真实多人联机：待验证。本轮仅执行 ABI、离线测试、目标 Engine 资源导入、编译和包校验，未启动游戏或连接设备。

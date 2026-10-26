@@ -407,3 +407,42 @@ THIRD-PARTY-NOTICES.md
 1. 单人（Local）：种 5 作物逐阶段生长→成熟→（苹果秋季结果）摘取→根部无土时自毁；手动生成狐/兔/鸡；自然生成狐兔；放置并驾驶各载具。基线正确性。
 2. 主机（Server）：以上全部在主机侧执行一次；额外验证坦克/轨道车/飞艇按当前设计「联机不可驾驶」是否符合预期，ATV/越野/蒸汽船主机侧可驾驶。
 3. 普通客户端（Client，第二设备同版本加入）：验证 ① 客户端点作物生成器/载具生成器不再本地造幽灵实体（应无反应或仅收到主机回同步结果）；② 作物自毁只由主机触发、客户端收到一致销毁、不出现双毁或残留；③ 铁轨形状两端一致；④ 存读档与退重进后自定义 DATA 一致。任何一项异常记录到本节并降级为「不支持」。
+
+## 0.23.0 Stormhammer 正式资源、渲染与技能（静态/离线）
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 目标资源 ABI | 已确认 | x25.01.17 `Engine.Media.ModelData.Load(Stream)` 实际导入 `Stormhammer.dae` 为 1 bone / 30 meshes；COLLADA 1.4.1、Y_UP、triangle/normal/单套 TEXCOORD 均通过。`SoundBufferReader` 实际声明 wav/ogg；纹理沿用已验证 PNG `Texture2D` 路径。 |
+| 正式模型 | 已确认 | 原创 1368 三角面，独立主锤头、双打击面、银钢中脊、8 暗金护角、双雷纹面板、双六边雷晶、连接轴、握柄/112 段螺旋带/4 固定环、尾端配重/尾晶；6 个挂点元数据逐名校验。非临时方盒或纯增加面数。 |
+| UV/贴图/音频 | 已确认 | 1024² 主图集含 8 材质区、显式逐三角 UV、磨损/拉丝/高光/皮纹/晶体分面；1024² glow mask、256² effects atlas；三段原创 44.1kHz PCM16 WAV。构建检查尺寸、UV 对应、抽样色数、RIFF/WAVE 签名。 |
+| 四种展示接线 | 已确认（代码） | `InventorySlotWidget`、`ComponentFirstPersonModel.Draw`、`ComponentHumanModel.Animate`、`SubsystemPickables.Draw` 最终均进入 `StormhammerBlock.DrawBlock`；库存偏移、第一人称、第三人称、掉落缩放来源已分别取证。实际视觉和手部贴合待运行验证。 |
+| 动态视觉 | 已确认（代码） | 待机 GlowPoint 超过 2 帧未触摸即移除；蓄力脉冲上限 1/0.09s；电弧 28 粒子、冲击 38 粒子、寿命 0.12–0.55s；召雷仅视觉粒子，不调用天气雷击、爆炸或地形写入。 |
+| 攻击技能 | 已确认（代码/编译） | `OnMinerHit` 仅 ID 941 生效；蓄力 ≥0.55s 后首击 + 半径 6、最多 3 跳链击，复用 `ComponentMiner.AttackBody`；Local/Server 执行伤害，Client 明确拒绝权威写入。手感/数值仍待实测。 |
+| 材质限制 | 不支持 | `BlocksManager.DrawMeshBlock` 只有单 diffuse sampler；当前不能直接绑定第二 emissive 材质。专用 glow mask 已入资源加载和美术管线，运行效果以主图亮色 + GlowPoint + additive 粒子等效实现。 |
+| Release / 包 | 已确认 | `Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；0 warning / 0 error；DATABASE VALIDATION PASSED；包 781,455 bytes，SHA-256 `0B2BD38528E5226802DB354D377DA92DF89130E60383EC61F4EB4E48AE799FB0`；DLL/FileVersion `0.23.0.0`。 |
+| Windows 游戏运行 | 待验证 | 本轮未启动游戏；库存缩略图、第一/第三人称姿态、掉落比例、不同光照、音频与技能运行均不得标记已确认。 |
+| Android 7723 | 待验证 | 真机 GPU/CPU/内存/发热、低端机帧时间、触屏蓄力可达性、遮挡和穿模均待新建可丢弃世界验证。 |
+| 多人联机 | 待验证 | 尚无 Stormhammer 专用请求/VFX 网络包。普通客户端不执行召雷伤害；主机执行后生命同步与自定义粒子/音效的远端可见性需双设备实测。 |
+
+完整 API 位置、制作结构和截图清单见 `docs/STORMHAMMER-AUDIT.md`。
+# 0.24.0 苍穹之怒 V2.0（2026-10-26）
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 独立觉醒物品 ID 942 | 已确认 | x25.01.17 原生常量扫描未占用，且与 SCIE-Port 当前 ID 无内部冲突；其他 Mod 同装冲突待验证。ID 941 普通雷神之锤未替换。 |
+| 觉醒锤/雷矛/贴图/图标 | 已确认 | 静态/目标导入证据：目标 Engine 实际导入 1 bone/39 meshes/1604 tris 与 1 bone/5 meshes/108 tris；UV、挂点、1024/256/2048 PNG 和三个非空图标槽由构建锁定。运行观感待验证。 |
+| 三按钮 HUD | 已确认 | 代码/编译证据：源码构建守卫断言恰好三个 `SkillButton`；仅 ID 942 显示，大招尺寸大于普通按钮。Android 多点触控与缩放待验证。 |
+| 技能数值与权限 | 已确认 | 代码/编译证据：雷矛 45–80/9s/4 额外链/6s 雷印；领域 5s/R5/6 per second/印记 +20%/18s；雷劫 60s/6 副雷×25/主雷中心 110/预警/3s 余震。Client 不结算，Local/Server 权威执行。 |
+| 专用网络包 242 | 已确认 | ABI/代码证据：原生 0–38、SCIE-Port 240/241 后使用 242；服务端绑定发送者与实体并校验装备、序号、冷却和大招互斥。真实丢包/延迟/观察者一致性待双机验证。 |
+| 天空/雾色覆盖 | 已确认 | ABI/代码证据：使用真实 `ChangeSkyColor`、`ViewFogColor` Hook，平滑淡入淡出；刻意不写全局光照缓存，不改天气、时间或地形。Android 视觉待验证。 |
+| Release / 包 | 已确认 | `Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；0 warning/0 error；DATABASE VALIDATION PASSED；2,198,186 bytes；SHA-256 `7AF8909F5373B5A741CDF4943C603507CAA17FDD132ED7CC8C5A2E012A5EF013`。 |
+| Windows/Android/多人运行 | 待验证 | 本轮未进入游戏或连接真机；不得从编译与静态校验外推为运行通过。 |
+
+## 0.27.0 远端 0.26.0 与苍穹之怒合并发布（2026-10-26）
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| Git/功能合并 | 已确认 | `main` 已同步远端 `a2adeca`；保留直升机 V0.4、载具激活密码包及全部远端改动，同时加入 ID 941/942 雷锤资源与包 242。加载器与打包清单均保留双方注册项。 |
+| 目标 ABI/环境 | 已确认 | `Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；目标程序集哈希、2.4.0.0、API 1.42、SC 2.4.10.6、net472 与现有 Hook/网络 ABI 检查通过。 |
+| Release / 包 | 已确认 | 系统 SDK 9.0.314 执行 `Build-NetMod.ps1` exit 0；0 warning/0 error；全部离线规则测试与数据库校验通过；包 81 条目、2,287,868 bytes，Version/AssemblyVersion `0.27.0`/`0.27.0.0`，SHA-256 `497F5A94B6D5A2D755937236D68A4A6D9848A67464622059F957F2813932E4D9`。 |
+| Android 7723 / Windows 游戏 / 多人联机 | 待验证 | 未启动游戏、未连接 Android 设备或多人主机/客户端；编译、资源导入和静态校验不外推为运行兼容。 |

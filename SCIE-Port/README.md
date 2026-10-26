@@ -1,5 +1,13 @@
 # SCIE-Port
 
+Version 0.27.0 integrates the original Stormhammer and its separate awakened
+Skywrath V2 form on top of the 0.26.0 helicopter presentation release. It adds
+original weapon models, authored UV/glow/effect textures, three PCM sounds,
+bounded lightning effects, exactly three awakened skill buttons and
+server-authoritative skill sequencing through package 242. The base form stays
+independent. Android 7723 presentation, touch performance and real multiplayer
+synchronization remain pending; see `docs/TEST-RESULTS.md`.
+
 Version 0.26.0 upgrades the existing two-seat helicopter to presentation V0.4
 without replacing its flight, seat, spawn or network paths. The new clean-room
 model is a 758-triangle red/white light helicopter with an opaque dark canopy,
@@ -49,6 +57,14 @@ independent, and mounted players keep native aim, attack, interaction and block
 use. It builds on the v0.22 native mounted-parent multiplayer path. Release,
 ABI, rule, database and package checks pass; Android 7723 two-device behavior
 remains pending real-device verification.
+The original Stormhammer legendary weapon was produced as a formal art
+slice: a 1368-triangle/30-mesh Y-up COLLADA model, authored 1024 UV atlas,
+dedicated glow and particle maps, three original PCM sounds, separate inventory/
+first-person/third-person/drop transforms, bounded lightning effects, charged
+strike and three-link chain damage. The target Engine importer and Release
+package checks pass. Windows in-game rendering, Android 7723 hand fit/performance
+and multiplayer effect synchronization remain pending; see
+`docs/STORMHAMMER-AUDIT.md`.
 
 Version 0.22.0 adds the first complete multiplayer-driving pass for every current
 vehicle: ATV, two-seat speedboat, off-road car, airship, train, carriage and T-34.
@@ -239,3 +255,6 @@ Porting rules and licensing requirements are in `AGENTS.md`,
 `docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 
 Agents taking over development should start with `docs/AGENT-HANDOFF.md`.
+# 苍穹之怒 V2.0（0.24.0）
+
+0.24.0 在普通雷神之锤之外新增独立觉醒物品“苍穹之怒”（ID 942）：恰好三个右侧弧形技能按钮、服务端权威冷却/伤害/雷印/领域/雷劫调度，以及包 242 的多人演出同步。正式资源包括 1604 三角觉醒锤、108 三角雷矛、1024 UV/发光图与三枚技能图标。完整数值、ABI 和真机验收见 `docs/SKYWRATH-V2-AUDIT.md`。Android 与多人运行仍为待验证，不以离线构建替代。
