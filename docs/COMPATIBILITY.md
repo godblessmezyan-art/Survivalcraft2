@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-10-26：Builder Assistant v0.17.0 Portable Fortress Mk.I 白模
+
+| 项目 | 状态 | 证据/限制 |
+|---|---|---|
+| DAE 结构 | 已确认 | Y_UP、单位 1、单根节点/静态骨骼、11 网格、1116 三角面、0/1/2 交错索引 |
+| x25.01.17 Windows 引擎导入 | 已确认 | `Engine.Media.ModelData.Load(Stream)` 实际返回 1 bone / 11 meshes |
+| 11 × 13 × 9 精确包围盒及真实洞口 | 已确认 | X[-5.5,5.5]、Y[0,9]、Z[-6.5,6.5]；门窗、楼梯井、屋顶舱口未封板 |
+| `.netmod` 资源打包 | 已确认 | Release 构建包含 `Assets/Models/PortableFortress_Whitebox.dae`；SHA-256 `5D89A3DF7D1A87FAC85AAB766B1C8D983B5D26609519497C2565E25052EECF8F` |
+| Windows 游戏内渲染/通行 | 待验证 | 本轮不接部署实体；模型网格不提供碰撞 |
+| 透明玻璃、48 格储物、供暖、自由摆放 | 待验证 | 仅完成真实 API 边界与实现方案，不伪装完成功能 |
+| Android 7723 / 多人 | 待验证 | 未进行真机或双设备测试；7723 重打包程序集仍须重新比对 |
+
+详细证据与测试命令见 `docs/portable-fortress/MODEL-AUDIT.md`。本里程碑只冻结正式模型所需的主体几何与技术边界，不表示堡垒已可部署。
+
 ## 2026-10-22：Builder Assistant v0.16.0 方块能力第一阶段
 
 本轮以公开的 SCNET x25.01.17 Windows 包为取证对象。程序集/内容证据与 Android 结论严格分开：

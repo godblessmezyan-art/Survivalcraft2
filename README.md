@@ -1,5 +1,7 @@
 # Builder Assistant for Survivalcraft NET
 
+> **v0.17.0 Portable Fortress Mk.I 白模里程碑**：加入可重复生成的 `11 × 13 × 9` DAE 技术白模（单静态骨骼、11 网格、1116 三角面、真实门窗/楼梯井/屋顶舱口）及目标 x25.01.17 `Engine.Media.ModelData.Load(Stream)` 导入守卫。完整结构、逐层坐标、碰撞代理、48 格储物、供暖、部署回收和联机边界见 [`docs/portable-fortress/`](docs/portable-fortress/)。本轮没有接入可部署实体，也没有制作正式精模；运行渲染、玩家通行、玻璃、储物、供暖、Android 与联机均为**待验证**。
+
 面向 Android 版《生存战争 2.4》联机客户端（Survivalcraft NET / SCNET）的建筑辅助 Mod。首要适配版本是 **Net_x25.01.17**，目标产物为 `.netmod`。
 
 > **v0.16.0 方块能力第一阶段**：已从哈希固定的 x25.01.17 公开 Windows 程序集与 `BlocksData` 审计 165 个原版可放置类型，蓝图开放类型由 39 扩到 60，并改为“能力元数据 + 运行时注册表 + 按族编解码”。非法 DATA、`f`/材料族冲突、彩色状态有损复制均明确拒绝。详见 [方块能力清单](docs/blueprint-block-reference.md) 与 [完整审计](docs/blueprint-block-audit-x25.01.17.md)。Android 7723 真机渲染、存读档和联机同步仍为**待验证**。

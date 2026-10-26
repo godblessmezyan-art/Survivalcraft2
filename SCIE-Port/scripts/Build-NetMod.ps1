@@ -1738,8 +1738,40 @@ try {
         if ($awakenedBehavior.Contains($removedSkill) -or $awakenedSource.Contains($removedSkill)) { throw "Removed Skywrath skill remains active: $removedSkill" }
     }
     $skillPackageSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillPackage.cs')
+    if ($skillPackageSource -notmatch 'public\s+byte\s+ID\s*=>\s*243\s*;') {
+        throw 'Skywrath V3.2 must use reserved package ID 243; ID 242 belongs to vehicle activation.'
+    }
     foreach ($authoritativeField in @('TargetId','CastId','ServerTime')) {
         if (-not $skillPackageSource.Contains($authoritativeField)) { throw "Skywrath V3.2 authoritative event field missing: $authoritativeField" }
+    }
+    $packageIds = @{}
+    Get-ChildItem -LiteralPath $projectDir -Recurse -Filter '*Package.cs' | ForEach-Object {
+        $packageText = Get-Content -Raw -Encoding UTF8 $_.FullName
+        $idMatch = [regex]::Match($packageText, 'public\s+byte\s+ID\s*=>\s*(\d+)\s*;')
+        if ($idMatch.Success) {
+            $packageId = [int]$idMatch.Groups[1].Value
+            if ($packageIds.ContainsKey($packageId)) {
+                throw "Duplicate SCIE-Port network package ID $packageId in $($_.Name) and $($packageIds[$packageId])."
+            }
+            $packageIds[$packageId] = $_.Name
+        }
+    }
+    foreach ($requiredPackageId in @(240, 241, 242, 243)) {
+        if (-not $packageIds.ContainsKey($requiredPackageId)) { throw "Required SCIE-Port network package ID $requiredPackageId is missing." }
+    }
+    $blockIds = @{}
+    Get-ChildItem -LiteralPath $projectDir -Recurse -Filter '*.cs' | ForEach-Object {
+        $blockText = Get-Content -Raw -Encoding UTF8 $_.FullName
+        foreach ($blockMatch in [regex]::Matches($blockText, 'public\s+const\s+int\s+Index\s*=\s*(\d+)\s*;')) {
+            $blockId = [int]$blockMatch.Groups[1].Value
+            if ($blockIds.ContainsKey($blockId)) {
+                throw "Duplicate SCIE-Port block ID $blockId in $($_.Name) and $($blockIds[$blockId])."
+            }
+            $blockIds[$blockId] = $_.Name
+        }
+    }
+    if (-not $blockIds.ContainsKey(941) -or -not $blockIds.ContainsKey(942) -or -not $blockIds.ContainsKey(943)) {
+        throw 'Helicopter, awakened Stormhammer, or base Stormhammer block ID is missing.'
     }
 
     $pngBytes = [IO.File]::ReadAllBytes((Join-Path $upstream 'IndustrialMod\Textures\SteamBoat.png'))

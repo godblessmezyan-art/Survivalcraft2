@@ -1,5 +1,7 @@
 # Blueprint Block Reference
 
+> **v0.17.0 说明**：Portable Fortress Mk.I 本轮新增的是打包的技术白模 DAE 与设计/ABI 验证，不是蓝图方块、材料键或已实现的部署功能。本次没有新增、移除或修改任何 Builder Assistant 蓝图方块族、DATA 范围或导入限制；AI 生成蓝图时不得引用 `PortableFortress_Whitebox` 作为材料。
+
 > 本文件是 Builder Assistant v0.16.0 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
@@ -296,6 +298,6 @@
 
 最后更新：v0.16.0（2026-10-22），方块能力第一阶段——从真实 x25.01.17 程序集与 BlocksData 审计 165 个可放置类型，能力注册表由 39 扩到 60，加入严格族/DATA 校验与有损状态拒绝；Android 7723 渲染/存读档仍待验证。下次 Mod 版本更新时必须同步修改本文件。
 
-## SCIE-Port 非蓝图物品（苍穹之怒 V3.2 / SCIE-Port 0.28.0）
+## SCIE-Port 非蓝图物品（苍穹之怒 V3.2 / SCIE-Port 0.28.1）
 
-- `941` 雷神之锤与 `942` 苍穹之怒均为 `IsPlaceable=FALSE` 的手持武器，不属于 Builder Assistant 可生成方块族；任何蓝图 JSON 不得把它们写入 `materials[].block` 或 cell。新增 942 不改变现有可放置方块/DATA 范围。
+- `942` 苍穹之怒与 `943` 雷神之锤均为 `IsPlaceable=FALSE` 的手持武器；`941` 为不可放置的直升机部署物品。它们都不属于 Builder Assistant 可生成方块族，任何蓝图 JSON 不得写入 `materials[].block` 或 cell。本次 ID 去冲突不改变可放置方块/DATA 范围。
