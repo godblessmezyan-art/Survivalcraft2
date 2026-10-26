@@ -192,69 +192,26 @@ if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GU
     throw 'TankControlPackage must require the host-side per-client activation grant before applying remote control or fire.'
 }
 
-$hudSurfaceSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterControlSurface.cs')
-foreach ($hudSurfaceEvidence in @(
-    'enum HelicopterVerticalIntent',
-    'static HelicopterVerticalIntent ResolveIntent',
-    'static HelicopterButtonLayout ComputeLayout')) {
-    if (-not $hudSurfaceSource.Contains($hudSurfaceEvidence)) {
-        throw "Helicopter HUD control surface is missing source evidence: $hudSurfaceEvidence"
-    }
+# V0.5 must package the analog cockpit, never the former two-button interface.
+$hudWidgetSource = Get-Content -Raw (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterFlightHud.cs')
+foreach ($evidence in @('COLLECTIVE', 'HOVER ON', 'ALT / M', 'VS / M/S', 'SPD / M/S', 'CanvasWidget.SetPosition')) {
+    if (-not $hudWidgetSource.Contains($evidence)) { throw "Collective cockpit missing: $evidence" }
 }
-$hudWidgetSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterFlightHud.cs')
-foreach ($hudWidgetEvidence in @(
-    'new BevelledRectangleWidget()',
-    'new ImageWidget()',
-    'new ClickableWidget()',
-    'm_hit.IsPressed',
-    'ContentManager.Get<Texture2D>(TextureKey)',
-    'Textures/HeliArrow')) {
-    if (-not $hudWidgetSource.Contains($hudWidgetEvidence)) {
-        throw "Helicopter flight HUD widget layer is missing source evidence: $hudWidgetEvidence"
-    }
+if ($hudWidgetSource.Contains('IsClimbPressed') -or $hudWidgetSource.Contains('IsDivePressed')) {
+    throw 'Legacy helicopter ascent/descent buttons must not return.'
 }
-foreach ($hudFallbackEvidence in @('catch (Exception', 'Log.Error')) {
-    if (-not $hudWidgetSource.Contains($hudFallbackEvidence)) {
-        throw "Helicopter flight HUD must keep its 7723-safe fallback path evidence: $hudFallbackEvidence"
-    }
+$helicopterHudDriveSource = Get-Content -Raw (Join-Path $projectDir 'Features\AirVehicles\ComponentHelicopterDrive.cs')
+foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? Vector3.Zero', 'm_hud.Detach()', 'ComponentHealth.Health', 'ParentBody != m_body')) {
+    if (-not $helicopterHudDriveSource.Contains($evidence)) { throw "Flight integration missing: $evidence" }
 }
-# Regression guard: CanvasWidget.SetPosition only takes effect when the widget's direct parent is a
-# CanvasWidget. ComponentPlayer.GuiWidget is a plain ContainerWidget, so the HUD must insert its own
-# full-screen CanvasWidget layer and parent the button roots/hit surfaces to it; otherwise the
-# buttons silently collapse to the top-left origin and the climb button cannot be pressed.
-foreach ($hudCanvasLayerEvidence in @(
-    'private readonly CanvasWidget m_layer = new CanvasWidget()',
-    'm_layer.AddChildren(m_ascent.Hit)',
-    'm_layer.AddChildren(m_descent.Hit)',
-    'container.AddChildren(m_layer)')) {
-    if (-not $hudWidgetSource.Contains($hudCanvasLayerEvidence)) {
-        throw "Helicopter flight HUD lost its CanvasWidget positioning layer (buttons would collapse to the origin): $hudCanvasLayerEvidence"
-    }
-}
-foreach ($hudRequiredFile in @('HelicopterControlSurface.cs', 'HelicopterFlightHud.cs')) {
-    if (-not (Test-Path -LiteralPath (Join-Path $projectDir ('Features\AirVehicles\Hud\' + $hudRequiredFile)))) {
-        throw "Helicopter flight HUD source file is missing: $hudRequiredFile"
-    }
-}
-$helicopterHudDriveSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\AirVehicles\ComponentHelicopterDrive.cs')
-foreach ($hudDriveEvidence in @(
-    'HelicopterFlightHud',
-    'm_hud.Attach(container)',
-    'm_hud.Refresh(true, SettingsManager.UIScale)',
-    'm_hud.IsClimbPressed',
-    'm_hud.IsDivePressed',
-    'HelicopterControlSurface.ResolveIntent',
-    'm_hud.Detach()')) {
-    if (-not $helicopterHudDriveSource.Contains($hudDriveEvidence)) {
-        throw "Helicopter drive must wire the flight HUD; missing source evidence: $hudDriveEvidence"
-    }
-}
-
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -410,7 +367,6 @@ try {
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',
-        'Assets/Textures/HeliArrow.png',
         'Assets/Audio/SCIEPortHelicopterLoop.wav'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }

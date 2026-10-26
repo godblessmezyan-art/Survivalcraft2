@@ -19,6 +19,9 @@ namespace SCIEPort.Features.AirVehicles
         private ComponentTwoSeatManager m_seats;
         private readonly HelicopterFlightHud m_hud = new HelicopterFlightHud();
         private ComponentPlayer m_hudDriver;
+        private readonly HelicopterFlightInput m_flightInput = new HelicopterFlightInput();
+        private readonly HelicopterHoverController m_hover = new HelicopterHoverController();
+        private bool m_controlsAvailable;
         private SubsystemAudio m_audio;
         private Sound m_rotorSound;
         private ModelBone m_visualRootBone;
@@ -77,6 +80,16 @@ namespace SCIEPort.Features.AirVehicles
             m_seats = Entity.FindComponent<ComponentTwoSeatManager>(throwOnError: true);
             m_audio = Project.FindSubsystem<SubsystemAudio>(throwOnError: true);
 
+            m_flightInput.Deadzone = valuesDictionary.GetValue("CollectiveDeadzone", 0.08f);
+            m_flightInput.Sensitivity = valuesDictionary.GetValue("CollectiveSensitivity", 1f);
+            m_flightInput.ReturnRate = valuesDictionary.GetValue("CollectiveReturnRate", 3f);
+            m_hover.HeightGain = MathUtils.Clamp(valuesDictionary.GetValue("HoverHeightGain", 0.7f), 0.1f, 1.2f);
+            m_hover.Acceleration = MathUtils.Clamp(valuesDictionary.GetValue("VerticalAcceleration", 2.5f), 0.5f, 6f);
+            m_hud.HudScale = valuesDictionary.GetValue("FlightHudScale", 1f);
+            m_hud.HudX = valuesDictionary.GetValue("FlightHudX", 0.97f);
+            m_hud.HudY = valuesDictionary.GetValue("FlightHudY", 0.48f);
+            m_hover.Reset(m_body.Position.Y);
+
             m_spoolUpTime = valuesDictionary.GetValue("SpoolUpTime", 2.5f);
             m_spoolDownTime = valuesDictionary.GetValue("SpoolDownTime", 3.5f);
             m_gravity = valuesDictionary.GetValue("Gravity", 9.8f);
@@ -129,7 +142,7 @@ namespace SCIEPort.Features.AirVehicles
         /// <inheritdoc />
         public override void Dispose()
         {
-            m_hud.Detach();
+            m_hud.Dispose();
             m_hudDriver = null;
 
             if (m_rotorSound != null)
@@ -145,9 +158,16 @@ namespace SCIEPort.Features.AirVehicles
         /// <inheritdoc />
         public void Update(float dt)
         {
+            // ComponentBody.Load resets these flags after arbitrary component load order.
+            // Reassert before UpdateOrder.Body: gravity is already integrated by our flight rules.
+            m_body.IsGravityEnabled = false;
+            m_body.IsGroundDragEnabled = false;
+            m_body.IsSmoothRiseEnabled = false;
             float t = MathUtils.Clamp(dt, 0f, 0.1f);
             bool grounded = m_body.StandingOnValue.HasValue || m_body.StandingOnBody != null;
             ComponentRider driver = m_seats.Driver;
+            if (driver != null && (driver.m_isAnimating || driver.ComponentCreature.ComponentBody.ParentBody != m_body ||
+                driver.ComponentCreature.ComponentHealth.Health <= 0f || m_damage.Hitpoints <= 0f)) driver = null;
             ComponentPlayer player = driver?.Entity.FindComponent<ComponentPlayer>(throwOnError: false);
             bool localPilot = player != null && player.ComponentRider == driver && player.PlayerData.IsMainPlayer;
             bool authorizedPilot = localPilot && VehicleActivationService.EnsureActivated();
@@ -172,81 +192,52 @@ namespace SCIEPort.Features.AirVehicles
                 m_rotorSpeed, m_engineRunning, m_spoolUpTime, m_spoolDownTime, t);
             m_rotorState = HelicopterFlightRules.GetRotorState(m_engineRunning, m_rotorSpeed);
 
-            // The vertical buttons only exist for the local, authorized driver of a living
+            // The collective controls only exist for the local, authorized driver of a living
             // aircraft. Any other seat holder (passenger, remote replica, empty seat, a vehicle
             // being destroyed) hides and releases the overlay so a stale widget or phantom press
             // can never influence another player's session.
-            UpdateFlightHud(localPilot, driver, player, authorizedPilot);
-            bool hudClimb = authorizedPilot && m_hud.IsClimbPressed;
-            bool hudDive = authorizedPilot && m_hud.IsDivePressed;
-
+            if (!ReferenceEquals(m_hudDriver, authorizedPilot ? player : null))
+            {
+                m_hud.Detach();
+                m_flightInput.Reset();
+                m_hover.Reset(m_body.Position.Y);
+                m_hudDriver = authorizedPilot ? player : null;
+            }
+            m_controlsAvailable = UpdateFlightHud(player, authorizedPilot);
+            m_flightInput.Update(m_hud.RawValue, m_controlsAvailable && m_hud.IsDragging, t);
+            if (m_controlsAvailable && m_hud.ConsumeHoverToggle()) m_hover.Toggle(m_body.Position.Y);
             bool authorityAutoLanding = driver == null && CommonLib.WorkType != WorkType.Client;
             if (authorizedPilot || authorityAutoLanding)
             {
-                SimulateFlight(t, grounded, authorizedPilot, hudClimb, hudDive);
+                SimulateFlight(t, grounded, authorizedPilot);
             }
-
+            if (m_controlsAvailable)
+                m_hud.Refresh(t, m_flightInput.Value, m_flightInput.Command, m_body.Position.Y,
+                    m_body.Velocity, m_hover.Enabled, m_hover.Mode, m_rotorSpeed);
             UpdatePresentation(t, grounded);
         }
 
-        private void UpdateFlightHud(bool localPilot, ComponentRider driver, ComponentPlayer player, bool authorizedPilot)
+        private bool UpdateFlightHud(ComponentPlayer player, bool authorizedPilot)
         {
-            ContainerWidget container = localPilot ? player?.GuiWidget : null;
-            bool show = HelicopterControlSurface.ShouldShowControls(localPilot, driver != null, vehicleAlive: true) && authorizedPilot;
-
-            if (!show || container == null)
+            Widget moreMenu = player?.GuiWidget.Children.Find<Widget>("MoreContents", false);
+            bool show = (moreMenu == null || !moreMenu.IsVisible) && authorizedPilot && player != null && player.ComponentInput.AllowHandleInput &&
+                player.ComponentGui.ControlsContainerWidget.IsVisibleGlobal &&
+                player.ComponentGui.ModalPanelWidget == null && !DialogsManager.HasDialogs(player.GuiWidget);
+            if (!show)
             {
-                m_hud.Hide();
                 m_hud.Detach();
-                m_hudDriver = null;
-                return;
+                m_flightInput.Reset();
+                return false;
             }
-
-            if (!m_hud.Attach(container))
-            {
-                m_hudDriver = null;
-                return;
-            }
-
-            if (!ReferenceEquals(m_hudDriver, player))
-            {
-                m_hudDriver = player;
-            }
-
-            m_hud.Refresh(true, SettingsManager.UIScale);
+            return m_hud.Attach(player.GuiWidget);
         }
 
-        private void SimulateFlight(float t, bool grounded, bool authorizedPilot, bool hudClimb, bool hudDive)
+        private void SimulateFlight(float t, bool grounded, bool authorizedPilot)
         {
-            // Vertical command. Mounted riders do not reliably emit touch jump input, so the
-            // driver's view elevation is the ambient climb/dive channel (the same proven control
-            // the airship uses) and jump/sneak remain secondary keyboard bindings. The dedicated
-            // HUD buttons are the deliberate primary channel. All sources are arbitrated into one
-            // intent by HelicopterControlSurface so buttons override the view, simultaneous
-            // climb+dive cancels to hover, and releasing both settles smoothly, never writing
-            // entity coordinates directly.
-            float eyeForwardY = 0f;
-            ComponentCreatureModel driverModel = m_seats.Driver?.ComponentCreature?.ComponentCreatureModel;
-            if (driverModel != null)
-            {
-                eyeForwardY = Matrix.CreateFromQuaternion(driverModel.EyeRotation).Forward.Y;
-            }
-
-            bool viewClimb = authorizedPilot && HelicopterFlightRules.IsViewClimb(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
-            bool viewDive = authorizedPilot && HelicopterFlightRules.IsViewDive(eyeForwardY, HelicopterFlightRules.VerticalPitchDeadzone);
-            bool jumpClimb = authorizedPilot && m_seats.DriverJump;
-            bool sneakDive = authorizedPilot && m_seats.DriverSneakMove.LengthSquared() > 0.0025f;
-
-            HelicopterVerticalIntent intent = HelicopterControlSurface.ResolveIntent(
-                hudClimb, hudDive, viewClimb, viewDive, jumpClimb, sneakDive);
-            HelicopterControlSurface.ToVerticalFlags(intent, out bool ascend, out bool descend);
-            float targetVertical = HelicopterFlightRules.GetVerticalTarget(
-                ascend,
-                descend,
-                authorizedPilot,
-                m_ascentSpeed,
-                m_descentSpeed,
-                m_autoLandSpeed);
+            float targetVertical = authorizedPilot
+                ? m_hover.Update(m_flightInput.Command, m_flightInput.IsDragging, m_body.Position.Y,
+                    m_body.Velocity.Y, grounded, m_maximumWorldY, m_ascentSpeed, m_descentSpeed, t)
+                : -m_autoLandSpeed;
             if (HelicopterFlightRules.IsAtAltitudeLimit(m_body.Position.Y, m_maximumWorldY) && targetVertical > 0f)
             {
                 targetVertical = 0f;
@@ -262,13 +253,14 @@ namespace SCIEPort.Features.AirVehicles
                 m_ascentSpeed,
                 m_descentSpeed,
                 t);
+            vertical = HelicopterFlightRules.MoveTowards(velocity.Y, vertical, m_hover.Acceleration * t);
             if (grounded && vertical < 0f) vertical = 0f;
 
             Vector3 forward = m_body.Matrix.Forward;
             forward.Y = 0f;
             if (forward.LengthSquared() > 0.0001f) forward = Vector3.Normalize(forward);
             Vector3 horizontal = new Vector3(velocity.X, 0f, velocity.Z);
-            float throttle = authorizedPilot && m_rotorSpeed >= 0.65f
+            float throttle = authorizedPilot && m_controlsAvailable && !grounded && m_rotorSpeed >= 0.65f
                 ? MathUtils.Clamp(m_seats.DriverMove.Z, -1f, 1f)
                 : 0f;
             float forwardSpeed = Vector3.Dot(horizontal, forward);
@@ -283,10 +275,10 @@ namespace SCIEPort.Features.AirVehicles
                 t);
             Vector3 lateral = horizontal - forward * Vector3.Dot(horizontal, forward);
             lateral = Vector3.Lerp(lateral, Vector3.Zero, MathUtils.Saturate(m_lateralGrip * t));
-            horizontal = forward * forwardSpeed + lateral;
+            horizontal = grounded ? Vector3.Zero : forward * forwardSpeed + lateral;
             m_body.Velocity = new Vector3(horizontal.X, vertical, horizontal.Z);
 
-            float turn = authorizedPilot ? MathUtils.Clamp(m_seats.DriverMove.X, -1f, 1f) : 0f;
+            float turn = authorizedPilot && m_controlsAvailable && !grounded ? MathUtils.Clamp(m_seats.DriverMove.X, -1f, 1f) : 0f;
             if (m_rotorSpeed >= 0.65f && MathUtils.Abs(turn) >= 0.05f)
             {
                 m_body.Rotation *= Quaternion.CreateFromAxisAngle(Vector3.UnitY, -turn * m_turnRate * t);

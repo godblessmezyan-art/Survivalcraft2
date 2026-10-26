@@ -1,8 +1,8 @@
-﻿{
+{
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.27.1",
+  "Version": "0.28.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.27.1 is a hotfix for the mobile-only helicopter flight-control HUD added in v0.27.0: the two rounded translucent buttons (climb up / dive down) were collapsing onto the top-left origin because ComponentPlayer.GuiWidget is a plain ContainerWidget, so CanvasWidget.SetPosition (which only takes effect when a widget's direct parent is a CanvasWidget) silently did nothing and the climb button could not be pressed. The buttons are now parented to a dedicated full-screen CanvasWidget layer that stretches over the GUI and is transparent to hit-testing outside the buttons, so they are placed at the intended lower-right coordinates and touches outside them still reach the native joystick, look and hotbar widgets. The HUD still appears only for the local authorized driver, supports continuous press and two-finger multitouch via the native ClickableWidget, and is arbitrated with the driver-view and jump/sneak channels into a single vertical intent. The overlay is built once, repositioned only when the resolved layout changes, released on dismount, seat change, death or vehicle disposal, and a fail-safe hides it and preserves view-only control if the widget surface is unavailable. No flight, seat, spawn or network path was replaced. Release build, 73 helicopter-rule assertions and packaging pass; Android 7723 on-screen touch, hover feel, save/reload and real two-device multiplayer remain pending verification.",
+  "Description": "Helicopter V0.5 Advanced Flight Control: continuous multitouch collective, smooth return to neutral, automatic altitude hold, compact cockpit telemetry and grounded skid lock. Uses the existing two-seat driver authority and native body synchronization. Built for SCNET x25.01.17; Android device and two-device multiplayer acceptance pending.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

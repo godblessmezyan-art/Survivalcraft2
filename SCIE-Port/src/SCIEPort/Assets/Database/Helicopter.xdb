@@ -62,6 +62,14 @@
       <Parameter Name="MainRotorAngularSpeed" Guid="bed12d27-2a0e-40c3-8a00-6521f3cf5799" Value="30" Type="float" />
       <Parameter Name="TailRotorSpeedMultiplier" Guid="2c30fa22-f68c-47c5-8640-a9340ff00fb1" Value="3.2" Type="float" />
       <Parameter Name="RotorBlurThreshold" Guid="07b34299-485b-48f1-8269-bf54b0e40f0e" Value="0.74" Type="float" />
+      <Parameter Name="CollectiveDeadzone" Guid="c01f5d1f-e81a-4c5b-9a42-bf13b53919b6" Value="0.08" Type="float" />
+      <Parameter Name="CollectiveSensitivity" Guid="d60a59eb-964a-49d2-afc2-984a363ba4f2" Value="1" Type="float" />
+      <Parameter Name="CollectiveReturnRate" Guid="9ed87226-6548-4e78-9c32-b7057e804236" Value="3" Type="float" />
+      <Parameter Name="HoverHeightGain" Guid="975a963e-662e-467c-968a-c16a6a089d8e" Value="0.7" Type="float" />
+      <Parameter Name="VerticalAcceleration" Guid="9576193b-a3d5-4b49-840a-097b9cc17eef" Value="2.5" Type="float" />
+      <Parameter Name="FlightHudScale" Guid="8cfac0bd-fe2c-4dc1-bf26-32c7ee5f975b" Value="1" Type="float" />
+      <Parameter Name="FlightHudX" Guid="9886ec8a-248b-4cb6-9abe-66dbe07709cd" Value="0.97" Type="float" />
+      <Parameter Name="FlightHudY" Guid="c1911398-4011-4401-ad91-65891f1f2874" Value="0.48" Type="float" />
       <Parameter Name="SoundMinDistance" Guid="8f459176-a2aa-4ff0-998f-c0a46667dbfc" Value="4" Type="float" />
       <Parameter Name="SoundRolloffFactor" Guid="a63d118f-265a-449e-b81b-ed514793b463" Value="0.08" Type="float" />
     </ComponentTemplate>

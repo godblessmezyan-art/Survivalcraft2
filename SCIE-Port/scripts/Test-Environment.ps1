@@ -286,3 +286,15 @@ Write-Host "Assembly version: $($assemblyName.Version)"
 Write-Host 'API marker: 1.42; SC marker: 2.4.10.6; target: .NET Framework 4.7.2'
 Write-Host "Native block IDs discovered: $($nativeIds.Count); maximum: $(($nativeIds | Measure-Object -Maximum).Maximum)"
 Write-Host 'Loader, block registration, creature/four-legged model, Kelly plant, industrial furniture, mounted-input/seat scheduling, tank durability, water/rail/land transport mount-spawn-body, helicopter audio lifecycle/attenuation, vehicle activation popup/network ABI (Client.GUID, NetNode.Server/QueuePackage, Keyboard.ShowKeyboard, Engine.Time.RealTime, package payload) and reserved ID checks passed.'
+
+# Helicopter V0.5 uses these exact widget/touch surfaces rather than a guessed drag API.
+$widget = $assembly.GetType('Game.Widget', $true)
+$widgetInput = $assembly.GetType('Game.WidgetInput', $true)
+$touchLocation = $engineAssembly.GetType('Engine.Input.TouchLocation', $true)
+foreach ($member in @('ScreenToWidget','WidgetToScreen','HitTestGlobal','UpdateCeases')) {
+    if (-not @($widget.GetMethods() | Where-Object Name -eq $member).Count) { throw "Missing flight HUD Widget.$member" }
+}
+if (-not $widgetInput.GetProperty('TouchLocations') -or -not $touchLocation.GetField('Id') -or -not $touchLocation.GetField('State')) {
+    throw 'Missing per-finger touch ABI for collective control.'
+}
+Write-Host 'Helicopter V0.5 per-finger touch and coordinate-transform ABI passed.'
