@@ -261,12 +261,44 @@ if (-not $awakenedSource.Contains('UpdatePendingJudgment')) {
 if (-not $awakenedSource.Contains('LightningRules.TribulationDamage')) {
     throw 'The main strike must use the V4 damage table.'
 }
+$thunderGodSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
+if (-not $thunderGodSource.Contains('ThunderGodDuration = 12f')) {
+    throw 'The Thunder God window must stay at 12 seconds.'
+}
+if (-not $thunderGodSource.Contains('ThunderGodPowerMultiplier = 2f')) {
+    throw 'The Thunder God lightning multiplier must stay at 2x.'
+}
+if (-not $thunderGodSource.Contains('SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);')) {
+    throw 'Casting the ultimate must refresh the Thunderous Judgment cooldown, not the ultimate cooldown.'
+}
+if ($thunderGodSource -notmatch 'DiagnosticDamage\("physical"[^;]*PhysicalMeleePower, 1f') {
+    throw 'Physical melee damage must never be multiplied by the Thunder God window.'
+}
+if ($thunderGodSource -notmatch 'DiagnosticDamage\("retaliation"[^;]*RetaliationPower, 1f') {
+    throw 'The fixed 5 point retaliation must never be multiplied by the Thunder God window.'
+}
+if ($thunderGodSource -match '"终焉主雷"[^;]*ThunderGodPowerMultiplier' -or $thunderGodSource -match '"雷霆余震"[^;]*ThunderGodPowerMultiplier') {
+    throw 'The ultimate main strike and its aftershock must not benefit from their own buff.'
+}
 $visualsSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\AwakenedStormhammerVisuals.cs')
 if (-not $visualsSource.Contains('BuildStormSchedule')) {
     throw 'The backdrop storm must be driven by the deterministic schedule.'
 }
 if ($visualsSource.Contains('EmitSkyBolt')) {
     throw 'The particle sky bolt must not return; V4 draws real geometry.'
+}
+if (-not $visualsSource.Contains('StormReleaseTime = 12.0f')) {
+    throw 'The storm sky and backdrop must cover the 12 s Thunder God window.'
+}
+if (-not $visualsSource.Contains('s_overcharge') -or -not $visualsSource.Contains('NextFootstep')) {
+    throw 'The overcharge avatar arcs and lightning footprints must exist.'
+}
+if (-not $visualsSource.Contains('BuildStormSchedule(seed, phases)')) {
+    throw 'The backdrop storm must use the phased density schedule.'
+}
+$hudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
+if (-not $hudSource.Contains('GetThunderGodRemaining')) {
+    throw 'The HUD must surface the Thunder God countdown.'
 }
 $fortressSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\PortableFortressBlocks.cs')
 foreach ($expectedIndex in @('Index = 944', 'Index = 945', 'Index = 946')) {

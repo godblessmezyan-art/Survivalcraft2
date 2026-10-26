@@ -51,6 +51,8 @@ namespace SCIEPort.Features.Stormhammer
             public CanvasWidget Root;
             public SkillButton Judgment;
             public SkillButton Ultimate;
+            public LabelWidget ThunderGodLabel;
+            public RectangleWidget ThunderGodBar;
         }
 
         private static readonly Dictionary<ComponentGui, HudState> s_states = new Dictionary<ComponentGui, HudState>();
@@ -71,6 +73,15 @@ namespace SCIEPort.Features.Stormhammer
             if (behavior == null) { state.Root.IsVisible = false; return; }
             state.Judgment.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.ThunderousJudgment));
             state.Ultimate.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.MyriadTribulation));
+            float thunderGod = behavior.GetThunderGodRemaining(player);
+            bool active = thunderGod > 0f;
+            state.ThunderGodLabel.IsVisible = active;
+            state.ThunderGodBar.IsVisible = active;
+            if (active)
+            {
+                state.ThunderGodLabel.Text = "雷神降世 " + MathUtils.Ceiling(thunderGod).ToString("0") + "s";
+                state.ThunderGodBar.Size = new Vector2(196f * MathUtils.Saturate(thunderGod / 12f), 4f);
+            }
             if (state.Judgment.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.ThunderousJudgment);
             if (state.Ultimate.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.MyriadTribulation);
         }
@@ -84,10 +95,32 @@ namespace SCIEPort.Features.Stormhammer
                 Judgment = new SkillButton(atlas, 1, "雷霆万钧", 78f),
                 Ultimate = new SkillButton(atlas, 2, "万象雷劫", 96f)
             };
+            state.ThunderGodLabel = new LabelWidget
+            {
+                Size = new Vector2(196f, 20f),
+                Text = string.Empty,
+                TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter,
+                FontScale = 0.62f,
+                DropShadow = true,
+                Color = new Color(236, 248, 255),
+                IsVisible = false
+            };
+            state.ThunderGodBar = new RectangleWidget
+            {
+                Size = new Vector2(196f, 4f),
+                FillColor = new Color(120, 206, 255, 220),
+                OutlineColor = Color.Transparent,
+                OutlineThickness = 0f,
+                IsVisible = false
+            };
             state.Root.Children.Add(state.Judgment);
             state.Root.Children.Add(state.Ultimate);
+            state.Root.Children.Add(state.ThunderGodLabel);
+            state.Root.Children.Add(state.ThunderGodBar);
             CanvasWidget.SetPosition(state.Judgment, new Vector2(126f, 148f));
             CanvasWidget.SetPosition(state.Ultimate, new Vector2(64f, 24f));
+            CanvasWidget.SetPosition(state.ThunderGodLabel, new Vector2(12f, 0f));
+            CanvasWidget.SetPosition(state.ThunderGodBar, new Vector2(12f, 20f));
             gui.ControlsContainerWidget.Children.Add(state.Root);
             return state;
         }

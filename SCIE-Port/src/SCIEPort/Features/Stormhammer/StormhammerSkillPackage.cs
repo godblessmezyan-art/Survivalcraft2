@@ -23,7 +23,9 @@ namespace SCIEPort.Features.Stormhammer
         UltimateMainStrike = 8,
         UltimateAftershock = 9,
         UltimateEnd = 10,
-        AvatarState = 11
+        AvatarState = 11,
+        ThunderGodStart = 12,
+        ThunderGodEnd = 13
     }
 
     /// <summary>Authenticated V3.2 skill request and authoritative presentation event.</summary>

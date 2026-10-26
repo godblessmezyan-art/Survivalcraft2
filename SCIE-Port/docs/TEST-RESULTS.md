@@ -1,5 +1,22 @@
 # 测试结果
 
+## 0.31.0 苍穹之怒 V5.0「雷神降世」（2026-10-26）
+
+- 状态机：已确认。`ActivateThunderGod` 在 `StartUltimate` 内授予 12 s 状态并按实体 id 覆盖（不累加）；`UpdateThunderGod` 每帧校验 `IsAddedToProject / Health>0 / IsEquipped`，到期或失效即广播 `ThunderGodEnd`；`Dispose` 清空 `m_thunderGod / m_pendingJudgment` 与视觉状态。
+- 伤害通道：已确认。`DealElementalPower(base, multiplier)` 与 `DealAttackPower(base, multiplier = 1)` 为唯一入口；普攻雷电与雷霆万钧传 `ThunderGodPowerMultiplier`，物理 / 反伤 / 主雷 / 余震传 `1f`。`DiagnosticDamage` 改为输出 `base / x / final / health before->after`。
+- 冷却：已确认。仅刷新雷霆万钧（`SetCooldown(id, ThunderousJudgment, 0f)`）并广播 `Accepted(Value=0)`；大招自身 55 s 不变。
+- 视觉：已确认（源码）。超载电弧间隔 0.42×、芯 0.13 / 辉光 0.36、双条跨身电弧；0.42 s 足迹雷纹；锤头 `IsOverchargedNear` 2.5 格检测 → 白蓝高亮 ×1.45；首次雷霆万钧 `Step=1` 触发 14 条 / 芯 0.70 / 辉光 1.95 / 额外 10.5 格符文；主雷芯 2.45 / 辉光 5.6 / 分叉 7 / 寿命 1.05 s + 两圈纯视觉冲击波环。
+- 天幕：已确认（580 断言）。五段密度 1.15–11.60 s，高画质 145 道（27 近 + 118 远），中/低 ×0.62/×0.34；断言覆盖总数、排序、窗口边界、高潮 > 屏息×4、长尾跨过 10.5 s、确定性、`DueStrikes` 跨阶段计数、null/空 phases 容错。
+- 天地异变：已确认（源码）。`StormReleaseTime = 12.0f` + 1.6 s 淡出尾；`GetStormBlend` 仅 `LocalCaster`；`GetFlash` 受 `ReducedFlashes` 压制。
+- 新增构建守卫：已确认。6 条 V5 守卫（12 s / ×2 / 只刷雷霆万钧 CD / 物理 x1 / 反伤 x1 / 主雷与余震不得引用倍率 / 天幕与超载与 HUD 存在）。
+- 全量回归：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 41 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 / PortableFortress 291 / **Skywrath V5 580**。
+- 编译/数据库：已确认。net472 Release **0 warning / 0 error**；15 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **2,650,795 字节 / 91 条目**，SHA-256 `B3C5FFBC508F343A800ACF4E9A4E2AF5E3DCECCDD0175420E07AF9390593F3F5`；modinfo `0.31.0`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。强势期手感、超载密度、HUD 计时、低画质帧率均未执行。
+- 双机联机：待验证。旁观者天空、主雷同步、两端伤害一致性均未执行。
+- 伤害实测：未验证。仅静态日志格式与离线数值表已确认，未在真机观察 `health before->after`。
+
 ## 0.30.0 苍穹之怒 V4.0（2026-10-26）
 
 - 审计：已确认。定位旧版"蓝色光团"根因为 `StormhammerParticleSystem.CreateArc`（18–44 个 0.035–0.075 相机朝向粒子）与 `EmitSkyBolt` 同源粒子弧；并逐项取证 `SubsystemDrawing`/`IDrawable`/`TexturedBatch3D.QueueQuad`/`BlendState.Additive`/`DepthStencilState.DepthRead`/`RasterizerState.CullNone`/`SubsystemSky.CalculateFog`/`ComponentBody.ApplyShaking`/`SubsystemAudio.PlaySound`。

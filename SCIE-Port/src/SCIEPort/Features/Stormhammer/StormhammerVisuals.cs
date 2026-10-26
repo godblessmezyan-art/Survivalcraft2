@@ -38,6 +38,7 @@ namespace SCIEPort.Features.Stormhammer
             // also provides the corresponding world matrix explicitly.
             Matrix world = environmentData.InWorldMatrix;
             Vector3 position = world.Translation + world.Up * (0.60f * size);
+            bool overload = awakened && AwakenedStormhammerVisuals.IsOverchargedNear(project, position);
             GlowState state = null;
             foreach (GlowState candidate in states)
             {
@@ -59,10 +60,13 @@ namespace SCIEPort.Features.Stormhammer
             state.Point.Right = Vector3.UnitX;
             state.Point.Up = Vector3.UnitY;
             state.Point.Forward = Vector3.UnitZ;
-            state.Point.Color = awakened
-                ? new Color(76, 168, 255, (int)(MathUtils.Min(255f, 190f * pulse + 74f * ultimate)))
-                : new Color(34, 174, 255, (int)(150f * pulse));
-            state.Point.Size = (awakened ? 0.21f + 0.09f * ultimate : 0.16f) * MathUtils.Clamp(size, 0.25f, 1.4f);
+            state.Point.Color = overload
+                ? new Color(196, 232, 255, (int)(MathUtils.Min(255f, 214f * pulse + 40f)))
+                : awakened
+                    ? new Color(76, 168, 255, (int)(MathUtils.Min(255f, 190f * pulse + 74f * ultimate)))
+                    : new Color(34, 174, 255, (int)(150f * pulse));
+            float baseSize = awakened ? 0.21f + 0.09f * ultimate : 0.16f;
+            state.Point.Size = (overload ? baseSize * 1.45f : baseSize) * MathUtils.Clamp(size, 0.25f, 1.4f);
             state.Point.FarSize = state.Point.Size;
             state.LastFrame = Time.FrameIndex;
         }

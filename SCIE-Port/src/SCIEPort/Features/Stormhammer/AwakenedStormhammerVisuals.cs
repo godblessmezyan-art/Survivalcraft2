@@ -31,8 +31,11 @@ namespace SCIEPort.Features.Stormhammer
         /// <summary>Seconds from cast start to the main bolt landing (server publishes the same value).</summary>
         public const float MainStrikeTime = 4.85f;
 
-        /// <summary>Seconds the storm sky stays active before it releases.</summary>
-        public const float StormReleaseTime = 7.4f;
+        /// <summary>Seconds the storm sky and backdrop stay active (matches the Thunder God window).</summary>
+        public const float StormReleaseTime = 12.0f;
+
+        /// <summary>Extra seconds the sky needs to fade out after the window closes.</summary>
+        public const float StormFadeTail = 1.6f;
 
         private sealed class StormState
         {
@@ -57,7 +60,9 @@ namespace SCIEPort.Features.Stormhammer
             public Vector4? OriginalEmission;
             public int LastFrame;
             public double NextArc;
+            public double NextFootstep;
             public Vector3 LastCenter;
+            public Vector3 LastFootstep;
         }
 
         private static readonly Dictionary<Project, List<StormState>> s_storms = new Dictionary<Project, List<StormState>>();
@@ -65,6 +70,8 @@ namespace SCIEPort.Features.Stormhammer
         private static readonly Dictionary<Project, float> s_flash = new Dictionary<Project, float>();
         private static readonly Dictionary<ComponentModel, AvatarGlow> s_avatars = new Dictionary<ComponentModel, AvatarGlow>();
         private static readonly Dictionary<Project, LightningScene> s_scenes = new Dictionary<Project, LightningScene>();
+        private static readonly Dictionary<Project, Dictionary<ushort, double>> s_overcharge =
+            new Dictionary<Project, Dictionary<ushort, double>>();
 
         /// <summary>Registers the geometry pool owned by the project's subsystem.</summary>
         public static void RegisterScene(Project project, LightningScene scene)
@@ -86,7 +93,7 @@ namespace SCIEPort.Features.Stormhammer
                     audio?.PlaySound("Audio/Stormhammer/Charge", 0.85f, -0.06f, package.Position, 10f, false);
                     break;
                 case StormhammerSkillEvent.JudgmentBurst:
-                    EmitJudgment(project, package.Position, package.CastId, scene, now);
+                    EmitJudgment(project, package.Position, package.CastId, scene, now, package.Step == 1);
                     audio?.PlaySound("Audio/Stormhammer/Strike", 1f, 0.04f, package.Position, 26f, false);
                     break;
                 case StormhammerSkillEvent.UltimateStart:
@@ -105,6 +112,12 @@ namespace SCIEPort.Features.Stormhammer
                 case StormhammerSkillEvent.UltimateEnd:
                     EndStorm(project, package.CastId, now);
                     audio?.PlaySound("Audio/Stormhammer/Rumble", 0.7f, -0.34f, package.Position, 40f, true);
+                    break;
+                case StormhammerSkillEvent.ThunderGodStart:
+                    SetOvercharge(project, package.CasterId, now + MathUtils.Max(package.Value, 1f));
+                    break;
+                case StormhammerSkillEvent.ThunderGodEnd:
+                    ClearOvercharge(project, package.CasterId);
                     break;
             }
         }
@@ -160,10 +173,14 @@ namespace SCIEPort.Features.Stormhammer
             particles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(centre + Vector3.UnitY * 1.2f, 1.1f));
         }
 
-        private static void EmitJudgment(Project project, Vector3 centre, uint castId, LightningScene scene, double now)
+        private static void EmitJudgment(Project project, Vector3 centre, uint castId, LightningScene scene, double now, bool boosted)
         {
-            int count = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 12
+            int baseCount = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 12
                 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 10 : 8;
+            int count = boosted ? baseCount + 2 : baseCount;
+            float coreWidth = boosted ? 0.70f : 0.52f;
+            float haloWidth = boosted ? 1.95f : 1.45f;
+            int branches = boosted ? 3 : 2;
             Vector3 origin = centre + Vector3.UnitY * 1.15f;
             if (scene != null)
             {
@@ -174,25 +191,29 @@ namespace SCIEPort.Features.Stormhammer
                     float reach = 8.4f + ((i % 3) - 1) * 0.45f;
                     Vector3 end = centre + new Vector3(MathUtils.Cos(angle) * reach, 0.12f, MathUtils.Sin(angle) * reach);
                     scene.Spawn(LightningBoltKind.Radial, origin, end,
-                        LightningRules.Mix(castId, (uint)(0x40 + i)), now, 0.62,
-                        0.52f, 1.45f,
+                        LightningRules.Mix(castId, (uint)(0x40 + i)), now, boosted ? 0.72 : 0.62,
+                        coreWidth, haloWidth,
                         new Color(238, 250, 255, 250), new Color(64, 168, 255, 190),
-                        2, 0f, false);
+                        branches, 0f, false);
                 }
 
                 scene.SpawnRune(centre, 2.6f, 5.6f, now, 0.5f, new Color(206, 244, 255, 220));
                 scene.Spawn(LightningBoltKind.Radial,
                     origin, centre + Vector3.UnitY * 3.4f,
-                    LightningRules.Mix(castId, 0x77u), now, 0.30, 0.8f, 2.1f,
+                    LightningRules.Mix(castId, 0x77u), now, 0.30, boosted ? 1.05f : 0.8f, boosted ? 2.7f : 2.1f,
                     new Color(240, 252, 255, 250), new Color(80, 180, 255, 170), 0, 0f, true);
+                if (boosted)
+                {
+                    scene.SpawnRune(centre, 3.2f, 10.5f, now, 0.85f, new Color(150, 210, 255, 210));
+                }
             }
 
             SubsystemParticles particles = project.FindSubsystem<SubsystemParticles>(false);
-            particles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(origin, 2.2f));
-            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(centre, 4.2f, new Color(205, 248, 255, 245), 0.45f, 40));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(origin, boosted ? 2.9f : 2.2f));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(centre, boosted ? 5.4f : 4.2f, new Color(205, 248, 255, 245), 0.45f, boosted ? 52 : 40));
             particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(centre + Vector3.UnitY * 0.18f, 9f, new Color(46, 158, 255, 200), 0.8f, 52));
-            ShakeNearby(project, centre, 14f, 0.35f);
-            AddFlash(project, 0.55f);
+            ShakeNearby(project, centre, boosted ? 20f : 14f, boosted ? 0.5f : 0.35f);
+            AddFlash(project, boosted ? 0.85f : 0.55f);
         }
 
         // ------------------------------------------------------------------
@@ -214,10 +235,18 @@ namespace SCIEPort.Features.Stormhammer
             if (forward.LengthSquared() < 0.01f) forward = Vector3.UnitZ;
             forward = Vector3.Normalize(forward);
 
-            int near = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 10
-                : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 8 : 5;
-            int far = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 26
-                : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 18 : 10;
+            // Density phases: build up, hold, hush just before the main bolt, climax on impact,
+            // then a long sustain so the backdrop covers the whole 12 s window.
+            float density = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 1f
+                : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 0.62f : 0.34f;
+            var phases = new[]
+            {
+                new LightningRules.StormPhase(1.15f, 2.70f, Scale(5, density), Scale(18, density)),
+                new LightningRules.StormPhase(2.70f, 4.10f, Scale(6, density), Scale(26, density)),
+                new LightningRules.StormPhase(4.10f, 4.85f, Scale(1, density), Scale(4, density)),
+                new LightningRules.StormPhase(4.85f, 6.80f, Scale(9, density), Scale(44, density)),
+                new LightningRules.StormPhase(6.80f, 11.60f, Scale(6, density), Scale(26, density))
+            };
             uint seed = LightningRules.Mix(package.CastId, 0x5F356495u);
             list.Add(new StormState
             {
@@ -225,10 +254,10 @@ namespace SCIEPort.Features.Stormhammer
                 Centre = package.Position,
                 Forward = forward,
                 Start = now,
-                End = now + StormReleaseTime + 1.6,
+                End = now + StormReleaseTime + StormFadeTail,
                 Seed = seed,
                 LocalCaster = IsLocalCaster(project, package.CasterId),
-                Schedule = LightningRules.BuildStormSchedule(seed, 1.15f, 4.35f, near, far),
+                Schedule = LightningRules.BuildStormSchedule(seed, phases),
                 NextSkyFlash = now + 0.35,
                 HushUntil = now + 4.1
             });
@@ -242,6 +271,63 @@ namespace SCIEPort.Features.Stormhammer
             SubsystemAudio audio = project.FindSubsystem<SubsystemAudio>(false);
             audio?.PlaySound("Audio/Stormhammer/Rumble", 0.65f, -0.3f, package.Position, 44f, true);
             AddFlash(project, 0.2f);
+        }
+
+        private static int Scale(int count, float density)
+        {
+            return MathUtils.Max(1, (int)Math.Round(count * density));
+        }
+
+        private static void SetOvercharge(Project project, ushort casterId, double endTime)
+        {
+            Dictionary<ushort, double> map;
+            if (!s_overcharge.TryGetValue(project, out map))
+            {
+                map = new Dictionary<ushort, double>();
+                s_overcharge.Add(project, map);
+            }
+
+            map[casterId] = endTime;
+        }
+
+        private static void ClearOvercharge(Project project, ushort casterId)
+        {
+            Dictionary<ushort, double> map;
+            if (s_overcharge.TryGetValue(project, out map)) map.Remove(casterId);
+        }
+
+        /// <summary>True while the entity still owns an unexpired Thunder God window.</summary>
+        private static bool IsOvercharged(Project project, ushort entityId)
+        {
+            Dictionary<ushort, double> map;
+            if (!s_overcharge.TryGetValue(project, out map)) return false;
+            double end;
+            if (!map.TryGetValue(entityId, out end)) return false;
+            SubsystemTime time = project.FindSubsystem<SubsystemTime>(false);
+            return (time?.GameTime ?? Time.RealTime) < end;
+        }
+
+        /// <summary>
+        /// Used by the held weapon model: is this weapon in the hands of an overcharged player?
+        /// Keeps the hammer core in sync with the body glow without a second state source.
+        /// </summary>
+        public static bool IsOverchargedNear(Project project, Vector3 worldPosition)
+        {
+            Dictionary<ushort, double> map;
+            if (project == null || !s_overcharge.TryGetValue(project, out map) || map.Count == 0) return false;
+            SubsystemPlayers players = project.FindSubsystem<SubsystemPlayers>(false);
+            if (players == null) return false;
+            ReadOnlyList<ComponentPlayer> list = players.ComponentPlayers;
+            for (int i = 0; i < list.Count; i++)
+            {
+                ComponentPlayer player = list[i];
+                if (player?.ComponentBody == null) continue;
+                if (!map.ContainsKey(player.Entity.EntityId)) continue;
+                if (Vector3.DistanceSquared(player.ComponentBody.BoundingBox.Center(), worldPosition) > 9f) continue;
+                if (IsOvercharged(project, player.Entity.EntityId)) return true;
+            }
+
+            return false;
         }
 
         private static bool IsLocalCaster(Project project, ushort casterId)
@@ -266,21 +352,25 @@ namespace SCIEPort.Features.Stormhammer
             if (scene != null)
             {
                 scene.Spawn(LightningBoltKind.Main, start, impact,
-                    LightningRules.Mix(package.CastId, 0xC0FFEEu), now, 0.95,
-                    1.95f, 4.6f,
-                    new Color(248, 253, 255, 255), new Color(74, 164, 255, 215),
-                    5, 9.5f, true);
-                scene.SpawnRune(impact, 1.2f, 11.5f, now, 1.25f, new Color(214, 236, 255, 235));
-                scene.SpawnRune(impact, 2.0f, 7.6f, now, 0.95f, new Color(96, 186, 255, 200));
+                    LightningRules.Mix(package.CastId, 0xC0FFEEu), now, 1.05,
+                    2.45f, 5.6f,
+                    new Color(250, 254, 255, 255), new Color(70, 158, 255, 225),
+                    7, 9.5f, true);
+                scene.SpawnRune(impact, 1.2f, 12.5f, now, 1.30f, new Color(214, 236, 255, 235));
+                scene.SpawnRune(impact, 2.0f, 8.4f, now, 1.00f, new Color(96, 186, 255, 200));
+                // Visual-only shockwave rings; they carry no damage and never touch terrain.
+                scene.SpawnRune(impact, 3.0f, 15.5f, now, 1.55f, new Color(120, 176, 255, 175));
+                scene.SpawnRune(impact, 2.2f, 10.0f, now, 1.15f, new Color(190, 226, 255, 160));
             }
 
             SubsystemAudio audio = project.FindSubsystem<SubsystemAudio>(false);
             audio?.PlaySound("Audio/Stormhammer/Strike", 1f, -0.3f, impact, 56f, false);
             audio?.PlaySound("Audio/Stormhammer/Rumble", 0.9f, -0.16f, impact, 64f, true);
             SubsystemParticles particles = project.FindSubsystem<SubsystemParticles>(false);
-            particles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(impact + Vector3.UnitY * 0.4f, 3.4f));
-            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(impact, 5.6f, new Color(230, 248, 255, 250), 0.62f, 60));
-            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(impact + Vector3.UnitY * 0.2f, 9.6f, new Color(58, 166, 255, 215), 1.0f, 64));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(impact + Vector3.UnitY * 0.4f, 3.9f));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(impact, 6.4f, new Color(230, 248, 255, 250), 0.62f, 64));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(impact + Vector3.UnitY * 0.2f, 11.5f, new Color(58, 166, 255, 215), 1.0f, 64));
+            particles?.AddParticleSystem(StormhammerParticleSystem.CreateRing(impact + Vector3.UnitY * 0.1f, 15.5f, new Color(96, 150, 240, 170), 1.35f, 64));
             ShakeNearby(project, impact, 34f, 0.85f);
             AddFlash(project, 1f);
 
@@ -530,6 +620,7 @@ namespace SCIEPort.Features.Stormhammer
         {
             s_storms.Remove(project);
             s_scenes.Remove(project);
+            s_overcharge.Remove(project);
             s_flash.Remove(project);
             s_seenEvents.Remove(project);
             List<ComponentModel> stale = new List<ComponentModel>();
@@ -605,8 +696,10 @@ namespace SCIEPort.Features.Stormhammer
 
             LightningScene scene;
             if (!s_scenes.TryGetValue(model.Project, out scene) || scene == null) return;
+            bool overload = IsOvercharged(model.Project, player.Entity.EntityId);
             double interval = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 0.16
                 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 0.28 : 0.5;
+            if (overload) interval *= StormhammerOptions.Quality == StormhammerEffectQuality.Low ? 0.55 : 0.42;
             double now = Time.RealTime;
             if (now >= state.NextArc)
             {
@@ -614,15 +707,44 @@ namespace SCIEPort.Features.Stormhammer
                 int b = (a + 2 + Time.FrameIndex % 3) % state.Points.Count;
                 uint seed = LightningRules.Mix((uint)(now * 733.0), player.Entity.EntityId);
                 scene.Spawn(LightningBoltKind.Radial, state.Points[a].Position, state.Points[b].Position, seed, now, 0.16,
-                    0.07f, 0.19f, new Color(226, 248, 255, 220), new Color(70, 176, 255, 140), 0, 0f, false);
+                    overload ? 0.13f : 0.07f, overload ? 0.36f : 0.19f,
+                    new Color(226, 248, 255, 220), new Color(70, 176, 255, 140), overload ? 1 : 0, 0f, false);
+                if (overload)
+                {
+                    // Shoulder/torso harness arcs: the silhouette reads as overloaded even at range.
+                    int shoulder = 0;
+                    int hip = 4;
+                    scene.Spawn(LightningBoltKind.Radial, state.Points[shoulder].Position, state.Points[hip].Position,
+                        LightningRules.Mix(seed, 11u), now, 0.18, 0.08f, 0.24f,
+                        new Color(236, 251, 255, 225), new Color(86, 190, 255, 150), 1, 0f, false);
+                    scene.Spawn(LightningBoltKind.Radial, state.Points[1].Position, state.Points[2].Position,
+                        LightningRules.Mix(seed, 12u), now, 0.14, 0.06f, 0.20f,
+                        new Color(236, 251, 255, 220), new Color(86, 190, 255, 140), 0, 0f, false);
+                }
+
                 if (Vector3.DistanceSquared(center, state.LastCenter) > 0.03f)
                 {
                     scene.Spawn(LightningBoltKind.Radial, state.LastCenter, center, LightningRules.Mix(seed, 3u), now, 0.12,
-                        0.05f, 0.15f, new Color(200, 236, 255, 180), new Color(60, 150, 255, 120), 0, 0f, false);
+                        overload ? 0.09f : 0.05f, overload ? 0.26f : 0.15f,
+                        new Color(200, 236, 255, 180), new Color(60, 150, 255, 120), 0, 0f, false);
                 }
 
                 state.NextArc = now + interval;
                 state.LastCenter = center;
+            }
+
+            if (overload && now >= state.NextFootstep)
+            {
+                state.NextFootstep = now + 0.42;
+                if (Vector3.DistanceSquared(center, state.LastFootstep) > 0.16f)
+                {
+                    state.LastFootstep = center;
+                    Vector3 foot = center - bodyMatrix.Up * 0.85f;
+                    scene.SpawnRune(foot, 0.18f, 0.95f, now, 0.42f, new Color(120, 196, 255, 200));
+                    scene.Spawn(LightningBoltKind.Radial, foot + bodyMatrix.Up * 0.75f, foot,
+                        LightningRules.Mix((uint)(now * 311.0), player.Entity.EntityId), now, 0.14,
+                        0.06f, 0.18f, new Color(220, 244, 255, 210), new Color(70, 170, 255, 130), 0, 0f, false);
+                }
             }
         }
 

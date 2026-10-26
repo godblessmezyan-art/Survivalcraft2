@@ -304,6 +304,91 @@ namespace SCIEPort.Features.Stormhammer
             public uint Seed;
         }
 
+        /// <summary>One density window of the 12 second storm. Counts are per window.</summary>
+        public struct StormPhase
+        {
+            /// <summary>Creates a density window.</summary>
+            public StormPhase(float start, float end, int nearCount, int farCount)
+            {
+                Start = start;
+                End = end;
+                NearCount = nearCount;
+                FarCount = farCount;
+            }
+
+            /// <summary>Seconds after the cast start when this window opens.</summary>
+            public float Start;
+            /// <summary>Seconds after the cast start when this window closes.</summary>
+            public float End;
+            /// <summary>Coarse, branching strikes in this window.</summary>
+            public int NearCount;
+            /// <summary>Dense, thin strikes in this window.</summary>
+            public int FarCount;
+        }
+
+        /// <summary>
+        /// V5 schedule: the same total window split into density phases so the storm builds,
+        /// hushes before the main bolt and then peaks at the impact. Deterministic per cast id.
+        /// </summary>
+        public static StormStrike[] BuildStormSchedule(uint castSeed, StormPhase[] phases)
+        {
+            if (phases == null || phases.Length == 0)
+            {
+                return new StormStrike[0];
+            }
+
+            int total = 0;
+            for (int i = 0; i < phases.Length; i++)
+            {
+                total += Math.Max(0, phases[i].NearCount) + Math.Max(0, phases[i].FarCount);
+            }
+
+            StormStrike[] strikes = new StormStrike[total];
+            int cursor = 0;
+            for (int p = 0; p < phases.Length; p++)
+            {
+                StormPhase phase = phases[p];
+                float start = phase.Start;
+                float end = phase.End < phase.Start + 0.05f ? phase.Start + 0.05f : phase.End;
+                int near = Math.Max(0, phase.NearCount);
+                int far = Math.Max(0, phase.FarCount);
+                uint phaseSeed = Mix(castSeed, (uint)(0x900 + p * 37));
+
+                for (int i = 0; i < near; i++)
+                {
+                    uint state = Mix(phaseSeed, (uint)(0x1000 + i));
+                    float time = start + (end - start) * ((i + NextFloat(state)) / Math.Max(1, near));
+                    strikes[cursor++] = new StormStrike
+                    {
+                        Time = time,
+                        Angle = Signed(Mix(state, 1u)) * (86f * (float)Math.PI / 360f),
+                        Distance = Range(15f, 25f, Mix(state, 2u)),
+                        Height = Range(26f, 40f, Mix(state, 3u)),
+                        Near = true,
+                        Seed = Mix(phaseSeed, (uint)(0x2000 + i))
+                    };
+                }
+
+                for (int i = 0; i < far; i++)
+                {
+                    uint state = Mix(phaseSeed, (uint)(0x3000 + i));
+                    float time = start + (end - start) * ((i + NextFloat(state)) / Math.Max(1, far));
+                    strikes[cursor++] = new StormStrike
+                    {
+                        Time = time,
+                        Angle = Signed(Mix(state, 4u)) * (49f * (float)Math.PI / 180f),
+                        Distance = Range(25f, 55f, Mix(state, 5u)),
+                        Height = Range(34f, 55f, Mix(state, 6u)),
+                        Near = false,
+                        Seed = Mix(phaseSeed, (uint)(0x4000 + i))
+                    };
+                }
+            }
+
+            SortByTime(strikes);
+            return strikes;
+        }
+
         /// <summary>Builds the deterministic backdrop schedule for one cast.</summary>
         public static StormStrike[] BuildStormSchedule(uint castSeed, float startTime, float endTime, int nearCount, int farCount)
         {
@@ -355,8 +440,13 @@ namespace SCIEPort.Features.Stormhammer
                 };
             }
 
-            // Sort by time so the renderer can walk the array with a cursor instead of
-            // searching every frame.
+            SortByTime(strikes);
+            return strikes;
+        }
+
+        /// <summary>Insertion sort by strike time; schedules are small and this stays allocation free.</summary>
+        private static void SortByTime(StormStrike[] strikes)
+        {
             for (int i = 1; i < strikes.Length; i++)
             {
                 StormStrike value = strikes[i];
@@ -369,8 +459,6 @@ namespace SCIEPort.Features.Stormhammer
 
                 strikes[j + 1] = value;
             }
-
-            return strikes;
         }
 
         /// <summary>Counts how many scheduled strikes are due at a given elapsed time.</summary>

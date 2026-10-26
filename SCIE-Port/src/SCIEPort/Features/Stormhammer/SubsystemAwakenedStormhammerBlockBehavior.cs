@@ -17,6 +17,12 @@ namespace SCIEPort.Features.Stormhammer
         internal const float JudgmentCooldown = 12f;
         internal const float UltimateCooldown = 55f;
 
+        /// <summary>Duration of the post-ultimate Thunder God window.</summary>
+        internal const float ThunderGodDuration = 12f;
+
+        /// <summary>Lightning damage multiplier inside the Thunder God window.</summary>
+        internal const float ThunderGodPowerMultiplier = 2f;
+
         private sealed class PendingLightning
         {
             public ComponentCreature Attacker;
@@ -32,6 +38,14 @@ namespace SCIEPort.Features.Stormhammer
             public ComponentHealth Health;
             public float LastHealth;
             public Action<ComponentCreature> Handler;
+        }
+
+        private sealed class ThunderGodState
+        {
+            public ComponentPlayer Player;
+            public ushort EntityId;
+            public double EndTime;
+            public bool JudgmentBoostUsed;
         }
 
         private sealed class PendingJudgment
@@ -54,6 +68,7 @@ namespace SCIEPort.Features.Stormhammer
         }
 
         private readonly Dictionary<ushort, double[]> m_cooldowns = new Dictionary<ushort, double[]>();
+        private readonly Dictionary<ushort, ThunderGodState> m_thunderGod = new Dictionary<ushort, ThunderGodState>();
         private readonly Dictionary<ushort, ushort> m_sequences = new Dictionary<ushort, ushort>();
         private readonly Dictionary<ComponentHealth, AvatarState> m_avatars = new Dictionary<ComponentHealth, AvatarState>();
         private readonly List<PendingLightning> m_pendingLightning = new List<PendingLightning>();
@@ -95,6 +110,8 @@ namespace SCIEPort.Features.Stormhammer
         public override void Dispose()
         {
             m_scene?.Clear();
+            m_thunderGod.Clear();
+            m_pendingJudgment.Clear();
             AwakenedStormhammerVisuals.Reset(Project);
             base.Dispose();
         }
@@ -119,6 +136,21 @@ namespace SCIEPort.Features.Stormhammer
             return m_cooldowns.TryGetValue(player.Entity.EntityId, out values)
                 ? MathUtils.Max(0f, (float)(values[(int)skill] - m_time.GameTime))
                 : 0f;
+        }
+
+        /// <summary>Seconds left on the Thunder God window, or 0 when inactive.</summary>
+        internal float GetThunderGodRemaining(ComponentPlayer player)
+        {
+            if (player == null) return 0f;
+            ThunderGodState state;
+            if (!m_thunderGod.TryGetValue(player.Entity.EntityId, out state)) return 0f;
+            return MathUtils.Max(0f, (float)(state.EndTime - m_time.GameTime));
+        }
+
+        /// <summary>True while the caster's lightning damage is doubled.</summary>
+        internal bool IsThunderGodActive(ComponentPlayer player)
+        {
+            return GetThunderGodRemaining(player) > 0f;
         }
 
         internal void RequestSkill(ComponentPlayer player, StormhammerSkill skill)
@@ -195,10 +227,58 @@ namespace SCIEPort.Features.Stormhammer
             m_scene?.Update(now);
             UpdateAvatarSubscriptions();
             if (CommonLib.WorkType == WorkType.Client) return;
+            UpdateThunderGod(now);
             ApplyPendingLightning(now);
             UpdatePendingJudgment(now);
             UpdateUltimate(now);
             ExpireDedup(now);
+        }
+
+        /// <summary>
+        /// Grants the 12 s Thunder God window once per successful ultimate and refreshes the
+        /// Thunderous Judgment cooldown exactly once. Re-casting overwrites the expiry instead of
+        /// stacking, so the multiplier can never compound.
+        /// </summary>
+        private void ActivateThunderGod(ComponentPlayer player, uint castId)
+        {
+            ushort id = player.Entity.EntityId;
+            m_thunderGod[id] = new ThunderGodState
+            {
+                Player = player,
+                EntityId = id,
+                EndTime = m_time.GameTime + ThunderGodDuration,
+                JudgmentBoostUsed = false
+            };
+
+            // Refresh only the judgment cooldown; the ultimate keeps its own 55 s.
+            SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);
+            Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.Accepted, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, 0f));
+            Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.ThunderGodStart, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, ThunderGodDuration));
+            Diagnostic("thunder god start cast=" + castId + " until=" + (m_time.GameTime + ThunderGodDuration).ToString("0.00"));
+        }
+
+        private void UpdateThunderGod(double now)
+        {
+            if (m_thunderGod.Count == 0) return;
+            List<ushort> expired = null;
+            foreach (KeyValuePair<ushort, ThunderGodState> pair in m_thunderGod)
+            {
+                ThunderGodState state = pair.Value;
+                bool invalid = state.Player == null || !state.Player.IsAddedToProject
+                    || state.Player.ComponentHealth == null || state.Player.ComponentHealth.Health <= 0f
+                    || !IsEquipped(state.Player);
+                if (!invalid && now < state.EndTime) continue;
+                (expired ?? (expired = new List<ushort>())).Add(pair.Key);
+                if (state.Player != null && state.Player.IsAddedToProject)
+                {
+                    Publish(Event(state.Player, 0u, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.ThunderGodEnd, state.Player.ComponentBody.BoundingBox.Center(), Vector3.Zero, 0f));
+                }
+
+                Diagnostic("thunder god end entity=" + pair.Key + " reason=" + (invalid ? "invalid" : "timeout"));
+            }
+
+            if (expired == null) return;
+            foreach (ushort id in expired) m_thunderGod.Remove(id);
         }
 
         /// <summary>
@@ -216,6 +296,13 @@ namespace SCIEPort.Features.Stormhammer
                 if (player == null || !player.IsAddedToProject || !IsEquipped(player)) continue;
                 if (player.ComponentHealth == null || player.ComponentHealth.Health <= 0f) continue;
                 Vector3 center = player.ComponentBody.BoundingBox.Center();
+                ThunderGodState god;
+                m_thunderGod.TryGetValue(player.Entity.EntityId, out god);
+                bool boosted = god != null && now < god.EndTime;
+                float multiplier = boosted ? ThunderGodPowerMultiplier : 1f;
+                bool visualBoost = boosted && god != null && !god.JudgmentBoostUsed;
+                if (visualBoost) god.JudgmentBoostUsed = true;
+
                 HashSet<ComponentBody> struck = new HashSet<ComponentBody>();
                 foreach (ComponentBody body in ValidTargets(center, LightningRules.JudgmentRadius, player))
                 {
@@ -223,11 +310,11 @@ namespace SCIEPort.Features.Stormhammer
                     float distance = Vector3.Distance(center, body.BoundingBox.Center());
                     float power = LightningRules.JudgmentDamage(distance);
                     if (power <= 0f) continue;
-                    DealAttackPower(player.ComponentMiner.ComponentCreature, body, power, "雷霆万钧", false);
+                    DealAttackPower(player.ComponentMiner.ComponentCreature, body, power, "雷霆万钧", false, multiplier);
                 }
 
-                Publish(Event(player, pending.CastId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentBurst, center, Vector3.UnitY, LightningRules.JudgmentRadius));
-                Diagnostic("judgment burst cast=" + pending.CastId);
+                Publish(Event(player, pending.CastId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentBurst, center, Vector3.UnitY, LightningRules.JudgmentRadius, visualBoost ? (byte)1 : (byte)0));
+                Diagnostic("judgment burst cast=" + pending.CastId + " thunderGod=" + boosted + " x" + multiplier);
             }
         }
 
@@ -239,6 +326,7 @@ namespace SCIEPort.Features.Stormhammer
             // The direction is frozen here: every client gets the same cone for the backdrop storm
             // even if the caster keeps turning afterwards.
             Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateStart, aim, direction, AwakenedStormhammerVisuals.StormReleaseTime));
+            ActivateThunderGod(player, castId);
             Diagnostic("ultimate start cast=" + castId + " aim=" + aim.X.ToString("0.0") + "," + aim.Y.ToString("0.0") + "," + aim.Z.ToString("0.0"));
         }
 
@@ -316,9 +404,11 @@ namespace SCIEPort.Features.Stormhammer
                 m_pendingLightning.RemoveAt(i);
                 if (pending.Attacker == null || !pending.Attacker.Entity.IsAddedToProject || pending.Target == null) continue;
                 ComponentHealth health = pending.Target.Entity.FindComponent<ComponentHealth>(false);
-                if (health != null) DiagnosticDamage("physical", pending.Attacker.Entity.EntityId, pending.Target.Entity.EntityId, PhysicalMeleePower, pending.PhysicalBefore, health.Health);
+                if (health != null) DiagnosticDamage("physical", pending.Attacker.Entity.EntityId, pending.Target.Entity.EntityId, PhysicalMeleePower, 1f, pending.PhysicalBefore, health.Health);
                 if (!IsLiveTarget(pending.Target)) continue;
-                DealElementalPower(pending.Attacker, pending.Target, LightningMeleePower, "苍穹之怒·雷电追加");
+                ComponentPlayer attackerPlayer = pending.Attacker.Entity.FindComponent<ComponentPlayer>(false);
+                float multiplier = IsThunderGodActive(attackerPlayer) ? ThunderGodPowerMultiplier : 1f;
+                DealElementalPower(pending.Attacker, pending.Target, LightningMeleePower, "苍穹之怒·雷电追加", multiplier);
                 StormhammerVisuals.EmitArc(Project, pending.Attacker.ComponentBody.BoundingBox.Center(), pending.HitPoint, 1.15f);
                 StormhammerVisuals.EmitBurst(Project, pending.HitPoint, 0.9f);
             }
@@ -372,29 +462,36 @@ namespace SCIEPort.Features.Stormhammer
             {
                 float targetBefore = target.Health;
                 target.Injure(RetaliationPower / MathUtils.Max(target.AttackResilience, 0.001f), state.Player.ComponentMiner.ComponentCreature, false, "苍穹之怒·雷电反伤");
-                DiagnosticDamage("retaliation", state.Player.Entity.EntityId, attacker.Entity.EntityId, RetaliationPower, targetBefore, target.Health);
+                DiagnosticDamage("retaliation", state.Player.Entity.EntityId, attacker.Entity.EntityId, RetaliationPower, 1f, targetBefore, target.Health);
             }
             finally { m_applyingRetaliation = false; }
             StormhammerVisuals.EmitArc(Project, state.Player.ComponentBody.BoundingBox.Center(), attacker.ComponentBody.BoundingBox.Center(), 0.9f);
         }
 
-        private void DealElementalPower(ComponentCreature attacker, ComponentBody target, float power, string cause)
+        /// <summary>
+        /// Native elemental damage. The multiplier is applied once here and never re-enters the
+        /// buff path, so a doubled hit cannot be doubled again.
+        /// </summary>
+        private void DealElementalPower(ComponentCreature attacker, ComponentBody target, float basePower, string cause, float multiplier)
         {
             ComponentHealth health = target.Entity.FindComponent<ComponentHealth>(false);
             if (health == null || health.Health <= 0f) return;
             float before = health.Health;
-            health.Injure(power / MathUtils.Max(health.AttackResilience, 0.001f), attacker, false, cause);
-            DiagnosticDamage("lightning", attacker.Entity.EntityId, target.Entity.EntityId, power, before, health.Health);
+            float finalPower = basePower * multiplier;
+            health.Injure(finalPower / MathUtils.Max(health.AttackResilience, 0.001f), attacker, false, cause);
+            DiagnosticDamage(cause, attacker.Entity.EntityId, target.Entity.EntityId, basePower, multiplier, before, health.Health);
         }
 
-        private void DealAttackPower(ComponentCreature attacker, ComponentBody target, float power, string source, bool melee)
+        /// <summary>Native attack path (impulse + armor). The multiplier is applied once, before the call.</summary>
+        private void DealAttackPower(ComponentCreature attacker, ComponentBody target, float basePower, string source, bool melee, float multiplier = 1f)
         {
             ComponentHealth health = target.Entity.FindComponent<ComponentHealth>(false);
             float before = health != null ? health.Health : -1f;
+            float finalPower = basePower * multiplier;
             Vector3 direction = target.BoundingBox.Center() - attacker.ComponentBody.BoundingBox.Center() + Vector3.UnitY * 0.12f;
             if (direction.LengthSquared() < 0.01f) direction = Vector3.UnitY;
-            ComponentMiner.AttackBody(target, attacker, target.BoundingBox.Center(), Vector3.Normalize(direction), power, melee);
-            if (health != null) DiagnosticDamage(source, attacker.Entity.EntityId, target.Entity.EntityId, power, before, health.Health);
+            ComponentMiner.AttackBody(target, attacker, target.BoundingBox.Center(), Vector3.Normalize(direction), finalPower, melee);
+            if (health != null) DiagnosticDamage(source, attacker.Entity.EntityId, target.Entity.EntityId, basePower, multiplier, before, health.Health);
         }
 
         private IEnumerable<ComponentBody> ValidTargets(Vector3 center, float radius, ComponentPlayer caster)
@@ -508,9 +605,13 @@ namespace SCIEPort.Features.Stormhammer
             if (StormhammerOptions.Diagnostics) Log.Information("[SCIEPort Skywrath V3.2] " + text);
         }
 
-        private static void DiagnosticDamage(string source, ushort attacker, ushort target, float power, float before, float after)
+        private static void DiagnosticDamage(string source, ushort attacker, ushort target, float basePower, float multiplier, float before, float after)
         {
-            if (StormhammerOptions.Diagnostics) Log.Information(string.Format(System.Globalization.CultureInfo.InvariantCulture, "[SCIEPort Skywrath V3.2] {0} attacker={1} target={2} power={3:0.##} health={4:0.####}->{5:0.####}", source, attacker, target, power, before, after));
+            if (!StormhammerOptions.Diagnostics) return;
+            Log.Information(string.Format(
+                System.Globalization.CultureInfo.InvariantCulture,
+                "[SCIEPort Skywrath V5] {0} attacker={1} target={2} base={3:0.##} x{4:0.##} final={5:0.##} health={6:0.####}->{7:0.####}",
+                source, attacker, target, basePower, multiplier, basePower * multiplier, before, after));
         }
     }
 }
