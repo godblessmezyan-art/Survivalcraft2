@@ -1,5 +1,25 @@
 # SCIE-Port 兼容性记录
 
+## 0.30.0 苍穹之怒 V4.0（源码/离线规则/打包已确认，Android 真机待验证，2026-10-26）
+
+二技能「雷霆万钧」与三技能「万象雷劫」重制，新增独立雷电几何系统。初始雷神之锤、觉醒武器模型/贴图、普攻双段伤害、全身雷光、5 点反伤、技能 HUD 冷却与权威伤害架构未改。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 旧版缺陷根因 | 已确认（源码） | `StormhammerParticleSystem.CreateArc` 沿路径撒 18–44 个 0.035–0.075 尺寸的相机朝向粒子；`EmitSkyBolt` 同样用粒子弧。视觉上只能得到亮点链，没有任何连续几何。 |
+| 引擎绘制能力 | 已确认（反编译） | `SubsystemDrawing` + `IDrawable` 自动注册（`Project.Load` 先构造全部子系统再 Load）、`PrimitivesRenderer3D.TexturedBatch`、`TexturedBatch3D.QueueQuad`、`BlendState.Additive`、`DepthStencilState.DepthRead`、`RasterizerState.CullNone`、`SubsystemSky.CalculateFog/ViewFogColor`、`ComponentBody.ApplyShaking`、`SubsystemAudio.PlaySound`。 |
+| 雷电几何 | 已确认（源码 + 277 断言） | `LightningRules.BuildPath` 相干值噪声双向扰动、端点锚定、同 seed 逐位可复现；`LightningScene` 池化 48 条，绘制"白蓝亮芯 + 青蓝辉光"双层带，主雷加交叉面，含角宽下限、雾融合、地面符文与命中爆闪。 |
+| 二技能 | 已确认（源码 + 断言） | 0.42 s 权威蓄力后结算；半径 9；≤4 格 110、线性降至 9 格的 70；每目标单次施法只结算一次；10–12 条径向粗雷（芯 0.52 / 辉光 1.45，各 2 分叉）。 |
+| 三技能 | 已确认（源码 + 断言） | 取消 24 目标扫射；改为单一权威主雷：4.25 s 预警、4.85 s 落地、220/120/70（≤2.5 / ≤5 / ≤8 格）、余震 4 次×18、10.8 s 收束。主雷芯宽 1.95 / 辉光 4.6，起点取真实地表 + 34 格。 |
+| 前方天幕 | 已确认（源码 + 断言） | 仅施法者本机；朝向在施法瞬间冻结；近景 10 道（15–25 格、±43°）+ 远景 26 道（25–55 格、±49°）；不加载区块、不造成伤害、不查询目标；掉帧按时间轴跳过。 |
+| 天地异变 | 已确认（源码） | 深靛蓝→紫黑渐变 + 落雷补光；`GetStormBlend` 过滤 `LocalCaster`，旁观者不被染色；`Dispose` 调 `Reset` 防止天空卡紫。 |
+| 联机 | 已确认（代码边界）；真机待验证 | 伤害/冷却/落点均由权威端执行；主雷单次结算；天幕为本地确定性视觉；种子派生自广播 `CastId`；客户端视觉不参与伤害。 |
+| 编译/打包 | 已确认 | net472 Release 0 warning/0 error；15 个 XDB PASS；`.netmod` **2,648,230 字节 / 91 条目**，SHA-256 `D2EE8300C12BC21DC69A5EBC0D5516B2EC8B0ADE146D738CC18B1A21CEDA3BFA`，modinfo 0.30.0。 |
+| Android 7723 渲染/手感/帧率 | 待验证 | 未真机运行：主雷宽度亮度、天幕密度、爆闪时长、抖动强度、低端机帧率均未测。 |
+| 双机联机 | 待验证 | 主雷同步、旁观者天空不受影响、天幕不外泄均未实测。 |
+
+详见 `docs/SKYWRATH-V4.md`。
+
 ## 0.29.0 便携堡垒（资产/离线规则/打包已确认，Android 真机待验证，2026-10-26）
 
 Portable Fortress 由 Builder Assistant 正式迁入 SCIE-Port，成为独立玩法；`SCIEPort.netmod` 单独即可提供全部功能，不要求安装 `BuilderAssistant.netmod`。

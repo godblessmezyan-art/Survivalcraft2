@@ -9,7 +9,7 @@ using TemplatesDatabase;
 namespace SCIEPort.Features.Stormhammer
 {
     /// <summary>Authoritative Skywrath V3.2 combat, cooldown and presentation event state.</summary>
-    public sealed class SubsystemAwakenedStormhammerBlockBehavior : SubsystemBlockBehavior, IUpdateable
+    public sealed class SubsystemAwakenedStormhammerBlockBehavior : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
         internal const float PhysicalMeleePower = 40f;
         internal const float LightningMeleePower = 25f;
@@ -34,14 +34,11 @@ namespace SCIEPort.Features.Stormhammer
             public Action<ComponentCreature> Handler;
         }
 
-        private sealed class UltimateTarget
+        private sealed class PendingJudgment
         {
-            public ComponentBody Body;
-            public ushort EntityId;
-            public double WarningTime;
-            public double StrikeTime;
-            public bool Warned;
-            public bool Struck;
+            public ComponentPlayer Player;
+            public uint CastId;
+            public double ApplyAt;
         }
 
         private sealed class UltimateState
@@ -50,7 +47,6 @@ namespace SCIEPort.Features.Stormhammer
             public Vector3 Center;
             public uint CastId;
             public double StartTime;
-            public readonly List<UltimateTarget> Targets = new List<UltimateTarget>();
             public bool MainWarned;
             public bool MainStruck;
             public int AftershockTicks;
@@ -61,10 +57,13 @@ namespace SCIEPort.Features.Stormhammer
         private readonly Dictionary<ushort, ushort> m_sequences = new Dictionary<ushort, ushort>();
         private readonly Dictionary<ComponentHealth, AvatarState> m_avatars = new Dictionary<ComponentHealth, AvatarState>();
         private readonly List<PendingLightning> m_pendingLightning = new List<PendingLightning>();
+        private readonly List<PendingJudgment> m_pendingJudgment = new List<PendingJudgment>();
         private readonly Dictionary<long, double> m_meleeDedup = new Dictionary<long, double>();
         private SubsystemBodies m_bodies;
         private SubsystemTime m_time;
         private SubsystemGameInfo m_gameInfo;
+        private SubsystemTerrain m_terrain;
+        private LightningScene m_scene;
         private uint m_nextCastId = 1;
         private UltimateState m_ultimate;
         private bool m_applyingRetaliation;
@@ -74,6 +73,11 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
 
+        private static readonly int[] s_drawOrders = { 105 };
+
+        /// <summary>Lightning is drawn after entity models (99) and before glow points (110).</summary>
+        public int[] DrawOrders => s_drawOrders;
+
         /// <inheritdoc />
         public override void Load(ValuesDictionary valuesDictionary)
         {
@@ -81,6 +85,31 @@ namespace SCIEPort.Features.Stormhammer
             m_bodies = Project.FindSubsystem<SubsystemBodies>(true);
             m_time = Project.FindSubsystem<SubsystemTime>(true);
             m_gameInfo = Project.FindSubsystem<SubsystemGameInfo>(true);
+            m_terrain = Project.FindSubsystem<SubsystemTerrain>(true);
+            m_scene = new LightningScene();
+            m_scene.Load(Project);
+            AwakenedStormhammerVisuals.RegisterScene(Project, m_scene);
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            m_scene?.Clear();
+            AwakenedStormhammerVisuals.Reset(Project);
+            base.Dispose();
+        }
+
+        /// <inheritdoc />
+        public void Draw(Camera camera, int drawOrder)
+        {
+            if (m_scene == null || m_scene.ActiveBolts == 0)
+            {
+                return;
+            }
+
+            int scale = StormhammerOptions.Quality == StormhammerEffectQuality.Low ? 1
+                : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 2 : 4;
+            m_scene.Draw(camera, scale);
         }
 
         internal float GetCooldownRemaining(ComponentPlayer player, StormhammerSkill skill)
@@ -123,14 +152,23 @@ namespace SCIEPort.Features.Stormhammer
             uint castId = m_nextCastId++;
             SetCooldown(player.Entity.EntityId, skill, cooldown);
             Publish(Event(player, castId, skill, StormhammerSkillEvent.Accepted, Vector3.Zero, Vector3.Zero, cooldown));
-            if (skill == StormhammerSkill.ThunderousJudgment) CastJudgment(player, castId);
-            else StartUltimate(player, castId, SafeDirection(direction, player.ComponentBody.Matrix.Forward));
+            if (skill == StormhammerSkill.ThunderousJudgment)
+            {
+                Vector3 center = player.ComponentBody.BoundingBox.Center();
+                Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentCharge, center, Vector3.UnitY, 0.42f));
+                m_pendingJudgment.Add(new PendingJudgment { Player = player, CastId = castId, ApplyAt = m_time.GameTime + 0.42 });
+                player.ComponentMiner.DamageActiveTool(1);
+            }
+            else
+            {
+                StartUltimate(player, castId, SafeDirection(direction, player.ComponentBody.Matrix.Forward));
+            }
         }
 
         internal void ApplyNetworkEvent(StormhammerSkillPackage package)
         {
             if (package.Event == StormhammerSkillEvent.Accepted) SetCooldown(package.CasterId, package.Skill, package.Value);
-            AwakenedStormhammerVisuals.Apply(Project, package);
+            AwakenedStormhammerVisuals.Apply(Project, package, m_scene, m_time.GameTime);
         }
 
         /// <summary>Called from the verified AttackBody hook before native armor/resilience processing.</summary>
@@ -152,52 +190,63 @@ namespace SCIEPort.Features.Stormhammer
         public void Update(float dt)
         {
             double now = m_time.GameTime;
-            AwakenedStormhammerVisuals.Update(Project, now);
+            AwakenedStormhammerVisuals.Update(Project, now, m_scene);
+            AwakenedStormhammerVisuals.DecayFlash(Project, dt);
+            m_scene?.Update(now);
             UpdateAvatarSubscriptions();
             if (CommonLib.WorkType == WorkType.Client) return;
             ApplyPendingLightning(now);
+            UpdatePendingJudgment(now);
             UpdateUltimate(now);
             ExpireDedup(now);
         }
 
-        private void CastJudgment(ComponentPlayer player, uint castId)
+        /// <summary>
+        /// Applies Thunderous Judgment once the 0.42 s charge completes. The charge lives on the
+        /// authoritative timeline, so the release visuals and the damage share one clock.
+        /// </summary>
+        private void UpdatePendingJudgment(double now)
         {
-            Vector3 center = player.ComponentBody.BoundingBox.Center();
-            Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentCharge, center, Vector3.UnitY, 0.42f));
-            HashSet<ComponentBody> struck = new HashSet<ComponentBody>();
-            foreach (ComponentBody body in ValidTargets(center, 9f, player))
+            for (int i = m_pendingJudgment.Count - 1; i >= 0; i--)
             {
-                if (!struck.Add(body)) continue;
-                float distance = Vector3.Distance(center, body.BoundingBox.Center());
-                float power = distance <= 4f ? 110f : MathUtils.Lerp(110f, 70f, MathUtils.Saturate((distance - 4f) / 5f));
-                DealAttackPower(player.ComponentMiner.ComponentCreature, body, power, "雷霆万钧", false);
+                PendingJudgment pending = m_pendingJudgment[i];
+                if (now < pending.ApplyAt) continue;
+                m_pendingJudgment.RemoveAt(i);
+                ComponentPlayer player = pending.Player;
+                if (player == null || !player.IsAddedToProject || !IsEquipped(player)) continue;
+                if (player.ComponentHealth == null || player.ComponentHealth.Health <= 0f) continue;
+                Vector3 center = player.ComponentBody.BoundingBox.Center();
+                HashSet<ComponentBody> struck = new HashSet<ComponentBody>();
+                foreach (ComponentBody body in ValidTargets(center, LightningRules.JudgmentRadius, player))
+                {
+                    if (!struck.Add(body)) continue;
+                    float distance = Vector3.Distance(center, body.BoundingBox.Center());
+                    float power = LightningRules.JudgmentDamage(distance);
+                    if (power <= 0f) continue;
+                    DealAttackPower(player.ComponentMiner.ComponentCreature, body, power, "雷霆万钧", false);
+                }
+
+                Publish(Event(player, pending.CastId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentBurst, center, Vector3.UnitY, LightningRules.JudgmentRadius));
+                Diagnostic("judgment burst cast=" + pending.CastId);
             }
-            Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.JudgmentBurst, center, Vector3.UnitY, 9f));
-            player.ComponentMiner.DamageActiveTool(1);
         }
 
         private void StartUltimate(ComponentPlayer player, uint castId, Vector3 direction)
         {
-            Vector3 center = ResolveAimPoint(player.ComponentMiner, player.ComponentCreatureModel.EyePosition, direction, 24f);
-            UltimateState state = new UltimateState { Caster = player, Center = center, CastId = castId, StartTime = m_time.GameTime };
-            int index = 0;
-            foreach (ComponentBody body in ValidTargets(center, 24f, player))
-            {
-                if (index >= 24) break;
-                state.Targets.Add(new UltimateTarget
-                {
-                    Body = body,
-                    EntityId = body.Entity.EntityId,
-                    WarningTime = 1.55 + index * 0.075,
-                    StrikeTime = 2.30 + index * 0.11
-                });
-                index++;
-            }
+            Vector3 aim = ResolveAimPoint(player.ComponentMiner, player.ComponentCreatureModel.EyePosition, direction);
+            UltimateState state = new UltimateState { Caster = player, Center = aim, CastId = castId, StartTime = m_time.GameTime };
             m_ultimate = state;
-            Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateStart, center, Vector3.UnitY, 10f));
-            Diagnostic("ultimate start cast=" + castId + " targets=" + state.Targets.Count);
+            // The direction is frozen here: every client gets the same cone for the backdrop storm
+            // even if the caster keeps turning afterwards.
+            Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateStart, aim, direction, AwakenedStormhammerVisuals.StormReleaseTime));
+            Diagnostic("ultimate start cast=" + castId + " aim=" + aim.X.ToString("0.0") + "," + aim.Y.ToString("0.0") + "," + aim.Z.ToString("0.0"));
         }
 
+        /// <summary>
+        /// The V4 timeline: one authoritative main strike, then four bounded aftershock ticks.
+        /// Every damage application happens exactly once and is keyed to the same clock the
+        /// presentation uses, so no client can double-resolve it.
+        /// </summary>
         private void UpdateUltimate(double now)
         {
             UltimateState state = m_ultimate;
@@ -213,48 +262,45 @@ namespace SCIEPort.Features.Stormhammer
                 m_ultimate = null;
                 return;
             }
+
             double elapsed = now - state.StartTime;
-            for (int i = 0; i < state.Targets.Count; i++)
-            {
-                UltimateTarget target = state.Targets[i];
-                if (!target.Warned && elapsed >= target.WarningTime)
-                {
-                    target.Warned = true;
-                    Vector3 p = TargetPoint(target, state.Center);
-                    Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateLock, p, Vector3.UnitY, 0.75f, (byte)i, target.EntityId));
-                }
-                if (!target.Struck && elapsed >= target.StrikeTime)
-                {
-                    target.Struck = true;
-                    Vector3 p = TargetPoint(target, state.Center);
-                    if (IsLiveTarget(target.Body)) DealAttackPower(state.Caster.ComponentMiner.ComponentCreature, target.Body, 130f, "万象雷劫", false);
-                    Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateStrike, p, Vector3.UnitY, 130f, (byte)i, target.EntityId));
-                }
-            }
-            if (!state.MainWarned && elapsed >= 5.05)
+            if (!state.MainWarned && elapsed >= 4.25)
             {
                 state.MainWarned = true;
-                Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateMainWarning, state.Center, Vector3.UnitY, 7f));
+                Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateMainWarning, state.Center, Vector3.UnitY, LightningRules.TribulationRadius));
             }
-            if (!state.MainStruck && elapsed >= 5.70)
+
+            if (!state.MainStruck && elapsed >= AwakenedStormhammerVisuals.MainStrikeTime)
             {
                 state.MainStruck = true;
-                foreach (ComponentBody body in ValidTargets(state.Center, 7f, state.Caster))
+                int hit = 0;
+                foreach (ComponentBody body in ValidTargets(state.Center, LightningRules.TribulationRadius, state.Caster))
                 {
                     float distance = Vector3.Distance(state.Center, body.BoundingBox.Center());
-                    DealAttackPower(state.Caster.ComponentMiner.ComponentCreature, body, distance <= 2.2f ? 220f : 100f, "终焉主雷", false);
+                    float power = LightningRules.TribulationDamage(distance);
+                    if (power <= 0f) continue;
+                    DealAttackPower(state.Caster.ComponentMiner.ComponentCreature, body, power, "终焉主雷", false);
+                    hit++;
                 }
+
                 Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateMainStrike, state.Center, Vector3.UnitY, 220f));
                 state.NextAftershock = now + 1.0;
+                Diagnostic("main strike cast=" + state.CastId + " hits=" + hit);
             }
+
             while (state.MainStruck && state.AftershockTicks < 4 && now >= state.NextAftershock)
             {
-                foreach (ComponentBody body in ValidTargets(state.Center, 7f, state.Caster)) DealAttackPower(state.Caster.ComponentMiner.ComponentCreature, body, 18f, "雷霆余震", false);
+                foreach (ComponentBody body in ValidTargets(state.Center, LightningRules.TribulationRadius, state.Caster))
+                {
+                    DealAttackPower(state.Caster.ComponentMiner.ComponentCreature, body, LightningRules.AftershockDamage, "雷霆余震", false);
+                }
+
                 state.AftershockTicks++;
-                Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateAftershock, state.Center, Vector3.UnitY, 18f, (byte)state.AftershockTicks));
+                Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateAftershock, state.Center, Vector3.UnitY, LightningRules.AftershockDamage, (byte)state.AftershockTicks));
                 state.NextAftershock += 1.0;
             }
-            if (elapsed >= 10.2)
+
+            if (elapsed >= 10.8)
             {
                 Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateEnd, state.Center, Vector3.Zero));
                 m_ultimate = null;
@@ -371,7 +417,6 @@ namespace SCIEPort.Features.Stormhammer
             return health != null && health.Health > 0f;
         }
 
-        private static Vector3 TargetPoint(UltimateTarget target, Vector3 fallback) => IsLiveTarget(target.Body) ? target.Body.BoundingBox.Center() : fallback;
 
         private void Publish(StormhammerSkillPackage package)
         {
@@ -412,11 +457,50 @@ namespace SCIEPort.Features.Stormhammer
             return Vector3.Normalize(value);
         }
 
-        private static Vector3 ResolveAimPoint(ComponentMiner miner, Vector3 origin, Vector3 direction, float range)
+        /// <summary>
+        /// Resolves the one legal landing point for the tribulation bolt.
+        /// 1) a terrain hit inside the aim range (never through a wall),
+        /// 2) otherwise the first walkable column along the frozen forward line between 10 and 16
+        ///    blocks that is not behind solid rock,
+        /// 3) otherwise a clamped point in front of the caster so the cast always resolves.
+        /// </summary>
+        private Vector3 ResolveAimPoint(ComponentMiner miner, Vector3 origin, Vector3 direction)
         {
-            Ray3 ray = new Ray3(origin, SafeDirection(direction, Vector3.UnitZ));
+            Vector3 forward = SafeDirection(direction, Vector3.UnitZ);
+            Ray3 ray = new Ray3(origin, forward);
             TerrainRaycastResult? terrain = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Interaction, true, false, false);
-            return terrain.HasValue && Vector3.DistanceSquared(origin, terrain.Value.HitPoint()) <= range * range ? terrain.Value.HitPoint() : origin + ray.Direction * range;
+            if (terrain.HasValue)
+            {
+                float distance = Vector3.Distance(origin, terrain.Value.HitPoint());
+                if (distance >= 2f && distance <= 16f) return terrain.Value.HitPoint();
+            }
+
+            SubsystemTerrain terrainSubsystem = m_terrain;
+            if (terrainSubsystem == null) return origin + forward * 12f;
+            for (float step = 10f; step <= 16f; step += 1f)
+            {
+                Vector3 sample = origin + forward * step;
+                int x = Terrain.ToCell(sample.X);
+                int z = Terrain.ToCell(sample.Z);
+                TerrainChunk chunk = terrainSubsystem.Terrain.GetChunkAtCell(x, z);
+                if (chunk == null || chunk.State < TerrainChunkState.InvalidLight) continue;
+                int startY = MathUtils.Clamp(Terrain.ToCell(sample.Y), 2, 250);
+                if (Terrain.ExtractContents(terrainSubsystem.Terrain.GetCellValue(x, startY, z)) != 0)
+                {
+                    // Blocked by a wall: do not tunnel through it.
+                    break;
+                }
+
+                for (int y = startY; y > 1; y--)
+                {
+                    if (Terrain.ExtractContents(terrainSubsystem.Terrain.GetCellValue(x, y - 1, z)) != 0)
+                    {
+                        return new Vector3(sample.X, y, sample.Z);
+                    }
+                }
+            }
+
+            return origin + forward * 12f;
         }
 
         private static void Diagnostic(string text)

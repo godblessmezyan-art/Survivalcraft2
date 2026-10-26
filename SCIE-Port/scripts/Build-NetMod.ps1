@@ -82,6 +82,9 @@ if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXI
 $fortressTests = Join-Path $projectRoot 'tests\SCIEPort.PortableFortress.Tests\SCIEPort.PortableFortress.Tests.csproj'
 & $dotnetPath run --project $fortressTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Portable fortress rule tests failed: $LASTEXITCODE" }
+$lightningTests = Join-Path $projectRoot 'tests\SCIEPort.Stormhammer.Tests\SCIEPort.Stormhammer.Tests.csproj'
+& $dotnetPath run --project $lightningTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Skywrath lightning rule tests failed: $LASTEXITCODE" }
 
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a
@@ -236,6 +239,34 @@ foreach ($csvFile in @(Get-ChildItem -LiteralPath (Join-Path $projectDir 'Assets
 foreach ($blockClass in @('PortableFortressCoreItemBlock', 'PortableFortressCoreBlock', 'PortableFortressThresholdBlock')) {
     $sameClass = @($fortressBlockIds | Where-Object { $_[0] -eq $blockClass })
     if ($sameClass.Count -ne 1) { throw "$blockClass must appear in exactly one block CSV." }
+}
+$lightningSceneSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\LightningScene.cs')
+if (-not $lightningSceneSource.Contains('QueueRibbon')) {
+    throw 'LightningScene must expand bolts into ribbon quads.'
+}
+if (-not $lightningSceneSource.Contains('LightningRune')) {
+    throw 'LightningScene must render the ground rune seal.'
+}
+$lightningRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\LightningRules.cs')
+if (-not $lightningRulesSource.Contains('BuildPath')) {
+    throw 'LightningRules must build continuous bolt paths.'
+}
+$awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
+if ($awakenedSource.Contains('UltimateTarget')) {
+    throw 'The V3.2 multi-target ultimate sweep must not come back; V4 uses one main strike.'
+}
+if (-not $awakenedSource.Contains('UpdatePendingJudgment')) {
+    throw 'Thunderous Judgment must resolve on its authoritative charge timeline.'
+}
+if (-not $awakenedSource.Contains('LightningRules.TribulationDamage')) {
+    throw 'The main strike must use the V4 damage table.'
+}
+$visualsSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\AwakenedStormhammerVisuals.cs')
+if (-not $visualsSource.Contains('BuildStormSchedule')) {
+    throw 'The backdrop storm must be driven by the deterministic schedule.'
+}
+if ($visualsSource.Contains('EmitSkyBolt')) {
+    throw 'The particle sky bolt must not return; V4 draws real geometry.'
 }
 $fortressSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\PortableFortressBlocks.cs')
 foreach ($expectedIndex in @('Index = 944', 'Index = 945', 'Index = 946')) {
@@ -434,7 +465,11 @@ try {
         'Assets/Textures/StormhammerAwakenedSkills.png',
         'Assets/Audio/Stormhammer/Swing.wav',
         'Assets/Audio/Stormhammer/Charge.wav',
-        'Assets/Audio/Stormhammer/Thunder.wav'
+        'Assets/Audio/Stormhammer/Thunder.wav',
+        'Assets/Audio/Stormhammer/Strike.wav',
+        'Assets/Audio/Stormhammer/Rumble.wav',
+        'Assets/Textures/LightningBeam.png',
+        'Assets/Textures/LightningRune.png'
     )) {
         if ($entries -notcontains $requiredEntry) { throw "Package missing: $requiredEntry" }
     }
@@ -1706,7 +1741,9 @@ try {
     $stormhammerTextureChecks = @(
         @{ Name = 'Stormhammer.png'; Width = 1024; Height = 1024 },
         @{ Name = 'StormhammerGlow.png'; Width = 1024; Height = 1024 },
-        @{ Name = 'StormhammerEffects.png'; Width = 256; Height = 256 }
+        @{ Name = 'StormhammerEffects.png'; Width = 256; Height = 256 },
+        @{ Name = 'LightningBeam.png'; Width = 128; Height = 16 },
+        @{ Name = 'LightningRune.png'; Width = 256; Height = 256 }
     )
     foreach ($textureCheck in $stormhammerTextureChecks) {
         $bitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir ('Assets\Textures\' + $textureCheck.Name)))
@@ -1726,7 +1763,7 @@ try {
         if ($atlasColors.Count -lt 350) { throw "Stormhammer atlas lacks authored surface variation; sampled only $($atlasColors.Count) colors." }
     }
     finally { $stormhammerAtlas.Dispose() }
-    foreach ($sound in @('Swing.wav','Charge.wav','Thunder.wav')) {
+    foreach ($sound in @('Swing.wav','Charge.wav','Thunder.wav','Strike.wav','Rumble.wav')) {
         $soundBytes = [IO.File]::ReadAllBytes((Join-Path $projectDir ('Assets\Audio\Stormhammer\' + $sound)))
         if ($soundBytes.Length -lt 4096 -or [Text.Encoding]::ASCII.GetString($soundBytes, 0, 4) -ne 'RIFF' -or
             [Text.Encoding]::ASCII.GetString($soundBytes, 8, 4) -ne 'WAVE') {

@@ -1,5 +1,19 @@
 # 测试结果
 
+## 0.30.0 苍穹之怒 V4.0（2026-10-26）
+
+- 审计：已确认。定位旧版"蓝色光团"根因为 `StormhammerParticleSystem.CreateArc`（18–44 个 0.035–0.075 相机朝向粒子）与 `EmitSkyBolt` 同源粒子弧；并逐项取证 `SubsystemDrawing`/`IDrawable`/`TexturedBatch3D.QueueQuad`/`BlendState.Additive`/`DepthStencilState.DepthRead`/`RasterizerState.CullNone`/`SubsystemSky.CalculateFog`/`ComponentBody.ApplyShaking`/`SubsystemAudio.PlaySound`。
+- 几何：已确认。新增 `LightningRules`（相干值噪声路径、端点锚定、xorshift32 确定性、寿命/宽度/伤害/天幕调度）与 `LightningScene`（48 条池化、芯+辉光双层带、主雷交叉面、角宽下限、雾融合、符文、爆闪、每帧四边形预算）。
+- 离线规则：已确认。`tests/SCIEPort.Stormhammer.Tests` **277 断言**通过：路径端点/连续性/位移上限/同 seed 复现/异 seed 变化、寿命曲线、宽度收细、两张伤害表边界、天幕数量与分带范围与排序与 `DueStrikes` 跳过语义。
+- 资源：已确认。`LightningBeam.png`(128×16)、`LightningRune.png`(256×256)、`Strike.wav`(1.65 s)、`Rumble.wav`(3.30 s)，均可由 `scripts/New-StormhammerV4Assets.py` 重建；构建脚本校验贴图尺寸与 RIFF/WAVE 头。
+- 新增构建守卫：已确认。拦截 `UltimateTarget` 与 `EmitSkyBolt` 回潮，强制 `QueueRibbon`/`LightningRune`/`BuildStormSchedule`/`UpdatePendingJudgment`/`LightningRules.TribulationDamage` 存在。
+- 全量回归：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 41 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 / PortableFortress 291 / **Skywrath V4 277** 全部 exit 0。
+- 编译/数据库：已确认。net472 Release **0 warning / 0 error**；15 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **2,648,230 字节 / 91 条目**，SHA-256 `D2EE8300C12BC21DC69A5EBC0D5516B2EC8B0ADE146D738CC18B1A21CEDA3BFA`；modinfo `0.30.0`。
+- Windows 游戏运行：待验证。未启动游戏，未观察实际渲染。
+- Android 7723：待验证。主雷宽度/亮度、天幕密度与帧率、爆闪舒适度、镜头抖动、触屏 HUD 均未真机执行。
+- 双机联机：待验证。主雷同步、旁观者天空不受染色、天幕不外泄、余震不重复结算均未实测。
+
 ## 0.29.0 便携堡垒（2026-10-26）
 
 - 环境：已确认。`Test-Environment.ps1` exit 0：三程序集 SHA-256 与 x25.01.17 公开包一致，API 1.42 / SC 2.4.10.6 / net472，260 个原生方块常量最大 ID 263。

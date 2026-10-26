@@ -95,22 +95,43 @@ namespace SCIEPort.Mod
         }
 
         /// <inheritdoc />
+        /// <remarks>
+        /// V4: the storm is a deep indigo/purple plateau with a separate luminance impulse from
+        /// individual strikes. Only the casting player's own client applies the tint
+        /// (GetStormBlend filters by local caster), so bystanders never inherit a purple sky.
+        /// </remarks>
         public override Color ChangeSkyColor(Color oldColor, Vector3 direction, float timeOfDay, float precipitationIntensity, int temperature)
         {
             float blend = AwakenedStormhammerVisuals.GetStormBlend();
-            if (blend <= 0f) return oldColor;
+            float flash = AwakenedStormhammerVisuals.GetFlash();
+            if (blend <= 0f && flash <= 0f) return oldColor;
             float horizon = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
-            Color storm = Color.Lerp(new Color(35, 22, 67), new Color(10, 16, 49), horizon);
-            return Color.Lerp(oldColor, storm, 0.93f * blend);
+            Color storm = Color.Lerp(new Color(46, 26, 92), new Color(9, 10, 34), horizon);
+            Color result = blend > 0f ? Color.Lerp(oldColor, storm, 0.93f * blend) : oldColor;
+            if (flash > 0f)
+            {
+                Color struck = Color.Lerp(new Color(126, 158, 232), new Color(214, 232, 255), horizon);
+                result = Color.Lerp(result, struck, 0.60f * flash);
+            }
+
+            return result;
         }
 
         /// <inheritdoc />
+        /// <remarks>V4: cold far fog plus the same strike impulse so the far backdrop reads through the haze.</remarks>
         public override void ViewFogColor(float viewUnderWaterDepth, float viewUnderMagmaDepth, ref Color viewFogColor)
         {
+            if (viewUnderWaterDepth > 0f || viewUnderMagmaDepth > 0f) return;
             float blend = AwakenedStormhammerVisuals.GetStormBlend();
-            if (blend > 0f && viewUnderWaterDepth <= 0f && viewUnderMagmaDepth <= 0f)
+            float flash = AwakenedStormhammerVisuals.GetFlash();
+            if (blend > 0f)
             {
-                viewFogColor = Color.Lerp(viewFogColor, new Color(20, 29, 66), 0.82f * blend);
+                viewFogColor = Color.Lerp(viewFogColor, new Color(22, 26, 62), 0.84f * blend);
+            }
+
+            if (flash > 0f)
+            {
+                viewFogColor = Color.Lerp(viewFogColor, new Color(96, 122, 186), 0.42f * flash * MathUtils.Max(blend, 0.35f));
             }
         }
 
