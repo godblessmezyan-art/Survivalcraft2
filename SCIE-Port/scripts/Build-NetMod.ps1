@@ -323,6 +323,80 @@ if ($fortressBehavior.IndexOf('FortressDeploymentRules.Evaluate') -gt $fortressB
     throw 'The preflight must run before any fortress state is created.'
 }
 
+# --- Hearthguard art pass guards -------------------------------------------
+# The entrance fix depends on three things staying true together. Each one was a
+# real defect at some point, so each is asserted rather than reviewed by eye.
+if (-not $fortressGeometry.Contains('StairRise = 0.435f')) {
+    throw 'StairRise must be (DeckTop - FloorTop) / 8 = 0.435 so the last tread is flush with the deck.'
+}
+if (-not $fortressGeometry.Contains('DoorInnerZ = 6.20f')) {
+    throw 'The level-1 floor must stop at the inner face of the rear wall (6.20) or it puts a 0.36 body lip across the doorway.'
+}
+if (-not $fortressGeometry.Contains('FortressZone.Glazing')) {
+    throw 'The glazing proxies are missing: the observation windows would be walk-through holes.'
+}
+if (-not $fortressGeometry.Contains('EntrySillMaxZ = RearFaceZ')) {
+    throw 'The bounded entrance sill assist must stay on the hidden threshold cells.'
+}
+if (-not $fortressDeploy.Contains('MaxRiseSpeed = 4.5f')) {
+    throw 'The rise assist must stay clamped to the native 4.5 m/s smooth rise.'
+}
+if (-not $fortressDeploy.Contains('DoorHalfClearanceX')) {
+    throw 'The entrance sill assist must be limited to the doorway width.'
+}
+$fortressGlazing = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\FortressGlazingRenderer.cs')
+if (-not $fortressGlazing.Contains('BlendState.AlphaBlend')) {
+    throw 'The glazing pass must use alpha blending; the component model shader has no blended pass.'
+}
+if (-not $fortressGlazing.Contains('DepthStencilState.DepthRead')) {
+    throw 'The glazing pass must not write depth or it would clip the world behind the pane.'
+}
+$fortressOptions = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\FortressOptions.cs')
+if (-not $fortressOptions.Contains('public static bool Diagnostics')) {
+    throw 'The entrance trace switch must exist so an Android run can be diagnosed without a rebuild.'
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\ComponentPortableFortress.cs')).Contains('EmissionColor')) {
+    throw 'The fortress model needs its low warm emission floor or the interior is unreadable at night.'
+}
+
+# The atlas must be a real 1024 atlas with every declared region painted; a regression
+# to the old 64x64 single-panel texture would silently turn the fortress dark again.
+Add-Type -AssemblyName System.Drawing
+$fortressAtlasPath = Join-Path $projectDir 'Assets\Textures\PortableFortress.png'
+$fortressAtlas = [Drawing.Bitmap]::FromFile($fortressAtlasPath)
+try {
+    if ($fortressAtlas.Width -ne 1024 -or $fortressAtlas.Height -ne 1024) {
+        throw "PortableFortress.png must be the 1024x1024 UV atlas, got $($fortressAtlas.Width)x$($fortressAtlas.Height)."
+    }
+    $fortressColours = @{}
+    for ($y = 0; $y -lt 1024; $y += 16) {
+        for ($x = 0; $x -lt 1024; $x += 16) {
+            $pixel = $fortressAtlas.GetPixel($x, $y)
+            if ($pixel.A -ne 255) { throw "PortableFortress.png must be fully opaque; found alpha $($pixel.A) at $x,$y." }
+            $fortressColours[('{0},{1},{2}' -f $pixel.R, $pixel.G, $pixel.B)] = $true
+        }
+    }
+    if ($fortressColours.Count -lt 48) {
+        throw "PortableFortress.png has only $($fortressColours.Count) distinct colours over a 16 px grid; the per-material regions are not painted."
+    }
+}
+finally { $fortressAtlas.Dispose() }
+foreach ($paneFile in @('FortressGlass.png', 'FortressGlow.png')) {
+    $paneBitmap = [Drawing.Bitmap]::FromFile((Join-Path (Join-Path $projectDir 'Assets\Textures') $paneFile))
+    try {
+        if ($paneBitmap.Width -ne 64 -or $paneBitmap.Height -ne 64) { throw "$paneFile must be 64x64." }
+        $translucent = 0
+        for ($y = 0; $y -lt 64; $y += 4) {
+            for ($x = 0; $x -lt 64; $x += 4) {
+                if ($paneBitmap.GetPixel($x, $y).A -lt 200) { $translucent++ }
+            }
+        }
+        if ($translucent -lt 16) { throw "$paneFile must carry real translucent pixels, not a solid plate." }
+    }
+    finally { $paneBitmap.Dispose() }
+}
+
+
 Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
@@ -484,6 +558,8 @@ try {
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/PortableFortress.png',
+        'Assets/Textures/FortressGlass.png',
+        'Assets/Textures/FortressGlow.png',
         'Assets/Textures/FortressCore.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',

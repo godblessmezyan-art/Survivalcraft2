@@ -92,7 +92,13 @@ namespace SCIEPort.Features.PortableFortress
         /// <summary>Roof guard rail.</summary>
         Rail,
         /// <summary>Stair tread.</summary>
-        Stair
+        Stair,
+        /// <summary>
+        /// Glazing pane. These proxies exist only to stop a body walking out through an
+        /// aperture; they are deliberately excluded from the "opening stays open" checks
+        /// because the window itself must stay see-through.
+        /// </summary>
+        Glazing
     }
 
     /// <summary>One body-backed collision proxy owned by a fortress instance.</summary>
@@ -158,8 +164,12 @@ namespace SCIEPort.Features.PortableFortress
         public const float RailTop = 8.55f;
         /// <summary>Number of stair treads in the main stair.</summary>
         public const int StairStepCount = 8;
-        /// <summary>Rise of one stair tread.</summary>
-        public const float StairRise = 0.45f;
+        /// <summary>
+        /// Rise of one stair tread. Deliberately <c>(DeckTop - FloorTop) / StairStepCount</c> so
+        /// the last tread top equals the level-2 deck top exactly: a tread that overshoots the deck
+        /// leaves a body lip the player cannot walk over.
+        /// </summary>
+        public const float StairRise = 0.435f;
         /// <summary>Run of one stair tread.</summary>
         public const float StairRun = 0.50f;
         /// <summary>Local X of the stair west edge.</summary>
@@ -176,6 +186,20 @@ namespace SCIEPort.Features.PortableFortress
         public const float DoorMaxX = 1.20f;
         /// <summary>Local Z of the rear door plane.</summary>
         public const float DoorZ = 6.35f;
+        /// <summary>Inner face of the rear wall; the level-1 floor proxy stops here.</summary>
+        public const float DoorInnerZ = 6.20f;
+        /// <summary>Outer face of the rear wall.</summary>
+        public const float RearFaceZ = 6.50f;
+        /// <summary>Half width of the doorway, including the walking clearance either side.</summary>
+        public const float DoorHalfClearanceX = 1.45f;
+        /// <summary>Front edge of the entrance sill strip used by the bounded rise assist.</summary>
+        public const float EntrySillMinZ = 5.45f;
+        /// <summary>Rear edge of the entrance sill strip; must stay on the hidden threshold cells.</summary>
+        public const float EntrySillMaxZ = RearFaceZ;
+        /// <summary>Top of the window sill on the observation deck.</summary>
+        public const float WindowSillTop = 4.705f;
+        /// <summary>Bottom of the window header on the observation deck.</summary>
+        public const float WindowHeadBottom = 6.445f;
         /// <summary>Local X of the roof access column west edge.</summary>
         public const float ShaftMinX = 2.325f;
         /// <summary>Local X of the roof access column east edge.</summary>
@@ -363,9 +387,16 @@ namespace SCIEPort.Features.PortableFortress
 
             // Level-1 floor: foundation top at Y=0.36, tiled so every tile is small enough
             // for SubsystemBodies to find it from anywhere on its own surface.
+            //
+            // The rear edge stops at the inner face of the rear wall. It used to run to the
+            // envelope edge, which put a 0.36-high *body* lip right across the doorway; body
+            // colliders are never smooth-risen (ComponentBody.HandleAxisCollision compares the
+            // smoothed terrain push against the unsmoothed body push and the larger one wins),
+            // so the doorway was a wall the player had to jump. The doorway floor is now carried
+            // by the hidden threshold terrain cells instead, which do feed HandleSmoothRise.
             AddTiles(list, FortressZone.Floor, "Floor", 0f, FloorTop,
                 new[] { -5.5f, -1.9f, 1.9f, 5.5f },
-                new[] { -6.5f, -3.2f, 0.1f, 3.4f, 6.5f });
+                new[] { -6.5f, -3.2f, 0.1f, 3.4f, DoorInnerZ });
 
             // Level-2 deck: level with the stairwell opening x[-4.3,-2.2] z[-4,0.25] removed.
             AddTiles(list, FortressZone.Deck, "Deck", DeckBottom, DeckTop,
@@ -423,6 +454,26 @@ namespace SCIEPort.Features.PortableFortress
             AddWallRun(list, "NoseHeaderWest", -5.10f, -3.20f, -6.47f, -4.35f, 6.445f, 7.195f);
             AddWallRun(list, "NoseHeaderEast", 3.20f, 5.10f, -6.47f, -4.35f, 6.445f, 7.195f);
 
+            // Glazing. These proxies carry no visual; they only stop a body from walking out
+            // through an aperture. The pane is drawn separately with alpha blending because
+            // ComponentModel is submitted to the opaque / alpha-tested shader only.
+            AddGlassPane(list, "GlazingFront", -3.20f, 3.20f, WindowSillTop, WindowHeadBottom, -6.39f, -6.31f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float paneX0 = side < 0 ? -4.29f : 4.21f;
+                float paneX1 = side < 0 ? -4.21f : 4.29f;
+                AddGlassPane(list, "GlazingSide" + (side < 0 ? "West" : "East") + "Front",
+                    paneX0, paneX1, WindowSillTop, WindowHeadBottom, -4.80f, 0f);
+                AddGlassPane(list, "GlazingSide" + (side < 0 ? "West" : "East") + "Rear",
+                    paneX0, paneX1, WindowSillTop, WindowHeadBottom, 0f, 4.80f);
+                // The nose is a 42 degree splay, which an axis-aligned proxy cannot follow.
+                // One block per quadrant band is used instead: it is inside the glazed corner,
+                // so it never blocks the deck, and it stops a body walking out of the splay.
+                AddGlassPane(list, "NoseGuard" + (side < 0 ? "West" : "East"),
+                    side < 0 ? -5.10f : 3.20f, side < 0 ? -3.20f : 5.10f,
+                    WindowSillTop, WindowHeadBottom, -6.47f, -4.35f);
+            }
+
             // Roof guard rail. Open on the hatch side, matching the reserved circulation point.
             AddWallRun(list, "RailFront", -4.18f, 4.18f, -5.63f, -5.47f, 8.39f, RailTop);
             AddWallRun(list, "RailRearWest", -4.18f, -1.13f, 4.47f, 4.63f, 8.39f, RailTop);
@@ -433,6 +484,35 @@ namespace SCIEPort.Features.PortableFortress
         }
 
         private delegate bool TileFilter(float minX, float minZ);
+
+        /// <summary>
+        /// Adds one collision-only glazing pane. Kept as a separate helper so the pane thickness
+        /// and the observation-deck sill/header are always taken from the shared constants.
+        /// </summary>
+        private static void AddGlassPane(
+            List<FortressSegment> list,
+            string name,
+            float minX,
+            float maxX,
+            float minY,
+            float maxY,
+            float minZ,
+            float maxZ)
+        {
+            // Split along Z when a side run would otherwise exceed the body lookup budget.
+            float run = maxZ - minZ;
+            int parts = Math.Max(1, (int)Math.Ceiling(run / 6.8f));
+            for (int i = 0; i < parts; i++)
+            {
+                float a = minZ + run * i / parts;
+                float b = minZ + run * (i + 1) / parts;
+                string partName = parts == 1 ? name : name + i;
+                list.Add(new FortressSegment(
+                    partName,
+                    FortressZone.Glazing,
+                    new FortressBox(minX, minY, a, maxX, maxY, b)));
+            }
+        }
 
         private static void AddTiles(
             List<FortressSegment> list,

@@ -371,6 +371,21 @@ namespace SCIEPort.Features.PortableFortress
         {
             targetY = 0f;
 
+            // Entrance sill. The doorway floor is carried by the hidden threshold terrain cells,
+            // which the engine smooth-rises natively; this strip is the bounded fallback for
+            // builds where the native step limit is smaller than the 0.36 foundation. It is
+            // limited to the threshold cells, never lifts above the foundation top, and is
+            // skipped once the player already stands at or above it.
+            if (localX >= -PortableFortressGeometry.DoorHalfClearanceX
+                && localX <= PortableFortressGeometry.DoorHalfClearanceX
+                && localZ >= PortableFortressGeometry.EntrySillMinZ
+                && localZ <= PortableFortressGeometry.EntrySillMaxZ
+                && feetY <= PortableFortressGeometry.FloorTop + 0.30f)
+            {
+                targetY = PortableFortressGeometry.FloorTop;
+                return true;
+            }
+
             bool onStair = localX >= PortableFortressGeometry.StairMinX - 0.02f
                 && localX <= PortableFortressGeometry.StairMaxX + 0.02f
                 && localZ >= PortableFortressGeometry.StairMinZ - 0.02f
@@ -494,6 +509,6 @@ namespace SCIEPort.Features.PortableFortress
         /// <summary>Hard cap on proxies for one instance; refuses rather than truncating.</summary>
         public const int MaxSegmentsPerInstance = PortableFortressMaxSegments;
 
-        private const int PortableFortressMaxSegments = 80;
+        private const int PortableFortressMaxSegments = 96;
     }
 }

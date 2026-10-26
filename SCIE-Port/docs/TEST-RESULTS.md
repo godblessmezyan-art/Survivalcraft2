@@ -1,4 +1,18 @@
 # 测试结果
+## 0.32.0 便携堡垒美术重构与入口修复（2026-10-26）
+
+- 环境：已确认。`Test-Environment.ps1` exit 0：三程序集 SHA-256 与 x25.01.17 一致，API 1.42 / SC 2.4.10.6 / net472，260 个原生方块常量、最大 ID 263。
+- 资产生成：已确认。`python scripts/New-PortableFortressArt.py` → 387 部件 / 11 网格 / 13470 三角面；图集 1024×1024（16 区）、`FortressGlass.png` 与 `FortressGlow.png` 各 64×64（含真实半透明像素）。
+- 模型导入：已确认（目标程序集）。`Test-PortableFortressModel.ps1 -GameDir E:\SCNET\SCNETx25.01.17` 打印 `PASS`；真实 `Engine.Media.ModelData.Load(Stream)` 得 1 骨骼 / 11 网格 / 13470 三角面；包围盒 X `-5.5..5.5`、Y `0..9`、Z `-6.5..6.5`。
+- 离线规则：已确认。`tests/SCIEPort.PortableFortress.Tests` **319 断言**通过，其中入口相关新增：地板代理不得越过 `DoorInnerZ`、最后一级踏面与 `DeckTop` 齐平、玻璃代理存在且厚度 ≤ 0.09、入口条带目标高度为 0.36 且限门宽、抬高后不再返回目标。
+- 编译：已确认。net472 Release 0 error / 0 warning。
+- 构建守卫新增：图集尺寸/不透明度/颜色数、玻璃与暖光贴图透明度、`StairRise=0.435`、`DoorInnerZ=6.20`、`FortressZone.Glazing`、`EntrySillMaxZ=RearFaceZ`、`MaxRiseSpeed=4.5`、`DoorHalfClearanceX`、`BlendState.AlphaBlend`、`DepthStencilState.DepthRead`、诊断开关存在、`EmissionColor` 存在。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。未真机运行：入口无需跳跃、外观材质、玻璃可读性、夜间可读性、楼梯与竖井手感、帧耗时、存读档。
+- 联机：待验证。未做双设备测试。
+- 预览：`docs/portable-fortress/previews/` 共 7 张，由生成器软件渲染产出（非游戏截图）。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **3,047,028 字节 / 93 条目**，SHA-256 `45C82E53CA318EECF3909B6315AA4024161D2AA54CB0F9EA648733DE280C19A0`，modinfo `0.32.0`；包内含 `PortableFortress.csv`、`PortableFortress.xdb`、`PortableFortress.dae`、`FortressCore.dae`、`PortableFortress.png`、`FortressGlass.png`、`FortressGlow.png`、`FortressCore.png`。
+
 
 ## 0.31.0 苍穹之怒 V5.0「雷神降世」（2026-10-26）
 

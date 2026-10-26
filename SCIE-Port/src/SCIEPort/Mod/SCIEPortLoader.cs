@@ -5,6 +5,7 @@ using SCIEPort.Features.Creatures;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Tanks;
 using SCIEPort.Features.Vehicles;
+using SCIEPort.Features.PortableFortress;
 using SCIEPort.Features.Stormhammer;
 using System.Xml.Linq;
 
@@ -142,6 +143,8 @@ namespace SCIEPort.Mod
             element.SetAttributeValue("SCIEPortReducedLightningFlashes", StormhammerOptions.ReducedFlashes);
             element.SetAttributeValue("SCIEPortStormhammerCameraShake", StormhammerOptions.CameraShake);
             element.SetAttributeValue("SCIEPortStormhammerDiagnostics", StormhammerOptions.Diagnostics);
+            element.SetAttributeValue("SCIEPortFortressDiagnostics", FortressOptions.Diagnostics);
+            element.SetAttributeValue("SCIEPortFortressQuality", FortressOptions.Quality.ToString());
         }
 
         /// <inheritdoc />
@@ -157,6 +160,11 @@ namespace SCIEPort.Mod
             if (shake != null && bool.TryParse(shake.Value, out value)) StormhammerOptions.CameraShake = value;
             XAttribute diagnostics = element.Attribute("SCIEPortStormhammerDiagnostics");
             if (diagnostics != null && bool.TryParse(diagnostics.Value, out value)) StormhammerOptions.Diagnostics = value;
+            XAttribute fortressDiagnostics = element.Attribute("SCIEPortFortressDiagnostics");
+            if (fortressDiagnostics != null && bool.TryParse(fortressDiagnostics.Value, out value)) FortressOptions.Diagnostics = value;
+            FortressQuality fortressQuality;
+            XAttribute fortressQualityAttribute = element.Attribute("SCIEPortFortressQuality");
+            if (fortressQualityAttribute != null && System.Enum.TryParse(fortressQualityAttribute.Value, true, out fortressQuality)) FortressOptions.Quality = fortressQuality;
         }
 
         /// <inheritdoc />

@@ -23,7 +23,7 @@ Terrain-backed walkable surfaces are preferred because `ComponentMiner.Place(Ter
 |---|---|---|
 | Level-1 floor | thin terrain-backed slab/anchor grid | entrance threshold kept traversable |
 | Lower walls | per-wall segments and four clipped-corner segments | rear door opening |
-| Stair | eight rises matching whitebox | 2.1-wide climb path and landing |
+| Stair | eight 0.435 rises, last tread flush with the deck | 2.1-wide climb path and landing |
 | Level-2 deck | three segments | X `-4.3..-2.2`, Z `-4..0.25` stair opening |
 | Upper walls | sill/header/pillar segments | all window apertures |
 | Roof | three deck segments | X `2.3..4`, Z `2.7..4.4` hatch |

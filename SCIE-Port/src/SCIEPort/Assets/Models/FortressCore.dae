@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- SCIE-Port portable fortress control core; baked Y_UP, one render bone. -->
 <COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
-  <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-PortableFortressAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
+  <asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-PortableFortressArt.py</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
   <library_geometries>
     <geometry id="CoreBase-mesh" name="CoreBase"><mesh>
       <source id="CoreBase-positions"><float_array id="CoreBase-positions-array" count="24">-0.34 0 -0.34 0.34 0 -0.34 0.34 0.1 -0.34 -0.34 0.1 -0.34 -0.34 0 0.34 0.34 0 0.34 0.34 0.1 0.34 -0.34 0.1 0.34</float_array><technique_common><accessor source="#CoreBase-positions-array" count="8" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common></source>
@@ -103,20 +103,20 @@
     </mesh></geometry>
   </library_geometries>
   <library_visual_scenes><visual_scene id="Scene" name="Scene"><node id="FortressCore" name="FortressCore" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
-        <instance_geometry url="#CoreBase-mesh" name="CoreBase"/>
-        <instance_geometry url="#CoreBody-mesh" name="CoreBody"/>
-        <instance_geometry url="#CoreCollar-mesh" name="CoreCollar"/>
-        <instance_geometry url="#CorePrism-mesh" name="CorePrism"/>
-        <instance_geometry url="#CoreLensN-mesh" name="CoreLensN"/>
-        <instance_geometry url="#CoreLensS-mesh" name="CoreLensS"/>
-        <instance_geometry url="#CoreLensE-mesh" name="CoreLensE"/>
-        <instance_geometry url="#CoreLensW-mesh" name="CoreLensW"/>
-        <instance_geometry url="#CoreFinNE-mesh" name="CoreFinNE"/>
-        <instance_geometry url="#CoreFinNW-mesh" name="CoreFinNW"/>
-        <instance_geometry url="#CoreFinSE-mesh" name="CoreFinSE"/>
-        <instance_geometry url="#CoreFinSW-mesh" name="CoreFinSW"/>
-        <instance_geometry url="#CoreFoot-mesh" name="CoreFoot"/>
-        <instance_geometry url="#CoreFoot2-mesh" name="CoreFoot2"/>
+    <instance_geometry url="#CoreBase-mesh" name="CoreBase"/>
+    <instance_geometry url="#CoreBody-mesh" name="CoreBody"/>
+    <instance_geometry url="#CoreCollar-mesh" name="CoreCollar"/>
+    <instance_geometry url="#CorePrism-mesh" name="CorePrism"/>
+    <instance_geometry url="#CoreLensN-mesh" name="CoreLensN"/>
+    <instance_geometry url="#CoreLensS-mesh" name="CoreLensS"/>
+    <instance_geometry url="#CoreLensE-mesh" name="CoreLensE"/>
+    <instance_geometry url="#CoreLensW-mesh" name="CoreLensW"/>
+    <instance_geometry url="#CoreFinNE-mesh" name="CoreFinNE"/>
+    <instance_geometry url="#CoreFinNW-mesh" name="CoreFinNW"/>
+    <instance_geometry url="#CoreFinSE-mesh" name="CoreFinSE"/>
+    <instance_geometry url="#CoreFinSW-mesh" name="CoreFinSW"/>
+    <instance_geometry url="#CoreFoot-mesh" name="CoreFoot"/>
+    <instance_geometry url="#CoreFoot2-mesh" name="CoreFoot2"/>
   </node></visual_scene></library_visual_scenes>
   <scene><instance_visual_scene url="#Scene"/></scene>
 </COLLADA>
