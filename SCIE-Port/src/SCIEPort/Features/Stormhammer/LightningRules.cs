@@ -300,6 +300,8 @@ namespace SCIEPort.Features.Stormhammer
             public float Height;
             /// <summary>True for the coarse near layer, false for the dense far layer.</summary>
             public bool Near;
+            /// <summary>True for the heavy layer that reads as a full sized bolt, not a backdrop tick.</summary>
+            public bool Great;
             /// <summary>Geometry seed for this strike.</summary>
             public uint Seed;
         }
@@ -383,6 +385,46 @@ namespace SCIEPort.Features.Stormhammer
                         Seed = Mix(phaseSeed, (uint)(0x4000 + i))
                     };
                 }
+            }
+
+            SortByTime(strikes);
+            return strikes;
+        }
+
+        /// <summary>
+        /// Builds the heavy-bolt schedule: the layer that must actually look like Mjolnir's lightning
+        /// rather than a distant flicker. Great bolts are spread evenly across the window with a
+        /// per-cast jitter so two casts back to back do not replay the same rhythm.
+        /// </summary>
+        public static StormStrike[] BuildGreatBoltSchedule(
+            uint castSeed,
+            float firstTime,
+            float lastTime,
+            int count,
+            float minDistance,
+            float maxDistance)
+        {
+            if (count <= 0 || lastTime <= firstTime)
+            {
+                return new StormStrike[0];
+            }
+
+            StormStrike[] strikes = new StormStrike[count];
+            float span = lastTime - firstTime;
+            for (int i = 0; i < count; i++)
+            {
+                uint state = Mix(castSeed, (uint)(0x7000 + i * 61));
+                float slot = (i + 0.25f + 0.5f * NextFloat(state)) / count;
+                strikes[i] = new StormStrike
+                {
+                    Time = firstTime + span * slot,
+                    Angle = Signed(Mix(state, 8u)) * (34f * (float)Math.PI / 180f),
+                    Distance = Range(minDistance, maxDistance, Mix(state, 9u)),
+                    Height = Range(30f, 46f, Mix(state, 10u)),
+                    Near = true,
+                    Great = true,
+                    Seed = Mix(state, 11u)
+                };
             }
 
             SortByTime(strikes);

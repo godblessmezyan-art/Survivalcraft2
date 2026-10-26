@@ -14,35 +14,35 @@ namespace SCIEPort.Features.Stormhammer
             public readonly LabelWidget CooldownLabel;
             public readonly RectangleWidget Frame;
 
-            public SkillButton(Texture2D atlas, int icon, string name, float size)
+            public SkillButton(Texture2D atlas, int icon, float size)
             {
-                Size = new Vector2(size, size + 24f);
+                // Icon only. The skill name and the cyan outline box were removed on request:
+                // on a phone they covered the world and the icons already say which skill it is.
+                Size = new Vector2(size, size);
                 Frame = new RectangleWidget
                 {
                     Size = new Vector2(size),
                     Subtexture = new Subtexture(atlas, new Vector2(icon * 0.25f, 0f), new Vector2((icon + 1) * 0.25f, 1f)),
                     FillColor = Color.White,
-                    OutlineColor = new Color(101, 218, 255, 235),
-                    OutlineThickness = size >= 90f ? 3f : 2f
+                    OutlineColor = Color.Transparent,
+                    OutlineThickness = 0f
                 };
                 CooldownLabel = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 90f ? 1.05f : 0.86f, DropShadow = true, Color = Color.White };
-                LabelWidget label = new LabelWidget { Size = new Vector2(size, 22f), Text = name, TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = 0.54f, DropShadow = true, Color = new Color(194, 236, 255) };
                 Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
                 Children.Add(Frame);
                 Children.Add(CooldownLabel);
-                Children.Add(label);
                 Children.Add(Clickable);
-                CanvasWidget.SetPosition(label, new Vector2(0f, size + 1f));
             }
 
             public void SetState(float cooldown)
             {
                 bool ready = cooldown <= 0.01f;
                 IsEnabled = ready;
-                Frame.FillColor = ready ? Color.White : new Color(80, 91, 112, 210);
-                Frame.OutlineColor = Clickable.IsPressed ? new Color(244, 251, 255) : ready ? new Color(83, 220, 255, 245) : new Color(60, 72, 93, 210);
+                Frame.FillColor = ready ? Color.White : new Color(112, 122, 142, 200);
+                Frame.OutlineColor = Color.Transparent;
+                Frame.OutlineThickness = 0f;
                 CooldownLabel.Text = ready ? string.Empty : MathUtils.Ceiling(cooldown).ToString("0");
-                ColorTransform = ready ? Color.White : new Color(158, 169, 188, 225);
+                ColorTransform = ready ? Color.White : new Color(170, 180, 198, 225);
             }
         }
 
@@ -92,8 +92,8 @@ namespace SCIEPort.Features.Stormhammer
             HudState state = new HudState
             {
                 Root = new CanvasWidget { Name = "SCIEPort.SkywrathV3Skills", Size = new Vector2(220f, 250f), HorizontalAlignment = WidgetAlignment.Far, VerticalAlignment = WidgetAlignment.Center, Margin = new Vector2(12f, 0f), IsVisible = false },
-                Judgment = new SkillButton(atlas, 1, "雷霆万钧", 78f),
-                Ultimate = new SkillButton(atlas, 2, "万象雷劫", 96f)
+                Judgment = new SkillButton(atlas, 1, 78f),
+                Ultimate = new SkillButton(atlas, 2, 96f)
             };
             state.ThunderGodLabel = new LabelWidget
             {

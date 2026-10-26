@@ -4,7 +4,12 @@ using Game;
 
 namespace SCIEPort.Features.Stormhammer
 {
-    /// <summary>Skywrath V2, the separately registered awakened Stormhammer form.</summary>
+    /// <summary>
+    /// Mjolnir, the true form of the Stormhammer. It deliberately reuses the base hammer's mesh and
+    /// texture: the player asked for the original silhouette, so the awakened identity comes from
+    /// the live corona, orbit glow and overloaded arcs (see StormhammerVisuals and
+    /// AwakenedStormhammerVisuals), never from a different model.
+    /// </summary>
     public sealed class StormhammerAwakenedBlock : Block
     {
         /// <summary>SCIE-Port content id immediately following the base form.</summary>
@@ -16,7 +21,7 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public override void Initialize()
         {
-            Model model = ContentManager.Get<Model>("Models/StormhammerAwakened");
+            Model model = ContentManager.Get<Model>("Models/Stormhammer");
             foreach (ModelMesh mesh in model.Meshes)
             {
                 Matrix transform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone);
@@ -26,7 +31,7 @@ namespace SCIEPort.Features.Stormhammer
                 }
             }
 
-            s_texture = ContentManager.Get<Texture2D>("Textures/StormhammerAwakened");
+            s_texture = ContentManager.Get<Texture2D>("Textures/Stormhammer");
             _ = ContentManager.Get<Model>("Models/ThunderSpear");
             _ = ContentManager.Get<Texture2D>("Textures/StormhammerAwakenedGlow");
             _ = ContentManager.Get<Texture2D>("Textures/StormhammerAwakenedEffects");
@@ -43,7 +48,7 @@ namespace SCIEPort.Features.Stormhammer
         public override void DrawBlock(PrimitivesRenderer3D primitivesRenderer, int value, Color color, float size, ref Matrix matrix, DrawBlockEnvironmentData environmentData)
         {
             StormhammerVisuals.TouchModelGlow(environmentData, matrix, size, true);
-            BlocksManager.DrawMeshBlock(primitivesRenderer, m_mesh, s_texture, color, size * 0.245f, ref matrix, environmentData);
+            BlocksManager.DrawMeshBlock(primitivesRenderer, m_mesh, s_texture, color, size * 0.265f, ref matrix, environmentData);
         }
 
         /// <inheritdoc />

@@ -1,4 +1,16 @@
 # 测试结果
+## 0.33.0 雷神之锤·妙尔尼尔 V6（2026-10-26）
+
+- 环境：已确认。`Test-Environment.ps1` exit 0：三程序集 SHA-256 与 x25.01.17 一致，API 1.42 / SC 2.4.10.6 / net472。
+- 离线规则：已确认。`tests/SCIEPort.Stormhammer.Tests` **667 断言**通过（V5 为 580）。新增覆盖重雷层：数量、时间排序、窗口边界、距离带 8–18、锥角 ±34°、`Great` 标记、同 cast id 逐位复现、不同 cast id 改变节奏、零数量与空窗口返回空、天幕落雷不得被标记为 `Great`。
+- 编译：已确认。net472 Release **0 警告 / 0 错误**。
+- 模型契约：已确认。`Models/StormhammerAwakened.dae` 条目已从 `Build-NetMod.ps1` 删除（该文件不再有加载点）；`ThunderSpear.dae` 契约保留。
+- 数据库：已确认。`DATABASE VALIDATION PASSED`，两个 Stormhammer XDB 均通过父级/内部 GUID 校验。
+- 构建守卫新增：`JudgmentCooldown = 8f`、`MainStrikeTime = 0.28f`、`BuildGreatBoltSchedule`（规则层与视觉层）存在、重雷层由 `state.MainSpawned` 门控、觉醒块必须加载 `Models/Stormhammer`、`DriveCorona` / `GetScene` 存在、HUD 不得含技能名与描边、CSV 中文名正确。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **3,020,616 字节 / 92 条目**，SHA-256 `A5CCED971D76F30B3132A66AF8913DD2127B6AA62A15FE19B786E2AEA45D0142`，modinfo `0.33.0`；包内已不含 `Models/StormhammerAwakened.dae`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。未真机运行：锤体光环、电弧密度、低画质帧率、0.28 s 落雷手感、重雷负载、HUD 精简后的可读性。
+- 联机：待验证。未做双设备测试。
 ## 0.32.0 便携堡垒美术重构与入口修复（2026-10-26）
 
 - 环境：已确认。`Test-Environment.ps1` exit 0：三程序集 SHA-256 与 x25.01.17 一致，API 1.42 / SC 2.4.10.6 / net472，260 个原生方块常量、最大 ID 263。

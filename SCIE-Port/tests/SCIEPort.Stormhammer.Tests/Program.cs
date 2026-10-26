@@ -13,6 +13,7 @@ internal static class Program
         DamageTables();
         StormSchedule();
         PhasedStormSchedule();
+        GreatBoltSchedule();
         Console.WriteLine("Skywrath V5 lightning rule tests passed: " + s_count);
         return 0;
     }
@@ -165,6 +166,62 @@ internal static class Program
         Assert(LightningRules.DueStrikes(schedule, 4.4f, 10f) == 0, "nothing due after the window");
         int all = LightningRules.DueStrikes(schedule, -1f, 10f);
         Assert(all == schedule.Length, "a full catch-up walk sees every strike: " + all);
+    }
+
+    /// <summary>
+    /// The heavy layer: full sized bolts that have to look like Mjolnir, not backdrop ticks.
+    /// Everything here is deterministic so two clients render the same bombardment.
+    /// </summary>
+    private static void GreatBoltSchedule()
+    {
+        LightningRules.StormStrike[] great = LightningRules.BuildGreatBoltSchedule(0x2B7E1516u, 0.55f, 11.20f, 11, 8f, 18f);
+        Assert(great.Length == 11, "great bolt count: " + great.Length);
+
+        float previous = -1f;
+        for (int i = 0; i < great.Length; i++)
+        {
+            Assert(great[i].Great, "great bolts are flagged as the heavy layer at " + i);
+            Assert(great[i].Time >= 0.55f - 0.001f && great[i].Time <= 11.21f, "great bolt inside the window: " + great[i].Time);
+            Assert(great[i].Time >= previous, "great bolts stay sorted");
+            Assert(great[i].Distance >= 7.9f && great[i].Distance <= 18.1f, "great bolt distance band: " + great[i].Distance);
+            Assert(Math.Abs(great[i].Angle) <= (34f * Math.PI / 180f) + 0.001f, "great bolt cone: " + great[i].Angle);
+            Assert(great[i].Height >= 29.9f, "great bolt starts above the caster");
+            previous = great[i].Time;
+        }
+
+        // Spread, not clustered: the first and last must sit in their halves of the window.
+        Assert(great[0].Time < 3.0f, "the first great bolt lands early: " + great[0].Time);
+        Assert(great[great.Length - 1].Time > 9.5f, "the last great bolt lands late: " + great[great.Length - 1].Time);
+
+        LightningRules.StormStrike[] repeat = LightningRules.BuildGreatBoltSchedule(0x2B7E1516u, 0.55f, 11.20f, 11, 8f, 18f);
+        bool identical = repeat.Length == great.Length;
+        for (int i = 0; identical && i < repeat.Length; i++)
+        {
+            if (repeat[i].Seed != great[i].Seed || Math.Abs(repeat[i].Time - great[i].Time) > 0.0001f)
+            {
+                identical = false;
+            }
+        }
+
+        Assert(identical, "great bolt schedule is deterministic for a cast id");
+
+        LightningRules.StormStrike[] other = LightningRules.BuildGreatBoltSchedule(0x2B7E1517u, 0.55f, 11.20f, 11, 8f, 18f);
+        bool differs = false;
+        for (int i = 0; i < other.Length; i++)
+        {
+            if (Math.Abs(other[i].Time - great[i].Time) > 0.0001f) differs = true;
+        }
+
+        Assert(differs, "a different cast id changes the great bolt rhythm");
+        Assert(LightningRules.BuildGreatBoltSchedule(1u, 0.55f, 11.2f, 0, 8f, 18f).Length == 0, "zero great bolts is allowed");
+        Assert(LightningRules.BuildGreatBoltSchedule(1u, 5f, 5f, 4, 8f, 18f).Length == 0, "an empty window produces nothing");
+
+        // Backdrop strikes must never be mistaken for the heavy layer.
+        var phases = new[] { new LightningRules.StormPhase(0.05f, 1.10f, 4, 10) };
+        foreach (LightningRules.StormStrike strike in LightningRules.BuildStormSchedule(0x51ED27u, phases))
+        {
+            Assert(!strike.Great, "backdrop strikes are not great bolts");
+        }
     }
 
     private static void PhasedStormSchedule()

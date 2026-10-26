@@ -68,7 +68,7 @@ namespace SCIEPort.Features.Stormhammer
             m_lastChargePulse.Remove(miner);
             if (charge < 0.55)
             {
-                miner.ComponentPlayer?.ComponentGui.DisplaySmallMessage("雷神之锤需要蓄力。", Color.Cyan, false, false);
+                miner.ComponentPlayer?.ComponentGui.DisplaySmallMessage("雷神之锤·伪 需要蓄力。", Color.Cyan, false, false);
                 return true;
             }
 

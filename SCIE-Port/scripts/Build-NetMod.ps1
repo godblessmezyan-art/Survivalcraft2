@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
@@ -297,6 +297,52 @@ if (-not $visualsSource.Contains('BuildStormSchedule(seed, phases)')) {
     throw 'The backdrop storm must use the phased density schedule.'
 }
 $hudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
+# --- Mjolnir rework guards -------------------------------------------------
+if (-not $awakenedSource.Contains('JudgmentCooldown = 8f')) {
+    throw 'Thunderous Judgment must stay on the shortened 8 s cooldown.'
+}
+if (-not $visualsSource.Contains('MainStrikeTime = 0.28f')) {
+    throw 'The main bolt must land almost immediately (0.28 s) instead of after a long wind-up.'
+}
+if (-not $visualsSource.Contains('BuildGreatBoltSchedule')) {
+    throw 'The heavy bolt layer is missing: the ultimate would only show thin backdrop strikes.'
+}
+if (-not $visualsSource.Contains('GreatSchedule') -or -not $visualsSource.Contains('state.MainSpawned && state.GreatSchedule')) {
+    throw 'Heavy bolts must be gated on the main strike having landed.'
+}
+if (-not $lightningRulesSource.Contains('BuildGreatBoltSchedule')) {
+    throw 'The great bolt schedule must be a deterministic rule, not ad hoc spawning.'
+}
+$awakenedBlockSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerAwakenedBlock.cs')
+if (-not $awakenedBlockSource.Contains('ContentManager.Get<Model>("Models/Stormhammer")')) {
+    throw 'Mjolnir must reuse the base Stormhammer mesh; its identity comes from effects, not a second model.'
+}
+if ($awakenedBlockSource.Contains('Models/StormhammerAwakened')) {
+    throw 'The old awakened DAE must not be loaded again.'
+}
+$hammerSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerVisuals.cs')
+if (-not $hammerSource.Contains('DriveCorona')) {
+    throw 'The Mjolnir corona (orbit ring plus crackle arcs) is missing.'
+}
+if (-not $hammerSource.Contains('GetScene')) {
+    throw 'The corona must emit real bolts through the shared scene, not particles.'
+}
+if ($hudSource.Contains('雷霆万钧') -or $hudSource.Contains('万象雷劫')) {
+    throw 'The HUD must not render skill names any more.'
+}
+if ($hudSource -match 'OutlineThickness = size') {
+    throw 'The HUD must not draw the cyan outline frame any more.'
+}
+foreach ($csvFile in @('Stormhammer.csv', 'StormhammerAwakened.csv')) {
+    $rows = @(Import-Csv -LiteralPath (Join-Path (Join-Path $projectDir 'Assets\Blocks') $csvFile) -Delimiter ';' -Encoding UTF8)
+    if ($rows.Count -lt 1) { throw "$csvFile is empty." }
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Stormhammer.csv')).Contains('雷神之锤·伪')) {
+    throw 'The base hammer must be named 雷神之锤·伪.'
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')).Contains('雷神之锤·妙尔尼尔')) {
+    throw 'The awakened hammer must be named 雷神之锤·妙尔尼尔.'
+}
 if (-not $hudSource.Contains('GetThunderGodRemaining')) {
     throw 'The HUD must surface the Thunder God countdown.'
 }
@@ -539,7 +585,6 @@ try {
         'Assets/Models/Chicken.dae',
         'Assets/Models/Helicopter.dae',
         'Assets/Models/Stormhammer.dae',
-        'Assets/Models/StormhammerAwakened.dae',
         'Assets/Models/ThunderSpear.dae',
         'Assets/Models/PortableFortress.dae',
         'Assets/Models/FortressCore.dae',
@@ -1879,10 +1924,9 @@ try {
         }
     }
 
-    # Skywrath V2 is a separate production item. Validate both the weapon and
-    # visible thunder-spear asset through the target importer, not XML alone.
+    # Mjolnir reuses Models/Stormhammer, so only the visible thunder spear still needs its
+    # own production-asset contract. Validate it through the target importer, not XML alone.
     foreach ($awakenedModelCheck in @(
-        @{ File = 'StormhammerAwakened.dae'; Root = 'StormhammerAwakened'; Meshes = 39; Triangles = 1604; Attachments = @('Grip','LanceMuzzle','DomainOrigin','UltimateFocus') },
         @{ File = 'ThunderSpear.dae'; Root = 'ThunderSpear'; Meshes = 5; Triangles = 108; Attachments = @('Tip','Tail') }
     )) {
         $awakenedPath = Join-Path $projectDir ('Assets\Models\' + $awakenedModelCheck.File)

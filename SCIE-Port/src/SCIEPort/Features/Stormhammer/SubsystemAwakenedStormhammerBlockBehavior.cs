@@ -14,7 +14,7 @@ namespace SCIEPort.Features.Stormhammer
         internal const float PhysicalMeleePower = 40f;
         internal const float LightningMeleePower = 25f;
         internal const float RetaliationPower = 5f;
-        internal const float JudgmentCooldown = 12f;
+        internal const float JudgmentCooldown = 8f;
         internal const float UltimateCooldown = 55f;
 
         /// <summary>Duration of the post-ultimate Thunder God window.</summary>
@@ -352,7 +352,7 @@ namespace SCIEPort.Features.Stormhammer
             }
 
             double elapsed = now - state.StartTime;
-            if (!state.MainWarned && elapsed >= 4.25)
+            if (!state.MainWarned && elapsed >= 0.02)
             {
                 state.MainWarned = true;
                 Publish(Event(state.Caster, state.CastId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimateMainWarning, state.Center, Vector3.UnitY, LightningRules.TribulationRadius));
@@ -408,7 +408,7 @@ namespace SCIEPort.Features.Stormhammer
                 if (!IsLiveTarget(pending.Target)) continue;
                 ComponentPlayer attackerPlayer = pending.Attacker.Entity.FindComponent<ComponentPlayer>(false);
                 float multiplier = IsThunderGodActive(attackerPlayer) ? ThunderGodPowerMultiplier : 1f;
-                DealElementalPower(pending.Attacker, pending.Target, LightningMeleePower, "苍穹之怒·雷电追加", multiplier);
+                DealElementalPower(pending.Attacker, pending.Target, LightningMeleePower, "妙尔尼尔·雷电追加", multiplier);
                 StormhammerVisuals.EmitArc(Project, pending.Attacker.ComponentBody.BoundingBox.Center(), pending.HitPoint, 1.15f);
                 StormhammerVisuals.EmitBurst(Project, pending.HitPoint, 0.9f);
             }
@@ -461,7 +461,7 @@ namespace SCIEPort.Features.Stormhammer
             try
             {
                 float targetBefore = target.Health;
-                target.Injure(RetaliationPower / MathUtils.Max(target.AttackResilience, 0.001f), state.Player.ComponentMiner.ComponentCreature, false, "苍穹之怒·雷电反伤");
+                target.Injure(RetaliationPower / MathUtils.Max(target.AttackResilience, 0.001f), state.Player.ComponentMiner.ComponentCreature, false, "妙尔尼尔·雷电反伤");
                 DiagnosticDamage("retaliation", state.Player.Entity.EntityId, attacker.Entity.EntityId, RetaliationPower, 1f, targetBefore, target.Health);
             }
             finally { m_applyingRetaliation = false; }
