@@ -1,5 +1,19 @@
 # 测试结果
 
+## 0.29.0 便携堡垒（2026-10-26）
+
+- 环境：已确认。`Test-Environment.ps1` exit 0：三程序集 SHA-256 与 x25.01.17 公开包一致，API 1.42 / SC 2.4.10.6 / net472，260 个原生方块常量最大 ID 263。
+- 模型：已确认（目标导入）。`scripts/New-PortableFortressModel.ps1` 重新生成 `Assets/Models/PortableFortress.dae`（11 网格 / 1248 三角面 / 104 部件）；`scripts/Test-PortableFortressModel.ps1` 打印 `PASS`，真实 `Engine.Media.ModelData.Load(Stream)` 得到 1 骨骼 / 11 网格，包围盒 11 × 13 × 9。
+- 资产：已确认。`scripts/New-PortableFortressAssets.ps1` 生成 `FortressCore.dae`（14 部件）与 `PortableFortress.png` / `FortressCore.png`。
+- 离线规则：已确认。`tests/SCIEPort.PortableFortress.Tests` **291 断言**通过，覆盖：代理数量与尺寸上限、代理不越出外壳、地板顶面恒为 0.36、门洞/观察窗/楼梯井/舱口/屋顶通道不被封死、四向旋转群律、143 格占地唯一、锚点七格偏移、预检七种拒绝、体素重叠与安全边距、楼梯与竖井目标高度、抬升速率与跳跃豁免、回收门控与事务限额。
+- 全量回归：已确认。Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 41 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 / **PortableFortress 291** 全部 exit 0。
+- 编译/数据库：已确认。net472 Release **0 warning/0 error**；15 个 XDB `DATABASE VALIDATION PASSED`。首轮校验曾报两处真实缺陷并已修正：三个目录未复用原版 GUID；`SimpleModel` 的 `InheritanceParent` 误写为 `...ecb5a2b7baf4`（正确为 `...ecb5a2a7baf4`）。
+- 新增构建守卫：已确认。构建脚本校验三个方块行的分类/碰撞/可放置标志、类名在全仓 CSV 中唯一、944–946 编号未漂移、`FloorTop = 0.36`、`MaxSegmentHalfDiagonal = 4`、地形容量 4 格、`WorkType.Client` 拒绝、预检先于事务创建。
+- 打包：已确认。`artifacts/SCIEPort.netmod` 为 **2,323,919 字节 / 87 条目**，SHA-256 `89FCCE29A77224F98D915D3D645DF6BEDBA3D80903964296DF008CA54C4159CB`；包内含 `PortableFortress.csv`、`PortableFortress.xdb`、`PortableFortress.dae`、`FortressCore.dae`、`PortableFortress.png`、`FortressCore.png`；modinfo Version=`0.29.0`。
+- Windows 游戏运行：待验证。未启动游戏。
+- Android 7723：待验证。展开、进门、走楼梯、上屋顶、存读档、帧耗时均未真机执行。
+- 联机：待验证。未做双设备测试。
+
 ## 0.26.0 双人直升机 V0.4（2026-10-25）
 
 - 前置环境：直接运行 `Test-Environment.ps1` 首先因机器遗留 `SCNET_GAME_DIR=E:\...`（该盘不存在）失败；显式使用 `-GameDir 'D:\SC'` 后发现 PowerShell 7 的 byte-array Assembly load 无法解析同目录 Engine 依赖，脚本改为对已完成哈希校验的绝对路径使用 `Assembly.LoadFrom`。修正后环境检查 exit 0。

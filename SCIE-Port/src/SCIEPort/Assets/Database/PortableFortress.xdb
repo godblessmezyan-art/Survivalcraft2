@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortPortableFortress>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortFortress" Guid="6d53f9e2-d0e0-4427-8cfa-7dccf4bc27cb">
+      <MemberComponentTemplate Name="Body" Guid="2ab96f07-7246-4b19-b1c5-05d047f4de96" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="BoxSize" Guid="4ad9587f-f79d-4136-b06c-56f588ab7ccb" Value="0.2,0.2,0.2" Type="Vector3" />
+        <Parameter Name="Mass" Guid="edb9e3ce-83f9-4250-976a-022657f6c747" Value="100000" Type="float" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="f172063a-c80d-4360-ab5d-006fa6d32de4" Value="0" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="SimpleModel" Guid="ac755cb1-9918-4507-b77c-ce2150cb5881" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="ModelName" Guid="52dfb262-e234-4748-ba33-649850bb9624" Value="Models/PortableFortress" Type="string" />
+        <Parameter Name="TextureOverride" Guid="3ea94753-78d8-4841-824c-a6a5961ed464" Value="Textures/PortableFortress" Type="string" />
+        <Parameter Name="CastsShadow" Guid="71176eca-da27-4cf9-a548-47bce46de708" Value="False" Type="bool" />
+        <Parameter Name="BoundingSphereRadius" Guid="75a1e5ae-ad48-433e-8046-2b7cd4a91db0" Value="12" Type="float" />
+        <Parameter Name="PrepareOrder" Guid="5a572bb1-3b5d-423b-988c-8337384e3c53" Value="0" Type="int" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="1772f02a-2e8d-4c76-a954-190c4c69e791" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="65d9aa75-95e8-4936-b77e-d0d205b9c005" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="PortableFortress" Guid="3ac948d3-912a-468c-9087-cbb6f9336f5b" InheritanceParent="8f7b5cc3-e0b3-43e0-a656-5ca90416aa40" />
+    </EntityTemplate>
+    <EntityTemplate Name="SCIEPortFortressSegment" Guid="0a537997-093e-4766-9f5a-5edf7ee643b6">
+      <MemberComponentTemplate Name="Body" Guid="f9bfb97e-eecf-4c45-902a-b4e2088c2066" InheritanceParent="8edd1986-0dcc-424f-893a-491c089b821e">
+        <Parameter Name="BoxSize" Guid="83f6b0c1-cd03-4ee4-bf04-8be53c76aa2f" Value="1,1,1" Type="Vector3" />
+        <Parameter Name="Mass" Guid="37bfcc1f-90f8-4091-b432-7e5566cbb56f" Value="100000" Type="float" />
+        <Parameter Name="MaxSmoothRiseHeight" Guid="3d00b2ee-e88e-473e-83c5-5f9ec276354f" Value="0" Type="float" />
+        <Parameter Name="AirDrag" Guid="406f8f98-03ce-49ea-a9ee-4aa7fcd1596f" Value="0.45,0.75" Type="Vector2" />
+        <Parameter Name="WaterDrag" Guid="26732207-9370-4fe7-8b64-427afc0b3ef2" Value="2.5,3.5" Type="Vector2" />
+        <Parameter Name="Density" Guid="8086fc0c-a858-4310-84ba-b0af467d055d" Value="10" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="fa57994b-3be0-430b-8c90-77bfde49995c" InheritanceParent="65268743-4076-4ee3-aefe-f02a54d16b36">
+        <Parameter Name="AutoDespawn" Guid="c2dbe1dd-4dd1-484b-b868-da72f0b05e09" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="PortableFortressSegment" Guid="6ecdbd3d-f830-4a6c-977e-6713b56c6b40" InheritanceParent="375c7892-9fcd-4ca0-908e-0a8ca429d119" />
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="Gameplay" Guid="d3d4b692-acc9-4128-9b99-a5acf1de1fbb">
+    <ComponentTemplate Name="SCIEPortFortressAnchor" Description="Portable fortress instance record" Guid="8f7b5cc3-e0b3-43e0-a656-5ca90416aa40" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="973c71b8-7d9f-4bd4-a944-dcc4eb694e71" Value="SCIEPort.Features.PortableFortress.ComponentPortableFortress" Type="string" />
+      <Parameter Name="FortressId" Guid="75a69789-fa16-45fd-8586-94ab76dd7956" Value="" Type="string" />
+      <Parameter Name="Facing" Guid="af43a45e-8534-4117-9ee8-44fd309af3d3" Value="0" Type="int" />
+      <Parameter Name="BaseY" Guid="57c18943-073a-44d7-b9b4-766f560f0e34" Value="0" Type="int" />
+      <Parameter Name="AnchorX" Guid="dc56e1a0-959a-4a20-b373-a7b71e4ec023" Value="0" Type="int" />
+      <Parameter Name="AnchorZ" Guid="e31d6d22-cd4a-403f-9ea2-98160f962f41" Value="0" Type="int" />
+      <Parameter Name="CoreX" Guid="ddcebc71-5886-40b9-be3a-378c531a12ee" Value="0" Type="int" />
+      <Parameter Name="CoreY" Guid="429dfe04-7eef-492e-beed-31bf4bfcba8d" Value="0" Type="int" />
+      <Parameter Name="CoreZ" Guid="00c14bcc-1388-4e91-beb5-97972ac3ca4b" Value="0" Type="int" />
+      <Parameter Name="Revision" Guid="d7051f1a-4bef-4edb-aace-f84be6abb699" Value="0" Type="int" />
+      <Parameter Name="State" Guid="18d53b66-198e-4564-9dcf-56b62bded66b" Value="0" Type="int" />
+    </ComponentTemplate>
+    <ComponentTemplate Name="SCIEPortFortressSegmentMarker" Description="Portable fortress collision proxy marker" Guid="375c7892-9fcd-4ca0-908e-0a8ca429d119" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+      <Parameter Name="Class" Guid="eac19c89-8634-4c37-adea-36a3536853f4" Value="SCIEPort.Features.PortableFortress.ComponentPortableFortressSegment" Type="string" />
+      <Parameter Name="FortressId" Guid="df553aa7-ab9d-40d1-af86-505a7b47027e" Value="" Type="string" />
+      <Parameter Name="SegmentIndex" Guid="1e3fc451-898f-4272-9c28-d267c44d320b" Value="-1" Type="int" />
+    </ComponentTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortPortableFortressBehavior" Guid="f60965c8-1508-4049-ad81-63bdda8390eb" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="f7227d72-1b4d-4bf0-8ba9-6327bb07c557" Value="SCIEPort.Features.PortableFortress.SubsystemPortableFortressBlockBehavior" Type="string" />
+    </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortPortableFortress" Guid="ab65177c-0db9-4db1-ad92-2543268e117a" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="922fe54e-7807-4f97-afc5-f1b0d7764fa1" Value="SCIEPort.Features.PortableFortress.SubsystemPortableFortress" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortPortableFortressBehavior" Guid="ec189546-9594-4d14-b9f5-228800c74f13" InheritanceParent="f60965c8-1508-4049-ad81-63bdda8390eb" />
+    <MemberSubsystemTemplate Name="SCIEPortPortableFortress" Guid="94473fdc-507f-4037-b5fa-a9c1db90e35d" InheritanceParent="ab65177c-0db9-4db1-ad92-2543268e117a" />
+  </ProjectTemplate>
+</SCIEPortPortableFortress>

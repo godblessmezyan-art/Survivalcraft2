@@ -79,6 +79,9 @@ if ($LASTEXITCODE -ne 0) { throw "Apple plant rule tests failed: $LASTEXITCODE" 
 $activationTests = Join-Path $projectRoot 'tests\SCIEPort.VehicleActivation.Tests\SCIEPort.VehicleActivation.Tests.csproj'
 & $dotnetPath run --project $activationTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXITCODE" }
+$fortressTests = Join-Path $projectRoot 'tests\SCIEPort.PortableFortress.Tests\SCIEPort.PortableFortress.Tests.csproj'
+& $dotnetPath run --project $fortressTests --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Portable fortress rule tests failed: $LASTEXITCODE" }
 
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a
@@ -201,6 +204,62 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
 
+# Portable Fortress registration guard. The three blocks are the only terrain /
+# inventory footprint of the extension, so a wrong flag here would either show an
+# invisible block in the creative inventory or let a player hand-place structure.
+$fortressCsv = Join-Path $projectDir 'Assets\Blocks\PortableFortress.csv'
+$fortressRows = @(Import-Csv -LiteralPath $fortressCsv -Delimiter ';' -Encoding UTF8)
+$fortressItem = @($fortressRows | Where-Object { $_.'Class Name' -eq 'PortableFortressCoreItemBlock' })
+$fortressCore = @($fortressRows | Where-Object { $_.'Class Name' -eq 'PortableFortressCoreBlock' })
+$fortressThreshold = @($fortressRows | Where-Object { $_.'Class Name' -eq 'PortableFortressThresholdBlock' })
+if ($fortressItem.Count -ne 1 -or $fortressCore.Count -ne 1 -or $fortressThreshold.Count -ne 1) {
+    throw 'PortableFortress.csv must declare exactly one item, one control core and one threshold row.'
+}
+if ($fortressItem[0].Behaviors -ne 'SCIEPortPortableFortressBehavior') {
+    throw 'The fortress deploy item must be handled by SCIEPortPortableFortressBehavior.'
+}
+if ($fortressItem[0].IsCollidable -ne 'FALSE' -or $fortressItem[0].IsPlaceable -ne 'FALSE') {
+    throw 'The fortress deploy item must stay non-collidable and non-placeable.'
+}
+if ($fortressCore[0].IsCollidable -ne 'FALSE') {
+    throw 'The control core must be walk-through so it never blocks the rear door.'
+}
+if ($fortressThreshold[0].IsCollidable -ne 'TRUE' -or $fortressThreshold[0].IsPlaceable -ne 'FALSE') {
+    throw 'The hidden threshold must be collidable but never hand-placeable.'
+}
+$fortressBlockIds = @()
+foreach ($csvFile in @(Get-ChildItem -LiteralPath (Join-Path $projectDir 'Assets\Blocks') -Filter *.csv -File)) {
+    foreach ($row in @(Import-Csv -LiteralPath $csvFile.FullName -Delimiter ';' -Encoding UTF8)) {
+        $fortressBlockIds += , @($row.'Class Name', $csvFile.Name, $row.DisplayOrder)
+    }
+}
+foreach ($blockClass in @('PortableFortressCoreItemBlock', 'PortableFortressCoreBlock', 'PortableFortressThresholdBlock')) {
+    $sameClass = @($fortressBlockIds | Where-Object { $_[0] -eq $blockClass })
+    if ($sameClass.Count -ne 1) { throw "$blockClass must appear in exactly one block CSV." }
+}
+$fortressSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\PortableFortressBlocks.cs')
+foreach ($expectedIndex in @('Index = 944', 'Index = 945', 'Index = 946')) {
+    if (-not $fortressSource.Contains($expectedIndex)) { throw "Portable fortress block id drifted: $expectedIndex" }
+}
+$fortressGeometry = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\PortableFortressGeometry.cs')
+if (-not $fortressGeometry.Contains('FloorTop = 0.36f')) {
+    throw 'The level-1 walking surface must stay at 0.36 so the player never floats above the foundation.'
+}
+if (-not $fortressGeometry.Contains('MaxSegmentHalfDiagonal = 4f')) {
+    throw 'Collision proxies must stay small enough for SubsystemBodies.FindBodiesAroundPoint(4f).'
+}
+$fortressDeploy = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\FortressDeploymentRules.cs')
+if (-not $fortressDeploy.Contains('MaxTerrainCellsPerDeployment = 4')) {
+    throw 'Deployment must stay limited to three threshold cells and the core cell.'
+}
+$fortressBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\SubsystemPortableFortressBlockBehavior.cs')
+if (-not $fortressBehavior.Contains('WorkType.Client')) {
+    throw 'Fortress deployment must refuse non-authoritative multiplayer clients.'
+}
+if ($fortressBehavior.IndexOf('FortressDeploymentRules.Evaluate') -gt $fortressBehavior.IndexOf('m_fortresses.TryBeginDeploy')) {
+    throw 'The preflight must run before any fortress state is created.'
+}
+
 Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
@@ -308,6 +367,7 @@ try {
         'Assets/Blocks/Helicopter.csv',
         'Assets/Blocks/Stormhammer.csv',
         'Assets/Blocks/StormhammerAwakened.csv',
+        'Assets/Blocks/PortableFortress.csv',
         'Assets/Database/Watercraft.xdb',
         'Assets/Database/KellyPlants.xdb',
         'Assets/Database/LandVehicles.xdb',
@@ -322,6 +382,7 @@ try {
         'Assets/Database/Helicopter.xdb',
         'Assets/Database/Stormhammer.xdb',
         'Assets/Database/StormhammerAwakened.xdb',
+        'Assets/Database/PortableFortress.xdb',
         'Assets/Models/ATV.dae',
         'Assets/Models/Airship.dae',
         'Assets/Models/KellyFruits.dae',
@@ -343,6 +404,8 @@ try {
         'Assets/Models/Stormhammer.dae',
         'Assets/Models/StormhammerAwakened.dae',
         'Assets/Models/ThunderSpear.dae',
+        'Assets/Models/PortableFortress.dae',
+        'Assets/Models/FortressCore.dae',
         'Assets/Textures/Train.png',
         'Assets/Textures/SteamBoat.png',
         'Assets/Textures/Airship.png',
@@ -357,6 +420,8 @@ try {
         'Assets/Textures/Bamboo.png',
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
+        'Assets/Textures/PortableFortress.png',
+        'Assets/Textures/FortressCore.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',
         'Assets/Audio/SCIEPortHelicopterLoop.wav',

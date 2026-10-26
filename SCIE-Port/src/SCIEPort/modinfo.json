@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.28.1",
+  "Version": "0.29.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.28.1 fixes the V3.2 startup failure by assigning Skywrath network events the unique package ID 243; vehicle activation remains on 242. V3.2 provides two Android HUD skills, authoritative split melee damage, controlled five-point lightning retaliation, target-locked ultimate sequencing, layered avatar/weapon glow and high/medium/low VFX budgets. The original Stormhammer and all vehicle features remain unchanged. Android rendering, touch layout, combat values and real multiplayer synchronization remain pending device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.29.0 adds the Portable Fortress as an independent SCIE-Port gameplay extension: a creative deploy item, a walk-through control core, an 11x13x9 integrated fortress entity rendered from the migrated DAE, segmented body collision, three hidden 0.36 threshold cells, batched deployment with rollback, four-direction rotation and save/load reconciliation. Recovery stays reserved and never removes anything. v0.28.1 Skywrath package ID and all vehicle, plant and industrial features are unchanged. Android 7723 rendering, traversal, save/reload and multiplayer remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",
