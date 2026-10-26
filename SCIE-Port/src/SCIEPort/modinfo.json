@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.33.0",
+  "Version": "0.34.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.33.0 reworks the awakened Stormhammer. It now reuses the base hammer mesh and texture, because the player preferred that silhouette: the awakened identity comes from a live corona instead (orbiting glow ring plus crackling arcs between the ring points, roughly twice the rate and white-blue while the Thunder God window is open). Renamed: the base item is now 雷神之锤·伪 and the awakened form is 雷神之锤·妙尔尼尔. Myriad Tribulation lands for real immediately: the authoritative strike moved from 4.85 s to 0.28 s, the density phases open on the climax, and a new heavy layer drops 5 to 11 full sized branched bolts in the near field across the 12 s window (deterministic per cast id, gated on the main strike). Thunderous Judgment cooldown is down from 12 s to 8 s. The skill HUD is now icon and cooldown only: the skill names and the cyan outline frame are gone. Android rendering, frame cost and multiplayer remain pending device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.34.0 polishes Mjolnir presentation and melee feedback. Inventory and hotbar slots holding the true Mjolnir now wear an artifact skin: a breathing blue-purple background and a pulsing violet bevel, painted by MjolnirDisplay (only the awakened hammer; the fake copy keeps the plain slot). The melee lightning add-on is now a real second hit: it lands 0.4 s after the physical strike and draws its own cyan damage number, spawned with the native HitValueParticleSystem pattern (health.Injure alone never shows a number). The fake hammer (雷神之锤·伪) gains a fixed 5 point lightning add-on on melee, with its own delayed cyan number and a short crack arc; it never receives the Thunder God multiplier. Android slot rendering, number readability and multiplayer remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

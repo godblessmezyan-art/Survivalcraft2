@@ -1,4 +1,13 @@
 # SCIE-Port 兼容性记录
+## 0.34.0 妙尔尼尔展示与反馈（离线已确认，真机待验证，2026-10-26）
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 槽位皮肤 | 已确认（源码/守卫） | `MjolnirDisplay` 只装饰 942；首触保存/离开恢复/Dispose 还原；`InventorySlotWidget.Update` 不回写颜色已取证。 |
+| 伤害数字 | 已确认（反编译取证） | `health.Injure` 不出数字；`ShowHitValue` 复刻 `ComponentMiner` 的 `ComponentHealthPackage` + `HitValueParticleSystem` 模式。 |
+| 伪锤附伤 | 已确认（源码/守卫） | 固定 5 点、×1 永不增幅、延迟 0.4 s。 |
+| Release 构建/包 | 已确认 | exit 全绿：667 断言、15 XDB PASS、包 3,021,714 B / 92 条目，SHA-256 `C6DDD1462E0D8B596D149EF05430A976365199F05B85C89427C5367A63526502`，modinfo 0.34.0。 |
+| 真机观感 | 待验证 | 槽位脉动、两段伤害节奏、联机远程数字。 |
 ## 0.33.0 雷神之锤·妙尔尼尔 V6（2026-10-26，分支 `feature/mjolnir-v6`）
 
 | 项目 | 状态 | 结论 |

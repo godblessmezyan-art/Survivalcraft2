@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using Game.NetWork;
+using Game.NetWork.Packages;
 using GameEntitySystem;
 using TemplatesDatabase;
 
@@ -14,6 +15,18 @@ namespace SCIEPort.Features.Stormhammer
         internal const float PhysicalMeleePower = 40f;
         internal const float LightningMeleePower = 25f;
         internal const float RetaliationPower = 5f;
+
+        /// <summary>
+        /// Fixed lightning add-on of the fake hammer. It never receives the Thunder God
+        /// multiplier: the fake copy has no connection to the real storm.
+        /// </summary>
+        internal const float BaseHammerLightningPower = 5f;
+
+        /// <summary>
+        /// The melee add-on lands this long after the physical hit, so the white melee number
+        /// and the cyan lightning number are read as two separate hits instead of one blur.
+        /// </summary>
+        internal const float LightningDisplayDelay = 0.4f;
         internal const float JudgmentCooldown = 8f;
         internal const float UltimateCooldown = 55f;
 
@@ -30,6 +43,10 @@ namespace SCIEPort.Features.Stormhammer
             public Vector3 HitPoint;
             public double ApplyTime;
             public float PhysicalBefore;
+            public float Power;
+            public string Cause;
+            /// <summary>True only for the awakened hammer; the fake copy never receives the buff.</summary>
+            public bool Multiplied;
         }
 
         private sealed class AvatarState
@@ -109,6 +126,7 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public override void Dispose()
         {
+            MjolnirDisplay.ResetAll();
             m_scene?.Clear();
             m_thunderGod.Clear();
             m_pendingJudgment.Clear();
@@ -208,14 +226,47 @@ namespace SCIEPort.Features.Stormhammer
         {
             if (CommonLib.WorkType == WorkType.Client || !isMeleeAttack || target == null || attacker == null) return;
             ComponentPlayer player = attacker.Entity.FindComponent<ComponentPlayer>(false);
-            if (!IsEquipped(player)) return;
-            attackPower = PhysicalMeleePower;
+            if (player == null || !player.IsAddedToProject) return;
+            int contents = Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue);
+            float power;
+            string cause;
+            bool multiplied;
+            if (contents == StormhammerAwakenedBlock.Index)
+            {
+                attackPower = PhysicalMeleePower;
+                power = LightningMeleePower;
+                cause = "妙尔尼尔·雷电追加";
+                multiplied = true;
+            }
+            else if (contents == StormhammerBlock.Index)
+            {
+                // The fake hammer keeps its native melee (the loader floor of 12 stays) and
+                // gains a fixed 5 point lightning add-on with no multiplier, ever.
+                power = BaseHammerLightningPower;
+                cause = "雷神之锤·伪·雷电追加";
+                multiplied = false;
+            }
+            else
+            {
+                return;
+            }
+
             long key = ((long)attacker.Entity.EntityId << 32) | target.Entity.EntityId;
             double last;
             if (m_meleeDedup.TryGetValue(key, out last) && m_time.GameTime - last < 0.20) return;
             m_meleeDedup[key] = m_time.GameTime;
             ComponentHealth health = target.Entity.FindComponent<ComponentHealth>(false);
-            m_pendingLightning.Add(new PendingLightning { Attacker = attacker, Target = target, HitPoint = hitPoint, ApplyTime = m_time.GameTime + 0.001, PhysicalBefore = health != null ? health.Health : -1f });
+            m_pendingLightning.Add(new PendingLightning
+            {
+                Attacker = attacker,
+                Target = target,
+                HitPoint = hitPoint,
+                ApplyTime = m_time.GameTime + LightningDisplayDelay,
+                PhysicalBefore = health != null ? health.Health : -1f,
+                Power = power,
+                Cause = cause,
+                Multiplied = multiplied
+            });
         }
 
         /// <inheritdoc />
@@ -225,6 +276,7 @@ namespace SCIEPort.Features.Stormhammer
             AwakenedStormhammerVisuals.Update(Project, now, m_scene);
             AwakenedStormhammerVisuals.DecayFlash(Project, dt);
             m_scene?.Update(now);
+            MjolnirDisplay.Update(Project, now);
             UpdateAvatarSubscriptions();
             if (CommonLib.WorkType == WorkType.Client) return;
             UpdateThunderGod(now);
@@ -403,14 +455,20 @@ namespace SCIEPort.Features.Stormhammer
                 if (now < pending.ApplyTime) continue;
                 m_pendingLightning.RemoveAt(i);
                 if (pending.Attacker == null || !pending.Attacker.Entity.IsAddedToProject || pending.Target == null) continue;
-                ComponentHealth health = pending.Target.Entity.FindComponent<ComponentHealth>(false);
-                if (health != null) DiagnosticDamage("physical", pending.Attacker.Entity.EntityId, pending.Target.Entity.EntityId, PhysicalMeleePower, 1f, pending.PhysicalBefore, health.Health);
                 if (!IsLiveTarget(pending.Target)) continue;
                 ComponentPlayer attackerPlayer = pending.Attacker.Entity.FindComponent<ComponentPlayer>(false);
-                float multiplier = IsThunderGodActive(attackerPlayer) ? ThunderGodPowerMultiplier : 1f;
-                DealElementalPower(pending.Attacker, pending.Target, LightningMeleePower, "妙尔尼尔·雷电追加", multiplier);
-                StormhammerVisuals.EmitArc(Project, pending.Attacker.ComponentBody.BoundingBox.Center(), pending.HitPoint, 1.15f);
-                StormhammerVisuals.EmitBurst(Project, pending.HitPoint, 0.9f);
+                float multiplier = pending.Multiplied && IsThunderGodActive(attackerPlayer) ? ThunderGodPowerMultiplier : 1f;
+                DealElementalPower(pending.Attacker, pending.Target, pending.Power, pending.Cause, multiplier);
+                if (pending.Multiplied)
+                {
+                    StormhammerVisuals.EmitArc(Project, pending.Attacker.ComponentBody.BoundingBox.Center(), pending.HitPoint, 1.15f);
+                    StormhammerVisuals.EmitBurst(Project, pending.HitPoint, 0.9f);
+                }
+                else
+                {
+                    // The fake copy cracks, it does not storm: a short single arc at the hit point.
+                    StormhammerVisuals.EmitArc(Project, pending.HitPoint + Vector3.UnitY * 1.4f, pending.HitPoint, 0.55f);
+                }
             }
         }
 
@@ -480,6 +538,26 @@ namespace SCIEPort.Features.Stormhammer
             float finalPower = basePower * multiplier;
             health.Injure(finalPower / MathUtils.Max(health.AttackResilience, 0.001f), attacker, false, cause);
             DiagnosticDamage(cause, attacker.Entity.EntityId, target.Entity.EntityId, basePower, multiplier, before, health.Health);
+            ShowHitValue(target, finalPower);
+        }
+
+        /// <summary>
+        /// health.Injure is the authoritative path but never draws a damage number: hit values
+        /// are spawned by ComponentMiner's own melee code, which this add-on deliberately
+        /// bypasses. This reproduces the native pattern (ComponentMiner lines 447-458): queue
+        /// the package for remote clients, then add the particle locally.
+        /// </summary>
+        private void ShowHitValue(ComponentBody target, float finalPower)
+        {
+            if (CommonLib.WorkType == WorkType.Client) return;
+            Vector3 position = target.BoundingBox.Center() + new Vector3(0f, 0.55f, 0f);
+            // Slight upward drift with a touch of the attacker's motion, matching the native look.
+            Vector3 velocity = new Vector3(0.35f, 1.6f, 0.35f);
+            string text = ((int)MathUtils.Round(finalPower)).ToString();
+            Color color = new Color(150, 220, 255, 255);
+            CommonLib.Net.QueuePackage(new ComponentHealthPackage(position, velocity, color, text));
+            HitValueParticleSystem system = new HitValueParticleSystem(position, velocity, color, text);
+            Project.FindSubsystem<SubsystemParticles>(throwOnError: true).AddParticleSystem(system);
         }
 
         /// <summary>Native attack path (impulse + armor). The multiplier is applied once, before the call.</summary>

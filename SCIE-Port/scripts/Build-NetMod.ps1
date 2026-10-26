@@ -271,7 +271,12 @@ if (-not $thunderGodSource.Contains('ThunderGodPowerMultiplier = 2f')) {
 if (-not $thunderGodSource.Contains('SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);')) {
     throw 'Casting the ultimate must refresh the Thunderous Judgment cooldown, not the ultimate cooldown.'
 }
-if ($thunderGodSource -notmatch 'DiagnosticDamage\("physical"[^;]*PhysicalMeleePower, 1f') {
+# Physical melee power is handed to the native path verbatim; the multiplier may only
+# ever reach the delayed lightning add-on.
+if ($thunderGodSource -notmatch [regex]::Escape('attackPower = PhysicalMeleePower;')) {
+    throw 'The awakened melee power must be passed to the native path unmodified.'
+}
+if ($thunderGodSource -match 'attackPower\s*=\s*[^;]*ThunderGodPowerMultiplier') {
     throw 'Physical melee damage must never be multiplied by the Thunder God window.'
 }
 if ($thunderGodSource -notmatch 'DiagnosticDamage\("retaliation"[^;]*RetaliationPower, 1f') {
@@ -342,6 +347,41 @@ if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\
 }
 if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')).Contains('雷神之锤·妙尔尼尔')) {
     throw 'The awakened hammer must be named 雷神之锤·妙尔尼尔.'
+}
+# --- Slot skin, hit values and the fake hammer add-on -----------------------
+# NOTE: read the behavior source locally; $awakenedBehavior is only defined much later
+# in the V3.2 contract block and would be $null here.
+$displayBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
+$mjolnirDisplay = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
+if (-not $mjolnirDisplay.Contains('StormhammerAwakenedBlock.Index')) {
+    throw 'MjolnirDisplay must key on the awakened block index.'
+}
+if ($mjolnirDisplay.Contains('StormhammerBlock.Index')) {
+    throw 'MjolnirDisplay must not decorate the fake hammer slot.'
+}
+if (-not $mjolnirDisplay.Contains('BevelColor')) {
+    throw 'MjolnirDisplay must restore the bevel it overrides.'
+}
+if (-not $mjolnirDisplay.Contains('ResetAll')) {
+    throw 'MjolnirDisplay must be able to undo its paints when the subsystem dies.'
+}
+foreach ($displayRule in @('BaseHammerLightningPower = 5f','LightningDisplayDelay = 0.4f')) {
+    if (-not $displayBehavior.Contains($displayRule)) { throw "Stormhammer display rule missing: $displayRule" }
+}
+if (-not $displayBehavior.Contains('ShowHitValue')) {
+    throw 'The lightning add-on must spawn a visible hit value; health.Injure alone shows nothing.'
+}
+if (-not $displayBehavior.Contains('ComponentHealthPackage')) {
+    throw 'Remote clients must receive the hit value package.'
+}
+if (-not $displayBehavior.Contains('contents == StormhammerBlock.Index')) {
+    throw 'The fake hammer melee add-on is missing.'
+}
+if (-not $displayBehavior.Contains('MjolnirDisplay.Update')) {
+    throw 'The slot decorator must be driven from the subsystem update loop.'
+}
+if (-not $displayBehavior.Contains('MjolnirDisplay.ResetAll')) {
+    throw 'Slot skins must be restored on dispose.'
 }
 if (-not $hudSource.Contains('GetThunderGodRemaining')) {
     throw 'The HUD must surface the Thunder God countdown.'
@@ -1982,7 +2022,7 @@ try {
         throw 'Skywrath V3.2 HUD must instantiate exactly two active skills.'
     }
     $awakenedBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
-    foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 12f','UltimateCooldown = 55f')) {
+    foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 8f','UltimateCooldown = 55f')) {
         if (-not $awakenedBehavior.Contains($requiredCombatRule)) { throw "Skywrath V3.2 combat rule missing: $requiredCombatRule" }
     }
     foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛','雷霆王域')) {

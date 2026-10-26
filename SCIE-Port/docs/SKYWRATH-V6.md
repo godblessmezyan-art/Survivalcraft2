@@ -102,3 +102,30 @@ Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
 - 大招：0.28 s 落雷的实际手感、11 道重雷是否过载、与主雷的视觉层次；
 - 联机：重雷为本地演出，不同步逐道落雷；主雷与伤害仍走权威事件；
 - 未启动游戏、未做双机测试、未在 7723 上跑过帧耗时。
+
+
+## V6.1 展示与打击反馈（2026-10-26，0.34.0）
+
+### 专属槽位皮肤（MjolnirDisplay）
+
+- 物品栏与快捷栏中持有**真·妙尔尼尔（942）**的槽位：蓝紫色呼吸背景 + 紫色脉动描边；**伪锤（943）不加任何装饰**。
+- 实现依据：`InventorySlotWidget.Update` 在构造后从不改写 `CenterColor`/`BevelColor`（仅改 `IsVisible`），外部涂色不会与原生逻辑打架；首触保存原色，移出后恢复，`Dispose` 全量还原。
+- 以 8 Hz 节流扫描所有玩家 GUI（`player.GuiWidget.AllChildren.OfType<InventorySlotWidget>()`），脉动相位随游戏时间。
+
+### 雷电附加伤害可见化
+
+- 根因：`health.Injure` 是权威结算路径，但**从不生成伤害数字**——数字由 `ComponentMiner` 的近战代码生成（反编译 447–458 行）。
+- 修复：`ShowHitValue` 复刻原生模式——`CommonLib.Net.QueuePackage(ComponentHealthPackage)`（远程客户端）+ 本地 `HitValueParticleSystem`，颜色青蓝 `#96DCFF`，与白色普攻数字区分。
+- 附加伤害延迟 **0.4 s** 结算（`LightningDisplayDelay`），与普攻数字分开弹出，读作两段伤害。
+
+### 伪锤强化
+
+- 雷神之锤·伪普攻附带**固定 5 点**雷电追加（`BaseHammerLightningPower`），同样延迟 0.4 s、青色数字、命中点一道短电弧；**永不享受雷神降世 ×2**。
+- 伪锤本体近战仍走原生（加载器保底 12）。
+
+### 验证
+
+- net472 Release 0 error 0 warning；667 条离线断言全绿；15 个 XDB PASS。
+- 包：3,021,714 B / 92 条目，SHA-256 `C6DDD1462E0D8B596D149EF05430A976365199F05B85C89427C5367A63526502`，modinfo `0.34.0`。
+- 新增守卫：皮肤只挂 942、伤害数字与网络包存在、伪锤附伤与延迟常量、物理近战显式无倍率。
+- 待验证：真机槽位脉动观感、0.4 s 两段伤害的节奏、联机远程数字。
