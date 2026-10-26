@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.30.0",
+  "Version": "0.31.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.30.0 rebuilds Skywrath skills 2 and 3 around a real ribbon lightning system: each bolt is a continuous jagged polyline expanded into camera-facing quads with a white core, a blue halo and branches, plus ground rune seals and impact flashes. Thunderous Judgment now charges for 0.42 s and then releases 10-12 radial bolts (110 inside 4 blocks, decaying to 70 at 9). Myriad Tribulation drops the old 24-target sweep for one authoritative main bolt (220/120/70 inside 8 blocks, four 18-damage aftershock ticks) plus a client-side deterministic backdrop storm that deals no damage and never loads chunks. Android rendering, touch HUD and multiplayer remain pending device verification.",
+  "Description": "Gungnir V4 development candidate: two active skills, authoritative combat, native aim adapter, original spear art. Strict remote player movement authority and final Android/network visual acceptance are not yet verified. Authorized SCIE port for SCNET x25.01.17. v0.30.0 rebuilds Skywrath skills 2 and 3 around a real ribbon lightning system: each bolt is a continuous jagged polyline expanded into camera-facing quads with a white core, a blue halo and branches, plus ground rune seals and impact flashes. Thunderous Judgment now charges for 0.42 s and then releases 10-12 radial bolts (110 inside 4 blocks, decaying to 70 at 9). Myriad Tribulation drops the old 24-target sweep for one authoritative main bolt (220/120/70 inside 8 blocks, four 18-damage aftershock ticks) plus a client-side deterministic backdrop storm that deals no damage and never loads chunks. Android rendering, touch HUD and multiplayer remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

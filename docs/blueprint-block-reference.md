@@ -301,3 +301,4 @@
 ## SCIE-Port 非蓝图物品（苍穹之怒 V3.2 / SCIE-Port 0.28.1）
 
 - `942` 苍穹之怒与 `943` 雷神之锤均为 `IsPlaceable=FALSE` 的手持武器；`941` 为不可放置的直升机部署物品。它们都不属于 Builder Assistant 可生成方块族，任何蓝图 JSON 不得写入 `materials[].block` 或 cell。本次 ID 去冲突不改变可放置方块/DATA 范围。
+<!-- 2026-10-27: SCIE-Port Gungnir ID948 is an independent non-placeable weapon, NOT a blueprint material. Do not generate cells/materials using ID948 or Gungnir. No Builder Assistant block families, DATA ranges, schema or limits changed. -->

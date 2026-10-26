@@ -960,3 +960,8 @@ Android 7723 联网/真机验证阶段。
 - Release / 包：已确认。完整构建 exit 0，0 warning/0 error；全部既有规则测试及数据库校验通过。产物 81 条目、2,292,868 bytes，Version/AssemblyVersion `0.28.1`/`0.28.1.0`，SHA-256 `264D1A793E9DB8F41E0DDB0AFB0A571FAA78286839BD4E496E86F949707A912D`。
 - Windows 实际加载：已确认。0.28.1 临时部署后启动到主菜单，日志确认 DLL、全部 XDB 和全部 CSV 正常加载，无数据包冲突或缺失 Block 类型错误；测试结束恢复原安装包。
 - Android 7723：待验证。需要用户重新导入 0.28.1，确认创造栏/武器分类和既有世界；技能、伤害、HUD 与多人仍未因本次加载验证而自动转为已确认。
+## 2026-10-27 昆古尼尔 V4 候选
+
+真实Release编译0警告0错误；根环境脚本在Windows PowerShell5.1通过；SCIE环境/模型导入/XDB/88项昆古尼尔纯规则及包内容检查通过。首次完整构建因远端基线引用但未提交`tests/SCIEPort.Stormhammer.Tests`而失败；项目所有者随后明确要求忽略该测试，构建门槛已移除并重新完整执行。Windows游戏/Android/主机/普通客户端均未测试。具体命令、实现缺口与验收步骤见[GUNGNIR-V4-AUDIT.md](GUNGNIR-V4-AUDIT.md)。
+
+最终`SCIEPort.netmod`：3,027,538字节；SHA-256 `ADE009B962DE2935320554B6DB0ACD9212351B7C522A4A767F70AFB76B8B1793`；DLL与modinfo版本均为0.31.0。
