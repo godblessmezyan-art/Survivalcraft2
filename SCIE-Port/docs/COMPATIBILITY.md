@@ -456,10 +456,20 @@ THIRD-PARTY-NOTICES.md
 | 两技能 HUD | 已确认（静态/编译） | 构建守卫断言 `new SkillButton(` 恰好两处，并拒绝旧 `ThunderLance/ThunderDomain/雷狱天矛/雷霆王域`；按钮为雷霆万钧与万象雷劫。Android 多点触控待验证。 |
 | 雷霆万钧 | 已确认（代码/编译） | 权威半径 9，HashSet 单次去重，0–4 格 110、4–9 格线性到 70，冷却 12；客户端只播放 8/10/12 条确定性放射电弧、分叉、爆心与双层雷波。实际范围/伤害待运行。 |
 | 万象雷劫 | 已确认（代码/编译） | 冷却 55；权威中心 24 格快照最多 24 个存活目标；目标雷 130，主雷中心 220/外围 100/半径 7，余震 18×4。玩家目标服从 FriendlyFire，洞穴遮挡不排除。数值与联机待实测。 |
-| 联机演出协议 | 已确认（ABI/编译） | 包 242 新增 `TargetId/CastId/ServerTime`，保留请求序列与服务端发送者绑定；落点/目标由服务端事件决定，并按施法/阶段/目标/步骤去重演出。该载荷与 0.27.x 不兼容，联机双方必须统一升级到 0.28.0；真实丢包、延迟与观察者行为待双机验证。 |
+| 联机演出协议 | 已确认（ABI/编译） | 0.28.1 将雷锤演出迁到专属包 243，包 242 继续专用于载具激活；载荷含 `TargetId/CastId/ServerTime`，并按施法/阶段/目标/步骤去重。联机双方必须统一升级到 0.28.1；真实丢包、延迟与观察者行为待双机验证。 |
 | 人物/武器/天空渲染 | 已确认（ABI/编译） | 使用真实 `OnModelRendererDrawExtra`、HumanModel 六骨骼、`EmissionColor`、`SubsystemGlow`、`ChangeSkyColor`、`ViewFogColor`；未发现 Bloom、动态灯、云层材质或安全镜头震动 API，未伪造。实际视觉待 Android/Windows 运行。 |
 | 高中低与清理 | 已确认（代码/编译） | High/Medium/Low 控制挂点、电弧间隔、粒子和远雷；GlowPoint 三帧过期，卸装/死亡恢复 emission。断线/切世界实际清理待运行。 |
 | Release / 包 | 已确认 | `Test-Environment.ps1` 与 `Build-NetMod.ps1` exit 0；0 warning/0 error；所有既有离线规则测试和数据库校验通过；81 条目、2,292,859 bytes，Version/AssemblyVersion `0.28.0`/`0.28.0.0`，SHA-256 `B261BC031C8B26B8CBA0D463F2F81457F7D87EEF45AEB35D710B53290A19D66B`。 |
 | Windows/Android/多人运行 | 待验证 | 未启动游戏、未连接 Android 或多人会话；伤害、反伤、HUD、骨骼雷光、天空恢复和性能均不得仅凭编译标记运行通过。 |
 
 完整限制与真机步骤见 `docs/SKYWRATH-V3.2-AUDIT.md`。
+
+## 0.28.1 V3.2 加载修复（2026-10-26）
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 整包物品消失根因 | 已确认 | Windows x25.01.17 实际启动日志复现：`VehicleActivationPackage` 与 `StormhammerSkillPackage` 同占 ID 242，第二次 `PackageManager.RegisterPackage` 抛出“数据包存在冲突”，中断 DLL 初始化；随后所有 CSV 因 Block 类型未注册而失败。 |
+| 修复 | 已确认（源码） | 载具激活保留 242，苍穹之怒迁移至 243；构建脚本扫描全部 `*Package.cs` 并拒绝重复 ID，环境检查保留段扩展到 240–243。 |
+| 方块 ID 合并冲突 | 已确认 | 修复包首次真实加载又发现直升机与普通雷神之锤同占 941；为保留已发布直升机存档，直升机继续使用 941、苍穹之怒继续使用 942，普通雷神之锤迁移到 943。构建脚本现在拒绝任何重复 `Block.Index`。旧测试版中写入为 941 的雷神之锤无法与直升机无歧义区分，不能自动迁移。 |
+| Windows 加载 | 已确认 | 将 0.28.1 包临时部署到 x25.01.17 `NetMods` 后真实启动到主菜单；日志确认 81 资源、DLL、全部 XDB/CSV 正常加载，无“数据包存在冲突”或“BlocksData 中没有找到”错误。测试后恢复原安装包。 |
+| Android 7723 | 待验证 | 用户已确认 0.28.0 整包物品消失；0.28.1 尚待重新导入确认。 |

@@ -30,7 +30,7 @@ namespace SCIEPort.Features.Stormhammer
     public sealed class StormhammerSkillPackage : IPackage
     {
         /// <inheritdoc />
-        public byte ID => 242;
+        public byte ID => 243;
         /// <inheritdoc />
         public Client To { get; set; }
         /// <inheritdoc />

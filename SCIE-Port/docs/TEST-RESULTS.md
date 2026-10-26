@@ -922,3 +922,13 @@ Android 7723 联网/真机验证阶段。
 - 模型与资源回归：已确认。既有觉醒锤 1 bone/39 meshes/1604 tris、雷矛历史资源 1 bone/5 meshes/108 tris、1024/256/2048 PNG、UV/挂点/音频签名继续通过；V3.2 不把历史雷矛模型用于主动技能。
 - 产物：已确认。`artifacts/SCIEPort.netmod` 81 条目、2,292,859 bytes，包内 Version=`0.28.0`、DLL AssemblyVersion=`0.28.0.0`，SHA-256 `B261BC031C8B26B8CBA0D463F2F81457F7D87EEF45AEB35D710B53290A19D66B`。
 - Windows 游戏、Android 7723、实际伤害/反伤、触屏、多玩家观察、丢包/延迟、天空恢复和性能：待验证。本轮未启动游戏或连接设备，不能把源码常量与编译通过当作实际扣血和视觉验收。
+
+## 2026-10-26 — SCIE-Port 0.28.1 / 整包物品消失修复
+
+- 故障复现：已确认。将 0.28.0 临时部署至 Windows x25.01.17 后真实启动，日志首先报告 `SCIEPort.dll`“数据包存在冲突”，随后 16 份方块 CSV 全部因找不到自定义 Block 类型失败；这与 Android 上所有新增物品消失的现象一致。
+- 根因：已确认。`VehicleActivationPackage` 与 `StormhammerSkillPackage` 同时使用网络包 ID 242，加载器在 `PackageManager.RegisterPackage` 第二次注册时中断 DLL 初始化。
+- 次级冲突：已确认。迁移网络包后真实启动发现直升机与普通雷神之锤同占方块 ID 941。保留已发布直升机 941 与苍穹之怒 942，普通雷神之锤迁移到 943；旧测试版中值 941 无法自动判断原意，故不做危险迁移。
+- 回归守卫：已确认。`Build-NetMod.ps1` 现在扫描并拒绝重复网络包 ID 和重复 `public const int Index`；`Test-Environment.ps1` 检查原生 ID 与自定义 903–943、995–1000 及网络包 240–243。
+- Release / 包：已确认。完整构建 exit 0，0 warning/0 error；全部既有规则测试及数据库校验通过。产物 81 条目、2,292,868 bytes，Version/AssemblyVersion `0.28.1`/`0.28.1.0`，SHA-256 `264D1A793E9DB8F41E0DDB0AFB0A571FAA78286839BD4E496E86F949707A912D`。
+- Windows 实际加载：已确认。0.28.1 临时部署后启动到主菜单，日志确认 DLL、全部 XDB 和全部 CSV 正常加载，无数据包冲突或缺失 Block 类型错误；测试结束恢复原安装包。
+- Android 7723：待验证。需要用户重新导入 0.28.1，确认创造栏/武器分类和既有世界；技能、伤害、HUD 与多人仍未因本次加载验证而自动转为已确认。

@@ -7,8 +7,8 @@ namespace SCIEPort.Features.Stormhammer
     /// <summary>Legendary Stormhammer item and its shared model renderer.</summary>
     public sealed class StormhammerBlock : Block
     {
-        /// <summary>SCIE-Port content id reserved after the apple slice.</summary>
-        public const int Index = 941;
+        /// <summary>Unique SCIE-Port content id; 941 is reserved by the helicopter.</summary>
+        public const int Index = 943;
 
         private readonly BlockMesh m_mesh = new BlockMesh();
         private static Texture2D s_texture;

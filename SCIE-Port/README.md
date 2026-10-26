@@ -1,11 +1,15 @@
 # SCIE-Port
 
+Version 0.28.1 fixes the V3.2 loader regression: vehicle activation keeps
+network package 242 and Skywrath now uses the unique package 243. A package-ID
+uniqueness guard prevents this whole-mod startup failure from recurring.
+
 Version 0.28.0 rebuilds the separate awakened Stormhammer as Skywrath V3.2.
 Equipping it now activates a bone-following cyan avatar aura, layered weapon
 glow, authoritative five-point lightning retaliation and one native physical
 plus one controlled lightning melee record. The HUD contains exactly two
 skills: the radial Thunderous Judgment and the target-locked Myriad
-Tribulation. Package 242 now carries cast IDs, server game time and target IDs;
+Tribulation. Package 243 carries cast IDs, server game time and target IDs;
 the original Stormhammer and all vehicle features remain unchanged. Static ABI,
 Release and package checks pass; Android combat values, visual quality and real
 multiplayer timing remain pending. See `docs/SKYWRATH-V3.2-AUDIT.md`.
