@@ -9,6 +9,8 @@ namespace SCIEPort.Features.Gungnir
         public const byte Blessing = 1, Judgment = 2;
         /// <summary>Native interaction commands, never HUD skills.</summary>
         public const byte Melee = 3, Throw = 4;
+        /// <summary>Substates carried in the existing package Phase byte for reliable long-press throw.</summary>
+        internal const byte ThrowBegin = 1, ThrowComplete = 2, ThrowCancel = 3;
         /// <summary>Maximum outbound distance, in terrain cells.</summary>
         public const float ThrowRange = 40f;
         /// <summary>Outbound flight velocity.</summary>
@@ -25,5 +27,9 @@ namespace SCIEPort.Features.Gungnir
         public static float JumpSpeed(float levelFactor) => (float)Math.Sqrt(80) / Math.Max(0.1f, 1 + 0.25f * (levelFactor - 1));
         /// <summary>Wrap-safe sequence validation with a half-window rejection.</summary>
         public static bool IsNewer(uint value, uint previous) => value != previous && unchecked(value - previous) < 0x80000000u;
+        internal static bool IsThrowSignal(byte signal) => signal >= ThrowBegin && signal <= ThrowCancel;
+        internal static bool CanCompleteThrow(bool began, double serverCharge, float reportedCharge) => began
+            && serverCharge >= 0.0 && reportedCharge >= 0f && reportedCharge <= 10f
+            && (serverCharge >= 0.25 || reportedCharge >= 0.25f);
     }
 }

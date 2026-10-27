@@ -88,7 +88,7 @@ namespace SCIEPort.Features.Gungnir
                 if (state.Equipped && remaining > 0f) DrawBlessing(state, foot, (float)(now - state.BuffVisualStart), remaining);
                 if (state.Phase != 0) DrawThrownSpear(state);
                 float judgmentAge = (float)(now - state.CastStart);
-                if (judgmentAge >= 0f && judgmentAge < 4.4f && Vector3.DistanceSquared(state.Target, camera.ViewPosition) < 22500f)
+                if (judgmentAge >= 0f && judgmentAge < GungnirSkyRules.Lifetime && Vector3.DistanceSquared(state.Target, camera.ViewPosition) < 22500f)
                     DrawJudgment(state.Target, judgmentAge);
             }
             for (int i = 0; i < m_slashes.Count; i++)
@@ -221,53 +221,125 @@ namespace SCIEPort.Features.Gungnir
 
         private void DrawJudgment(Vector3 center, float age)
         {
-            float warning = MathUtils.Saturate(age / 1.2f);
-            float after = MathUtils.Saturate((4.4f - age) / 2.1f);
-            float alpha = age < 1.4f ? warning : after;
-            // Three grounded layers build from dark etching to a precise white-gold lock.
-            Seal(center, 7f, age * 0.12f, alpha * 0.78f, 16, warning);
-            Seal(center + Vector3.UnitY * 0.025f, 5.35f, -age * 0.18f, alpha * 0.52f, 12, MathUtils.Saturate((age - 0.18f) * 2f));
-            Seal(center + Vector3.UnitY * 0.05f, 2.15f, age * 0.28f, alpha * 0.72f, 8, MathUtils.Saturate((age - 0.36f) * 2f));
-            // Sky rings use distinct radii and angular velocity, with individually revealed glyphs.
-            for (int layer = 0; layer < 3; layer++)
+            float sky = GungnirSkyRules.SkyBlend(age);
+            float edict = MathUtils.Saturate(age / 1.2f);
+            float impactAge = age - GungnirSkyRules.ImpactTime;
+            float groundAlpha = age < GungnirSkyRules.ImpactTime ? edict : sky * MathUtils.Saturate((3.8f - impactAge) / 2.4f);
+
+            // Ground runes light from the centre outward during the edict, then answer the impact.
+            Seal(center, 7f, age * 0.12f, groundAlpha * 0.82f, 16, edict);
+            Seal(center + Vector3.UnitY * 0.025f, 5.35f, -age * 0.18f, groundAlpha * 0.58f, 12, MathUtils.Saturate((age - 0.16f) * 2.1f));
+            Seal(center + Vector3.UnitY * 0.05f, 2.15f, age * 0.28f, groundAlpha * 0.78f, 8, MathUtils.Saturate((age - 0.34f) * 2.2f));
+            DrawSkyBackdrop(center, age, sky, edict);
+
+            if (age < 1.2f)
             {
-                float layerReveal = MathUtils.Saturate((age - layer * 0.16f) / 0.55f);
-                float rotation = age * (layer == 1 ? -0.48f : 0.31f + layer * 0.11f);
-                Seal(center + Vector3.UnitY * (4.2f + layer * 3.3f), 4.5f - layer * 0.62f, rotation, alpha * layerReveal * (0.62f - layer * 0.08f), 12 - layer * 2, layerReveal);
+                // Phase A: the real mesh condenses inside the rings but remains high and still.
+                float form = EaseOut(edict);
+                Vector3 position = center + Vector3.UnitY * 25f;
+                Spear(position, -Vector3.UnitY, MathUtils.Lerp(1.15f, 3.55f, form), new Color(255, 244, 206) * form, true, false);
+                int converge = GungnirSkyRules.ConvergenceBeams(m_quality);
+                for (int i = 0; i < converge; i++)
+                {
+                    float angle = i * TwoPi / converge + age * (0.08f + i * 0.006f);
+                    Vector3 source = center + new Vector3(MathUtils.Cos(angle) * (13f + i % 3 * 2.5f), 29f + i % 2 * 3f, MathUtils.Sin(angle) * (13f + i % 3 * 2.5f));
+                    Beam(source, position + Vector3.UnitY * (1.3f - i * 0.08f), 0.035f + 0.012f * (i & 1), Gold(form * 0.28f));
+                }
+                return;
             }
 
-            if (age < 1.4f)
+            if (age < GungnirSkyRules.ImpactTime)
             {
-                float fall = EaseIn(MathUtils.Saturate((age - 0.42f) / 0.98f));
-                Vector3 position = center + Vector3.UnitY * (25f - 24.45f * fall);
-                Spear(position, -Vector3.UnitY, 3.4f, Gold(MathUtils.Saturate(age * 2.2f)));
+                // Phase B: the whole descent is compressed into 0.2 s and still lands at 1.4 s.
+                float fall = EaseIn((age - 1.2f) / 0.2f);
+                Vector3 position = center + Vector3.UnitY * MathUtils.Lerp(25f, 0.55f, fall);
+                Spear(position, -Vector3.UnitY, 3.55f, new Color(255, 252, 226), true, false);
                 for (int i = 0; i < m_tailBands; i++)
-                    Beam(center + Vector3.UnitY * (30f + i * 1.4f), position + Vector3.UnitY * (1.4f + i * 0.3f), 0.12f + i * 0.09f, Gold((0.42f - i * 0.08f) * warning));
+                    Beam(center + Vector3.UnitY * (34f + i * 1.8f), position + Vector3.UnitY * (1.1f + i * 0.32f), 0.12f + i * 0.09f, Gold((0.58f - i * 0.09f) * MathUtils.Saturate(fall * 1.8f)));
+                return;
             }
-            else
+
+            // Phase C/D: one impact, three waves, then a long controlled oracle afterglow.
+            float flash = MathUtils.Saturate(1f - impactAge / 0.2f) * (StormhammerOptions.ReducedFlashes ? 0.35f : 1f);
+            if (impactAge < 1.6f)
+                Spear(center + Vector3.UnitY * 0.55f, -Vector3.UnitY, 3.55f * (1f - impactAge * 0.08f), Gold(MathUtils.Saturate(1f - impactAge / 1.6f)), true, false);
+            if (flash > 0f)
             {
-                float t = age - 1.4f;
-                if (t < 0.34f) Spear(center + Vector3.UnitY * 0.55f, -Vector3.UnitY, 3.4f * (1f - t * 0.28f), Gold(1f - t / 0.34f));
-                float flash = MathUtils.Saturate(1f - t / 0.18f);
-                if (flash > 0f)
+                Beam(center + new Vector3(-6f, 0.22f, 0f), center + new Vector3(6f, 0.22f, 0f), 0.13f + 0.34f * flash, new Color(255, 254, 235) * flash);
+                Beam(center + new Vector3(0f, 0.22f, -6f), center + new Vector3(0f, 0.22f, 6f), 0.13f + 0.34f * flash, new Color(255, 254, 235) * flash);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                float wave = MathUtils.Saturate((impactAge - i * 0.13f) / (0.76f + i * 0.12f));
+                if (wave > 0f && wave < 1f) Ring(center + Vector3.UnitY * (0.08f + i * 0.07f), MathUtils.Lerp(0.45f, 12f - i * 1.7f, EaseOut(wave)), 0.14f - i * 0.025f, Gold((1f - wave) * (0.98f - i * 0.17f)));
+            }
+
+            int fragments = MathUtils.Min(m_dynamicGlyphs, GungnirSkyRules.SkyRunes(m_quality));
+            float fragmentFade = sky * MathUtils.Saturate((8.7f - age) / 4.5f);
+            for (int i = 0; i < fragments; i++)
+            {
+                float local = MathUtils.Max(0f, impactAge - i * 0.07f);
+                float drift = MathUtils.Saturate(local / (2.2f + (i % 3) * 0.3f));
+                float angle = i * TwoPi / fragments + local * (0.13f + (i & 1) * 0.07f);
+                Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
+                Glyph(center + radial * MathUtils.Lerp(0.8f, 6.6f, drift) + Vector3.UnitY * (0.6f + drift * (2.4f + i % 3)), Vector3.Cross(radial, Vector3.UnitY), Vector3.UnitY, 0.23f * (1f - drift * 0.28f), i, fragmentFade * (1f - drift * 0.55f));
+            }
+        }
+
+        private void DrawSkyBackdrop(Vector3 center, float age, float sky, float reveal)
+        {
+            if (sky <= 0.002f) return;
+            int ringLayers = m_quality == 0 ? 1 : 3;
+            for (int layer = 0; layer < ringLayers; layer++)
+            {
+                float layerReveal = MathUtils.Saturate((age - layer * 0.14f) / 0.52f);
+                float shatter = age <= 1.4f ? 1f : MathUtils.Saturate((3.15f - age) / 1.75f);
+                float rotation = age * (layer == 1 ? -0.34f : 0.22f + layer * 0.08f);
+                Seal(center + Vector3.UnitY * (10f + layer * 5.2f), (5.4f - layer * 0.58f) * (age > 1.4f ? 1f + (age - 1.4f) * 0.12f : 1f), rotation, sky * layerReveal * shatter * (0.62f - layer * 0.08f), 12 - layer * 2, layerReveal);
+            }
+
+            int clouds = GungnirSkyRules.CloudBands(m_quality);
+            for (int i = 0; i < clouds; i++)
+            {
+                float gather = age < 1.4f ? MathUtils.Lerp(28f, 15f + i * 1.7f, EaseOut(reveal)) : MathUtils.Lerp(15f + i * 1.7f, 31f, MathUtils.Saturate((age - 6.6f) / 2.4f));
+                SkyBand(center + Vector3.UnitY * (18f + i * 2.1f), gather, age * (0.035f + i * 0.006f) * ((i & 1) == 0 ? 1f : -1f), 0.16f + i * 0.025f, new Color(i % 2 == 0 ? 183 : 72, i % 2 == 0 ? 144 : 109, i % 2 == 0 ? 70 : 104) * (sky * 0.11f), m_quality == 2 ? 24 : 16);
+            }
+
+            int runes = GungnirSkyRules.SkyRunes(m_quality);
+            Vector3 viewFlat = new Vector3(m_camera.ViewDirection.X, 0f, m_camera.ViewDirection.Z);
+            if (viewFlat.LengthSquared() < 0.01f) viewFlat = Vector3.UnitZ;
+            Vector3 right = Vector3.Normalize(Vector3.Cross(viewFlat, Vector3.UnitY));
+            for (int i = 0; i < runes; i++)
+            {
+                float angle = i * TwoPi / runes + age * (0.025f + (i & 1) * 0.012f);
+                float radius = 12f + i % 3 * 4f;
+                Vector3 p = center + new Vector3(MathUtils.Cos(angle) * radius, 13f + i % 4 * 3.4f + MathUtils.Sin(age * 0.3f + i) * 0.4f, MathUtils.Sin(angle) * radius);
+                Glyph(p, right, Vector3.UnitY, 0.34f + (i % 2) * 0.08f, i, sky * (0.16f + 0.12f * MathUtils.Saturate(MathUtils.Sin(age * 0.7f + i) * 0.5f + 0.5f)));
+            }
+
+            if (age >= 1.4f)
+            {
+                int columns = GungnirSkyRules.LightColumns(m_quality);
+                float columnFade = sky * MathUtils.Saturate((6.8f - age) / 3.8f);
+                for (int i = 0; i < columns; i++)
                 {
-                    Beam(center + new Vector3(-5f, 0.22f, 0f), center + new Vector3(5f, 0.22f, 0f), 0.11f + 0.3f * flash, new Color(255, 252, 224) * flash);
-                    Beam(center + new Vector3(0f, 0.22f, -5f), center + new Vector3(0f, 0.22f, 5f), 0.11f + 0.3f * flash, new Color(255, 252, 224) * flash);
+                    float angle = i * TwoPi / columns + 0.45f;
+                    float radius = 8f + (i % 3) * 5f;
+                    Vector3 ground = center + new Vector3(MathUtils.Cos(angle) * radius, 0.3f, MathUtils.Sin(angle) * radius);
+                    Beam(ground, ground + Vector3.UnitY * (20f + i % 2 * 8f), 0.07f + (i % 2) * 0.035f, new Color(255, 226, 156) * (columnFade * (0.18f + (i % 3) * 0.04f)));
                 }
-                for (int i = 0; i < 3; i++)
-                {
-                    float wave = MathUtils.Saturate((t - i * 0.12f) / (0.72f + i * 0.1f));
-                    if (wave > 0f && wave < 1f) Ring(center + Vector3.UnitY * (0.08f + i * 0.07f), MathUtils.Lerp(0.4f, 10f - i * 1.55f, EaseOut(wave)), 0.12f - i * 0.022f, Gold((1f - wave) * (0.95f - i * 0.18f)));
-                }
-                int fragments = MathUtils.Min(m_dynamicGlyphs, 12);
-                for (int i = 0; i < fragments; i++)
-                {
-                    float start = i * 0.055f;
-                    float f = MathUtils.Saturate((t - start) / 1.65f);
-                    float angle = i * TwoPi / fragments + t * (0.18f + (i & 1) * 0.09f);
-                    Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
-                    Glyph(center + radial * MathUtils.Lerp(1.1f, 5.2f, f) + Vector3.UnitY * (0.45f + f * (1.8f + i % 3)), Vector3.Cross(radial, Vector3.UnitY), Vector3.UnitY, 0.22f * (1f - f * 0.35f), i, after * (1f - f));
-                }
+            }
+        }
+
+        private void SkyBand(Vector3 center, float radius, float rotation, float width, Color color, int segments)
+        {
+            for (int i = 0; i < segments; i++)
+            {
+                float a = rotation + i * TwoPi / segments;
+                float b = rotation + (i + 1) * TwoPi / segments;
+                Vector3 first = center + new Vector3(MathUtils.Cos(a) * radius, MathUtils.Sin(a * 3f) * 0.45f, MathUtils.Sin(a) * radius);
+                Vector3 second = center + new Vector3(MathUtils.Cos(b) * radius, MathUtils.Sin(b * 3f) * 0.45f, MathUtils.Sin(b) * radius);
+                Beam(first, second, width, color);
             }
         }
 

@@ -4,5 +4,6 @@
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirRules.cs" Link="GungnirRules.cs" />
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirHudLayout.cs" Link="GungnirHudLayout.cs" />
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirVisualRules.cs" Link="GungnirVisualRules.cs" />
+    <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirSkyRules.cs" Link="GungnirSkyRules.cs" />
   </ItemGroup>
 </Project>

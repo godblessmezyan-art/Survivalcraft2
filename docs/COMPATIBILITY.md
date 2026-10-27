@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-27 SCIE-Port 0.35.0 昆古尼尔 V5.2
+
+SCIE-Port 新增九秒暗青/古金天穹审判、四阶段巨枪演出及与妙尔尼尔雷暴的显式天空/雾色混合；没有写天气、时间、地形或新增伤害。包 244 布局不变，利用现有字段补全权威长按投枪开始/完成/取消，HUD 删除矩形框。Gungnir 146、Stormhammer 667 及全部既有离线套件、资源、16 XDB、net472 Release 通过；包 3,468,275 bytes / 100 entries，SHA-256 `F82C8F4309BD412FB6A0866B35ED72346ECABE293FFCEA2BD12CAE1A95B20A94`，版本 0.35.0。Android 7723、真机视觉/触控/性能和双机联机仍为待验证。详见 [V5.2 审查记录](../SCIE-Port/docs/GUNGNIR-V5.2-SKY-JUDGMENT.md)。
+
 ## 2026-10-27 SCIE-Port 0.34.0 主线合并复验
 
 SCIE-Port 主线已同时包含昆古尼尔 V5.1/V5.1b、妙尔尼尔 V6/展示反馈，以及合并分支历史中的便携堡垒美术更新。固定 x25.01.17 环境下，Gungnir 130、Stormhammer 667、Portable Fortress 319 项及其余既有离线套件通过，16 XDB 通过，net472 Release 0 warning / 0 error。合并包 3,465,578 bytes / 100 entries，SHA-256 `40C79967AE3FEEFF3785F4036BC934F53030BA88A8FB006E582AA944A9C70969`，modinfo/AssemblyVersion 为 `0.34.0`/`0.34.0.0`。Android 7723 与双机联机仍为待验证。

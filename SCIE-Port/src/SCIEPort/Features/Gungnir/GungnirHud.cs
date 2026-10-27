@@ -15,7 +15,6 @@ namespace SCIEPort.Features.Gungnir
             internal CanvasWidget HitTarget;
             internal RectangleWidget Icon;
             internal RectangleWidget ReadyGlow;
-            internal RectangleWidget Frame;
             internal RectangleWidget Energy;
             internal LabelWidget Cooldown;
             internal LabelWidget Caption;
@@ -83,13 +82,12 @@ namespace SCIEPort.Features.Gungnir
             duration = MathUtils.Max(0f, duration);
             bool ready = cooldown <= 0.01f;
             bool active = duration > 0.01f || feedbackAge >= 0f && feedbackAge < 0.32f;
+            bool pressed = button.Clickable.IsPressed;
             float pulse = 0.5f + 0.5f * MathUtils.Sin((float)Time.RealTime * 2.35f + (button.Ultimate ? 1.1f : 0f));
             button.Clickable.IsEnabled = ready;
             button.Cooldown.Text = duration > 0f ? MathUtils.Ceiling(duration).ToString("0") : ready ? string.Empty : MathUtils.Ceiling(cooldown).ToString("0");
-            button.Icon.FillColor = ready ? Color.White : new Color(105, 110, 120, 205);
-            button.ReadyGlow.FillColor = ready ? button.Accent * (0.08f + pulse * (button.Ultimate ? 0.18f : 0.12f)) : Color.Transparent;
-            button.Frame.OutlineColor = button.Clickable.IsPressed || active ? new Color(255, 249, 218) : ready ? button.Accent * (0.82f + pulse * 0.16f) : new Color(91, 91, 96, 220);
-            button.Frame.OutlineThickness = button.Clickable.IsPressed || active ? 4f : button.Ultimate ? 3f : 2f;
+            button.Icon.FillColor = pressed || active ? new Color(255, 249, 218) : ready ? Color.White : new Color(105, 110, 120, 205);
+            button.ReadyGlow.FillColor = ready ? button.Accent * (pressed ? 0.42f : 0.08f + pulse * (button.Ultimate ? 0.18f : 0.12f)) : Color.Transparent;
             button.Cooldown.Color = active ? new Color(255, 246, 204) : Color.White;
             float energy = durationTotal > 0f && duration > 0f ? MathUtils.Saturate(duration / durationTotal) : ready ? 1f : 0f;
             button.Energy.Size = new Vector2((button.Size - 10f) * energy, 3f);
@@ -216,14 +214,13 @@ namespace SCIEPort.Features.Gungnir
                 OutlineThickness = 0f,
                 IsHitTestVisible = false
             };
-            skill.Frame = new RectangleWidget { Size = new Vector2(size), FillColor = Color.Transparent, OutlineColor = new Color(214, 181, 105), OutlineThickness = 2f, IsHitTestVisible = false };
             skill.Cooldown = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 80f ? 0.92f : 0.78f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
             skill.Caption = new LabelWidget { Size = new Vector2(size, 17f), Text = caption, FontScale = 0.48f, DropShadow = true, Color = new Color(239, 218, 169), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, IsHitTestVisible = false };
             skill.Energy = new RectangleWidget { Size = new Vector2(size - 10f, 3f), FillColor = new Color(224, 184, 91), OutlineColor = Color.Transparent, OutlineThickness = 0f, IsHitTestVisible = false };
             skill.HitTarget = new CanvasWidget { Size = new Vector2(size), IsHitTestVisible = false };
             skill.Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
             skill.HitTarget.Children.Add(skill.Clickable);
-            skill.Visual.Children.Add(skill.Icon); skill.Visual.Children.Add(skill.ReadyGlow); skill.Visual.Children.Add(skill.Frame); skill.Visual.Children.Add(skill.Cooldown); skill.Visual.Children.Add(skill.Energy); skill.Visual.Children.Add(skill.Caption); skill.Visual.Children.Add(skill.HitTarget);
+            skill.Visual.Children.Add(skill.Icon); skill.Visual.Children.Add(skill.ReadyGlow); skill.Visual.Children.Add(skill.Cooldown); skill.Visual.Children.Add(skill.Energy); skill.Visual.Children.Add(skill.Caption); skill.Visual.Children.Add(skill.HitTarget);
             CanvasWidget.SetPosition(skill.Energy, new Vector2(5f, size - 7f));
             CanvasWidget.SetPosition(skill.Caption, new Vector2(0f, size + 1f));
             return skill;

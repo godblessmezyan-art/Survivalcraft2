@@ -101,43 +101,60 @@ namespace SCIEPort.Mod
 
         /// <inheritdoc />
         /// <remarks>
-        /// V4: the storm is a deep indigo/purple plateau with a separate luminance impulse from
-        /// individual strikes. Only the casting player's own client applies the tint
-        /// (GetStormBlend filters by local caster), so bystanders never inherit a purple sky.
+        /// Mjolnir indigo and Gungnir dark-teal/gold skies are composited rather than overwriting
+        /// one another. Both providers filter sky tint to the local caster; world geometry remains
+        /// visible to bystanders through their authoritative event/snapshot paths.
         /// </remarks>
         public override Color ChangeSkyColor(Color oldColor, Vector3 direction, float timeOfDay, float precipitationIntensity, int temperature)
         {
-            float blend = AwakenedStormhammerVisuals.GetStormBlend();
-            float flash = AwakenedStormhammerVisuals.GetFlash();
-            if (blend <= 0f && flash <= 0f) return oldColor;
-            float horizon = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
-            Color storm = Color.Lerp(new Color(46, 26, 92), new Color(9, 10, 34), horizon);
-            Color result = blend > 0f ? Color.Lerp(oldColor, storm, 0.93f * blend) : oldColor;
-            if (flash > 0f)
+            float stormBlend = AwakenedStormhammerVisuals.GetStormBlend();
+            float stormFlash = AwakenedStormhammerVisuals.GetFlash();
+            float divineBlend = GungnirSkyVisuals.GetSkyBlend();
+            float divineFlash = GungnirSkyVisuals.GetFlash();
+            if (stormBlend <= 0f && stormFlash <= 0f && divineBlend <= 0f && divineFlash <= 0f) return oldColor;
+            float stormGradient = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
+            float zenith = MathUtils.Saturate(direction.Y);
+            Color storm = Color.Lerp(new Color(46, 26, 92), new Color(9, 10, 34), stormGradient);
+            Color divine = Color.Lerp(new Color(92, 76, 50), new Color(10, 39, 42), zenith);
+            float blend = GungnirSkyRules.Combine(stormBlend, divineBlend);
+            Color effect;
+            if (stormBlend > 0f && divineBlend > 0f)
+                effect = Color.Lerp(storm, divine, GungnirSkyRules.DivineShare(stormBlend, divineBlend));
+            else effect = divineBlend > 0f ? divine : storm;
+            Color result = blend > 0f ? Color.Lerp(oldColor, effect, (divineBlend > 0f ? 0.88f : 0.93f) * blend) : oldColor;
+            if (stormFlash > 0f)
             {
-                Color struck = Color.Lerp(new Color(126, 158, 232), new Color(214, 232, 255), horizon);
-                result = Color.Lerp(result, struck, 0.60f * flash);
+                Color struck = Color.Lerp(new Color(126, 158, 232), new Color(214, 232, 255), stormGradient);
+                float retain = 1f - 0.55f * GungnirSkyRules.DivineShare(stormBlend, divineBlend);
+                result = Color.Lerp(result, struck, 0.60f * stormFlash * retain);
             }
+            if (divineFlash > 0f)
+                result = Color.Lerp(result, Color.Lerp(new Color(238, 203, 132), new Color(255, 255, 239), zenith), 0.72f * divineFlash);
 
             return result;
         }
 
         /// <inheritdoc />
-        /// <remarks>V4: cold far fog plus the same strike impulse so the far backdrop reads through the haze.</remarks>
+        /// <remarks>Underwater/magma fog is untouched. Artifact fog shares the same explicit blend as the sky.</remarks>
         public override void ViewFogColor(float viewUnderWaterDepth, float viewUnderMagmaDepth, ref Color viewFogColor)
         {
             if (viewUnderWaterDepth > 0f || viewUnderMagmaDepth > 0f) return;
-            float blend = AwakenedStormhammerVisuals.GetStormBlend();
-            float flash = AwakenedStormhammerVisuals.GetFlash();
+            float stormBlend = AwakenedStormhammerVisuals.GetStormBlend();
+            float stormFlash = AwakenedStormhammerVisuals.GetFlash();
+            float divineBlend = GungnirSkyVisuals.GetSkyBlend();
+            float divineFlash = GungnirSkyVisuals.GetFlash();
+            float blend = GungnirSkyRules.Combine(stormBlend, divineBlend);
             if (blend > 0f)
             {
-                viewFogColor = Color.Lerp(viewFogColor, new Color(22, 26, 62), 0.84f * blend);
+                Color stormFog = new Color(22, 26, 62);
+                Color divineFog = new Color(31, 48, 44);
+                Color effect = stormBlend > 0f && divineBlend > 0f
+                    ? Color.Lerp(stormFog, divineFog, GungnirSkyRules.DivineShare(stormBlend, divineBlend))
+                    : divineBlend > 0f ? divineFog : stormFog;
+                viewFogColor = Color.Lerp(viewFogColor, effect, (divineBlend > 0f ? 0.76f : 0.84f) * blend);
             }
-
-            if (flash > 0f)
-            {
-                viewFogColor = Color.Lerp(viewFogColor, new Color(96, 122, 186), 0.42f * flash * MathUtils.Max(blend, 0.35f));
-            }
+            if (stormFlash > 0f) viewFogColor = Color.Lerp(viewFogColor, new Color(96, 122, 186), 0.42f * stormFlash * MathUtils.Max(stormBlend, 0.35f));
+            if (divineFlash > 0f) viewFogColor = Color.Lerp(viewFogColor, new Color(226, 205, 151), 0.48f * divineFlash);
         }
 
         /// <inheritdoc />

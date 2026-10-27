@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.35.0 昆古尼尔 V5.2 天穹审判（离线已确认，Android/联机待验证，2026-10-27）
+
+新增九秒本地天空/雾色状态和四阶段世界演出；天空状态按 Project/施法者隔离，死亡、快照超时、玩家移除和 Dispose 清理。与妙尔尼尔雷暴采用 screen 强度合成及明确色相权重，雷暴代码/状态不被覆盖。包 244 字段及序列化未改；长按投枪在既有字段内增加开始/完成/取消信号并由服务端计时验证，修复普通客户端依赖隐式瞄准重放的偶发失败。HUD 额外矩形框删除。Gungnir 146 项、Stormhammer 667 项、全部既有套件、资源、16 XDB 和 net472 Release（0 warning/0 error）通过；包 3,468,275 bytes / 100 entries / SHA-256 `F82C8F4309BD412FB6A0866B35ED72346ECABE293FFCEA2BD12CAE1A95B20A94`，modinfo `0.35.0`，AssemblyVersion `0.35.0.0`。没有天气/时间/地形写入或额外伤害；Android 7723、白天/夜晚/雨天、性能和双机联机待验证。见 [V5.2 审查记录](GUNGNIR-V5.2-SKY-JUDGMENT.md)。
+
 ## 0.34.0 主线合并状态（离线已确认，真机待验证，2026-10-27）
 
 主线已合并昆古尼尔 V5.1/V5.1b、妙尔尼尔 V6/展示反馈和分支历史中的便携堡垒美术更新。唯一冲突为 `modinfo.json` 描述，已保留双方能力；版本、API 与 SC 标记一致。Gungnir 130、Stormhammer 667、Portable Fortress 319 项规则检查及全部既有构建套件通过，16 XDB 通过，net472 Release 0 warning / 0 error。最终包 3,465,578 bytes / 100 entries，SHA-256 `40C79967AE3FEEFF3785F4036BC934F53030BA88A8FB006E582AA944A9C70969`，modinfo `0.34.0`，AssemblyVersion `0.34.0.0`。Android 7723、真机视觉/触控/性能和双机联机仍为待验证。

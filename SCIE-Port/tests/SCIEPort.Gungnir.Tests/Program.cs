@@ -72,6 +72,25 @@ internal static class Program
             Check(GungnirVisualRules.CueAlpha(-0.01f, life) == 0f && GungnirVisualRules.CueAlpha(life, life) == 0f, "Flight cue lifetime bounds changed");
             Check(GungnirVisualRules.CueAlpha(life * 0.2f, life) > 0f, "Flight cue must be visible after attack-in");
         }
+        Check(GungnirSkyRules.SkyBlend(-0.01f) == 0f && GungnirSkyRules.SkyBlend(9f) == 0f, "Sky lifecycle must be closed outside nine seconds");
+        Check(GungnirSkyRules.SkyBlend(0.6f) > 0f && GungnirSkyRules.SkyBlend(1.2f) > 0.99f, "Edict sky must fade in across phase A");
+        Check(GungnirSkyRules.SkyBlend(7f) > 0.99f && GungnirSkyRules.SkyBlend(8f) > 0f && GungnirSkyRules.SkyBlend(8.99f) > 0f, "Oracle afterglow must recover gradually from seven to nine seconds");
+        float fullFlash = GungnirSkyRules.ImpactFlash(1.4f, false);
+        Check(fullFlash == 1f && GungnirSkyRules.ImpactFlash(1.4f, true) == 0.35f && GungnirSkyRules.ImpactFlash(1.7f, false) == 0f, "Impact pulse or reduced-flash policy changed");
+        float combinedSky = GungnirSkyRules.Combine(0.7f, 0.6f);
+        float divineShare = GungnirSkyRules.DivineShare(0.7f, 0.6f);
+        Check(combinedSky > 0.7f && combinedSky <= 1f, "Concurrent artifact skies must use screen composition");
+        Check(divineShare > 0f && divineShare < 1f, "Concurrent Mjolnir and Gungnir skies must both retain weight");
+        Check(GungnirSkyRules.DivineShare(0.7f, 0f) == 0f && GungnirSkyRules.DivineShare(0f, 0.6f) == 1f, "Single-artifact sky priority changed");
+        Check(!GungnirSkyRules.ShouldRemove(8.99f, 2f, true), "Live sky was cleaned before its tail completed");
+        Check(GungnirSkyRules.ShouldRemove(9f, 0f, true) && GungnirSkyRules.ShouldRemove(2f, 2.11f, true) && GungnirSkyRules.ShouldRemove(2f, 0f, false), "Expiry, disconnect or death cleanup changed");
+        Check(GungnirSkyRules.CloudBands(0) == 0 && GungnirSkyRules.CloudBands(1) == 3 && GungnirSkyRules.CloudBands(2) == 5, "Cloud quality budget changed");
+        Check(GungnirSkyRules.LightColumns(0) == 0 && GungnirSkyRules.LightColumns(1) == 3 && GungnirSkyRules.LightColumns(2) == 6, "Light-column quality budget changed");
+        Check(GungnirSkyRules.SkyRunes(0) == 2 && GungnirSkyRules.SkyRunes(1) == 5 && GungnirSkyRules.SkyRunes(2) == 9, "Rune quality budget changed");
+        Check(GungnirRules.IsThrowSignal(GungnirRules.ThrowBegin) && GungnirRules.IsThrowSignal(GungnirRules.ThrowComplete) && GungnirRules.IsThrowSignal(GungnirRules.ThrowCancel) && !GungnirRules.IsThrowSignal(0), "Throw signal domain changed");
+        Check(!GungnirRules.CanCompleteThrow(false, 1.0, 1f) && !GungnirRules.CanCompleteThrow(true, 0.1, 0.1f), "Throw must require a begin signal and long press");
+        Check(GungnirRules.CanCompleteThrow(true, 0.3, 0.1f) && GungnirRules.CanCompleteThrow(true, 0.01, 0.3f), "Host clock and batched client duration must both support a valid long press");
+        Check(!GungnirRules.CanCompleteThrow(true, 1.0, 10.01f), "Unbounded reported throw charge must be rejected");
         Console.WriteLine("Gungnir: " + s_tests + " checks passed (pure rules only; game/network/device unverified).");
     }
 }

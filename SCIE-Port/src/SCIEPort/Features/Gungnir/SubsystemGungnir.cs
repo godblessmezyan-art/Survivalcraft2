@@ -74,17 +74,33 @@ namespace SCIEPort.Features.Gungnir
         {
             if (!Authority || !Equipped(p) || packet.Command < 1 || packet.Command > 4 || !Finite(packet.Direction)) return;
             State s = Get(p);
-            if (packet.Command != GungnirRules.Throw)
+            bool nativeThrow = packet.Command == GungnirRules.Throw && packet.Kind == 255;
+            if (!nativeThrow)
             {
                 if (!GungnirRules.IsNewer(packet.Sequence, s.Sequence)) return;
                 s.Sequence = packet.Sequence;
             }
-            // Throw is accepted only from the replicated native aim lifecycle, not custom requests.
-            else if (packet.Kind != 255) return;
             Vector3 direction = packet.Direction;
             float length = direction.Length();
             if (length < 0.9f || length > 1.1f) return;
             direction /= length;
+            if (packet.Command == GungnirRules.Throw && !nativeThrow)
+            {
+                if (!GungnirRules.IsThrowSignal(packet.Phase)) return;
+                if (packet.Phase == GungnirRules.ThrowBegin)
+                {
+                    if (s.Phase == 0 && s.ChargeStart < 0) s.ChargeStart = Now;
+                    return;
+                }
+                if (packet.Phase == GungnirRules.ThrowCancel)
+                {
+                    s.ChargeStart = -1;
+                    return;
+                }
+                // The host owns the charge clock. Client duration only tolerates ordered packets
+                // delivered in one network batch; it cannot bypass the required begin signal.
+                if (!GungnirRules.CanCompleteThrow(s.ChargeStart >= 0, Now - s.ChargeStart, packet.Blessing)) return;
+            }
             if (packet.Command == GungnirRules.Blessing)
             {
                 if (Now < s.BuffReady) return;
@@ -103,7 +119,7 @@ namespace SCIEPort.Features.Gungnir
             }
             else if (packet.Command == GungnirRules.Throw)
             {
-                if (s.Phase != 0 || s.ChargeStart < 0 || Now - s.ChargeStart < 0.25 || Now - s.CastStart < 0.3) return;
+                if (s.Phase != 0 || s.ChargeStart < 0 || nativeThrow && Now - s.ChargeStart < 0.25 || Now - s.CastStart < 0.3) return;
                 s.ChargeStart = -1; s.Phase = 1;
                 s.Slot = p.ComponentMiner.Inventory.ActiveSlotIndex;
                 s.Position = p.ComponentCreatureModel.EyePosition; s.Direction = direction;
@@ -138,7 +154,11 @@ namespace SCIEPort.Features.Gungnir
             if (state == AimState.InProgress)
             {
                 if (s.Phase != 0) return true;
-                if (s.ChargeStart < 0) s.ChargeStart = Now;
+                if (s.ChargeStart < 0)
+                {
+                    s.ChargeStart = Now;
+                    if (!Authority) SendThrowSignal(p, GungnirRules.ThrowBegin, aim.Direction, 0f);
+                }
                 p.ComponentCreatureModel.AimHandAngleOrder = 3.2f;
                 p.ComponentCreatureModel.InHandItemRotationOrder = new Vector3(3.14159f, 0, 0);
                 var model = p.Entity.FindComponent<ComponentFirstPersonModel>(false);
@@ -147,12 +167,31 @@ namespace SCIEPort.Features.Gungnir
             }
             else if (state == AimState.Completed)
             {
-                // Native aim events already travel to the host. Only the authority launches.
                 if (Authority) Accept(p, new GungnirPackage { Kind = 255, Command = GungnirRules.Throw, Direction = aim.Direction });
+                else SendThrowSignal(p, GungnirRules.ThrowComplete, aim.Direction, (float)Math.Max(0, Now - s.ChargeStart));
                 s.ChargeStart = -1;
             }
-            else s.ChargeStart = -1;
-            return false;
+            else
+            {
+                if (!Authority && s.ChargeStart >= 0) SendThrowSignal(p, GungnirRules.ThrowCancel, aim.Direction, 0f);
+                s.ChargeStart = -1;
+            }
+            return true;
+        }
+
+        private void SendThrowSignal(ComponentPlayer player, byte signal, Vector3 direction, float charge)
+        {
+            State state = Get(player);
+            CommonLib.Net.QueuePackage(new GungnirPackage
+            {
+                Kind = 0,
+                Command = GungnirRules.Throw,
+                Phase = signal,
+                Caster = player.Entity.EntityId,
+                Sequence = ++state.Sent,
+                Direction = direction,
+                Blessing = charge
+            });
         }
         /// <inheritdoc />
         public void Update(float dt)
@@ -175,7 +214,15 @@ namespace SCIEPort.Features.Gungnir
                     if (Now >= s.NextSnapshot) { Snapshot(s); s.NextSnapshot = Now + (s.Phase == 0 ? 0.5 : 0.05); }
                 }
                 if (!Authority && (Now - s.LastSnapshot >= 2 || p.ComponentHealth.Health <= 0))
-                { s.Equipped = false; s.Phase = 0; s.BuffEnd = Now; s.CastStart = -100; }
+                {
+                    s.Equipped = false; s.Phase = 0; s.BuffEnd = Now; s.CastStart = -100;
+                    GungnirSkyVisuals.RemoveCaster(Project, p.Entity.EntityId);
+                }
+                float judgmentAge = (float)(Now - s.CastStart);
+                if (p.ComponentHealth.Health > 0f && judgmentAge >= 0f && judgmentAge < GungnirSkyRules.Lifetime)
+                    GungnirSkyVisuals.Sync(Project, p.Entity.EntityId, s.Target, judgmentAge, p.PlayerData.IsMainPlayer, Now);
+                else if (p.ComponentHealth.Health <= 0f || judgmentAge >= GungnirSkyRules.Lifetime)
+                    GungnirSkyVisuals.RemoveCaster(Project, p.Entity.EntityId);
                 bool active = s.Equipped && Equipped(p) && (Authority || Now - s.LastSnapshot < 2);
                 ApplyModifiers(s, active);
                 if (p.PlayerData.IsMainPlayer && Equipped(p))
@@ -198,7 +245,8 @@ namespace SCIEPort.Features.Gungnir
             }
             m_remove.Clear();
             foreach (var entry in States) if (entry.Value.Player == null || !entry.Value.Player.IsAddedToProject) m_remove.Add(entry.Key);
-            foreach (ushort id in m_remove) { ApplyModifiers(States[id], false); States.Remove(id); }
+            foreach (ushort id in m_remove) { ApplyModifiers(States[id], false); GungnirSkyVisuals.RemoveCaster(Project, id); States.Remove(id); }
+            GungnirSkyVisuals.Update(Project, Now);
             m_scene.Update(dt);
         }
         private void ApplyModifiers(State s, bool enabled)
@@ -333,7 +381,7 @@ namespace SCIEPort.Features.Gungnir
         public override void Dispose()
         {
             foreach (var s in States.Values) ApplyModifiers(s, false);
-            States.Clear(); GungnirHud.Clear(); base.Dispose();
+            States.Clear(); GungnirSkyVisuals.Reset(Project); GungnirHud.Clear(); base.Dispose();
         }
     }
 }
