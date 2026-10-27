@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.3 品牌打包契约
+
+游戏内显示名固定「荒野探险家」（Wilderness Explorer，作者 zyan）；`SCIE-Port` 仅作工作区目录名与内部标识，`PackageName`/`AssemblyName`/`RootNamespace` 恒为 `SCIEPort`。规则落在 `SCIE-Port/docs/PACKAGING-RULES.md` 与 `AGENTS.md`，并由 `Build-NetMod.ps1` 在打包前后各校验一次（显示名、作者、内部标识、版本一致性、简介中英名、署名文件、CSV 名称后缀）。方块索引、衣物数据 200–203、GUID 与网络包 240–245 未改动，存档与联机兼容。构建守卫首次运行即发现 `Watercraft.csv` 四个显示名带「（授权移植预览）」后缀，已移除（按索引存档，不影响兼容）。包 3,498,377 bytes / 108 entries，SHA-256 `73BC0D92D8E162782D1750B562FF3DB8F21A8538CA6EE3303B1EF08DD97346D3`。Builder Assistant 未变化。
+
 ## 2026-10-27 SCIE-Port 0.40.2 诊断版（关闭自然生物刷新）
 
 为定位「世界卡在加载界面」，暂时关闭自然生物刷新（`NaturalSpawnEnabled = false`）——它是唯一在区块生成期间运行的 Mod 代码且为待验证功能。ID 审计结论：方块索引 903–948、995–1000 共 51 个与 CSV 一一对应，衣物数据 200–203 高于原版上限 37，XDB GUID 复用均为既有共享模板，CSV 的 DisplayOrder 908/909 重复只影响创造栏排序，不存在 ID 冲突。其余功能与数值未改。Ecology 53、Gungnir 307 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,409 bytes，SHA-256 `84E1254BD385B9C78F107AF22BD45E1C45F1A76D7F14BFE2D19F98D58FE01B27`。Builder Assistant 未变化。

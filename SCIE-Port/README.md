@@ -1,6 +1,15 @@
 # 荒野探险家 / Wilderness Explorer
 
-> 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
+> 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。`.netmod` 的品牌与打包规则见 [`docs/PACKAGING-RULES.md`](docs/PACKAGING-RULES.md)，自 v0.40.3 起由构建脚本在打包前后各校验一次。
+
+Version 0.40.3 makes the `.netmod` branding contract enforceable instead of convention.
+`Build-NetMod.ps1` now validates, before staging and again from the finished archive, that
+the in-game name is 荒野探险家 / Wilderness Explorer, the author is zyan, `PackageName`
+and `AssemblyName`/`RootNamespace` are still `SCIEPort`, the csproj and `modinfo.json`
+versions match, `THIRD-PARTY-NOTICES.md` ships, and no CSV display name carries a port or
+preview suffix. Block indices, clothing data, GUIDs and packet IDs are untouched; only the
+description now opens with the bilingual brand name. The rules live in
+`docs/PACKAGING-RULES.md` and `AGENTS.md` so future packaging follows the same contract.
 
 Version 0.40.2 is a diagnostic build: natural fox/rabbit seeding is switched off
 (`CreatureWorldSpawn.NaturalSpawnEnabled = false`) while the reported "world never

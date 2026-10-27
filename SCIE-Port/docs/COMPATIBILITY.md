@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.40.3 `.netmod` 品牌打包契约（2026-10-27）
+
+把「荒野探险家 / Wilderness Explorer（作者 zyan）+ 内部标识恒为 SCIEPort」固化为可执行的打包契约（`docs/PACKAGING-RULES.md`、`AGENTS.md`），并由 `Build-NetMod.ps1` 在打包前后各校验一次：显示名、作者、`PackageName`/`AssemblyName`/`RootNamespace`、csproj 与 modinfo 版本一致性、简介中英名、`THIRD-PARTY-NOTICES.md`、CSV 名称无状态后缀。`modinfo.Description` 改为中英品牌名开篇。方块索引（903–948、995–1000）、衣物数据 200–203、GUID、网络包 240–245 与存档兼容逻辑均未改，因此本版对存档与联机完全兼容。构建守卫首次运行即发现 `Watercraft.csv` 四个显示名（飞艇/铁轨/火车/车厢）带「（授权移植预览）」后缀，已移除；存档按方块索引，改名不影响兼容。完整构建通过，包 3,498,377 bytes / 108 entries，SHA-256 `73BC0D92D8E162782D1750B562FF3DB8F21A8538CA6EE3303B1EF08DD97346D3`，包内 `Name=荒野探险家`、`PackageName=SCIEPort`、`Version=0.40.3`。Android 7723 与双机仍待验证。
+
 ## 0.40.2 诊断版：关闭自然生物刷新（2026-10-27）
 
 为定位「世界卡在加载界面」的报告，本轮把自然生物刷新整体关闭（`CreatureWorldSpawn.NaturalSpawnEnabled = false`）。它是唯一在区块生成期间执行的 Mod 代码，且一直是待验证功能。其余逻辑、方块 ID（903–948、995–1000）、衣物数据 200–203、实体模板、网络包与数值均未改动。ID 审计未发现重复：51 个方块索引与 51 行 CSV 一一对应，衣物索引远高于原版上限 37，XDB GUID 复用均为既有共享模板，CSV 的 `DisplayOrder` 908/909 重复只影响创造栏排序。Ecology 53、Gungnir 307 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,409 bytes，SHA-256 `84E1254BD385B9C78F107AF22BD45E1C45F1A76D7F14BFE2D19F98D58FE01B27`。确认世界可进入后需恢复该功能再验证。

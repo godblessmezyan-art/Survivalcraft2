@@ -18,6 +18,52 @@ $package = Join-Path $artifacts 'SCIEPort.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 
+# --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
+# 游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）。
+# `SCIE-Port` 只作为仓库工作区目录名与内部标识保留：PackageName、AssemblyName、
+# RootNamespace、方块索引、GUID、网络包 ID 与存档兼容逻辑一律不得改中文名。
+$modInfoPath = Join-Path $projectDir 'modinfo.json'
+$modInfo = Get-Content -Raw -Encoding UTF8 $modInfoPath | ConvertFrom-Json
+$projectXml = [xml](Get-Content -Raw -Encoding UTF8 $projectFile)
+$propertyGroup = $projectXml.Project.PropertyGroup | Select-Object -First 1
+
+$brandName = '荒野探险家'
+$brandAuthor = 'zyan'
+$brandEnglish = 'Wilderness Explorer'
+$brandPackageName = 'SCIEPort'
+
+if ($modInfo.Name -ne $brandName) {
+    throw "游戏内显示名必须是「$brandName」，当前为「$($modInfo.Name)」。"
+}
+if ($modInfo.Author -ne $brandAuthor) {
+    throw "作者字段必须保持 $brandAuthor，当前为 $($modInfo.Author)。"
+}
+if ($modInfo.PackageName -ne $brandPackageName) {
+    throw "PackageName 是内部标识，必须保持 $brandPackageName，当前为 $($modInfo.PackageName)。"
+}
+if ($propertyGroup.AssemblyName -ne $brandPackageName -or $propertyGroup.RootNamespace -ne $brandPackageName) {
+    throw "AssemblyName/RootNamespace 必须保持 $brandPackageName，当前为 $($propertyGroup.AssemblyName)/$($propertyGroup.RootNamespace)。"
+}
+if ($modInfo.Description -notmatch [regex]::Escape($brandName) -or $modInfo.Description -notmatch [regex]::Escape($brandEnglish)) {
+    throw "modinfo Description 必须同时写明中文名「$brandName」与英文名 $brandEnglish。"
+}
+if ($propertyGroup.Version -ne $modInfo.Version) {
+    throw "modinfo Version ($($modInfo.Version)) 必须与 csproj Version ($($propertyGroup.Version)) 一致。"
+}
+if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md'))) {
+    throw 'THIRD-PARTY-NOTICES.md 缺失：署名文件必须随包发布。'
+}
+# 上游原名原样保留：移植/预览等状态后缀写进 docs，不污染物品名与创造栏。
+foreach ($brandCsv in Get-ChildItem -LiteralPath (Join-Path $projectDir 'Assets\Blocks') -Filter '*.csv') {
+    $csvText = Get-Content -Raw -Encoding UTF8 $brandCsv.FullName
+    foreach ($bannedSuffix in @('（移植）', '（授权移植预览）', '(Port)', 'Audit Build', '(Audit Build)')) {
+        if ($csvText.Contains($bannedSuffix)) {
+            throw "$($brandCsv.Name) 的物品/方块显示名不得带发布状态后缀 $bannedSuffix。"
+        }
+    }
+}
+Write-Host "Brand contract: $brandName / $brandEnglish / author $brandAuthor / PackageName $brandPackageName (internal)"
+
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 $resolvedArtifacts = (Resolve-Path -LiteralPath $artifacts).Path
 foreach ($directory in @($build, $stage)) {
@@ -769,6 +815,21 @@ try {
     }
     if ($entries -contains 'Assets/Textures/KellyExpansion.webp') {
         throw 'Package must not contain KellyExpansion.webp; x25.01.17 Android cannot load it as Texture2D.'
+    }
+    # 打包后再核一次品牌字段：显示名必须是中文品牌名，PackageName 必须仍是内部标识。
+    $packagedModInfoEntry = $archive.GetEntry('modinfo.json')
+    if ($null -eq $packagedModInfoEntry) { throw 'Package is missing modinfo.json.' }
+    $modInfoStream = $packagedModInfoEntry.Open()
+    try {
+        $streamReader = New-Object System.IO.StreamReader($modInfoStream, [Text.Encoding]::UTF8)
+        try { $packagedModInfo = $streamReader.ReadToEnd() | ConvertFrom-Json } finally { $streamReader.Dispose() }
+    }
+    finally { $modInfoStream.Dispose() }
+    if ($packagedModInfo.Name -ne $brandName -or $packagedModInfo.Author -ne $brandAuthor -or $packagedModInfo.PackageName -ne $brandPackageName) {
+        throw ("Packaged modinfo branding drifted: Name='$($packagedModInfo.Name)' Author='$($packagedModInfo.Author)' PackageName='$($packagedModInfo.PackageName)'.")
+    }
+    if ($packagedModInfo.Version -ne $propertyGroup.Version) {
+        throw "Packaged modinfo Version ($($packagedModInfo.Version)) must equal csproj Version ($($propertyGroup.Version))."
     }
     $unsupportedTextures = @($entries | Where-Object {
         $_ -like 'Assets/Textures/*' -and [IO.Path]::GetExtension($_) -ne '.png'

@@ -1,5 +1,14 @@
 # 测试结果
 
+# 0.40.3 `.netmod` 品牌打包契约（2026-10-27）
+
+- 契约内容写入 `docs/PACKAGING-RULES.md` 与 `AGENTS.md`：游戏内显示名固定「荒野探险家」（Wilderness Explorer，作者 zyan）；`SCIE-Port` 只作工作区目录名与内部标识，`PackageName`/`AssemblyName`/`RootNamespace` 恒为 `SCIEPort`，方块索引、衣物数据、GUID、网络包与存档逻辑不得随品牌改名；物品名禁止追加移植/预览状态后缀。
+- 构建期新增两处校验：打包**前**读取 `modinfo.json` 与 `SCIEPort.csproj`，逐项比对显示名、作者、内部标识、版本一致性、简介中英名、署名文件存在与 CSV 名称；打包**后**从 `.netmod` 内重新解析 `modinfo.json` 再核一次 `Name`/`Author`/`PackageName`/`Version`，防止暂存阶段被改写。
+- `modinfo.Description` 改为以「荒野探险家 / Wilderness Explorer ——」开篇，明确内部标识不变，再列版本要点。
+- 守卫首次运行即抓到真实违规：`Watercraft.csv` 的 `AirshipBlock`/`RailBlock`/`TrainBlock`/`CarriageBlock` 四个显示名带有「（授权移植预览）」后缀，已按规则移除（存档按方块索引，改名不影响兼容）。
+- 版本 0.40.3，无代码逻辑变更；Ecology 53、Gungnir 307、Stormhammer 671、Four Saints 28 及全部既有套件、17 XDB、net472 Release 0 warning / 0 error。
+- 完整构建：包 3,498,377 bytes / 108 entries，SHA-256 `73BC0D92D8E162782D1750B562FF3DB8F21A8538CA6EE3303B1EF08DD97346D3`；包内 modinfo `Name=荒野探险家` / `Version=0.40.3` / `Author=zyan` / `PackageName=SCIEPort`；构建日志首行输出 `Brand contract: 荒野探险家 / Wilderness Explorer / author zyan / PackageName SCIEPort (internal)`。
+
 # 0.40.2 关闭自然生物刷新以定位世界加载卡死（2026-10-27）
 
 - 背景：0.40.1 修掉 `Int(0,16)` 越界后，真机仍报告卡在世界加载界面。自然生物刷新是**唯一**在区块生成期间运行的 Mod 代码，且长期标记为待验证，因此本轮先整体关闭它（`NaturalSpawnEnabled = false`），用于二分定位。
