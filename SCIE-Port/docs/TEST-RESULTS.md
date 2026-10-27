@@ -1,5 +1,13 @@
 # 测试结果
 
+# 0.40.4 四圣兽衣物加载空引用修复（2026-10-27）
+
+- 目标 ABI：反编译 x25.01.17 `ClothingBlock.LoadClothingData/GetCreativeValues`，确认数据数组会扩到索引 203，而原实现会在 null 检查前求 `DisplayIndex` 排序键。
+- 故障二分：删除 `FourSaints.clo` 时不报错；单独保留 200、201、202 或 203 均必现；索引 38 + 四圣兽纹理不报错，索引 200 + 原版 `IronHelmet` 纹理仍必现，排除单张 PNG、字段和 Cenozoic 冲突。
+- 回归：新增稀疏序列测试，断言 null 项不会执行 selector 且非空项仍按 DisplayIndex 稳定排序；Four Saints 从 28 增至 29 项并通过。
+- Release：全部既有规则套件、17 XDB、资源生成/结构检查、品牌契约与 net472 Release 通过，0 warning / 0 error；包 108 entries，SHA-256 `89A68B89BE3EF5A8ABA56BE57696187406BE180ABF8D2F0AD1EC3557554AC441`。
+- 运行冒烟：同一台 x25.01.17 Windows 环境，修复前日志稳定出现 `Object reference not set to an instance of an object`；安装 0.40.4 后衣物加载完成、错误消失并进入 MainMenu。未冒充 Android 验证；真机世界进入、四件创造栏显示及与 Cenozoic ERA 并装仍待验证。
+
 # 0.40.3 `.netmod` 品牌打包契约（2026-10-27）
 
 - 契约内容写入 `docs/PACKAGING-RULES.md` 与 `AGENTS.md`：游戏内显示名固定「荒野探险家」（Wilderness Explorer，作者 zyan）；`SCIE-Port` 只作工作区目录名与内部标识，`PackageName`/`AssemblyName`/`RootNamespace` 恒为 `SCIEPort`，方块索引、衣物数据、GUID、网络包与存档逻辑不得随品牌改名；物品名禁止追加移植/预览状态后缀。

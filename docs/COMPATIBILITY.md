@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.4 四圣兽稀疏衣物修复
+
+x25.01.17 原生衣物只占 0–37，四圣兽已发布衣物数据 200–203 会留下 38–199 的 null 槽；原生 `ClothingBlock.GetCreativeValues()` 在过滤 null 前读取 `DisplayIndex`，触发空引用并中断方块初始化。SCIE-Port 现在以同名、同 ID 203 的兼容子类仅替换创造栏枚举顺序，先过滤 null 再稳定排序；203/200–203、包 245、属性和存档值均不变。交叉二分与 Windows x25.01.17 启动冒烟已确认修复，全部测试、17 XDB、net472 Release 与 108 条目包通过，SHA-256 `89A68B89BE3EF5A8ABA56BE57696187406BE180ABF8D2F0AD1EC3557554AC441`。Android/7723 新包进世界与 Cenozoic ERA 并装仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。
+
 ## 2026-10-27 SCIE-Port 0.40.3 品牌打包契约
 
 游戏内显示名固定「荒野探险家」（Wilderness Explorer，作者 zyan）；`SCIE-Port` 仅作工作区目录名与内部标识，`PackageName`/`AssemblyName`/`RootNamespace` 恒为 `SCIEPort`。规则落在 `SCIE-Port/docs/PACKAGING-RULES.md` 与 `AGENTS.md`，并由 `Build-NetMod.ps1` 在打包前后各校验一次（显示名、作者、内部标识、版本一致性、简介中英名、署名文件、CSV 名称后缀）。方块索引、衣物数据 200–203、GUID 与网络包 240–245 未改动，存档与联机兼容。构建守卫首次运行即发现 `Watercraft.csv` 四个显示名带「（授权移植预览）」后缀，已移除（按索引存档，不影响兼容）。包 3,498,377 bytes / 108 entries，SHA-256 `73BC0D92D8E162782D1750B562FF3DB8F21A8538CA6EE3303B1EF08DD97346D3`。Builder Assistant 未变化。

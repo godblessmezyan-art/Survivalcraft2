@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using SCIEPort.Features.FourSaints;
 
 internal static class Program
@@ -28,8 +29,19 @@ internal static class Program
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "heat", "drown", "cold-death", "freezing"), "Xuanwu does not block heat");
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "flu", "drown", "cold-death", "freezing"), "Xuanwu does not block flu");
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "fall", "drown", "cold-death", "freezing"), "Xuanwu does not block fall");
+        var sparseClothing = new[]
+        {
+            new ClothingProbe { Index = 200, DisplayOrder = 4 },
+            null,
+            new ClothingProbe { Index = 201, DisplayOrder = 2 },
+            null
+        };
+        int[] orderedClothing = FourSaintsClothingRules.NonNullInDisplayOrder(sparseClothing, item => item.DisplayOrder)
+            .Select(item => item.Index)
+            .ToArray();
+        Check(orderedClothing.SequenceEqual(new[] { 201, 200 }), "sparse clothing slots are filtered before display ordering");
         Layout(1280, 720, 1f); Layout(1920, 1080, 1f); Layout(1280, 720, 1.35f);
-        Console.WriteLine("Four Saints rules/layout/visual budget: PASS (28 assertions)");
+        Console.WriteLine("Four Saints rules/layout/visual budget/clothing compatibility: PASS (29 assertions)");
         return 0;
     }
 
@@ -43,4 +55,10 @@ internal static class Program
 
     private static bool Near(float a, float b) => Math.Abs(a - b) < .0001f;
     private static void Check(bool value, string name) { if (!value) throw new InvalidOperationException(name); }
+
+    private sealed class ClothingProbe
+    {
+        public int Index;
+        public int DisplayOrder;
+    }
 }

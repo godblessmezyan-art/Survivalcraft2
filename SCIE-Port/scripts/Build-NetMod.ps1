@@ -88,6 +88,15 @@ if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found unde
 
 & (Join-Path $PSScriptRoot 'Test-GungnirAssets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-FourSaintsAssets.ps1') -ProjectDir $projectDir
+$fourSaintsClothingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\ClothingBlock.cs')
+foreach ($clothingCompatibilityRule in @(
+    'public sealed class ClothingBlock : Game.ClothingBlock',
+    'public new const int Index = 203',
+    'NonNullInDisplayOrder')) {
+    if (-not $fourSaintsClothingSource.Contains($clothingCompatibilityRule)) {
+        throw "Four Saints sparse clothing compatibility guard missing: $clothingCompatibilityRule"
+    }
+}
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Gungnir.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo

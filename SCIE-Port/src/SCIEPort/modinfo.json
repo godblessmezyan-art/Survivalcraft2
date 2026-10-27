@@ -1,6 +1,6 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.40.3",
+  "Version": "0.40.4",
   "ApiVersion": "1.42",
   "Description": "荒野探险家 / Wilderness Explorer —— 拓展原版生存世界：生态植物、陆海空载具、特色装备与神话神器。模组内部标识保持 SCIE-Port（PackageName=SCIEPort，AssemblyName/RootNamespace=SCIEPort），方块索引、GUID、网络包与存档兼容逻辑不随品牌名变化。v0.40.2 暂时关闭自然生物刷新以定位世界加载卡死；v0.40.1 修复新世界生物刷新用闭区间随机数导致的区块数组越界；v0.40.0 昆古尼尔技能名铭牌、投枪可靠性修复与天降巨枪演出。Android 7723 与多人同步仍待真机验证。",
   "ScVersion": "2.4.10.6",

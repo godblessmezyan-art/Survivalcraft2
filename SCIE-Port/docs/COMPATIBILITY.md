@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.40.4 四圣兽稀疏衣物数组修复（Windows 已确认，Android 待验证，2026-10-27）
+
+x25.01.17 原生衣物最高索引为 37；四圣兽沿用已发布数据号 200–203 后，`ClothingBlock.m_clothingData` 的 38–199 为 `null`。目标程序集的 `GetCreativeValues()` 先执行 `OrderBy(cd => cd.DisplayIndex)`、后判断 `cd != null`，因此加载任意一件四圣兽衣物都会抛 `NullReferenceException` 并中断 `BlocksManager.Initialize`。新增同名、同方块 ID 203 的兼容子类，只覆盖创造栏枚举为“先过滤空槽、再按 DisplayIndex 稳定排序”；衣物 XML 加载、原生模型、绘制、耐久与穿戴逻辑仍由基类实现。方块 203、衣物 200–203、包 245、属性、纹理与存档值均未改。已做交叉复现：无 `.clo` 不报错，任意 200/201/202/203 均报错，低索引 38 + 自定义纹理不报错，高索引 200 + 原版纹理仍报错；0.40.4 本机 x25.01.17 冷启动不再出现空引用并到达 MainMenu。Four Saints 29 项、全部既有套件、17 XDB、net472 Release 0 warning/0 error、108 条目包通过；包 SHA-256 `89A68B89BE3EF5A8ABA56BE57696187406BE180ABF8D2F0AD1EC3557554AC441`。Android 日志已证明旧包会报错，但新包仍需真机重新进入世界确认。
+
 ## 0.40.3 `.netmod` 品牌打包契约（2026-10-27）
 
 把「荒野探险家 / Wilderness Explorer（作者 zyan）+ 内部标识恒为 SCIEPort」固化为可执行的打包契约（`docs/PACKAGING-RULES.md`、`AGENTS.md`），并由 `Build-NetMod.ps1` 在打包前后各校验一次：显示名、作者、`PackageName`/`AssemblyName`/`RootNamespace`、csproj 与 modinfo 版本一致性、简介中英名、`THIRD-PARTY-NOTICES.md`、CSV 名称无状态后缀。`modinfo.Description` 改为中英品牌名开篇。方块索引（903–948、995–1000）、衣物数据 200–203、GUID、网络包 240–245 与存档兼容逻辑均未改，因此本版对存档与联机完全兼容。构建守卫首次运行即发现 `Watercraft.csv` 四个显示名（飞艇/铁轨/火车/车厢）带「（授权移植预览）」后缀，已移除；存档按方块索引，改名不影响兼容。完整构建通过，包 3,498,377 bytes / 108 entries，SHA-256 `73BC0D92D8E162782D1750B562FF3DB8F21A8538CA6EE3303B1EF08DD97346D3`，包内 `Name=荒野探险家`、`PackageName=SCIEPort`、`Version=0.40.3`。Android 7723 与双机仍待验证。
