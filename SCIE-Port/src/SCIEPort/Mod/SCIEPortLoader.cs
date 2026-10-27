@@ -6,6 +6,7 @@ using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Tanks;
 using SCIEPort.Features.Vehicles;
 using SCIEPort.Features.Stormhammer;
+using SCIEPort.Features.Gungnir;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -25,6 +26,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new TankControlPackage());
                 PackageManager.RegisterPackage(new VehicleActivationPackage());
                 PackageManager.RegisterPackage(new StormhammerSkillPackage());
+                PackageManager.RegisterPackage(new GungnirPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -68,6 +70,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
         {
+            if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
             if (target != null && attacker != null && attacker.Project != null)
             {
                 SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
@@ -86,6 +89,7 @@ namespace SCIEPort.Mod
         public override void GuiUpdate(ComponentGui componentGui)
         {
             StormhammerSkillHud.Update(componentGui);
+            GungnirHud.Update(componentGui);
         }
 
         /// <inheritdoc />

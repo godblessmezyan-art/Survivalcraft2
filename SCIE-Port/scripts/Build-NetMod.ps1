@@ -40,6 +40,10 @@ $sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
     Select-Object -First 1
 if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot" }
 
+& (Join-Path $PSScriptRoot 'Test-GungnirAssets.ps1') -GameDir $GameDir
+& $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Gungnir.Tests') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
+
 $kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
 & $dotnetPath run --project $kellyTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Kelly plant rule tests failed: $LASTEXITCODE" }
@@ -82,10 +86,6 @@ if ($LASTEXITCODE -ne 0) { throw "Vehicle activation rule tests failed: $LASTEXI
 $fortressTests = Join-Path $projectRoot 'tests\SCIEPort.PortableFortress.Tests\SCIEPort.PortableFortress.Tests.csproj'
 & $dotnetPath run --project $fortressTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Portable fortress rule tests failed: $LASTEXITCODE" }
-$lightningTests = Join-Path $projectRoot 'tests\SCIEPort.Stormhammer.Tests\SCIEPort.Stormhammer.Tests.csproj'
-& $dotnetPath run --project $lightningTests --configuration Release --nologo
-if ($LASTEXITCODE -ne 0) { throw "Skywrath lightning rule tests failed: $LASTEXITCODE" }
-
 # Every drivable vehicle must allow the local main player to drive on a client;
 # ordinary observers must not run the drive loop. These source guards catch a
 # regression to the former Local-only/Client-return gates before packaging.
@@ -414,6 +414,13 @@ try {
         'SCIEPort.dll',
         'modinfo.json',
         'THIRD-PARTY-NOTICES.md',
+        'Assets/Models/Gungnir.dae',
+        'Assets/Textures/Gungnir.png',
+        'Assets/Textures/GungnirSkills.png',
+        'Assets/Audio/Gungnir/Invoke.wav',
+        'Assets/Audio/Gungnir/Impact.wav',
+        'Assets/Blocks/Gungnir.csv',
+        'Assets/Database/Gungnir.xdb',
         'Assets/Blocks/SCIEPort.csv',
         'Assets/Blocks/Watercraft.csv',
         'Assets/Blocks/KellyPlants.csv',

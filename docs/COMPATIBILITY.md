@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-27 SCIE-Port 昆古尼尔 V4 开发候选
+
+本记录仅属于SCIE-Port。新增独立非放置物品ID948、网络包244、SCIEPortGungnir子系统；现有Hook签名不变。已确认固定Windows ABI、net472 Release编译、模型导入与`.netmod`包内容；Android/联机待验证。严格远程玩家运动物理权威当前不支持。按项目所有者明确要求，本次构建不运行仓库中缺失的Stormhammer测试工程。见[审查与缺口](../SCIE-Port/docs/GUNGNIR-V4-AUDIT.md)。Builder Assistant能力未改变。
+
 ## 2026-10-26：Builder Assistant v0.17.0 Portable Fortress Mk.I 白模
 
 | 项目 | 状态 | 证据/限制 |

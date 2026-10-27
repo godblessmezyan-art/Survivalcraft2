@@ -1,5 +1,12 @@
 # 测试结果
 
+## 0.32.0 合并候选（苍穹之怒 V5.0 + 昆古尼尔 V4，2026-10-27）
+
+- 环境/ABI：已确认。执行 `scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'`，程序集 `2.4.0.0`、API `1.42`、SC `2.4.10.6`、目标框架 `.NET Framework 4.7.2` 与保留 ID 检查通过。
+- 规则测试：已确认。昆古尼尔 **88/88**、苍穹之怒 V5 **580/580**；完整构建中 Kelly、ATV、越野车、水上载具、直升机、坦克、生态、作物、载具激活与移动堡垒等既有离线套件全部通过。
+- Release / 数据库 / 包：已确认。执行 `scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；net472 编译通过，16 份 XDB 验证通过；`.netmod` **3,009,161 字节 / 98 条目**，SHA-256 `12830CC3B0D43D77582B96DA720E727703DE627595B5E43BCF3B66760C9CF5B8`；modinfo `0.32.0`，DLL AssemblyVersion `0.32.0.0`。
+- Android 7723 / 联机：待验证。本轮未执行真机触屏、帧率或双机同步测试，不据此标记兼容。
+
 ## 0.31.0 苍穹之怒 V5.0「雷神降世」（2026-10-26）
 
 - 状态机：已确认。`ActivateThunderGod` 在 `StartUltimate` 内授予 12 s 状态并按实体 id 覆盖（不累加）；`UpdateThunderGod` 每帧校验 `IsAddedToProject / Health>0 / IsEquipped`，到期或失效即广播 `ThunderGodEnd`；`Dispose` 清空 `m_thunderGod / m_pendingJudgment` 与视觉状态。
@@ -977,3 +984,8 @@ Android 7723 联网/真机验证阶段。
 - Release / 包：已确认。完整构建 exit 0，0 warning/0 error；全部既有规则测试及数据库校验通过。产物 81 条目、2,292,868 bytes，Version/AssemblyVersion `0.28.1`/`0.28.1.0`，SHA-256 `264D1A793E9DB8F41E0DDB0AFB0A571FAA78286839BD4E496E86F949707A912D`。
 - Windows 实际加载：已确认。0.28.1 临时部署后启动到主菜单，日志确认 DLL、全部 XDB 和全部 CSV 正常加载，无数据包冲突或缺失 Block 类型错误；测试结束恢复原安装包。
 - Android 7723：待验证。需要用户重新导入 0.28.1，确认创造栏/武器分类和既有世界；技能、伤害、HUD 与多人仍未因本次加载验证而自动转为已确认。
+## 2026-10-27 昆古尼尔 V4 候选
+
+真实Release编译0警告0错误；根环境脚本在Windows PowerShell5.1通过；SCIE环境/模型导入/XDB/88项昆古尼尔纯规则及包内容检查通过。首次完整构建因远端基线引用但未提交`tests/SCIEPort.Stormhammer.Tests`而失败；项目所有者随后明确要求忽略该测试，构建门槛已移除并重新完整执行。Windows游戏/Android/主机/普通客户端均未测试。具体命令、实现缺口与验收步骤见[GUNGNIR-V4-AUDIT.md](GUNGNIR-V4-AUDIT.md)。
+
+最终`SCIEPort.netmod`：3,027,538字节；SHA-256 `ADE009B962DE2935320554B6DB0ACD9212351B7C522A4A767F70AFB76B8B1793`；DLL与modinfo版本均为0.31.0。
