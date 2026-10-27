@@ -1,4 +1,12 @@
 # SCIE-Port 兼容性记录
+## 0.40.5 四圣兽穿戴层与昆古尼尔投掷准心（离线已确认，Android 待验证，2026-10-27）
+
+目标 x25.01.17 的 `ComponentClothing.CanWearClothing` 只在新衣物 `Layer` **严格大于**当前槽最后一件衣物时允许穿戴；玄武铠/白虎胫甲原为 Layer 4、朱雀靴原为 Layer 1，会被玩家已有的同层上衣、裤子和鞋拒绝，而通常为空的头部槽仍能穿青龙冠，形成“只有青龙冠显示”。四件现统一为 `IsOuter=True, Layer=10`，确保作为神装最外层穿戴；方块 203、衣物数据 200–203、纹理、属性、耐久、包 245 与存档值均未改。构建新增四件数量/外层/Layer 守卫。
+
+昆古尼尔继续使用 0.40.0 的 `PlayerInput.Aim` 自建蓄力时钟和空 `OnAim`，避免恢复 1.4 秒重武装与 `m_isAimBlocked` 回归；缺失准心的原因是这条可靠路径未像原生 `SubsystemThrowableBlockBehavior` 一样每帧调用 `ComponentAimingSights.ShowAimingSights`。现只补回同一纯显示调用，不改变蓄力、发射、伤害、飞行租约或网络字段。两个技能徽记按要求移除名称铭牌/文字，保留图标、冷却数字、就绪光与底部能量条。
+
+`Test-Environment.ps1` 对真实 `E:\SCNET\SCNETx25.01.17` 通过；Gungnir 306 项、Four Saints 29 项及全部既有离线套件、17 XDB、net472 Release（0 warning / 0 error）、108 条目 `.netmod` 校验通过。产物 SHA-256 `78ED809C55782309FC6D5C0192E57F02A43E20685AF45DAABEA0A347AFEEBE51`。Windows 构建与离线检查不能代替 Android/7723 真机：四件实际穿戴模型、触屏长按准心、连续投掷与双机行为仍为待验证。
+
 ## 0.40.4 四圣兽稀疏衣物数组修复（Windows 已确认，Android 待验证，2026-10-27）
 
 x25.01.17 原生衣物最高索引为 37；四圣兽沿用已发布数据号 200–203 后，`ClothingBlock.m_clothingData` 的 38–199 为 `null`。目标程序集的 `GetCreativeValues()` 先执行 `OrderBy(cd => cd.DisplayIndex)`、后判断 `cd != null`，因此加载任意一件四圣兽衣物都会抛 `NullReferenceException` 并中断 `BlocksManager.Initialize`。新增同名、同方块 ID 203 的兼容子类，只覆盖创造栏枚举为“先过滤空槽、再按 DisplayIndex 稳定排序”；衣物 XML 加载、原生模型、绘制、耐久与穿戴逻辑仍由基类实现。方块 203、衣物 200–203、包 245、属性、纹理与存档值均未改。已做交叉复现：无 `.clo` 不报错，任意 200/201/202/203 均报错，低索引 38 + 自定义纹理不报错，高索引 200 + 原版纹理仍报错；0.40.4 本机 x25.01.17 冷启动不再出现空引用并到达 MainMenu。Four Saints 29 项、全部既有套件、17 XDB、net472 Release 0 warning/0 error、108 条目包通过；包 SHA-256 `89A68B89BE3EF5A8ABA56BE57696187406BE180ABF8D2F0AD1EC3557554AC441`。Android 日志已证明旧包会报错，但新包仍需真机重新进入世界确认。

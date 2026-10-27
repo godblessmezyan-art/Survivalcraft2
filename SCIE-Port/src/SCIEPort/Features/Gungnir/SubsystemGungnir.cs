@@ -210,6 +210,9 @@ namespace SCIEPort.Features.Gungnir
                 if (!Authority) SendThrowSignal(p, GungnirRules.ThrowBegin, aim.Value.Direction, 0f);
             }
             else s.AimDirection = aim.Value.Direction;
+            // The reliable throw path intentionally bypasses ComponentMiner.OnAim, so restore the
+            // same per-frame sight request used by x25.01.17's native throwable behavior.
+            p.ComponentAimingSights.ShowAimingSights(aim.Value.Position, aim.Value.Direction);
         }
 
         private void ApplyThrowPose(ComponentPlayer p)

@@ -97,6 +97,11 @@ foreach ($clothingCompatibilityRule in @(
         throw "Four Saints sparse clothing compatibility guard missing: $clothingCompatibilityRule"
     }
 }
+$fourSaintsClothingXml = [xml](Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\FourSaints.clo'))
+$fourSaintsClothes = @($fourSaintsClothingXml.SelectNodes('//ClothingData'))
+if ($fourSaintsClothes.Count -ne 4 -or @($fourSaintsClothes | Where-Object { $_.Layer -ne '10' -or $_.IsOuter -ne 'True' }).Count -ne 0) {
+    throw 'All four Four Saints pieces must remain wearable outermost armor at Layer 10.'
+}
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Gungnir.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo
@@ -393,17 +398,14 @@ $gungnirBehaviorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 
 foreach ($gungnirRule in @('BlessingCooldown = 8f', 'JudgmentCooldown = 50f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
     if (-not $gungnirRulesSource.Contains($gungnirRule)) { throw "Gungnir V5.2 control/balance rule missing: $gungnirRule" }
 }
-foreach ($gungnirBehaviorRule in @('public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;', 'UpdateThrowInput(p, s)', 'GungnirRules.ThrowLease', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {
+foreach ($gungnirBehaviorRule in @('public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;', 'UpdateThrowInput(p, s)', 'ComponentAimingSights.ShowAimingSights', 'GungnirRules.ThrowLease', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {
     if (-not $gungnirBehaviorSource.Contains($gungnirBehaviorRule)) { throw "Gungnir aim, throw reliability or divine hit feedback missing: $gungnirBehaviorRule" }
 }
-# v0.39.0: the skill name is engraved inside the badge, so it cannot be pushed off-screen by
-# device DPI, safe areas or a wide hotbar. Both the band constant and its usage must survive.
+# v0.40.5: badges are icon-only. Skill names and the former engraved nameplate must not return.
 $gungnirHudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirHud.cs')
-foreach ($gungnirHudRule in @('NameBand = GungnirHudLayout.NameBandHeight', 'Text = caption', 'skill.Visual.Children.Add(skill.NamePlate)')) {
-    if (-not $gungnirHudSource.Contains($gungnirHudRule)) { throw "Gungnir engraved skill-name plate missing: $gungnirHudRule" }
+foreach ($retiredNameplateRule in @('卢恩神佑', '永恒裁决', 'NamePlate', 'Caption', 'NameBandHeight')) {
+    if ($gungnirHudSource.Contains($retiredNameplateRule)) { throw "Retired Gungnir skill-name UI returned: $retiredNameplateRule" }
 }
-$gungnirLayoutSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirHudLayout.cs')
-if (-not $gungnirLayoutSource.Contains('NameBandHeight = 21f')) { throw 'Gungnir nameplate band height must stay 21 logical units.' }
 # v0.40.1: Game.Random.Int(min, max) is INCLUSIVE on both ends. Rolling Int(0, 16) for a local
 # chunk cell returns 16 about once in seventeen rolls and reads past the chunk arrays
 # (IndexOutOfRangeException on a fresh world). ChanceMet consumes a 0..99 band, so Int(0, 100)

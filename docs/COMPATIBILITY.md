@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.5 四圣兽穿戴显示 / 昆古尼尔图标与投掷准心
+
+x25.01.17 `ComponentClothing.CanWearClothing` 要求新衣物 `Layer` 严格大于当前槽最后一件；玄武铠/白虎胫甲的 Layer 4 与朱雀靴的 Layer 1 会被常见同层上衣、裤子、鞋拒绝，而空头部槽仍接受青龙冠。四件神装现统一为最外层 Layer 10；方块 203、衣物 200–203、纹理、属性、包 245 与存档值不变。昆古尼尔仍直接采样 `PlayerInput.Aim` 以保留连续投掷可靠性，同时补回原生投掷物每帧使用的 `ComponentAimingSights.ShowAimingSights`，恢复辅助瞄准准心；两个技能徽记移除名称铭牌与文字，保留冷却、就绪和能量反馈。真实 x25.01.17 环境检查、Gungnir 306 项、Four Saints 29 项、全部既有套件、17 XDB、net472 Release 与 108 条目包通过，SHA-256 `78ED809C55782309FC6D5C0192E57F02A43E20685AF45DAABEA0A347AFEEBE51`。Android/7723 实际穿戴、触屏准心、连续投掷和双机仍为`待验证`。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 已同步审计。
+
 ## 2026-10-27 SCIE-Port 0.40.4 四圣兽稀疏衣物修复
 
 x25.01.17 原生衣物只占 0–37，四圣兽已发布衣物数据 200–203 会留下 38–199 的 null 槽；原生 `ClothingBlock.GetCreativeValues()` 在过滤 null 前读取 `DisplayIndex`，触发空引用并中断方块初始化。SCIE-Port 现在以同名、同 ID 203 的兼容子类仅替换创造栏枚举顺序，先过滤 null 再稳定排序；203/200–203、包 245、属性和存档值均不变。交叉二分与 Windows x25.01.17 启动冒烟已确认修复，全部测试、17 XDB、net472 Release 与 108 条目包通过，SHA-256 `89A68B89BE3EF5A8ABA56BE57696187406BE180ABF8D2F0AD1EC3557554AC441`。Android/7723 新包进世界与 Cenozoic ERA 并装仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。

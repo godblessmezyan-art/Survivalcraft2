@@ -101,7 +101,6 @@ internal static class Program
         Check(GungnirRules.CanCompleteThrow(true, 0.16, 0f) && GungnirRules.CanCompleteThrow(true, 0f, 0.16f), "A valid short hold must pass the host clock and the client report");
         Check(GungnirRules.ThrowLease > 3f && GungnirRules.ThrowLease < 6f, "Flight lease must outlive outbound plus return without stalling the next throw");
         // Skill names live inside the badge, so no DPI, safe-area or hotbar change can hide them.
-        Check(GungnirHudLayout.NameBandHeight > 0f && GungnirHudLayout.NameBandHeight < GungnirHudLayout.BlessingSize * 0.4f, "Nameplate band must stay inside the smallest badge");
         // Giant judgment spear: condenses high, plunges monotonically and stops buried.
         float previousSpear = float.MaxValue;
         bool descended = true;

@@ -9,19 +9,14 @@ namespace SCIEPort.Features.Gungnir
     /// <summary>Touch-first HUD anchored to the target build's real native Look control.</summary>
     internal static class GungnirHud
     {
-        /// <summary>Nameplate band drawn inside the icon so the skill name can never fall off-screen.</summary>
-        private const float NameBand = GungnirHudLayout.NameBandHeight;
-
         private sealed class SkillButton
         {
             internal CanvasWidget Visual;
             internal CanvasWidget HitTarget;
             internal RectangleWidget Icon;
             internal RectangleWidget ReadyGlow;
-            internal RectangleWidget NamePlate;
             internal RectangleWidget Energy;
             internal LabelWidget Cooldown;
-            internal LabelWidget Caption;
             internal ClickableWidget Clickable;
             internal float Size;
             internal Color Accent;
@@ -93,9 +88,6 @@ namespace SCIEPort.Features.Gungnir
             button.Icon.FillColor = pressed || active ? new Color(255, 249, 218) : ready ? Color.White : new Color(105, 110, 120, 205);
             button.ReadyGlow.FillColor = ready ? button.Accent * (pressed ? 0.42f : 0.08f + pulse * (button.Ultimate ? 0.18f : 0.12f)) : Color.Transparent;
             button.Cooldown.Color = active ? new Color(255, 246, 204) : Color.White;
-            // The engraved name tracks readiness: full platinum when castable, ash-grey while locked.
-            button.Caption.Color = active ? new Color(255, 250, 226) : ready ? new Color(247, 232, 195) : new Color(152, 148, 138);
-            button.NamePlate.OutlineColor = active ? new Color(255, 249, 218) : button.Accent * (ready ? 0.45f + pulse * 0.25f : 0.18f);
             float energy = durationTotal > 0f && duration > 0f ? MathUtils.Saturate(duration / durationTotal) : ready ? 1f : 0f;
             button.Energy.Size = new Vector2((button.Size - 10f) * energy, 3f);
             button.Energy.FillColor = active ? new Color(255, 248, 205, 245) : ready ? button.Accent * 0.9f : new Color(92, 88, 78, 190);
@@ -191,19 +183,17 @@ namespace SCIEPort.Features.Gungnir
                     IsVisible = false
                 }
             };
-            hud.Skills[0] = CreateButton(atlas, 0, "卢恩神佑", GungnirHudLayout.BlessingSize, new Color(111, 226, 214), false);
-            hud.Skills[1] = CreateButton(atlas, 1, "永恒裁决", GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
+            hud.Skills[0] = CreateButton(atlas, 0, GungnirHudLayout.BlessingSize, new Color(111, 226, 214), false);
+            hud.Skills[1] = CreateButton(atlas, 1, GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
             hud.Root.Children.Add(hud.Skills[0].Visual);
             hud.Root.Children.Add(hud.Skills[1].Visual);
             gui.ControlsContainerWidget.Children.Add(hud.Root);
             return hud;
         }
 
-        private static SkillButton CreateButton(Texture2D atlas, int icon, string caption, float size, Color accent, bool ultimate)
+        private static SkillButton CreateButton(Texture2D atlas, int icon, float size, Color accent, bool ultimate)
         {
             var skill = new SkillButton { Size = size, Accent = accent, Ultimate = ultimate };
-            // The visual keeps exactly the icon footprint: the name is engraved on the lower band of
-            // the icon itself, so no device DPI, hotbar or safe-area change can hide it.
             skill.Visual = new CanvasWidget { Size = new Vector2(size), IsHitTestVisible = false };
             skill.Icon = new RectangleWidget
             {
@@ -223,18 +213,7 @@ namespace SCIEPort.Features.Gungnir
                 OutlineThickness = 0f,
                 IsHitTestVisible = false
             };
-            skill.NamePlate = new RectangleWidget
-            {
-                Size = new Vector2(size, NameBand),
-                FillColor = new Color(8, 10, 14, 186),
-                OutlineColor = accent * 0.45f,
-                OutlineThickness = 1f,
-                IsHitTestVisible = false
-            };
-            skill.Cooldown = new LabelWidget { Size = new Vector2(size, size - NameBand), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 80f ? 0.92f : 0.78f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
-            // Simplified glyphs stay legible on a 72-unit badge; the plate guarantees contrast
-            // against bright terrain, snow and the sky alike.
-            skill.Caption = new LabelWidget { Size = new Vector2(size, NameBand), Text = caption, FontScale = 0.55f, DropShadow = true, Color = new Color(247, 232, 195), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, IsHitTestVisible = false };
+            skill.Cooldown = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 80f ? 0.92f : 0.78f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
             skill.Energy = new RectangleWidget { Size = new Vector2(size - 10f, 3f), FillColor = new Color(224, 184, 91), OutlineColor = Color.Transparent, OutlineThickness = 0f, IsHitTestVisible = false };
             skill.HitTarget = new CanvasWidget { Size = new Vector2(size), IsHitTestVisible = false };
             skill.Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
@@ -242,14 +221,9 @@ namespace SCIEPort.Features.Gungnir
             skill.Visual.Children.Add(skill.Icon);
             skill.Visual.Children.Add(skill.ReadyGlow);
             skill.Visual.Children.Add(skill.Energy);
-            skill.Visual.Children.Add(skill.NamePlate);
-            skill.Visual.Children.Add(skill.Caption);
             skill.Visual.Children.Add(skill.Cooldown);
             skill.Visual.Children.Add(skill.HitTarget);
-            CanvasWidget.SetPosition(skill.NamePlate, new Vector2(0f, size - NameBand));
-            CanvasWidget.SetPosition(skill.Caption, new Vector2(0f, size - NameBand));
-            // The energy strip sits just above the nameplate so it can never be covered by it.
-            CanvasWidget.SetPosition(skill.Energy, new Vector2(5f, size - NameBand - 4f));
+            CanvasWidget.SetPosition(skill.Energy, new Vector2(5f, size - 5f));
             return skill;
         }
     }

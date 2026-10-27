@@ -1,5 +1,14 @@
 # 测试结果
 
+# 0.40.5 四圣兽穿戴层 / 昆古尼尔图标与投掷准心（2026-10-27）
+
+- ABI 根因：反编译 x25.01.17 `ComponentClothing.CanWearClothing`，确认非空槽只接受 `incoming.Layer > current.Layer`；原玄武/白虎 Layer 4、朱雀 Layer 1 可被普通同层衣物拒绝，青龙因头部槽通常为空而单独可穿。四件统一为 `IsOuter=True, Layer=10`，并新增打包期四件数量/外层/层级守卫。
+- 准心根因：原生 `SubsystemThrowableBlockBehavior.OnAim(InProgress)` 每帧调用 `ComponentAimingSights.ShowAimingSights`；0.40.0 为可靠性绕过 `OnAim` 后没有等价调用。现由 `UpdateThrowInput` 在 `PlayerInput.Aim` 有值时补回该显示请求，空 `OnAim`、0.15 秒最短蓄力、3.2 秒租约和包 244/245 均不变。
+- HUD：删除两枚徽记的 `NamePlate`/`Caption` 和 21 单位 `NameBandHeight`；图标、就绪光、冷却数字、底部 3 单位能量条与触摸命中区保留。构建守卫拒绝技能名或旧铭牌控件回归。
+- 环境：`scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472 ABI 检查通过。
+- 完整构建：`scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；Gungnir **306**、Four Saints **29**、Stormhammer 671 及全部既有套件通过；17 XDB、资源复现、品牌与包结构校验通过；net472 Release 0 warning / 0 error。
+- 产物：108 entries，SHA-256 `78ED809C55782309FC6D5C0192E57F02A43E20685AF45DAABEA0A347AFEEBE51`，版本 0.40.5。Android/7723 四件模型、触屏长按准心、连续投掷与双机均为`待验证`，未标记兼容。
+
 # 0.40.4 四圣兽衣物加载空引用修复（2026-10-27）
 
 - 目标 ABI：反编译 x25.01.17 `ClothingBlock.LoadClothingData/GetCreativeValues`，确认数据数组会扩到索引 203，而原实现会在 null 检查前求 `DisplayIndex` 排序键。

@@ -2,6 +2,18 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。`.netmod` 的品牌与打包规则见 [`docs/PACKAGING-RULES.md`](docs/PACKAGING-RULES.md)，自 v0.40.3 起由构建脚本在打包前后各校验一次。
 
+Version 0.40.5 fixes the reported Four Saints equip/display failure and restores native
+throwing sights for Gungnir. x25.01.17 only equips clothing when the incoming piece's
+`Layer` is strictly greater than the last item already worn in that slot; Xuanwu/Baihu
+used layer 4 and Zhuque used layer 1, so normal torso, leg and foot clothing could reject
+them while the usually-empty head slot still accepted Qinglong. All four divine pieces
+are now outer layer 10, with IDs 203/200-203, textures, stats, packet 245 and saves
+unchanged. Gungnir retains its reliable direct `PlayerInput.Aim` clock, but now calls the
+same per-frame `ComponentAimingSights.ShowAimingSights` path as native throwable weapons.
+Its two badges are icon-only: the skill-name plate/caption is removed while cooldown and
+energy feedback remain. Release/package validation passed; Android/7723 equip rendering,
+touch sights and multiplayer remain pending device confirmation.
+
 Version 0.40.4 fixes the x25.01.17 sparse-clothing crash without changing the
 published Four Saints values. Native clothing ends at index 37, while Four Saints use
 200-203; the stock creative enumerator sorted null slots 38-199 before filtering them
