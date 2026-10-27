@@ -1164,3 +1164,13 @@ Android 7723 联网/真机验证阶段。
 真实Release编译0警告0错误；根环境脚本在Windows PowerShell5.1通过；SCIE环境/模型导入/XDB/88项昆古尼尔纯规则及包内容检查通过。首次完整构建因远端基线引用但未提交`tests/SCIEPort.Stormhammer.Tests`而失败；项目所有者随后明确要求忽略该测试，构建门槛已移除并重新完整执行。Windows游戏/Android/主机/普通客户端均未测试。具体命令、实现缺口与验收步骤见[GUNGNIR-V4-AUDIT.md](GUNGNIR-V4-AUDIT.md)。
 
 最终`SCIEPort.netmod`：3,027,538字节；SHA-256 `ADE009B962DE2935320554B6DB0ACD9212351B7C522A4A767F70AFB76B8B1793`；DLL与modinfo版本均为0.31.0。
+
+## 2026-10-27 — SCIE-Port 0.41.0 / 四圣兽更名·耐久·移速·体温钳制
+
+- 变更摘要：四件衣物更名为万里青龙(200)/北冥玄武(201)/镇狱白虎(202)/炽焰朱雀(203)；`Sturdiness` 统一为 500；炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）；新增权威侧每帧体温钳制修复“穿整套仍会因低温感冒”的缺陷——北冥玄武把体温下限抬到 8（高于感冒发病门限 6），炽焰朱雀把体温上限压到 8（远低于过热伤害 24），同穿时体温钉在 8。`.clo` 与代码补注册两条路径同步更新，`Layer` 统一为 10。
+- 环境/ABI：已确认。`scripts/Test-Environment.ps1 -GameDir 'D:\SC'` exit 0；程序集 2.4.0.0、API 1.42、SC 2.4.10.6、net472，原生块 260、最大 ID 263；加载器/方块注册/载具/网络包 ABI 与保留 ID 检查通过。
+- 反射取证：已确认。`ComponentPlayer.ComponentVitalStats`（Game.ComponentVitalStats，get/set）与 `ComponentVitalStats.Temperature`（System.Single，public get/set）经 x25.01.17 `Survivalcraft.exe` 反射核实，钳制通过公开属性写入，不引用 `ComponentFlu.fName`、不触碰索引 35，构建守卫（idx25/idx26 必含、idx35/ComponentFlu.fName 必无）继续通过。
+- 离线测试：已确认。`scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` 内部转调 `Build-NetMod.ps1`，编译 0 warning/0 error；`SCIEPort.FourSaints.Tests` 全绿（含新增 8 条 `ClampTemperature` 断言，PASS 标签 37 条）；Gungnir 306、Stormhammer/Skywrath 671 等既有规则测试通过；`DATABASE VALIDATION PASSED`。
+  - 首轮构建因单测断言 `ClampTemperature(10f,false,true)==10f` 预期错误失败（10 高于上限 8 应被钳到 8），已将“朱雀不改变凉体温”的用例输入改为 5f 后重跑通过。
+- 产物：已确认。`artifacts/SCIEPort.netmod` 共 108 条目、3,501,301 bytes，包内 `modinfo.json` Version=`0.41.0`、DLL AssemblyVersion/FileVersion=`0.41.0.0`，SHA-256 `C75D3139FAC5AFA7A737F599A74D2ADB77777B328919A4D2E9DB1944F1461F5C`。
+- Windows 游戏、Android 7723、触屏、实际体温/感冒/过热表现、主机/普通客户端/观察者同步：待验证。本轮仅执行 ABI 反射取证、离线规则测试、编译与包校验，未启动游戏或连接设备；体温钳制的真实手感（每帧写入与 VitalStats 自然漂移的相互作用）须真机确认。

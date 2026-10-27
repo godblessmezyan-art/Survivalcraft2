@@ -172,6 +172,7 @@ namespace SCIEPort.Features.FourSaints
                 }
                 ApplyHealth(player, state);
                 ApplyZhuque(player, state);
+                ApplyTemperature(player, state);
                 ApplyJump(player, state);
                 ApplyLock(player, state);
                 if (Authority && Now >= state.NextSnapshot)
@@ -218,6 +219,19 @@ namespace SCIEPort.Features.FourSaints
             if ((state.Equipment & 8) == 0) return;
             ComponentOnFire fire = player.Entity.FindComponent<ComponentOnFire>(false);
             if (fire != null) { fire.Extinguish(); fire.TouchesFire = false; }
+        }
+
+        private void ApplyTemperature(ComponentPlayer player, State state)
+        {
+            if (!Authority) return;
+            bool xuanwu = (state.Equipment & 2) != 0;
+            bool zhuque = (state.Equipment & 8) != 0;
+            if (!xuanwu && !zhuque) return;
+            ComponentVitalStats vital = player.ComponentVitalStats;
+            if (vital == null) return;
+            float current = vital.Temperature;
+            float clamped = FourSaintsRules.ClampTemperature(current, xuanwu, zhuque);
+            if (Math.Abs(clamped - current) > 0.0001f) vital.Temperature = clamped;
         }
 
         private void ApplyJump(ComponentPlayer player, State state)

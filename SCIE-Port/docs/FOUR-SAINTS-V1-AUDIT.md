@@ -10,19 +10,21 @@
 
 四件均复用原生衣物方块 ID 203，不新增方块 ID。新增衣物数据号：
 
-| 衣物数据号 | 名称 | 槽位 | ArmorProtection | Sturdiness |
-|---:|---|---|---:|---:|
-| 200 | 青龙冠 | Head | 1.0 | 320 |
-| 201 | 玄武铠 | Torso | 1.0 | 480 |
-| 202 | 白虎胫甲 | Legs | 1.0 | 360 |
-| 203 | 朱雀靴 | Feet | 1.0 | 340 |
+| 衣物数据号 | 名称 | 槽位 | ArmorProtection | Sturdiness | MovementSpeedFactor |
+|---:|---|---|---:|---:|---:|
+| 200 | 万里青龙 | Head | 1.0 | 500 | 1.0 |
+| 201 | 北冥玄武 | Torso | 1.0 | 500 | 1.0 |
+| 202 | 镇狱白虎 | Legs | 1.0 | 500 | 1.2 |
+| 203 | 炽焰朱雀 | Feet | 1.0 | 500 | 1.5 |
+
+v0.41.0：四件更名为万里青龙/北冥玄武/镇狱白虎/炽焰朱雀，`Sturdiness` 统一为 500，炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）。`.clo` 与代码补注册两条路径同步更新，`Layer` 统一为 10。
 
 `ArmorProtection=1.0` 进入原生随机护甲槽、磨损和吸收计算，不等同于额外全伤害无敌。资源由 `scripts/New-FourSaintsAssets.ps1` 以项目原创几何纹样可复现生成，不引入第三方美术。
 
 ## 权威效果
 
 - 青龙：权威游戏时间每 5 秒恢复 0.1，满血不恢复；重新穿戴重新等待完整 5 秒。跌落原因字符串在 `OnCreatureInjure`、死亡判定前拦截。
-- 玄武：目标版本溺水原因在同一伤害入口拦截；带攻击者的最终生命伤害在原生护甲和韧性之后减 0.3，并夹到零，只重放一次伤害事件。V1.1 另精确拦截 `ComponentVitalStats.UpdateTemperature()` 的两个直接严寒原因：`LanguageControl.Get(ComponentVitalStats.fName, 25)`（体温≤0 时 1.0 伤害）和索引 `26`（体温<3 时每10秒 0.05 伤害）。两条路径都进入 `ComponentHealth.Injure`，没有绕过现有权威 Hook；体温、湿度、环境温度和保温计算均不修改。过热使用索引 `35`，不会被拦截。
+- 玄武：目标版本溺水原因在同一伤害入口拦截；带攻击者的最终生命伤害在原生护甲和韧性之后减 0.3，并夹到零，只重放一次伤害事件。V1.1 另精确拦截 `ComponentVitalStats.UpdateTemperature()` 的两个直接严寒原因：`LanguageControl.Get(ComponentVitalStats.fName, 25)`（体温≤0 时 1.0 伤害）和索引 `26`（体温<3 时每10秒 0.05 伤害）。两条路径都进入 `ComponentHealth.Injure`，没有绕过现有权威 Hook。v0.41.0 起在权威侧每帧钳制体温（`SubsystemFourSaints.ApplyTemperature` → `FourSaintsRules.ClampTemperature`）：北冥玄武把体温下限抬到 8，炽焰朱雀把体温上限压到 8，两者同穿时体温被钉在 8。下限必须高于 6 而非 3——因为感冒（`ComponentFlu`）在体温持续 <6 时累积发病，仅拦伤害索引 25/26 无法阻止感冒；钳制通过 `ComponentVitalStats.Temperature` 公开属性写入，不引用 `ComponentFlu.fName`，也不触碰索引 35（过热），因此构建守卫仍通过。钳制在 `UpdateOrder.Locomotion` 每帧执行，由于体温每帧自然漂移极小，感冒与严寒判定读到的始终是被钳后的安全值。湿度、环境温度与保温计算本身不修改。
 - 白虎：衣物原生 `MovementSpeedFactor=1.2`；跳跃按 `v2²=v1²+2g·1`、目标重力 `g=10` 换算；普通/觉醒攻击频率分别为基础 1.2/2.0，觉醒直接战斗生命伤害乘 1.5 一次。与妙尔尼尔 1.1 攻频使用乘法组合，与昆古尼尔自己的攻击频率也统一相乘。
 - 朱雀：火焰、岩浆原因在伤害前拦截，穿戴时调用原生 `Extinguish()` 并清除 `TouchesFire`。非强制伤害若会降到 0.1 或以下，则阻止该事件、恢复到 1.0（受当前 1.0/1.5 有效上限约束），开始 1 秒无敌与移动/跳跃/攻击锁。无冷却；同一窗口不会递归触发。世界销毁等非伤害流程不被拦截。
 

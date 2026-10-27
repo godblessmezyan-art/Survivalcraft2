@@ -1,4 +1,12 @@
 # SCIE-Port 兼容性记录
+## 0.41.0 四圣兽更名·耐久统一·朱雀移速·体温钳制（离线已确认，Android 待验证，2026-10-27）
+
+四件衣物更名为万里青龙(200)/北冥玄武(201)/镇狱白虎(202)/炽焰朱雀(203)，`Sturdiness` 统一为 500，炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）。`.clo`（权威）与 `FourSaintsClothing.cs`（合并失效兜底）两条路径同步更新，`Layer` 仍统一为 10、`IsOuter=True`。方块索引 203、衣物数据号 200–203、GUID、网络包 245 与存档值均未改，因此本版对存档与联机完全兼容；改名只影响显示名，存档按方块/衣物索引存取。
+
+新增权威侧每帧体温钳制修复“穿整套仍会因低温感冒”的缺陷：`SubsystemFourSaints.ApplyTemperature`（`UpdateOrder.Locomotion`，仅 `Authority`）调用纯函数 `FourSaintsRules.ClampTemperature`——北冥玄武把体温下限抬到 8（高于感冒发病门限 6，故不再累积 `ComponentFlu` 发病，也免疫严寒伤害索引 25/26 与结冰遮罩），炽焰朱雀把体温上限压到 8（远低于过热伤害 24），同穿时体温钉在 8。钳制通过既有公开属性 `ComponentVitalStats.Temperature`（System.Single，public get/set，经 x25.01.17 反射核实）写入，不新增 Hook、不改方法签名、不引用 `ComponentFlu.fName`、不触碰索引 35，既有构建守卫（idx25/idx26 必含、idx35/ComponentFlu.fName 必无、四件 Layer=10/IsOuter=True）继续通过。
+
+`scripts/Test-Environment.ps1 -GameDir 'D:\SC'` 与 `scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` 均 exit 0，编译 0 warning/0 error；`SCIEPort.FourSaints.Tests` 全绿（新增 8 条 `ClampTemperature` 断言，PASS 标签 37 条），Gungnir 306、Stormhammer/Skywrath 671 等既有套件、17 XDB、`DATABASE VALIDATION PASSED` 通过。产物 `artifacts/SCIEPort.netmod` 108 条目、3,501,301 bytes，包内 `modinfo.json` Version=`0.41.0`、DLL AssemblyVersion/FileVersion=`0.41.0.0`，SHA-256 `C75D3139FAC5AFA7A737F599A74D2ADB77777B328919A4D2E9DB1944F1461F5C`。Windows 游戏、Android 7723 创造栏/穿戴、实际体温·感冒·过热表现与双机同步仍待真机验证；离线编译与规则测试不能代替真机手感。
+
 ## 0.40.6 四圣兽衣物补注册兜底（离线已确认，Android 待验证，2026-10-27）
 
 0.40.4/0.40.5 已修正稀疏衣物索引的空值与穿戴层级（`incoming.Layer > current.Layer`，四件统一 Layer=10），但 `.clo` 合并在 x25.01.17 里是"单个文件失败只记日志"的弱契约，一旦整份被丢弃，四件衣物的 `ClothingData` 不会注册，创造栏与世界内都看不到。本轮在 `BlocksInitalized` 增加补注册：按 200～203 逐个检查，缺失才创建，已存在则完全跳过（不覆盖 .clo 数据），每件独立 try/catch 且贴图失败会回退并记录路径。方块索引、衣物数据号、.clo 内容与能力数值均未改。Four Saints 29、Gungnir 306、Stormhammer 671、Ecology 53 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,500,765 bytes，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`，modinfo `0.40.6`。Android 7723 创造栏与穿戴仍待验证。

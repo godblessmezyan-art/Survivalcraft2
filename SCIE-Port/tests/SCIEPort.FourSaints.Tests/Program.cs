@@ -29,6 +29,14 @@ internal static class Program
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "heat", "drown", "cold-death", "freezing"), "Xuanwu does not block heat");
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "flu", "drown", "cold-death", "freezing"), "Xuanwu does not block flu");
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "fall", "drown", "cold-death", "freezing"), "Xuanwu does not block fall");
+        Check(Near(FourSaintsRules.ClampTemperature(2f, true, false), FourSaintsRules.XuanwuTemperatureFloor), "Xuanwu warms a freezing body to the floor");
+        Check(Near(FourSaintsRules.ClampTemperature(12f, true, false), 12f), "Xuanwu leaves a comfortable body untouched");
+        Check(Near(FourSaintsRules.ClampTemperature(30f, false, true), FourSaintsRules.ZhuqueTemperatureCeiling), "Zhuque cools an overheating body to the ceiling");
+        Check(Near(FourSaintsRules.ClampTemperature(5f, false, true), 5f), "Zhuque leaves a cool body untouched");
+        Check(Near(FourSaintsRules.ClampTemperature(2f, true, true), 8f) && Near(FourSaintsRules.ClampTemperature(30f, true, true), 8f), "full set pins both extremes to the shared safe value");
+        Check(Near(FourSaintsRules.ClampTemperature(2f, false, false), 2f) && Near(FourSaintsRules.ClampTemperature(30f, false, false), 30f), "no Four Saints pieces leaves temperature untouched");
+        Check(FourSaintsRules.XuanwuTemperatureFloor > 6f, "Xuanwu floor clears the flu onset gate at 6");
+        Check(FourSaintsRules.ZhuqueTemperatureCeiling < 24f, "Zhuque ceiling stays far below the overheat damage at 24");
         var sparseClothing = new[]
         {
             new ClothingProbe { Index = 200, DisplayOrder = 4 },
@@ -41,7 +49,7 @@ internal static class Program
             .ToArray();
         Check(orderedClothing.SequenceEqual(new[] { 201, 200 }), "sparse clothing slots are filtered before display ordering");
         Layout(1280, 720, 1f); Layout(1920, 1080, 1f); Layout(1280, 720, 1.35f);
-        Console.WriteLine("Four Saints rules/layout/visual budget/clothing compatibility: PASS (29 assertions)");
+        Console.WriteLine("Four Saints rules/layout/visual budget/clothing compatibility/temperature clamp: PASS (37 assertions)");
         return 0;
     }
 

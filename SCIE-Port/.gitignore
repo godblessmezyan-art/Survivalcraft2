@@ -3,3 +3,9 @@ bin/
 obj/
 upstream/SCIE/
 
+# 本地机密：凭据/密码/Token 模板，禁止提交
+*.local.md
+CREDENTIALS.local.md
+secrets.md
+.env
+

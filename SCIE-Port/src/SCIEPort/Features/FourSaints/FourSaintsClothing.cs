@@ -28,14 +28,14 @@ namespace SCIEPort.Features.FourSaints
 
         private static readonly Spec[] s_specs =
         {
-            new Spec { Index = FourSaintsRules.QinglongIndex, DisplayName = "青龙冠", Slot = ClothingSlot.Head, Layer = 1, TexturePath = "Textures/Clothing/FourSaintsQinglong",
+            new Spec { Index = FourSaintsRules.QinglongIndex, DisplayName = "万里青龙", Slot = ClothingSlot.Head, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsQinglong",
                 Description = "苍龙不息：每5秒恢复1点生命、免疫跌落伤害、最大生命增加5点。" },
-            new Spec { Index = FourSaintsRules.XuanwuIndex, DisplayName = "玄武铠", Slot = ClothingSlot.Torso, Layer = 4, TexturePath = "Textures/Clothing/FourSaintsXuanwu",
-                Description = "镇岳玄甲：免疫溺水与严寒伤害，每次受到攻击时最终生命伤害减少3点。" },
-            new Spec { Index = FourSaintsRules.BaihuIndex, DisplayName = "白虎胫甲", Slot = ClothingSlot.Legs, Layer = 4, TexturePath = "Textures/Clothing/FourSaintsBaihuLegs",
+            new Spec { Index = FourSaintsRules.XuanwuIndex, DisplayName = "北冥玄武", Slot = ClothingSlot.Torso, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsXuanwu",
+                Description = "镇岳玄甲：免疫溺水、严寒与低温感冒，体温恒暖不寒；受到攻击时最终生命伤害减少3点。" },
+            new Spec { Index = FourSaintsRules.BaihuIndex, DisplayName = "镇狱白虎", Slot = ClothingSlot.Legs, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsBaihuLegs",
                 Description = "西极杀伐：移动与攻击频率提升20%，跳跃高度增加约1格；可发动5秒杀伐觉醒。" },
-            new Spec { Index = FourSaintsRules.ZhuqueIndex, DisplayName = "朱雀靴", Slot = ClothingSlot.Feet, Layer = 1, TexturePath = "Textures/Clothing/FourSaintsZhuque",
-                Description = "涅槃圣焰：免疫火焰、岩浆与燃烧；濒死时涅槃并短暂无敌。" }
+            new Spec { Index = FourSaintsRules.ZhuqueIndex, DisplayName = "炽焰朱雀", Slot = ClothingSlot.Feet, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsZhuque",
+                Description = "涅槃圣焰：移动速度提升50%，免疫火焰、岩浆、燃烧与过热；濒死时涅槃并短暂无敌。" }
         };
 
         private static bool s_registered;
@@ -92,9 +92,11 @@ namespace SCIEPort.Features.FourSaints
                     Description = spec.Description,
                     Slot = spec.Slot,
                     ArmorProtection = 1f,
-                    Sturdiness = spec.Slot == ClothingSlot.Torso ? 480f : spec.Slot == ClothingSlot.Legs ? 360f : spec.Slot == ClothingSlot.Feet ? 340f : 320f,
+                    Sturdiness = FourSaintsRules.UnifiedSturdiness,
                     Insulation = 2f,
-                    MovementSpeedFactor = spec.Slot == ClothingSlot.Legs ? 1.2f : 1f,
+                    MovementSpeedFactor = spec.Slot == ClothingSlot.Legs ? FourSaintsRules.BaihuMovementSpeedFactor
+                        : spec.Slot == ClothingSlot.Feet ? FourSaintsRules.ZhuqueMovementSpeedFactor
+                        : 1f,
                     SteedMovementSpeedFactor = 1f,
                     DensityModifier = spec.Slot == ClothingSlot.Torso ? 0.5f : spec.Slot == ClothingSlot.Legs ? 0.35f : 0.2f,
                     IsOuter = true,
