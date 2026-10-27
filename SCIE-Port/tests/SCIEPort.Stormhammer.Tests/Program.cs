@@ -14,8 +14,17 @@ internal static class Program
         StormSchedule();
         PhasedStormSchedule();
         GreatBoltSchedule();
+        EquipmentBonuses();
         Console.WriteLine("Skywrath V5 lightning rule tests passed: " + s_count);
         return 0;
+    }
+
+    private static void EquipmentBonuses()
+    {
+        Assert(Math.Abs(StormhammerEquipmentRules.MovementFactor - 1.2f) < 0.0001f, "Mjolnir movement bonus is 20 percent");
+        Assert(Math.Abs(StormhammerEquipmentRules.AttackSpeedFactor - 1.1f) < 0.0001f, "Mjolnir attack-speed bonus is 10 percent");
+        Assert(Math.Abs(StormhammerEquipmentRules.AttackInterval - 0.6) < 0.0001, "10 percent attack speed maps native 0.66 s to 0.60 s");
+        Assert(Math.Abs(StormhammerEquipmentRules.LastHitTimeAdvance - 0.06) < 0.0001, "native hit timestamp adjustment is exact");
     }
 
     private static void PathIsContinuousAndAnchored()

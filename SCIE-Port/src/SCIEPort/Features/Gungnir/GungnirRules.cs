@@ -9,6 +9,10 @@ namespace SCIEPort.Features.Gungnir
         public const byte Blessing = 1, Judgment = 2;
         /// <summary>Native interaction commands, never HUD skills.</summary>
         public const byte Melee = 3, Throw = 4;
+        /// <summary>Rune Blessing and Eternal Judgment cooldowns, in seconds.</summary>
+        public const float BlessingCooldown = 8f, JudgmentCooldown = 50f;
+        /// <summary>Delay separating the native white hit and the gold divine follow-up.</summary>
+        public const float HolyDamageDelay = 0.4f;
         /// <summary>Substates carried in the existing package Phase byte for reliable long-press throw.</summary>
         internal const byte ThrowBegin = 1, ThrowComplete = 2, ThrowCancel = 3;
         /// <summary>Maximum outbound distance, in terrain cells.</summary>
@@ -31,5 +35,7 @@ namespace SCIEPort.Features.Gungnir
         internal static bool CanCompleteThrow(bool began, double serverCharge, float reportedCharge) => began
             && serverCharge >= 0.0 && reportedCharge >= 0f && reportedCharge <= 10f
             && (serverCharge >= 0.25 || reportedCharge >= 0.25f);
+        /// <summary>In-progress must return false or x25.01.17 immediately cancels aiming.</summary>
+        public static bool ShouldConsumeAim(bool inProgress) => !inProgress;
     }
 }

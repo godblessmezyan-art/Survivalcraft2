@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.36.0",
+  "Version": "0.37.0",
   "ApiVersion": "1.42",
-  "Description": "拓展原版生存世界，新增丰富的生态植物、陆海空载具、特色装备与神话神器。驾驶载具探索广阔荒野，掌握雷神之锤与昆古尼尔的力量，开启属于你的奇幻冒险！(v0.36.0 is a brand rename to Wilderness Explorer by zyan; the underlying feature baseline stays at v0.35.0 Gungnir V5.2 sky judgment — nine-second dark-teal/old-gold presentation, four-stage giant-spear, explicit coexistence with Mjolnir storms, borderless skill icons and authenticated long-press throw over the unchanged packet 244 layout. PackageName SCIEPort, ID 948, damage, range, cooldown, weather data and terrain all remain unchanged. Android 7723 rendering, touch behavior, frame time and multiplayer visual acceptance are still pending device verification.)",
+  "Description": "拓展原版生存世界，新增丰富的生态植物、陆海空载具、特色装备与神话神器。驾驶载具探索广阔荒野，掌握雷神之锤与昆古尼尔的力量，开启属于你的奇幻冒险！(v0.37.0 fixes Gungnir touch hold/throw cancellation, adds its unique dark-teal/old-gold inventory skin and a delayed gold divine damage number, sets Rune Blessing/Eternal Judgment cooldowns to 8/50 seconds, and grants true Mjolnir 20% movement plus 10% melee speed. PackageName SCIEPort, ID 948 and packet 244 layout remain unchanged. Android 7723 touch, timing and multiplayer behavior remain pending device verification.)",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -34,6 +34,10 @@ internal static class Program
             Check(Math.Abs(hits - (blessed ? 200 : 150)) <= 1, "Authority attack gate changed under command flood");
         }
         Check(GungnirRules.SpeedFactor(false) == 1.5f && GungnirRules.SpeedFactor(true) == 2, "Buff stacking regressed");
+        Check(GungnirRules.BlessingCooldown == 8f, "Rune Blessing cooldown must be 8 seconds");
+        Check(GungnirRules.JudgmentCooldown == 50f, "Eternal Judgment cooldown must be 50 seconds");
+        Check(GungnirRules.HolyDamageDelay == 0.4f, "holy follow-up must remain visually separated from the native hit");
+        Check(!GungnirRules.ShouldConsumeAim(true) && GungnirRules.ShouldConsumeAim(false), "hold must not trigger x25.01.17 aim cancellation");
         float last = float.MaxValue;
         for (int i = 0; i <= 70; i++)
         { float power = GungnirRules.JudgmentDamage(i / 10f); Check(power <= last && power >= 150 && power <= 300, "Falloff discontinuity"); last = power; }

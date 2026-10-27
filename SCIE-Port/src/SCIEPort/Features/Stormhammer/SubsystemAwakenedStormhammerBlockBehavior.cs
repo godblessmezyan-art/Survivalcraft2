@@ -57,6 +57,12 @@ namespace SCIEPort.Features.Stormhammer
             public Action<ComponentCreature> Handler;
         }
 
+        private sealed class EquipmentState
+        {
+            internal ComponentPlayer Player;
+            internal float WalkDelta;
+        }
+
         private sealed class ThunderGodState
         {
             public ComponentPlayer Player;
@@ -88,6 +94,7 @@ namespace SCIEPort.Features.Stormhammer
         private readonly Dictionary<ushort, ThunderGodState> m_thunderGod = new Dictionary<ushort, ThunderGodState>();
         private readonly Dictionary<ushort, ushort> m_sequences = new Dictionary<ushort, ushort>();
         private readonly Dictionary<ComponentHealth, AvatarState> m_avatars = new Dictionary<ComponentHealth, AvatarState>();
+        private readonly Dictionary<ushort, EquipmentState> m_equipment = new Dictionary<ushort, EquipmentState>();
         private readonly List<PendingLightning> m_pendingLightning = new List<PendingLightning>();
         private readonly List<PendingJudgment> m_pendingJudgment = new List<PendingJudgment>();
         private readonly Dictionary<long, double> m_meleeDedup = new Dictionary<long, double>();
@@ -95,6 +102,7 @@ namespace SCIEPort.Features.Stormhammer
         private SubsystemTime m_time;
         private SubsystemGameInfo m_gameInfo;
         private SubsystemTerrain m_terrain;
+        private SubsystemPlayers m_players;
         private LightningScene m_scene;
         private uint m_nextCastId = 1;
         private UltimateState m_ultimate;
@@ -118,6 +126,7 @@ namespace SCIEPort.Features.Stormhammer
             m_time = Project.FindSubsystem<SubsystemTime>(true);
             m_gameInfo = Project.FindSubsystem<SubsystemGameInfo>(true);
             m_terrain = Project.FindSubsystem<SubsystemTerrain>(true);
+            m_players = Project.FindSubsystem<SubsystemPlayers>(true);
             m_scene = new LightningScene();
             m_scene.Load(Project);
             AwakenedStormhammerVisuals.RegisterScene(Project, m_scene);
@@ -130,6 +139,7 @@ namespace SCIEPort.Features.Stormhammer
             m_scene?.Clear();
             m_thunderGod.Clear();
             m_pendingJudgment.Clear();
+            ClearEquipmentModifiers();
             AwakenedStormhammerVisuals.Reset(Project);
             base.Dispose();
         }
@@ -277,6 +287,7 @@ namespace SCIEPort.Features.Stormhammer
             AwakenedStormhammerVisuals.DecayFlash(Project, dt);
             m_scene?.Update(now);
             MjolnirDisplay.Update(Project, now);
+            ApplyEquipmentModifiers();
             UpdateAvatarSubscriptions();
             if (CommonLib.WorkType == WorkType.Client) return;
             UpdateThunderGod(now);
@@ -470,6 +481,56 @@ namespace SCIEPort.Features.Stormhammer
                     StormhammerVisuals.EmitArc(Project, pending.HitPoint + Vector3.UnitY * 1.4f, pending.HitPoint, 0.55f);
                 }
             }
+        }
+
+        private void ApplyEquipmentModifiers()
+        {
+            HashSet<ushort> seen = new HashSet<ushort>();
+            foreach (ComponentPlayer player in m_players.ComponentPlayers)
+            {
+                if (player == null || !player.IsAddedToProject) continue;
+                ushort id = player.Entity.EntityId;
+                seen.Add(id);
+                EquipmentState state;
+                if (!m_equipment.TryGetValue(id, out state))
+                {
+                    state = new EquipmentState { Player = player };
+                    m_equipment.Add(id, state);
+                }
+                ComponentLocomotion locomotion = player.ComponentLocomotion;
+                locomotion.WalkSpeed -= state.WalkDelta;
+                state.WalkDelta = 0f;
+                bool enabled = IsEquipped(player) && player.ComponentHealth.Health > 0f
+                    && !locomotion.IsCreativeFlyEnabled && player.ComponentRider.Mount == null;
+                if (!enabled) continue;
+                state.WalkDelta = MathUtils.Max(0f, locomotion.WalkSpeed) * (StormhammerEquipmentRules.MovementFactor - 1f);
+                locomotion.WalkSpeed += state.WalkDelta;
+            }
+            List<ushort> remove = null;
+            foreach (KeyValuePair<ushort, EquipmentState> pair in m_equipment)
+                if (!seen.Contains(pair.Key)) (remove ?? (remove = new List<ushort>())).Add(pair.Key);
+            if (remove == null) return;
+            foreach (ushort id in remove)
+            {
+                EquipmentState state = m_equipment[id];
+                if (state.Player != null && state.Player.IsAddedToProject) state.Player.ComponentLocomotion.WalkSpeed -= state.WalkDelta;
+                m_equipment.Remove(id);
+            }
+        }
+
+        private void ClearEquipmentModifiers()
+        {
+            foreach (EquipmentState state in m_equipment.Values)
+                if (state.Player != null && state.Player.IsAddedToProject) state.Player.ComponentLocomotion.WalkSpeed -= state.WalkDelta;
+            m_equipment.Clear();
+        }
+
+        internal static void ApplyAttackSpeed(ComponentMiner miner)
+        {
+            if (miner == null || Terrain.ExtractContents(miner.ActiveBlockValue) != StormhammerAwakenedBlock.Index) return;
+            // Hit() writes m_lastHitTime before invoking OnMinerHit. Advancing that timestamp
+            // by the exact interval delta changes only the next melee gate (0.66 / 1.10).
+            miner.m_lastHitTime -= StormhammerEquipmentRules.LastHitTimeAdvance;
         }
 
         private void UpdateAvatarSubscriptions()

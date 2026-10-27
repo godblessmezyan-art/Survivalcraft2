@@ -5,27 +5,25 @@ using Engine;
 using Engine.Graphics;
 using Game;
 using GameEntitySystem;
+using SCIEPort.Features.Gungnir;
 
 namespace SCIEPort.Features.Stormhammer
 {
     /// <summary>
-    /// Paints the inventory and hotbar slots that hold the awakened hammer with the
-    /// artifact skin: a blue-purple background and a pulsing violet bevel.
+    /// Paints inventory and hotbar slots with artifact-specific skins: blue-violet
+    /// for Mjolnir and dark-teal/old-gold for Gungnir.
     ///
     /// Why it is driven from a subsystem instead of a widget hook: the game exposes no
     /// "slot decorated" callback, and InventorySlotWidget.Update only ever sets
     /// m_rectangleWidget.IsVisible, never CenterColor/BevelColor after construction
     /// (verified in the x25.01.17 decompile), so painting those two properties from
-    /// outside is safe and cannot fight the native code. The awakened hammer is
-    /// deliberately the only decorated block; the fake hammer keeps the plain slot.
+    /// outside is safe and cannot fight the native code. Only the two true artifacts
+    /// are decorated; the fake hammer keeps the plain slot.
     /// </summary>
     public static class MjolnirDisplay
     {
         /// <summary>How often the slot scan runs. The pulse is evaluated on these ticks.</summary>
         internal const float RefreshInterval = 0.12f;
-
-        /// <summary>Block this decorator reacts to. Only the true Mjolnir, never the fake one.</summary>
-        private static readonly int s_blockIndex = StormhammerAwakenedBlock.Index;
 
         private static readonly Dictionary<InventorySlotWidget, SlotSkin> s_skins =
             new Dictionary<InventorySlotWidget, SlotSkin>();
@@ -77,7 +75,10 @@ namespace SCIEPort.Features.Stormhammer
                     }
 
                     int value = slot.m_inventory != null ? slot.m_inventory.GetSlotValue(slot.m_slotIndex) : 0;
-                    bool decorated = Terrain.ExtractContents(value) == s_blockIndex;
+                    int contents = Terrain.ExtractContents(value);
+                    bool mjolnir = contents == StormhammerAwakenedBlock.Index;
+                    bool gungnir = contents == GungnirBlock.Index;
+                    bool decorated = mjolnir || gungnir;
                     if (!decorated)
                     {
                         Restore(slot);
@@ -91,16 +92,32 @@ namespace SCIEPort.Features.Stormhammer
                         s_skins[slot] = skin;
                     }
 
-                    slot.CenterColor = new Color(
-                        (byte)(52 + 34 * pulse),
-                        (byte)(40 + 24 * pulse),
-                        (byte)(108 + 60 * pulse),
-                        (byte)(165 + 45 * pulse));
-                    slot.BevelColor = new Color(
-                        (byte)(140 + 75 * pulse),
-                        (byte)(110 + 80 * pulse),
-                        (byte)(235 + 20 * pulse),
-                        (byte)(200 + 55 * pulse));
+                    if (mjolnir)
+                    {
+                        slot.CenterColor = new Color(
+                            (byte)(52 + 34 * pulse),
+                            (byte)(40 + 24 * pulse),
+                            (byte)(108 + 60 * pulse),
+                            (byte)(165 + 45 * pulse));
+                        slot.BevelColor = new Color(
+                            (byte)(140 + 75 * pulse),
+                            (byte)(110 + 80 * pulse),
+                            (byte)(235 + 20 * pulse),
+                            (byte)(200 + 55 * pulse));
+                    }
+                    else
+                    {
+                        slot.CenterColor = new Color(
+                            (byte)(18 + 14 * pulse),
+                            (byte)(58 + 24 * pulse),
+                            (byte)(62 + 24 * pulse),
+                            (byte)(170 + 35 * pulse));
+                        slot.BevelColor = new Color(
+                            (byte)(176 + 65 * pulse),
+                            (byte)(137 + 70 * pulse),
+                            (byte)(67 + 58 * pulse),
+                            (byte)(210 + 45 * pulse));
+                    }
                 }
             }
         }

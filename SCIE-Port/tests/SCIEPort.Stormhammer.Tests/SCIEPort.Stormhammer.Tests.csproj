@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\Stormhammer\LightningRules.cs" Link="LightningRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\Stormhammer\StormhammerEquipmentRules.cs" Link="StormhammerEquipmentRules.cs" />
   </ItemGroup>
 </Project>

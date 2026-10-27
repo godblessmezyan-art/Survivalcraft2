@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-27 SCIE-Port 0.37.0 双神器操作与强化
+
+已按目标 x25.01.17 的真实瞄准返回契约修复昆古尼尔长按自动取消，包 244 不变；新增昆古尼尔暗青/古金物品栏皮肤与延迟 0.4 秒的金色神圣二段数字，神佑/裁决冷却为 8/50 秒。真妙尔尼尔装备增益为地面移速 +20%、近战攻速 +10%，换装/死亡/骑乘/创造飞行/退出世界均撤销移动增量。Gungnir 150、Stormhammer 671、其余既有套件、16 XDB、net472 Release 与 100 条目包通过；SHA-256 `A99251BCC465BED727EE8D4E53AA4DAA076AED5FE47953088DE58A05A412D494`。Android 7723 与双机联机待验证；Builder Assistant 方块能力未变化，因此 `blueprint-block-reference.md` 无需修改。
+
 ## 2026-10-27 SCIE-Port 0.35.0 昆古尼尔 V5.2
 
 SCIE-Port 新增九秒暗青/古金天穹审判、四阶段巨枪演出及与妙尔尼尔雷暴的显式天空/雾色混合；没有写天气、时间、地形或新增伤害。包 244 布局不变，利用现有字段补全权威长按投枪开始/完成/取消，HUD 删除矩形框。Gungnir 146、Stormhammer 667 及全部既有离线套件、资源、16 XDB、net472 Release 通过；包 3,468,275 bytes / 100 entries，SHA-256 `F82C8F4309BD412FB6A0866B35ED72346ECABE293FFCEA2BD12CAE1A95B20A94`，版本 0.35.0。Android 7723、真机视觉/触控/性能和双机联机仍为待验证。详见 [V5.2 审查记录](../SCIE-Port/docs/GUNGNIR-V5.2-SKY-JUDGMENT.md)。

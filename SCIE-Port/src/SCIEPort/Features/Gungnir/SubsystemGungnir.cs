@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using Game.NetWork;
+using Game.NetWork.Packages;
+using SCIEPort.Features.Stormhammer;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Gungnir
@@ -23,6 +25,13 @@ namespace SCIEPort.Features.Gungnir
             internal Vector3 Position, Direction, Target, PreviousOwner;
             internal readonly HashSet<ushort> Hit = new HashSet<ushort>();
         }
+        private sealed class PendingHolyDamage
+        {
+            internal ComponentPlayer Attacker;
+            internal ComponentBody Target;
+            internal double ApplyAt;
+            internal float Power;
+        }
         internal readonly Dictionary<ushort, State> States = new Dictionary<ushort, State>();
         private SubsystemTime m_time;
         private SubsystemBodies m_bodies;
@@ -32,6 +41,7 @@ namespace SCIEPort.Features.Gungnir
         private GungnirScene m_scene;
         private readonly List<ushort> m_remove = new List<ushort>();
         private readonly DynamicArray<ComponentBody> m_targets = new DynamicArray<ComponentBody>();
+        private readonly List<PendingHolyDamage> m_pendingHolyDamage = new List<PendingHolyDamage>();
         internal double Now => m_time.GameTime;
         private bool Authority => CommonLib.WorkType != WorkType.Client;
         /// <inheritdoc />
@@ -104,7 +114,7 @@ namespace SCIEPort.Features.Gungnir
             if (packet.Command == GungnirRules.Blessing)
             {
                 if (Now < s.BuffReady) return;
-                s.BuffVisualStart = Now; s.BuffEnd = Now + 15; s.BuffReady = Now + 35;
+                s.BuffVisualStart = Now; s.BuffEnd = Now + 15; s.BuffReady = Now + GungnirRules.BlessingCooldown;
                 Sound("Invoke", p.ComponentBody.Position);
             }
             else if (packet.Command == GungnirRules.Judgment)
@@ -114,7 +124,7 @@ namespace SCIEPort.Features.Gungnir
                 var hit = m_terrain.Raycast(origin, origin + direction * 25, false, true, (v, d) => BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable);
                 if (!hit.HasValue || !Loaded(hit.Value.HitPoint())) return;
                 s.Target = hit.Value.HitPoint() + Vector3.UnitY * 0.04f;
-                s.CastStart = Now; s.Impact = false; s.JudgmentReady = Now + 55;
+                s.CastStart = Now; s.Impact = false; s.JudgmentReady = Now + GungnirRules.JudgmentCooldown;
                 Sound("Invoke", s.Target);
             }
             else if (packet.Command == GungnirRules.Throw)
@@ -138,8 +148,7 @@ namespace SCIEPort.Features.Gungnir
                 {
                     float boost = Now < s.BuffEnd ? 1.5f : 1;
                     Damage(p, target.Value.ComponentBody, 45 * boost, direction);
-                    var health = target.Value.ComponentBody.Entity.FindComponent<ComponentHealth>(false);
-                    if (health != null && health.Health > 0) health.Injure(20 * boost / MathUtils.Max(health.AttackResilience, 0.001f), p, false, "永恒之枪·神圣贯穿");
+                    QueueHolyDamage(p, target.Value.ComponentBody, 20 * boost);
                 }
                 Publish(new GungnirPackage { Kind = 2, Caster = p.Entity.EntityId, Position = start, Direction = direction });
             }
@@ -176,7 +185,10 @@ namespace SCIEPort.Features.Gungnir
                 if (!Authority && s.ChargeStart >= 0) SendThrowSignal(p, GungnirRules.ThrowCancel, aim.Direction, 0f);
                 s.ChargeStart = -1;
             }
-            return true;
+            // x25.01.17 interprets true during InProgress as "cancel aiming now".
+            // Match SubsystemThrowableBlockBehavior: keep holding with false and consume
+            // only the terminal Completed/Cancelled callbacks.
+            return GungnirRules.ShouldConsumeAim(state == AimState.InProgress);
         }
 
         private void SendThrowSignal(ComponentPlayer player, byte signal, Vector3 direction, float charge)
@@ -247,7 +259,40 @@ namespace SCIEPort.Features.Gungnir
             foreach (var entry in States) if (entry.Value.Player == null || !entry.Value.Player.IsAddedToProject) m_remove.Add(entry.Key);
             foreach (ushort id in m_remove) { ApplyModifiers(States[id], false); GungnirSkyVisuals.RemoveCaster(Project, id); States.Remove(id); }
             GungnirSkyVisuals.Update(Project, Now);
+            ApplyPendingHolyDamage();
+            MjolnirDisplay.Update(Project, Now);
             m_scene.Update(dt);
+        }
+
+        private void QueueHolyDamage(ComponentPlayer attacker, ComponentBody target, float power)
+        {
+            m_pendingHolyDamage.Add(new PendingHolyDamage { Attacker = attacker, Target = target, Power = power, ApplyAt = Now + GungnirRules.HolyDamageDelay });
+        }
+
+        private void ApplyPendingHolyDamage()
+        {
+            if (!Authority) return;
+            for (int i = m_pendingHolyDamage.Count - 1; i >= 0; i--)
+            {
+                PendingHolyDamage pending = m_pendingHolyDamage[i];
+                if (Now < pending.ApplyAt) continue;
+                m_pendingHolyDamage.RemoveAt(i);
+                if (pending.Attacker == null || !pending.Attacker.IsAddedToProject || pending.Target == null || !pending.Target.Entity.IsAddedToProject) continue;
+                ComponentHealth health = pending.Target.Entity.FindComponent<ComponentHealth>(false);
+                if (health == null || health.Health <= 0f) continue;
+                health.Injure(pending.Power / MathUtils.Max(health.AttackResilience, 0.001f), pending.Attacker, false, "永恒之枪·神圣贯穿");
+                ShowHolyHitValue(pending.Target, pending.Power);
+            }
+        }
+
+        private void ShowHolyHitValue(ComponentBody target, float power)
+        {
+            Vector3 position = target.BoundingBox.Center() + new Vector3(0f, 0.72f, 0f);
+            Vector3 velocity = new Vector3(0.28f, 1.75f, 0.28f);
+            string text = ((int)MathUtils.Round(power)).ToString();
+            Color color = new Color(255, 205, 92, 255);
+            CommonLib.Net.QueuePackage(new ComponentHealthPackage(position, velocity, color, text));
+            Project.FindSubsystem<SubsystemParticles>(true).AddParticleSystem(new HitValueParticleSystem(position, velocity, color, text));
         }
         private void ApplyModifiers(State s, bool enabled)
         {
@@ -381,7 +426,7 @@ namespace SCIEPort.Features.Gungnir
         public override void Dispose()
         {
             foreach (var s in States.Values) ApplyModifiers(s, false);
-            States.Clear(); GungnirSkyVisuals.Reset(Project); GungnirHud.Clear(); base.Dispose();
+            m_pendingHolyDamage.Clear(); States.Clear(); GungnirSkyVisuals.Reset(Project); GungnirHud.Clear(); base.Dispose();
         }
     }
 }

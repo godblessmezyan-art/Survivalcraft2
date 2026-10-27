@@ -65,6 +65,7 @@ namespace SCIEPort.Mod
             attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 40f : 12f);
             playerProbability = 1f;
             creatureProbability = 1f;
+            SubsystemAwakenedStormhammerBlockBehavior.ApplyAttackSpeed(miner);
             SubsystemStormhammerBlockBehavior.OnMeleeHit(miner, componentBody, hitPoint);
         }
 
