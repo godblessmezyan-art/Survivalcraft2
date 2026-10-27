@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.40.2 诊断版：关闭自然生物刷新（2026-10-27）
+
+为定位「世界卡在加载界面」的报告，本轮把自然生物刷新整体关闭（`CreatureWorldSpawn.NaturalSpawnEnabled = false`）。它是唯一在区块生成期间执行的 Mod 代码，且一直是待验证功能。其余逻辑、方块 ID（903–948、995–1000）、衣物数据 200–203、实体模板、网络包与数值均未改动。ID 审计未发现重复：51 个方块索引与 51 行 CSV 一一对应，衣物索引远高于原版上限 37，XDB GUID 复用均为既有共享模板，CSV 的 `DisplayOrder` 908/909 重复只影响创造栏排序。Ecology 53、Gungnir 307 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,409 bytes，SHA-256 `84E1254BD385B9C78F107AF22BD45E1C45F1A76D7F14BFE2D19F98D58FE01B27`。确认世界可进入后需恢复该功能再验证。
+
 ## 0.40.1 自然生物刷新越界修复（离线已确认，Android 待验证，2026-10-27）
 
 `Game.Random.Int(min, max)` 在 x25.01.17 中是闭区间，`Int(0, 16)` 有约 1/17 概率返回 16；区块数组索引为 `y + x * 256 + z * 256 * 16` 与 `x + z * 16`，于是 `GetTopHeightFast(16, 15)` 访问 `Shafts[256]`、`GetCellValueFast(16, y, 15)` 访问 `Cells[65536 + y]`，抛 `IndexOutOfRangeException`。该路径只在区块内容刚生成时执行，所以表现为「新世界进不去、旧存档正常」。同时 `Int(0, 100)` 与 `ChanceMet` 的 0..99 域不匹配，100 会被判为非法输入而静默不生成。现坐标与概率分别改用 `EcologyRules.LastChunkCellIndex`(15) 与 `LastChanceRoll`(99)，所有区块读取先 clamp 并做上下界检查；区块钩子改为只入队，实体在 `SubsystemUpdate` 中于区块状态 ≥ `TerrainChunkState.InvalidLight` 后每帧最多生成 2 只（队列上限 32），连续 5 次异常自动本会话禁用。生物模板、生成概率/上限、生态位判定、方块 ID 与网络包均未改。Ecology 53 项、Gungnir 307 项及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,461 bytes，SHA-256 `3C4C4A721007F2B97C33D6CE2AE8DE761E4B5719A630D7DCCBED192D25833784`。Android 7723 新世界加载与联机仍待验证。

@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.2 诊断版（关闭自然生物刷新）
+
+为定位「世界卡在加载界面」，暂时关闭自然生物刷新（`NaturalSpawnEnabled = false`）——它是唯一在区块生成期间运行的 Mod 代码且为待验证功能。ID 审计结论：方块索引 903–948、995–1000 共 51 个与 CSV 一一对应，衣物数据 200–203 高于原版上限 37，XDB GUID 复用均为既有共享模板，CSV 的 DisplayOrder 908/909 重复只影响创造栏排序，不存在 ID 冲突。其余功能与数值未改。Ecology 53、Gungnir 307 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,409 bytes，SHA-256 `84E1254BD385B9C78F107AF22BD45E1C45F1A76D7F14BFE2D19F98D58FE01B27`。Builder Assistant 未变化。
+
 ## 2026-10-27 SCIE-Port 0.40.1 自然生物刷新越界修复
 
 `Game.Random.Int(min, max)` 为闭区间，`Int(0, 16)` 约有 1/17 概率返回 16，而区块数组索引为 `y + x * 256 + z * 256 * 16` 与 `x + z * 16`，会读到数组外并抛 `IndexOutOfRangeException`；该路径仅在新区块内容生成时执行，因此表现为新世界卡在加载、旧存档正常。生成概率同时误用 `Int(0, 100)`，与 `ChanceMet` 的 0..99 域不符。现统一改用 `EcologyRules.LastChunkCellIndex`(15) 与 `LastChanceRoll`(99)，所有区块读取先 clamp + 上下界检查，区块钩子只入队、实体在 `SubsystemUpdate` 中等区块达到 `InvalidLight` 后生成（每帧最多 2 只、队列 32、连续 5 次异常自动禁用）。生物模板、概率、上限、方块 ID 与网络包未改。Ecology 53 项、Gungnir 307 项及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,461 bytes，SHA-256 `3C4C4A721007F2B97C33D6CE2AE8DE761E4B5719A630D7DCCBED192D25833784`。Android 7723 与双机仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。

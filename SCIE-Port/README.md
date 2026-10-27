@@ -2,6 +2,14 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
+Version 0.40.2 is a diagnostic build: natural fox/rabbit seeding is switched off
+(`CreatureWorldSpawn.NaturalSpawnEnabled = false`) while the reported "world never
+finishes loading" case is isolated. That spawner is the only mod code that runs inside
+terrain generation and the feature is still documented as 待验证. Nothing else changed;
+block IDs (903-948, 995-1000), clothing data 200-203, entity templates, packet layouts
+and all gameplay values are untouched. Re-enabling the spawner is a one-line change once
+a fresh world is confirmed to load with it disabled.
+
 Version 0.40.1 fixes a crash that could stop a brand-new world from finishing its
 loading screen. `Game.Random.Int(min, max)` is inclusive on both ends, and the natural
 creature spawner rolled chunk cells with `Int(0, 16)`; the roll returned 16 roughly once

@@ -1,5 +1,13 @@
 # 测试结果
 
+# 0.40.2 关闭自然生物刷新以定位世界加载卡死（2026-10-27）
+
+- 背景：0.40.1 修掉 `Int(0,16)` 越界后，真机仍报告卡在世界加载界面。自然生物刷新是**唯一**在区块生成期间运行的 Mod 代码，且长期标记为待验证，因此本轮先整体关闭它（`NaturalSpawnEnabled = false`），用于二分定位。
+- ID 审计（用户怀疑四圣兽套装与其它 ID 重复）结论：**没有重复**。Block 静态 `Index` 去重后为 903–946、948、995–1000 共 51 个，与 CSV 51 行一一对应；`ClothingData` 200–203 远超原版衣物上限 37；17 份 XDB 的容器/模板 GUID 复用均为既有共享模板（`TwoSeatManager` 等），通过构建期校验；CSV 中 `DisplayOrder` 908/909 各重复一次，但该列只影响创造栏排序，不参与 `Block.BlockIndex` 赋值（索引来自类的 `public static int Index`，见 x25.01.17 `ModEntity.LoadDllLogic`）。
+- 构建期「reserved ID checks」与 17 XDB 校验、Ecology 53、Gungnir 307、Stormhammer 671、Four Saints 28 及全部既有套件均通过；net472 Release 0 warning / 0 error。
+- 包 3,498,409 bytes / 108 entries，SHA-256 `84E1254BD385B9C78F107AF22BD45E1C45F1A76D7F14BFE2D19F98D58FE01B27`；modinfo `0.40.2`、AssemblyVersion `0.40.2.0`。
+- 这是定位用的过渡版本，不是最终形态：确认世界可进入后需重新开启自然刷新并继续真机验证。
+
 # 0.40.1 新世界加载时自然生物刷新越界崩溃（2026-10-27）
 
 - 根因：`Game.Random.Int(min, max)` 为**闭区间**，`Int(0, 16)` 约有 1/17 概率返回 16；x25.01.17 区块数组索引为 `y + x * 256 + z * 256 * 16` 与 `x + z * 16`，因此 `GetTopHeightFast(16, 15)` 读到 `Shafts[256]`、`GetCellValueFast(16, y, 15)` 读到 `Cells[65536 + y]`，抛 `IndexOutOfRangeException`。该代码只在**新生成区块**时执行，所以新世界必现、旧存档（区块已生成）不触发。

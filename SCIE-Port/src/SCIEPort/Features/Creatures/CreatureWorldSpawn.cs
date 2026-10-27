@@ -32,6 +32,15 @@ namespace SCIEPort.Features.Creatures
         private const int MaxSpawnsPerUpdate = 2;
         private const int MaxFailuresBeforeDisable = 5;
 
+        /// <summary>
+        /// Master switch for natural fox/rabbit seeding. It stays OFF while the on-device
+        /// "world never finishes loading" report is being isolated: this is the only mod code
+        /// that runs inside terrain generation, and the feature is already documented as
+        /// 待验证. Re-enabling is a one-line change once a fresh world is confirmed to load
+        /// with it disabled.
+        /// </summary>
+        internal const bool NaturalSpawnEnabled = false;
+
         private static SubsystemCreatureSpawn s_creatureSpawn;
         private static SubsystemGameInfo s_gameInfo;
         private static SubsystemTerrain s_terrain;
@@ -89,7 +98,7 @@ namespace SCIEPort.Features.Creatures
         /// </summary>
         public static void TrySpawnNaturalCreatures(TerrainChunk chunk)
         {
-            if (s_disabled || chunk == null || !IsReady)
+            if (!NaturalSpawnEnabled || s_disabled || chunk == null || !IsReady)
             {
                 return;
             }
@@ -159,7 +168,7 @@ namespace SCIEPort.Features.Creatures
         /// </summary>
         public static void Update()
         {
-            if (s_disabled || s_pending.Count == 0 || !IsReady)
+            if (!NaturalSpawnEnabled || s_disabled || s_pending.Count == 0 || !IsReady)
             {
                 return;
             }
