@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.6 四圣兽衣物补注册
+
+`.clo` 合并在 x25.01.17 中是弱契约（单文件异常只记日志后继续），整份被丢弃时四件衣物不会注册，创造栏与世界内均不可见。0.40.6 在 `BlocksInitalized` 按 200～203 补注册缺失项，已存在则跳过（不覆盖 .clo），逐件 try/catch 并对贴图失败做回退与日志。衣物数据号、Layer、能力数值与存档结构未改。Four Saints 29、Gungnir 306 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,500,765 bytes，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`。Builder Assistant 未变化。
+
 ## 2026-10-27 SCIE-Port 0.40.5 四圣兽穿戴显示 / 昆古尼尔图标与投掷准心
 
 x25.01.17 `ComponentClothing.CanWearClothing` 要求新衣物 `Layer` 严格大于当前槽最后一件；玄武铠/白虎胫甲的 Layer 4 与朱雀靴的 Layer 1 会被常见同层上衣、裤子、鞋拒绝，而空头部槽仍接受青龙冠。四件神装现统一为最外层 Layer 10；方块 203、衣物 200–203、纹理、属性、包 245 与存档值不变。昆古尼尔仍直接采样 `PlayerInput.Aim` 以保留连续投掷可靠性，同时补回原生投掷物每帧使用的 `ComponentAimingSights.ShowAimingSights`，恢复辅助瞄准准心；两个技能徽记移除名称铭牌与文字，保留冷却、就绪和能量反馈。真实 x25.01.17 环境检查、Gungnir 306 项、Four Saints 29 项、全部既有套件、17 XDB、net472 Release 与 108 条目包通过，SHA-256 `78ED809C55782309FC6D5C0192E57F02A43E20685AF45DAABEA0A347AFEEBE51`。Android/7723 实际穿戴、触屏准心、连续投掷和双机仍为`待验证`。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 已同步审计。

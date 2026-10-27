@@ -429,6 +429,22 @@ $ecologyRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Fe
 foreach ($ecologyRange in @('LastChunkCellIndex = 15', 'LastChanceRoll = 99')) {
     if (-not $ecologyRulesSource.Contains($ecologyRange)) { throw "Ecology spawn range constant changed: $ecologyRange" }
 }
+# v0.40.4: the `.clo` merge can silently drop outfit entries, so clothing must also be
+# registered from code after blocks initialize. Both the fallback and its call site are pinned.
+$fourSaintsClothingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\FourSaintsClothing.cs')
+foreach ($clothingRule in @(
+    'FourSaintsRules.QinglongIndex',
+    'FourSaintsRules.XuanwuIndex',
+    'FourSaintsRules.BaihuIndex',
+    'FourSaintsRules.ZhuqueIndex',
+    'ContentManager.Get<Texture2D>',
+    'block.m_clothingData[spec.Index] = new ClothingData'
+)) {
+    if (-not $fourSaintsClothingSource.Contains($clothingRule)) { throw "Four Saints clothing fallback registration missing: $clothingRule" }
+}
+if (-not $loaderSource.Contains('FourSaintsClothing.EnsureRegistered();')) {
+    throw 'Four Saints clothing fallback must run after blocks initialize.'
+}
 $artifactDisplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
 if (-not $artifactDisplaySource.Contains('contents == GungnirBlock.Index') -or -not $artifactDisplaySource.Contains('contents == StormhammerAwakenedBlock.Index')) {
     throw 'The shared artifact slot decorator must keep distinct Gungnir and Mjolnir skins.'

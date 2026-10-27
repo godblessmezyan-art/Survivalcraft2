@@ -1,5 +1,14 @@
 # 测试结果
 
+# 0.40.6 四圣兽衣物补注册兜底（2026-10-27）
+
+- 背景：0.40.4（稀疏衣物索引空值）与 0.40.5（`ComponentClothing.CanWearClothing` 的 `incoming.Layer > current.Layer`，四件统一 Layer=10）已修掉创造栏崩溃与无法穿戴；但 `.clo` 合并本身仍可能整份失效——x25.01.17 在 `ClothingBlock.Initialize` 里把各 Mod 的 `.clo` 合并进原版衣物 XML，`GetFiles` 对每个文件的异常只记日志后继续（`获取文件[...]失败`），一旦合并被丢弃，四件衣物不会注册，创造栏与世界中都看不到。
+- 本轮：新增 `FourSaintsClothing.EnsureRegistered()`，在 `BlocksInitalized` 钩子里按 200～203 逐个补注册，**已存在（.clo 已成功）则跳过**，绝不覆盖 .clo 数据；每件单独 try/catch，单件贴图或数据异常不会连累其它三件；贴图加载失败会记录完整路径并回退到同套装内能加载的贴图，保证物品仍然存在。
+- 未改：方块索引、衣物数据号 200～203、.clo 内容、穿戴层级、能力数值、网络包与存档结构。
+- 验证：Four Saints 29 项（含稀疏衣物规则）、Gungnir 306、Stormhammer 671、Ecology 53 及全部既有套件、17 XDB、net472 Release 0 warning / 0 error；构建守卫要求补注册方法与调用点同时存在。
+- 包 3,500,765 bytes / 108 entries，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`；modinfo `0.40.6`、AssemblyVersion `0.40.6.0`。
+- Android 7723 仍待真机确认：创造栏四件是否出现、能否逐件穿上、贴图是否正确显示。
+
 # 0.40.5 四圣兽穿戴层 / 昆古尼尔图标与投掷准心（2026-10-27）
 
 - ABI 根因：反编译 x25.01.17 `ComponentClothing.CanWearClothing`，确认非空槽只接受 `incoming.Layer > current.Layer`；原玄武/白虎 Layer 4、朱雀 Layer 1 可被普通同层衣物拒绝，青龙因头部槽通常为空而单独可穿。四件统一为 `IsOuter=True, Layer=10`，并新增打包期四件数量/外层/层级守卫。

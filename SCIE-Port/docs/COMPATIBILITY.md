@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.40.6 四圣兽衣物补注册兜底（离线已确认，Android 待验证，2026-10-27）
+
+0.40.4/0.40.5 已修正稀疏衣物索引的空值与穿戴层级（`incoming.Layer > current.Layer`，四件统一 Layer=10），但 `.clo` 合并在 x25.01.17 里是"单个文件失败只记日志"的弱契约，一旦整份被丢弃，四件衣物的 `ClothingData` 不会注册，创造栏与世界内都看不到。本轮在 `BlocksInitalized` 增加补注册：按 200～203 逐个检查，缺失才创建，已存在则完全跳过（不覆盖 .clo 数据），每件独立 try/catch 且贴图失败会回退并记录路径。方块索引、衣物数据号、.clo 内容与能力数值均未改。Four Saints 29、Gungnir 306、Stormhammer 671、Ecology 53 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,500,765 bytes，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`，modinfo `0.40.6`。Android 7723 创造栏与穿戴仍待验证。
+
 ## 0.40.5 四圣兽穿戴层与昆古尼尔投掷准心（离线已确认，Android 待验证，2026-10-27）
 
 目标 x25.01.17 的 `ComponentClothing.CanWearClothing` 只在新衣物 `Layer` **严格大于**当前槽最后一件衣物时允许穿戴；玄武铠/白虎胫甲原为 Layer 4、朱雀靴原为 Layer 1，会被玩家已有的同层上衣、裤子和鞋拒绝，而通常为空的头部槽仍能穿青龙冠，形成“只有青龙冠显示”。四件现统一为 `IsOuter=True, Layer=10`，确保作为神装最外层穿戴；方块 203、衣物数据 200–203、纹理、属性、耐久、包 245 与存档值均未改。构建新增四件数量/外层/Layer 守卫。

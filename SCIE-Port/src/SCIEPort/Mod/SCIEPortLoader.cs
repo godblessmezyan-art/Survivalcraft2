@@ -243,6 +243,18 @@ namespace SCIEPort.Mod
                 m_kellyPlantsReady = false;
                 Log.Error("[SCIEPort] Kelly plant resources failed to initialize: " + exception);
             }
+
+            // The `.clo` merge can silently drop entries (load order, one unreadable asset), which
+            // left some or all Four Saints outfits missing from the clothing tab. Register whatever
+            // the `.clo` did not deliver, one guarded item at a time.
+            try
+            {
+                FourSaintsClothing.EnsureRegistered();
+            }
+            catch (System.Exception exception)
+            {
+                Log.Error("[SCIEPort] Four Saints clothing registration failed: " + exception);
+            }
         }
 
         /// <inheritdoc />

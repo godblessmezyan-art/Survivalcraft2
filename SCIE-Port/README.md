@@ -2,6 +2,16 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。`.netmod` 的品牌与打包规则见 [`docs/PACKAGING-RULES.md`](docs/PACKAGING-RULES.md)，自 v0.40.3 起由构建脚本在打包前后各校验一次。
 
+Version 0.40.6 adds a fallback registration for the four Four Saints outfits. x25.01.17
+merges every mod `.clo` into the vanilla clothing XML inside `ClothingBlock.Initialize`,
+but `GetFiles` only logs and continues when a single file fails, so a dropped merge left
+the outfits unregistered and invisible in both the clothing tab and the world. After the
+blocks initialize, any of the indices 200-203 that the `.clo` did not deliver are created
+from code; entries the `.clo` did provide are never overwritten. Each item is guarded on
+its own and a texture that fails to load falls back to the first one that does, with the
+exact path logged. Clothing data ids, layers, stats, block ids and save layout are
+unchanged.
+
 Version 0.40.5 fixes the reported Four Saints equip/display failure and restores native
 throwing sights for Gungnir. x25.01.17 only equips clothing when the incoming piece's
 `Layer` is strictly greater than the last item already worn in that slot; Xuanwu/Baihu
