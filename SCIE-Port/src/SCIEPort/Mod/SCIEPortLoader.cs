@@ -118,6 +118,10 @@ namespace SCIEPort.Mod
         public override void SubsystemUpdate(float dt)
         {
             StormhammerVisuals.Update();
+            // Natural creatures are queued from the chunk hook and only created here, once the
+            // owning chunk has finished generating. Spawning from inside chunk generation is not
+            // a supported x25.01.17 path and could stall a fresh world on the loading screen.
+            CreatureWorldSpawn.Update();
         }
 
         /// <inheritdoc />

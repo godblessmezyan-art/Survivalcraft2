@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.40.1 自然生物刷新越界修复
+
+`Game.Random.Int(min, max)` 为闭区间，`Int(0, 16)` 约有 1/17 概率返回 16，而区块数组索引为 `y + x * 256 + z * 256 * 16` 与 `x + z * 16`，会读到数组外并抛 `IndexOutOfRangeException`；该路径仅在新区块内容生成时执行，因此表现为新世界卡在加载、旧存档正常。生成概率同时误用 `Int(0, 100)`，与 `ChanceMet` 的 0..99 域不符。现统一改用 `EcologyRules.LastChunkCellIndex`(15) 与 `LastChanceRoll`(99)，所有区块读取先 clamp + 上下界检查，区块钩子只入队、实体在 `SubsystemUpdate` 中等区块达到 `InvalidLight` 后生成（每帧最多 2 只、队列 32、连续 5 次异常自动禁用）。生物模板、概率、上限、方块 ID 与网络包未改。Ecology 53 项、Gungnir 307 项及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,498,461 bytes，SHA-256 `3C4C4A721007F2B97C33D6CE2AE8DE761E4B5719A630D7DCCBED192D25833784`。Android 7723 与双机仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。
+
 ## 2026-10-27 SCIE-Port 0.40.0 昆古尼尔技能名铭牌 / 投枪可靠性 / 天降巨枪
 
 两个技能名改为刻在徽记内部 21 逻辑单位的铭牌带（`GungnirHudLayout.NameBandHeight`），徽记 `Visual` 恢复为 `size × size`，既有 1280×720 / 1920×1080 / 1.25× / 1.5× 布局、左手镜像与原生避让结果全部不变，名称不再可能被 DPI、安全区或宽快捷栏挤出可视区。投枪不再依赖 x25.01.17 `OnAim` 通路（该通路每次完成后需 1.4 秒重新武装，且 `InProgress` 返回 true 会置 `m_isAimBlocked`，是「投几次后无法投掷」的根因）：改为 `Update` 直接采样 `PlayerInput.Aim` 自建蓄力时钟、`OnAim` 空实现、`Launch` 取消相位门（飞行中再次投掷=召回旧枪），并新增 3.2 秒飞行租约看门狗与 0.15 秒最短蓄力。永恒裁决改为裂穹—40 格高空显形—俯冲—落地巨枪—消散的演出，时间轴纯函数化，1.4 秒伤害时点与 9 秒生命周期未改。方块 ID 948、包 244/245 字段与序列化、伤害/半径/冷却/移速攻速/飞行速度全部未改。Gungnir 307 项、Stormhammer 671 项及全部既有离线套件、17 XDB、net472 Release 与 108 条目包已确认；包 3,497,393 bytes，SHA-256 `1F7EAE1C5EB91D4D6F82302A748E81906313D836FC984C0C821910587787A0E1`。Android 7723 铭牌可读性、连续投掷手感、巨枪帧率与双机联机仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。

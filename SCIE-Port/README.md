@@ -2,6 +2,20 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
+Version 0.40.1 fixes a crash that could stop a brand-new world from finishing its
+loading screen. `Game.Random.Int(min, max)` is inclusive on both ends, and the natural
+creature spawner rolled chunk cells with `Int(0, 16)`; the roll returned 16 roughly once
+in seventeen attempts and read past the chunk arrays (`y + x * 256 + z * 256 * 16`), which
+is the `IndexOutOfRangeException` seen in `CreatureWorldSpawn.FindSurface`. The same
+misreading made the spawn chance roll `Int(0, 100)`, where a 100 is rejected by
+`ChanceMet` and silently disables the spawn. Both ranges now come from
+`EcologyRules.LastChunkCellIndex` (15) and `LastChanceRoll` (99), and every chunk probe is
+clamped and bounds-checked. Spawning is also deferred: the chunk hook only validates and
+queues, and entities are created from `SubsystemUpdate` once the chunk has left its
+contents stage, so entity creation can never run inside terrain generation. The spawner
+disables itself for the session after five unexpected failures instead of touching every
+remaining chunk. Block/creature IDs, entity templates, biome rules and caps are unchanged.
+
 Version 0.40.0 fixes three Gungnir issues in one runtime/presentation pass. Both skill
 names are now engraved into a nameplate band inside each badge, so no device DPI,
 safe area or wide hotbar can hide them. Long-press throwing is driven by the mod's own

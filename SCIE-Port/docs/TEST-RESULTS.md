@@ -1,4 +1,15 @@
 # 测试结果
+
+# 0.40.1 新世界加载时自然生物刷新越界崩溃（2026-10-27）
+
+- 根因：`Game.Random.Int(min, max)` 为**闭区间**，`Int(0, 16)` 约有 1/17 概率返回 16；x25.01.17 区块数组索引为 `y + x * 256 + z * 256 * 16` 与 `x + z * 16`，因此 `GetTopHeightFast(16, 15)` 读到 `Shafts[256]`、`GetCellValueFast(16, y, 15)` 读到 `Cells[65536 + y]`，抛 `IndexOutOfRangeException`。该代码只在**新生成区块**时执行，所以新世界必现、旧存档（区块已生成）不触发。
+- 同类错误：生成概率用 `Int(0, 100)`，而 `ChanceMet` 只接受 0..99 的 roll；100 被判定为非法输入直接返回 false，约 1/101 概率静默不生成。
+- 修复：坐标改用 `EcologyRules.LastChunkCellIndex`(15)、概率改用 `LastChanceRoll`(99)；`FindSurface`/`IsAir` 先 `ClampChunkCell` 再读，并对 y 做 1..254 限定与 try/catch；`HasNearbyLeaves` 复用 `IsInsideChunk`。
+- 生成时机：区块钩子只做校验并入队，真正的 `SubsystemCreatureSpawn.SpawnCreature` 移到 `SubsystemUpdate`，等区块状态达到 `TerrainChunkState.InvalidLight` 后每帧最多生成 2 只；队列上限 32，按最旧淘汰。连续异常 5 次后本会话自动禁用刷新，探针异常日志限流 3 条，避免刷屏或拖死加载。
+- 未改动：生物实体模板、生成概率/上限、生态位判定、方块 ID、网络包与存档结构。
+- 验证：Ecology 53 项（原 47 + 新增 6 项坐标/概率域断言）、Gungnir 307 项、Stormhammer 671 项、Four Saints 28 项及全部既有套件通过；17 XDB 通过；net472 Release 0 warning / 0 error；构建脚本新增闭区间回归守卫（禁止 `Int(0, 16)`/`Int(0, 100)`，要求队列与状态门存在）。
+- 完整构建：包 3,498,461 bytes / 108 entries，SHA-256 `3C4C4A721007F2B97C33D6CE2AE8DE761E4B5719A630D7DCCBED192D25833784`；modinfo `0.40.1`、AssemblyVersion `0.40.1.0`。
+- 仍未在 Android 7723 实测：新世界加载、洞穴/海洋区块、连续探索数百万格后的稳定性与联机同步均为待验证。
 # 0.40.0 昆古尼尔技能名铭牌 / 投枪可靠性 / 天降巨枪（2026-10-27）
 
 - ABI 取证：x25.01.17 `ComponentPlayer.Update` 的瞄准门限为 `GameTime - m_lastActionTime > 1.4`，每次 Completed 都会写 `m_lastActionTime`；`InProgress` 返回 `true` 会立即 `Cancel` 并置 `m_isAimBlocked`。据此判定「投几次后无法投掷」来自引擎瞄准通路重新武装与锁定，而非伤害或相位数据。

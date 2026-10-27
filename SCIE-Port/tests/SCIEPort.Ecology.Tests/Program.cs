@@ -20,6 +20,7 @@ namespace SCIEPort.Ecology.Tests
                 TestPredationEligibility();
                 TestSpawnChanceAndBudget();
                 TestPredationWiring();
+                TestChunkCellRange();
                 Console.WriteLine("Ecology rule tests passed: " + s_assertions);
                 return 0;
             }
@@ -143,6 +144,25 @@ namespace SCIEPort.Ecology.Tests
                 "The fox AutoChaseMask must cover the rabbit's inherited category, or predation never targets rabbits.");
             Assert(EcologyRules.FoxChaseNonPlayerProbability > EcologyRules.VanillaWolfChaseNonPlayerProbability,
                 "The fox chase probability must be raised above the vanilla wolf baseline to be observable.");
+        }
+
+        private static void TestChunkCellRange()
+        {
+            // x25.01.17 chunk arrays hold x/z in 0..15 only; Game.Random.Int(0, 16) returns 16
+            // roughly 1 in 17 rolls and reads past the end of the chunk (IndexOutOfRangeException
+            // during world generation). The spawner must roll and clamp inside the 0..15 band.
+            Assert(EcologyRules.LastChunkCellIndex == 15,
+                "A terrain chunk is 16 cells wide, so the last valid local cell index is 15.");
+            Assert(EcologyRules.LastChanceRoll == 99,
+                "ChanceMet consumes rolls in 0..99; a roll of 100 is rejected and silently disables the spawn.");
+            Assert(EcologyRules.ClampChunkCell(-7) == 0 && EcologyRules.ClampChunkCell(16) == 15 && EcologyRules.ClampChunkCell(7) == 7,
+                "ClampChunkCell must pin every roll into the only range the chunk arrays accept.");
+            Assert(EcologyRules.IsInsideChunk(0, 0) && EcologyRules.IsInsideChunk(15, 15),
+                "The four chunk corners must be legal cells.");
+            Assert(!EcologyRules.IsInsideChunk(16, 0) && !EcologyRules.IsInsideChunk(0, 16) && !EcologyRules.IsInsideChunk(-1, 0),
+                "Any coordinate outside 0..15 must be rejected before touching the chunk.");
+            Assert(!EcologyRules.ChanceMet(100, 100),
+                "An out-of-band roll must never spawn, even at full chance.");
         }
 
         private static void Assert(bool condition, string message)

@@ -27,6 +27,30 @@ namespace SCIEPort.Features.Ecology
         public const int MaxSpawnAttemptsPerChunk = 2;
 
         /// <summary>
+        /// Highest valid local cell index on either horizontal axis of a terrain chunk.
+        /// x25.01.17 indexes chunk arrays with <c>y + x * 256 + z * 256 * 16</c> and
+        /// <c>x + z * 16</c>, so 16 is already outside them. <c>Game.Random.Int(min, max)</c>
+        /// is inclusive on both ends, so rolling <c>Int(0, 16)</c> yields 16 roughly one time
+        /// in seventeen and throws IndexOutOfRangeException inside the chunk.
+        /// </summary>
+        public const int LastChunkCellIndex = 15;
+
+        /// <summary>Highest inclusive roll of the 0..99 band consumed by <see cref="ChanceMet"/>.</summary>
+        public const int LastChanceRoll = 99;
+
+        /// <summary>Forces a local chunk cell index into the only range the chunk arrays accept.</summary>
+        public static int ClampChunkCell(int value)
+        {
+            return value < 0 ? 0 : (value > LastChunkCellIndex ? LastChunkCellIndex : value);
+        }
+
+        /// <summary>True only for a local chunk cell pair the chunk arrays can index safely.</summary>
+        public static bool IsInsideChunk(int x, int z)
+        {
+            return x >= 0 && x <= LastChunkCellIndex && z >= 0 && z <= LastChunkCellIndex;
+        }
+
+        /// <summary>
         /// Ecological niche bound for foxes: fox prefers forested/plains cover.
         /// Temperature is the target seasonal temperature (already height
         /// adjusted); humidity is the seasonal humidity; the ground must be

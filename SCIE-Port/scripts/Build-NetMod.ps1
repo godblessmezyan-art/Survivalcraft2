@@ -349,6 +349,29 @@ foreach ($gungnirHudRule in @('NameBand = GungnirHudLayout.NameBandHeight', 'Tex
 }
 $gungnirLayoutSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirHudLayout.cs')
 if (-not $gungnirLayoutSource.Contains('NameBandHeight = 21f')) { throw 'Gungnir nameplate band height must stay 21 logical units.' }
+# v0.40.1: Game.Random.Int(min, max) is INCLUSIVE on both ends. Rolling Int(0, 16) for a local
+# chunk cell returns 16 about once in seventeen rolls and reads past the chunk arrays
+# (IndexOutOfRangeException on a fresh world). ChanceMet consumes a 0..99 band, so Int(0, 100)
+# silently disables the spawn. Both ranges are pinned by the shared EcologyRules constants.
+$creatureSpawnSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Creatures\CreatureWorldSpawn.cs')
+foreach ($creatureSpawnRule in @(
+    'EcologyRules.LastChunkCellIndex',
+    'EcologyRules.LastChanceRoll',
+    'EcologyRules.IsInsideChunk',
+    'EcologyRules.ClampChunkCell',
+    'chunk.State < TerrainChunkState.InvalidLight'
+)) {
+    if (-not $creatureSpawnSource.Contains($creatureSpawnRule)) { throw "Creature spawner range/queue safety missing: $creatureSpawnRule" }
+}
+foreach ($badRoll in @('Int(0, 16)', 'Int(0, 100)')) {
+    if ($creatureSpawnSource.Contains($badRoll)) { throw "Creature spawner uses the inclusive out-of-range roll $badRoll." }
+}
+$loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
+if (-not $loaderSource.Contains('CreatureWorldSpawn.Update();')) { throw 'Natural creatures must be drained after chunk generation, not created inside it.' }
+$ecologyRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Ecology\EcologyRules.cs')
+foreach ($ecologyRange in @('LastChunkCellIndex = 15', 'LastChanceRoll = 99')) {
+    if (-not $ecologyRulesSource.Contains($ecologyRange)) { throw "Ecology spawn range constant changed: $ecologyRange" }
+}
 $artifactDisplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
 if (-not $artifactDisplaySource.Contains('contents == GungnirBlock.Index') -or -not $artifactDisplaySource.Contains('contents == StormhammerAwakenedBlock.Index')) {
     throw 'The shared artifact slot decorator must keep distinct Gungnir and Mjolnir skins.'
