@@ -1,4 +1,12 @@
 # 测试结果
+# 0.38.2 昆古尼尔物品格黑曜石/古金配色（2026-10-27）
+
+- 昆古尼尔中心色范围为 RGB `(34～40, 37～43, 45～51)`，呼吸中点约 `#252830`；边框范围为 `(197～205, 153～161, 81～89)`，中点约 `#C99D55`。原周期保留，RGB 波动分别压低到 6/8；妙尔尼尔分支及槽位原色缓存、恢复、清理逻辑未改。
+- 新增打包期源码守卫，要求黑曜石/古金公式存在并拒绝旧绿色通道公式回归。
+- `Test-Environment.ps1` 通过；Gungnir 150 项、Stormhammer 671 项及完整构建中的全部既有离线套件通过；17 XDB 通过；net472 Release 编译 0 warning / 0 error。
+- 完整隔离构建：`scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0。包 3,482,966 bytes / 107 entries，SHA-256 `2F7FE982607FFB76238374DB309E9DE309FB7A3E8BE2201C3D6D2104DA92CF3E`；modinfo/AssemblyVersion `0.38.2`/`0.38.2.0`。
+- Windows 离线检查不能证明 Android 实际渲染观感；7723 真机背包/快捷栏亮度、呼吸幅度、换槽恢复仍为待验证。
+
 # 0.38.1 四圣兽 V1.1 玄武严寒免疫（2026-10-27）
 
 - x25.01.17 实际路径：`ComponentVitalStats.UpdateTemperature` 在体温≤0时以 `fName,25` 调用 `ComponentHealth.Injure(1f,...)`，体温<3时每10秒以 `fName,26` 调用 `Injure(0.05f,...)`；两者均进入现有 `OnCreatureInjure` 权威入口。过热为 `fName,35`，流感为独立 `ComponentFlu.fName,4`，均未加入免疫。
