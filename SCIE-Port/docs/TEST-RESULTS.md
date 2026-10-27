@@ -1,4 +1,12 @@
 # 测试结果
+# 0.38.0 四圣兽神装 V1（2026-10-27）
+
+- ABI 取证：目标 `ComponentHealth` 为 1.0=10 点、原生 `Heal` 与生命条均硬限 1.0；衣物块 203 的数据号为 8 位，原版最高 37。本模块用衣物数据 200～203 和包 245。
+- 四圣兽离线套件：玄武减伤边界、白虎 1.2/2.0 攻频与一次 1.5 倍伤害、妙尔尼尔乘法组合、+1 格跳高公式、1280×720/1920×1080/1.35 UI 缩放布局全部通过。
+- 完整构建：`scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；全部既有套件、17 XDB、net472 Release 与新增衣物/纹理/包内容通过。
+- 包：3,482,760 bytes / 107 entries，SHA-256 `56F9690086BD2B9988B41C0F68221CDF32233ED4CC6BA2AF8BB49AD32AC7FA05`；modinfo/AssemblyVersion `0.38.0`/`0.38.0.0`。
+- Android 7723、真机触控、伤害路径和双机联机均为待验证；没有把离线结果标记为真机成功。详见 [四圣兽 V1 审查](FOUR-SAINTS-V1-AUDIT.md)。
+
 ## 0.37.0 双神器操作与强化（2026-10-27）
 
 - ABI 取证：x25.01.17 `ComponentPlayer` 明确在 `AimState.InProgress` 收到 `true` 时取消瞄准；原生投掷物返回模式已逐分支比对。

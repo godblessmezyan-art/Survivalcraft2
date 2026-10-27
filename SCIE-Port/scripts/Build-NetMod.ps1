@@ -45,6 +45,8 @@ if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found unde
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Stormhammer rule tests failed' }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.FourSaints.Tests') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Four Saints rule/layout tests failed' }
 
 $kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
 & $dotnetPath run --project $kellyTests --configuration Release --nologo
@@ -603,6 +605,13 @@ try {
         'Assets/Audio/Gungnir/Impact.wav',
         'Assets/Blocks/Gungnir.csv',
         'Assets/Database/Gungnir.xdb',
+        'Assets/FourSaints.clo',
+        'Assets/Database/FourSaints.xdb',
+        'Assets/Textures/FourSaintsBaihu.png',
+        'Assets/Textures/Clothing/FourSaintsQinglong.png',
+        'Assets/Textures/Clothing/FourSaintsXuanwu.png',
+        'Assets/Textures/Clothing/FourSaintsBaihuLegs.png',
+        'Assets/Textures/Clothing/FourSaintsZhuque.png',
         'Assets/Blocks/SCIEPort.csv',
         'Assets/Blocks/Watercraft.csv',
         'Assets/Blocks/KellyPlants.csv',

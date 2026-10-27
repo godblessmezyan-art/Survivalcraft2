@@ -2,6 +2,15 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
+Version 0.38.0 adds four independent native clothing items: Qinglong Crown,
+Xuanwu Armor, Baihu Greaves and Zhuque Boots (clothing data 200-203 on native
+clothing block 203). Their authority runtime provides max-health/regen and fall
+immunity, final attack reduction/drowning immunity, movement/jump/attack-speed
+bonuses plus a 5-second Baihu awakening, and fire/magma immunity plus pre-death
+rebirth. Packet 245 carries authenticated Baihu requests and bounded snapshots;
+the 76-unit touch HUD is positioned from the real Look/hotbar rectangles.
+Android/7723 and two-device multiplayer remain pending device verification.
+
 Version 0.37.0 corrects Gungnir's x25.01.17 touch-aim return contract so a
 long hold remains active until release. Gungnir also receives a distinct
 dark-teal/old-gold inventory skin and a delayed gold number for its divine

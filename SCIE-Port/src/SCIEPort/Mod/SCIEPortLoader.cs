@@ -8,6 +8,7 @@ using SCIEPort.Features.Vehicles;
 using SCIEPort.Features.PortableFortress;
 using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.Gungnir;
+using SCIEPort.Features.FourSaints;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -28,6 +29,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new VehicleActivationPackage());
                 PackageManager.RegisterPackage(new StormhammerSkillPackage());
                 PackageManager.RegisterPackage(new GungnirPackage());
+                PackageManager.RegisterPackage(new FourSaintsPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -35,6 +37,8 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
             ModsManager.RegisterHook("AttackBody", this);
+            ModsManager.RegisterHook("OnCreatureInjure", this);
+            ModsManager.RegisterHook("UpdateInput", this);
             ModsManager.RegisterHook("SubsystemUpdate", this);
             ModsManager.RegisterHook("GuiUpdate", this);
             ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
@@ -56,22 +60,30 @@ namespace SCIEPort.Mod
             out bool hitted)
         {
             hitted = false;
-            int contents = Terrain.ExtractContents(miner.ActiveBlockValue);
-            if (contents != StormhammerBlock.Index && contents != StormhammerAwakenedBlock.Index)
+            ComponentPlayer player = miner?.ComponentPlayer;
+            SubsystemFourSaints fourSaints = player?.Project.FindSubsystem<SubsystemFourSaints>(false);
+            if (fourSaints != null && fourSaints.IsActionLocked(player))
             {
+                attackPower = 0f; playerProbability = 0f; creatureProbability = 0f; hitted = true;
                 return;
             }
-
-            attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 40f : 12f);
-            playerProbability = 1f;
-            creatureProbability = 1f;
-            SubsystemAwakenedStormhammerBlockBehavior.ApplyAttackSpeed(miner);
-            SubsystemStormhammerBlockBehavior.OnMeleeHit(miner, componentBody, hitPoint);
+            int contents = Terrain.ExtractContents(miner.ActiveBlockValue);
+            if (contents == StormhammerBlock.Index || contents == StormhammerAwakenedBlock.Index)
+            {
+                attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 40f : 12f);
+                playerProbability = 1f; creatureProbability = 1f;
+                SubsystemStormhammerBlockBehavior.OnMeleeHit(miner, componentBody, hitPoint);
+            }
+            float frequency = fourSaints != null ? fourSaints.AttackFrequency(player) : (contents == StormhammerAwakenedBlock.Index ? 1.1f : 1f);
+            if (frequency > 1f) miner.m_lastHitTime -= .66 * (1.0 - 1.0 / frequency);
         }
 
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
         {
+            ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
+            SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
+            if (fourSaints != null && fourSaints.IsActionLocked(attackingPlayer)) { attackPower = 0f; return false; }
             if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
             if (target != null && attacker != null && attacker.Project != null)
             {
@@ -79,6 +91,27 @@ namespace SCIEPort.Mod
                 behavior?.PrepareAwakenedMelee(target, attacker, hitPoint, ref attackPower, isMeleeAttack);
             }
             return false;
+        }
+
+        /// <inheritdoc />
+        public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
+        {
+            Skip = componentHealth?.Project.FindSubsystem<SubsystemFourSaints>(false)?.HandleInjury(componentHealth, amount, attacker, ignoreInvulnerability, cause) == true;
+        }
+
+        /// <inheritdoc />
+        public override void UpdateInput(ComponentInput componentInput, WidgetInput widgetInput)
+        {
+            ComponentPlayer player = componentInput?.m_componentPlayer;
+            SubsystemFourSaints runtime = player?.Project.FindSubsystem<SubsystemFourSaints>(false);
+            if (runtime == null || !runtime.IsActionLocked(player)) return;
+            componentInput.m_playerInput.Move = Vector3.Zero;
+            componentInput.m_playerInput.SneakMove = Vector3.Zero;
+            componentInput.m_playerInput.Jump = false;
+            componentInput.m_playerInput.Hit = null;
+            componentInput.m_playerInput.Dig = null;
+            componentInput.m_playerInput.Aim = null;
+            componentInput.m_playerInput.Interact = null;
         }
 
         /// <inheritdoc />
@@ -92,6 +125,8 @@ namespace SCIEPort.Mod
         {
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);
+            FourSaintsHud.Update(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false)?.RefreshLocalHealthBar(componentGui.m_componentPlayer);
         }
 
         /// <inheritdoc />

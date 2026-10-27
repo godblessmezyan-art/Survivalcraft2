@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.37.0",
+  "Version": "0.38.0",
   "ApiVersion": "1.42",
-  "Description": "拓展原版生存世界，新增丰富的生态植物、陆海空载具、特色装备与神话神器。驾驶载具探索广阔荒野，掌握雷神之锤与昆古尼尔的力量，开启属于你的奇幻冒险！(v0.37.0 fixes Gungnir touch hold/throw cancellation, adds its unique dark-teal/old-gold inventory skin and a delayed gold divine damage number, sets Rune Blessing/Eternal Judgment cooldowns to 8/50 seconds, and grants true Mjolnir 20% movement plus 10% melee speed. PackageName SCIEPort, ID 948 and packet 244 layout remain unchanged. Android 7723 touch, timing and multiplayer behavior remain pending device verification.)",
+  "Description": "拓展原版生存世界，新增生态植物、陆海空载具、特色装备与神话神器。v0.38.0 新增青龙冠、玄武铠、白虎胫甲与朱雀靴；四件独立生效，白虎觉醒使用服务端权威包245。Android 7723触控、伤害路径与多人同步仍待真机验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -22,7 +22,7 @@ namespace SCIEPort.Features.Gungnir
         /// <summary>Maximum distinct creatures pierced by one flight.</summary>
         public const int MaxTargets = 8;
         /// <summary>Original hit gate divided by additive attack rate.</summary>
-        public static double AttackInterval(bool blessed) => 0.6600000262260437 / (blessed ? 2.0 : 1.5);
+        public static double AttackInterval(bool blessed, float externalFrequency = 1f) => 0.6600000262260437 / ((blessed ? 2.0 : 1.5) * Math.Max(1f, externalFrequency));
         /// <summary>Additive multipliers relative to the unmodified equipment baseline.</summary>
         public static float SpeedFactor(bool blessed) => blessed ? 2f : 1.5f;
         /// <summary>Linear radial falloff, with no damage outside the legal sphere.</summary>

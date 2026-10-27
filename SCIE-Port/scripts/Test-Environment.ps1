@@ -151,7 +151,7 @@ foreach ($type in $loadedTypes) {
         try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
     }
 }
-foreach ($reservedPackageId in @(240, 241, 242, 243, 244)) {
+foreach ($reservedPackageId in @(240, 241, 242, 243, 244, 245)) {
     if ($nativePackageIds -contains $reservedPackageId) {
         throw "SCIE-Port package ID $reservedPackageId conflicts with a native x25.01.17 package."
     }

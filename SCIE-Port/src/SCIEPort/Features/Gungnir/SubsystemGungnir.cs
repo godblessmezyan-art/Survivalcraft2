@@ -5,6 +5,7 @@ using Game;
 using Game.NetWork;
 using Game.NetWork.Packages;
 using SCIEPort.Features.Stormhammer;
+using SCIEPort.Features.FourSaints;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Gungnir
@@ -138,7 +139,9 @@ namespace SCIEPort.Features.Gungnir
             else
             {
                 if (s.Phase != 0 || Now < s.NextMelee || Now - s.CastStart < 0.3) return;
-                s.NextMelee = Now + GungnirRules.AttackInterval(Now < s.BuffEnd);
+                SubsystemFourSaints saints = Project.FindSubsystem<SubsystemFourSaints>(false);
+                float externalFrequency = saints != null ? saints.AttackFrequency(p) : 1f;
+                s.NextMelee = Now + GungnirRules.AttackInterval(Now < s.BuffEnd, externalFrequency);
                 Vector3 start = p.ComponentCreatureModel.EyePosition, end = start + direction * 3.5f;
                 var wall = m_terrain.Raycast(start, end, false, true, (v, d) => BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable);
                 if (wall.HasValue) end = wall.Value.HitPoint();
@@ -243,7 +246,11 @@ namespace SCIEPort.Features.Gungnir
                     if (input.Hit.HasValue)
                     {
                         if (Now >= s.NextMelee || Authority) Request(p, GungnirRules.Melee, input.Hit.Value.Direction);
-                        if (!Authority && Now >= s.NextMelee) s.NextMelee = Now + GungnirRules.AttackInterval(Now < s.BuffEnd);
+                        if (!Authority && Now >= s.NextMelee)
+                        {
+                            SubsystemFourSaints saints = Project.FindSubsystem<SubsystemFourSaints>(false);
+                            s.NextMelee = Now + GungnirRules.AttackInterval(Now < s.BuffEnd, saints != null ? saints.AttackFrequency(p) : 1f);
+                        }
                         // Consume only native melee; native Aim continues unchanged.
                         p.ComponentInput.m_playerInput.Hit = null;
                     }
