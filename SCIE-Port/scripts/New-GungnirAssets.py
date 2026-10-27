@@ -93,23 +93,66 @@ def textures():
                 draw.line([(x,y+20),(x,y-15),(x+10,y-4),(x,y+3)], fill=color, width=2)
                 draw.line([(x,y),(x-8,y-7)], fill=color,width=2)
     image.save(g.TEXTURE_PATH)
-    icons = Image.new("RGBA", (512,256), (19,23,29,255))
+    # Transparent skill atlas: engraved silver/gold medallions remain readable at 72/88 UI units.
+    icons = Image.new("RGBA", (512,256), (0,0,0,0))
     d = ImageDraw.Draw(icons)
     for j in range(2):
         cx = j*256+128
-        for radius in (112,104,88): d.ellipse((cx-radius,128-radius,cx+radius,128+radius),outline=(192,155,77),width=3)
+        # Concentric brushed-metal bands, with no opaque square behind the badge.
+        for radius in range(110, 91, -1):
+            t = (110-radius)/19
+            shade = int(70 + 85*(1-abs(t-.45)*1.7))
+            d.ellipse((cx-radius,128-radius,cx+radius,128+radius),outline=(shade+55,shade+42,shade+18,245),width=2)
+        d.ellipse((cx-90,38,cx+90,218),fill=(20,23,29,232),outline=(238,211,142,255),width=3)
+        d.arc((cx-101,27,cx+101,229),205,335,fill=(250,232,183,235),width=3)
+        d.arc((cx-101,27,cx+101,229),25,155,fill=(91,69,38,235),width=3)
+        if j == 1:
+            d.ellipse((cx-106,22,cx+106,234),outline=(248,238,205,220),width=3)
         for i in range(16):
             a = i*math.tau/16
             x,y = cx+97*math.cos(a),128+97*math.sin(a)
-            d.line([(x,y-5),(x,y+5),(x+5,y)],fill=(236,213,156),width=2)
+            d.line([(x,y-6),(x,y+6),(x+5*math.cos(a+.75),y+5*math.sin(a+.75))],fill=(232,207,145,245),width=2)
         if j == 0:
-            d.polygon([(cx,55),(cx+48,80),(cx+35,150),(cx,184),(cx-35,150),(cx-48,80)], fill=(55,62,71),outline=(246,219,146),width=4)
-            d.line([(cx,154),(cx,80),(cx+27,103),(cx,122),(cx-24,99)],fill=(255,240,188),width=6)
+            d.polygon([(cx,48),(cx+49,78),(cx+34,151),(cx,190),(cx-34,151),(cx-49,78)], fill=(25,49,56,255),outline=(232,205,132,255),width=4)
+            d.line([(cx-2,160),(cx-2,76),(cx+30,101),(cx-2,123),(cx-28,96)],fill=(116,238,226,255),width=8)
+            d.line([(cx+4,159),(cx+4,82),(cx+25,101)],fill=(238,195,104,245),width=2)
         else:
-            for y in (70,105,140): d.ellipse((cx-55,y-10,cx+55,y+10),outline=(214,177,86),width=3)
-            d.line([(cx,45),(cx,174)],fill=(255,245,213),width=8)
-            d.polygon([(cx,199),(cx-23,150),(cx,163),(cx+23,150)],fill=(255,237,184))
+            for y, span in ((70,46),(105,58),(140,49)):
+                d.arc((cx-span,y-12,cx+span,y+12),180,360,fill=(221,183,91,250),width=4)
+                d.arc((cx-span,y-12,cx+span,y+12),0,180,fill=(113,123,135,245),width=3)
+            d.line([(cx,43),(cx,177)],fill=(255,246,216,255),width=9)
+            d.line([(cx+5,48),(cx+5,174)],fill=(171,127,57,245),width=2)
+            d.polygon([(cx,207),(cx-25,151),(cx,165),(cx+25,151)],fill=(255,237,184,255),outline=(149,104,42,255))
+        # Fine cardinal cuts survive downsampling and sell the engraved rim.
+        for a in (0, math.pi/2, math.pi, 3*math.pi/2):
+            d.line([(cx+78*math.cos(a),128+78*math.sin(a)),(cx+86*math.cos(a),128+86*math.sin(a))],fill=(244,226,181,255),width=3)
     icons.save(ROOT / "src/SCIEPort/Assets/Textures/GungnirSkills.png")
+
+    # Eight independently recognisable Elder-Futhark-inspired glyphs. They are clean-room
+    # vector strokes (Fehu/Uruz/Thurisaz/Ansuz/Raidho/Kaunan/Gebo/Algiz forms), not copied art.
+    glyphs = [
+        [(.36,.82,.36,.18),(.36,.29,.72,.18),(.36,.45,.68,.35)],
+        [(.30,.20,.30,.68),(.30,.68,.50,.83),(.50,.83,.70,.68),(.70,.68,.70,.20)],
+        [(.34,.84,.34,.16),(.34,.36,.70,.50),(.70,.50,.34,.64)],
+        [(.34,.84,.34,.16),(.34,.29,.70,.45),(.34,.49,.66,.63)],
+        [(.32,.84,.32,.16),(.32,.18,.70,.39),(.70,.39,.32,.57),(.32,.57,.72,.84)],
+        [(.32,.84,.32,.16),(.32,.53,.72,.24),(.32,.53,.72,.81)],
+        [(.25,.20,.75,.80),(.75,.20,.25,.80)],
+        [(.50,.84,.50,.16),(.50,.42,.24,.24),(.50,.42,.76,.24)]
+    ]
+    runes = Image.new("RGBA", (1024, 256), (0,0,0,0))
+    glow = Image.new("RGBA", runes.size, (0,0,0,0))
+    rd, gd = ImageDraw.Draw(runes), ImageDraw.Draw(glow)
+    for slot, strokes in enumerate(glyphs):
+        ox = slot*128
+        for x0,y0,x1,y1 in strokes:
+            p0=(ox+16+x0*96, 16+y0*224); p1=(ox+16+x1*96,16+y1*224)
+            gd.line((p0,p1),fill=(255,190,74,165),width=18)
+            rd.line((p0,p1),fill=(86,57,22,255),width=11)
+            rd.line((p0,p1),fill=(255,231,167,255),width=6)
+    glow = glow.filter(ImageFilter.GaussianBlur(9))
+    runes = Image.alpha_composite(glow, runes)
+    runes.save(ROOT / "src/SCIEPort/Assets/Textures/GungnirRunes.png")
 
 
 def main():

@@ -1,5 +1,13 @@
 # SCIE-Port 兼容性记录
 
+## 0.34.0 昆古尼尔 V5.1/V5.1b（离线已确认，Android/联机待验证，2026-10-27）
+
+在 0.33.0 的真实 Look 锚定 HUD 上增加青金/白金状态反馈，并将投枪 Phase 1 去程与 Phase 2 回程拆为独立绘制：白金锐利去程，暖金螺旋/符文/轴环回程，枪体叠加能量脊和分段模型符文；命中/折返提示使用固定 24 槽池。130 项规则/布局、目标模型/资源、全部既有测试、16 XDB、net472 Release（0 warning/0 error）及包校验通过。产物 3,094,805 bytes / 99 entries / SHA-256 `CE23FA8C6933E1953D60DF7BD3009BFF157E6A76389E76533A9E7620B141B447`，modinfo `0.34.0`，AssemblyVersion `0.34.0.0`。ID948、包244/字段、伤害、速度、距离、贯穿、返回、冷却与权威逻辑未改；Stormhammer/Builder 未改。Android 7723、多点触控、帧率、截图和双机联机仍待验证。见 [V5.1 审查记录](GUNGNIR-V5.1-AUDIT.md)。
+
+## 0.33.0 昆古尼尔 HUD / 符文演出重构（离线已确认，Android/联机待验证，2026-10-27）
+
+目标程序集/真实 `GameWidget.xml` 已确认 `LookWidget`、Move/MoveRose、ShortInventory、`GlobalBounds` 与 `ScreenToWidget`；HUD 改为原生 Look 锚定、左手镜像、原生控件碰撞退让和仅图标命中，72/88 逻辑尺寸。1280×720、1920×1080、1.25×/1.5× UI 缩放的 105 项离线规则/布局检查均无 Look/快捷栏重叠。新增可复现透明八字形 `GungnirRunes.png`，`TexturedBatch3D` 刻印+辉光双层、枪杆逐段能量流、神佑/裁决分层演出及高/中/低 64/40/24 段降级；ID948、包244、协议与数值未改。完整构建 16 XDB、net472 0 warning/0 error；包 3,091,265 bytes / 99 entries / SHA-256 `B451A23802425F83B68B53C7B1E0DE09C6A69FE965B55A8874FB9C7F86295830`。Android 触屏、截图、性能和双机联机均为待验证。见 [0.33 审查与真机清单](GUNGNIR-HUD-VFX-0.33-AUDIT.md)。
+
 ## 0.32.0 合并候选（苍穹之怒 V5.0 + 昆古尼尔 V4，2026-10-27）
 
 本版本合并两个分别占用 `0.31.0` 的并行开发成果。苍穹之怒 V5.0 与昆古尼尔 V4 的各自离线证据保留如下，不沿用任一 `0.31.0` 分支产物。合并后已重新执行环境/ABI 检查、昆古尼尔 88 项纯规则、苍穹之怒 580 项规则、既有离线套件、net472 Release 编译、16 份 XDB 与包内容校验，均通过；`.netmod` **3,009,161 字节 / 98 条目**，SHA-256 `12830CC3B0D43D77582B96DA720E727703DE627595B5E43BCF3B66760C9CF5B8`，modinfo `0.32.0`，DLL AssemblyVersion `0.32.0.0`。Android 7723 与联机状态仍为待验证。

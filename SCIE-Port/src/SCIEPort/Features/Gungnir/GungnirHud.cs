@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
@@ -5,61 +6,227 @@ using Game;
 
 namespace SCIEPort.Features.Gungnir
 {
+    /// <summary>Touch-first HUD anchored to the target build's real native Look control.</summary>
     internal static class GungnirHud
     {
+        private sealed class SkillButton
+        {
+            internal CanvasWidget Visual;
+            internal CanvasWidget HitTarget;
+            internal RectangleWidget Icon;
+            internal RectangleWidget ReadyGlow;
+            internal RectangleWidget Frame;
+            internal RectangleWidget Energy;
+            internal LabelWidget Cooldown;
+            internal LabelWidget Caption;
+            internal ClickableWidget Clickable;
+            internal float Size;
+            internal Color Accent;
+            internal bool Ultimate;
+        }
+
         private sealed class Hud
         {
             internal CanvasWidget Root;
-            internal readonly ClickableWidget[] Buttons = new ClickableWidget[2];
-            internal readonly LabelWidget[] Labels = new LabelWidget[2];
+            internal readonly SkillButton[] Skills = new SkillButton[2];
+            internal Vector2 LastLookMin = new Vector2(float.MinValue);
+            internal Vector2 LastLookMax = new Vector2(float.MinValue);
+            internal Vector2 LastHotbarMin = new Vector2(float.MinValue);
+            internal Vector2 LastHotbarMax = new Vector2(float.MinValue);
+            internal Vector2 LastRootSize = new Vector2(float.MinValue);
+            internal bool LastLeftHanded;
         }
+
         private static readonly Dictionary<ComponentGui, Hud> s_huds = new Dictionary<ComponentGui, Hud>();
+
         internal static void Clear()
         {
-            foreach (var entry in s_huds) entry.Key.ControlsContainerWidget.Children.Remove(entry.Value.Root);
+            foreach (var entry in s_huds)
+            {
+                if (entry.Key?.ControlsContainerWidget != null && entry.Value.Root.ParentWidget == entry.Key.ControlsContainerWidget)
+                    entry.Key.ControlsContainerWidget.Children.Remove(entry.Value.Root);
+            }
             s_huds.Clear();
         }
+
         internal static void Update(ComponentGui gui)
         {
-            var p = gui.m_componentPlayer;
-            Hud h;
-            if (!s_huds.TryGetValue(gui, out h))
+            ComponentPlayer player = gui?.m_componentPlayer;
+            bool visible = SubsystemGungnir.Equipped(player) && gui.ControlsContainerWidget != null && gui.ControlsContainerWidget.IsVisible;
+            Hud hud;
+            if (!s_huds.TryGetValue(gui, out hud))
             {
-                if (!SubsystemGungnir.Equipped(p)) return;
-                h = Create(gui); s_huds.Add(gui, h);
+                if (!visible) return;
+                hud = Create(gui);
+                s_huds.Add(gui, hud);
             }
-            h.Root.IsVisible = SubsystemGungnir.Equipped(p) && gui.ControlsContainerWidget.IsVisible;
-            if (!h.Root.IsVisible) return;
-            var runtime = p.Project.FindSubsystem<SubsystemGungnir>(false);
-            if (runtime == null) { h.Root.IsVisible = false; return; }
-            var s = runtime.Get(p);
-            for (int i = 0; i < 2; i++)
+            hud.Root.IsVisible = visible;
+            if (!visible) return;
+
+            SubsystemGungnir runtime = player.Project.FindSubsystem<SubsystemGungnir>(false);
+            if (runtime == null) { hud.Root.IsVisible = false; return; }
+            Layout(gui, hud);
+            SubsystemGungnir.State state = runtime.Get(player);
+            double now = runtime.Now;
+            SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), 15f, (float)(now - state.BuffVisualStart));
+            SetState(hud.Skills[1], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));
+            for (int i = 0; i < hud.Skills.Length; i++)
             {
-                float cooldown = (float)((i == 0 ? s.BuffReady : s.JudgmentReady) - runtime.Now);
-                float remaining = (float)(s.BuffEnd - runtime.Now);
-                h.Labels[i].Text = i == 0 && remaining > 0 ? "神佑 " + MathUtils.Ceiling(remaining) + "s" : cooldown > 0 ? MathUtils.Ceiling(cooldown) + "s" : "就绪";
-                h.Buttons[i].IsEnabled = cooldown <= 0;
-                if (h.Buttons[i].IsClicked) runtime.Request(p, (byte)(i + 1), p.GameWidget.ActiveCamera.ViewDirection);
+                if (hud.Skills[i].Clickable.IsClicked)
+                    runtime.Request(player, (byte)(i + 1), player.GameWidget.ActiveCamera.ViewDirection);
             }
         }
+
+        private static void SetState(SkillButton button, float cooldown, float duration, float durationTotal, float feedbackAge)
+        {
+            cooldown = MathUtils.Max(0f, cooldown);
+            duration = MathUtils.Max(0f, duration);
+            bool ready = cooldown <= 0.01f;
+            bool active = duration > 0.01f || feedbackAge >= 0f && feedbackAge < 0.32f;
+            float pulse = 0.5f + 0.5f * MathUtils.Sin((float)Time.RealTime * 2.35f + (button.Ultimate ? 1.1f : 0f));
+            button.Clickable.IsEnabled = ready;
+            button.Cooldown.Text = duration > 0f ? MathUtils.Ceiling(duration).ToString("0") : ready ? string.Empty : MathUtils.Ceiling(cooldown).ToString("0");
+            button.Icon.FillColor = ready ? Color.White : new Color(105, 110, 120, 205);
+            button.ReadyGlow.FillColor = ready ? button.Accent * (0.08f + pulse * (button.Ultimate ? 0.18f : 0.12f)) : Color.Transparent;
+            button.Frame.OutlineColor = button.Clickable.IsPressed || active ? new Color(255, 249, 218) : ready ? button.Accent * (0.82f + pulse * 0.16f) : new Color(91, 91, 96, 220);
+            button.Frame.OutlineThickness = button.Clickable.IsPressed || active ? 4f : button.Ultimate ? 3f : 2f;
+            button.Cooldown.Color = active ? new Color(255, 246, 204) : Color.White;
+            float energy = durationTotal > 0f && duration > 0f ? MathUtils.Saturate(duration / durationTotal) : ready ? 1f : 0f;
+            button.Energy.Size = new Vector2((button.Size - 10f) * energy, 3f);
+            button.Energy.FillColor = active ? new Color(255, 248, 205, 245) : ready ? button.Accent * 0.9f : new Color(92, 88, 78, 190);
+        }
+
+        private static void Layout(ComponentGui gui, Hud hud)
+        {
+            ContainerWidget controls = gui.ControlsContainerWidget;
+            Vector2 size = controls.ActualSize;
+            if (size.X < 1f || size.Y < 1f) return;
+            hud.Root.Size = size;
+            GungnirHudLayout.Rect look = ToLocalRect(controls, gui.LookWidget);
+            GungnirHudLayout.Rect hotbar = ToLocalRect(controls, gui.ShortInventoryWidget);
+            bool changed = Vector2.DistanceSquared(hud.LastLookMin, new Vector2(look.X, look.Y)) > 0.01f
+                || Vector2.DistanceSquared(hud.LastLookMax, new Vector2(look.Right, look.Bottom)) > 0.01f
+                || Vector2.DistanceSquared(hud.LastHotbarMin, new Vector2(hotbar.X, hotbar.Y)) > 0.01f
+                || Vector2.DistanceSquared(hud.LastHotbarMax, new Vector2(hotbar.Right, hotbar.Bottom)) > 0.01f
+                || Vector2.DistanceSquared(hud.LastRootSize, size) > 0.01f
+                || hud.LastLeftHanded != SettingsManager.LeftHandedLayout;
+            GungnirHudLayout.Result placement = GungnirHudLayout.Place(size.X, size.Y, look, hotbar, SettingsManager.LeftHandedLayout);
+            if (changed)
+            {
+                AvoidNativeControls(gui, hud, size, ref placement);
+                CanvasWidget.SetPosition(hud.Skills[0].Visual, new Vector2(placement.Blessing.X, placement.Blessing.Y));
+                CanvasWidget.SetPosition(hud.Skills[1].Visual, new Vector2(placement.Judgment.X, placement.Judgment.Y));
+                bool lookOverlap = placement.Blessing.Intersects(look) || placement.Judgment.Intersects(look);
+                bool hotbarOverlap = placement.Blessing.Intersects(hotbar) || placement.Judgment.Intersects(hotbar);
+                bool nativeOverlap = OverlapsNativeControls(gui, hud, placement.Blessing) || OverlapsNativeControls(gui, hud, placement.Judgment);
+                Log.Information(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    "[SCIEPort:GungnirHUD] viewport={0:0.#}x{1:0.#} look=({2:0.#},{3:0.#},{4:0.#},{5:0.#}) blessing=({6:0.#},{7:0.#},72,72) judgment=({8:0.#},{9:0.#},88,88) mirrored={10} fallback={11} overlapLook={12} overlapHotbar={13} overlapNative={14} hitTarget=iconOnly",
+                    size.X, size.Y, look.X, look.Y, look.Width, look.Height, placement.Blessing.X, placement.Blessing.Y,
+                    placement.Judgment.X, placement.Judgment.Y, placement.Mirrored, placement.UsedFallback, lookOverlap, hotbarOverlap, nativeOverlap));
+                hud.LastLookMin = new Vector2(look.X, look.Y); hud.LastLookMax = new Vector2(look.Right, look.Bottom);
+                hud.LastHotbarMin = new Vector2(hotbar.X, hotbar.Y); hud.LastHotbarMax = new Vector2(hotbar.Right, hotbar.Bottom);
+                hud.LastRootSize = size; hud.LastLeftHanded = SettingsManager.LeftHandedLayout;
+            }
+        }
+
+        private static void AvoidNativeControls(ComponentGui gui, Hud hud, Vector2 viewport, ref GungnirHudLayout.Result placement)
+        {
+            for (int attempt = 0; attempt < 24; attempt++)
+            {
+                if (!OverlapsNativeControls(gui, hud, placement.Blessing) && !OverlapsNativeControls(gui, hud, placement.Judgment)) return;
+                placement.UsedFallback = true;
+                float top = MathUtils.Min(placement.Blessing.Y, placement.Judgment.Y);
+                if (top >= 24f)
+                {
+                    placement.Blessing.Y -= 16f; placement.Judgment.Y -= 16f;
+                }
+                else
+                {
+                    float shift = placement.Mirrored ? 16f : -16f;
+                    placement.Blessing.X = MathUtils.Clamp(placement.Blessing.X + shift, 8f, viewport.X - placement.Blessing.Width - 8f);
+                    placement.Judgment.X = MathUtils.Clamp(placement.Judgment.X + shift, 8f, viewport.X - placement.Judgment.Width - 8f);
+                }
+            }
+        }
+
+        private static bool OverlapsNativeControls(ComponentGui gui, Hud hud, GungnirHudLayout.Rect rect)
+        {
+            ContainerWidget controls = gui.ControlsContainerWidget;
+            foreach (Widget widget in controls.AllChildren)
+            {
+                if (widget == hud.Root || widget.IsChildWidgetOf(hud.Root) || !widget.IsVisibleGlobal || !widget.IsHitTestVisible) continue;
+                // DragHost and other full-screen routing layers are not visible native controls;
+                // only concrete touch/button/slot surfaces participate in collision avoidance.
+                if (!(widget is ButtonWidget) && !(widget is TouchInputWidget) && !(widget is MoveRoseWidget) && !(widget is InventorySlotWidget)) continue;
+                GungnirHudLayout.Rect native = ToLocalRect(controls, widget);
+                if (native.IsValid && rect.Intersects(native)) return true;
+            }
+            return false;
+        }
+
+        private static GungnirHudLayout.Rect ToLocalRect(ContainerWidget controls, Widget widget)
+        {
+            if (widget == null || !widget.IsVisibleGlobal || widget.ActualSize.X < 1f || widget.ActualSize.Y < 1f) return default(GungnirHudLayout.Rect);
+            Vector2 min = controls.ScreenToWidget(widget.GlobalBounds.Min);
+            Vector2 max = controls.ScreenToWidget(widget.GlobalBounds.Max);
+            return new GungnirHudLayout.Rect { X = MathUtils.Min(min.X, max.X), Y = MathUtils.Min(min.Y, max.Y), Width = MathUtils.Abs(max.X - min.X), Height = MathUtils.Abs(max.Y - min.Y) };
+        }
+
         private static Hud Create(ComponentGui gui)
         {
-            var h = new Hud { Root = new CanvasWidget { Name = "SCIEPort.Gungnir.TwoSkills", Size = new Vector2(202, 116), HorizontalAlignment = WidgetAlignment.Center, VerticalAlignment = WidgetAlignment.Near, Margin = new Vector2(0, 56) } };
-            var texture = ContentManager.Get<Texture2D>("Textures/GungnirSkills");
-            for (int i = 0; i < 2; i++)
+            Texture2D atlas = ContentManager.Get<Texture2D>("Textures/GungnirSkills");
+            var hud = new Hud
             {
-                float size = i == 0 ? 72 : 88;
-                var button = new CanvasWidget { Size = new Vector2(size, size + 22) };
-                button.Children.Add(new RectangleWidget { Size = new Vector2(size), Subtexture = new Subtexture(texture, new Vector2(i * 0.5f, 0), new Vector2((i + 1) * 0.5f, 1)), FillColor = Color.White, OutlineColor = new Color(188, 150, 70), OutlineThickness = 2 });
-                h.Labels[i] = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = 0.65f, DropShadow = true, Color = Color.White };
-                button.Children.Add(h.Labels[i]);
-                var name = new LabelWidget { Text = i == 0 ? "卢恩神佑" : "永恒裁决", Size = new Vector2(size, 22), FontScale = 0.6f, Color = new Color(240, 215, 162), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter };
-                button.Children.Add(name); CanvasWidget.SetPosition(name, new Vector2(0, size));
-                h.Buttons[i] = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
-                button.Children.Add(h.Buttons[i]); h.Root.Children.Add(button);
-                CanvasWidget.SetPosition(button, new Vector2(i * 104, i == 0 ? 8 : 0));
-            }
-            gui.ControlsContainerWidget.Children.Add(h.Root); return h;
+                Root = new CanvasWidget
+                {
+                    Name = "SCIEPort.Gungnir.NativeAnchoredSkills",
+                    HorizontalAlignment = WidgetAlignment.Near,
+                    VerticalAlignment = WidgetAlignment.Near,
+                    IsHitTestVisible = false,
+                    IsVisible = false
+                }
+            };
+            hud.Skills[0] = CreateButton(atlas, 0, "卢恩神佑", GungnirHudLayout.BlessingSize, new Color(111, 226, 214), false);
+            hud.Skills[1] = CreateButton(atlas, 1, "永恒裁决", GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
+            hud.Root.Children.Add(hud.Skills[0].Visual);
+            hud.Root.Children.Add(hud.Skills[1].Visual);
+            gui.ControlsContainerWidget.Children.Add(hud.Root);
+            return hud;
+        }
+
+        private static SkillButton CreateButton(Texture2D atlas, int icon, string caption, float size, Color accent, bool ultimate)
+        {
+            var skill = new SkillButton { Size = size, Accent = accent, Ultimate = ultimate };
+            skill.Visual = new CanvasWidget { Size = new Vector2(size, size + 18f), IsHitTestVisible = false };
+            skill.Icon = new RectangleWidget
+            {
+                Size = new Vector2(size),
+                Subtexture = new Subtexture(atlas, new Vector2(icon * 0.5f, 0f), new Vector2((icon + 1) * 0.5f, 1f)),
+                FillColor = Color.White,
+                OutlineColor = Color.Transparent,
+                OutlineThickness = 0f,
+                IsHitTestVisible = false
+            };
+            skill.ReadyGlow = new RectangleWidget
+            {
+                Size = new Vector2(size),
+                Subtexture = skill.Icon.Subtexture,
+                FillColor = Color.Transparent,
+                OutlineColor = Color.Transparent,
+                OutlineThickness = 0f,
+                IsHitTestVisible = false
+            };
+            skill.Frame = new RectangleWidget { Size = new Vector2(size), FillColor = Color.Transparent, OutlineColor = new Color(214, 181, 105), OutlineThickness = 2f, IsHitTestVisible = false };
+            skill.Cooldown = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 80f ? 0.92f : 0.78f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
+            skill.Caption = new LabelWidget { Size = new Vector2(size, 17f), Text = caption, FontScale = 0.48f, DropShadow = true, Color = new Color(239, 218, 169), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, IsHitTestVisible = false };
+            skill.Energy = new RectangleWidget { Size = new Vector2(size - 10f, 3f), FillColor = new Color(224, 184, 91), OutlineColor = Color.Transparent, OutlineThickness = 0f, IsHitTestVisible = false };
+            skill.HitTarget = new CanvasWidget { Size = new Vector2(size), IsHitTestVisible = false };
+            skill.Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
+            skill.HitTarget.Children.Add(skill.Clickable);
+            skill.Visual.Children.Add(skill.Icon); skill.Visual.Children.Add(skill.ReadyGlow); skill.Visual.Children.Add(skill.Frame); skill.Visual.Children.Add(skill.Cooldown); skill.Visual.Children.Add(skill.Energy); skill.Visual.Children.Add(skill.Caption); skill.Visual.Children.Add(skill.HitTarget);
+            CanvasWidget.SetPosition(skill.Energy, new Vector2(5f, size - 7f));
+            CanvasWidget.SetPosition(skill.Caption, new Vector2(0f, size + 1f));
+            return skill;
         }
     }
 }

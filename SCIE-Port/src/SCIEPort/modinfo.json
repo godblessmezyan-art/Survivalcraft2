@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.32.0",
+  "Version": "0.34.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.32.0 merges the Skywrath V5 Thunder God window with the Gungnir V4 development candidate (two active skills, authoritative combat, native aim adapter, and original spear art). Strict remote player movement authority, Android rendering and touch behavior, frame time, and multiplayer visual acceptance remain pending device verification.",
+  "Description": "Authorized SCIE port for SCNET x25.01.17. v0.34.0 delivers Gungnir V5.1/V5.1b native-anchored touch HUD polish and distinct white-gold outbound versus warm-gold runic return visuals without changing ID 948, packet 244, combat values, throw movement or authority. Android rendering/touch behavior, frame time and multiplayer visual acceptance remain pending device verification.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",

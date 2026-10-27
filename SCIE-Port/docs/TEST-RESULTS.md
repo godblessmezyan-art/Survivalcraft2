@@ -1,5 +1,23 @@
 # 测试结果
 
+## 0.34.0 昆古尼尔 V5.1 / V5.1b（2026-10-27）
+
+- 环境/ABI：固定 `E:\SCNET\SCNETx25.01.17` 哈希、版本 2.4.0.0、API 1.42、SC 2.4.10.6、net472 与保留 ID 检查通过。
+- HUD/视觉规则：Gungnir 130 项通过；1280×720、1920×1080、1.25×/1.5× UI 与左手镜像均无 Look/快捷栏碰撞。新增低/中/高拖尾、螺旋、符文、环预算和提示生命周期断言。
+- 资源：脚本可复现；真实 Engine 导入 1 bone / 41 meshes / 1176 triangles；透明技能图、8 字形透明符文图集、UV/音频/CSV 检查通过。
+- 完整回归：`Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；全部既有规则套件、16 XDB 通过；net472 0 warning / 0 error。
+- 打包：3,094,805 bytes / 99 entries，SHA-256 `CE23FA8C6933E1953D60DF7BD3009BFF157E6A76389E76533A9E7620B141B447`；modinfo `0.34.0`，AssemblyVersion `0.34.0.0`。
+- Android 7723、真机多点触控/截图/帧率、主机与普通客户端演出仍为待验证；详见 `docs/GUNGNIR-V5.1-AUDIT.md`。
+
+## 0.33.0 昆古尼尔 HUD / 符文演出重构（2026-10-27）
+
+- ABI/原生布局：`Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'` exit 0；固定 Windows x25.01.17、API 1.42、SC 2.4.10.6、net472。只读取证真实 `GameWidget.xml` 与 `ComponentGui/Widget/ComponentInput`，确认 Look 160×160 逻辑容器、左右手镜像、GlobalBounds/ScreenToWidget 以及 ViewWidget 攻击输入链。
+- HUD/规则：Gungnir **105** 项通过。日志坐标：1280×720 → 神佑 `(962,609.3,72,72)`、裁决 `(1022,513.3,88,88)`；1920×1080 → `(1602,969.3,72,72)` / `(1662,873.3,88,88)`；1.25× UI（1024×576 逻辑）→ `(706,422,72,72)` / `(766,326,88,88)`；1.5× UI（1280×720 逻辑）同首组。四组 Look/快捷栏重叠均 false，左手镜像断言通过。此为离线逻辑检查，不是 Android 截图。
+- 资源：`New-GungnirAssets.py` 可复现；`Test-GungnirAssets.ps1` 用真实 Engine 导入 1 bone / 41 meshes / 1176 triangles，并通过透明 512×256 技能图、透明 1024×256 八字形图集、UV/CSV/音频存在性检查。
+- 完整回归：`Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0；Kelly、ATV、越野车、水上载具、直升机、坦克、生态、作物、激活、堡垒与 Gungnir 测试全绿；16 XDB `DATABASE VALIDATION PASSED`；net472 0 warning / 0 error。
+- 打包：`SCIEPort.netmod` **3,091,265 bytes / 99 entries**，SHA-256 `B451A23802425F83B68B53C7B1E0DE09C6A69FE965B55A8874FB9C7F86295830`；modinfo `0.33.0`，AssemblyVersion `0.33.0.0`。
+- Windows 游戏内 / Android 7723 / 双机联机：待验证。本轮未启动游戏、未连接设备，不将离线结果写成真机兼容。截图、触控、性能、清理与联机清单见 `docs/GUNGNIR-HUD-VFX-0.33-AUDIT.md`。
+
 ## 0.32.0 合并候选（苍穹之怒 V5.0 + 昆古尼尔 V4，2026-10-27）
 
 - 环境/ABI：已确认。执行 `scripts/Test-Environment.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17'`，程序集 `2.4.0.0`、API `1.42`、SC `2.4.10.6`、目标框架 `.NET Framework 4.7.2` 与保留 ID 检查通过。

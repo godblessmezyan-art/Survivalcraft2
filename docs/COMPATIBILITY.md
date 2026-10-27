@@ -1,5 +1,13 @@
 # 兼容性矩阵
 
+## 2026-10-27 SCIE-Port 0.34.0 昆古尼尔 V5.1/V5.1b
+
+本记录仅属于 SCIE-Port。0.34.0 保留 0.33.0 的目标原生 Look 相对布局，增强青金/白金按钮状态，并分离投枪去程与回程视觉、增加枪体能量脊/分段符文及固定池命中/折返提示。ID948、包244/字段、数值、投枪运动、Stormhammer 与 Builder Assistant 均未改。130 项规则/布局、真实资源/模型、16 XDB、net472 Release 和 99 条目包已确认；包 SHA-256 `CE23FA8C6933E1953D60DF7BD3009BFF157E6A76389E76533A9E7620B141B447`。Android 7723、多点触控、截图、性能和双机联机仍为待验证。详见 [V5.1 审查记录](../SCIE-Port/docs/GUNGNIR-V5.1-AUDIT.md)。
+
+## 2026-10-27 SCIE-Port 0.33.0 昆古尼尔 HUD / 特效重构
+
+本记录仅属于 SCIE-Port。已从固定 x25.01.17 Windows 程序集与真实 `GameWidget.xml` 取证 Look/Move/快捷栏控件和 Widget 坐标变换；新增 Look 锚定两技能 HUD、透明八字形符文图集与 `TexturedBatch3D` 双层演出。ID948、包244、Hook、协议、数值与 Builder Assistant 能力未改变。105 项离线规则/布局、资源/模型、16 XDB、net472 Release 和 99 条目 `.netmod` 已确认；Android 7723、真机多点触控/截图/帧率及双机联机仍为待验证。详见 [SCIE-Port 审查记录](../SCIE-Port/docs/GUNGNIR-HUD-VFX-0.33-AUDIT.md)。
+
 ## 2026-10-27 SCIE-Port 昆古尼尔 V4 开发候选
 
 本记录仅属于SCIE-Port。新增独立非放置物品ID948、网络包244、SCIEPortGungnir子系统；现有Hook签名不变。已确认固定Windows ABI、net472 Release编译、模型导入与`.netmod`包内容；Android/联机待验证。严格远程玩家运动物理权威当前不支持。按项目所有者明确要求，本次构建不运行仓库中缺失的Stormhammer测试工程。见[审查与缺口](../SCIE-Port/docs/GUNGNIR-V4-AUDIT.md)。Builder Assistant能力未改变。

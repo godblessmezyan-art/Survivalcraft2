@@ -14,7 +14,7 @@ namespace SCIEPort.Features.Gungnir
         {
             internal ComponentPlayer Player;
             internal uint Sequence, Sent, Revision, Received;
-            internal double BuffEnd, BuffReady, JudgmentReady, NextMelee, LastSnapshot, NextSnapshot, ChargeStart = -1;
+            internal double BuffEnd, BuffReady, BuffVisualStart = -100, JudgmentReady, NextMelee, LastSnapshot, NextSnapshot, ChargeStart = -1;
             internal double CastStart = -100, FlightStart;
             internal float WalkDelta, JumpDelta, BaseWalk, Distance;
             internal bool Equipped, Impact;
@@ -88,7 +88,7 @@ namespace SCIEPort.Features.Gungnir
             if (packet.Command == GungnirRules.Blessing)
             {
                 if (Now < s.BuffReady) return;
-                s.BuffEnd = Now + 15; s.BuffReady = Now + 35;
+                s.BuffVisualStart = Now; s.BuffEnd = Now + 15; s.BuffReady = Now + 35;
                 Sound("Invoke", p.ComponentBody.Position);
             }
             else if (packet.Command == GungnirRules.Judgment)
@@ -232,7 +232,7 @@ namespace SCIEPort.Features.Gungnir
             }
             float distance = MathUtils.Min(35 * dt, 40 - s.Distance);
             Vector3 end = s.Position + s.Direction * distance;
-            if (!Loaded(end)) { s.Phase = 2; return; }
+            if (!Loaded(end)) { BeginReturn(s); return; }
             var wall = m_terrain.Raycast(s.Position, end, false, true, (v, d) => BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable);
             if (wall.HasValue) end = wall.Value.HitPoint();
             for (int i = s.Hit.Count; i < 8; i++)
@@ -243,9 +243,17 @@ namespace SCIEPort.Features.Gungnir
                 float power = (s.Hit.Count == 0 ? 120 : 90) * (Now < s.BuffEnd ? 1.5f : 1);
                 s.Hit.Add(target.Entity.EntityId);
                 Damage(s.Player, target, power, s.Direction);
+                m_scene.FlightHit(target.BoundingBox.Center(), s.Direction);
             }
             s.Distance += Vector3.Distance(s.Position, end); s.Position = end;
-            if (wall.HasValue || s.Distance >= 39.99f || s.Hit.Count >= 8 || Now - s.FlightStart > 2) s.Phase = 2;
+            if (wall.HasValue || s.Distance >= 39.99f || s.Hit.Count >= 8 || Now - s.FlightStart > 2) BeginReturn(s);
+        }
+        private void BeginReturn(State s)
+        {
+            if (s.Phase == 2) return;
+            s.Phase = 2;
+            Vector3 returnDirection = s.Player.ComponentCreatureModel.EyePosition - s.Position;
+            m_scene.FlightReturn(s.Position, returnDirection.LengthSquared() > 0.01f ? Vector3.Normalize(returnDirection) : -s.Direction);
         }
         private void Judgment(State s)
         {
@@ -292,7 +300,14 @@ namespace SCIEPort.Features.Gungnir
             if (!GungnirRules.IsNewer(p.Sequence, s.Received)) return;
             s.Received = p.Sequence; s.LastSnapshot = Now;
             if (!s.Equipped && p.Equipped) s.BaseWalk = player.ComponentLocomotion.WalkSpeed - s.WalkDelta;
+            byte previousPhase = s.Phase;
             s.Equipped = p.Equipped; s.Phase = p.Phase; s.Position = p.Position; s.Direction = p.Direction; s.Target = p.Target;
+            if (previousPhase == 1 && p.Phase == 2)
+            {
+                Vector3 returnDirection = player.ComponentCreatureModel.EyePosition - p.Position;
+                m_scene.FlightReturn(p.Position, returnDirection.LengthSquared() > 0.01f ? Vector3.Normalize(returnDirection) : -p.Direction);
+            }
+            if (p.Blessing > 0f && s.BuffEnd <= Now) s.BuffVisualStart = Now;
             s.BuffEnd = Now + p.Blessing; s.BuffReady = Now + p.BlessingCooldown; s.JudgmentReady = Now + p.JudgmentCooldown; s.CastStart = Now - p.JudgmentAge;
         }
         private void Sound(string name, Vector3 p)

@@ -417,6 +417,7 @@ try {
         'Assets/Models/Gungnir.dae',
         'Assets/Textures/Gungnir.png',
         'Assets/Textures/GungnirSkills.png',
+        'Assets/Textures/GungnirRunes.png',
         'Assets/Audio/Gungnir/Invoke.wav',
         'Assets/Audio/Gungnir/Impact.wav',
         'Assets/Blocks/Gungnir.csv',
