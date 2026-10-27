@@ -21,6 +21,7 @@ namespace SCIEPort.Features.FourSaints
             internal uint Revision, ReceivedRevision;
             internal byte Equipment;
             internal double NextHeal, AwakenEnd, CooldownEnd, RebirthEnd, NextSnapshot;
+            internal double QinglongPulseEnd, XuanwuPulseEnd, NextXuanwuPulse;
             internal float JumpDelta;
             internal int OriginalHealthBars = 10;
         }
@@ -89,6 +90,18 @@ namespace SCIEPort.Features.FourSaints
             State state = Get(player);
             active = (float)Math.Max(0, state.AwakenEnd - Now);
             cooldown = (float)Math.Max(0, state.CooldownEnd - Now);
+        }
+
+        internal bool TryGetVisualState(ComponentPlayer player, out float qinglong, out float xuanwu, out float baihu, out float zhuque)
+        {
+            qinglong = xuanwu = baihu = zhuque = 0f;
+            State state;
+            if (player == null || !m_states.TryGetValue(player.Entity.EntityId, out state)) return false;
+            qinglong = MathUtils.Saturate((float)((state.QinglongPulseEnd - Now) / FourSaintsVisualRules.QinglongPulseSeconds));
+            xuanwu = MathUtils.Saturate((float)((state.XuanwuPulseEnd - Now) / FourSaintsVisualRules.XuanwuPulseSeconds));
+            baihu = MathUtils.Saturate((float)(state.AwakenEnd - Now));
+            zhuque = MathUtils.Saturate((float)((state.RebirthEnd - Now) / FourSaintsRules.ZhuqueLockDuration));
+            return qinglong > 0f || xuanwu > 0f || baihu > 0f || zhuque > 0f;
         }
 
         internal void RefreshLocalHealthBar(ComponentPlayer player)
@@ -184,6 +197,7 @@ namespace SCIEPort.Features.FourSaints
                 if (player.ComponentHealth.Health < maximum)
                 {
                     player.ComponentHealth.Health = MathUtils.Min(maximum, player.ComponentHealth.Health + FourSaintsRules.QinglongHealAmount);
+                    state.QinglongPulseEnd = Now + FourSaintsVisualRules.QinglongPulseSeconds;
                     CommonLib.Net.QueuePackage(new ComponentHealthPackage(player.ComponentHealth));
                 }
             }
@@ -240,7 +254,11 @@ namespace SCIEPort.Features.FourSaints
                 cause,
                 LanguageControl.Get(ComponentHealth.fName, 7),
                 LanguageControl.Get(ComponentVitalStats.fName, 25),
-                LanguageControl.Get(ComponentVitalStats.fName, 26))) return true;
+                LanguageControl.Get(ComponentVitalStats.fName, 26)))
+            {
+                PulseXuanwu(victimState);
+                return true;
+            }
             if (zhuque && (cause == LanguageControl.Get(ComponentHealth.fName, 1) || cause == LanguageControl.Get(ComponentHealth.fName, 5))) return true;
             if (Now < victimState.RebirthEnd && !ignoreInvulnerability) return true;
 
@@ -256,11 +274,19 @@ namespace SCIEPort.Features.FourSaints
                 Publish(victimState);
                 return true;
             }
+            if (xuanwu && attacker != null && adjusted < amount) PulseXuanwu(victimState);
             if (Math.Abs(adjusted - amount) < .00001f) return false;
             if (adjusted <= 0f) return true;
             try { s_replayingInjury = true; health.Injure(adjusted, attacker, ignoreInvulnerability, cause); }
             finally { s_replayingInjury = false; }
             return true;
+        }
+
+        private void PulseXuanwu(State state)
+        {
+            if (Now < state.NextXuanwuPulse) return;
+            state.XuanwuPulseEnd = Now + FourSaintsVisualRules.XuanwuPulseSeconds;
+            state.NextXuanwuPulse = Now + FourSaintsVisualRules.XuanwuThrottleSeconds;
         }
 
         private void Publish(State state)
@@ -289,7 +315,7 @@ namespace SCIEPort.Features.FourSaints
         public override void Dispose()
         {
             foreach (State state in m_states.Values) Restore(state);
-            m_states.Clear(); FourSaintsHud.Clear(); base.Dispose();
+            m_states.Clear(); FourSaintsHud.Clear(); FourSaintsVisuals.Reset(Project); base.Dispose();
         }
     }
 }

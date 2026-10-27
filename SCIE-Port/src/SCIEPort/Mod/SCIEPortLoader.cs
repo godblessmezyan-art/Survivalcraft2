@@ -133,6 +133,7 @@ namespace SCIEPort.Mod
         public override void OnModelRendererDrawExtra(SubsystemModelsRenderer modelsRenderer, ComponentModel componentModel, Camera camera, float? alphaThreshold)
         {
             AwakenedStormhammerVisuals.TouchAvatar(componentModel, camera);
+            FourSaintsVisuals.TouchAvatar(componentModel, camera);
         }
 
         /// <inheritdoc />

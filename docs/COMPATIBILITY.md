@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.39.0 四圣兽神装 V2 外观
+
+四件衣物保持原生 ClothingBlock 203、数据200～203、全部属性数值与包245字节布局，按目标引擎真实 64×64 全幅 UV/PointClamp 合成路径重绘为青龙、玄武、白虎、朱雀独立像素甲。新增四符纹透明图集及 `OnModelRendererDrawExtra` 骨骼跟随反馈；白虎/朱雀复用现有快照，青龙/玄武瞬时事件只在权威结算端可精确触发。低/中/高预算为5/9/12符纹，32/48米裁剪。资源可复现、28项四圣兽测试、全部既有套件、17 XDB、net472 Release与108条目包已确认；包3,496,154字节，SHA-256 `66C7064C0E7759B7722DD3DF4E29EB73F3A80ED171CCE5288BED14C1E74241A9`。Windows游戏画面、Android 7723、多姿态正背侧、性能和双机仍待验证；未交付未经运行验证的立体挂件。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。
+
 ## 2026-10-27 SCIE-Port 0.38.2 昆古尼尔物品格配色
 
 昆古尼尔背包与快捷栏专用皮肤由偏绿中心改为黑曜石深灰（呼吸中点约 `#252830`），边框改为古金（中点约 `#C99D55`），并显著收窄颜色波动；妙尔尼尔蓝紫分支、原生槽位结构以及颜色缓存/恢复/世界清理逻辑未改。固定 x25.01.17 环境 ABI、Gungnir 150 项、Stormhammer 671 项、全部既有离线套件、17 XDB、net472 Release 与 107 条目包已确认；包 SHA-256 `2F7FE982607FFB76238374DB309E9DE309FB7A3E8BE2201C3D6D2104DA92CF3E`。Android 7723 真机背包/快捷栏视觉与切换恢复仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。

@@ -41,6 +41,7 @@ $sdkMsBuild = Get-ChildItem -LiteralPath $dotnetSdkRoot -Directory |
 if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot" }
 
 & (Join-Path $PSScriptRoot 'Test-GungnirAssets.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-FourSaintsAssets.ps1') -ProjectDir $projectDir
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Gungnir.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo
@@ -53,6 +54,14 @@ foreach ($coldCause in @('LanguageControl.Get(ComponentVitalStats.fName, 25)', '
 }
 if ($fourSaintsSource.Contains('LanguageControl.Get(ComponentVitalStats.fName, 35)') -or $fourSaintsSource.Contains('ComponentFlu.fName')) {
     throw 'Xuanwu must not suppress heat or flu damage.'
+}
+$fourSaintsVisualSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\FourSaintsVisuals.cs')
+foreach ($visualRule in @('AbsoluteBoneTransformsForCamera', 'camera.InvertedViewMatrix', 'Textures/FourSaintsEffects', 'visibleDistance = quality == 0 ? 32f : 48f')) {
+    if (-not $fourSaintsVisualSource.Contains($visualRule)) { throw "Four Saints V2 bone-bound visual rule missing: $visualRule" }
+}
+$fourSaintsPackageSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\FourSaintsPackage.cs')
+foreach ($protocolRule in @('public byte ID => 245', 'AwakenRemaining, CooldownRemaining, RebirthRemaining')) {
+    if (-not $fourSaintsPackageSource.Contains($protocolRule)) { throw "Four Saints package 245 compatibility changed: $protocolRule" }
 }
 
 $kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
@@ -630,6 +639,7 @@ try {
         'Assets/FourSaints.clo',
         'Assets/Database/FourSaints.xdb',
         'Assets/Textures/FourSaintsBaihu.png',
+        'Assets/Textures/FourSaintsEffects.png',
         'Assets/Textures/Clothing/FourSaintsQinglong.png',
         'Assets/Textures/Clothing/FourSaintsXuanwu.png',
         'Assets/Textures/Clothing/FourSaintsBaihuLegs.png',

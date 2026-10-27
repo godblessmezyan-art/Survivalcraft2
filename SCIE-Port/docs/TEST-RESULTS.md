@@ -1,4 +1,13 @@
 # 测试结果
+# 0.39.0 四圣兽神装 V2 外观重构（2026-10-27）
+
+- 目标 ABI：固定 x25.01.17 反编译确认衣物以完整 UV 合成到玩家皮肤同尺寸 RenderTarget、`PointClamp` 采样；内置人物/原生衣物均为 64×64。`ComponentOuterClothingModel` 逐帧复制人物 Head/Body/Leg1/Leg2 骨骼；第一人称空手只使用 inner clothed texture，outer clothing 不单独显示。
+- 资源：四件 64×64 原生 UV 贴图、96×96 白虎 HUD 图标和 256×64 四符纹图集均由 `New-FourSaintsAssets.ps1` 原创生成；`Test-FourSaintsAssets.ps1` 对临时重生成结果逐文件 SHA-256 比较，并检查 PNG 尺寸、透明覆盖和材质色阶，全部通过。
+- 视觉：青龙真实回血 0.8 秒、玄武有效免疫/减伤 0.55 秒（0.35 秒节流）、白虎现有五秒状态、朱雀现有一秒状态驱动骨骼跟随符纹。低/中/高最大 5/9/12 个符纹，32/48 米裁剪；没有改包245字段或任何能力数值。
+- 四圣兽规则/布局/视觉预算：28 项断言通过。环境 ABI、Gungnir 150、Stormhammer 671 及全部既有离线套件通过；17 XDB 通过；net472 Release 0 warning / 0 error。
+- 完整构建：`scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0。包 3,496,154 bytes / 108 entries，SHA-256 `66C7064C0E7759B7722DD3DF4E29EB73F3A80ED171CCE5288BED14C1E74241A9`；modinfo/AssemblyVersion `0.39.0`/`0.39.0.0`。
+- 未进行 Windows 游戏进程、Android 7723 或双机联机实测；正背侧贴图、动作跟随、第一人称限制、实际帧率和主客机符纹均为待验证。未在缺少运行画面的情况下加入立体龙角/龟甲/膝甲/羽翼。详见 [V2 外观审查](FOUR-SAINTS-V2-ART-AUDIT.md)。
+
 # 0.38.2 昆古尼尔物品格黑曜石/古金配色（2026-10-27）
 
 - 昆古尼尔中心色范围为 RGB `(34～40, 37～43, 45～51)`，呼吸中点约 `#252830`；边框范围为 `(197～205, 153～161, 81～89)`，中点约 `#C99D55`。原周期保留，RGB 波动分别压低到 6/8；妙尔尼尔分支及槽位原色缓存、恢复、清理逻辑未改。

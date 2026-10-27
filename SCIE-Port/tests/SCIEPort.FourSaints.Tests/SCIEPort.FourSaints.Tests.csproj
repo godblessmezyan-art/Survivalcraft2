@@ -2,6 +2,7 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net472</TargetFramework><LangVersion>latest</LangVersion></PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\FourSaints\FourSaintsRules.cs" Link="FourSaintsRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\FourSaints\FourSaintsVisualRules.cs" Link="FourSaintsVisualRules.cs" />
     <Compile Include="..\..\src\SCIEPort\Features\FourSaints\FourSaintsHudLayout.cs" Link="FourSaintsHudLayout.cs" />
   </ItemGroup>
 </Project>

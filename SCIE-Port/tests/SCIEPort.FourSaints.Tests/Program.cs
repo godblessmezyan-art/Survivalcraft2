@@ -18,6 +18,9 @@ internal static class Program
         Check(Near(FourSaintsRules.QinglongMaximumHealth, 1.5f), "Qinglong maximum health");
         Check(FourSaintsRules.BaihuDuration == 5.0 && FourSaintsRules.BaihuCooldown == 60.0, "Baihu duration and cooldown");
         Check(FourSaintsRules.ZhuqueLockDuration == 1.0, "Zhuque rebirth lock duration");
+        Check(FourSaintsVisualRules.QinglongPulseSeconds == .8 && FourSaintsVisualRules.XuanwuPulseSeconds == .55, "visual pulses stay brief");
+        Check(FourSaintsVisualRules.XuanwuThrottleSeconds == .35, "environment immunity feedback is throttled");
+        Check(FourSaintsVisualRules.MaximumGlyphs(0) == 5 && FourSaintsVisualRules.MaximumGlyphs(1) == 9 && FourSaintsVisualRules.MaximumGlyphs(2) == 12, "visual glyph budget by quality");
         Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "drown", "drown", "cold-death", "freezing"), "Xuanwu drowning immunity");
         Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "cold-death", "drown", "cold-death", "freezing"), "Xuanwu lethal cold immunity");
         Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "freezing", "drown", "cold-death", "freezing"), "Xuanwu freezing tick immunity");
@@ -26,7 +29,7 @@ internal static class Program
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "flu", "drown", "cold-death", "freezing"), "Xuanwu does not block flu");
         Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "fall", "drown", "cold-death", "freezing"), "Xuanwu does not block fall");
         Layout(1280, 720, 1f); Layout(1920, 1080, 1f); Layout(1280, 720, 1.35f);
-        Console.WriteLine("Four Saints rules/layout: PASS (25 assertions)");
+        Console.WriteLine("Four Saints rules/layout/visual budget: PASS (28 assertions)");
         return 0;
     }
 
