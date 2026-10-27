@@ -29,7 +29,7 @@ namespace SCIEPort.Features.PortableFortress
     /// Owns every deployed Portable Fortress: batched construction, proxy maintenance,
     /// save/load reconciliation and the bounded stair/hatch rise assist.
     /// </summary>
-    public sealed class SubsystemPortableFortress : Subsystem, IUpdateable
+    public sealed class SubsystemPortableFortress : Subsystem, IUpdateable, IDrawable
     {
         /// <summary>Anchor entity template name.</summary>
         public const string AnchorTemplateName = "SCIEPortFortress";
@@ -48,8 +48,18 @@ namespace SCIEPort.Features.PortableFortress
         private SubsystemPlayers m_players;
         private SubsystemTime m_time;
 
+        private static readonly int[] s_drawOrders = { 106 };
+
+        private FortressGlazingRenderer m_glazing;
+
         /// <summary>Update before bodies integrate so the rise assist is not overwritten.</summary>
         public UpdateOrder UpdateOrder => UpdateOrder.Locomotion;
+
+        /// <summary>
+        /// Pane and glow pass. 106 sits after the entity models (99) and the lightning ribbons
+        /// (105) so the glass blends over the world it is set into.
+        /// </summary>
+        public int[] DrawOrders => s_drawOrders;
 
         /// <summary>Live instance count.</summary>
         public int InstanceCount => m_instances.Count;
@@ -62,14 +72,54 @@ namespace SCIEPort.Features.PortableFortress
             m_bodies = Project.FindSubsystem<SubsystemBodies>(throwOnError: true);
             m_players = Project.FindSubsystem<SubsystemPlayers>(throwOnError: true);
             m_time = Project.FindSubsystem<SubsystemTime>(throwOnError: true);
+            m_glazing = new FortressGlazingRenderer();
+            m_glazing.Load();
         }
 
         /// <inheritdoc />
         public override void Dispose()
         {
+            m_glazing?.Dispose();
+            m_glazing = null;
             m_instances.Clear();
             m_jobs.Clear();
             base.Dispose();
+        }
+
+        /// <inheritdoc />
+        public void Draw(Camera camera, int drawOrder)
+        {
+            if (m_glazing == null || m_instances.Count == 0)
+            {
+                return;
+            }
+
+            Vector3 viewPosition = camera.ViewPosition;
+            bool queued = false;
+            foreach (FortressInstance instance in m_instances.Values)
+            {
+                FortressRecord record = instance.Record;
+                if (record == null || record.State != FortressState.Deployed)
+                {
+                    continue;
+                }
+
+                // Cheap reject: the envelope is 11 x 13, so anything past 40 cells cannot show.
+                float dx = record.AnchorX + 0.5f - viewPosition.X;
+                float dz = record.AnchorZ + 0.5f - viewPosition.Z;
+                if (dx * dx + dz * dz > 1600f)
+                {
+                    continue;
+                }
+
+                m_glazing.Queue(record, viewPosition);
+                queued = true;
+            }
+
+            if (queued)
+            {
+                m_glazing.Flush(camera);
+            }
         }
 
         /// <summary>Registers an anchor component discovered during load.</summary>
@@ -436,18 +486,27 @@ namespace SCIEPort.Features.PortableFortress
                     }
 
                     FortressDeploymentRules.WorldToLocal(record, position.X, position.Z, out float localX, out float localZ);
-                    if (!FortressTraversalRules.TryGetTargetHeight(localX, localZ, position.Y - record.BaseY, out float targetOffset))
+
+                    // Only the instance the player is actually near may steer them; instances
+                    // never overlap, and a far one must not report a bogus target height.
+                    if (Math.Abs(localX) > PortableFortressGeometry.HalfWidth + 1.5f
+                        || Math.Abs(localZ) > PortableFortressGeometry.HalfLength + 1.5f)
                     {
                         continue;
                     }
 
                     float feetOffset = position.Y - record.BaseY;
-                    if (!FortressTraversalRules.TryGetAssistedHeight(feetOffset, body.Velocity.Y, targetOffset, dt, out float newOffset))
+                    bool engaged = false;
+                    float targetOffset = 0f;
+                    if (FortressTraversalRules.TryGetTargetHeight(localX, localZ, feetOffset, out targetOffset)
+                        && FortressTraversalRules.TryGetAssistedHeight(feetOffset, body.Velocity.Y, targetOffset, dt, out float newOffset))
                     {
-                        break;
+                        body.Position = new Vector3(position.X, record.BaseY + newOffset, position.Z);
+                        engaged = true;
                     }
 
-                    body.Position = new Vector3(position.X, record.BaseY + newOffset, position.Z);
+                    FortressDiagnostics.TracePlayer(
+                        record.Id, record, body, localX, localZ, engaged, targetOffset, m_time?.GameTime ?? 0.0);
                     break;
                 }
             }

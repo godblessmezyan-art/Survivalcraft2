@@ -33,7 +33,7 @@ foreach ($primitive in $triangles) {
     $indices = @($indexText -split '\s+' | Where-Object { $_.Length -gt 0 })
     if ($indices.Count -ne ([int]$primitive.count * 3 * 3)) { throw "Triangle index stream length mismatch in $($primitive.ParentNode.ParentNode.id)." }
 }
-if ($triangleCount -ne 1248) { throw "Fortress triangle contract changed: expected 1248, got $triangleCount." }
+if ($triangleCount -ne 13470) { throw "Fortress triangle contract changed: expected 13470, got $triangleCount. Regenerate with scripts/New-PortableFortressArt.py and update this number from its output." }
 
 $minX=[double]::PositiveInfinity; $minY=[double]::PositiveInfinity; $minZ=[double]::PositiveInfinity
 $maxX=[double]::NegativeInfinity; $maxY=[double]::NegativeInfinity; $maxZ=[double]::NegativeInfinity
@@ -60,7 +60,7 @@ try { $model = $load.Invoke($null, @($stream)) } finally { $stream.Dispose() }
 if ($model.Bones.Count -ne 1) { throw "Target importer returned $($model.Bones.Count) bones; expected one static bone." }
 if ($model.Meshes.Count -ne 11) { throw "Target importer returned $($model.Meshes.Count) meshes; expected 11." }
 
-Write-Host 'Portable Fortress whitebox: PASS'
+Write-Host 'Portable Fortress Hearthguard model: PASS'
 Write-Host "  Target importer: Engine.Media.ModelData.Load(Stream)"
 Write-Host "  Bones/Meshes/Triangles: $($model.Bones.Count)/$($model.Meshes.Count)/$triangleCount"
 Write-Host "  Bounds: 11 x 13 x 9 (X $minX..$maxX, Z $minZ..$maxZ, Y $minY..$maxY)"

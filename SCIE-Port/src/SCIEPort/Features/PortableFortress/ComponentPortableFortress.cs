@@ -33,6 +33,17 @@ namespace SCIEPort.Features.PortableFortress
             };
             m_subsystem = Project.FindSubsystem<SubsystemPortableFortress>(throwOnError: false);
             m_subsystem?.Attach(this);
+
+            // Emission floor, not lighting. SubsystemModelsRenderer samples terrain light once
+            // per model (CalculateModelLight at the body centre) and the model shader has no
+            // per-material emission, so a real interior lamp would also brighten the whole
+            // exterior. This value only keeps the interior from going pure black at night; the
+            // hearth and wall lamps are separate additive quads in FortressGlazingRenderer.
+            ComponentSimpleModel model = Entity.FindComponent<ComponentSimpleModel>(throwOnError: false);
+            if (model != null && !model.EmissionColor.HasValue)
+            {
+                model.EmissionColor = new Vector4(0.10f, 0.062f, 0.034f, 0f);
+            }
         }
 
         /// <inheritdoc />

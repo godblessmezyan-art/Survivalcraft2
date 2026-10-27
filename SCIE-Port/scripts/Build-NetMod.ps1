@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
@@ -271,7 +271,12 @@ if (-not $thunderGodSource.Contains('ThunderGodPowerMultiplier = 2f')) {
 if (-not $thunderGodSource.Contains('SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);')) {
     throw 'Casting the ultimate must refresh the Thunderous Judgment cooldown, not the ultimate cooldown.'
 }
-if ($thunderGodSource -notmatch 'DiagnosticDamage\("physical"[^;]*PhysicalMeleePower, 1f') {
+# Physical melee power is handed to the native path verbatim; the multiplier may only
+# ever reach the delayed lightning add-on.
+if ($thunderGodSource -notmatch [regex]::Escape('attackPower = PhysicalMeleePower;')) {
+    throw 'The awakened melee power must be passed to the native path unmodified.'
+}
+if ($thunderGodSource -match 'attackPower\s*=\s*[^;]*ThunderGodPowerMultiplier') {
     throw 'Physical melee damage must never be multiplied by the Thunder God window.'
 }
 if ($thunderGodSource -notmatch 'DiagnosticDamage\("retaliation"[^;]*RetaliationPower, 1f') {
@@ -297,6 +302,87 @@ if (-not $visualsSource.Contains('BuildStormSchedule(seed, phases)')) {
     throw 'The backdrop storm must use the phased density schedule.'
 }
 $hudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
+# --- Mjolnir rework guards -------------------------------------------------
+if (-not $awakenedSource.Contains('JudgmentCooldown = 8f')) {
+    throw 'Thunderous Judgment must stay on the shortened 8 s cooldown.'
+}
+if (-not $visualsSource.Contains('MainStrikeTime = 0.28f')) {
+    throw 'The main bolt must land almost immediately (0.28 s) instead of after a long wind-up.'
+}
+if (-not $visualsSource.Contains('BuildGreatBoltSchedule')) {
+    throw 'The heavy bolt layer is missing: the ultimate would only show thin backdrop strikes.'
+}
+if (-not $visualsSource.Contains('GreatSchedule') -or -not $visualsSource.Contains('state.MainSpawned && state.GreatSchedule')) {
+    throw 'Heavy bolts must be gated on the main strike having landed.'
+}
+if (-not $lightningRulesSource.Contains('BuildGreatBoltSchedule')) {
+    throw 'The great bolt schedule must be a deterministic rule, not ad hoc spawning.'
+}
+$awakenedBlockSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerAwakenedBlock.cs')
+if (-not $awakenedBlockSource.Contains('ContentManager.Get<Model>("Models/Stormhammer")')) {
+    throw 'Mjolnir must reuse the base Stormhammer mesh; its identity comes from effects, not a second model.'
+}
+if ($awakenedBlockSource.Contains('Models/StormhammerAwakened')) {
+    throw 'The old awakened DAE must not be loaded again.'
+}
+$hammerSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerVisuals.cs')
+if (-not $hammerSource.Contains('DriveCorona')) {
+    throw 'The Mjolnir corona (orbit ring plus crackle arcs) is missing.'
+}
+if (-not $hammerSource.Contains('GetScene')) {
+    throw 'The corona must emit real bolts through the shared scene, not particles.'
+}
+if ($hudSource.Contains('雷霆万钧') -or $hudSource.Contains('万象雷劫')) {
+    throw 'The HUD must not render skill names any more.'
+}
+if ($hudSource -match 'OutlineThickness = size') {
+    throw 'The HUD must not draw the cyan outline frame any more.'
+}
+foreach ($csvFile in @('Stormhammer.csv', 'StormhammerAwakened.csv')) {
+    $rows = @(Import-Csv -LiteralPath (Join-Path (Join-Path $projectDir 'Assets\Blocks') $csvFile) -Delimiter ';' -Encoding UTF8)
+    if ($rows.Count -lt 1) { throw "$csvFile is empty." }
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Stormhammer.csv')).Contains('雷神之锤·伪')) {
+    throw 'The base hammer must be named 雷神之锤·伪.'
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')).Contains('雷神之锤·妙尔尼尔')) {
+    throw 'The awakened hammer must be named 雷神之锤·妙尔尼尔.'
+}
+# --- Slot skin, hit values and the fake hammer add-on -----------------------
+# NOTE: read the behavior source locally; $awakenedBehavior is only defined much later
+# in the V3.2 contract block and would be $null here.
+$displayBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
+$mjolnirDisplay = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
+if (-not $mjolnirDisplay.Contains('StormhammerAwakenedBlock.Index')) {
+    throw 'MjolnirDisplay must key on the awakened block index.'
+}
+if ($mjolnirDisplay.Contains('StormhammerBlock.Index')) {
+    throw 'MjolnirDisplay must not decorate the fake hammer slot.'
+}
+if (-not $mjolnirDisplay.Contains('BevelColor')) {
+    throw 'MjolnirDisplay must restore the bevel it overrides.'
+}
+if (-not $mjolnirDisplay.Contains('ResetAll')) {
+    throw 'MjolnirDisplay must be able to undo its paints when the subsystem dies.'
+}
+foreach ($displayRule in @('BaseHammerLightningPower = 5f','LightningDisplayDelay = 0.4f')) {
+    if (-not $displayBehavior.Contains($displayRule)) { throw "Stormhammer display rule missing: $displayRule" }
+}
+if (-not $displayBehavior.Contains('ShowHitValue')) {
+    throw 'The lightning add-on must spawn a visible hit value; health.Injure alone shows nothing.'
+}
+if (-not $displayBehavior.Contains('ComponentHealthPackage')) {
+    throw 'Remote clients must receive the hit value package.'
+}
+if (-not $displayBehavior.Contains('contents == StormhammerBlock.Index')) {
+    throw 'The fake hammer melee add-on is missing.'
+}
+if (-not $displayBehavior.Contains('MjolnirDisplay.Update')) {
+    throw 'The slot decorator must be driven from the subsystem update loop.'
+}
+if (-not $displayBehavior.Contains('MjolnirDisplay.ResetAll')) {
+    throw 'Slot skins must be restored on dispose.'
+}
 if (-not $hudSource.Contains('GetThunderGodRemaining')) {
     throw 'The HUD must surface the Thunder God countdown.'
 }
@@ -322,6 +408,80 @@ if (-not $fortressBehavior.Contains('WorkType.Client')) {
 if ($fortressBehavior.IndexOf('FortressDeploymentRules.Evaluate') -gt $fortressBehavior.IndexOf('m_fortresses.TryBeginDeploy')) {
     throw 'The preflight must run before any fortress state is created.'
 }
+
+# --- Hearthguard art pass guards -------------------------------------------
+# The entrance fix depends on three things staying true together. Each one was a
+# real defect at some point, so each is asserted rather than reviewed by eye.
+if (-not $fortressGeometry.Contains('StairRise = 0.435f')) {
+    throw 'StairRise must be (DeckTop - FloorTop) / 8 = 0.435 so the last tread is flush with the deck.'
+}
+if (-not $fortressGeometry.Contains('DoorInnerZ = 6.20f')) {
+    throw 'The level-1 floor must stop at the inner face of the rear wall (6.20) or it puts a 0.36 body lip across the doorway.'
+}
+if (-not $fortressGeometry.Contains('FortressZone.Glazing')) {
+    throw 'The glazing proxies are missing: the observation windows would be walk-through holes.'
+}
+if (-not $fortressGeometry.Contains('EntrySillMaxZ = RearFaceZ')) {
+    throw 'The bounded entrance sill assist must stay on the hidden threshold cells.'
+}
+if (-not $fortressDeploy.Contains('MaxRiseSpeed = 4.5f')) {
+    throw 'The rise assist must stay clamped to the native 4.5 m/s smooth rise.'
+}
+if (-not $fortressDeploy.Contains('DoorHalfClearanceX')) {
+    throw 'The entrance sill assist must be limited to the doorway width.'
+}
+$fortressGlazing = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\FortressGlazingRenderer.cs')
+if (-not $fortressGlazing.Contains('BlendState.AlphaBlend')) {
+    throw 'The glazing pass must use alpha blending; the component model shader has no blended pass.'
+}
+if (-not $fortressGlazing.Contains('DepthStencilState.DepthRead')) {
+    throw 'The glazing pass must not write depth or it would clip the world behind the pane.'
+}
+$fortressOptions = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\FortressOptions.cs')
+if (-not $fortressOptions.Contains('public static bool Diagnostics')) {
+    throw 'The entrance trace switch must exist so an Android run can be diagnosed without a rebuild.'
+}
+if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\PortableFortress\ComponentPortableFortress.cs')).Contains('EmissionColor')) {
+    throw 'The fortress model needs its low warm emission floor or the interior is unreadable at night.'
+}
+
+# The atlas must be a real 1024 atlas with every declared region painted; a regression
+# to the old 64x64 single-panel texture would silently turn the fortress dark again.
+Add-Type -AssemblyName System.Drawing
+$fortressAtlasPath = Join-Path $projectDir 'Assets\Textures\PortableFortress.png'
+$fortressAtlas = [Drawing.Bitmap]::FromFile($fortressAtlasPath)
+try {
+    if ($fortressAtlas.Width -ne 1024 -or $fortressAtlas.Height -ne 1024) {
+        throw "PortableFortress.png must be the 1024x1024 UV atlas, got $($fortressAtlas.Width)x$($fortressAtlas.Height)."
+    }
+    $fortressColours = @{}
+    for ($y = 0; $y -lt 1024; $y += 16) {
+        for ($x = 0; $x -lt 1024; $x += 16) {
+            $pixel = $fortressAtlas.GetPixel($x, $y)
+            if ($pixel.A -ne 255) { throw "PortableFortress.png must be fully opaque; found alpha $($pixel.A) at $x,$y." }
+            $fortressColours[('{0},{1},{2}' -f $pixel.R, $pixel.G, $pixel.B)] = $true
+        }
+    }
+    if ($fortressColours.Count -lt 48) {
+        throw "PortableFortress.png has only $($fortressColours.Count) distinct colours over a 16 px grid; the per-material regions are not painted."
+    }
+}
+finally { $fortressAtlas.Dispose() }
+foreach ($paneFile in @('FortressGlass.png', 'FortressGlow.png')) {
+    $paneBitmap = [Drawing.Bitmap]::FromFile((Join-Path (Join-Path $projectDir 'Assets\Textures') $paneFile))
+    try {
+        if ($paneBitmap.Width -ne 64 -or $paneBitmap.Height -ne 64) { throw "$paneFile must be 64x64." }
+        $translucent = 0
+        for ($y = 0; $y -lt 64; $y += 4) {
+            for ($x = 0; $x -lt 64; $x += 4) {
+                if ($paneBitmap.GetPixel($x, $y).A -lt 200) { $translucent++ }
+            }
+        }
+        if ($translucent -lt 16) { throw "$paneFile must carry real translucent pixels, not a solid plate." }
+    }
+    finally { $paneBitmap.Dispose() }
+}
+
 
 Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
@@ -473,7 +633,6 @@ try {
         'Assets/Models/Chicken.dae',
         'Assets/Models/Helicopter.dae',
         'Assets/Models/Stormhammer.dae',
-        'Assets/Models/StormhammerAwakened.dae',
         'Assets/Models/ThunderSpear.dae',
         'Assets/Models/PortableFortress.dae',
         'Assets/Models/FortressCore.dae',
@@ -492,6 +651,8 @@ try {
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/PortableFortress.png',
+        'Assets/Textures/FortressGlass.png',
+        'Assets/Textures/FortressGlow.png',
         'Assets/Textures/FortressCore.png',
         'Assets/Textures/Apple.png',
         'Assets/Textures/Helicopter.png',
@@ -1811,10 +1972,9 @@ try {
         }
     }
 
-    # Skywrath V2 is a separate production item. Validate both the weapon and
-    # visible thunder-spear asset through the target importer, not XML alone.
+    # Mjolnir reuses Models/Stormhammer, so only the visible thunder spear still needs its
+    # own production-asset contract. Validate it through the target importer, not XML alone.
     foreach ($awakenedModelCheck in @(
-        @{ File = 'StormhammerAwakened.dae'; Root = 'StormhammerAwakened'; Meshes = 39; Triangles = 1604; Attachments = @('Grip','LanceMuzzle','DomainOrigin','UltimateFocus') },
         @{ File = 'ThunderSpear.dae'; Root = 'ThunderSpear'; Meshes = 5; Triangles = 108; Attachments = @('Tip','Tail') }
     )) {
         $awakenedPath = Join-Path $projectDir ('Assets\Models\' + $awakenedModelCheck.File)
@@ -1870,7 +2030,7 @@ try {
         throw 'Skywrath V3.2 HUD must instantiate exactly two active skills.'
     }
     $awakenedBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
-    foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 12f','UltimateCooldown = 55f')) {
+    foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 8f','UltimateCooldown = 55f')) {
         if (-not $awakenedBehavior.Contains($requiredCombatRule)) { throw "Skywrath V3.2 combat rule missing: $requiredCombatRule" }
     }
     foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛','雷霆王域')) {

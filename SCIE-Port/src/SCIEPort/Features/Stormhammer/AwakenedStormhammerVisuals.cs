@@ -28,8 +28,18 @@ namespace SCIEPort.Features.Stormhammer
     /// </summary>
     internal static class AwakenedStormhammerVisuals
     {
-        /// <summary>Seconds from cast start to the main bolt landing (server publishes the same value).</summary>
-        public const float MainStrikeTime = 4.85f;
+        /// <summary>
+        /// Seconds from cast start to the main bolt landing. The server publishes exactly this
+        /// value, so the bolt and the damage share one clock. Short on purpose: Mjolnir is meant to
+        /// hit the ground the moment it is swung, not after a five second wind-up.
+        /// </summary>
+        public const float MainStrikeTime = 0.28f;
+
+        /// <summary>First heavy bolt after the main strike, and the spacing between them.</summary>
+        public const float GreatBoltFirst = 0.55f;
+
+        /// <summary>Last heavy bolt of the window.</summary>
+        public const float GreatBoltLast = 11.20f;
 
         /// <summary>Seconds the storm sky and backdrop stay active (matches the Thunder God window).</summary>
         public const float StormReleaseTime = 12.0f;
@@ -48,8 +58,9 @@ namespace SCIEPort.Features.Stormhammer
             public bool LocalCaster;
             public LightningRules.StormStrike[] Schedule;
             public int Cursor;
+            public LightningRules.StormStrike[] GreatSchedule;
+            public int GreatCursor;
             public double NextSkyFlash;
-            public double HushUntil;
             public bool MainSpawned;
         }
 
@@ -72,6 +83,14 @@ namespace SCIEPort.Features.Stormhammer
         private static readonly Dictionary<Project, LightningScene> s_scenes = new Dictionary<Project, LightningScene>();
         private static readonly Dictionary<Project, Dictionary<ushort, double>> s_overcharge =
             new Dictionary<Project, Dictionary<ushort, double>>();
+
+        /// <summary>The bolt pool owned by the project, or null before the subsystem loads.</summary>
+        public static LightningScene GetScene(Project project)
+        {
+            if (project == null) return null;
+            LightningScene scene;
+            return s_scenes.TryGetValue(project, out scene) ? scene : null;
+        }
 
         /// <summary>Registers the geometry pool owned by the project's subsystem.</summary>
         public static void RegisterScene(Project project, LightningScene scene)
@@ -239,14 +258,17 @@ namespace SCIEPort.Features.Stormhammer
             // then a long sustain so the backdrop covers the whole 12 s window.
             float density = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 1f
                 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 0.62f : 0.34f;
+            // No hush window any more: the main bolt lands at 0.28 s, so the storm opens on the
+            // climax instead of building to it, then keeps hammering for the rest of the window.
             var phases = new[]
             {
-                new LightningRules.StormPhase(1.15f, 2.70f, Scale(5, density), Scale(18, density)),
-                new LightningRules.StormPhase(2.70f, 4.10f, Scale(6, density), Scale(26, density)),
-                new LightningRules.StormPhase(4.10f, 4.85f, Scale(1, density), Scale(4, density)),
-                new LightningRules.StormPhase(4.85f, 6.80f, Scale(9, density), Scale(44, density)),
-                new LightningRules.StormPhase(6.80f, 11.60f, Scale(6, density), Scale(26, density))
+                new LightningRules.StormPhase(0.05f, 1.10f, Scale(4, density), Scale(10, density)),
+                new LightningRules.StormPhase(1.10f, 3.20f, Scale(7, density), Scale(26, density)),
+                new LightningRules.StormPhase(3.20f, 6.60f, Scale(10, density), Scale(40, density)),
+                new LightningRules.StormPhase(6.60f, 11.60f, Scale(7, density), Scale(28, density))
             };
+            int great = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 11
+                : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 8 : 5;
             uint seed = LightningRules.Mix(package.CastId, 0x5F356495u);
             list.Add(new StormState
             {
@@ -258,8 +280,9 @@ namespace SCIEPort.Features.Stormhammer
                 Seed = seed,
                 LocalCaster = IsLocalCaster(project, package.CasterId),
                 Schedule = LightningRules.BuildStormSchedule(seed, phases),
-                NextSkyFlash = now + 0.35,
-                HushUntil = now + 4.1
+                GreatSchedule = LightningRules.BuildGreatBoltSchedule(
+                    LightningRules.Mix(seed, 0x2B7E1516u), GreatBoltFirst, GreatBoltLast, great, 8f, 18f),
+                NextSkyFlash = now + 0.16
             });
 
             if (scene != null)
@@ -452,7 +475,20 @@ namespace SCIEPort.Features.Stormhammer
                         SpawnBackdropStrike(project, scene, state, strike, now);
                     }
 
-                    if (now >= state.NextSkyFlash && elapsed < 6.6f)
+                    // Heavy layer: full sized, branched bolts in the near field, held back until the
+                    // main strike has landed so the first one cannot upstage it.
+                    if (state.MainSpawned && state.GreatSchedule != null)
+                    {
+                        while (state.GreatCursor < state.GreatSchedule.Length
+                            && state.GreatSchedule[state.GreatCursor].Time <= elapsed)
+                        {
+                            LightningRules.StormStrike strike = state.GreatSchedule[state.GreatCursor];
+                            state.GreatCursor++;
+                            SpawnBackdropStrike(project, scene, state, strike, now);
+                        }
+                    }
+
+                    if (now >= state.NextSkyFlash && elapsed < 11.6f)
                     {
                         state.NextSkyFlash = now + (StormhammerOptions.Quality == StormhammerEffectQuality.High ? 0.28 : 0.55);
                         AddFlash(project, 0.18f);
@@ -483,6 +519,33 @@ namespace SCIEPort.Features.Stormhammer
             bool resident = IsResident(project, ground);
             Vector3 impact = resident ? ground : new Vector3(ground.X, state.Centre.Y + 6f, ground.Z);
             Vector3 start = new Vector3(ground.X, state.Centre.Y + strike.Height, ground.Z);
+
+            if (strike.Great)
+            {
+                // A heavy bolt: the same shape family as the main strike, scaled so it reads as a
+                // real Mjolnir bolt landing in the near field instead of another backdrop tick.
+                scene.Spawn(
+                    LightningBoltKind.Main,
+                    start,
+                    impact,
+                    strike.Seed,
+                    now,
+                    0.85,
+                    1.15f,
+                    3.10f,
+                    new Color(248, 252, 255, 245),
+                    new Color(66, 150, 255, 210),
+                    4,
+                    5.5f,
+                    resident);
+                scene.SpawnRune(impact, 0.8f, 5.2f, now, 0.90f, new Color(190, 226, 255, 215));
+                AddFlash(project, 0.42f);
+                SubsystemAudio heavyAudio = project.FindSubsystem<SubsystemAudio>(false);
+                heavyAudio?.PlaySound("Audio/Stormhammer/Strike", 0.55f, -0.18f, ground, 52f, false);
+                SubsystemParticles heavyParticles = project.FindSubsystem<SubsystemParticles>(false);
+                heavyParticles?.AddParticleSystem(StormhammerParticleSystem.CreateBurst(impact + Vector3.UnitY * 0.4f, 2.2f));
+                return;
+            }
 
             bool near = strike.Near;
             float core = near ? 0.30f : 0.13f;

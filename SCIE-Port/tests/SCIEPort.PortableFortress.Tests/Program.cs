@@ -55,6 +55,17 @@ internal static class Program
         Assert(segments.Any(s => s.Zone == FortressZone.Stair), "stair present");
         Assert(segments.Count(s => s.Zone == FortressZone.Stair) == PortableFortressGeometry.StairStepCount,
             "eight stair treads");
+        Assert(segments.Any(s => s.Zone == FortressZone.Glazing), "glazing proxies present");
+        foreach (FortressSegment pane in segments.Where(s => s.Zone == FortressZone.Glazing))
+        {
+            if (!pane.Name.StartsWith("Glazing", StringComparison.Ordinal))
+            {
+                continue; // the splayed nose corner uses a block proxy, not a pane
+            }
+
+            float thin = Math.Min(pane.Box.SizeX, pane.Box.SizeZ);
+            Assert(thin <= 0.09f, "glazing pane stays thin enough to see through: " + pane.Name + " " + thin);
+        }
 
         // The level-1 walking surface must sit at 0.36, never a full cell: a full-cell floor
         // would leave the player floating above the visual foundation top.
@@ -76,12 +87,20 @@ internal static class Program
         Assert(!segments.Any(s => Overlaps(s.Box, -1.19f, 0.37f, 6.21f, 1.19f, 2.74f, 6.49f)),
             "rear door opening is not sealed");
 
+        // Regression: the floor must never reach into the doorway again. A 0.36-high body lip
+        // across the door cannot be smooth-risen (body pushes are never smoothed), so the player
+        // was forced to jump. The doorway floor is the hidden threshold terrain instead.
+        Assert(!segments.Any(s => s.Zone == FortressZone.Floor && s.Box.MaxZ > PortableFortressGeometry.DoorInnerZ + 0.001f),
+            "floor stops at the inner face of the rear wall");
+        Assert(segments.Any(s => s.Zone == FortressZone.Floor && Math.Abs(s.Box.MaxZ - PortableFortressGeometry.DoorInnerZ) < 0.001f),
+            "floor still reaches the rear wall");
+
         // Observation apertures: the band between sill and header on both side walls.
-        Assert(!segments.Any(s => s.Zone != FortressZone.Deck && Overlaps(s.Box, 4.0f, 4.75f, -4.8f, 4.5f, 6.4f, 4.8f)),
+        Assert(!segments.Any(s => ClearOfGlazing(s) && Overlaps(s.Box, 4.0f, 4.75f, -4.8f, 4.5f, 6.4f, 4.8f)),
             "east window band is not sealed");
-        Assert(!segments.Any(s => s.Zone != FortressZone.Deck && Overlaps(s.Box, -4.5f, 4.75f, -4.8f, -4.0f, 6.4f, 4.8f)),
+        Assert(!segments.Any(s => ClearOfGlazing(s) && Overlaps(s.Box, -4.5f, 4.75f, -4.8f, -4.0f, 6.4f, 4.8f)),
             "west window band is not sealed");
-        Assert(!segments.Any(s => s.Zone != FortressZone.Deck && Overlaps(s.Box, -3.2f, 4.75f, -6.5f, 3.2f, 6.4f, -6.2f)),
+        Assert(!segments.Any(s => ClearOfGlazing(s) && Overlaps(s.Box, -3.2f, 4.75f, -6.5f, 3.2f, 6.4f, -6.2f)),
             "front observation aperture is not sealed");
 
         // Stairwell: no deck may cover x[-4.3,-2.2] z[-4,0.25].
@@ -228,14 +247,14 @@ internal static class Program
             previous = top;
         }
 
-        Assert(Math.Abs(PortableFortressGeometry.StairTreadTop(0) - 0.81f) < 0.001f, "first tread top 0.81");
+        Assert(Math.Abs(PortableFortressGeometry.StairTreadTop(0) - (PortableFortressGeometry.FloorTop + PortableFortressGeometry.StairRise)) < 0.001f, "first tread top is one rise above the floor");
         Assert(PortableFortressGeometry.StairTreadAt(-4.0f) == 0, "stair front is tread 0");
         Assert(PortableFortressGeometry.StairTreadAt(-3.51f) == 0, "tread 0 covers the first run");
         Assert(PortableFortressGeometry.StairTreadAt(-3.49f) == 1, "tread 1 follows");
         Assert(PortableFortressGeometry.StairTreadAt(0.30f) == -1, "outside the stair run");
 
         Assert(FortressTraversalRules.TryGetTargetHeight(-3.25f, -3.75f, 0.36f, out float stairTarget), "stair target found");
-        Assert(Math.Abs(stairTarget - 0.81f) < 0.001f, "stair target at the first tread");
+        Assert(Math.Abs(stairTarget - PortableFortressGeometry.StairTreadTop(0)) < 0.001f, "stair target at the first tread");
 
         Assert(FortressTraversalRules.TryGetTargetHeight(3.15f, 4.375f, 3.84f, out float shaftBase), "shaft target found");
         Assert(Math.Abs(shaftBase - PortableFortressGeometry.DeckTop) < 0.01f, "shaft starts at the deck");
@@ -243,7 +262,16 @@ internal static class Program
         Assert(Math.Abs(shaftTop - PortableFortressGeometry.RoofTop) < 0.01f, "shaft ends at the roof");
         Assert(!FortressTraversalRules.TryGetTargetHeight(0f, 0f, 0.36f, out _), "open floor is not a path");
 
+        // Entrance sill: a bounded 0.36 lift that only exists on the threshold cells.
+        Assert(FortressTraversalRules.TryGetTargetHeight(0f, PortableFortressGeometry.EntrySillMaxZ - 0.1f, 0f, out float sill), "entrance sill target found");
+        Assert(Math.Abs(sill - PortableFortressGeometry.FloorTop) < 0.001f, "entrance sill is the foundation top");
+        Assert(!FortressTraversalRules.TryGetTargetHeight(0f, PortableFortressGeometry.EntrySillMaxZ + 0.4f, 0f, out _), "sill does not reach outside the envelope");
+        Assert(!FortressTraversalRules.TryGetTargetHeight(2.6f, 6.0f, 0f, out _), "sill is limited to the doorway width");
+        Assert(!FortressTraversalRules.TryGetTargetHeight(0f, 6.0f, 0.90f, out _), "sill is skipped once the player is above it");
+
         Assert(FortressTraversalRules.TryGetAssistedHeight(0.36f, 0f, 0.81f, 0.1f, out float lifted), "assist engages on a tread");
+        Assert(Math.Abs(PortableFortressGeometry.StairTreadTop(PortableFortressGeometry.StairStepCount - 1) - PortableFortressGeometry.DeckTop) < 0.001f,
+            "the last tread is flush with the level-2 deck");
         Assert(lifted > 0.36f && lifted <= 0.81f, "assist raises towards the tread");
         Assert(FortressTraversalRules.TryGetAssistedHeight(0.36f, 0f, 0.81f, 0.0166f, out float smallLift), "assist respects dt");
         Assert(smallLift - 0.36f <= FortressTraversalRules.MaxRiseSpeed * 0.0166f + 0.0001f, "assist rate is clamped");
@@ -271,6 +299,11 @@ internal static class Program
         Assert(FortressRecoveryRules.Evaluate(null, false) == FortressRecoveryStatus.Unknown, "unknown core refuses recovery");
         Assert(FortressTransactionLimits.MaxTerrainCellsPerDeployment == 4, "terrain budget stays tiny");
         Assert(FortressTransactionLimits.SegmentsPerTick < FortressTransactionLimits.MaxSegmentsPerInstance, "deployment is batched");
+    }
+
+    private static bool ClearOfGlazing(FortressSegment segment)
+    {
+        return segment.Zone != FortressZone.Deck && segment.Zone != FortressZone.Glazing;
     }
 
     private static bool Overlaps(FortressBox box, float minX, float minY, float minZ, float maxX, float maxY, float maxZ)
