@@ -55,6 +55,9 @@ $componentPlayer = $assembly.GetType('Game.ComponentPlayer', $true)
 $componentInput = $assembly.GetType('Game.ComponentInput', $true)
 $componentLocomotion = $assembly.GetType('Game.ComponentLocomotion', $true)
 $componentDamage = $assembly.GetType('Game.ComponentDamage', $true)
+$componentHealth = $assembly.GetType('Game.ComponentHealth', $true)
+$componentVitalStats = $assembly.GetType('Game.ComponentVitalStats', $true)
+$componentFlu = $assembly.GetType('Game.ComponentFlu', $true)
 $subsystemAudio = $assembly.GetType('Game.SubsystemAudio', $true)
 $sound = $engineAssembly.GetType('Engine.Audio.Sound', $true)
 $subsystemUpdate = $assembly.GetType('Game.SubsystemUpdate', $true)
@@ -131,6 +134,13 @@ if (-not $componentDamage.GetProperty('Hitpoints') -or
     -not $componentDamage.GetMethod('Damage', [Reflection.BindingFlags]'Public,Instance') -or
     -not $componentDamage.GetMethod('Save', [Reflection.BindingFlags]'Public,Instance')) {
     throw 'ComponentDamage durability/save API required by the finite-life tank was not found.'
+}
+if (-not $componentHealth.GetMethod('Injure', [Reflection.BindingFlags]'Public,Instance') -or
+    -not $componentVitalStats.GetMethod('UpdateTemperature', [Reflection.BindingFlags]'Public,Instance') -or
+    -not $componentVitalStats.GetField('fName', [Reflection.BindingFlags]'Public,Static') -or
+    -not $componentFlu.GetMethod('FluEffect', [Reflection.BindingFlags]'Public,Instance') -or
+    -not $componentFlu.GetField('fName', [Reflection.BindingFlags]'Public,Static')) {
+    throw 'Four Saints cold-immunity ABI requires ComponentVitalStats.UpdateTemperature/fName, ComponentHealth.Injure and the distinct ComponentFlu path.'
 }
 $inputUpdateOrder = [int]$componentInput.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentInput), $null)
 $playerUpdateOrder = [int]$componentPlayer.GetProperty('UpdateOrder').GetValue([Activator]::CreateInstance($componentPlayer), $null)

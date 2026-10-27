@@ -235,7 +235,12 @@ namespace SCIEPort.Features.FourSaints
             bool xuanwu = (victimState.Equipment & 2) != 0;
             bool zhuque = (victimState.Equipment & 8) != 0;
             if (qinglong && cause == LanguageControl.Get(ComponentHealth.fName, 2)) return true;
-            if (xuanwu && cause == LanguageControl.Get(ComponentHealth.fName, 7)) return true;
+            if (FourSaintsRules.IsXuanwuEnvironmentalImmunity(
+                xuanwu,
+                cause,
+                LanguageControl.Get(ComponentHealth.fName, 7),
+                LanguageControl.Get(ComponentVitalStats.fName, 25),
+                LanguageControl.Get(ComponentVitalStats.fName, 26))) return true;
             if (zhuque && (cause == LanguageControl.Get(ComponentHealth.fName, 1) || cause == LanguageControl.Get(ComponentHealth.fName, 5))) return true;
             if (Now < victimState.RebirthEnd && !ignoreInvulnerability) return true;
 

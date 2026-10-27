@@ -1,4 +1,12 @@
 # 测试结果
+# 0.38.1 四圣兽 V1.1 玄武严寒免疫（2026-10-27）
+
+- x25.01.17 实际路径：`ComponentVitalStats.UpdateTemperature` 在体温≤0时以 `fName,25` 调用 `ComponentHealth.Injure(1f,...)`，体温<3时每10秒以 `fName,26` 调用 `Injure(0.05f,...)`；两者均进入现有 `OnCreatureInjure` 权威入口。过热为 `fName,35`，流感为独立 `ComponentFlu.fName,4`，均未加入免疫。
+- 实现：玄武 ID 201 的现有溺水判断扩为三个精确相等原因；没有模糊文本匹配，没有修改 Temperature/Wetness/天气/季节，也没有改变衣物 200～203 或包 245 格式。
+- 四圣兽离线套件扩为 25 条断言，增加严寒双路径、卸装装备门、非目标原因、青龙/白虎/朱雀常量回归；完整构建结果见本节最终包记录。
+- 完整构建：环境 ABI、全部既有离线套件、17 XDB、net472 Release（0 warning / 0 error）和 107 条目包通过。包 3,482,940 bytes，SHA-256 `D1E1F8E6393740C9DE46F72172650A89CDF9AF74054C8A28BD90EB181325FED3`；modinfo/AssemblyVersion `0.38.1`/`0.38.1.0`。
+- Android 7723 雪地穿脱、湿身降温、流感保留及主客机权威行为仍为待验证。
+
 # 0.38.0 四圣兽神装 V1（2026-10-27）
 
 - ABI 取证：目标 `ComponentHealth` 为 1.0=10 点、原生 `Heal` 与生命条均硬限 1.0；衣物块 203 的数据号为 8 位，原版最高 37。本模块用衣物数据 200～203 和包 245。

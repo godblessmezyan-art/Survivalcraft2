@@ -14,8 +14,19 @@ internal static class Program
         Check(Near(FourSaintsRules.AttackFrequency(true, true, true), 2.2f), "Mjolnir and Baihu multiply without overwrite");
         float jump = FourSaintsRules.JumpSpeedForOneExtraBlock(6f, 1f);
         Check(Near((jump * jump - 36f) / 20f, 1f), "jump apex gains one block");
+        Check(FourSaintsRules.QinglongHealPeriod == 5.0 && Near(FourSaintsRules.QinglongHealAmount, .1f), "Qinglong heal cadence");
+        Check(Near(FourSaintsRules.QinglongMaximumHealth, 1.5f), "Qinglong maximum health");
+        Check(FourSaintsRules.BaihuDuration == 5.0 && FourSaintsRules.BaihuCooldown == 60.0, "Baihu duration and cooldown");
+        Check(FourSaintsRules.ZhuqueLockDuration == 1.0, "Zhuque rebirth lock duration");
+        Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "drown", "drown", "cold-death", "freezing"), "Xuanwu drowning immunity");
+        Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "cold-death", "drown", "cold-death", "freezing"), "Xuanwu lethal cold immunity");
+        Check(FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "freezing", "drown", "cold-death", "freezing"), "Xuanwu freezing tick immunity");
+        Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(false, "freezing", "drown", "cold-death", "freezing"), "Xuanwu immunity ends when unequipped");
+        Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "heat", "drown", "cold-death", "freezing"), "Xuanwu does not block heat");
+        Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "flu", "drown", "cold-death", "freezing"), "Xuanwu does not block flu");
+        Check(!FourSaintsRules.IsXuanwuEnvironmentalImmunity(true, "fall", "drown", "cold-death", "freezing"), "Xuanwu does not block fall");
         Layout(1280, 720, 1f); Layout(1920, 1080, 1f); Layout(1280, 720, 1.35f);
-        Console.WriteLine("Four Saints rules/layout: PASS (14 assertions)");
+        Console.WriteLine("Four Saints rules/layout: PASS (25 assertions)");
         return 0;
     }
 

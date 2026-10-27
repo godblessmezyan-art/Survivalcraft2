@@ -1,4 +1,8 @@
 # 兼容性矩阵
+## 2026-10-27 SCIE-Port 0.38.1 四圣兽 V1.1
+
+从固定哈希的 x25.01.17 `ComponentVitalStats.UpdateTemperature` 确认严寒直接伤害均调用 `ComponentHealth.Injure`，原因为 `ComponentVitalStats.fName` 索引 25/26；玄武铠现通过既有服务端权威 Hook 精确免疫这两类伤害。过热索引35、流感 `ComponentFlu.fName,4`、体温/湿度/天气均不修改。衣物块203、数据200～203及包245协议不变。Windows ABI、25条规则/布局、17 XDB、net472 Release 与107条目包已确认；Android 7723 和双机仍待验证。Builder Assistant 方块能力未变化，`blueprint-block-reference.md` 无需修改。
+
 ## 2026-10-27 SCIE-Port 0.38.0 四圣兽神装
 
 新增原生衣物块 203 的数据号 200～203、独立 FourSaints 子系统和权威包 245。Windows x25.01.17 程序集已确认 `ComponentHealth` 的 1.0=10 显示点换算、伤害前 Hook、衣物槽/防护/耐久接口、输入及火焰接口；17 XDB、net472 Release、离线规则/布局与 `.netmod` 内容已确认。Android 7723 的衣物渲染、触屏、多伤害路径与主机/客户端同步均待验证。Builder Assistant 方块能力未变化，故 `docs/blueprint-block-reference.md` 无需修改。

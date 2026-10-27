@@ -2,6 +2,12 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
+Version 0.38.1 extends Xuanwu Armor with immunity to both verified direct cold
+damage causes from `ComponentVitalStats.UpdateTemperature` (localization indices
+25 and 26). It does not freeze body temperature, change weather, suppress heat,
+or suppress the separate `ComponentFlu` disease/damage path. Clothing data IDs
+200-203 and Baihu packet 245 remain byte-for-byte compatible.
+
 Version 0.38.0 adds four independent native clothing items: Qinglong Crown,
 Xuanwu Armor, Baihu Greaves and Zhuque Boots (clothing data 200-203 on native
 clothing block 203). Their authority runtime provides max-health/regen and fall

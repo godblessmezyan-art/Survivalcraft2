@@ -47,6 +47,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Stormhammer rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.FourSaints.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Four Saints rule/layout tests failed' }
+$fourSaintsSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\SubsystemFourSaints.cs')
+foreach ($coldCause in @('LanguageControl.Get(ComponentVitalStats.fName, 25)', 'LanguageControl.Get(ComponentVitalStats.fName, 26)')) {
+    if (-not $fourSaintsSource.Contains($coldCause)) { throw "Four Saints cold immunity is missing exact x25.01.17 cause: $coldCause" }
+}
+if ($fourSaintsSource.Contains('LanguageControl.Get(ComponentVitalStats.fName, 35)') -or $fourSaintsSource.Contains('ComponentFlu.fName')) {
+    throw 'Xuanwu must not suppress heat or flu damage.'
+}
 
 $kellyTests = Join-Path $projectRoot 'tests\SCIEPort.KellyPlants.Tests\SCIEPort.KellyPlants.Tests.csproj'
 & $dotnetPath run --project $kellyTests --configuration Release --nologo

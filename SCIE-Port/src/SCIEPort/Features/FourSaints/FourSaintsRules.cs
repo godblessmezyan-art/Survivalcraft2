@@ -40,6 +40,11 @@ namespace SCIEPort.Features.FourSaints
             float effective = Math.Max(0f, rawJumpSpeed) * multiplier;
             return (float)Math.Sqrt(effective * effective + 20f) / Math.Max(0.01f, multiplier);
         }
+
+        public static bool IsXuanwuEnvironmentalImmunity(bool equipped, string cause, string drowningCause, string lethalColdCause, string freezingCause)
+        {
+            return equipped && (cause == drowningCause || cause == lethalColdCause || cause == freezingCause);
+        }
     }
 }
 #pragma warning restore 1591
