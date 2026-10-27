@@ -222,58 +222,113 @@ namespace SCIEPort.Features.Gungnir
         private void DrawJudgment(Vector3 center, float age)
         {
             float sky = GungnirSkyRules.SkyBlend(age);
-            float edict = MathUtils.Saturate(age / 1.2f);
+            float edict = MathUtils.Saturate(age / 0.9f);
             float impactAge = age - GungnirSkyRules.ImpactTime;
-            float groundAlpha = age < GungnirSkyRules.ImpactTime ? edict : sky * MathUtils.Saturate((3.8f - impactAge) / 2.4f);
+            float groundAlpha = age < GungnirSkyRules.ImpactTime ? edict : sky * MathUtils.Saturate((4.6f - impactAge) / 3.2f);
 
             // Ground runes light from the centre outward during the edict, then answer the impact.
             Seal(center, 7f, age * 0.12f, groundAlpha * 0.82f, 16, edict);
             Seal(center + Vector3.UnitY * 0.025f, 5.35f, -age * 0.18f, groundAlpha * 0.58f, 12, MathUtils.Saturate((age - 0.16f) * 2.1f));
             Seal(center + Vector3.UnitY * 0.05f, 2.15f, age * 0.28f, groundAlpha * 0.78f, 8, MathUtils.Saturate((age - 0.34f) * 2.2f));
             DrawSkyBackdrop(center, age, sky, edict);
+            DrawSkyRift(center, age);
+            DrawJudgmentSpear(center, age);
+            if (impactAge >= 0f) DrawJudgmentImpact(center, age, impactAge, sky);
+        }
 
-            if (age < 1.2f)
+        /// <summary>Vertical tear in the canopy that the spear descends through.</summary>
+        private void DrawSkyRift(Vector3 center, float age)
+        {
+            float open = age < GungnirSkyRules.ImpactTime ? MathUtils.Saturate(age / 0.42f) : MathUtils.Saturate((3.4f - age) / 1.9f);
+            if (open <= 0.004f) return;
+            const float top = 66f, bottom = 1.1f;
+            Vector3 mouth = center + Vector3.UnitY * bottom;
+            float widen = MathUtils.Lerp(0.4f, 2.6f, open);
+            Beam(mouth, center + Vector3.UnitY * top, 0.16f + 0.12f * (1f - open), new Color(255, 250, 228) * (open * 0.55f));
+            Beam(mouth, mouth + Vector3.UnitY * 34f, 0.55f * open, Gold(open * 0.12f));
+            int jaws = m_quality + 2;
+            for (int i = 0; i < jaws; i++)
             {
-                // Phase A: the real mesh condenses inside the rings but remains high and still.
-                float form = EaseOut(edict);
-                Vector3 position = center + Vector3.UnitY * 25f;
-                Spear(position, -Vector3.UnitY, MathUtils.Lerp(1.15f, 3.55f, form), new Color(255, 244, 206) * form, true, false);
+                float t = (i + 1f) / (jaws + 1f);
+                float sway = MathUtils.Sin(age * 1.7f + i * 1.9f) * 0.6f;
+                Vector3 a = center + new Vector3(sway * (1f - t), MathUtils.Lerp(bottom, top, t), widen * 0.3f * (1f - t));
+                Vector3 b = center + new Vector3(sway + widen * ((i & 1) == 0 ? 1f : -1f), MathUtils.Lerp(bottom, top, t + 0.18f), widen * 0.3f * (1f - t));
+                Beam(a, b, 0.05f + 0.03f * (1f - t), Gold(open * (0.34f - 0.05f * i)));
+            }
+        }
+
+        /// <summary>The giant spear itself: it condenses in the tear, plunges blade-first, then stands buried.</summary>
+        private void DrawJudgmentSpear(Vector3 center, float age)
+        {
+            float alpha = GungnirSkyRules.SpearAlpha(age);
+            if (alpha <= 0.004f) return;
+            float scale = GungnirSkyRules.SpearScale * GungnirSkyRules.SpearScaleFactor(age);
+            float height = GungnirSkyRules.SpearHeight(age);
+            bool falling = GungnirSkyRules.SpearFalling(age);
+            bool embedded = age >= GungnirSkyRules.ImpactTime;
+            if (embedded)
+            {
+                float settle = MathUtils.Saturate((age - GungnirSkyRules.ImpactTime) / 0.6f);
+                height += 0.4f * (1f - settle) + MathUtils.Sin(age * 42f) * 0.05f * (1f - settle) * (1f - settle);
+            }
+            Vector3 origin = center + Vector3.UnitY * height;
+            Color core = (embedded ? new Color(255, 240, 196) : new Color(255, 252, 232)) * alpha;
+            if (falling)
+            {
+                // Speed afterimages: cheaper than a motion-blurred mesh and readable at 30 fps.
+                int ghosts = GungnirSkyRules.AfterImageCount(m_quality);
+                for (int i = ghosts; i >= 1; i--)
+                    Spear(origin + Vector3.UnitY * (i * (2.6f + i * 1.7f)), -Vector3.UnitY, scale * (1f - 0.06f * i), new Color(255, 214, 140) * (alpha * 0.42f / i), false, false);
+            }
+            Spear(origin, -Vector3.UnitY, scale, core, true, false);
+            if (age < GungnirSkyRules.SpearFormEnd)
+            {
+                // Sky rune light streams into the condensing blade before it is released.
+                float form = GungnirSkyRules.SpearScaleFactor(age);
                 int converge = GungnirSkyRules.ConvergenceBeams(m_quality);
                 for (int i = 0; i < converge; i++)
                 {
                     float angle = i * TwoPi / converge + age * (0.08f + i * 0.006f);
-                    Vector3 source = center + new Vector3(MathUtils.Cos(angle) * (13f + i % 3 * 2.5f), 29f + i % 2 * 3f, MathUtils.Sin(angle) * (13f + i % 3 * 2.5f));
-                    Beam(source, position + Vector3.UnitY * (1.3f - i * 0.08f), 0.035f + 0.012f * (i & 1), Gold(form * 0.28f));
+                    Vector3 source = center + new Vector3(MathUtils.Cos(angle) * (16f + i % 3 * 3f), 34f + i % 2 * 4f, MathUtils.Sin(angle) * (16f + i % 3 * 3f));
+                    Beam(source, origin + Vector3.UnitY * (2.2f - i * 0.12f), 0.04f + 0.014f * (i & 1), Gold(form * 0.3f));
                 }
-                return;
             }
+            if (!falling) return;
+            float tip = height - GungnirSkyRules.SpearBladeLength * scale;
+            for (int i = 0; i < m_tailBands + 1; i++)
+                Beam(center + Vector3.UnitY * (GungnirSkyRules.SpearHoverHeight + 9f + i * 3.4f), center + Vector3.UnitY * MathUtils.Max(tip + 1.4f, 1.2f), 0.1f + i * 0.13f, Gold(0.5f / (i + 1)));
+            OrientedRing(center + Vector3.UnitY * MathUtils.Max(tip + 2.6f, 0.6f), Vector3.UnitY, 1.2f + (age - GungnirSkyRules.SpearFormEnd) * 7f, 0.05f, new Color(255, 246, 214) * 0.55f, 14);
+        }
 
-            if (age < GungnirSkyRules.ImpactTime)
-            {
-                // Phase B: the whole descent is compressed into 0.2 s and still lands at 1.4 s.
-                float fall = EaseIn((age - 1.2f) / 0.2f);
-                Vector3 position = center + Vector3.UnitY * MathUtils.Lerp(25f, 0.55f, fall);
-                Spear(position, -Vector3.UnitY, 3.55f, new Color(255, 252, 226), true, false);
-                for (int i = 0; i < m_tailBands; i++)
-                    Beam(center + Vector3.UnitY * (34f + i * 1.8f), position + Vector3.UnitY * (1.1f + i * 0.32f), 0.12f + i * 0.09f, Gold((0.58f - i * 0.09f) * MathUtils.Saturate(fall * 1.8f)));
-                return;
-            }
-
-            // Phase C/D: one impact, three waves, then a long controlled oracle afterglow.
-            float flash = MathUtils.Saturate(1f - impactAge / 0.2f) * (StormhammerOptions.ReducedFlashes ? 0.35f : 1f);
-            if (impactAge < 1.6f)
-                Spear(center + Vector3.UnitY * 0.55f, -Vector3.UnitY, 3.55f * (1f - impactAge * 0.08f), Gold(MathUtils.Saturate(1f - impactAge / 1.6f)), true, false);
+        private void DrawJudgmentImpact(Vector3 center, float age, float impactAge, float sky)
+        {
+            float flash = MathUtils.Saturate(1f - impactAge / 0.26f) * (StormhammerOptions.ReducedFlashes ? 0.35f : 1f);
             if (flash > 0f)
             {
-                Beam(center + new Vector3(-6f, 0.22f, 0f), center + new Vector3(6f, 0.22f, 0f), 0.13f + 0.34f * flash, new Color(255, 254, 235) * flash);
-                Beam(center + new Vector3(0f, 0.22f, -6f), center + new Vector3(0f, 0.22f, 6f), 0.13f + 0.34f * flash, new Color(255, 254, 235) * flash);
+                const float reach = 9.5f;
+                Beam(center + new Vector3(-reach, 0.3f, 0f), center + new Vector3(reach, 0.3f, 0f), 0.16f + 0.5f * flash, new Color(255, 254, 238) * flash);
+                Beam(center + new Vector3(0f, 0.3f, -reach), center + new Vector3(0f, 0.3f, reach), 0.16f + 0.5f * flash, new Color(255, 254, 238) * flash);
+                Beam(center + Vector3.UnitY * 0.1f, center + Vector3.UnitY * 24f, 0.06f + 0.22f * flash, Gold(flash * 0.85f));
+                OrientedRing(center + Vector3.UnitY * 0.12f, Vector3.UnitY, MathUtils.Lerp(1f, 13f, MathUtils.Saturate(impactAge / 0.5f)), 0.2f, Gold(flash * 0.9f), 24);
             }
             for (int i = 0; i < 3; i++)
             {
                 float wave = MathUtils.Saturate((impactAge - i * 0.13f) / (0.76f + i * 0.12f));
                 if (wave > 0f && wave < 1f) Ring(center + Vector3.UnitY * (0.08f + i * 0.07f), MathUtils.Lerp(0.45f, 12f - i * 1.7f, EaseOut(wave)), 0.14f - i * 0.025f, Gold((1f - wave) * (0.98f - i * 0.17f)));
             }
-
+            // Embers and dust thrown up along the buried shaft.
+            int embers = GungnirSkyRules.EmberCount(m_quality);
+            float emberFade = sky * MathUtils.Saturate((6.4f - impactAge) / 3.4f);
+            for (int i = 0; i < embers; i++)
+            {
+                float local = MathUtils.Max(0f, impactAge - i * 0.05f);
+                float rise = MathUtils.Saturate(local / (1.8f + (i % 3) * 0.5f));
+                float angle = i * TwoPi / embers + local * (0.5f + (i & 1) * 0.2f);
+                Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
+                Vector3 start = center + radial * (0.6f + rise * 2.4f) + Vector3.UnitY * (0.1f + rise * (6f + i % 4 * 1.8f));
+                Beam(start, start + Vector3.UnitY * (0.9f + (i % 3) * 0.5f), 0.05f + 0.02f * (i & 1), Gold(emberFade * (1f - rise) * 0.8f));
+            }
+            // Glyph fragments drifting outward after the impact.
             int fragments = MathUtils.Min(m_dynamicGlyphs, GungnirSkyRules.SkyRunes(m_quality));
             float fragmentFade = sky * MathUtils.Saturate((8.7f - age) / 4.5f);
             for (int i = 0; i < fragments; i++)

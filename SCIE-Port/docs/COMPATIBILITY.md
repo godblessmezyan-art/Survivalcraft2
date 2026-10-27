@@ -1,4 +1,8 @@
 # SCIE-Port 兼容性记录
+## 0.40.0 昆古尼尔技能名铭牌、投枪可靠性与天降巨枪（离线已确认，Android/联机待验证，2026-10-27）
+
+技能名改为刻在徽记内部的 21 单位铭牌带（`GungnirHudLayout.NameBandHeight`），徽记 `Visual` 恢复为 `size × size`，因此既有 1280×720 / 1920×1080 / 1.25× / 1.5× 布局、左手镜像与 16 单位原生避让结果全部不变，名称不可能再被 DPI、安全区或快捷栏挤出可视区。投枪不再依赖 x25.01.17 `OnAim` 通路：`Update` 直接采样 `PlayerInput.Aim` 自建蓄力时钟，`OnAim` 改为空实现，`Launch` 取消相位门（飞行中再次投掷即召回旧枪），并新增 3.2 秒飞行租约看门狗与 0.15 秒最短蓄力；这消除了引擎 1.4 秒重新武装、`m_isAimBlocked` 锁与相位滞留三者叠加造成的「投几次后无法投掷」。永恒裁决改为裂穹—高空显形—俯冲—落地—消散的巨枪演出，时间轴纯函数化，1.4 秒伤害时点、9 秒生命周期、`SkyBlend/ImpactFlash` 与三档预算规则未改。包 244/245 字段、ID 948、模型/贴图、伤害 120/90/45/20、裁决 300→150、冷却 8/50 秒、移速 ×1.5/×2 与飞行 35/45 格每秒全部未改。Gungnir 307 项、Stormhammer 671 项及全部既有套件、17 XDB、net472 Release（0 warning / 0 error）与 108 条目打包通过；产物 3,497,393 bytes，SHA-256 `1F7EAE1C5EB91D4D6F82302A748E81906313D836FC984C0C821910587787A0E1`，modinfo `0.40.0`，AssemblyVersion `0.40.0.0`。Android 7723 连续投掷手感、铭牌可读性、巨枪帧率与双机联机仍为待验证。见 [V6 审查记录](GUNGNIR-V6-THROW-HEAVENLY-SPEAR.md)。
+
 ## 0.37.0 双神器操作与强化（离线已确认，Android/联机待验证，2026-10-27）
 
 从 x25.01.17 `ComponentPlayer.Update` 与原生 `SubsystemThrowableBlockBehavior.OnAim` 反编译确认：蓄力阶段 `OnAim` 返回 `true` 会被解释为立即取消，原生投掷物在 `InProgress` 返回 `false`、仅终态返回 `true`。昆古尼尔已采用该契约，包 244 布局不变。物品栏统一由一个槽位装饰器保存/恢复原色，妙尔尼尔保持蓝紫，昆古尼尔新增暗青/古金背景，避免快速换装残色。昆古尼尔近战神圣二段延迟 0.4 秒结算并发送金色 `ComponentHealthPackage`/本地 `HitValueParticleSystem`，与原生白色首段分离；神佑/裁决冷却改为 8/50 秒。真妙尔尼尔装备时地面移动 ×1.20，原生近战门限由 0.66 秒按 ×1.10 换算为 0.60 秒；死亡、骑乘、创造飞行、换装及 Dispose 会撤销移动增量。Gungnir 150、Stormhammer 671 项及全部既有套件通过，16 XDB、net472 Release、100 条目打包通过；产物 3,469,440 bytes，SHA-256 `A99251BCC465BED727EE8D4E53AA4DAA076AED5FE47953088DE58A05A412D494`。Android 7723 长按、多点触控、两段数字、移速/攻速手感及双机联机仍为待验证。

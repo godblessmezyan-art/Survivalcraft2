@@ -2,6 +2,20 @@
 
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
+Version 0.40.0 fixes three Gungnir issues in one runtime/presentation pass. Both skill
+names are now engraved into a nameplate band inside each badge, so no device DPI,
+safe area or wide hotbar can hide them. Long-press throwing is driven by the mod's own
+`PlayerInput.Aim` clock instead of the engine aim callback: x25.01.17 re-arms that
+callback only 1.4 s after a completed hold and latches `m_isAimBlocked` whenever a
+behaviour consumes `InProgress`, which is what made the spear stop throwing after a
+few uses. A flight-lease watchdog plus "recall instead of reject" launching remove
+every phase lock, and a throw now needs only a ~0.35 s press. Eternal Judgment was
+rebuilt as a genuine sky-falling giant spear: a vertical tear opens in the canopy, the
+4.6x blade condenses 40 blocks overhead, plunges blade-first with afterimages and a
+full-height trail, then stands buried with embers, three shockwaves and a dissolving
+shaft. The 1.4 s damage tick, radius, damage values, block ID 948 and packet 244/245
+layouts are unchanged.
+
 Version 0.39.0 is the Four Saints V2 art pass. All four native 64x64 clothing
 overlays are rebuilt as authored pixel armor with distinct Qinglong, Xuanwu,
 Baihu and Zhuque materials. Existing package 245 state now drives a compact

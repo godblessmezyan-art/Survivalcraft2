@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.39.0",
+  "Version": "0.40.0",
   "ApiVersion": "1.42",
-  "Description": "拓展原版生存世界，新增生态植物、陆海空载具、特色装备与神话神器。v0.38.1 为玄武铠增加严寒直接伤害免疫，保留溺水免疫与最终生命伤害减免；衣物ID和权威包245协议不变。Android 7723与多人同步仍待真机验证。",
+  "Description": "拓展原版生存世界，新增生态植物、陆海空载具、特色装备与神话神器。v0.40.0 把昆古尼尔技能名刻进图标铭牌，投枪改为自有蓄力时钟并加飞行租约看门狗，永恒裁决改为高空巨枪俯冲；技能包244/245与伤害数值不变。Android 7723与多人同步仍待真机验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

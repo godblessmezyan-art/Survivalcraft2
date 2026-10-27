@@ -15,6 +15,12 @@ namespace SCIEPort.Features.Gungnir
         public const float HolyDamageDelay = 0.4f;
         /// <summary>Substates carried in the existing package Phase byte for reliable long-press throw.</summary>
         internal const byte ThrowBegin = 1, ThrowComplete = 2, ThrowCancel = 3;
+        /// <summary>Minimum visible aim time before a release becomes a throw. The engine already
+        /// requires a 0.2 s hold before PlayerInput.Aim exists, so 0.15 s means a ~0.35 s press.</summary>
+        public const float MinThrowCharge = 0.15f;
+        /// <summary>Hard lease for a purely visual flight. Exceeding it force-releases the phase so a
+        /// stalled flight can never block the next throw.</summary>
+        public const float ThrowLease = 3.2f;
         /// <summary>Maximum outbound distance, in terrain cells.</summary>
         public const float ThrowRange = 40f;
         /// <summary>Outbound flight velocity.</summary>
@@ -34,7 +40,7 @@ namespace SCIEPort.Features.Gungnir
         internal static bool IsThrowSignal(byte signal) => signal >= ThrowBegin && signal <= ThrowCancel;
         internal static bool CanCompleteThrow(bool began, double serverCharge, float reportedCharge) => began
             && serverCharge >= 0.0 && reportedCharge >= 0f && reportedCharge <= 10f
-            && (serverCharge >= 0.25 || reportedCharge >= 0.25f);
+            && (serverCharge >= MinThrowCharge || reportedCharge >= MinThrowCharge);
         /// <summary>In-progress must return false or x25.01.17 immediately cancels aiming.</summary>
         public static bool ShouldConsumeAim(bool inProgress) => !inProgress;
     }

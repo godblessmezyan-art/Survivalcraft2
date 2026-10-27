@@ -10,6 +10,9 @@ namespace SCIEPort.Features.Gungnir
         internal const float NativeGap = 10f;
         internal const float DiagonalX = 60f;
         internal const float DiagonalY = 96f;
+        /// <summary>Height of the engraved nameplate band inside each icon. It must stay well
+        /// inside the badge so no device safe area or native control can hide the skill name.</summary>
+        internal const float NameBandHeight = 21f;
 
         internal struct Rect
         {

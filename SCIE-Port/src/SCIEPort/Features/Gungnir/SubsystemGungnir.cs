@@ -18,12 +18,12 @@ namespace SCIEPort.Features.Gungnir
             internal ComponentPlayer Player;
             internal uint Sequence, Sent, Revision, Received;
             internal double BuffEnd, BuffReady, BuffVisualStart = -100, JudgmentReady, NextMelee, LastSnapshot, NextSnapshot, ChargeStart = -1;
-            internal double CastStart = -100, FlightStart;
+            internal double CastStart = -100, FlightStart, AimStart = -1;
             internal float WalkDelta, JumpDelta, BaseWalk, Distance;
-            internal bool Equipped, Impact;
+            internal bool Equipped, Impact, AimHeld;
             internal byte Phase;
             internal int Slot;
-            internal Vector3 Position, Direction, Target, PreviousOwner;
+            internal Vector3 Position, Direction, Target, PreviousOwner, AimDirection;
             internal readonly HashSet<ushort> Hit = new HashSet<ushort>();
         }
         private sealed class PendingHolyDamage
@@ -100,7 +100,9 @@ namespace SCIEPort.Features.Gungnir
                 if (!GungnirRules.IsThrowSignal(packet.Phase)) return;
                 if (packet.Phase == GungnirRules.ThrowBegin)
                 {
-                    if (s.Phase == 0 && s.ChargeStart < 0) s.ChargeStart = Now;
+                    // A begin during an active flight still opens a charge window: the launch below
+                    // recalls the old spear instead of silently dropping the new one.
+                    if (s.ChargeStart < 0) s.ChargeStart = Now;
                     return;
                 }
                 if (packet.Phase == GungnirRules.ThrowCancel)
@@ -130,11 +132,10 @@ namespace SCIEPort.Features.Gungnir
             }
             else if (packet.Command == GungnirRules.Throw)
             {
-                if (s.Phase != 0 || s.ChargeStart < 0 || nativeThrow && Now - s.ChargeStart < 0.25 || Now - s.CastStart < 0.3) return;
-                s.ChargeStart = -1; s.Phase = 1;
-                s.Slot = p.ComponentMiner.Inventory.ActiveSlotIndex;
-                s.Position = p.ComponentCreatureModel.EyePosition; s.Direction = direction;
-                s.Distance = 0; s.FlightStart = Now; s.Hit.Clear();
+                // A host-side throw is only rejected while the blade is still in the casting pose.
+                // Flight phase is never a gate: a stale or returning spear is recalled instead.
+                if (Now - s.CastStart < 0.3) return;
+                Launch(p, s, direction);
             }
             else
             {
@@ -157,41 +158,66 @@ namespace SCIEPort.Features.Gungnir
             }
             Snapshot(s);
         }
-        /// <inheritdoc />
-        public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state)
+        /// <summary>
+        /// Charging is driven by <see cref="UpdateThrowInput"/> from the real PlayerInput.Aim sample.
+        /// This callback is intentionally passive: x25.01.17 re-arms aiming only 1.4 s after a
+        /// completed hold and latches m_isAimBlocked whenever a behaviour consumes InProgress, which
+        /// is exactly what made the spear stop throwing after a few uses.
+        /// </summary>
+        public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;
+
+        /// <summary>Starts a visual flight. Never gated by the previous phase: an in-flight or
+        /// returning spear is simply recalled, so a release can never be swallowed.</summary>
+        private bool Launch(ComponentPlayer p, State s, Vector3 direction)
         {
-            var p = miner.ComponentPlayer;
-            if (!Equipped(p)) return false;
-            var s = Get(p);
-            if (state == AimState.InProgress)
+            float length = direction.Length();
+            if (!Finite(direction) || length < 1e-4f) return false;
+            direction /= length;
+            s.ChargeStart = -1;
+            s.Slot = p.ComponentMiner.Inventory.ActiveSlotIndex;
+            s.Position = p.ComponentCreatureModel.EyePosition;
+            s.Direction = direction;
+            s.Distance = 0;
+            s.FlightStart = Now;
+            s.Hit.Clear();
+            s.Phase = 1;
+            return true;
+        }
+
+        /// <summary>Own aim clock. Runs after ComponentInput and before ComponentPlayer, so the
+        /// release frame is observed exactly once whether or not the engine aim path fires.</summary>
+        private void UpdateThrowInput(ComponentPlayer p, State s)
+        {
+            Ray3? aim = p.ComponentInput.PlayerInput.Aim;
+            if (!aim.HasValue)
             {
-                if (s.Phase != 0) return true;
-                if (s.ChargeStart < 0)
-                {
-                    s.ChargeStart = Now;
-                    if (!Authority) SendThrowSignal(p, GungnirRules.ThrowBegin, aim.Direction, 0f);
-                }
-                p.ComponentCreatureModel.AimHandAngleOrder = 3.2f;
-                p.ComponentCreatureModel.InHandItemRotationOrder = new Vector3(3.14159f, 0, 0);
-                var model = p.Entity.FindComponent<ComponentFirstPersonModel>(false);
-                if (model != null) { model.ItemOffsetOrder = new Vector3(0, 0.35f, 0.17f); model.ItemRotationOrder = new Vector3(-1.5f, 0, 0); }
-                if (p.PlayerData.IsMainPlayer) p.ComponentAimingSights.ShowAimingSights(aim.Position, aim.Direction);
+                if (!s.AimHeld) return;
+                s.AimHeld = false;
+                double charge = Now - s.AimStart;
+                s.AimStart = -1;
+                Vector3 direction = s.AimDirection;
+                if (charge < GungnirRules.MinThrowCharge) return;
+                if (Authority) Launch(p, s, direction);
+                else CommonLib.Net.QueuePackage(new GungnirPackage { Kind = 0, Command = GungnirRules.Throw, Phase = GungnirRules.ThrowComplete,
+                    Caster = p.Entity.EntityId, Sequence = ++s.Sent, Direction = direction, Blessing = (float)charge });
+                return;
             }
-            else if (state == AimState.Completed)
+            if (!s.AimHeld)
             {
-                if (Authority) Accept(p, new GungnirPackage { Kind = 255, Command = GungnirRules.Throw, Direction = aim.Direction });
-                else SendThrowSignal(p, GungnirRules.ThrowComplete, aim.Direction, (float)Math.Max(0, Now - s.ChargeStart));
-                s.ChargeStart = -1;
+                s.AimHeld = true;
+                s.AimStart = Now;
+                s.AimDirection = aim.Value.Direction;
+                if (!Authority) SendThrowSignal(p, GungnirRules.ThrowBegin, aim.Value.Direction, 0f);
             }
-            else
-            {
-                if (!Authority && s.ChargeStart >= 0) SendThrowSignal(p, GungnirRules.ThrowCancel, aim.Direction, 0f);
-                s.ChargeStart = -1;
-            }
-            // x25.01.17 interprets true during InProgress as "cancel aiming now".
-            // Match SubsystemThrowableBlockBehavior: keep holding with false and consume
-            // only the terminal Completed/Cancelled callbacks.
-            return GungnirRules.ShouldConsumeAim(state == AimState.InProgress);
+            else s.AimDirection = aim.Value.Direction;
+        }
+
+        private void ApplyThrowPose(ComponentPlayer p)
+        {
+            p.ComponentCreatureModel.AimHandAngleOrder = 3.2f;
+            p.ComponentCreatureModel.InHandItemRotationOrder = new Vector3(3.14159f, 0, 0);
+            var model = p.Entity.FindComponent<ComponentFirstPersonModel>(false);
+            if (model != null) { model.ItemOffsetOrder = new Vector3(0, 0.35f, 0.17f); model.ItemRotationOrder = new Vector3(-1.5f, 0, 0); }
         }
 
         private void SendThrowSignal(ComponentPlayer player, byte signal, Vector3 direction, float charge)
@@ -219,8 +245,11 @@ namespace SCIEPort.Features.Gungnir
                 {
                     bool equipped = Equipped(p);
                     if (s.Equipped != equipped) { s.Equipped = equipped; s.BaseWalk = p.ComponentLocomotion.WalkSpeed - s.WalkDelta; s.NextSnapshot = 0; }
-                    if (!equipped) { s.BuffEnd = Now; s.Phase = 0; s.ChargeStart = -1; }
+                    if (!equipped) { s.BuffEnd = Now; s.Phase = 0; s.ChargeStart = -1; s.AimHeld = false; s.AimStart = -1; }
                     if (s.Phase != 0) AdvanceFlight(s, MathUtils.Clamp(dt, 0, 0.1f));
+                    // Watchdog: a visual flight is bound to a hard lease, so no stalled flight can
+                    // ever leave the blade unavailable for the next throw.
+                    if (s.Phase != 0 && Now - s.FlightStart > GungnirRules.ThrowLease) { s.Phase = 0; s.Hit.Clear(); }
                     if (!s.Impact && Now - s.CastStart >= 1.4 && Now - s.CastStart < 4)
                     {
                         s.Impact = true;
@@ -240,6 +269,7 @@ namespace SCIEPort.Features.Gungnir
                     GungnirSkyVisuals.RemoveCaster(Project, p.Entity.EntityId);
                 bool active = s.Equipped && Equipped(p) && (Authority || Now - s.LastSnapshot < 2);
                 ApplyModifiers(s, active);
+                if (!Equipped(p) && s.AimHeld) { s.AimHeld = false; s.AimStart = -1; }
                 if (p.PlayerData.IsMainPlayer && Equipped(p))
                 {
                     var input = p.ComponentInput.PlayerInput;
@@ -254,8 +284,10 @@ namespace SCIEPort.Features.Gungnir
                         // Consume only native melee; native Aim continues unchanged.
                         p.ComponentInput.m_playerInput.Hit = null;
                     }
+                    UpdateThrowInput(p, s);
                 }
-                if (Now - s.CastStart < 0.3)
+                if (s.AimHeld) ApplyThrowPose(p);
+                else if (Now - s.CastStart < 0.3)
                 {
                     p.ComponentCreatureModel.AimHandAngleOrder = 3.2f;
                     var first = p.Entity.FindComponent<ComponentFirstPersonModel>(false);

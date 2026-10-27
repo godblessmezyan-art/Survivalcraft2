@@ -1,4 +1,16 @@
 # 测试结果
+# 0.40.0 昆古尼尔技能名铭牌 / 投枪可靠性 / 天降巨枪（2026-10-27）
+
+- ABI 取证：x25.01.17 `ComponentPlayer.Update` 的瞄准门限为 `GameTime - m_lastActionTime > 1.4`，每次 Completed 都会写 `m_lastActionTime`；`InProgress` 返回 `true` 会立即 `Cancel` 并置 `m_isAimBlocked`。据此判定「投几次后无法投掷」来自引擎瞄准通路重新武装与锁定，而非伤害或相位数据。
+- 实现：`Update` 直接采样 `PlayerInput.Aim` 自建蓄力时钟；`OnAim` 改为空实现；`Launch` 不再以相位为门（飞行中再次投掷=召回旧枪）；新增 `ThrowLease 3.2s` 看门狗；`MinThrowCharge 0.15s` 并同步 `CanCompleteThrow`。包 244/245 布局未改。
+- HUD：技能名刻入徽记内部 21 单位铭牌带（`GungnirHudLayout.NameBandHeight`），`Visual` 恢复为 `size × size`，布局结果与既有四组分辨率断言完全一致；能量条上移到铭牌之上，冷却数字居中于图标区。
+- 裁决：时间轴纯函数化为 `SpearHeight/SpearScaleFactor/SpearAlpha/SpearFalling`；1.4 秒伤害时点、9 秒生命周期、`SkyBlend/ImpactFlash` 未改。
+- `SCIEPort.Gungnir.Tests`：**307 项通过**（原 150 + 新增 157），覆盖蓄力窗口、双端容差、飞行租约、铭牌尺寸、巨枪高度单调性/埋地高度/可见窗口/俯冲窗口与三档预算。
+- 全部既有套件通过：Stormhammer 671、Four Saints 28、KellyPlants 11、ATV 35、Offroad 20、Watercraft 16、Helicopter 41、Tank、Ecology 47、Corn 26、Bamboo 25、Flax 29、Sunflower 33、Apple 49、VehicleActivation 22、PortableFortress 319；17 XDB `DATABASE VALIDATION PASSED`；net472 Release 0 warning / 0 error。
+- 完整构建：`scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release` exit 0。包 3,497,393 bytes / 108 entries，SHA-256 `1F7EAE1C5EB91D4D6F82302A748E81906313D836FC984C0C821910587787A0E1`；modinfo `0.40.0`、AssemblyVersion `0.40.0.0`。
+- 构建新增源码守卫：`OnAim` 必须空实现、必须存在 `UpdateThrowInput` 与 `ThrowLease`、必须存在铭牌常量与铭牌子控件，防止回退到引擎瞄准通路。
+- Windows 离线结果不能证明 Android 实际手感与观感；7723 真机触摸节流、连续投掷、巨枪帧率与双机联机仍为待验证。
+
 # 0.39.0 四圣兽神装 V2 外观重构（2026-10-27）
 
 - 目标 ABI：固定 x25.01.17 反编译确认衣物以完整 UV 合成到玩家皮肤同尺寸 RenderTarget、`PointClamp` 采样；内置人物/原生衣物均为 64×64。`ComponentOuterClothingModel` 逐帧复制人物 Head/Body/Leg1/Leg2 骨骼；第一人称空手只使用 inner clothed texture，outer clothing 不单独显示。

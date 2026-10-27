@@ -338,9 +338,17 @@ $gungnirBehaviorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 
 foreach ($gungnirRule in @('BlessingCooldown = 8f', 'JudgmentCooldown = 50f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
     if (-not $gungnirRulesSource.Contains($gungnirRule)) { throw "Gungnir V5.2 control/balance rule missing: $gungnirRule" }
 }
-foreach ($gungnirBehaviorRule in @('return GungnirRules.ShouldConsumeAim(state == AimState.InProgress)', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {
-    if (-not $gungnirBehaviorSource.Contains($gungnirBehaviorRule)) { throw "Gungnir aim or divine hit feedback missing: $gungnirBehaviorRule" }
+foreach ($gungnirBehaviorRule in @('public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;', 'UpdateThrowInput(p, s)', 'GungnirRules.ThrowLease', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {
+    if (-not $gungnirBehaviorSource.Contains($gungnirBehaviorRule)) { throw "Gungnir aim, throw reliability or divine hit feedback missing: $gungnirBehaviorRule" }
 }
+# v0.39.0: the skill name is engraved inside the badge, so it cannot be pushed off-screen by
+# device DPI, safe areas or a wide hotbar. Both the band constant and its usage must survive.
+$gungnirHudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirHud.cs')
+foreach ($gungnirHudRule in @('NameBand = GungnirHudLayout.NameBandHeight', 'Text = caption', 'skill.Visual.Children.Add(skill.NamePlate)')) {
+    if (-not $gungnirHudSource.Contains($gungnirHudRule)) { throw "Gungnir engraved skill-name plate missing: $gungnirHudRule" }
+}
+$gungnirLayoutSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirHudLayout.cs')
+if (-not $gungnirLayoutSource.Contains('NameBandHeight = 21f')) { throw 'Gungnir nameplate band height must stay 21 logical units.' }
 $artifactDisplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
 if (-not $artifactDisplaySource.Contains('contents == GungnirBlock.Index') -or -not $artifactDisplaySource.Contains('contents == StormhammerAwakenedBlock.Index')) {
     throw 'The shared artifact slot decorator must keep distinct Gungnir and Mjolnir skins.'

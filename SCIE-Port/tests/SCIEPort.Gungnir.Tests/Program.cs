@@ -95,6 +95,35 @@ internal static class Program
         Check(!GungnirRules.CanCompleteThrow(false, 1.0, 1f) && !GungnirRules.CanCompleteThrow(true, 0.1, 0.1f), "Throw must require a begin signal and long press");
         Check(GungnirRules.CanCompleteThrow(true, 0.3, 0.1f) && GungnirRules.CanCompleteThrow(true, 0.01, 0.3f), "Host clock and batched client duration must both support a valid long press");
         Check(!GungnirRules.CanCompleteThrow(true, 1.0, 10.01f), "Unbounded reported throw charge must be rejected");
+        // Throw input is driven by our own aim clock, so the press window must stay short while the
+        // flight lease must always outlive a full outbound plus return, or the next throw hangs.
+        Check(GungnirRules.MinThrowCharge > 0f && GungnirRules.MinThrowCharge <= 0.2f, "Throw charge window must stay a short press");
+        Check(GungnirRules.CanCompleteThrow(true, 0.16, 0f) && GungnirRules.CanCompleteThrow(true, 0f, 0.16f), "A valid short hold must pass the host clock and the client report");
+        Check(GungnirRules.ThrowLease > 3f && GungnirRules.ThrowLease < 6f, "Flight lease must outlive outbound plus return without stalling the next throw");
+        // Skill names live inside the badge, so no DPI, safe-area or hotbar change can hide them.
+        Check(GungnirHudLayout.NameBandHeight > 0f && GungnirHudLayout.NameBandHeight < GungnirHudLayout.BlessingSize * 0.4f, "Nameplate band must stay inside the smallest badge");
+        // Giant judgment spear: condenses high, plunges monotonically and stops buried.
+        float previousSpear = float.MaxValue;
+        bool descended = true;
+        for (int i = 0; i <= 140; i++)
+        {
+            float stepAge = i / 100f;
+            float spearHeight = GungnirSkyRules.SpearHeight(stepAge);
+            if (stepAge > GungnirSkyRules.SpearFormEnd + 0.001f && spearHeight > previousSpear + 0.001f) descended = false;
+            Check(spearHeight > 0f, "Judgment spear must never dip below the target while visible");
+            previousSpear = spearHeight;
+        }
+        Check(descended, "Judgment spear must descend without rising");
+        Check(GungnirSkyRules.SpearHeight(0.9f) > 30f, "Giant spear must still hang high before the plunge");
+        Check(Math.Abs(GungnirSkyRules.SpearHeight(GungnirSkyRules.ImpactTime) - GungnirSkyRules.SpearImpactHeight) < 0.01f, "Impact height must bury the blade");
+        Check(GungnirSkyRules.SpearHeight(GungnirSkyRules.ImpactTime) + GungnirSkyRules.SpearBladeLength * GungnirSkyRules.SpearScale > 8f, "Buried spear must tower over the player");
+        Check(GungnirSkyRules.SpearAlpha(-0.01f) == 0f && GungnirSkyRules.SpearAlpha(9f) == 0f && GungnirSkyRules.SpearAlpha(GungnirSkyRules.ImpactTime) > 0.99f, "Spear visibility window changed");
+        Check(GungnirSkyRules.SpearFalling(GungnirSkyRules.SpearFormEnd + 0.02f) && !GungnirSkyRules.SpearFalling(0.5f) && !GungnirSkyRules.SpearFalling(GungnirSkyRules.ImpactTime), "Fall window must stay between form end and impact");
+        foreach (int quality in new[] { 0, 1, 2 })
+        {
+            Check(GungnirSkyRules.AfterImageCount(quality) == quality, "Afterimage budget changed");
+            Check(GungnirSkyRules.EmberCount(quality) >= 3, "Every quality level must keep landing embers");
+        }
         Console.WriteLine("Gungnir: " + s_tests + " checks passed (pure rules only; game/network/device unverified).");
     }
 }
