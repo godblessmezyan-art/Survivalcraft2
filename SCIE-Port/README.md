@@ -1,4 +1,6 @@
-# SCIE-Port
+# 荒野探险家 / Wilderness Explorer
+
+> 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。
 
 Version 0.28.1 fixes the V3.2 loader regression: vehicle activation keeps
 network package 242 and Skywrath now uses the unique package 243. A package-ID
