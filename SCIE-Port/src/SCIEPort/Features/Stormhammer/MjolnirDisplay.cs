@@ -108,15 +108,15 @@ namespace SCIEPort.Features.Stormhammer
                     else
                     {
                         slot.CenterColor = new Color(
-                            (byte)(18 + 14 * pulse),
-                            (byte)(58 + 24 * pulse),
-                            (byte)(62 + 24 * pulse),
-                            (byte)(170 + 35 * pulse));
+                            (byte)(34 + 6 * pulse),
+                            (byte)(37 + 6 * pulse),
+                            (byte)(45 + 6 * pulse),
+                            (byte)(182 + 12 * pulse));
                         slot.BevelColor = new Color(
-                            (byte)(176 + 65 * pulse),
-                            (byte)(137 + 70 * pulse),
-                            (byte)(67 + 58 * pulse),
-                            (byte)(210 + 45 * pulse));
+                            (byte)(197 + 8 * pulse),
+                            (byte)(153 + 8 * pulse),
+                            (byte)(81 + 8 * pulse),
+                            (byte)(220 + 16 * pulse));
                     }
                 }
             }

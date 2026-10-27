@@ -336,6 +336,21 @@ $artifactDisplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 
 if (-not $artifactDisplaySource.Contains('contents == GungnirBlock.Index') -or -not $artifactDisplaySource.Contains('contents == StormhammerAwakenedBlock.Index')) {
     throw 'The shared artifact slot decorator must keep distinct Gungnir and Mjolnir skins.'
 }
+foreach ($gungnirSlotPaletteRule in @(
+    '(byte)(34 + 6 * pulse)',
+    '(byte)(37 + 6 * pulse)',
+    '(byte)(45 + 6 * pulse)',
+    '(byte)(197 + 8 * pulse)',
+    '(byte)(153 + 8 * pulse)',
+    '(byte)(81 + 8 * pulse)'
+)) {
+    if (-not $artifactDisplaySource.Contains($gungnirSlotPaletteRule)) {
+        throw "Gungnir obsidian-and-antique-gold slot palette missing: $gungnirSlotPaletteRule"
+    }
+}
+if ($artifactDisplaySource.Contains('(byte)(58 + 24 * pulse)') -or $artifactDisplaySource.Contains('(byte)(62 + 24 * pulse)')) {
+    throw 'The retired green Gungnir slot palette must not return.'
+}
 if (-not $visualsSource.Contains('MainStrikeTime = 0.28f')) {
     throw 'The main bolt must land almost immediately (0.28 s) instead of after a long wind-up.'
 }
