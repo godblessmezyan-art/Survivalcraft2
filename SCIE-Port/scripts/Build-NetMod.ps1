@@ -18,6 +18,7 @@ $package = Join-Path $artifacts 'SCIEPort.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 
 # --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
 # 游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）。
@@ -105,6 +106,8 @@ if ($fourSaintsClothes.Count -ne 4 -or @($fourSaintsClothes | Where-Object { $_.
 }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Gungnir.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Poseidon.Tests') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Poseidon rule/layout tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Stormhammer rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.FourSaints.Tests') --configuration Release --nologo
@@ -286,6 +289,7 @@ if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITC
 # port build usable when that optional SDK is not installed locally.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+& (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -732,6 +736,13 @@ $archive = [IO.Compression.ZipFile]::OpenRead($package)
 try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
     foreach ($requiredEntry in @(
+        'Assets/Models/PoseidonTrident.dae',
+        'Assets/Textures/PoseidonTrident.png',
+        'Assets/Textures/PoseidonSkills.png',
+        'Assets/Blocks/Poseidon.csv',
+        'Assets/Database/Poseidon.xdb',
+        'Assets/Audio/Poseidon/Surge.wav',
+        'Assets/Audio/Poseidon/Tsunami.wav',
         'SCIEPort.dll',
         'Assets/Models/OmniscientEye.dae',
         'Assets/Textures/OmniscientEye.png',

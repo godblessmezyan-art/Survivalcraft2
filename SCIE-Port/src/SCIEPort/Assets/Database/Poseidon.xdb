@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortPoseidon>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortPoseidon" Guid="0f85f04c-77d1-4c94-b81b-1c4153713c52" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="a995c715-56d5-407b-a0c9-b2203d859061" Value="SCIEPort.Features.Poseidon.SubsystemPoseidon" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortPoseidon" Guid="06f5397c-321c-4773-a40a-338c6a4d1ea0" InheritanceParent="0f85f04c-77d1-4c94-b81b-1c4153713c52"/>
+  </ProjectTemplate>
+</SCIEPortPoseidon>

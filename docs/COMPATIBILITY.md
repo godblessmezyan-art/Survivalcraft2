@@ -1,5 +1,13 @@
 # 兼容性矩阵
 
+## 2026-10-28 SCIE-Port 0.43.0 海神三叉戟·波塞冬 V1
+
+仅 SCIE-Port 新增原创神器/模型/贴图/潮汐技能与独立网络包：Block 951、Package 246，
+保持 Builder Assistant 实现、版本和蓝图支持范围不变。固定 Windows x25.01.17 ABI、
+真实 Engine 导入及 net472 Release/离线检查已确认；Windows 游戏内、Android 7723、
+多人同步待验证。复用现有 GuiUpdate/OnCreatureInjure Hook，方法签名不变，包 246 独立
+新增，不修改既有网络包。详见 [SCIE-Port 记录](../SCIE-Port/docs/POSEIDON.md)。
+
 ## 2026-10-28 Builder Assistant v0.19.0 主线整合家具模板
 
 将 port 分支家具提交 `69db2ff` 的功能移植到 main v0.18.0，版本统一为 0.19.0。

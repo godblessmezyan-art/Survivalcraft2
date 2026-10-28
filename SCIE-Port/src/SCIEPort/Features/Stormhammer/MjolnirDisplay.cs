@@ -6,18 +6,19 @@ using Engine.Graphics;
 using Game;
 using GameEntitySystem;
 using SCIEPort.Features.Gungnir;
+using SCIEPort.Features.Poseidon;
 
 namespace SCIEPort.Features.Stormhammer
 {
     /// <summary>
     /// Paints inventory and hotbar slots with artifact-specific skins: blue-violet
-    /// for Mjolnir and dark-teal/old-gold for Gungnir.
+    /// for Mjolnir, dark-teal/old-gold for Gungnir, ocean-blue/gold for Poseidon.
     ///
     /// Why it is driven from a subsystem instead of a widget hook: the game exposes no
     /// "slot decorated" callback, and InventorySlotWidget.Update only ever sets
     /// m_rectangleWidget.IsVisible, never CenterColor/BevelColor after construction
     /// (verified in the x25.01.17 decompile), so painting those two properties from
-    /// outside is safe and cannot fight the native code. Only the two true artifacts
+    /// outside is safe and cannot fight the native code. Only the true artifacts
     /// are decorated; the fake hammer keeps the plain slot.
     /// </summary>
     public static class MjolnirDisplay
@@ -78,7 +79,8 @@ namespace SCIEPort.Features.Stormhammer
                     int contents = Terrain.ExtractContents(value);
                     bool mjolnir = contents == StormhammerAwakenedBlock.Index;
                     bool gungnir = contents == GungnirBlock.Index;
-                    bool decorated = mjolnir || gungnir;
+                    bool poseidon = contents == PoseidonBlock.Index;
+                    bool decorated = mjolnir || gungnir || poseidon;
                     if (!decorated)
                     {
                         Restore(slot);
@@ -104,6 +106,11 @@ namespace SCIEPort.Features.Stormhammer
                             (byte)(110 + 80 * pulse),
                             (byte)(235 + 20 * pulse),
                             (byte)(200 + 55 * pulse));
+                    }
+                    else if (poseidon)
+                    {
+                        slot.CenterColor = Color.Lerp(new Color(8, 40, 75, 195), new Color(14, 78, 113, 215), pulse);
+                        slot.BevelColor = Color.Lerp(new Color(185, 147, 70, 225), new Color(243, 216, 140, 250), pulse);
                     }
                     else
                     {

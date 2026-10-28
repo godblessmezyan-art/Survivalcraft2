@@ -1,5 +1,59 @@
 # 测试结果
 
+## 2026-10-28 波塞冬 V1 / 荒野探险家 0.43.0
+
+基线 main `fd0f653`，仅实现独立海洋神器，不改 Builder Assistant 源码或存档格式。
+变更/操作/局限与 Android 7723 清单见 [POSEIDON.md](POSEIDON.md)。
+
+实际命令（仓库根；环境/模型脚本使用 Windows PowerShell 5.1，SDK 9.0.314）：
+
+```powershell
+python SCIE-Port/scripts/New-PoseidonAssets.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Poseidon.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.Poseidon.Tests -c Release --nologo
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo --no-restore
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+git diff --check
+```
+
+结果：全部 exit 0，Release 0 warning / 0 error，119 包条目、19 XDB 验证通过。
+
+- 固定 Windows 目标程序集/API/哈希检查通过：Survivalcraft 2.4.0.0、API 1.42、
+  SC 2.4.10.6、net472。三份 SHA-256 分别为
+  `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`（Survivalcraft.exe）、
+  `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`（Engine.dll）、
+  `7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C`（EntitySystem.dll）。
+- Block 951 经 260 个原生常量及本工程全部索引检查；port 分支的 950 保留未使用。
+  网络 246 经 39 个原生包 getter IL 和本工程 240–245 审计；没有覆盖注册。
+- 模型用目标 `Engine.Media.ModelData.Load` 导入为 1 bone / 83 meshes / 1504 triangles；
+  实际 bounds Y=-1.31..1.84；烘焙 Y_UP、UV、256×16 全不透明 PNG 与图标范围通过。
+  原创生成器重跑成功，正面/3/4 软件预览已检查；不是游戏内或 Android 截图。
+- Poseidon 1561 条纯规则/布局断言通过：冷却、范围、波浪推进、冲锋扫掠距离、
+  防重放/序列回绕、速度增量不叠乘/撤销、分辨率/左右手基础布局。它们不是战斗实测。
+- 编译后 `Test-PoseidonRuntime.ps1` 使用真实原生压缩读写器，3 类包的 27 个字段值
+  往返一致，未压缩载荷 41 bytes；实际编译子系统的队列 100 次入队被限制到 32，
+  Dispose 清空、拒绝迟到回调。这些检查没有加载世界或执行真实伤害。
+- 静态守卫验证权限/命中去重/预算/地形遮挡/退出清理代码、无地形/持久实体写入；
+  不能以此宣称主机/客户端战斗已通过。施放逻辑只在游戏 Update 中处理队列。
+- Gungnir 306、Stormhammer 671、Four Saints 37、Kelly 11、ATV 35、Off-road 20、
+  Watercraft 16、Helicopter 41、Ecology 53、Corn 26、Bamboo 25、Flax 29、Sunflower 33、
+  Apple 49、Vehicle activation 22、Portable fortress 319、Tank 既有规则及 Eye 27 布局全通过。
+- 品牌、禁带 DLL/资源、CSV/XDB/必需条目、包内 DLL 与刚测试的构建字节一致等检查通过。
+
+最终 `artifacts/SCIEPort.netmod` / 同字节 `artifacts/SCIEPort-0.43.0.netmod`：
+Version 0.43.0、FileVersion/AssemblyVersion 0.43.0.0，**3,664,589 bytes / 119 entries**，
+SHA-256 `ECA33F211BA7CB8D6896AF8E76A06DDE1B73DC47A323995F5FEED4445BED115B`。
+构建日志保存在忽略目录 `artifacts/Poseidon-build.log`。
+
+环境尝试说明：根 ABI 脚本在 pwsh 7 下因不支持 ReflectionOnlyLoadFrom 失败，改用
+Windows PowerShell 5.1 后通过；Build-WithPinnedSdk.ps1 因缺少它要求的 per-user SDK
+路径退出，使用 Build-NetMod.ps1 与本机现有 9.0.314 后通过。未更改全局 SDK 配置。
+
+Windows 游戏内、Android 7723 模型/触屏/帧率、Local/房主/普通客户端实际战斗与同步
+均为 **待验证**；未声称真机通过。基础水浪视觉、冲锋碰撞和被动已实现，但手感参数仍需
+按真机清单测量后校准。外部 Mod 的 ID/网络冲突未因本工程审计而自动排除。
+
 ## 2026-10-28 main 合入全知之眼 / 荒野探险家 0.42.0
 
 基线 `a856ced`（main 0.41.0），整合功能提交 `896469b`。

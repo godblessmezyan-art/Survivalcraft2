@@ -1,5 +1,19 @@
 # SCIE-Port 兼容性记录
 
+## 0.43.0 波塞冬 V1（2026-10-28）
+
+新增独立 `PoseidonBlock` 951（保留 port 分支吞噬之眼 950），网络包 246；
+固定 Windows x25.01.17 260 个原生方块常量和 39 个原生网络包 getter 均已审计，
+本工程全部 Block/Package ID 无冲突。外部 Mod 冲突仍待逐包核验。
+模型真实 Engine 导入 1 bone / 83 meshes / 1504 triangles，Y_UP/烘焙矩阵/不透明 PNG。
+使用已核验 `ComponentHealth.Air`、`ComponentLocomotion.SwimSpeed`、
+`ComponentBody.ApplyImpulse`（原生 SubsystemBodyPackage ID 6）及 AttackBody；
+呼吸豁免仅原生本地化原因 `LanguageControl.Get(ComponentHealth.fName,7)`。
+复用现有 GuiUpdate/OnCreatureInjure 注册，不新增或改变 Hook ABI；包 246 新布局与旧包独立，
+各字段和权威流程见 [POSEIDON.md](POSEIDON.md)。客户端请求经身份绑定排队，
+伤害/冲量仅 Local/Server 的 IUpdateable 执行；未引入地形写入、持久实体或新存档字段。
+net472 Release、自动回归与包内容校验已确认；Windows 游戏、Android 7723 及联机待验证。
+
 ## 0.42.0 main 合入全知之眼（2026-10-28）
 
 将功能提交 `896469b` 整合到 main 基线 `a856ced`（0.41.0），保留主线品牌、四圣兽

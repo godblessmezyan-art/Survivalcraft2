@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SCIEPort/Features/Poseidon/PoseidonRules.cs" Link="PoseidonRules.cs"/>
+    <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirHudLayout.cs" Link="GungnirHudLayout.cs"/>
+  </ItemGroup>
+</Project>

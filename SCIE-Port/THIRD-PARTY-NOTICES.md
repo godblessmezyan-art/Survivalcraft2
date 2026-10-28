@@ -1,5 +1,22 @@
 # Third-party notices
 
+## Original Poseidon trident V1 (2026-10-28)
+
+`scripts/New-PoseidonAssets.py` authors new low-poly trident geometry, an opaque
+palette, two touch badges and two deterministic synthesized PCM surf sounds.
+It reuses only this project's original box/triangle primitives, not Gungnir meshes,
+third-party images, sampled recordings or game resources. Original project artwork
+is permitted for inclusion and redistribution with this Mod. Software QA previews
+are not game captures and are not shipped in the package.
+
+SHA-256 of generated release sources:
+
+- `Assets/Models/PoseidonTrident.dae`: `87081A677A2A6D5C8BCAE1487AE4D6A2D4350A64CA75644BBE28399EFED9EB81`
+- `Assets/Textures/PoseidonTrident.png`: `B787C7AEC000A7D5872D6D800B3F4212D41E52822B05EF820BA429392D96E4DD`
+- `Assets/Textures/PoseidonSkills.png`: `00D6F1CFDFF34F5E66C0920DB5916D220382D5C432DE8A4FE5AB2D1225D4762C`
+- `Assets/Audio/Poseidon/Surge.wav`: `BA79A64E595EF33CF49A3B5AE58644DA72461F66F7D6299B2ADA52EA546969AD`
+- `Assets/Audio/Poseidon/Tsunami.wav`: `EB950127964F6A3D18EDD7F2703B5966A6EDE3CF5057B0B4AE302337D963455A`
+
 ## SCIE-Port original helicopter V0.4 assets
 
 - `Assets/Models/Helicopter.dae` is a clean-room, project-created low-poly

@@ -1,5 +1,9 @@
 # Builder Assistant 蓝图方块能力清单 v0.19.0
 
+> 2026-10-28 边界补充：SCIE-Port 0.43.0 新增的海神三叉戟·波塞冬（951、DATA 0、
+> 非地形物品）不属于本清单材料；不允许在 Builder Assistant `cells`/家具模板中填写
+> `PoseidonBlock`、951 或 `scieport-poseidon`，不增加蓝图族标签或 DATA 支持范围。
+
 > 适用于 Survivalcraft NET x25.01.17 的 Builder Assistant。原 60 种保留，新增两种梯子和火把，共 63 种。Windows 固定哈希程序集/API 与离线规则已确认；Android 7723 真机行为均待验证。
 > 本清单和 [逐类型能力矩阵](blueprint-block-capabilities.json) 是 AI 生成蓝图的能力依据。SCIE-Port 的代码、方块、载具、神器及家具不是本工程材料；不得据其他工程的版本推断本工程能力。
 

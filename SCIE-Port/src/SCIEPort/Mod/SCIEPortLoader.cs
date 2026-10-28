@@ -1,5 +1,6 @@
 using Game;
 using SCIEPort.Features.OmniscientEye;
+using SCIEPort.Features.Poseidon;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
@@ -31,6 +32,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new StormhammerSkillPackage());
                 PackageManager.RegisterPackage(new GungnirPackage());
                 PackageManager.RegisterPackage(new FourSaintsPackage());
+                PackageManager.RegisterPackage(new PoseidonPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -97,6 +99,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            if (SubsystemPoseidon.BlocksDrowning(componentHealth, attacker, cause)) { Skip = true; return; }
             Skip = componentHealth?.Project.FindSubsystem<SubsystemFourSaints>(false)?.HandleInjury(componentHealth, amount, attacker, ignoreInvulnerability, cause) == true;
         }
 
@@ -130,6 +133,7 @@ namespace SCIEPort.Mod
         {
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemPoseidon>(false)?.TickGui(componentGui);
             FourSaintsHud.Update(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false)?.RefreshLocalHealthBar(componentGui.m_componentPlayer);
