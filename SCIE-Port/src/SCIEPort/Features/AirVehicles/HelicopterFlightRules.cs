@@ -112,6 +112,26 @@ namespace SCIEPort.Features.AirVehicles
             return Clamp((rotorSpeed - threshold) / 0.12f, 0f, 1f);
         }
 
+        /// <summary>Minimum eye-forward Y magnitude before view pitch commands a climb or dive.</summary>
+        public const float VerticalPitchDeadzone = 0.2f;
+
+        /// <summary>
+        /// Reads a climb intent from the driver's eye-forward Y. Mounted riders do not
+        /// reliably emit jump input on touch devices, so view elevation is the primary
+        /// vertical channel (matching the proven airship control) while jump/sneak remain
+        /// secondary inputs.
+        /// </summary>
+        public static bool IsViewClimb(float eyeForwardY, float deadzone)
+        {
+            return eyeForwardY > Math.Abs(deadzone);
+        }
+
+        /// <summary>Reads a dive intent from the driver's eye-forward Y using the same deadzone.</summary>
+        public static bool IsViewDive(float eyeForwardY, float deadzone)
+        {
+            return eyeForwardY < -Math.Abs(deadzone);
+        }
+
         /// <summary>Selects pilot ascent/descent/hover or unattended landing speed.</summary>
         public static float GetVerticalTarget(bool ascend, bool descend, bool hasPilot, float ascentSpeed, float descentSpeed, float autoLandSpeed)
         {

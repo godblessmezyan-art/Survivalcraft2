@@ -287,6 +287,18 @@ if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GU
 & $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.OmniscientEye.Tests\SCIEPort.OmniscientEye.Tests.csproj') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITCODE" }
 
+# V0.5 must package the analog cockpit, never the former two-button interface.
+$hudWidgetSource = Get-Content -Raw (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterFlightHud.cs')
+foreach ($evidence in @('COLLECTIVE', 'HOVER ON', 'ALT / M', 'VS / M/S', 'SPD / M/S', 'CanvasWidget.SetPosition')) {
+    if (-not $hudWidgetSource.Contains($evidence)) { throw "Collective cockpit missing: $evidence" }
+}
+if ($hudWidgetSource.Contains('IsClimbPressed') -or $hudWidgetSource.Contains('IsDivePressed')) {
+    throw 'Legacy helicopter ascent/descent buttons must not return.'
+}
+$helicopterHudDriveSource = Get-Content -Raw (Join-Path $projectDir 'Features\AirVehicles\ComponentHelicopterDrive.cs')
+foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? Vector3.Zero', 'm_hud.Detach()', 'ComponentHealth.Health', 'ParentBody != m_body')) {
+    if (-not $helicopterHudDriveSource.Contains($evidence)) { throw "Flight integration missing: $evidence" }
+}
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
@@ -294,6 +306,9 @@ if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITC
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
+
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }

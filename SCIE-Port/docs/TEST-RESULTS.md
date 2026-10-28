@@ -1,5 +1,29 @@
 # 测试结果
 
+## 2026-10-28 合并 feature/helicopter-hud → main / 0.45.0
+
+将长期分支 `feature/helicopter-hud`（merge-base `a2adeca`，v0.27.x 时代；tip `abbd36a`）合并进 main（`6fb084e`，v0.44.0）。5 个冲突文件均为元数据/变更日志：
+
+- `modinfo.json`、`SCIEPort.csproj`：取 main 品牌契约（Name=荒野探险家、PackageName/AssemblyName/RootNamespace=SCIEPort），丢弃分支旧 “SCIE-Port 移植集合 (Audit Build) / 0.28.0”，版本统一升到 **0.45.0**（两处一致，满足构建守卫），并把直升机 HUD 摘要并入 Description。
+- `README.md`：取 main 现行品牌版，新增 0.45.0 条目；分支旧标题块不重复保留（其技术细节在 `HELICOPTER-HUD-V0.5-AUDIT.md`）。
+- `COMPATIBILITY.md`、`TEST-RESULTS.md`：保留双方历史条目（main 现行 + 分支 0.27.x 直升机 HUD 记录），并在顶部新增本 0.45.0 合并记录。
+- 直升机 HUD 代码/资源/脚本（`Features/AirVehicles/Hud/*`、`HelicopterFlightInput.cs`、`HelicopterHoverController.cs`、`ComponentHelicopterDrive.cs`、`HelicopterFlightRules.cs`、`Helicopter.xdb`、`Test-HelicopterHud.ps1`、`Build-NetMod.ps1`、`Test-Environment.ps1`、`HELICOPTER-HUD-V0.5-AUDIT.md`、AirVehicles 测试）三方自动合并，无文本冲突。
+
+合并后核查：最终 HUD 为纯程序化矢量控件，`grep` 确认 `Features/AirVehicles/Hud/` 与新增飞行代码**无任何 `ContentManager.Get`/`Textures/`/`.png`/`Texture2D` 引用**，早期 v0.27.x 的 `HeliArrow.png` 方案已被分支 tip 取代，故包内无该贴图属预期，不是丢失资源。
+
+实际命令（本机游戏目录 `D:\SC`，固定 SDK 9.0.300 包装器）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir 'D:\SC'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release
+```
+
+结果：两条命令均 exit 0。`Test-Environment` 输出含 “Helicopter V0.5 per-finger touch and coordinate-transform ABI passed”。Release 编译 **0 warning / 0 error**；直升机 HUD 源码守卫（`HelicopterFlightHud.cs` 的 `m_layer` 定位层断言）、720 条分类/配色断言、独立 Tab 守卫（20 CSV / 53 行）、Gungnir/Poseidon/Stormhammer/Skywrath/Four Saints/Eye/植物/生态/载具/堡垒等既有离线套件、`DATABASE VALIDATION PASSED` 全部通过。
+
+产物：`artifacts/荒野探险家.netmod` 与字节一致的 `artifacts/荒野探险家-0.45.0.netmod`，**3,672,324 bytes / 119 entries**，modinfo Version=`0.45.0`、内部 PackageName/DLL=`SCIEPort`/`SCIEPort.dll`、AssemblyVersion/FileVersion=`0.45.0.0`，SHA-256 `A677BAA5F6486B0E2064B167CE6C11D4A3DA4189762BAD68C2C24B27AEBF5A50`。（`.netmod` 的 SHA 每次构建因 zip 条目 mtime 而变，字节数/条目数稳定，以提交后重建包为准。）
+
+Windows 游戏内、Android 7723（HUD 附加/按钮命中/持续按压/双手多点与左摇杆并用/松手悬停/换驾驶员无残留/多分辨率与 UIScale 安全区/与快捷栏菜单不重叠）、两台真实客户端联机（仅授权驾驶员出键、乘客隐藏、垂直输入经主机校验随一元位置包同步）**均待验证**。本轮仅执行 ABI 检查、离线规则测试、编译与包校验，未启动游戏或连接设备。
+
 ## 2026-10-28 独立物品 Tab、专属背景与中文文件名 / 0.44.0
 
 基线 main `99afb97`。根/SCIE-Port AGENTS 与 PACKAGING-RULES 已写入长期规则，
@@ -354,6 +378,32 @@ Builder Assistant 源码未改；方块参考清单只更新“949 不可用于�
 - Windows 游戏运行：待验证。未启动游戏。
 - Android 7723：待验证。展开、进门、走楼梯、上屋顶、存读档、帧耗时均未真机执行。
 - 联机：待验证。未做双设备测试。
+## 0.27.1 直升机 HUD「点上按钮不能起飞」热修复（2026-10-25）
+
+- 真机现象：Android 7723 上点击上升按钮无法起飞。用户能看到并点击按钮，说明附加与授权门（`authorizedPilot`）均通过，问题在按钮命中定位。
+- 根因（反编译实证 x25.01.17）：`ComponentPlayer.GuiWidget => PlayerData.GameWidget.GuiWidget`，而 `GameWidget.GuiWidget` 以 `Children.Find<ContainerWidget>("Gui")` 取得——它是**普通 `ContainerWidget`**（同文件里 `ControlsContainer` 才用 `Find<CanvasWidget>` 取得，对照可证）。`CanvasWidget.SetPosition(widget,pos)` 的实现是 `(widget.ParentWidget as CanvasWidget)?.SetWidgetPosition(...)`：父节点非 Canvas 时该转换为 null，`?.` 使调用**静默空操作**。于是 `m_root`/`m_hit` 的绝对定位全部失效，四个控件（两根视觉根 + 两个命中面）按默认 `WidgetAlignment.Near` 全部堆叠到左上角原点；命中反编译确认 `HitTestGlobal`/`UpdateWidgetsHierarchy` 对子节点**逆序**遍历（最后加入者最上层），而加入顺序为 ascent.Root→descent.Root→ascent.Hit→descent.Hit，故最上层的命中面是 **descent.Hit（下降）**，点「上」永远命中不到 ascent。另确认 `WidgetInput.UpdateInputFromTouch` 在 `Pressed/Moved` 时**会**写入 `Press`（受输入宿主 `Widget.HitTest` 全屏守卫），`ClickableWidget.Update` 依赖 `input.Press.HasValue && HitTestGlobal(Press)==this`——即触摸通道本身工作正常，先前「触摸不写 Press」的假设被推翻，真因是定位。
+- 修复：在 `HelicopterFlightHud` 内新增自持有的**全屏 `CanvasWidget m_layer`**（`HorizontalAlignment/VerticalAlignment=Stretch` 撑满 GUI，`IsHitTestVisible=false` 使按钮以外的触摸仍穿透到原生摇杆/视角/快捷栏），将两个按钮的 `Root` 与 `Hit` 改为挂到 `m_layer` 下，再把 `m_layer` 挂到宿主 `GuiWidget`。父节点变为真 Canvas 后 `SetPosition` 生效，按钮落到右下计算坐标，上升命中面不再被下降遮挡。附带：`Refresh` 优先用 `m_layer.ActualSize`（回退宿主尺寸）并在尺寸未测量（≤0）时跳过布局，避免首帧退化坐标；`Detach`/`FlightButton.Dispose` 改为从 `m_layer` 摘除且**不再销毁可复用控件实例**，杜绝换驾驶员重挂载时复用已释放控件。
+- 回归守卫：`Build-NetMod.ps1` 新增源码断言，要求 `private readonly CanvasWidget m_layer = new CanvasWidget()`、`m_layer.AddChildren(m_ascent.Hit)`、`m_layer.AddChildren(m_descent.Hit)`、`container.AddChildren(m_layer)` 均在 `HelicopterFlightHud.cs` 中存在，缺失即构建失败，防止定位图层被再次改回而静默回归。
+- 规则单测：已确认。`SCIEPort.AirVehicles.Tests` 直升机 **73 断言**全绿（纯逻辑未改），exit 0。
+- 全量回归：已确认。环境 ABI + Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 73 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- Release/数据库/编译：已确认。`Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release`，本机 9.0.300 SDK（net8 测试 Major roll-forward），net472 主工程 **0 warning / 0 error**（`SCIEPort -> artifacts\build\SCIEPort.dll`），12 个 XDB `DATABASE VALIDATION PASSED`。
+- 打包：已确认。`artifacts/SCIEPort.netmod` **521,782 字节 / 65 条目**，本次交付 SHA-256 `15BF222634C8C20F04267B31D009BAE7036426334136AD859FEEA9359B34DE45`（含 `Assets/Textures/HeliArrow.png`，modinfo=`0.27.1`，DLL Assembly/FileVersion=`0.27.1.0`）；`.netmod` 的 SHA 每次构建都会变（zip 条目存文件 mtime），字节数与条目数稳定，故以「提交后重建」的包为准。
+- Android 7723 真机：**待验证**。本次为定位链路修复，未在真机复测——上升按钮是否可点并按住持续爬升、下降按钮俯冲、双按归悬停、按钮出现在右下且不遮挡摇杆/快捷栏、按钮以外区域触摸穿透正常、`ImageWidget.RotateAngle` 箭镞朝向、换驾驶员/下机/断线后无残留或幽灵按压、多分辨率/横屏/UIScale 安全区，均需真机执行后方可判定；未通过前一律不声称修复成功。
+- Windows 游戏运行 / 两台真实客户端联机：**待验证**，同上。
+
+## 0.27.0 双人直升机移动端飞行控制 HUD（2026-10-25）
+
+- 来源审查：已确认（反射实证）。控件类型全部在 `Game.*`（`Survivalcraft.exe`）而非 `Engine.Widgets.*`；逐一确认 `Widget.DesiredSize/ActualSize/Margin/IsVisible/IsHitTestVisible`、`WidgetAlignment{Near/Center/Far/Stretch}`、`ContainerWidget.AddChildren/RemoveChildren/ClearChildren`、`CanvasWidget.SetPosition(Widget,Vector2)` 为静态、`ClickableWidget.IsPressed{get;set}`（持续按压+多点触摸原生通道）、`BevelledRectangleWidget`（程序化圆角半透明）、`ImageWidget.RotateAngle`+`Subtexture(Texture2D,Vector2,Vector2)`、`ComponentGui.ControlsContainerWidget`、`ComponentPlayer.GuiWidget`（本身即 ContainerWidget）、`SettingsManager.UIScale`（公开静态 Single）、`ButtonWidget` 无公开构造函数。`ContentManager.Get<Texture2D>` 沿用 HelicopterBlock 既有范式。
+- 分层实现：纯逻辑 `HelicopterControlSurface`（意图仲裁/可见性/响应式布局，零引擎依赖）；控件 `HelicopterFlightHud`（CanvasWidget 根 + BevelledRectangleWidget 面板 + ImageWidget 箭镞 + ClickableWidget 命中，一次构建、仅在几何变化时重排、全程 try/catch 回退）；接入 `ComponentHelicopterDrive`（本地授权驾驶位 Attach/Refresh/读键，与视角/跳跃/潜行经 `ResolveIntent` 合并入既有物理，Dispose/下机/断线 Detach）。
+- 规则单测：已确认。`SCIEPort.AirVehicles.Tests` 由 44 增至 **73 断言**（新增 29 条 HUD 意图/可见性/布局断言：双按对冲归 Hover、按键优先于视角、乘客/远端/销毁隐藏、尺寸 Min96/Max190 夹取、上升居下降之上、间隙与右下边距、右侧避开左摇杆、UIScale 零值兜底与下限）；exit 0。
+- 全量回归：已确认。环境 ABI + Kelly 11 / ATV 35 / Offroad 20 / Watercraft 16 / Helicopter 73 / Tank / Ecology 47 / Corn 26 / Bamboo 25 / Flax 29 / Sunflower 33 / Apple 49 / VehicleActivation 22 全绿。
+- 打包守卫：已确认。`Build-NetMod.ps1` 加入 `Assets/Textures/HeliArrow.png` 必需条目，以及三个 HUD 源文件存在性与源码字符串断言（意图枚举/ResolveIntent/ComputeLayout；组合控件/`m_hit.IsPressed`/`Textures/HeliArrow`/异常回退；驱动 Attach/Refresh/IsClimb/IsDive/ResolveIntent/Detach），任一缺失构建即失败。
+- Release/数据库：已确认。`Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release`，本机 9.0.300 SDK（net8 测试 Major roll-forward），net472 主工程 **0 warning/0 error**（首轮 3 处编译错误已修：GuiWidget 容器类型、静态 SetPosition、缺 XML 注释与 cref 解析），12 个 XDB `DATABASE VALIDATION PASSED`。
+- 素材：已确认（文件）。`Assets/Textures/HeliArrow.png` 为透明底 64×64 白色上指箭镞（System.Drawing 绘制），下降键经 `ImageWidget.RotateAngle=π` 复用同图。
+- 打包：已确认。`artifacts/SCIEPort.netmod` 为 **521,449 字节 / 65 条目**，SHA-256 `2CEEAA02429B5A7747E212999EDBB7065C8F7CB18244995EF982356EB60A8E80`；包内含新增 `Assets/Textures/HeliArrow.png`，modinfo=`0.27.0`，DLL AssemblyVersion/FileVersion=`0.27.0.0`。
+- Windows 游戏运行：待验证。未启动游戏，不能声称 HUD 渲染、按住升降、悬停手感、原生 UI 还原或保存重载通过。
+- Android 7723：待验证。控件层是否真正附加到驾驶位 `ControlsContainerWidget`、圆角半透明与箭镞朝向、`ClickableWidget.IsPressed` 持续按压与双手多点触摸、`ImageWidget.RotateAngle` 是否绕中心、不同分辨率/横屏/UIScale 边距安全区、与快捷栏/菜单是否重叠，均未真机执行；若不可用将按 try/catch 回退到视角升降通道。
+- 两台真实客户端：待验证。仅授权驾驶员出按键且可操控、乘客隐藏且不可控、垂直输入经主机校验并随既有一元位置包同步、切换驾驶员清除旧输入无抖动/重复、远端表现，均未执行。
 
 ## 0.26.0 双人直升机 V0.4（2026-10-25）
 

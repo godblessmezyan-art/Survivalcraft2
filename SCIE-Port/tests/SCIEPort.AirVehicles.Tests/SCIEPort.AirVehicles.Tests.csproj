@@ -8,5 +8,7 @@
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\AirVehicles\HelicopterFlightRules.cs" Link="HelicopterFlightRules.cs" />
     <Compile Include="..\..\src\SCIEPort\Features\Vehicles\TwoSeatRules.cs" Link="TwoSeatRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\AirVehicles\HelicopterFlightInput.cs" Link="HelicopterFlightInput.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\AirVehicles\HelicopterHoverController.cs" Link="HelicopterHoverController.cs" />
   </ItemGroup>
 </Project>

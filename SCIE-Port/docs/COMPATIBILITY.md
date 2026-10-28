@@ -1,5 +1,15 @@
 # SCIE-Port 兼容性记录
 
+## 0.45.0 合入直升机移动端飞行控制 HUD（离线已确认，Android/双机待验证，2026-10-28）
+
+将长期分支 `feature/helicopter-hud`（基线 `a2adeca`，v0.27.x 时代）合并进 main（v0.44.0）。冲突集中在元数据与变更日志：`modinfo.json`/`SCIEPort.csproj` 一律保留 main 的品牌契约（Name=荒野探险家、PackageName/AssemblyName/RootNamespace=SCIEPort），丢弃分支旧的 “SCIE-Port 移植集合 (Audit Build) / 0.28.0”，版本统一升到 **0.45.0**（modinfo 与 csproj 一致，满足构建守卫）；`README.md` 取 main 现行品牌版并新增 0.45.0 条目；`COMPATIBILITY.md`/`TEST-RESULTS.md` 保留双方历史条目。直升机 HUD 代码（`Features/AirVehicles/Hud/*`、`HelicopterFlightInput.cs`、`HelicopterHoverController.cs`、`ComponentHelicopterDrive.cs`、`HelicopterFlightRules.cs`、`Helicopter.xdb`、`Test-HelicopterHud.ps1`、`HELICOPTER-HUD-V0.5-AUDIT.md`）由三方自动合并，无文本冲突。
+
+功能：右下角独立上升/下降按键（持续多点触摸总距、松手平滑回中、自动定高悬停、紧凑座舱遥测、落地滑橇锁），仅本地授权驾驶位显示，复用既有双座驾驶权限与原生父 Body 一元位置同步，经 `ResolveIntent` 归一后走既有 `GetVerticalTarget`/`IntegrateVerticalSpeed`，绝不直写实体坐标。最终 HUD 为纯程序化矢量控件（`BevelledRectangleWidget`/`ImageWidget`/`ClickableWidget` + 自持全屏 `CanvasWidget m_layer` 定位层），**不依赖任何外部贴图**（早期 v0.27.x 的 `HeliArrow.png` 方案已被分支 tip 取代，合并后代码与包均无该引用）。方块/衣物索引、GUID、网络包与存档字段未改，存档与联机身份保持兼容。
+
+验证（本机 `D:\SC`）：`scripts/Test-Environment.ps1 -GameDir 'D:\SC'` exit 0（含新增 “Helicopter V0.5 per-finger touch and coordinate-transform ABI” 检查）；`scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0，net472 **0 warning / 0 error**，直升机 HUD 源码守卫、720 条分类/配色断言、独立 Tab（20 CSV / 53 行）守卫、既有全套离线规则测试、`DATABASE VALIDATION PASSED` 全部通过。产物 `artifacts/荒野探险家.netmod` 与字节一致的 `荒野探险家-0.45.0.netmod`：**3,672,324 bytes / 119 entries**，modinfo Version=`0.45.0`、DLL AssemblyVersion/FileVersion=`0.45.0.0`，SHA-256 `A677BAA5F6486B0E2064B167CE6C11D4A3DA4189762BAD68C2C24B27AEBF5A50`。
+
+Windows 游戏内、Android 7723 触控（按钮命中/持续按压/双手多点与左摇杆并用/松手悬停/换驾驶员无残留/多分辨率与 UIScale 安全区）、以及两台真实客户端联机（仅授权驾驶员出键、乘客隐藏、垂直输入经主机校验随一元位置包同步）**均待验证**；离线编译与规则测试不能替代真机手感。详见 `HELICOPTER-HUD-V0.5-AUDIT.md`。
+
 ## 0.44.0 独立 Tab、全神器/四圣兽背景、中文产物名（2026-10-28）
 
 53 条 CSV 配置归入 `SCIEPort.*` 独立分类键，通过目标实际 `BlocksManager.AddCategory`、
@@ -224,6 +234,21 @@ Portable Fortress 由 Builder Assistant 正式迁入 SCIE-Port，成为独立玩
 | Android 7723 存读档 | 待验证 | 退出重进后模型、代理碰撞、控制核心是否保留未测。 |
 | 联机 | 待验证 | 普通客户端拒绝展开已由代码保证；房主侧展开、同步与非装 Mod 客户端可见性未测。 |
 | 储物 48 格、供暖、玻璃透明 | 不支持 | 数据结构与 API 路径已审计，本轮未实现；白模无玻璃材质。 |
+## 0.27.0 双人直升机移动端飞行控制 HUD（已编译/离线，Android 触控与双机待验证，2026-10-25）
+
+本阶段只在既有直升机飞行/座次/网络路径上叠加移动端专属的独立上升/下降按键 HUD，未替换任何已验证逻辑；分层设计、反射取证与真机待验清单见 `HELICOPTER-HUD-V0.5-AUDIT.md`。
+
+| 项目 | 状态 | 结论 |
+|---|---|---|
+| 控件 ABI 来源 | 已确认（反射实证） | 控件类型均在 `Game.*`（`Survivalcraft.exe`）而非 `Engine.Widgets.*`。逐一确认 `ClickableWidget.IsPressed{get;set}`（持续按压+多点触摸原生通道）、`BevelledRectangleWidget` 圆角半透明、`ImageWidget.RotateAngle`+`Subtexture`、`ContainerWidget.AddChildren/RemoveChildren/ClearChildren`、`CanvasWidget.SetPosition` 为静态、`WidgetAlignment{Near/Center/Far/Stretch}`、`ComponentGui.ControlsContainerWidget`/`ComponentPlayer.GuiWidget`（即 ContainerWidget）、`SettingsManager.UIScale`（公开静态）、`ButtonWidget` 无公开构造函数（故组合而非继承）。 |
+| HUD 架构 | 已确认（代码） | 纯逻辑 `HelicopterControlSurface`（意图仲裁/可见性/响应式布局，零引擎依赖）+ 控件 `HelicopterFlightHud`（每键 CanvasWidget 根+面板+箭镞+命中层，一次构建、仅在几何变化时重排）+ 接入 `ComponentHelicopterDrive`（本地授权驾驶位 Attach/Refresh/读键）。专用按键优先于视角通道，跳跃/潜行为次级，六路经 `ResolveIntent` 归一后复用既有 `GetVerticalTarget`/`IntegrateVerticalSpeed`，绝不直写实体坐标。 |
+| 响应式布局 | 已确认（29 条断言） | 右下角堆叠（上升居下降之上），短边驱动尺寸并夹取 Min96/Max190，间隙与右下边距按分数边距，X 居右半避开原生左摇杆，随 `SettingsManager.UIScale` 缩放并对零/过小值兜底；下机/乘客/远端/销毁态隐藏。 |
+| 7723 安全回退 | 已确认（代码/守卫） | 所有控件与 `ContentManager.Get` 调用包 try/catch，异常仅记 `Log.Error` 并隐藏 HUD、按钮不可读，回退到已验证的视角升降通道，不打断驾驶循环；与 `VehicleActivationService` 同风格。 |
+| 未替换既有路径 | 已确认（代码边界） | 飞行物理、双座角色、`ComponentTwoSeatManager` 输入重定向、`VehicleActivationService` 授权门、原生父 Body 一元位置同步与包 242 均未改；HUD 只新增本地输入源。 |
+| Release 构建/包 | 已确认 | `Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0；全量离线套件+ Helicopter 73 断言通过，net472 0 warning/0 error，12 个 XDB 通过，`HeliArrow.png` 与三源文件守卫纳入。`.netmod` **521,449 字节 / 65 条目**，SHA-256 `2CEEAA02429B5A7747E212999EDBB7065C8F7CB18244995EF982356EB60A8E80`；modinfo 0.27.0，DLL 0.27.0.0。 |
+| Windows 游戏运行 | 待验证 | 未启动目标游戏；HUD 是否出现、按住升降、悬停、原生 UI 还原与保存重载未运行。 |
+| Android 7723 单机 | 待验证 | HUD 是否真正附加到驾驶位控件层、圆角/箭镞朝向、单指持续按压、双手多点触摸与左摇杆并用、松开平滑悬停、`ImageWidget.RotateAngle` 是否绕中心、不同分辨率/横屏/UIScale 边距安全区、与快捷栏/菜单重叠，均需真机实测；若不可用则按回退保持视角可飞。 |
+| 两台真实 Android 客户端 | 待验证 | 仅授权驾驶员出按键且可操控、乘客隐藏不可控、垂直输入经主机校验并随既有一元位置包同步、切换驾驶员清除旧输入无抖动/重复、远端表现，必须以相同最终包哈希验证。 |
 
 ## 0.26.0 双人直升机 V0.4（表现升级已编译，Android/双机待验证，2026-10-25）
 
