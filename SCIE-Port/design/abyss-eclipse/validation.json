@@ -1,0 +1,208 @@
+{
+  "status": "passed",
+  "triangles": 9260,
+  "meshes": 32,
+  "topology": [
+    {
+      "name": "Crescent_01_Root",
+      "triangles": 754,
+      "signedVolume": 0.10697371154601333,
+      "closedConsistent": true
+    },
+    {
+      "name": "Crescent_02_Fall",
+      "triangles": 910,
+      "signedVolume": 0.039484162231403455,
+      "closedConsistent": true
+    },
+    {
+      "name": "Crescent_03_Fang",
+      "triangles": 832,
+      "signedVolume": 0.006904709209715711,
+      "closedConsistent": true
+    },
+    {
+      "name": "RaisedBladeArmor",
+      "triangles": 1192,
+      "signedVolume": 0.0022489422944744256,
+      "closedConsistent": true
+    },
+    {
+      "name": "InterruptedVoidInlays",
+      "triangles": 816,
+      "signedVolume": 9.962388987210475e-05,
+      "closedConsistent": true
+    },
+    {
+      "name": "DorsalHook",
+      "triangles": 52,
+      "signedVolume": 0.010438312716,
+      "closedConsistent": true
+    },
+    {
+      "name": "ReverseThorn",
+      "triangles": 44,
+      "signedVolume": 0.005188546771200007,
+      "closedConsistent": true
+    },
+    {
+      "name": "RootCrest",
+      "triangles": 44,
+      "signedVolume": 0.009084103664887683,
+      "closedConsistent": true
+    },
+    {
+      "name": "NeckArmor",
+      "triangles": 44,
+      "signedVolume": 0.0164521353516,
+      "closedConsistent": true
+    },
+    {
+      "name": "RootScale_-1",
+      "triangles": 60,
+      "signedVolume": 0.0015711067344665085,
+      "closedConsistent": true
+    },
+    {
+      "name": "RootScale_1",
+      "triangles": 60,
+      "signedVolume": 0.0015711067344665113,
+      "closedConsistent": true
+    },
+    {
+      "name": "AsymmetricOrbitFragments",
+      "triangles": 280,
+      "signedVolume": 0.003578891116800004,
+      "closedConsistent": true
+    },
+    {
+      "name": "ConcaveEventHorizon",
+      "triangles": 144,
+      "signedVolume": 0.022215765074797812,
+      "closedConsistent": true
+    },
+    {
+      "name": "AccretionSlivers",
+      "triangles": 168,
+      "signedVolume": 6.979779780266166e-05,
+      "closedConsistent": true
+    },
+    {
+      "name": "DarkstarSpine",
+      "triangles": 96,
+      "signedVolume": 0.02412370550000001,
+      "closedConsistent": true
+    },
+    {
+      "name": "Grip_Lower",
+      "triangles": 64,
+      "signedVolume": 0.006729397749999999,
+      "closedConsistent": true
+    },
+    {
+      "name": "HelicalBinding_Lower",
+      "triangles": 900,
+      "signedVolume": 0.0001887960999999992,
+      "closedConsistent": true
+    },
+    {
+      "name": "GripFerrules",
+      "triangles": 256,
+      "signedVolume": 0.0024318636000000052,
+      "closedConsistent": true
+    },
+    {
+      "name": "Grip_Upper",
+      "triangles": 64,
+      "signedVolume": 0.006287635750000004,
+      "closedConsistent": true
+    },
+    {
+      "name": "HelicalBinding_Upper",
+      "triangles": 900,
+      "signedVolume": 0.0001888316000000004,
+      "closedConsistent": true
+    },
+    {
+      "name": "WaistArmature",
+      "triangles": 64,
+      "signedVolume": 0.007112371750000001,
+      "closedConsistent": true
+    },
+    {
+      "name": "WaistFace_-1",
+      "triangles": 60,
+      "signedVolume": 0.0009777323087999997,
+      "closedConsistent": true
+    },
+    {
+      "name": "UpperArmoredFace_-1",
+      "triangles": 60,
+      "signedVolume": 0.0009056297265599988,
+      "closedConsistent": true
+    },
+    {
+      "name": "SweptHaftGuard_-1",
+      "triangles": 52,
+      "signedVolume": 0.0006843928998399996,
+      "closedConsistent": true
+    },
+    {
+      "name": "HaftGuardInner_-1",
+      "triangles": 52,
+      "signedVolume": 0.00038369930351999976,
+      "closedConsistent": true
+    },
+    {
+      "name": "ShaftRunes",
+      "triangles": 960,
+      "signedVolume": 3.71704235942572e-05,
+      "closedConsistent": true
+    },
+    {
+      "name": "WaistFace_1",
+      "triangles": 60,
+      "signedVolume": 0.0009777323087999997,
+      "closedConsistent": true
+    },
+    {
+      "name": "UpperArmoredFace_1",
+      "triangles": 60,
+      "signedVolume": 0.00090562972656,
+      "closedConsistent": true
+    },
+    {
+      "name": "SweptHaftGuard_1",
+      "triangles": 52,
+      "signedVolume": 0.0006843928998399992,
+      "closedConsistent": true
+    },
+    {
+      "name": "HaftGuardInner_1",
+      "triangles": 52,
+      "signedVolume": 0.00038369930351999986,
+      "closedConsistent": true
+    },
+    {
+      "name": "ButtArmor",
+      "triangles": 64,
+      "signedVolume": 0.005007825249999999,
+      "closedConsistent": true
+    },
+    {
+      "name": "TerminalStarFang",
+      "triangles": 44,
+      "signedVolume": 0.0024267091727999987,
+      "closedConsistent": true
+    }
+  ],
+  "axis": "Y_UP",
+  "root": "identity",
+  "texture": "opaque RGBA 256x16",
+  "idleFramingFov": [
+    65,
+    75,
+    85
+  ],
+  "scope": "Offline candidate integrity, NOT Android/game acceptance."
+}
