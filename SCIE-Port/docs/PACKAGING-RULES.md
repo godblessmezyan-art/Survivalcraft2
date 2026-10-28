@@ -19,9 +19,9 @@
 |---|---|---|
 | `modinfo.PackageName` | `SCIEPort` | 决定模组目录名与存档归属，改动等于换模组，旧存档全部失效 |
 | `AssemblyName` / `RootNamespace` | `SCIEPort` | 程序集名与命名空间，改动会破坏 ModLoader 反射加载 |
-| 方块索引 | 903–948、995–1000 | 存档按 `BlockIndex` 存方块，改号等于毁档 |
+| 方块索引 | 现有 903–949、951、995–1000（有预留空号） | 保留所有既有值；950 预留其它分支的吞噬之眼，不按连续区间自动注册 |
 | 衣物 `ClothingData.Index` | 200–203 | 同上 |
-| 网络包 ID | 240–245 | 联机协议，改动即与旧版本不兼容 |
+| 网络包 ID | 240–246 | 保留已有协议布局 |
 | XDB 容器 / 模板 GUID | 现状 | 数据合并按 GUID 匹配 |
 | `THIRD-PARTY-NOTICES.md` | 必须随包 | 上游署名与授权范围 |
 
@@ -33,6 +33,14 @@
 - 禁止在 CSV 的 `DefaultDisplayName` 里写发布状态后缀：`（移植）`、`（授权移植预览）`、`(Port)`、`Audit Build`。
   移植状态写进 `docs/`，不污染玩家可见名称。
 - 新增方块前必须比对原版与本工作区全部 `Block.Index`，并在 `docs/COMPATIBILITY.md` 记录占用区间。
+- v0.44.0 起全部当前及新增物品使用独立的 `SCIEPort.*` 原生分类键，中文显示为神器/载具/圣兽套装等；全部神器、四圣兽分别有主题槽位背景，见 [INVENTORY-STANDARD.md](INVENTORY-STANDARD.md)。不得重新混入原版分类。
+
+### 3.1 外部产物文件名（v0.44.0 起强制）
+
+- 固定新交付名：`荒野探险家.netmod`；同字节版本副本：`荒野探险家-<Version>.netmod`。
+- 临时压缩文件：`荒野探险家.zip`，不作为安装包交付；历史 `SCIEPort.netmod` 可保留为旧版记录/只读恢复来源，禁止作为新包名。
+- 包内仍为 `SCIEPort.dll`；`PackageName`、程序集名、命名空间与模组存档归属不改。中文文件名不是改模组身份。
+- 构建后比较主包/版本副本哈希，拒绝文件名漂移；中文 PowerShell 脚本需兼容 Windows PowerShell 5.1（UTF-8 BOM），modinfo JSON 保持 UTF-8 无 BOM。
 
 ## 4 版本一致性
 
@@ -49,6 +57,7 @@
 3. 全部离线规则套件、资源守卫、XDB 校验、`net472 Release` 构建。
 4. **品牌契约（打包后）**：从 `.netmod` 内重新读取 `modinfo.json`，再校验 `Name`/`Author`/`PackageName`/`Version`。
 5. 必需条目、禁用条目（如 `KellyExpansion.webp`）、纹理解析格式、方块 ID 与网络包 ID 唯一性。
+6. 独立 Tab/神器专属背景、原版衣物 DATA 隔离、所有可创造变体与实际分类 getter、注册幂等与中文标签；主包/版本副本命名与哈希一致。
 
 ## 6 变更流程
 

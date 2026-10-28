@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Game;
+using SCIEPort.Features.Inventory;
 
 namespace SCIEPort.Features.FourSaints
 {
@@ -11,6 +12,13 @@ namespace SCIEPort.Features.FourSaints
     {
         /// <summary>Preserves the native clothing block ID and all existing save values.</summary>
         public new const int Index = 203;
+
+        /// <summary>Only the four native DATA indices move tabs; ordinary/dyed clothing keeps native categories.</summary>
+        public override string GetCategory(int value)
+        {
+            int clothingIndex=GetClothingIndex(Terrain.ExtractData(value));
+            return PortInventoryRules.IsSaint(Terrain.ExtractContents(value),clothingIndex) ? PortInventoryRules.Saints : base.GetCategory(value);
+        }
 
         /// <summary>Enumerates native and mod clothing without dereferencing sparse null slots.</summary>
         public override IEnumerable<int> GetCreativeValues()

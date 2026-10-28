@@ -13,12 +13,13 @@ $upstream = Join-Path $projectRoot 'upstream\SCIE'
 $artifacts = Join-Path $projectRoot 'artifacts'
 $build = Join-Path $artifacts 'build'
 $stage = Join-Path $artifacts 'package'
-$zip = Join-Path $artifacts 'SCIEPort.zip'
-$package = Join-Path $artifacts 'SCIEPort.netmod'
+$zip = Join-Path $artifacts '荒野探险家.zip'
+$package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
 
 # --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
 # 游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）。
@@ -108,6 +109,8 @@ if ($fourSaintsClothes.Count -ne 4 -or @($fourSaintsClothes | Where-Object { $_.
 if ($LASTEXITCODE -ne 0) { throw 'Gungnir rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Poseidon.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Poseidon rule/layout tests failed' }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Inventory.Tests') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Inventory category/skin rules failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.Stormhammer.Tests') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Stormhammer rule tests failed' }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests/SCIEPort.FourSaints.Tests') --configuration Release --nologo
@@ -290,6 +293,7 @@ if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITC
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
+& (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -453,23 +457,8 @@ if (-not $loaderSource.Contains('FourSaintsClothing.EnsureRegistered();')) {
     throw 'Four Saints clothing fallback must run after blocks initialize.'
 }
 $artifactDisplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
-if (-not $artifactDisplaySource.Contains('contents == GungnirBlock.Index') -or -not $artifactDisplaySource.Contains('contents == StormhammerAwakenedBlock.Index')) {
-    throw 'The shared artifact slot decorator must keep distinct Gungnir and Mjolnir skins.'
-}
-foreach ($gungnirSlotPaletteRule in @(
-    '(byte)(34 + 6 * pulse)',
-    '(byte)(37 + 6 * pulse)',
-    '(byte)(45 + 6 * pulse)',
-    '(byte)(197 + 8 * pulse)',
-    '(byte)(153 + 8 * pulse)',
-    '(byte)(81 + 8 * pulse)'
-)) {
-    if (-not $artifactDisplaySource.Contains($gungnirSlotPaletteRule)) {
-        throw "Gungnir obsidian-and-antique-gold slot palette missing: $gungnirSlotPaletteRule"
-    }
-}
-if ($artifactDisplaySource.Contains('(byte)(58 + 24 * pulse)') -or $artifactDisplaySource.Contains('(byte)(62 + 24 * pulse)')) {
-    throw 'The retired green Gungnir slot palette must not return.'
+foreach ($slotRule in @('PortInventoryRules.Select', 'PortInventoryRules.Colors', 'GetClothingIndex', 's_seen.Contains(slot)', 'RestoreColors', 'ResetAll();s_project=project;')) {
+    if (-not $artifactDisplaySource.Contains($slotRule)) { throw "Unified equipment slot lifecycle missing: $slotRule" }
 }
 if (-not $visualsSource.Contains('MainStrikeTime = 0.28f')) {
     throw 'The main bolt must land almost immediately (0.28 s) instead of after a long wind-up.'
@@ -518,11 +507,8 @@ if (-not (Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\
 # in the V3.2 contract block and would be $null here.
 $displayBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
 $mjolnirDisplay = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\MjolnirDisplay.cs')
-if (-not $mjolnirDisplay.Contains('StormhammerAwakenedBlock.Index')) {
-    throw 'MjolnirDisplay must key on the awakened block index.'
-}
-if ($mjolnirDisplay.Contains('StormhammerBlock.Index')) {
-    throw 'MjolnirDisplay must not decorate the fake hammer slot.'
+if (-not $mjolnirDisplay.Contains('PortInventoryRules.Select')) {
+    throw 'Slot skins must use the unified data-aware equipment registry.'
 }
 if (-not $mjolnirDisplay.Contains('BevelColor')) {
     throw 'MjolnirDisplay must restore the bevel it overrides.'
@@ -1139,8 +1125,8 @@ try {
     $foxRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Creatures.csv'))
     $foxSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'FoxSpawnBlock' })
     if ($foxSpawnerRow.Count -ne 1 -or $foxSpawnerRow[0].Behaviors -ne 'SCIEPortFoxSpawnBehavior' -or
-        $foxSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
-        throw 'FoxSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortFoxSpawnBehavior.'
+        $foxSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
+        throw 'FoxSpawnBlock must use SCIEPort.Creatures and only SCIEPortFoxSpawnBehavior.'
     }
     $rabbitEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortRabbit']")
     if ($null -eq $rabbitEntity -or $rabbitEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
@@ -1167,8 +1153,8 @@ try {
     }
     $rabbitSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'RabbitSpawnBlock' })
     if ($rabbitSpawnerRow.Count -ne 1 -or $rabbitSpawnerRow[0].Behaviors -ne 'SCIEPortRabbitSpawnBehavior' -or
-        $rabbitSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
-        throw 'RabbitSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortRabbitSpawnBehavior.'
+        $rabbitSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
+        throw 'RabbitSpawnBlock must use SCIEPort.Creatures and only SCIEPortRabbitSpawnBehavior.'
     }
     $chickenEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortChicken']")
     if ($null -eq $chickenEntity -or $chickenEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
@@ -1195,8 +1181,8 @@ try {
     }
     $chickenSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'ChickenSpawnBlock' })
     if ($chickenSpawnerRow.Count -ne 1 -or $chickenSpawnerRow[0].Behaviors -ne 'SCIEPortChickenSpawnBehavior' -or
-        $chickenSpawnerRow[0].DefaultCategory -ne 'Spawner Eggs') {
-        throw 'ChickenSpawnBlock must remain a creative Spawner Eggs item handled only by SCIEPortChickenSpawnBehavior.'
+        $chickenSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
+        throw 'ChickenSpawnBlock must use SCIEPort.Creatures and only SCIEPortChickenSpawnBehavior.'
     }
     [xml]$cropsDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Crops.xdb')
     $cornBehavior = $cropsDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortCornBehavior']")
@@ -1219,7 +1205,7 @@ try {
         throw 'Crops.csv must contain exactly one row for CornStalkBlock, CornSeedBlock and CornEarBlock.'
     }
     foreach ($cropRow in @($cornStalkRow[0], $cornSeedRow[0], $cornEarRow[0])) {
-        if ($cropRow.DefaultCategory -ne 'Crops' -or $cropRow.IsPlaceable -ne 'TRUE') {
+        if ($cropRow.DefaultCategory -ne $(if ($cropRow.'Class Name' -eq 'CornEarBlock') {'SCIEPort.Food'} else {'SCIEPort.Plants'}) -or $cropRow.IsPlaceable -ne 'TRUE') {
             throw "Crops row $($cropRow.'Class Name') must be a placeable item in the Crops category."
         }
     }
@@ -1246,7 +1232,7 @@ try {
     if ($bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1) {
         throw 'Bamboo.csv must contain exactly one row for BambooPlantBlock and BambooBlock.'
     }
-    if ($bambooPlantRow[0].DefaultCategory -ne 'Crops' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($bambooPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $bambooPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'BambooPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
@@ -1273,11 +1259,11 @@ try {
     if ($flaxPlantRow.Count -ne 1 -or $flaxFiberRow.Count -ne 1) {
         throw 'Flax.csv must contain exactly one row for FlaxPlantBlock and FlaxFiberBlock.'
     }
-    if ($flaxPlantRow[0].DefaultCategory -ne 'Crops' -or $flaxPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($flaxPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $flaxPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $flaxPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'FlaxPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
-    if ($flaxFiberRow[0].DefaultCategory -ne 'Crops' -or $flaxFiberRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($flaxFiberRow[0].DefaultCategory -ne 'SCIEPort.Materials' -or $flaxFiberRow[0].IsPlaceable -ne 'TRUE' -or
         $flaxFiberRow[0].DefaultTextureSlot -ne '8') {
         throw 'FlaxFiberBlock must be a placeable Crops item drawn on atlas slot 8.'
     }
@@ -1300,12 +1286,12 @@ try {
     if ($sunflowerPlantRow.Count -ne 1 -or $sunflowerSeedRow.Count -ne 1) {
         throw 'Sunflower.csv must contain exactly one row for SunflowerPlantBlock and SunflowerSeedBlock.'
     }
-    if ($sunflowerPlantRow[0].DefaultCategory -ne 'Crops' -or $sunflowerPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($sunflowerPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $sunflowerPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $sunflowerPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'SunflowerPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $sunflowerSeedNutrition = 0.0
-    if ($sunflowerSeedRow[0].DefaultCategory -ne 'Food' -or $sunflowerSeedRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($sunflowerSeedRow[0].DefaultCategory -ne 'SCIEPort.Food' -or $sunflowerSeedRow[0].IsPlaceable -ne 'TRUE' -or
         $sunflowerSeedRow[0].DefaultTextureSlot -ne '8' -or
         -not [double]::TryParse($sunflowerSeedRow[0].DefaultNutritionalValue, [ref] $sunflowerSeedNutrition) -or $sunflowerSeedNutrition -le 0.0) {
         throw 'SunflowerSeedBlock must be a placeable Food item drawn on atlas slot 8 with a positive nutritional value.'
@@ -1329,12 +1315,12 @@ try {
     if ($applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
         throw 'Apple.csv must contain exactly one row for ApplePlantBlock and AppleBlock.'
     }
-    if ($applePlantRow[0].DefaultCategory -ne 'Crops' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($applePlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
         $applePlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'ApplePlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $appleFruitNutrition = 0.0
-    if ($appleFruitRow[0].DefaultCategory -ne 'Food' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Food' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
         $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
         throw 'AppleBlock must be a placeable Food item drawn on atlas slot 9 with a positive nutritional value.'
@@ -2221,7 +2207,7 @@ try {
     }
 
     $awakenedCsv = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\StormhammerAwakened.csv')
-    if ($awakenedCsv -notmatch 'StormhammerAwakenedBlock;[^;]+;Weapons;SCIEPortAwakenedStormhammerBehavior' -or $awakenedCsv -notmatch 'scieport-skywrath-v3' -or $awakenedCsv -notmatch ';FALSE;960;') {
+    if ($awakenedCsv -notmatch 'StormhammerAwakenedBlock;[^;]+;SCIEPort\.Artifacts;SCIEPortAwakenedStormhammerBehavior' -or $awakenedCsv -notmatch 'scieport-skywrath-v3' -or $awakenedCsv -notmatch ';FALSE;960;') {
         throw 'Skywrath V3.2 CSV identity, non-aimable skill-button mode, or durability changed.'
     }
     $awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
@@ -2283,6 +2269,12 @@ try {
 }
 finally { $archive.Dispose() }
 
+if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
+& (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+$versionedPackage = Join-Path $artifacts ("荒野探险家-" + $modInfo.Version + '.netmod')
+Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
+if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }
 Write-Host "Package: $package"
+Write-Host "Versioned package: $versionedPackage"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"

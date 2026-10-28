@@ -1,5 +1,14 @@
 # 兼容性矩阵
 
+## 2026-10-28 SCIE-Port 0.44.0 独立分类与物品展示规范
+
+SCIE-Port 所有现有/新增内容使用独立 `SCIEPort.*` Tab，神器/四圣兽主题背景统一管理，
+新交付文件固定为“荒野探险家.netmod”及版本副本。包内 SCIEPort.dll/PackageName、
+物品/衣物/网络 ID、GUID、存档格式和 Builder Assistant 实现均不改；未增加 Hook。
+实际 ABI 为固定 Windows x25.01.17：AddCategory、LanguageControl.loadJson、GetCategory、
+InventorySlotWidget.CenterColor/BevelColor，离线取证/编译已确认；Android/Windows 游戏内
+分类、触屏和背景显示及多人本地 UI 待验证。详见 SCIE-Port/docs/INVENTORY-STANDARD.md。
+
 ## 2026-10-28 SCIE-Port 0.43.0 海神三叉戟·波塞冬 V1
 
 仅 SCIE-Port 新增原创神器/模型/贴图/潮汐技能与独立网络包：Block 951、Package 246，

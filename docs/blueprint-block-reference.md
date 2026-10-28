@@ -1,5 +1,9 @@
 # Builder Assistant 蓝图方块能力清单 v0.19.0
 
+> 2026-10-28 展示规范补充：SCIE-Port 0.44.0 的独立 Tab、神器/圣兽背景和中文包名
+> 仅改变移植工程展示，不增加 Builder Assistant 的方块、族标签或 DATA 能力。
+> 不得将 `SCIEPort.Artifacts` / `SCIEPort.Vehicles` 等分类键当作蓝图材料键使用。
+
 > 2026-10-28 边界补充：SCIE-Port 0.43.0 新增的海神三叉戟·波塞冬（951、DATA 0、
 > 非地形物品）不属于本清单材料；不允许在 Builder Assistant `cells`/家具模板中填写
 > `PoseidonBlock`、951 或 `scieport-poseidon`，不增加蓝图族标签或 DATA 支持范围。

@@ -1,6 +1,6 @@
 Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultIconBlockOffset;DefaultIconViewOffset;DefaultIconViewScale;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;InHandOffset;InHandRotation;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsPlacementTransparent;IsGatherable;MaxStacking;DefaultDescription
-SteamBoatBlock;SCIE 双人快艇;Items;;901;0,0,0;-0.7,0.8,-1;0.45;0.4;0.5,-0.5,-0.6;0,40,0;0.4;0,0,0;90,0,0;scieport-steamboat;0;FALSE;FALSE;TRUE;TRUE;1;使用授权船体资源的双人快艇：首名乘员驾驶，第二名乘员坐副驾驶且不能控制船体。燃料和普通客户端驾驶尚未完成。
-AirshipBlock;SCIE 飞艇;Items;;902;0,-0.2,0;-0.6,0.6,-0.8;1;0.25;0.4,-0.4,-0.5;0,35,0;0.25;0,0,0;90,0,0;scieport-airship;0;FALSE;FALSE;TRUE;TRUE;1;使用 SCIE 原飞艇模型的单人移植预览。触屏前后控制推进，观察方向控制升降；燃料和联机同步尚未完成。
-RailBlock;SCIE 铁轨;Construction;;903;0,0,0;0,0,-1;1;1;0,0,0;0,0,0;1;0,0,0;0,0,0;scieport-rail;0;TRUE;TRUE;TRUE;TRUE;64;用于 SCIE 火车和车厢。相邻轨道会自动形成直轨、弯轨或坡轨。
-TrainBlock;SCIE 火车;Items;;904;0,0,0;-0.6,0.5,-1;1;0.35;0.4,-0.5,-0.6;0,35,0;0.35;0,0,0;90,0,0;scieport-train;0;FALSE;FALSE;TRUE;TRUE;1;放在 SCIE 铁轨上生成。单人模式可乘坐并用触屏前后输入驾驶；蒸汽燃料链尚未完成。
-CarriageBlock;SCIE 车厢;Items;;905;0,0,0;-0.5,0.5,-1;1;0.55;0.4,-0.5,-0.6;0,35,0;0.55;0,0,0;90,0,0;scieport-carriage;0;FALSE;FALSE;TRUE;TRUE;1;放在 SCIE 铁轨上生成。当前可独立试乘；自动编组、货箱和联机同步尚未完成。
+SteamBoatBlock;SCIE 双人快艇;SCIEPort.Vehicles;;901;0,0,0;-0.7,0.8,-1;0.45;0.4;0.5,-0.5,-0.6;0,40,0;0.4;0,0,0;90,0,0;scieport-steamboat;0;FALSE;FALSE;TRUE;TRUE;1;使用授权船体资源的双人快艇：首名乘员驾驶，第二名乘员坐副驾驶且不能控制船体。燃料和普通客户端驾驶尚未完成。
+AirshipBlock;SCIE 飞艇;SCIEPort.Vehicles;;902;0,-0.2,0;-0.6,0.6,-0.8;1;0.25;0.4,-0.4,-0.5;0,35,0;0.25;0,0,0;90,0,0;scieport-airship;0;FALSE;FALSE;TRUE;TRUE;1;使用 SCIE 原飞艇模型的单人移植预览。触屏前后控制推进，观察方向控制升降；燃料和联机同步尚未完成。
+RailBlock;SCIE 铁轨;SCIEPort.Building;;903;0,0,0;0,0,-1;1;1;0,0,0;0,0,0;1;0,0,0;0,0,0;scieport-rail;0;TRUE;TRUE;TRUE;TRUE;64;用于 SCIE 火车和车厢。相邻轨道会自动形成直轨、弯轨或坡轨。
+TrainBlock;SCIE 火车;SCIEPort.Vehicles;;904;0,0,0;-0.6,0.5,-1;1;0.35;0.4,-0.5,-0.6;0,35,0;0.35;0,0,0;90,0,0;scieport-train;0;FALSE;FALSE;TRUE;TRUE;1;放在 SCIE 铁轨上生成。单人模式可乘坐并用触屏前后输入驾驶；蒸汽燃料链尚未完成。
+CarriageBlock;SCIE 车厢;SCIEPort.Vehicles;;905;0,0,0;-0.5,0.5,-1;1;0.55;0.4,-0.5,-0.6;0,35,0;0.55;0,0,0;90,0,0;scieport-carriage;0;FALSE;FALSE;TRUE;TRUE;1;放在 SCIE 铁轨上生成。当前可独立试乘；自动编组、货箱和联机同步尚未完成。

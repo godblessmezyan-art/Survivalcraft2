@@ -1,5 +1,52 @@
 # 测试结果
 
+## 2026-10-28 独立物品 Tab、专属背景与中文文件名 / 0.44.0
+
+基线 main `99afb97`。根/SCIE-Port AGENTS 与 PACKAGING-RULES 已写入长期规则，
+详细分类、背景与 Android 清单见 [INVENTORY-STANDARD.md](INVENTORY-STANDARD.md)。
+未修改 Builder Assistant 实现；CSV 基线逐字段比较确认 53 行仅 DefaultCategory 改变，
+所有名称、Behaviors、DATA、配方/ID 与其它配置不变，隐藏物品没有变为可创造物品。
+
+实际命令（仓库根，Windows PowerShell 5.1，现有 SDK 9.0.314）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.Inventory.Tests -c Release --nologo
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo --no-restore
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-PortInventory.ps1 -BuiltAssembly E:\Survivalcraft2\SCIE-Port\src\SCIEPort\bin\Release\net472\SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+git diff --check
+```
+
+最终全部 exit 0，Release **0 warning / 0 error**。固定 Windows x25.01.17 哈希与
+0.43.0 记录相同（Survivalcraft.exe `3D14B8...C74A7AD` / Engine.dll `98F203...770694` /
+EntitySystem.dll `7A87E6...7ED19C`；完整 SHA-256 见下方 0.43.0 记录），版本 2.4.0.0 /
+API 1.42 / SC 2.4.10.6 / net472。未更改 ABI、Hook 签名或网络包布局。
+
+- 720 条纯分类/配色断言：命名空间/标签唯一性、普通物品隔离、四圣兽四种背景、
+  所有神器/伪锤独立主题、昆古尼尔/妙尔尼尔原有配色、脉动边界与 NaN 处理。
+- 160 项真实目标程序集检查：53 个编译后的 Block 类及 50 个可创造值的 GetCategory，
+  45 个衣物索引/颜色/损耗组合（含普通衣物），10 个中文标签，2 个既有翻译键保留；
+  另外验证分类重复注册无重复且原版/外部分类次序不变，槽位颜色属性为真实可读写 ABI。
+  这些是未加载世界的检查，不是实际触控/渲染结果。
+- 包内 20 份 CSV / 53 行分类逐一与源码一致；正式构建拒绝原版分类、杂项兜底、
+  缺失 CSV 或神器通用主题，包后再检查中文固定文件名及版本副本哈希。
+- 原有 Gungnir 306、Poseidon 1561/原生序列化 27、Stormhammer 671、Four Saints 37、
+  植物/生态/载具/堡垒全部既有套件、Eye 27 布局、真实模型导入、19 XDB、品牌/禁带资源通过。
+- 曾被旧“伪锤不可染色”/旧源码位置守卫阻止，已按本次用户要求替换为统一主题注册、
+  明确伪锤独立背景和真实规则测试；不是删除所有背景检查来放行。新中文 PS 脚本采用
+  UTF-8 BOM，解决 Windows PowerShell 5.1 把中文产物名误读的问题。
+
+最终产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.44.0.netmod` 字节一致：
+**3,666,729 bytes / 119 entries**，modinfo Version **0.44.0**，
+内部 PackageName/DLL 为 **SCIEPort / SCIEPort.dll**，AssemblyVersion/FileVersion **0.44.0.0**。
+SHA-256：`70E720D54F0234E20BEBA70EE88A2B80E4F815C9A5AA5BB0512359390B2308FA`。
+完整日志为忽略目录 `artifacts/Inventory-build.log`。历史英文文件名的旧包保留，不作为新交付。
+
+Windows 游戏内、Android 7723 独立分类/中文文件加载、图标和数量可读性、拖放/穿戴槽、
+关闭面板无残色与跨世界 UI 清理、Local/房主/普通客户端各自本地 UI **均待验证**。
+安装只保留一份该模组；Tab 命名空间不解决其它模组 Block/衣物 DATA/网络 ID 的占号冲突。
+
 ## 2026-10-28 波塞冬 V1 / 荒野探险家 0.43.0
 
 基线 main `fd0f653`，仅实现独立海洋神器，不改 Builder Assistant 源码或存档格式。

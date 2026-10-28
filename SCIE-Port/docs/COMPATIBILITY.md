@@ -1,5 +1,22 @@
 # SCIE-Port 兼容性记录
 
+## 0.44.0 独立 Tab、全神器/四圣兽背景、中文产物名（2026-10-28）
+
+53 条 CSV 配置归入 `SCIEPort.*` 独立分类键，通过目标实际 `BlocksManager.AddCategory`、
+`LanguageControl.loadJson` 注册并显示九类中文 Tab。使用已有 BlocksInitalized Hook，
+在圣兽衣物兜底注册后执行，Hook 签名与注册次数不变。普通衣物保持 Clothes/Dyed，
+仅衣物块 203 内索引 200–203（含颜色/损耗 DATA）迁入 SCIEPort.Saints。
+统一背景只使用目标原生 InventorySlotWidget.CenterColor/BevelColor，不增加 UI 覆盖层；
+五件现有神器与四件圣兽分别配色，未知未来神器有通用兜底但正式发布需专属主题。
+主题切换/普通槽/隐藏或移除 Widget/世界切换恢复原色和旧引用。
+
+所有 Block ID、衣物 DATA、GUID、网络包及 modinfo 字段集合不变；版本为 0.44.0。
+外部新产物 `荒野探险家.netmod` / 同字节 `荒野探险家-0.44.0.netmod`，内部
+PackageName/AssemblyName/RootNamespace/SCIEPort.dll 不变。旧包历史不重命名。
+固定 Windows x25.01.17 ABI、720 条纯规则断言、160 项真实分类/翻译/幂等/颜色 ABI
+检查、既有套件与 Release/包内容检查已确认；Windows 游戏内/Android 7723/联机 UI 待验证。
+见 [规范与真机清单](INVENTORY-STANDARD.md) 和测试记录。
+
 ## 0.43.0 波塞冬 V1（2026-10-28）
 
 新增独立 `PoseidonBlock` 951（保留 port 分支吞噬之眼 950），网络包 246；

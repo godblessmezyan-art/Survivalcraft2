@@ -1,2 +1,2 @@
 Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultIconBlockOffset;DefaultIconViewOffset;DefaultIconViewScale;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;InHandOffset;InHandRotation;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsPlacementTransparent;IsGatherable;MaxStacking;DefaultDescription
-AtvBlock;SCIE 双人越野摩托;Items;;906;0,0,0;-0.65,0.35,-1;1;0.38;0.45,-0.45,-0.6;0,35,0;0.38;0,0,0;90,0,0;scieport-atv;0;FALSE;FALSE;TRUE;TRUE;1;双座越野摩托：首名乘员驾驶，第二名乘员坐后座且不能控制车辆。单人和主机驾驶已实现，Android 双机联机待验证。
+AtvBlock;SCIE 双人越野摩托;SCIEPort.Vehicles;;906;0,0,0;-0.65,0.35,-1;1;0.38;0.45,-0.45,-0.6;0,35,0;0.38;0,0,0;90,0,0;scieport-atv;0;FALSE;FALSE;TRUE;TRUE;1;双座越野摩托：首名乘员驾驶，第二名乘员坐后座且不能控制车辆。单人和主机驾驶已实现，Android 双机联机待验证。

@@ -1,6 +1,7 @@
 using Game;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
+using SCIEPort.Features.Inventory;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
@@ -261,6 +262,7 @@ namespace SCIEPort.Mod
             {
                 Log.Error("[SCIEPort] Four Saints clothing registration failed: " + exception);
             }
+            PortInventoryCatalog.Initialize();
         }
 
         /// <inheritdoc />
