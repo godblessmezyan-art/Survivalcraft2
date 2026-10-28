@@ -110,6 +110,8 @@ namespace SCIEPort.Features.FourSaints
 
         internal static void Reset(Project project)
         {
+            QinglongCrownRenderer.Reset(project);
+            FourSaintsArmorRenderer.Reset(project);
             s_remove.Clear();
             foreach (KeyValuePair<ComponentModel, Avatar> pair in s_avatars)
                 if (pair.Value.Project == project) s_remove.Add(pair.Key);

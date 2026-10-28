@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 0.46.0 合并 origin/main（四圣兽 V3）与本地直升机 HUD 主线（离线已确认，Android/双机待验证，2026-10-28）
+
+本地 main（含直升机 HUD 合并，原 0.45.0）与 origin/main 新增提交 `5d36821`（四圣兽 V3 独立装甲/骨骼附件/装备图标/装备页人物预览修复，原 0.44.1）自 `6fb084e`（v0.44.0）分叉。执行 `git merge origin/main` 后冲突集中在元数据与变更日志：`SCIEPort.csproj`、`modinfo.json` 版本统一升到 **0.46.0**（modinfo 与 csproj 一致以满足构建守卫），Description 合并两条主线；`README.md`、`COMPATIBILITY.md`、`TEST-RESULTS.md` 保留双方历史条目并新增 0.46.0 说明。四圣兽 V3 源码/资源（`Features/FourSaints/FourSaintsArmorRenderer.cs`、`QinglongCrownRenderer.cs`、`FourSaintsClothingPreview.cs`、`ClothingBlock.cs`、`FourSaintsVisuals.cs`、`Assets/Models/*V3.dae`、`Assets/Textures/FourSaintsArmorV3.png`/`QinglongCrown.png`、相关脚本与文档）与直升机 HUD 源码（`Features/AirVehicles/Hud/*` 等）由三方自动合并，无文本冲突；`Build-NetMod.ps1`、`Test-Environment.ps1` 自动合并双方新增守卫。
+
+合并后离线复核（本机 `D:\SC`）：`scripts/Test-Environment.ps1 -GameDir 'D:\SC'` exit 0，同时通过 “Helicopter V0.5 per-finger touch and coordinate-transform ABI” 与 “Native clothing-preview ModelWidget.Draw, bone arrays, shader and owner/child replacement ABI”（四圣兽 V3）；`scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0，`DATABASE VALIDATION PASSED`、独立 Tab 守卫（20 CSV / 53 行）、专用分类 CSV/命名守卫（53 行）全部通过。产物 `artifacts/荒野探险家.netmod` 与字节一致的 `荒野探险家-0.46.0.netmod`：**3,742,075 bytes / 125 entries**，包内 `SCIEPort.dll` AssemblyVersion/FileVersion=`0.46.0.0`、modinfo Version=`0.46.0`、PackageName=`SCIEPort`，SHA-256 `385DEAAA0A0797A683598CE0A32410ED0A035DB205B2F4A3704A8C9E262BA6F0`；包内同时含直升机资产与四圣兽 V3 资产（`BaihuLegArmorV3/XuanwuArmorV3/ZhuqueBootsV3/QinglongCrown.dae`、`FourSaintsArmorV3/QinglongCrown.png`），确认两条主线内容均在合并包中。方块/衣物索引、GUID、网络包与存档字段两侧均未改，存档与联机身份保持兼容。Windows 游戏内、Android 7723（直升机 HUD 触控全项 + 四圣兽 V3 装备页人物预览/装甲实显）与两台真实客户端联机仍待真机验证。
+
 ## 0.45.0 合入直升机移动端飞行控制 HUD（离线已确认，Android/双机待验证，2026-10-28）
 
 将长期分支 `feature/helicopter-hud`（基线 `a2adeca`，v0.27.x 时代）合并进 main（v0.44.0）。冲突集中在元数据与变更日志：`modinfo.json`/`SCIEPort.csproj` 一律保留 main 的品牌契约（Name=荒野探险家、PackageName/AssemblyName/RootNamespace=SCIEPort），丢弃分支旧的 “SCIE-Port 移植集合 (Audit Build) / 0.28.0”，版本统一升到 **0.45.0**（modinfo 与 csproj 一致，满足构建守卫）；`README.md` 取 main 现行品牌版并新增 0.45.0 条目；`COMPATIBILITY.md`/`TEST-RESULTS.md` 保留双方历史条目。直升机 HUD 代码（`Features/AirVehicles/Hud/*`、`HelicopterFlightInput.cs`、`HelicopterHoverController.cs`、`ComponentHelicopterDrive.cs`、`HelicopterFlightRules.cs`、`Helicopter.xdb`、`Test-HelicopterHud.ps1`、`HELICOPTER-HUD-V0.5-AUDIT.md`）由三方自动合并，无文本冲突。
@@ -9,6 +15,10 @@
 验证（本机 `D:\SC`）：`scripts/Test-Environment.ps1 -GameDir 'D:\SC'` exit 0（含新增 “Helicopter V0.5 per-finger touch and coordinate-transform ABI” 检查）；`scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release` exit 0，net472 **0 warning / 0 error**，直升机 HUD 源码守卫、720 条分类/配色断言、独立 Tab（20 CSV / 53 行）守卫、既有全套离线规则测试、`DATABASE VALIDATION PASSED` 全部通过。产物 `artifacts/荒野探险家.netmod` 与字节一致的 `荒野探险家-0.45.0.netmod`：**3,672,324 bytes / 119 entries**，modinfo Version=`0.45.0`、DLL AssemblyVersion/FileVersion=`0.45.0.0`，SHA-256 `A677BAA5F6486B0E2064B167CE6C11D4A3DA4189762BAD68C2C24B27AEBF5A50`。
 
 Windows 游戏内、Android 7723 触控（按钮命中/持续按压/双手多点与左摇杆并用/松手悬停/换驾驶员无残留/多分辨率与 UIScale 安全区）、以及两台真实客户端联机（仅授权驾驶员出键、乘客隐藏、垂直输入经主机校验随一元位置包同步）**均待验证**；离线编译与规则测试不能替代真机手感。详见 `HELICOPTER-HUD-V0.5-AUDIT.md`。
+
+## 0.44.1 主线合并（2026-10-28）
+
+将四圣兽V3独立装甲、常驻骨骼附件、网格图标及装备页人物预览修复合入 main 0.44.0；保留全知之眼、波塞冬、独立分类及主题背景。合并衣物块 DrawBlock 与 GetCategory，不改变衣物203/200–203、既有属性技能、碰撞及协议。历史0.42/0.43四圣兽候选版本号与同时期主线神器版本号曾重叠，最终统一为0.44.1。Android7723及联机由用户验收，仍待验证。
 
 ## 0.44.0 独立 Tab、全神器/四圣兽背景、中文产物名（2026-10-28）
 
@@ -50,6 +60,18 @@ net472 Release、自动回归与包内容校验已确认；Windows 游戏、Andr
 全知之眼仍为只读，本次没有引入分支上的其它工程或修改 Builder Assistant 实现。
 真实模型导入、Release 与主线自动检查结果见测试记录；Android 7723、Windows 游戏内
 界面与联机继续为待验证。下方 0.14.0 是开发分支历史记录，不是本次主线版本。
+
+## 0.43.1 装备页立体人物预览（2026-10-28）
+
+用户澄清“模型仍旧”发生于背包/装备页人物预览，不是世界第三人称。根因：0.43.0仅接入SubsystemModelsRenderer世界绘制，而ClothingWidget通过PlayerModelWidget/ModelWidget独立绘制UI人物，不调用该Hook。新增FourSaintsClothingPreview，从现有GuiUpdate仅替换外层人物的原生ModelWidget绘制子控件，保留宿主PlayerModelWidget、原生底层衣物、旋转/动画/皮肤/相机/布局，base.Draw后提交四件缓存装甲。复用原生UI LitShader的View/Projection和GlobalTransform/DPI投影，使用其骨骼数组，不套世界相机或距离裁剪；DrawMeshBlock执行UI投影后Flush(Matrix.Identity)，避免重复投影。内部皮肤预览保持原生语义；其他Mod自定义ModelWidget子类不被替换。新增ABI守卫检查模型控件Draw虚方法、骨骼数组、Shader、人物所有者和子控件替换接口。没有新Hook/资源路径/协议，也未改属性、碰撞、ID、几何或贴图。Windows目标ABI与Release构建检查已确认；官方x25.01.17 Android APK反编译确认同一控件/字段/绘制链路，7723真机预览与交互仍待用户验收。ComponentSAClothing加载异常已由用户确认是其他Mod造成，未用吞异常或修改存档方式处理。Git操作按用户要求停止，未创建提交/更新远程分支。
+
+## 0.43.0 四圣兽V3整套统一验收候选（2026-10-28）
+
+在0.42.0青龙冠之上新增XuanwuArmorV3.dae（Body）、BaihuLegArmorV3.dae（Leg1/Leg2）、ZhuqueBootsV3.dae（Leg1/Leg2）与共享不透明FourSaintsArmorV3.png。现有OnModelRendererDrawExtra接入FourSaintsArmorRenderer，ClothingBlock.DrawBlock为衣物200–203分别提供真实网格图标；无新Hook/新网络字段。新增Settings根属性SCIEPortFourSaintsArmorV3Preview（默认true）与SCIEPortFourSaintsArmorDiagnostics（默认false），原冠体设置保持。三件真实目标导入分别1/40/1212、3/36/804、3/30/596（骨骼/网格/三角面），整套3292三角面。男女Body/双Leg30次合成姿态/相机变换、原生鞋底高度/静态腿间与裙摆净空已确认；游戏内动作/穿模、Android7723与主机/客户端/观察者分别待验证，用户明确要求统一自行验收。衣物块203/数据200–203、基础贴图、属性技能、物理、GUID、包240–245均未改变。完整构建/最终包证据见TEST-RESULTS.md，细节见FOUR-SAINTS-V3-FULL-ARMOR-AUDIT.md。
+
+## 0.42.0 四圣兽V3第一阶段青龙冠（2026-10-28）
+
+新增 `Assets/Models/QinglongCrown.dae`、`Assets/Textures/QinglongCrown.png`；现有 `OnModelRendererDrawExtra` 接入常驻 Head 附件，ClothingBlock.DrawBlock 为数据200使用相同网格图标，其他衣物图标不变。原生衣物块203、数据200–203、.clo基础贴图、属性/技能/物理、GUID及包240–245未改。新增设置根属性 `SCIEPortQinglongCrownV3Preview`（默认true，用户要求测试包直接显示）与 `SCIEPortQinglongCrownDiagnostics`（默认false）。目标x25.01.17核心三程序集哈希与既有记录完全一致，已确认真实API、1骨骼/31网格/680三角面导入和男女Head绑定基逆变换；模型缓存、正常衣物穿戴判断和单次投影不依赖技能反馈窗口。完整Release/包检查已确认，Windows带Mod动作/穿戴、Android7723和主客机分别待验证；用户指定自行验收，未进入第二阶段。详见 [V3审查](FOUR-SAINTS-V3-CROWN-AUDIT.md) 与 TEST-RESULTS.md。
 ## 0.41.0 四圣兽更名·耐久统一·朱雀移速·体温钳制（离线已确认，Android 待验证，2026-10-27）
 
 四件衣物更名为万里青龙(200)/北冥玄武(201)/镇狱白虎(202)/炽焰朱雀(203)，`Sturdiness` 统一为 500，炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）。`.clo`（权威）与 `FourSaintsClothing.cs`（合并失效兜底）两条路径同步更新，`Layer` 仍统一为 10、`IsOuter=True`。方块索引 203、衣物数据号 200–203、GUID、网络包 245 与存档值均未改，因此本版对存档与联机完全兼容；改名只影响显示名，存档按方块/衣物索引存取。

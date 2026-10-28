@@ -91,6 +91,8 @@ if ($null -eq $sdkMsBuild) { throw "No installed .NET SDK MSBuild.dll found unde
 
 & (Join-Path $PSScriptRoot 'Test-GungnirAssets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-FourSaintsAssets.ps1') -ProjectDir $projectDir
+& (Join-Path $PSScriptRoot 'Test-QinglongCrown.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-FourSaintsArmorV3.ps1') -GameDir $GameDir
 $fourSaintsClothingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\FourSaints\ClothingBlock.cs')
 foreach ($clothingCompatibilityRule in @(
     'public sealed class ClothingBlock : Game.ClothingBlock',
@@ -760,6 +762,12 @@ try {
         'Assets/Blocks/Gungnir.csv',
         'Assets/Database/Gungnir.xdb',
         'Assets/FourSaints.clo',
+        'Assets/Models/QinglongCrown.dae',
+        'Assets/Textures/QinglongCrown.png',
+        'Assets/Models/XuanwuArmorV3.dae',
+        'Assets/Models/BaihuLegArmorV3.dae',
+        'Assets/Models/ZhuqueBootsV3.dae',
+        'Assets/Textures/FourSaintsArmorV3.png',
         'Assets/Database/FourSaints.xdb',
         'Assets/Textures/FourSaintsBaihu.png',
         'Assets/Textures/FourSaintsEffects.png',

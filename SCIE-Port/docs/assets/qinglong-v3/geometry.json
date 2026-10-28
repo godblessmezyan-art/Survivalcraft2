@@ -1,0 +1,178 @@
+{
+  "generator": "New-QinglongCrownAssets.mjs",
+  "bones": 1,
+  "meshes": 31,
+  "triangles": 680,
+  "bounds": [
+    [
+      -0.23939027956215495,
+      0.23939027956215495
+    ],
+    [
+      0.1410515657212022,
+      0.5578491163591631
+    ],
+    [
+      -0.254,
+      0.2547905694150421
+    ]
+  ],
+  "parts": [
+    {
+      "name": "Circlet0",
+      "triangles": 12,
+      "material": 4
+    },
+    {
+      "name": "Circlet1",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet2",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet3",
+      "triangles": 12,
+      "material": 4
+    },
+    {
+      "name": "Circlet4",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet5",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet6",
+      "triangles": 12,
+      "material": 4
+    },
+    {
+      "name": "Circlet7",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet8",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet9",
+      "triangles": 12,
+      "material": 4
+    },
+    {
+      "name": "Circlet10",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "Circlet11",
+      "triangles": 12,
+      "material": 1
+    },
+    {
+      "name": "HornLeft",
+      "triangles": 60,
+      "material": 5
+    },
+    {
+      "name": "HornSocketLeft",
+      "triangles": 32,
+      "material": 4
+    },
+    {
+      "name": "WhiskerLeft",
+      "triangles": 48,
+      "material": 2
+    },
+    {
+      "name": "DragonBrowLeft",
+      "triangles": 24,
+      "material": 2
+    },
+    {
+      "name": "BronzeTempleLeft",
+      "triangles": 16,
+      "material": 5
+    },
+    {
+      "name": "HornRight",
+      "triangles": 60,
+      "material": 5
+    },
+    {
+      "name": "HornSocketRight",
+      "triangles": 32,
+      "material": 4
+    },
+    {
+      "name": "WhiskerRight",
+      "triangles": 48,
+      "material": 2
+    },
+    {
+      "name": "DragonBrowRight",
+      "triangles": 24,
+      "material": 2
+    },
+    {
+      "name": "BronzeTempleRight",
+      "triangles": 16,
+      "material": 5
+    },
+    {
+      "name": "ForeheadScale",
+      "triangles": 24,
+      "material": 5
+    },
+    {
+      "name": "JadeHeart",
+      "triangles": 16,
+      "material": 6
+    },
+    {
+      "name": "JadeHighlight",
+      "triangles": 16,
+      "material": 7
+    },
+    {
+      "name": "NapeScale0",
+      "triangles": 24,
+      "material": 1
+    },
+    {
+      "name": "NapeFin0",
+      "triangles": 16,
+      "material": 4
+    },
+    {
+      "name": "NapeScale1",
+      "triangles": 24,
+      "material": 2
+    },
+    {
+      "name": "NapeFin1",
+      "triangles": 16,
+      "material": 4
+    },
+    {
+      "name": "NapeScale2",
+      "triangles": 24,
+      "material": 1
+    },
+    {
+      "name": "NapeFin2",
+      "triangles": 16,
+      "material": 4
+    }
+  ],
+  "calibration": "Provisional head-local coordinates. Grey fit proxy is NOT an extracted game head; target male/female model and in-game poses must be checked."
+}

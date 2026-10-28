@@ -1,5 +1,10 @@
 # 兼容性矩阵
 
+## 0.44.1 主线合并（2026-10-28）
+
+将四圣兽V3独立装甲、常驻骨骼附件、网格图标及装备页人物预览修复合入 main 0.44.0；保留全知之眼、波塞冬、独立分类及主题背景。合并衣物块 DrawBlock 与 GetCategory，不改变衣物203/200–203、既有属性技能、碰撞及协议。历史0.42/0.43四圣兽候选版本号与同时期主线神器版本号曾重叠，最终统一为0.44.1。Android7723及联机由用户验收，仍待验证。
+
+
 ## 2026-10-28 SCIE-Port 0.44.0 独立分类与物品展示规范
 
 SCIE-Port 所有现有/新增内容使用独立 `SCIEPort.*` Tab，神器/四圣兽主题背景统一管理，
@@ -49,6 +54,14 @@ Android 7723、Windows 完整游戏及多人同步仍待验证。
 复用现有 `GuiUpdate` 注册，将 Eye.Tick 加入原有 HUD 更新序列。新模块只读、无新
 网络包，Builder Assistant 源码及能力集合未改。Release/完整检查见 SCIE-Port 测试记录；
 Android 7723 与联机依然待验证。
+
+## 2026-10-28 SCIE-Port 0.43.1 装备页人物预览
+
+修复0.43.0只覆盖世界模型Hook、未覆盖独立ClothingWidget/PlayerModelWidget UI人物的问题。沿用GuiUpdate接入外层ModelWidget绘制扩展，保留原生旋转和缩放，复用同一四件网格缓存；仅显示层改动，没有新增方块/ID或Builder Assistant能力、属性、碰撞和协议变化。目标WindowsABI/编译已确认，Android官方APK确认控件链路相同，7723显示/交互待用户验收。
+
+## 2026-10-28 SCIE-Port 0.43.0 四圣兽V3整套
+
+四件原生衣物200–203新增各自独立低多边形网格图标和持续Head/Body/左右Leg附件；真实目标引擎导入、男女骨骼矩阵/静态净空与Release构建已确认，Android及联机统一由用户实测，待验证。仅SCIE-Port增加模型/共享纹理与现有Hook绘制接入，未改Builder Assistant、蓝图方块能力、衣物ID、属性技能、碰撞、GUID或包240–245。资源布局与新增设置见SCIE-Port/docs/COMPATIBILITY.md及FOUR-SAINTS-V3-FULL-ARMOR-AUDIT.md。
 ## 2026-10-27 SCIE-Port 0.40.6 四圣兽衣物补注册
 
 `.clo` 合并在 x25.01.17 中是弱契约（单文件异常只记日志后继续），整份被丢弃时四件衣物不会注册，创造栏与世界内均不可见。0.40.6 在 `BlocksInitalized` 按 200～203 补注册缺失项，已存在则跳过（不覆盖 .clo），逐件 try/catch 并对贴图失败做回退与日志。衣物数据号、Layer、能力数值与存档结构未改。Four Saints 29、Gungnir 306 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,500,765 bytes，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`。Builder Assistant 未变化。

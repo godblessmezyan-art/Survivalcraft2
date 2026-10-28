@@ -20,9 +20,13 @@ foreach ($item in $required.GetEnumerator()) {
     }
 }
 
-$framework = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2'
+$framework = if ($env:FrameworkPathOverride) { $env:FrameworkPathOverride } else { 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2' }
 if (-not (Test-Path -LiteralPath $framework -PathType Container)) {
-    throw 'Missing .NET Framework 4.7.2 Targeting Pack.'
+    throw 'Missing .NET Framework 4.7.2 Targeting Pack. FrameworkPathOverride may point to the Microsoft net472 reference assemblies.'
+}
+if (-not (Test-Path -LiteralPath (Join-Path $framework 'mscorlib.dll')) -or
+    -not (Test-Path -LiteralPath (Join-Path $framework 'RedistList\FrameworkList.xml'))) {
+    throw "Invalid .NET Framework reference assembly directory: $framework"
 }
 
 $gamePath = Join-Path $GameDir 'Survivalcraft.exe'
@@ -290,6 +294,32 @@ $spawnSignature = @($creatureSpawn.GetMethods() | Where-Object {
 if ($null -eq $spawnSignature) {
     throw 'SubsystemCreatureSpawn.SpawnCreature(string, Vector3, bool) required by the manual fox spawner was not found.'
 }
+
+$modelWidget = $assembly.GetType('Game.ModelWidget', $true)
+$playerModelWidget = $assembly.GetType('Game.PlayerModelWidget', $true)
+$clothingWidget = $assembly.GetType('Game.ClothingWidget', $true)
+$drawContext = $assembly.GetType('Game.Widget+DrawContext', $true)
+$previewDraw = $modelWidget.GetMethod('Draw', [Type[]]@($drawContext))
+if ($modelWidget.IsSealed -or -not $previewDraw.IsVirtual -or $previewDraw.IsFinal) {
+    throw 'ModelWidget.Draw must allow the native clothing-preview extension.'
+}
+foreach ($fieldName in @('m_boneTransforms','m_absoluteBoneTransforms','m_shader','m_shaderAlpha')) {
+    if (-not $modelWidget.GetField($fieldName, [Reflection.BindingFlags]'Public,Instance,Static')) {
+        throw "Missing ModelWidget preview field: $fieldName"
+    }
+}
+if ($playerModelWidget.GetField('m_modelWidget').FieldType -ne $modelWidget -or
+    $clothingWidget.GetField('m_outerClothingModelWidget').FieldType -ne $playerModelWidget -or
+    -not $clothingWidget.GetField('m_componentPlayer')) {
+    throw 'ClothingWidget/PlayerModelWidget mannequin ownership contract changed.'
+}
+$childrenType = $assembly.GetType('Game.ContainerWidget', $true).GetField('Children').FieldType
+foreach ($methodName in @('IndexOf','Insert','Remove')) {
+    if (-not ($childrenType.GetMethods() | Where-Object Name -eq $methodName)) {
+        throw "Missing widget child replacement method: $methodName"
+    }
+}
+Write-Host 'Native clothing-preview ModelWidget.Draw, bone arrays, shader and owner/child replacement ABI passed.'
 
 Write-Host "SCNET: $gamePath"
 Write-Host "Assembly version: $($assemblyName.Version)"

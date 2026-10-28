@@ -1,5 +1,27 @@
 # 测试结果
 
+## 2026-10-28 合并 origin/main（四圣兽 V3 0.44.1）→ 本地直升机 HUD 主线 / 0.46.0
+
+本地 main（含 `feature/helicopter-hud` 合并，原 0.45.0，tip `23d08b6`）与 origin/main 新增提交 `5d36821`（四圣兽 V3 独立装甲/骨骼附件/装备图标/装备页人物预览修复，原 0.44.1）自 `6fb084e`（v0.44.0）分叉，形成 ahead 5 / behind 1。执行 `git merge origin/main` 后 4 个文件冲突，均为元数据/变更日志：
+
+- `src/SCIEPort/SCIEPort.csproj`、`src/SCIEPort/modinfo.json`：版本统一升到 **0.46.0**（两处一致以满足构建守卫），modinfo Description 合并直升机 HUD 与四圣兽 V3 两条主线；保留品牌契约 Name=荒野探险家、PackageName/AssemblyName/RootNamespace=SCIEPort。
+- `README.md`、`docs/COMPATIBILITY.md`：保留双方历史条目，顶部新增 0.46.0 合并说明。
+- `docs/TEST-RESULTS.md`：三方自动合并双方历史记录，并新增本 0.46.0 条目。
+- 四圣兽 V3 源码/资源（`Features/FourSaints/FourSaintsArmorRenderer.cs`、`QinglongCrownRenderer.cs`、`FourSaintsClothingPreview.cs`、`ClothingBlock.cs`、`FourSaintsVisuals.cs`、`Assets/Models/*V3.dae`、`Assets/Textures/FourSaintsArmorV3.png`/`QinglongCrown.png`、`scripts/New-*V3*.mjs`、`scripts/Test-FourSaintsArmorV3.ps1` 等）与直升机 HUD 源码/脚本三方自动合并，无文本冲突；`Build-NetMod.ps1`、`Test-Environment.ps1` 自动合并双方新增守卫。
+
+实际命令（本机游戏目录 `D:\SC`，固定 SDK 9.0.300 包装器）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir 'D:\SC'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\SC' -Configuration Release
+```
+
+结果：两条命令均 exit 0。`Test-Environment` 同时输出 “Helicopter V0.5 per-finger touch and coordinate-transform ABI passed” 与 “Native clothing-preview ModelWidget.Draw, bone arrays, shader and owner/child replacement ABI passed”（四圣兽 V3 装备预览/骨骼附件 ABI）。Release 编译无错误；`DATABASE VALIDATION PASSED`、独立 Tab 守卫（20 CSV / 53 行）、专用分类 CSV/命名守卫（53 行）全部通过。
+
+产物：`artifacts/荒野探险家.netmod` 与字节一致的 `artifacts/荒野探险家-0.46.0.netmod`，**3,742,075 bytes / 125 entries**，包内 `SCIEPort.dll` AssemblyVersion/FileVersion=**0.46.0.0**、modinfo Version=`0.46.0`、内部 PackageName=`SCIEPort`，SHA-256 `385DEAAA0A0797A683598CE0A32410ED0A035DB205B2F4A3704A8C9E262BA6F0`。包内同时含直升机资产（`Helicopter.dae`/`Helicopter.xdb`/`Helicopter.png`/`SCIEPortHelicopterLoop.wav`）与四圣兽 V3 资产（`BaihuLegArmorV3.dae`/`XuanwuArmorV3.dae`/`ZhuqueBootsV3.dae`/`QinglongCrown.dae`/`FourSaintsArmorV3.png`/`QinglongCrown.png`），确认两条主线内容均在合并包中。（`.netmod` 的 SHA 每次构建因 zip 条目 mtime 而变，字节数/条目数稳定，以提交后重建包为准。注：`src/SCIEPort/bin/Release/net472/SCIEPort.dll` 为早期直接构建遗留的 0.31.0.0 陈旧副本，非包装器产物；打包 DLL 取自包装器输出，版本正确。）
+
+Windows 游戏内、Android 7723（直升机 HUD 触控全项 + 四圣兽 V3 装备页人物预览/装甲实显）、两台真实客户端联机 **均待验证**。本轮仅执行 ABI 检查、离线数据库/分类守卫、编译与包校验，未启动游戏或连接设备。
+
 ## 2026-10-28 合并 feature/helicopter-hud → main / 0.45.0
 
 将长期分支 `feature/helicopter-hud`（merge-base `a2adeca`，v0.27.x 时代；tip `abbd36a`）合并进 main（`6fb084e`，v0.44.0）。5 个冲突文件均为元数据/变更日志：
@@ -1383,3 +1405,38 @@ Android 7723 联网/真机验证阶段。
   - 首轮构建因单测断言 `ClampTemperature(10f,false,true)==10f` 预期错误失败（10 高于上限 8 应被钳到 8），已将“朱雀不改变凉体温”的用例输入改为 5f 后重跑通过。
 - 产物：已确认。`artifacts/SCIEPort.netmod` 共 108 条目、3,501,301 bytes，包内 `modinfo.json` Version=`0.41.0`、DLL AssemblyVersion/FileVersion=`0.41.0.0`，SHA-256 `C75D3139FAC5AFA7A737F599A74D2ADB77777B328919A4D2E9DB1944F1461F5C`。
 - Windows 游戏、Android 7723、触屏、实际体温/感冒/过热表现、主机/普通客户端/观察者同步：待验证。本轮仅执行 ABI 反射取证、离线规则测试、编译与包校验，未启动游戏或连接设备；体温钳制的真实手感（每帧写入与 VitalStats 自然漂移的相互作用）须真机确认。
+
+## 2026-10-28 0.42.0 四圣兽V3第一阶段：青龙冠候选包
+
+- 源码基线：main a856cedef936d48842acd58646a23021938fa114；上游SCIE固定4864d956793b6e670413019f1f6b1cc5c8bb0970。
+- 实际命令（SCIE-Port目录）：设置 `$env:FrameworkPathOverride='D:\Dev\Tools\net472\build\.NETFramework\v4.7.2'`，运行 `scripts/Test-Environment.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'`、`scripts/Test-QinglongCrown.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'` 和 `scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release`，均exit 0。SDK9.0.300；独立Release编译0 warning/0 error，完整构建全部离线规则套件、17 XDB、DATABASE VALIDATION PASSED与打包守卫通过。完整本机日志：D:\Dev\Tools\scnet-audit\qinglong-build-final.log。
+- 新DAE由真实目标ModelData.Load导入为1骨骼/31网格/680三角面；男女原生Head绑定基矩阵和8次合成姿态/相机往返检查通过；不将其解释为游戏内动作验证。
+- 最终包：artifacts/SCIEPort.netmod；Version/AssemblyVersion=0.42.0/0.42.0.0；3,518,250 bytes / 110 entries；SHA256 `DA06D62F2E75E3D536986A7A3FB874D004670413244C897226CAC8E23F9CB5AD`。交付副本D:\Dev\SCIEPort-v0.42.0-QinglongV3-Phase1.netmod，正常穿戴万里青龙默认启用常驻网格，调试轴关闭。
+- 修改范围：原创龙冠生成器/DAE/色板、独立Head附件与缓存图标、现有Hook与设置接入、资源/包检查和说明。环境脚本支持官方net472引用包路径；旧基础贴图重复生成的PNG编码在本机不同，已证实解码像素完全一致，守卫改为完整ARGB逐像素比较，未改原始贴图。
+- Windows原版客户端已启动到主菜单；用户Escape停止电脑操作，随后明确要求由其自行测试。未安装候选包到正在运行的游戏、未验证穿戴/动作。Windows带Mod、Android7723、多人主机/普通客户端/观察者、性能均待验证；阶段二三四尚未实施。
+- 目标三程序集哈希与既有x25.01.17记录完全一致，见FOUR-SAINTS-V3-CROWN-AUDIT.md。未变更衣物203/200–203、属性规则/技能、网络包240–245、碰撞或存档；未引入外部美术或新许可，未改Builder Assistant及其蓝图方块能力。新增风险为待实测的附件尺寸/姿态穿插、光照/裁剪/同屏开销；下一步由用户使用可丢弃备份世界验收五种动作及主客机画面。
+## 2026-10-28 0.43.0 四圣兽V3整套统一验收候选
+
+- 用户要求将其余三件一起补齐、由其自行统一实测；本轮未启动或自动操作游戏、未部署Android或联机环境。
+- 新增XuanwuArmorV3.dae（1骨骼/40网格/1212三角面）、BaihuLegArmorV3.dae（3/36/804）、ZhuqueBootsV3.dae（3/30/596）及共享256x16不透明图集；加上既有青龙冠，整套3292三角面。Body/Leg1/Leg2常驻渲染、左右腿分别跟随、四件独立模型图标均接入；新模型/纹理/绑定矩阵/图标加载后缓存。完整资源及源码说明见FOUR-SAINTS-V3-FULL-ARMOR-AUDIT.md。
+- 实际运行：设置FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2后，scripts/Test-Environment.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'；scripts/Test-FourSaintsArmorV3.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'；dotnet build src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:\Games\SCNET-x25.01.17；scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release。均通过，Release 0 warning/0 error；完整构建全部既有规则套件、17 XDB、DATABASE VALIDATION PASSED和包检查通过。日志D:\Dev\Tools\scnet-audit\four-saints-v3-full-build.log。
+- 新验证器逐三角面检查索引、非退化、法线绕序和UV；真实目标ModelData.Load核对三件骨骼/网格数及Body/双Leg分组。真实男女模型30次合成姿态/相机往返、鞋底距原生地面1cm内、静态左右腿中线5mm净空及裙摆高于髋骨2cm通过。均为离线检查，不冒充游戏动作验收。
+- 最终包：artifacts/SCIEPort.netmod；Version/AssemblyVersion=0.43.0/0.43.0.0；3569616 bytes / 114 entries；SHA256 D41BD0B235A6D6E8A55CADFE8773A20250638635E56801BB21EDA9E422776F52。交付副本D:\Dev\SCIEPort-v0.43.0-FourSaintsV3-Full.netmod，复制哈希一致，四件附件默认启用，调试轴默认关闭。
+- 源码基线a856cedef936d48842acd58646a23021938fa114；SCIE只读上游4864d956793b6e670413019f1f6b1cc5c8bb0970；目标三程序集哈希与上轮一致，详见整套审查文档。新增美术为原创，未增加外部许可证范围。
+- 本轮未改.clo/基础贴图、衣物方块203/数据200–203、FourSaintsRules、SubsystemFourSaints、FourSaintsPackage、碰撞、GUID或包240–245；未改Builder Assistant或蓝图方块能力。未提交/push。
+- Windows带Mod单件/组合穿戴和五种动作、男女/图标/卸装/死亡/读档，Android7723性能，主机/普通客户端/观察者均待验证。剩余风险为动态穿插、模型替换Mod、移动端帧率与远端衣物同步时机。下一步由用户安装唯一一份0.43.0在可丢弃备份世界一次验收四件，并集中反馈问题。
+## 2026-10-28 0.43.1 装备页人物立体预览修复
+
+- 用户已确认ComponentSAClothing加载异常由另一个Mod引起，移除后可正常加载。本轮不修改该第三方组件或用户存档。用户进一步明确旧模型出现在装备页人物预览，确认0.43.0仅接入世界模型Hook而遗漏独立UI人物路径。
+- 新增FourSaintsClothingPreview，经现有GuiUpdate为原生外层PlayerModelWidget安装ModelWidget绘制扩展，原生人物基础层后提交四件缓存装甲；复用UI镜头、骨骼、旋转、DPI/布局、颜色/深度/裁剪。QinglongCrownRenderer及FourSaintsArmorRenderer增加QueuePreview，保留世界绘制逻辑；未改四件模型/贴图、衣物203/200–203、属性技能、碰撞、GUID、包240–245。
+- 实际运行：Test-Environment.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'；dotnet build src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:\Games\SCNET-x25.01.17（0 warning/0 error）；Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release；Test-FourSaintsArmorV3.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'。均exit0；完整构建全部离线套件、17XDB与包检查通过。新ABI守卫通过；补充HumanMale/Female和OuterClothingMale/Female共60次合成姿态/相机及静态净空检查通过。日志D:\Dev\Tools\scnet-audit\four-saints-v3-preview-fix-build.log。
+- 额外核查官方Android x25.01.17 APK，反编译确认ModelWidget/PlayerModelWidget/ClothingWidget字段及UI绘制与Windows相同；APK/程序集哈希见FOUR-SAINTS-V3-PREVIEW-FIX.md。官方包无ComponentSAClothing。未把官方反编译证据当作7723真机通过。
+- 最终包：0.43.1/0.43.1.0；3571322 bytes / 114 entries；SHA256 438D6388B4D1480FC3F01388D54131CC9D10A3E56F4B8A8D77757572ABCB8CDD。交付副本D:\Dev\SCIEPort-v0.43.1-FourSaintsV3-PreviewFix.netmod，复制哈希一致。
+- 本轮未启动/操作Windows游戏，未测试Android7723、主机/普通客户端/观察者；装备页四件穿戴、拖动旋转、卸装重开、分辨率及世界显示回归均待用户验收。新增风险是UI深度/裁剪与其他Mod自定义人物预览交互；其他Mod的自定义ModelWidget子类会跳过，不强制覆盖。
+- 无新增美术许可或存档风险；Builder Assistant及蓝图能力不变。SCIE上游固定4864d956793b6e670413019f1f6b1cc5c8bb0970、Windows三程序集哈希不变。Git操作按用户要求完全停止，未创建commit或更新远程分支；不会自动恢复提交。
+## 2026-10-28 0.44.1 四圣兽V3与最新main合并
+
+- 用户重新授权合并main并推送GitHub。合入远端6fb084e（0.44.0），保留全知之眼、波塞冬、独立Tab/主题和Builder Assistant0.19.0；衣物块同时保留独立网格图标与GetCategory分类。合并版本统一0.44.1，历史四圣兽0.42/0.43候选包记录保留。
+- 实际命令：设置FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2，在SCIE-Port执行scripts/Build-WithPinnedSdk.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。退出0，目标ABI、真实模型导入及60次合成骨骼检查、全部规则套件、160项分类ABI、19 XDB、Release与包检查通过。完整日志D:\Dev\Tools\scnet-audit\four-saints-main-0441-build.log。
+- 产物artifacts/荒野探险家.netmod及同字节荒野探险家-0.44.1.netmod：3,756,925 bytes / 125 entries；SHA256 0AD2C3A880A1136682FC233639DE483F356F2D65B1F430CF1E42834CB5DA5269。仅构建产物不纳入Git。
+- 没有新增ID、存档或协议变化。Android7723装备页/世界动作、帧率及单机/主机/客户端仍待用户验收，未启动游戏或连接设备。

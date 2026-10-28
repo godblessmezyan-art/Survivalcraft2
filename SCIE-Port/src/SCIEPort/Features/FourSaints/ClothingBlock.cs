@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using Game;
 using SCIEPort.Features.Inventory;
 
+using Engine;
+using Engine.Graphics;
+
 namespace SCIEPort.Features.FourSaints
 {
     /// <summary>
@@ -12,6 +15,17 @@ namespace SCIEPort.Features.FourSaints
     {
         /// <summary>Preserves the native clothing block ID and all existing save values.</summary>
         public new const int Index = 203;
+
+        /// <summary>Uses the actual V3 armor meshes for data 200-203; other clothes retain native icons.</summary>
+        public override void DrawBlock(PrimitivesRenderer3D renderer, int value, Color color, float size,
+            ref Matrix matrix, DrawBlockEnvironmentData environment)
+        {
+            if (GetClothingIndex(Terrain.ExtractData(value)) == FourSaintsRules.QinglongIndex &&
+                QinglongCrownRenderer.DrawIcon(renderer, color, size, ref matrix, environment)) return;
+            if (FourSaintsArmorRenderer.DrawIcon(GetClothingIndex(Terrain.ExtractData(value)),
+                renderer, color, size, ref matrix, environment)) return;
+            base.DrawBlock(renderer, value, color, size, ref matrix, environment);
+        }
 
         /// <summary>Only the four native DATA indices move tabs; ordinary/dyed clothing keeps native categories.</summary>
         public override string GetCategory(int value)

@@ -1,0 +1,603 @@
+{
+  "models": [
+    {
+      "name": "XuanwuArmorV3",
+      "bones": 1,
+      "meshes": 40,
+      "triangles": 1212,
+      "bounds": [
+        [
+          -0.33572194351305007,
+          0.33572194351305007
+        ],
+        [
+          0.744,
+          1.345
+        ],
+        [
+          -0.279,
+          0.18199999999999997
+        ]
+      ],
+      "parts": [
+        {
+          "name": "CuirassLining",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "BronzeBreastFrame",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale00",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ScaleInset0",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale01",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ScaleInset1",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale02",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ScaleInset2",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale10",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale11",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale12",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale20",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale21",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ChestScale22",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "BackShell",
+          "bone": "Body",
+          "triangles": 32
+        },
+        {
+          "name": "TurtleShoulderLeft",
+          "bone": "Body",
+          "triangles": 72
+        },
+        {
+          "name": "ShoulderHexLeft",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ShoulderShellLeft",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ShoulderBronzeLinkLeft",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "SkirtLeft0",
+          "bone": "Body",
+          "triangles": 20
+        },
+        {
+          "name": "SkirtLeft1",
+          "bone": "Body",
+          "triangles": 20
+        },
+        {
+          "name": "BackSkirtLeft",
+          "bone": "Body",
+          "triangles": 16
+        },
+        {
+          "name": "SideRibLeft",
+          "bone": "Body",
+          "triangles": 16
+        },
+        {
+          "name": "TurtleShoulderRight",
+          "bone": "Body",
+          "triangles": 72
+        },
+        {
+          "name": "ShoulderHexRight",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ShoulderShellRight",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "ShoulderBronzeLinkRight",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "SkirtRight0",
+          "bone": "Body",
+          "triangles": 20
+        },
+        {
+          "name": "SkirtRight1",
+          "bone": "Body",
+          "triangles": 20
+        },
+        {
+          "name": "BackSkirtRight",
+          "bone": "Body",
+          "triangles": 16
+        },
+        {
+          "name": "SideRibRight",
+          "bone": "Body",
+          "triangles": 16
+        },
+        {
+          "name": "WaistClasp",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "CoiledSnake",
+          "bone": "Body",
+          "triangles": 204
+        },
+        {
+          "name": "SnakeNeck",
+          "bone": "Body",
+          "triangles": 48
+        },
+        {
+          "name": "SnakeHead",
+          "bone": "Body",
+          "triangles": 16
+        },
+        {
+          "name": "SnakeEye-1",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "SnakeEye1",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "BackHex0.94",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "BackHex1.08",
+          "bone": "Body",
+          "triangles": 24
+        },
+        {
+          "name": "BackHex1.22",
+          "bone": "Body",
+          "triangles": 24
+        }
+      ]
+    },
+    {
+      "name": "BaihuLegArmorV3",
+      "bones": 3,
+      "meshes": 36,
+      "triangles": 804,
+      "bounds": [
+        [
+          -0.15100000000000002,
+          0.15100000000000002
+        ],
+        [
+          -0.618,
+          -0.039
+        ],
+        [
+          -0.19099999999999998,
+          0.157
+        ]
+      ],
+      "parts": [
+        {
+          "name": "ThighPlateLeft0",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeLeft0",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "ThighPlateLeft1",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeLeft1",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "ThighPlateLeft2",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeLeft2",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "TigerKneeFrameLeft",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "TigerKneeMaskLeft",
+          "bone": "Leg1",
+          "triangles": 32
+        },
+        {
+          "name": "TigerEyeLeft-1",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "TigerFangLeft-1",
+          "bone": "Leg1",
+          "triangles": 30
+        },
+        {
+          "name": "TigerEyeLeft1",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "TigerFangLeft1",
+          "bone": "Leg1",
+          "triangles": 30
+        },
+        {
+          "name": "TigerMuzzleLeft",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "TigerNoseLeft",
+          "bone": "Leg1",
+          "triangles": 12
+        },
+        {
+          "name": "ShinPlateLeft",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "SweptShinLeft",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "ShinGoldSpineLeft",
+          "bone": "Leg1",
+          "triangles": 30
+        },
+        {
+          "name": "CalfRearLeft",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "ThighPlateRight0",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeRight0",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "ThighPlateRight1",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeRight1",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "ThighPlateRight2",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "TigerStripeRight2",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "TigerKneeFrameRight",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "TigerKneeMaskRight",
+          "bone": "Leg2",
+          "triangles": 32
+        },
+        {
+          "name": "TigerEyeRight-1",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "TigerFangRight-1",
+          "bone": "Leg2",
+          "triangles": 30
+        },
+        {
+          "name": "TigerEyeRight1",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "TigerFangRight1",
+          "bone": "Leg2",
+          "triangles": 30
+        },
+        {
+          "name": "TigerMuzzleRight",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "TigerNoseRight",
+          "bone": "Leg2",
+          "triangles": 12
+        },
+        {
+          "name": "ShinPlateRight",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "SweptShinRight",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "ShinGoldSpineRight",
+          "bone": "Leg2",
+          "triangles": 30
+        },
+        {
+          "name": "CalfRearRight",
+          "bone": "Leg2",
+          "triangles": 16
+        }
+      ]
+    },
+    {
+      "name": "ZhuqueBootsV3",
+      "bones": 3,
+      "meshes": 30,
+      "triangles": 596,
+      "bounds": [
+        [
+          -0.15900000000000003,
+          0.15900000000000003
+        ],
+        [
+          -0.716,
+          -0.475
+        ],
+        [
+          -0.248,
+          0.189
+        ]
+      ],
+      "parts": [
+        {
+          "name": "DarkSoleLeft",
+          "bone": "Leg1",
+          "triangles": 28
+        },
+        {
+          "name": "SoleGoldRimLeft",
+          "bone": "Leg1",
+          "triangles": 28
+        },
+        {
+          "name": "PhoenixToeLeft",
+          "bone": "Leg1",
+          "triangles": 24
+        },
+        {
+          "name": "BeakGoldRidgeLeft",
+          "bone": "Leg1",
+          "triangles": 30
+        },
+        {
+          "name": "AnkleFrontLeft",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "AnkleInsetLeft",
+          "bone": "Leg1",
+          "triangles": 12
+        },
+        {
+          "name": "HeelLeatherLeft",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherLeft0",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillLeft0",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherLeft1",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillLeft1",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherLeft2",
+          "bone": "Leg1",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillLeft2",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "HeelTailLeft0",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "HeelTailLeft1",
+          "bone": "Leg1",
+          "triangles": 16
+        },
+        {
+          "name": "DarkSoleRight",
+          "bone": "Leg2",
+          "triangles": 28
+        },
+        {
+          "name": "SoleGoldRimRight",
+          "bone": "Leg2",
+          "triangles": 28
+        },
+        {
+          "name": "PhoenixToeRight",
+          "bone": "Leg2",
+          "triangles": 24
+        },
+        {
+          "name": "BeakGoldRidgeRight",
+          "bone": "Leg2",
+          "triangles": 30
+        },
+        {
+          "name": "AnkleFrontRight",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "AnkleInsetRight",
+          "bone": "Leg2",
+          "triangles": 12
+        },
+        {
+          "name": "HeelLeatherRight",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherRight0",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillRight0",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherRight1",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillRight1",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "AnkleFeatherRight2",
+          "bone": "Leg2",
+          "triangles": 20
+        },
+        {
+          "name": "FeatherQuillRight2",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "HeelTailRight0",
+          "bone": "Leg2",
+          "triangles": 16
+        },
+        {
+          "name": "HeelTailRight1",
+          "bone": "Leg2",
+          "triangles": 16
+        }
+      ]
+    }
+  ],
+  "combinedTriangles": 3292,
+  "nativeMaleLegPivotY": 0.711837,
+  "preview": "Offline authored geometry only; no in-game or Android acceptance implied."
+}

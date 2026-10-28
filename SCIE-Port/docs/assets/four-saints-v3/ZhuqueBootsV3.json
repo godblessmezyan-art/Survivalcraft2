@@ -1,0 +1,172 @@
+{
+  "name": "ZhuqueBootsV3",
+  "bones": 3,
+  "meshes": 30,
+  "triangles": 596,
+  "bounds": [
+    [
+      -0.15900000000000003,
+      0.15900000000000003
+    ],
+    [
+      -0.716,
+      -0.475
+    ],
+    [
+      -0.248,
+      0.189
+    ]
+  ],
+  "parts": [
+    {
+      "name": "DarkSoleLeft",
+      "bone": "Leg1",
+      "triangles": 28
+    },
+    {
+      "name": "SoleGoldRimLeft",
+      "bone": "Leg1",
+      "triangles": 28
+    },
+    {
+      "name": "PhoenixToeLeft",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "BeakGoldRidgeLeft",
+      "bone": "Leg1",
+      "triangles": 30
+    },
+    {
+      "name": "AnkleFrontLeft",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "AnkleInsetLeft",
+      "bone": "Leg1",
+      "triangles": 12
+    },
+    {
+      "name": "HeelLeatherLeft",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherLeft0",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillLeft0",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherLeft1",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillLeft1",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherLeft2",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillLeft2",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "HeelTailLeft0",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "HeelTailLeft1",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "DarkSoleRight",
+      "bone": "Leg2",
+      "triangles": 28
+    },
+    {
+      "name": "SoleGoldRimRight",
+      "bone": "Leg2",
+      "triangles": 28
+    },
+    {
+      "name": "PhoenixToeRight",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "BeakGoldRidgeRight",
+      "bone": "Leg2",
+      "triangles": 30
+    },
+    {
+      "name": "AnkleFrontRight",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "AnkleInsetRight",
+      "bone": "Leg2",
+      "triangles": 12
+    },
+    {
+      "name": "HeelLeatherRight",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherRight0",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillRight0",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherRight1",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillRight1",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "AnkleFeatherRight2",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "FeatherQuillRight2",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "HeelTailRight0",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "HeelTailRight1",
+      "bone": "Leg2",
+      "triangles": 16
+    }
+  ]
+}
