@@ -73,7 +73,20 @@ namespace BuilderAssistant.Tests
         private static int DumpBlockCapabilities(string path)
         {
             var root = BuilderAssistant.Core.Json.JsonValue.NewObject();
-            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.18.0"));
+            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.19.0"));
+            root.Add("maxSchemaVersion", BuilderAssistant.Core.Json.JsonValue.NewNumber(3));
+            var furniture = BuilderAssistant.Core.Json.JsonValue.NewArray();
+            foreach (var template in BuilderAssistant.Core.Furniture.FurnitureTemplateRegistry.Default.Templates)
+            {
+                var item = BuilderAssistant.Core.Json.JsonValue.NewObject();
+                item.Add("id", BuilderAssistant.Core.Json.JsonValue.NewString(template.Id));
+                item.Add("backend", BuilderAssistant.Core.Json.JsonValue.NewString(template.Backend));
+                item.Add("sizeX", BuilderAssistant.Core.Json.JsonValue.NewNumber(template.SizeX));
+                item.Add("sizeY", BuilderAssistant.Core.Json.JsonValue.NewNumber(template.SizeY));
+                item.Add("sizeZ", BuilderAssistant.Core.Json.JsonValue.NewNumber(template.SizeZ));
+                furniture.Add(item);
+            }
+            root.Add("furnitureTemplates", furniture);
             root.Add("targetEvidence", BuilderAssistant.Core.Json.JsonValue.NewString("Windows x25.01.17 SHA256 3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD"));
             root.Add("android7723", BuilderAssistant.Core.Json.JsonValue.NewString("待验证"));
             root.Add("undoScope", BuilderAssistant.Core.Json.JsonValue.NewString("terrain snapshots with conflict protection; full subsystem undo is a separate capability"));

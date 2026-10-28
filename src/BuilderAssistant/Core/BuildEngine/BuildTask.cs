@@ -279,6 +279,7 @@ namespace BuilderAssistant.Core.BuildEngine
 
         private int Fail(ITerrainGateway gateway, string reason)
         {
+            if (_cursor < _changes.Count) reason = _changes[_cursor].Context + reason;
             FailureReason = reason;
             int pending = RollbackApplied(gateway, Math.Max(0, BuildSafetyLimits.MaxBlocksPerBatch - _writesThisAdvance));
             if (pending > 0)

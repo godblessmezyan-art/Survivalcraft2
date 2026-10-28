@@ -199,6 +199,7 @@ namespace BuilderAssistant.Tests
             if (args != null && args.Length == 2 && args[0] == "--capabilities")
                 return DumpBlockCapabilities(args[1]);
 
+            TestFurnitureTemplates();
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
 
             TestCottageShape(blueprint);

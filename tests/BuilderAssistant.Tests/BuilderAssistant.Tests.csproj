@@ -10,10 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\..\docs\examples\bookhouse-furniture-v3.json" Link="bookhouse-furniture-v3.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="Program.cs" />
     <Compile Include="FineDetailTests.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\AttachmentRules.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Transactions\IConstructionTerrainGateway.cs" />
+    <Compile Include="FurnitureTests.cs" />
+    <Compile Include="..\..\src\BuilderAssistant\Core\Furniture\*.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\CellPos.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\WorldBounds.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Safety\BuildSafetyLimits.cs" />

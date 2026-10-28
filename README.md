@@ -1,5 +1,15 @@
 # Builder Assistant for Survivalcraft NET
 
+当前 Builder Assistant **v0.19.0** 新增家具模板接口与 schema 3：AI 可同时输出结构 `cells` 和
+`furniturePlacements`（模板 id、相对坐标、四向旋转），导入后先建结构，再建家具。
+首批 10 个模板采用明确的 **结构块降级**，不是原生铁锤微体素家具；原生家具的世界设计表、
+持久化、回收和网络同步尚未满足安全事务要求，当前不启用。家具共用原有 32 格分批、
+取消/回滚/撤销，v1/v2 蓝图继续可用。Android 7723 与联机效果均为**待验证**。
+详见 [家具机制、模板表、schema 3 与实机清单](docs/FURNITURE-TEMPLATES.md)，
+AI 生成前须读取 [权威方块与家具能力清单](docs/blueprint-block-reference.md)。
+本版同时保留 main v0.18.0 的精细 DATA、颜色、依附方块与安全施工能力。
+
+
 > **v0.18.0 精细建筑能力**：63种原版类型；九种 PaintedCube、楼梯/半砖/栅栏16色和合法楼梯角形、三轴原木无损编解码；新增木梯、铁梯和火把的支撑排序与施工后复核。schema1/2继续读取，每事务10000、每批32、每轴64不变，撤销/回滚也分批。活板门、栅栏门、地毯、藤蔓因跨子系统恢复缺口仍不支持。Android/7723及联机均待验证。详见[方块清单](docs/blueprint-block-reference.md)、[逐类型矩阵](docs/blueprint-block-capabilities.json)和[开发报告](docs/BUILDER-DETAIL-STATES-0.18.0.md)。
 
 > **v0.17.0 Portable Fortress Mk.I 白模里程碑**：加入可重复生成的 `11 × 13 × 9` DAE 技术白模（单静态骨骼、11 网格、1116 三角面、真实门窗/楼梯井/屋顶舱口）及目标 x25.01.17 `Engine.Media.ModelData.Load(Stream)` 导入守卫。完整结构、逐层坐标、碰撞代理、48 格储物、供暖、部署回收和联机边界见 [`docs/portable-fortress/`](docs/portable-fortress/)。本轮没有接入可部署实体，也没有制作正式精模；运行渲染、玩家通行、玻璃、储物、供暖、Android 与联机均为**待验证**。

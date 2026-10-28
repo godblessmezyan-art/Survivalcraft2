@@ -1,5 +1,14 @@
 # 兼容性矩阵
 
+## 2026-10-28 Builder Assistant v0.19.0 主线整合家具模板
+
+将 port 分支家具提交 `69db2ff` 的功能移植到 main v0.18.0，版本统一为 0.19.0。
+保留主线精细 DATA、颜色、梯子/火把、引擎关联格和依附施工顺序；家具仅使用结构块降级，
+原生 FurnitureBlock 后端不支持。schema 1/2 保留，有家具时使用 schema 3。
+只修改 Builder Assistant 及对应测试/文档，SCIE-Port 保持主线版本。
+Android 7723、Windows 完整游戏及多人同步仍待验证。
+最终主线构建、测试和包指纹记录在 docs/FURNITURE-TEMPLATES.md 的主线整合记录。
+
 ## 2026-10-28：Builder Assistant v0.18.0 精细建筑DATA与依附施工
 
 仅适用于Builder Assistant，保留下面的0.16/0.17和其他工程历史结论。Windows公开x25.01.17三个程序集SHA-256与既有记录一致；版本2.4.0.0、目标net472、API1.42。Hook签名/包布局/modinfo字段集合未变，仅元数据版本/描述更新。

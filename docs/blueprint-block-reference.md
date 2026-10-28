@@ -1,11 +1,65 @@
-# Builder Assistant 蓝图方块能力清单 v0.18.0
+# Builder Assistant 蓝图方块能力清单 v0.19.0
 
 > 适用于 Survivalcraft NET x25.01.17 的 Builder Assistant。原 60 种保留，新增两种梯子和火把，共 63 种。Windows 固定哈希程序集/API 与离线规则已确认；Android 7723 真机行为均待验证。
 > 本清单和 [逐类型能力矩阵](blueprint-block-capabilities.json) 是 AI 生成蓝图的能力依据。SCIE-Port 的代码、方块、载具、神器及家具不是本工程材料；不得据其他工程的版本推断本工程能力。
 
+## 家具模板（v0.19.0 / schema 3）
+
+原生 `FurnitureBlock`（227）仍不支持写入 `cells`；不接受设计 ID 或原始家具 DATA。
+`furniturePlacements` 是独立的模板调用接口，当前全部降级为本清单已支持的结构块。
+不会产生家具实体、世界设计表条目或新方块族，不新增可作者化 DATA 范围。
+
+```json
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "书屋布局",
+  "cells": [{"x":0,"y":0,"z":0,"key":"PlanksBlock"}],
+  "furniturePlacements": [
+    {"templateId":"TallBookshelf_A","x":1,"y":1,"z":1,"rotation":0},
+    {"templateId":"ReadingDesk_A","x":1,"y":1,"z":4,"rotation":0},
+    {"templateId":"WoodChair_A","x":2,"y":1,"z":6,"rotation":2}
+  ]
+}
+```
+
+`templateId` 必须精确匹配（区分大小写）。`x/y/z` 是相对联合蓝图原点的整数，
+表示旋转后包围盒最小角；`rotation` 必填且为 0/1/2/3，对应几何旋转 0/90/180/270 度，
+一次旋转 `(dx,dz)→(-dz,dx)`。模板默认前向为 -Z，依次转向 +X、+Z、-X。
+这不是原生方块 DATA 的方向编码。`mirrorX` 可省略，若提供必须为布尔值，在旋转后镜像 X。
+`color` 可省略或为 `"natural"`；`variant` 可省略或为 `"default"`；其他值明确拒绝，
+不会悄悄忽略颜色请求。家具蓝图相对坐标须在 ±1000000 内以防溢出。
+
+| 精确模板 id | 名称 | 未旋转尺寸 X×Y×Z | 实际写入格数 |
+| --- | --- | --- | --- |
+| TallBookshelf_A | 高书架 | 3×4×1 | 12 |
+| WideBookshelf_B | 宽书架 | 5×3×1 | 15 |
+| CornerBookshelf_C | 转角书架 | 3×4×3 | 20 |
+| ReadingDesk_A | 阅读桌 | 3×2×1 | 5 |
+| WritingDesk_B | 写字桌 | 4×2×1 | 6 |
+| WoodChair_A | 木椅 | 1×2×2 | 3 |
+| Bench_A | 长椅 | 3×2×2 | 9 |
+| Cabinet_A | 木柜 | 2×4×1 | 8 |
+| Bed_A | 床榻 | 2×2×3 | 12 |
+| LampStand_A | 灯架 | 1×4×1 | 4 |
+
+所有模板支持四向旋转；奇数 rotation 交换 X/Z 尺寸。占地包围盒为
+`[x,x+旋转尺寸X-1] × [y,y+尺寸Y-1] × [z,z+旋转尺寸Z-1]`（含端点）。
+家具的整个包围盒不能与结构 cells、门隐式上半格或其他家具包围盒重叠，清障模式也不能放宽
+蓝图内部重叠。世界中包围盒空隙也做施工前净空检查；开启原有覆盖/清软障规则时按该规则校验，
+但空隙不产生写入，原有物体不会被清掉。执行中仍对每个实际写入格重新检查。
+
+`cells: []` 可用于纯家具布局；结构和展开家具合计 **≤10000 格、每轴≤64**，仍每批≤32，
+全局归一化后同时平移结构和家具坐标，先结构、后家具，共享一次取消、失败回滚和撤销。
+JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
+书架中的“书”用砖块表示，床不能睡觉，木柜不储物，灯架不发光，椅子不提供原生坐下功能。
+这些是整格尺度的装饰组合，精细度低于原生铁锤微体素家具；**Android 7723 效果待验证**。
+完整取证和后续原生后端条件见 [FURNITURE-TEMPLATES.md](FURNITURE-TEMPLATES.md)。
+
+
 ## JSON 格式与兼容性
 
-继续读取 schemaVersion 1/2，默认导出 2。`d` 是该类型/族的原生 DATA 整数，已经能够无歧义表达颜色、角形、轴向和朝向，因此本轮不引入 schemaVersion 3。旧文件中的合法值含义不变；新状态文件不能由旧 Mod 完整重建，应升级 Mod，不能删掉 `d` 降级。
+继续读取 schemaVersion 1/2/3，纯 cells 默认导出 2，含家具模板导出 3。`d` 是该类型/族的原生 DATA 整数，已经能够无歧义表达颜色、角形、轴向和朝向，家具模板以独立 furniturePlacements 列表使用 schemaVersion 3，精细方块仍沿用原有 DATA 编码。旧文件中的合法值含义不变；新状态文件不能由旧 Mod 完整重建，应升级 Mod，不能删掉 `d` 降级。
 
 ```json
 {
@@ -215,15 +269,36 @@
 
 Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲染、梯子攀爬、火把粒子与光照、支撑移除/重载、取消/分批撤销、不同触屏分辨率、4419格建造帧耗时、单机/房主/普通客户端。普通客户端仍拒绝主动写入；主机同步尚未实测。
 
-家具与复杂块的前置条件：取得目标 Furniture/BlockEntities 的索引映射和持久 payload ABI，限制并观察完整影响范围，在修改前快照实体、库存、文本与电路队列，支持失败/取消/卸载后的恢复和冲突检测，再通过无玩家主存档的单人和联机实测。schema3 仅在 DATA 无法表达这些 payload 时设计。
+家具与复杂块的前置条件：取得目标 Furniture/BlockEntities 的索引映射和持久 payload ABI，限制并观察完整影响范围，在修改前快照实体、库存、文本与电路队列，支持失败/取消/卸载后的恢复和冲突检测，再通过无玩家主存档的单人和联机实测。原生家具 payload 后端仍未实现；v0.19.0 的 schema3 仅执行结构块家具模板，不写入原生设计表。
 
 ## 机器可读摘要
 
 ```json
 {
-  "modVersion": "0.18.0",
+  "modVersion": "0.19.0",
+  "furnitureTemplates": {
+    "backend": "structure-blocks-v1",
+    "rotationSteps": [0, 1, 2, 3],
+    "anchor": "rotated bounding-box minimum corner",
+    "color": ["natural"],
+    "variant": ["default"],
+    "nativeFurnitureBlock": "not supported",
+    "templates": [
+      {"id":"TallBookshelf_A","size":[3,4,1],"cells":12},
+      {"id":"WideBookshelf_B","size":[5,3,1],"cells":15},
+      {"id":"CornerBookshelf_C","size":[3,4,3],"cells":20},
+      {"id":"ReadingDesk_A","size":[3,2,1],"cells":5},
+      {"id":"WritingDesk_B","size":[4,2,1],"cells":6},
+      {"id":"WoodChair_A","size":[1,2,2],"cells":3},
+      {"id":"Bench_A","size":[3,2,2],"cells":9},
+      {"id":"Cabinet_A","size":[2,4,1],"cells":8},
+      {"id":"Bed_A","size":[2,2,3],"cells":12},
+      {"id":"LampStand_A","size":[1,4,1],"cells":4}
+    ]
+  },
+
   "targetGame": "Survivalcraft NET x25.01.17",
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "limits": {
     "maxCells": 10000,
     "maxAxis": 64,
@@ -454,4 +529,4 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 }
 ```
 
-最后更新：2026-10-28，v0.18.0。详细取证、命令、测试及尚存限制见 [开发报告](BUILDER-DETAIL-STATES-0.18.0.md) 和 [165类方块审计](blueprint-block-audit-x25.01.17.md)。
+最后更新：2026-10-28，v0.19.0。详细取证、命令、测试及尚存限制见 [开发报告](BUILDER-DETAIL-STATES-0.18.0.md) 和 [165类方块审计](blueprint-block-audit-x25.01.17.md)。

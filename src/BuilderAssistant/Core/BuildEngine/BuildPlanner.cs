@@ -71,6 +71,24 @@ namespace BuilderAssistant.Core.BuildEngine
             var changes = new List<PlannedChange>(blueprint.CellCount);
             var editabilityFailures = new List<CellEditability>();
 
+            // Validate empty space inside furniture bounding boxes as well. These cells
+            // are reserved for clearance, never written or cleared by the template.
+            if (blueprint.FurniturePlacements.Count > 0)
+            {
+                var written = new HashSet<CellPos>();
+                foreach (BlueprintCell cell in blueprint.Cells) written.Add(cell.Relative);
+                foreach (CellPos relative in blueprint.FurnitureFootprint)
+                {
+                    if (written.Contains(relative)) continue;
+                    CellPos absolute = origin.Add(relative);
+                    CellEditability eco = gateway.InspectCell(absolute);
+                    if (!eco.IsEditable) editabilityFailures.Add(eco);
+                    else if (!allowOverride && !gateway.IsCellAir(absolute) &&
+                        !(clearSoftObstructions && gateway.IsCellSoftObstruction(absolute)))
+                        return BuildPlan.Fail(blueprint.FurnitureContext(relative) + "家具净空被占用: " + absolute);
+                }
+            }
+
             // First-failure trackers for the two non-editability policies. We keep
             // only the first of each so the reported reason stays concise, while
             // still scanning every cell to collect the full editability breakdown.
@@ -157,7 +175,7 @@ namespace BuilderAssistant.Core.BuildEngine
                     continue;
                 }
 
-                changes.Add(new PlannedChange(absolute, value, cell.Family, cell.Data));
+                changes.Add(new PlannedChange(absolute, value, cell.Family, cell.Data, blueprint.FurnitureContext(cell.Relative)));
             }
 
             // Editability problems are reported first and with full detail: they are
@@ -181,7 +199,7 @@ namespace BuilderAssistant.Core.BuildEngine
 
             if (sawHardBlocked)
             {
-                return BuildPlan.Fail("目标为实心方块/玩家建筑，默认不覆盖: " + firstHardBlocked);
+                return BuildPlan.Fail(blueprint.FurnitureContext(new CellPos(firstHardBlocked.X - origin.X, firstHardBlocked.Y - origin.Y, firstHardBlocked.Z - origin.Z)) + "目标为实心方块/玩家建筑，默认不覆盖: " + firstHardBlocked);
             }
 
             if (sawSoftBlocked)
@@ -241,6 +259,11 @@ namespace BuilderAssistant.Core.BuildEngine
                 int parent, supportValue;
                 if (indices.TryGetValue(support, out parent))
                 {
+                    if (string.IsNullOrEmpty(c.Context) && !string.IsNullOrEmpty(changes[parent].Context))
+                    {
+                        error = "结构依附方块不能依赖后建家具: " + c.Absolute;
+                        return false;
+                    }
                     supportValue = changes[parent].Value;
                     if (outgoing[parent] == null) outgoing[parent] = new List<int>();
                     outgoing[parent].Add(i);
@@ -269,7 +292,10 @@ namespace BuilderAssistant.Core.BuildEngine
             }
             if (ordered.Count != changes.Count) { error = "依附方块存在循环支撑"; return false; }
             changes.Clear();
-            changes.AddRange(ordered);
+            // Keep the established dependency order within each phase. Structural
+            // attachments must finish before any furniture, even if queued later.
+            foreach (PlannedChange c in ordered) if (string.IsNullOrEmpty(c.Context)) changes.Add(c);
+            foreach (PlannedChange c in ordered) if (!string.IsNullOrEmpty(c.Context)) changes.Add(c);
             return true;
         }
 

@@ -109,14 +109,16 @@ namespace BuilderAssistant.Core.BuildEngine
         public readonly int Value;
         public readonly BlockFamily Family;
         public readonly int Data;
+        public readonly string Context;
         public bool HasSupport { get { return Family == BlockFamily.Ladder || Family == BlockFamily.Torch; } }
 
-        public PlannedChange(CellPos absolute, int value, BlockFamily family = BlockFamily.Cube, int data = 0)
+        public PlannedChange(CellPos absolute, int value, BlockFamily family = BlockFamily.Cube, int data = 0, string context = null)
         {
             Absolute = absolute;
             Value = value;
             Family = family;
             Data = data;
+            Context = context;
         }
     }
 }
