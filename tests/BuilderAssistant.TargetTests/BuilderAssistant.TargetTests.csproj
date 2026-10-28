@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework><OutputType>Exe</OutputType>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">$(SCNET_GAME_DIR)</SCNetGameDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="../../src/BuilderAssistant/Core/Blueprints/VanillaBlockCapabilities.cs" />
+    <Compile Include="../../src/BuilderAssistant/Core/Blueprints/BuildingMaterials.cs" />
+    <Compile Include="../../src/BuilderAssistant/Core/Building/MaterialCatalog.cs" />
+    <Compile Include="../../src/BuilderAssistant/Core/Blueprints/BlockOrientation.cs" />
+    <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
+    <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

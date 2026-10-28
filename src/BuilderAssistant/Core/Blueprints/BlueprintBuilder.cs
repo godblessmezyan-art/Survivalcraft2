@@ -38,7 +38,7 @@ namespace BuilderAssistant.Core.Blueprints
         }
 
         /// <summary>Place an oriented block with already-canonical authored data.
-        /// Invalid/color/transient bits throw instead of being silently stripped.</summary>
+        /// Invalid or noncanonical DATA throws instead of being silently stripped.</summary>
         public void SetOriented(int x, int y, int z, string materialKey, BlockFamily family, int data)
         {
             // Construct once for the shared strict validation, then store the same values.

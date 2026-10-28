@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
@@ -21,6 +21,7 @@ $packagePath = Join-Path $artifactsDir 'BuilderAssistant.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Logic.ps1')
+& (Join-Path $PSScriptRoot 'Test-BuilderAssistantStates.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortableFortressWhitebox.ps1') -GameDir $GameDir
 
 New-Item -ItemType Directory -Force -Path $artifactsDir | Out-Null

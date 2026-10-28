@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using BuilderAssistant.Core.Transactions;
+using BuilderAssistant.Core.Blueprints;
 
 namespace BuilderAssistant.Core.BuildEngine
 {
@@ -106,11 +107,16 @@ namespace BuilderAssistant.Core.BuildEngine
     {
         public readonly CellPos Absolute;
         public readonly int Value;
+        public readonly BlockFamily Family;
+        public readonly int Data;
+        public bool HasSupport { get { return Family == BlockFamily.Ladder || Family == BlockFamily.Torch; } }
 
-        public PlannedChange(CellPos absolute, int value)
+        public PlannedChange(CellPos absolute, int value, BlockFamily family = BlockFamily.Cube, int data = 0)
         {
             Absolute = absolute;
             Value = value;
+            Family = family;
+            Data = data;
         }
     }
 }

@@ -181,7 +181,7 @@ namespace BuilderAssistant.Tests
         }
     }
 
-    internal static class Program
+    internal static partial class Program
     {
         private static int _failures;
         private static int _checks;
@@ -195,6 +195,9 @@ namespace BuilderAssistant.Tests
             {
                 return DumpTreehouseArtifacts(args[1]);
             }
+
+            if (args != null && args.Length == 2 && args[0] == "--capabilities")
+                return DumpBlockCapabilities(args[1]);
 
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
 
@@ -262,6 +265,7 @@ namespace BuilderAssistant.Tests
             TestBlueprintJsonRejectsBadFamilyAndProps();
             TestBlueprintJsonRejectsFamilyMismatchAndIllegalData();
             TestVanillaCapabilityCatalogFirstExpansion();
+            TestFineDetailStates();
             TestBlueprintJsonRejectsBuildOps();
             TestBlueprintJsonRejectsSizeMismatch();
             TestBlueprintJsonRotationTransformReproduces();
@@ -1168,8 +1172,8 @@ namespace BuilderAssistant.Tests
 
             task.Advance(terrain, BuildSafetyLimits.MaxBlocksPerBatch);
             Check(task.State == BuildTaskState.Failed, "task fails when the next target becomes hard-uneditable");
-            Check(task.PendingRollbackCount == 1,
-                "the one blocked already-placed cell is parked, not silently forgotten (got " +
+            Check(task.PendingRollbackCount == 11,
+                "rollback stops at the blocked cell and parks it plus its 10 predecessors (got " +
                 task.PendingRollbackCount + ")");
             Check(terrain.ValueAt(appliedCell) != 0,
                 "the still-unreachable cell visibly remains (partial rollback, not falsely clean)");
@@ -1182,7 +1186,7 @@ namespace BuilderAssistant.Tests
                     othersClean++;
                 }
             }
-            Check(othersClean == 31, "every other already-placed cell was rolled back (31 of 31)");
+            Check(othersClean == 21, "rollback restores only cells after the first blocked dependency (21 cells)");
             Check(!task.IsCleanlyFinished, "a partial rollback is not reported as a clean finish");
 
             terrain.Blocked.Remove(appliedCell); // chunk streams back
@@ -1214,7 +1218,7 @@ namespace BuilderAssistant.Tests
 
             int pending;
             history.UndoLast(terrain, out pending);
-            Check(pending == 1, "undo reports one cell still unrestored (chunk unloaded)");
+            Check(pending == 4, "undo parks blocked cell and preceding dependencies");
             Check(history.Count == 1, "the partially-undone transaction is KEPT on the stack for retry");
             Check(history.HasUndoable, "a partial undo leaves the history marked undoable");
             Check(terrain.ValueAt(unloadCell) != 0, "the unreachable cell is not falsely claimed restored");
@@ -1243,7 +1247,7 @@ namespace BuilderAssistant.Tests
             terrain.Blocked.Add(playerCell);
 
             task.Undo(terrain); // one cell parked
-            Check(task.PendingUndoCount == 1, "undo parks the single unreachable cell");
+            Check(task.PendingUndoCount == 3, "undo stops at unreachable cell and parks preceding dependencies");
 
             // While the chunk was unloaded the player rebuilt that cell themselves.
             terrain.Occupy(playerCell, 999);
@@ -1481,17 +1485,17 @@ namespace BuilderAssistant.Tests
             BlueprintJsonDecodeResult cubeData = BlueprintJson.Decode(
                 "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
                 "\"key\":\"BricksBlock\",\"f\":\"cube\",\"d\":1}]}");
-            Check(!cubeData.Success, "nonzero cube DATA is rejected instead of silently dropped");
+            Check(cubeData.Success, "PaintedCube color zero is supported");
 
             BlueprintJsonDecodeResult stairData = BlueprintJson.Decode(
                 "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
                 "\"key\":\"WoodenStairsBlock\",\"f\":\"stairs\",\"d\":8}]}");
-            Check(!stairData.Success, "stair DATA outside 0..7 is rejected");
+            Check(stairData.Success, "stair corner state is supported");
 
             BlueprintJsonDecodeResult logData = BlueprintJson.Decode(
                 "{\"schemaVersion\":2,\"cells\":[{\"x\":0,\"y\":0,\"z\":0," +
                 "\"key\":\"BirchWoodBlock\",\"f\":\"log\",\"d\":1}]}");
-            Check(!logData.Success, "horizontal log DATA remains explicitly unsupported");
+            Check(logData.Success, "horizontal log DATA is now preserved");
 
             BlueprintJsonDecodeResult materialMismatch = BlueprintJson.Decode(
                 "{\"schemaVersion\":2,\"materials\":[{\"id\":0,\"key\":\"IronBlock\"," +
@@ -1502,8 +1506,8 @@ namespace BuilderAssistant.Tests
         private static void TestVanillaCapabilityCatalogFirstExpansion()
         {
             Console.WriteLine("[TestVanillaCapabilityCatalogFirstExpansion]");
-            Check(VanillaBlockCapabilities.Count == 60,
-                "the first audited expansion contains exactly 60 authorable vanilla block types");
+            Check(VanillaBlockCapabilities.Count == 63,
+                "the first audited expansion contains exactly 63 authorable vanilla block types");
 
             string[] newStatic =
             {
@@ -1942,27 +1946,14 @@ namespace BuilderAssistant.Tests
         private static void TestBlockOrientationNormalizeMasksAuthoredBits()
         {
             Console.WriteLine("[TestBlockOrientationNormalizeMasksAuthoredBits]");
-            // Stairs own bits 0-2 (rotation + upside-down); corner bits 3-4 and colors 5+
-            // are engine-derived and must be stripped so a blueprint never bakes them.
-            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 0xFF) == 0x7,
-                "stairs normalize keeps only rotation+upside-down (0xFF -> 0x7)");
-            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 8) == 0,
-                "stairs normalize drops a lone corner bit (8 -> 0)");
-            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 6) == 6,
-                "stairs normalize preserves a legal rot2+upside (6 -> 6)");
-            // Slab owns only the isTop bit; the color bits are dropped.
-            Check(BlockOrientation.Normalize(BlockFamily.Slab, 0xFF) == 0x1,
-                "slab normalize keeps only isTop (0xFF -> 1)");
-            Check(BlockOrientation.Normalize(BlockFamily.Slab, 2) == 0,
-                "slab normalize drops a lone color bit (2 -> 0)");
-            // Fence and door keep their full authored nibble.
-            Check(BlockOrientation.Normalize(BlockFamily.Fence, 0xFF) == 0xF,
-                "fence normalize keeps all four arms (0xFF -> 0xF)");
-            Check(BlockOrientation.Normalize(BlockFamily.Door, 0x12) == 0x2,
-                "door normalize keeps rotation+open+hinge (0x12 -> 0x2)");
-            // A cube has no authored data at all.
-            Check(BlockOrientation.Normalize(BlockFamily.Cube, 999) == 0,
-                "cube normalize always yields 0");
+            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 0x27) == 0x27, "stair paint survives normalize");
+            Check(BlockOrientation.Normalize(BlockFamily.Stairs, 8) == 8, "stair corner survives normalize");
+            Check(BlockOrientation.Normalize(BlockFamily.Slab, 2) == 2, "slab painted color zero survives");
+            Check(BlockOrientation.Normalize(BlockFamily.Fence, 0xFF) == 0xFF, "fence paint survives");
+            bool rejected = false;
+            try { BlockOrientation.Normalize(BlockFamily.Door, 0x12); }
+            catch (ArgumentOutOfRangeException) { rejected = true; }
+            Check(rejected, "normalize rejects unknown bits");
         }
 
         private static void TestBlockOrientationRotationGroupLaw()
@@ -1980,6 +1971,7 @@ namespace BuilderAssistant.Tests
                     // The codec's contract is over authored (normalized) data: an
                     // unnormalized stair nibble carrying corner/color bits legitimately
                     // drops them on a turn, so test the law on stored-cell values.
+                    if (!BlockOrientation.IsValidAuthoredData(f, d)) continue;
                     int nd = BlockOrientation.Normalize(f, d);
                     int base4 = BlockOrientation.Rotate(f, nd, 4);
                     if (base4 != nd) fourIsIdentity = false;
@@ -2035,6 +2027,7 @@ namespace BuilderAssistant.Tests
             {
                 for (int d = 0; d <= 0xF; d++)
                 {
+                    if (!BlockOrientation.IsValidAuthoredData(f, d)) continue;
                     int m2 = BlockOrientation.MirrorX(f, BlockOrientation.MirrorX(f, d));
                     if (m2 != BlockOrientation.Normalize(f, d)) involutive = false;
                 }
@@ -2090,16 +2083,16 @@ namespace BuilderAssistant.Tests
         {
             Console.WriteLine("[TestBlueprintJsonStripsEngineDerivedOrientationBits]");
             int authored;
-            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x1F, out authored) && authored == 0x7,
-                "live stair corner bits are the only derived bits stripped during copy");
-            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x27, out authored),
-                "a painted stair is rejected instead of silently losing its color");
-            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Slab, 0x2, out authored),
-                "a painted slab is rejected instead of silently losing its color");
-            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Cube, 0x1, out authored),
-                "a painted cube is rejected instead of silently becoming unpainted");
-            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Log, 0x1, out authored),
-                "a horizontal log is rejected while only vertical data 0 is supported");
+            Check(!BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x1F, out authored),
+                "undefined stair corner 3 is rejected rather than masked");
+            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Stairs, 0x27, out authored) && authored == 0x27,
+                "a painted stair is preserved");
+            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Slab, 0x2, out authored) && authored == 2,
+                "a painted slab is preserved");
+            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Cube, 0x1, out authored) && authored == 1,
+                "a painted cube retains its DATA");
+            Check(BlockOrientation.TryDecodeTerrainData(BlockFamily.Log, 0x1, out authored) && authored == 1,
+                "a horizontal log is preserved");
 
             bool threw = false;
             try
@@ -2513,7 +2506,8 @@ namespace BuilderAssistant.Tests
             Check(allPlaced, "every generated cell was actually written to the world");
 
             int restored = task.Undo(terrain);
-            Check(restored == plan.Changes.Count, "undo restores the world after a generated build");
+            while (task.PendingUndoCount > 0) { task.RetryUndo(terrain); restored += task.LastRestoreCount; }
+            Check(restored == plan.Changes.Count, "batched undo restores the world after a generated build");
             bool cleared = true;
             foreach (PlannedChange pc in plan.Changes)
             {
@@ -2723,7 +2717,7 @@ namespace BuilderAssistant.Tests
         {
             Console.WriteLine("[TestTreehouseLogOrientationSemantics]");
             Check(BlockOrientation.Normalize(BlockFamily.Log, 0) == 0, "log normalize keeps vertical 0");
-            Check(BlockOrientation.Normalize(BlockFamily.Log, 7) == 3, "log normalize masks to &3");
+            Check(BlockOrientation.Normalize(BlockFamily.Log, 2) == 2, "log normalize preserves X axis");
             for (int s = 0; s < 4; s++)
             {
                 Check(BlockOrientation.Rotate(BlockFamily.Log, 0, s) == 0, "vertical log invariant under rotation step " + s);
@@ -3057,15 +3051,16 @@ namespace BuilderAssistant.Tests
 
             int pending;
             int restored = h.UndoLast(t, out pending);
-            Check(pending == 0, "the per-phase undo fully reverted (nothing left un-restorable)");
-            Check(restored == parts[parts.Length - 1].CellCount, "one undo tap reverts exactly the LAST phase's cells (" + restored + ")");
+            for (int guard = 0; pending > 0 && guard < 10000; guard++) restored += h.UndoLast(t, out pending);
+            Check(pending == 0, "the per-phase batched undo fully reverted");
+            Check(restored == parts[parts.Length - 1].CellCount, "one batched undo transaction reverts exactly the LAST phase's cells (" + restored + ")");
             Check(t.ValueAt(lastCell) == 0, "the last-phase cell is back to air after undo");
             Check(t.ValueAt(firstCell) != 0, "earlier phases are NOT disturbed by undoing the newest one");
             Check(h.Count == parts.Length - 1, "undo pops one transaction at a time (" + h.Count + " remain)");
 
             // A player edits a first-phase block after the build; undoing back to it must preserve the edit.
             t.Occupy(firstCell, 4242);
-            for (int i = 0; i < parts.Length; i++)
+            for (int i = 0; h.HasUndoable && i < 10000; i++)
             {
                 int p2;
                 h.UndoLast(t, out p2);

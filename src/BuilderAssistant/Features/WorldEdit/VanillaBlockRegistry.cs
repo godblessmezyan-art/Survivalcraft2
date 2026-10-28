@@ -50,7 +50,8 @@ namespace BuilderAssistant.Features.WorldEdit
                 Block block = BlocksManager.FindBlockByTypeName(capability.TypeName, false);
                 if (block != null &&
                     string.Equals(block.GetType().Name, capability.TypeName, StringComparison.Ordinal) &&
-                    MatchesRuntimeFamily(block, capability.Family))
+                    MatchesRuntimeFamily(block, capability.Family) &&
+                    (capability.Family != BlockFamily.Cube || capability.SupportsPaint == (block is PaintedCubeBlock)))
                 {
                     active.Add(capability.TypeName, new Entry(capability, block));
                 }
@@ -68,6 +69,8 @@ namespace BuilderAssistant.Features.WorldEdit
                 case BlockFamily.Fence: return block is FenceBlock;
                 case BlockFamily.Door: return block is DoorBlock;
                 case BlockFamily.Log: return block is WoodBlock;
+                case BlockFamily.Ladder: return block is LadderBlock;
+                case BlockFamily.Torch: return block is TorchBlock;
                 default: return false;
             }
         }

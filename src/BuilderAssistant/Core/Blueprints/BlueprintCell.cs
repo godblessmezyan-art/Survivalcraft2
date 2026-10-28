@@ -8,8 +8,8 @@ namespace BuilderAssistant.Core.Blueprints
     /// authored block <see cref="Family"/> plus <see cref="Data"/>. The family tells
     /// the pure Core how the data bits must be transformed on rotate/mirror; the data
     /// holds only authored orientation (rotation / top-slab / hinge / fence arms).
-    /// Verified derived stair-corner bits may be stripped while copying; colors and
-    /// other unsupported state are rejected rather than normalized away. Plain cubes keep family Cube and data 0,
+    /// Paint and valid stair-corner states are preserved. Unsupported DATA is rejected
+    /// rather than normalized away. Default cubes keep family Cube and data 0,
     /// so the pre-v2 behaviour is exactly reproduced by the two-argument constructor.
     /// Resolving a key to a concrete block stays the job of
     /// <see cref="Transactions.IBlockValueResolver"/>, which makes material

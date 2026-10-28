@@ -72,7 +72,8 @@ namespace BuilderAssistant.Core.BuildEngine
                 if (task.State == BuildTaskState.Undone && task.PendingUndoCount > 0)
                 {
                     // Finish the most recent partial undo before touching older ones.
-                    int finished = task.RetryUndo(gateway);
+                    task.RetryUndo(gateway);
+                    int finished = task.LastRestoreCount;
                     pending = task.PendingUndoCount;
                     if (pending == 0)
                     {
@@ -95,6 +96,16 @@ namespace BuilderAssistant.Core.BuildEngine
                 return restored;
             }
             return -1;
+        }
+
+        public bool HasPendingUndo
+        {
+            get
+            {
+                foreach (BuildTask task in _completed)
+                    if (task.State == BuildTaskState.Undone && task.PendingUndoCount > 0) return true;
+                return false;
+            }
         }
 
         public void Clear()

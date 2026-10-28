@@ -47,6 +47,7 @@ namespace BuilderAssistant.Features.WorldEdit
         // The one in-flight build, if any. Advanced a few cells per GuiUpdate.
         private static BuildTask _activeTask;
         private static GameTerrainGateway _activeGateway;
+        private static GameTerrainGateway _undoGateway;
 
         // Bounded main-thread preflight wait (waiting for chunks, writing nothing).
         private static GameTerrainGateway _preflightGateway;
@@ -184,6 +185,7 @@ namespace BuilderAssistant.Features.WorldEdit
             _clearObstaclesArmed = false;
             _preflightClearObstacles = false;
             _history.Clear();
+            _undoGateway = null;
 
             // Reset the v0.7 blueprint copy/paste state too, so a fresh world never
             // inherits a stale clipboard or a half-finished copy selection.
@@ -230,13 +232,19 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
+            if (_undoGateway != null)
+            {
+                Notify(gui, "正在分批撤销，完成后才能继续建造。");
+                return true;
+            }
+
             if (_palette == null)
             {
                 Notify(gui, "世界尚未初始化完毕，请稍候再试。");
                 return true;
             }
 
-            if (_activeTask != null && !_activeTask.IsFinished)
+            if (_activeTask != null && (!_activeTask.IsFinished || _activeTask.PendingRollbackCount > 0))
             {
                 Notify(gui, "施工进行中，请耐心等待或使用撤销工具取消。");
                 return true;
@@ -361,6 +369,12 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
+            if (_undoGateway != null)
+            {
+                Notify(gui, "正在逐帧撤销，请等待当前事务恢复完成。");
+                return true;
+            }
+
             // v0.13 M4: a treehouse is assembling. An undo tap requests cancellation of the
             // phased assembly (distinct from undoing a finished one). We leave _treehouse in
             // place so Tick keeps pumping the deferred rollback to a clean terminal state; the
@@ -402,7 +416,7 @@ namespace BuilderAssistant.Features.WorldEdit
                     // keep the task alive so Tick retries restoring them, and be honest
                     // that the rollback is not yet complete.
                     Notify(gui, "已请求取消，但有 " + _activeTask.PendingRollbackCount +
-                        " 个方块因区块未就绪暂未回滚，将在区块恢复后自动重试。");
+                        " 个方块等待分批回滚或区块恢复，将逐帧继续。");
                 }
                 else
                 {
@@ -412,6 +426,12 @@ namespace BuilderAssistant.Features.WorldEdit
                     _activeTask = null;
                     _activeGateway = null;
                 }
+                return true;
+            }
+
+            if (_activeTask != null && _activeTask.PendingRollbackCount > 0)
+            {
+                Notify(gui, "正在分批回滚，完成后才能撤销较早的建筑。");
                 return true;
             }
 
@@ -440,6 +460,7 @@ namespace BuilderAssistant.Features.WorldEdit
             GameTerrainGateway undoGateway = new GameTerrainGateway(miner.m_subsystemTerrain);
             int pendingUndo;
             int restored = _history.UndoLast(undoGateway, out pendingUndo);
+            _undoGateway = pendingUndo > 0 ? undoGateway : null;
             if (restored < 0)
             {
                 Notify(gui, "撤销失败：最新一次建造的目标区块已卸载。");
@@ -447,7 +468,7 @@ namespace BuilderAssistant.Features.WorldEdit
             else if (pendingUndo > 0)
             {
                 Notify(gui, "已撤销，恢复 " + restored + " 个方块；" + pendingUndo +
-                    " 个因区块未加载暂未恢复，区块就绪后可再次点击撤销完成。");
+                    " 个等待分批恢复或区块就绪，正在逐帧继续。");
             }
             else
             {
@@ -462,6 +483,18 @@ namespace BuilderAssistant.Features.WorldEdit
         /// </summary>
         public static void Tick(ComponentGui gui)
         {
+            if (_undoGateway != null)
+            {
+                if (!CanMutateWorld(gui)) return;
+                int pending;
+                _history.UndoLast(_undoGateway, out pending);
+                if (pending == 0 || !_history.HasPendingUndo)
+                {
+                    _undoGateway = null;
+                    Notify(gui, "分批撤销已完成。");
+                }
+                return;
+            }
             // v0.13 M4: while a treehouse is assembling it owns this frame. Each call advances
             // at most MaxBlocksPerBatch cells of the current stage through the SAME BuildTask
             // machinery, so writes stay batched on the main thread and never interleave.
@@ -1156,7 +1189,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
-            if ((_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0)
+            if (_undoGateway != null || (_activeTask != null && (!_activeTask.IsFinished || _activeTask.PendingRollbackCount > 0)) || _preflightFramesLeft > 0)
             {
                 Notify(gui, "施工或等待区块就绪中，请先用撤销工具处理完当前建造，再浏览导入蓝图。");
                 return true;
@@ -1412,7 +1445,7 @@ namespace BuilderAssistant.Features.WorldEdit
         /// </summary>
         internal static bool IsBusy
         {
-            get { return (_activeTask != null && !_activeTask.IsFinished) || _preflightFramesLeft > 0 || _treehouse != null; }
+            get { return _undoGateway != null || (_activeTask != null && (!_activeTask.IsFinished || _activeTask.PendingRollbackCount > 0)) || _preflightFramesLeft > 0 || _treehouse != null; }
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using BuilderAssistant.Core.Blueprints;
 using BuilderAssistant.Core.Safety;
 using BuilderAssistant.Core.Transactions;
 
@@ -69,6 +71,11 @@ namespace BuilderAssistant.Core.BuildEngine
         private int _idleAdvanceCalls;
         private string _stallReason;
         private int _cursor;
+        private bool _awaitingVerification;
+        private int _verificationCursor;
+        private int _writesThisAdvance;
+        private readonly HashSet<CellPos> _doorPositions = new HashSet<CellPos>();
+        public int LastRestoreCount { get; private set; }
 
         private enum RestoreOutcome
         {
@@ -92,6 +99,7 @@ namespace BuilderAssistant.Core.BuildEngine
             Name = name;
             Origin = origin;
             _changes = changes;
+            foreach (PlannedChange c in changes) if (c.Family == BlockFamily.Door) _doorPositions.Add(c.Absolute);
             _allowOverride = allowOverride;
             _clearSoftObstructions = clearSoftObstructions;
             State = BuildTaskState.Pending;
@@ -107,11 +115,48 @@ namespace BuilderAssistant.Core.BuildEngine
             }
 
             State = BuildTaskState.Running;
+            _writesThisAdvance = 0;
             int appliedThisCall = 0;
+            maxBatch = Math.Min(maxBatch, BuildSafetyLimits.MaxBlocksPerBatch);
+            var semantics = gateway as IConstructionTerrainGateway;
+            if (_awaitingVerification)
+            {
+                int checkedThisCall = 0;
+                while (_verificationCursor < _changes.Count && checkedThisCall < maxBatch)
+                {
+                    PlannedChange placed = _changes[_verificationCursor];
+                    if (placed.HasSupport)
+                    {
+                        CellEditability ready = gateway.InspectCell(placed.Absolute);
+                        if (!ready.IsEditable)
+                            return ready.IsRecoverableByWaiting ? OnRecoverableStall(gateway, 0, ready) : Fail(gateway, "施工后状态无法复核");
+                        int actual, supportValue, face;
+                        CellPos support;
+                        if (!AttachmentRules.TryGetSupport(placed.Absolute, placed.Family, placed.Data, out support, out face))
+                            return Fail(gateway, "施工后支撑规则无效");
+                        CellEditability supportReady = gateway.InspectCell(support);
+                        if (!supportReady.IsEditable)
+                            return supportReady.IsRecoverableByWaiting ? OnRecoverableStall(gateway, 0, supportReady) : Fail(gateway, "施工后支撑格不可编辑");
+                        if (!gateway.TryGetCellValue(placed.Absolute, out actual) ||
+                            !(semantics != null ? semantics.ValuesEquivalent(actual, placed.Value) : actual == placed.Value) ||
+                            !gateway.TryGetCellValue(support, out supportValue) || semantics == null ||
+                            !semantics.SupportsAttachment(supportValue, placed.Family, face))
+                            return Fail(gateway, "施工后依附方块状态不一致: " + placed.Absolute);
+                    }
+                    _verificationCursor++;
+                    checkedThisCall++;
+                    _idleAdvanceCalls = 0;
+                }
+                if (_verificationCursor >= _changes.Count) State = BuildTaskState.Completed;
+                return 0;
+            }
 
             while (_cursor < _changes.Count && appliedThisCall < maxBatch)
             {
                 PlannedChange change = _changes[_cursor];
+                // Door addition can synchronously generate its upper cell: both consume the frame budget.
+                int writeCost = semantics != null && change.Family == BlockFamily.Door ? 2 : 1;
+                if (appliedThisCall + writeCost > maxBatch) break;
 
                 CellEditability eco = gateway.InspectCell(change.Absolute);
                 if (!eco.IsEditable)
@@ -140,20 +185,47 @@ namespace BuilderAssistant.Core.BuildEngine
                     // else: clear-soft is enabled and this is a plant/snow — allowed.
                 }
 
+                CellPos support;
+                int face;
+                if (AttachmentRules.TryGetSupport(change.Absolute, change.Family, change.Data, out support, out face))
+                {
+                    CellEditability supportReady = gateway.InspectCell(support);
+                    if (!supportReady.IsEditable)
+                        return supportReady.IsRecoverableByWaiting ? OnRecoverableStall(gateway, appliedThisCall, supportReady) : Fail(gateway, "支撑格不可编辑");
+                    int supportValue;
+                    if (semantics == null || !gateway.TryGetCellValue(support, out supportValue) ||
+                        !semantics.SupportsAttachment(supportValue, change.Family, face))
+                        return Fail(gateway, "施工中支撑失效: " + support);
+                }
+
                 int oldValue;
                 if (!gateway.TryGetCellValue(change.Absolute, out oldValue))
                 {
                     return Fail(gateway, "无法读取原始方块: " + change.Absolute);
                 }
 
-                if (!gateway.SetCellValue(change.Absolute, change.Value))
+                _writesThisAdvance += writeCost;
+                if (semantics != null)
                 {
-                    return Fail(gateway, "写入失败: " + change.Absolute);
+                    List<BlockUndoRecord> journal;
+                    string error;
+                    bool success = semantics.ApplyWithJournal(change.Absolute, change.Value, out journal, out error);
+                    _applied.AddRange(journal); // includes partial mutations on a failing callback
+                    if (!success) return Fail(gateway, "写入失败: " + change.Absolute + " " + error);
                 }
-
-                _applied.Add(new BlockUndoRecord(change.Absolute, oldValue, change.Value));
+                else
+                {
+                    // Reserve undo BEFORE invoking a gateway that may throw after changing the cell.
+                    _applied.Add(new BlockUndoRecord(change.Absolute, oldValue, change.Value));
+                    try
+                    {
+                        if (!gateway.SetCellValue(change.Absolute, change.Value))
+                            return Fail(gateway, "写入失败: " + change.Absolute);
+                    }
+                    catch (Exception ex) { return Fail(gateway, "写入异常: " + ex.Message); }
+                }
                 _cursor++;
-                appliedThisCall++;
+                appliedThisCall += writeCost;
             }
 
             if (appliedThisCall > 0)
@@ -164,7 +236,10 @@ namespace BuilderAssistant.Core.BuildEngine
 
             if (_cursor >= _changes.Count)
             {
-                State = BuildTaskState.Completed;
+                bool hasAttachments = false;
+                foreach (PlannedChange c in _changes) if (c.HasSupport) { hasAttachments = true; break; }
+                if (hasAttachments) _awaitingVerification = true;
+                else State = BuildTaskState.Completed;
             }
 
             return appliedThisCall;
@@ -205,11 +280,11 @@ namespace BuilderAssistant.Core.BuildEngine
         private int Fail(ITerrainGateway gateway, string reason)
         {
             FailureReason = reason;
-            int pending = RollbackApplied(gateway);
+            int pending = RollbackApplied(gateway, Math.Max(0, BuildSafetyLimits.MaxBlocksPerBatch - _writesThisAdvance));
             if (pending > 0)
             {
                 FailureReason = reason + "（另有 " + pending +
-                    " 格因区块未就绪暂未回滚，待区块恢复后可自动/再次撤销重试）";
+                    " 格等待分批回滚或区块恢复，待区块恢复后可自动/再次撤销重试）";
             }
             State = BuildTaskState.Failed;
             return 0;
@@ -224,114 +299,66 @@ namespace BuilderAssistant.Core.BuildEngine
             }
             int pending = RollbackApplied(gateway);
             FailureReason = pending > 0
-                ? "已取消，但 " + pending + " 格暂未回滚（区块未就绪），待恢复后重试"
+                ? "已取消，但 " + pending + " 格等待分批回滚或区块恢复，待恢复后重试"
                 : FailureReason;
             State = BuildTaskState.Cancelled;
             return true;
         }
 
         /// <summary>Restore every already-applied cell; returns how many could not yet be restored.</summary>
-        private int RollbackApplied(ITerrainGateway gateway)
+        private int RollbackApplied(ITerrainGateway gateway, int budget = BuildSafetyLimits.MaxBlocksPerBatch)
         {
             _pendingRollback.Clear();
-            for (int i = _applied.Count - 1; i >= 0; i--)
-            {
-                BlockUndoRecord record = _applied[i];
-                RestoreOutcome outcome = TryRestore(gateway, record);
-                if (outcome == RestoreOutcome.Pending)
-                {
-                    _pendingRollback.Add(record);
-                }
-            }
+            for (int i = _applied.Count - 1; i >= 0; i--) _pendingRollback.Add(_applied[i]);
+            DrainRestore(gateway, _pendingRollback, budget);
             return _pendingRollback.Count;
         }
 
-        /// <summary>
-        /// Retry a previously incomplete rollback once chunks have streamed back.
-        /// Cells a player has since edited are dropped (never clobbered). Returns
-        /// the count still pending (0 means the world fully converged).
-        /// </summary>
         public int RetryRollback(ITerrainGateway gateway)
         {
-            if (_pendingRollback.Count == 0)
-            {
-                return 0;
-            }
-            var stillPending = new List<BlockUndoRecord>(_pendingRollback.Count);
-            for (int i = _pendingRollback.Count - 1; i >= 0; i--)
-            {
-                BlockUndoRecord record = _pendingRollback[i];
-                if (TryRestore(gateway, record) == RestoreOutcome.Pending)
-                {
-                    stillPending.Add(record);
-                }
-            }
-            _pendingRollback.Clear();
-            _pendingRollback.AddRange(stillPending);
+            DrainRestore(gateway, _pendingRollback, BuildSafetyLimits.MaxBlocksPerBatch);
             return _pendingRollback.Count;
         }
 
-        /// <summary>
-        /// Undo the completed build. Restores each original cell only where the
-        /// current value still equals what THIS build wrote, so later player
-        /// edits to the same coordinates are preserved (never overwritten). Cells
-        /// whose chunk is uneditable right now are parked in the pending list so a
-        /// later RetryUndo can finish them; they are NOT silently forgotten.
-        /// </summary>
         public int Undo(ITerrainGateway gateway)
         {
-            if (State == BuildTaskState.Undone && _pendingUndo.Count == 0)
+            if (State == BuildTaskState.Undone && _pendingUndo.Count == 0) return 0;
+            if (State != BuildTaskState.Undone)
             {
-                return 0;
+                _pendingUndo.Clear();
+                for (int i = _applied.Count - 1; i >= 0; i--) _pendingUndo.Add(_applied[i]);
             }
-
-            // First undo walks the full applied set; a retry only walks what is left.
-            List<BlockUndoRecord> source = _pendingUndo.Count == 0 ? _applied : _pendingUndo;
-            if (source == _pendingUndo)
-            {
-                return RetryUndo(gateway);
-            }
-
-            _pendingUndo.Clear();
-            int restored = 0;
-            for (int i = source.Count - 1; i >= 0; i--)
-            {
-                BlockUndoRecord record = source[i];
-                RestoreOutcome outcome = TryRestore(gateway, record);
-                if (outcome == RestoreOutcome.Restored)
-                {
-                    restored++;
-                }
-                else if (outcome == RestoreOutcome.Pending)
-                {
-                    _pendingUndo.Add(record);
-                }
-            }
-
+            DrainRestore(gateway, _pendingUndo, BuildSafetyLimits.MaxBlocksPerBatch);
             State = BuildTaskState.Undone;
-            return restored;
+            return LastRestoreCount;
         }
 
-        /// <summary>Finish an undo that was left partial; returns the count still pending.</summary>
         public int RetryUndo(ITerrainGateway gateway)
         {
-            if (_pendingUndo.Count == 0)
-            {
-                return 0;
-            }
-            var stillPending = new List<BlockUndoRecord>(_pendingUndo.Count);
-            for (int i = _pendingUndo.Count - 1; i >= 0; i--)
-            {
-                BlockUndoRecord record = _pendingUndo[i];
-                if (TryRestore(gateway, record) == RestoreOutcome.Pending)
-                {
-                    stillPending.Add(record);
-                }
-            }
-            _pendingUndo.Clear();
-            _pendingUndo.AddRange(stillPending);
+            DrainRestore(gateway, _pendingUndo, BuildSafetyLimits.MaxBlocksPerBatch);
             State = BuildTaskState.Undone;
             return _pendingUndo.Count;
+        }
+
+        // Pending records are always stored in reverse construction/dependency order.
+        // Stop at a failure so a support cannot disappear beneath an unrestored attachment.
+        private void DrainRestore(ITerrainGateway gateway, List<BlockUndoRecord> pending, int budget)
+        {
+            LastRestoreCount = 0;
+            int consumed = 0, processed = 0;
+            while (processed < pending.Count && consumed < budget)
+            {
+                BlockUndoRecord record = pending[processed];
+                // Removing a door can remove its companion synchronously. Reserve both cells.
+                int cost = _doorPositions.Contains(record.Absolute) ? 2 : 1;
+                if (consumed + cost > budget) break;
+                consumed += cost;
+                RestoreOutcome outcome = TryRestore(gateway, record);
+                if (outcome == RestoreOutcome.Pending) break;
+                if (outcome == RestoreOutcome.Restored) LastRestoreCount++;
+                processed++;
+            }
+            if (processed > 0) pending.RemoveRange(0, processed);
         }
 
         /// <summary>
@@ -354,16 +381,18 @@ namespace BuilderAssistant.Core.BuildEngine
                 return RestoreOutcome.Pending;
             }
 
-            if (current != record.WrittenValue)
+            var semantics = gateway as IConstructionTerrainGateway;
+            if (!(semantics != null ? semantics.ValuesEquivalent(current, record.WrittenValue) : current == record.WrittenValue))
             {
                 // A later player edit at this coordinate: honour it, never overwrite.
                 return RestoreOutcome.Skipped;
             }
 
-            if (gateway.SetCellValue(record.Absolute, record.OldValue))
+            try
             {
-                return RestoreOutcome.Restored;
+                if (gateway.SetCellValue(record.Absolute, record.OldValue)) return RestoreOutcome.Restored;
             }
+            catch (Exception) { return RestoreOutcome.Pending; }
 
             return RestoreOutcome.Pending;
         }

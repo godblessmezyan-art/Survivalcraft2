@@ -27,9 +27,9 @@ namespace BuilderAssistant.Core.Blueprints
     /// schemaVersion 2 adds two OPTIONAL per-cell fields for oriented vanilla blocks:
     ///   "f" the authored block family ("cube"|"stairs"|"slab"|"fence"|"door"|"log"); omitted = cube
     ///   "d" the authored DATA bits for that family (rotation/top/hinge/fence-arms); omitted = 0
-    /// Only the authored state this version can reproduce is stored. Stair corner
-    /// joints are derived and stripped; painted/color state is not representable in
-    /// schema 1/2 and is rejected instead of silently degrading to a default color.
+    /// DATA is the lossless, validated native state: paint, geometry and log axes.
+    /// Existing schema 1/2 files retain their original meaning; no state object or
+    /// schema migration is needed because type + family + DATA is unambiguous.
     /// A schemaVersion 1 file (no per-cell f/d) still decodes and is read as plain cubes,
     /// so older blueprints keep working unchanged.
     ///
@@ -308,7 +308,7 @@ namespace BuilderAssistant.Core.Blueprints
                 if (famNode != null)
                 {
                     string famTag = famNode.IsString ? famNode.StringValue : null;
-                    if (!BlockOrientation.TryParseFamilyTag(famTag, out family))
+                    if (!famNode.IsString || !BlockOrientation.TryParseFamilyTag(famTag, out family))
                     {
                         result.AddError("cells[" + i + "] 朝向/方块族标签非法（应为 cube/stairs/slab/fence/door/log）：" + famTag);
                         continue;
@@ -344,6 +344,12 @@ namespace BuilderAssistant.Core.Blueprints
                         BlockOrientation.FamilyToTag(family) + " 与材料 " + materialKey +
                         " 的实际族 " + BlockOrientation.FamilyToTag(materialCapability.Family) +
                         " 不一致。");
+                    continue;
+                }
+
+                if (materialCapability != null && !materialCapability.IsValidData(data))
+                {
+                    result.AddError("cells[" + i + "] 的材料 " + materialKey + " 不支持 DATA=" + data + "。");
                     continue;
                 }
 

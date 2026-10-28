@@ -147,16 +147,18 @@ namespace BuilderAssistant.Features.WorldEdit
                         {
                             int rawData = Terrain.ExtractData(value);
                             int authoredData;
-                            if (!BlockOrientation.TryDecodeTerrainData(family, rawData, out authoredData))
+                            VanillaBlockCapability capability;
+                            if (!VanillaBlockCapabilities.TryGetByTypeName(typeName, out capability) ||
+                                !capability.TryDecodeTerrainData(rawData, out authoredData))
                             {
-                                // A known type can still carry unsupported state (paint color,
-                                // horizontal log axis, or future/unknown bits). Skipping it is
+                                // A known type can still carry invalid/noncanonical or unknown
+                                // state. Skipping it is
                                 // safer than silently writing a visually different block.
                                 result.SkippedUnsupported++;
                                 result.SkippedUnsupportedState++;
                                 CountUnsupported(result, typeName + "(DATA=" + rawData + ")");
                             }
-                            else if (family == BlockFamily.Cube)
+                            else if (family == BlockFamily.Cube && authoredData == 0)
                             {
                                 builder.Set(relative, typeName); // concrete vanilla key the palette can rebuild
                                 result.Copied++;
@@ -173,8 +175,8 @@ namespace BuilderAssistant.Features.WorldEdit
                             {
                                 // Capture the already validated authored orientation
                                 // (rotation / top-half / hinge / fence arms). The decoder above
-                                // strips only verified stair-corner bits; unsupported color or
-                                // other state was rejected before this point.
+                                // preserves paint and geometry exactly; invalid state was
+                                // rejected before this point.
                                 builder.SetOriented(relative, typeName, family, authoredData);
                                 result.Copied++;
                             }

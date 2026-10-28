@@ -157,7 +157,7 @@ namespace BuilderAssistant.Core.BuildEngine
                     continue;
                 }
 
-                changes.Add(new PlannedChange(absolute, value));
+                changes.Add(new PlannedChange(absolute, value, cell.Family, cell.Data));
             }
 
             // Editability problems are reported first and with full detail: they are
@@ -198,7 +198,79 @@ namespace BuilderAssistant.Core.BuildEngine
                     : ("未知材料键: " + firstUnknownMaterial));
             }
 
+            // Synchronously generated door tops belong to this transaction even though JSON stores only bottoms.
+            var footprint = new HashSet<CellPos>();
+            foreach (PlannedChange c in changes) footprint.Add(c.Absolute);
+            foreach (PlannedChange c in changes)
+            {
+                if (c.Family != BlockFamily.Door) continue;
+                CellPos top = c.Absolute.Add(new CellPos(0, 1, 0));
+                if (footprint.Contains(top)) return BuildPlan.Fail("门上半格与计划冲突: " + top);
+                if (!WorldBounds.IsYValid(top.Y) || top.Y - origin.Y >= BuildSafetyLimits.MaxSelectionAxisLength ||
+                    !gateway.IsCellEditable(top) || !gateway.IsCellAir(top))
+                    return BuildPlan.Fail("门关联上半格越界、未就绪或非空气: " + top);
+                footprint.Add(top);
+            }
+            if (footprint.Count > BuildSafetyLimits.MaxBlocksPerOperation)
+                return BuildPlan.Fail("含引擎关联格的事务超过上限 " + BuildSafetyLimits.MaxBlocksPerOperation);
+
+            string dependencyError;
+            if (!OrderByDependencies(changes, gateway, out dependencyError))
+                return BuildPlan.Fail(dependencyError);
             return BuildPlan.Ok(changes, softClearedCount);
+        }
+
+        private static bool OrderByDependencies(List<PlannedChange> changes, ITerrainGateway gateway, out string error)
+        {
+            error = null;
+            var indices = new Dictionary<CellPos, int>();
+            for (int i = 0; i < changes.Count; i++)
+            {
+                if (indices.ContainsKey(changes[i].Absolute)) { error = "计划坐标重复"; return false; }
+                indices.Add(changes[i].Absolute, i);
+            }
+            var outgoing = new List<int>[changes.Count];
+            var indegree = new int[changes.Count];
+            var semantics = gateway as IConstructionTerrainGateway;
+            for (int i = 0; i < changes.Count; i++)
+            {
+                PlannedChange c = changes[i];
+                CellPos support;
+                int face;
+                if (!AttachmentRules.TryGetSupport(c.Absolute, c.Family, c.Data, out support, out face)) continue;
+                int parent, supportValue;
+                if (indices.TryGetValue(support, out parent))
+                {
+                    supportValue = changes[parent].Value;
+                    if (outgoing[parent] == null) outgoing[parent] = new List<int>();
+                    outgoing[parent].Add(i);
+                    indegree[i]++;
+                }
+                else if (!gateway.TryGetCellValue(support, out supportValue))
+                {
+                    error = "依附方块支撑格不可读取: " + support;
+                    return false;
+                }
+                if (semantics == null || !semantics.SupportsAttachment(supportValue, c.Family, face))
+                {
+                    error = "依附方块缺少有效支撑: " + c.Absolute + " -> " + support;
+                    return false;
+                }
+            }
+            var ready = new Queue<int>();
+            for (int i = 0; i < changes.Count; i++) if (indegree[i] == 0) ready.Enqueue(i);
+            var ordered = new List<PlannedChange>(changes.Count);
+            while (ready.Count > 0)
+            {
+                int i = ready.Dequeue();
+                ordered.Add(changes[i]);
+                if (outgoing[i] == null) continue;
+                foreach (int child in outgoing[i]) if (--indegree[child] == 0) ready.Enqueue(child);
+            }
+            if (ordered.Count != changes.Count) { error = "依附方块存在循环支撑"; return false; }
+            changes.Clear();
+            changes.AddRange(ordered);
+            return true;
         }
 
         private static string ComposeEditabilityReason(

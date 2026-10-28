@@ -11,6 +11,7 @@ namespace BuilderAssistant.Core.Blueprints
         Oriented = 1,
         Connected = 2,
         DerivedMultiCell = 3,
+        Attached = 4,
     }
 
     /// <summary>
@@ -23,12 +24,38 @@ namespace BuilderAssistant.Core.Blueprints
         public readonly string TypeName;
         public readonly BlockFamily Family;
         public readonly BlockCapabilityKind Kind;
+        public readonly bool SupportsPaint;
+        public bool CanPlace { get { return true; } }
+        public bool CanCopy { get { return true; } }
+        public bool CanRotate { get { return true; } }
+        public bool CanMirror { get { return true; } }
+        public bool CanSaveState { get { return true; } }
+        // Exact terrain restoration only. Arbitrary external subsystem effects are not claimed.
+        public bool CanUndoTerrain { get { return Family != BlockFamily.Door && Family != BlockFamily.Stairs && Family != BlockFamily.Fence; } }
+        public bool CanUndoAllSubsystems { get { return Kind == BlockCapabilityKind.Static &&
+            TypeName != "SpruceLeavesBlock" && TypeName != "TallSpruceLeavesBlock" && TypeName != "WickerLampBlock"; } }
+
+        public bool IsValidData(int data)
+        {
+            return BlockOrientation.IsValidAuthoredData(Family, data) &&
+                (Family != BlockFamily.Cube || SupportsPaint || data == 0);
+        }
+
+        public bool TryDecodeTerrainData(int data, out int authored)
+        {
+            authored = data;
+            return IsValidData(data);
+        }
 
         public VanillaBlockCapability(string typeName, BlockFamily family, BlockCapabilityKind kind)
         {
             TypeName = typeName;
             Family = family;
             Kind = kind;
+            SupportsPaint = family == BlockFamily.Stairs || family == BlockFamily.Slab || family == BlockFamily.Fence ||
+                typeName == "CobblestoneBlock" || typeName == "StoneBrickBlock" || typeName == "PlanksBlock" ||
+                typeName == "BricksBlock" || typeName == "BasaltBlock" || typeName == "GraniteBlock" ||
+                typeName == "MarbleBlock" || typeName == "SandstoneBlock" || typeName == "ClayBlock";
         }
     }
 
@@ -90,8 +117,7 @@ namespace BuilderAssistant.Core.Blueprints
         {
             var d = new Dictionary<string, VanillaBlockCapability>(StringComparer.Ordinal);
 
-            // Static data-0 construction blocks. Painted variants are authorable only in
-            // their unpainted state; colored source cells are rejected by the cube codec.
+            // Cube DATA is type-qualified; only the nine audited PaintedCube subclasses accept paint.
             AddMany(d, BlockFamily.Cube, BlockCapabilityKind.Static, new[]
             {
                 "CobblestoneBlock", "StoneBrickBlock", "PlanksBlock", "BricksBlock",
@@ -129,14 +155,19 @@ namespace BuilderAssistant.Core.Blueprints
                 "WoodenDoorBlock", "IronDoorBlock", "CellDoorBlock",
             });
 
-            // WoodBlock's audited data 0 is vertical. Horizontal cut-face values remain
-            // unsupported until their complete transform/device behavior is verified.
+            // WoodBlock SetCutFace emits 0=Y, 1=Z, 2=X; alias 3 is never authored.
             AddMany(d, BlockFamily.Log, BlockCapabilityKind.Oriented, new[]
             {
                 "OakWoodBlock", "BirchWoodBlock", "SpruceWoodBlock",
                 "MimosaWoodBlock", "PoplarWoodBlock",
             });
 
+            AddMany(d, BlockFamily.Ladder, BlockCapabilityKind.Attached, new[]
+            {
+                "WoodenLadderBlock", "IronLadderBlock",
+            });
+            // Torch particle lifecycle is paired by the native added/removed behavior.
+            AddMany(d, BlockFamily.Torch, BlockCapabilityKind.Attached, new[] { "TorchBlock" });
             return d;
         }
 

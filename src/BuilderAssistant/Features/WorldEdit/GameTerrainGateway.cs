@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using BuilderAssistant.Core.Blueprints;
 using Game;
 using BuilderAssistant.Core;
 using BuilderAssistant.Core.Safety;
@@ -14,7 +16,7 @@ namespace BuilderAssistant.Features.WorldEdit
     /// writes because it is the engine's own main-thread entry point that also
     /// handles lighting/geometry refresh and protection checks.
     /// </summary>
-    internal sealed class GameTerrainGateway : ITerrainGateway
+    internal sealed class GameTerrainGateway : ITerrainGateway, IConstructionTerrainGateway
     {
         private readonly SubsystemTerrain _subsystemTerrain;
         private readonly Terrain _terrain;
@@ -182,7 +184,86 @@ namespace BuilderAssistant.Features.WorldEdit
                 return false;
             }
             _subsystemTerrain.ChangeCell(cell.X, cell.Y, cell.Z, value);
-            return true;
+            return PlacementMatches(_terrain.GetCellValue(cell.X, cell.Y, cell.Z), value);
+        }
+
+        public bool SupportsAttachment(int value, BlockFamily family, int face)
+        {
+            Block block = BlockById(Terrain.ExtractContents(value));
+            if (block == null) return false;
+            return family == BlockFamily.Ladder
+                ? !block.IsFaceTransparent(_subsystemTerrain, face, value)
+                : family == BlockFamily.Torch && block.IsCollidable;
+        }
+
+        private bool PlacementMatches(int current, int expected)
+        {
+            if (Terrain.ExtractContents(current) != Terrain.ExtractContents(expected)) return false;
+            Block block = BlockById(Terrain.ExtractContents(expected));
+            int actualData = Terrain.ExtractData(current), expectedData = Terrain.ExtractData(expected);
+            // Native OnBlockAdded may derive geometry synchronously. Paint must stay exact.
+            if (block is FenceBlock) return (actualData & ~15) == (expectedData & ~15);
+            if (block is StairsBlock && (expectedData & 24) == 0)
+                return (actualData & ~27) == (expectedData & ~27) && (actualData & 24) != 24;
+            return ValuesEquivalent(current, expected);
+        }
+
+        public bool ValuesEquivalent(int current, int expected)
+        {
+            return Terrain.ReplaceLight(current, 0) == Terrain.ReplaceLight(expected, 0);
+        }
+
+        public bool ApplyWithJournal(CellPos cell, int value, out List<BlockUndoRecord> journal, out string error)
+        {
+            journal = new List<BlockUndoRecord>();
+            error = null;
+            int old;
+            if (!TryGetCellValue(cell, out old)) { error = "无法读取原值"; return false; }
+            var before = new Dictionary<CellPos, int> { { cell, old } };
+            // Native door addition/removal synchronously edits a companion. Capture it BEFORE ChangeCell.
+            Block next = BlockById(Terrain.ExtractContents(value));
+            Block previous = BlockById(Terrain.ExtractContents(old));
+            if (next is DoorBlock && Terrain.ExtractContents(old) != 0)
+            { error = "门事务目前只允许空气落点，以保证关联半格可完整回滚"; return false; }
+            if (previous is DoorBlock)
+            { error = "覆盖已有门需要跨电路事务，目前不支持"; return false; }
+            if (next is DoorBlock)
+            {
+                for (int dy = -1; dy <= 1; dy += 2)
+                {
+                    CellPos adjacent = cell.Add(new CellPos(0, dy, 0));
+                    int adjacentValue;
+                    if (!TryGetCellValue(adjacent, out adjacentValue)) { error = "门关联格未就绪"; return false; }
+                    if (dy == -1)
+                    {
+                        Block support = BlockById(Terrain.ExtractContents(adjacentValue));
+                        if (support == null || support.IsTransparent || support is DoorBlock)
+                        { error = "门下方需要不透明的非门支撑"; return false; }
+                    }
+                    if (BlockById(Terrain.ExtractContents(adjacentValue)) is DoorBlock || (next is DoorBlock && dy == 1))
+                    {
+                        if (next is DoorBlock && dy == 1 && Terrain.ExtractContents(adjacentValue) != 0)
+                        { error = "门上半格已被占用"; return false; }
+                        before[adjacent] = adjacentValue;
+                    }
+                }
+            }
+            bool success = false;
+            try { success = SetCellValue(cell, value); }
+            catch (Exception ex) { error = "ChangeCell 异常: " + ex.Message; }
+            finally
+            {
+                // ChangeCell invalidates chunk meshing. Raw reads here are synchronous, bounded,
+                // main-thread reads from the same already-validated allocated chunk, not a new write gate.
+                foreach (KeyValuePair<CellPos, int> snapshot in before)
+                {
+                    int actual = _terrain.GetCellValue(snapshot.Key.X, snapshot.Key.Y, snapshot.Key.Z);
+                    if (!ValuesEquivalent(actual, snapshot.Value))
+                        journal.Add(new BlockUndoRecord(snapshot.Key, snapshot.Value, actual));
+                }
+            }
+            if (!success && error == null) error = "写入被保护或状态复核失败";
+            return success;
         }
 
         /// <summary>

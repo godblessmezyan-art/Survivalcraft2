@@ -107,7 +107,7 @@ namespace BuilderAssistant.Features.WorldEdit
                     BlockOrientation.FamilyToTag(family) + "。";
                 return false;
             }
-            if (!BlockOrientation.IsValidAuthoredData(family, data))
+            if (!capability.IsValidData(data))
             {
                 error = "材料 " + materialKey + " 的 DATA=" + data + " 非法（" +
                     BlockOrientation.FamilyToTag(family) + " 允许 " +
