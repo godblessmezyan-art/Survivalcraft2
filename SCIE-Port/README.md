@@ -1,5 +1,10 @@
 # 荒野探险家 / Wilderness Explorer
 
+**0.42.0（main）**：已合入全知之眼（The All-Seeing Eye）V0.1，新增原创观星仪神器、
+万象解析环境/方块页及独立本地玩家 HUD；保留 main 0.41.0 的既有功能与四圣兽调整。
+创造栏“神器”获取，数据采集只读。模型真实引擎导入与离线检查已确认，Android 7723
+与多人实际表现待验证。操作及真机清单见 [OMNISCIENT-EYE.md](docs/OMNISCIENT-EYE.md)。
+
 > 游戏内模组显示名称为「荒野探险家」（英文 Wilderness Explorer，作者 zyan，v0.36.0 起）；`SCIE-Port` 仍作为仓库内的工作区目录名与内部标识保留，`PackageName` 等内部 ID、GUID、网络包与存档兼容逻辑不变。下方保留全部既有开发记录（版本历史自 v0.28 起向下罗列，v0.29–v0.35 的完整开发记录见 `docs/COMPATIBILITY.md` 与 `docs/` 下各审计文档）。`.netmod` 的品牌与打包规则见 [`docs/PACKAGING-RULES.md`](docs/PACKAGING-RULES.md)，自 v0.40.3 起由构建脚本在打包前后各校验一次。
 
 Version 0.40.6 adds a fallback registration for the four Four Saints outfits. x25.01.17
@@ -200,6 +205,20 @@ routes remote tank fire through a server-validated request so clients never
 create explosive shells. Release/static checks pass; Android 7723 host/client
 behavior remains pending real-device verification. See
 `docs/VEHICLE-MULTIPLAYER-AUDIT.md`.
+
+Version **0.42.0** on `main` integrates **全知之眼 / The All-Seeing Eye V0.1**
+from feature commit `896469b` (original development build 0.14.0 on `port/scnet-x25.01.17`).
+Find the artifact in creative inventory → **神器**. Use it to open **万象解析**:
+environment and manually triggered block analysis (8 blocks); creature and diagnostic
+pages are disabled extension entries. The panel toggles **全知视界**, which remains
+visible after switching items. The HUD reads coordinates/height/chunk at 0.2 seconds
+and column temperature/humidity game levels at 1 second. It has no terrain/entity
+write operations, durability use, network packets or world-placement behavior.
+
+The original opaque astrolabe model imports in the target Engine as **1 bone / 25 meshes /
+784 triangles**. Release/build checks are confirmed; Windows in-game and Android 7723
+rendering, touch operation and multiplayer behavior remain **待验证**. Detailed design,
+commands and the device test checklist: [OMNISCIENT-EYE.md](docs/OMNISCIENT-EYE.md).
 
 Independent migration workspace for authorized third-party Mods targeting
 Survivalcraft NET 2.4 `Net_x25.01.17`. It is deliberately separate from

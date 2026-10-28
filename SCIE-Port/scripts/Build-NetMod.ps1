@@ -17,6 +17,7 @@ $zip = Join-Path $artifacts 'SCIEPort.zip'
 $package = Join-Path $artifacts 'SCIEPort.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 
 # --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
 # 游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）。
@@ -277,6 +278,8 @@ $tankControlSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Fea
 if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GUID)')) {
     throw 'TankControlPackage must require the host-side per-client activation grant before applying remote control or fire.'
 }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.OmniscientEye.Tests\SCIEPort.OmniscientEye.Tests.csproj') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -730,6 +733,10 @@ try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
     foreach ($requiredEntry in @(
         'SCIEPort.dll',
+        'Assets/Models/OmniscientEye.dae',
+        'Assets/Textures/OmniscientEye.png',
+        'Assets/Blocks/OmniscientEye.csv',
+        'Assets/Database/OmniscientEye.xdb',
         'modinfo.json',
         'THIRD-PARTY-NOTICES.md',
         'Assets/Models/Gungnir.dae',

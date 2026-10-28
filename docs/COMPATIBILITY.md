@@ -1,4 +1,12 @@
 # 兼容性矩阵
+
+## 2026-10-28 SCIE-Port 0.42.0 主线合入全知之眼
+
+在 main 0.41.0 基线 `a856ced` 上整合全知之眼提交 `896469b`，统一版本 0.42.0，
+保留现有四圣兽、武器、载具与品牌契约。ID 949 经主线完整占用和原生常量重查；
+复用现有 `GuiUpdate` 注册，将 Eye.Tick 加入原有 HUD 更新序列。新模块只读、无新
+网络包，Builder Assistant 源码及能力集合未改。Release/完整检查见 SCIE-Port 测试记录；
+Android 7723 与联机依然待验证。
 ## 2026-10-27 SCIE-Port 0.40.6 四圣兽衣物补注册
 
 `.clo` 合并在 x25.01.17 中是弱契约（单文件异常只记日志后继续），整份被丢弃时四件衣物不会注册，创造栏与世界内均不可见。0.40.6 在 `BlocksInitalized` 按 200～203 补注册缺失项，已存在则跳过（不覆盖 .clo），逐件 try/catch 并对贴图失败做回退与日志。衣物数据号、Layer、能力数值与存档结构未改。Four Saints 29、Gungnir 306 及全部既有套件、17 XDB、net472 Release 与 108 条目包通过；包 3,500,765 bytes，SHA-256 `EF58D05EC73587EE1E45A8EE8896C88DC2B9C86EC91CFBE53FF7C877ABADD909`。Builder Assistant 未变化。
@@ -99,6 +107,17 @@ SCIE-Port 主线已同时包含昆古尼尔 V5.1/V5.1b、妙尔尼尔 V6/展示�
 完整的 165 项清单、六组件审计和后续路线见 `docs/blueprint-block-audit-x25.01.17.md`。运行时结构改为“能力元数据 → 实际 `BlocksManager` 注册表 → 按族严格编解码”：材料键与 `materials[].block` 冲突、cell 的 `f` 与真实方块族冲突、非法 DATA、颜色/横向原木等 schema 1/2 无法无损表示的状态均明确拒绝，不再掩码或静默降级。楼梯只剥离已经程序集验证为邻接派生的 corner 位。
 
 安全机制未改变：每事务 10000、每批 32、每轴 64、主线程写入、区块就绪检查、取消、写入前捕获撤销、失败回滚和 `WorkType.Client` 权限拒绝均沿用。容器/方块实体、电路、流体及动态世界状态未开放；它们分别需要实体子系统快照、电路队列/拓扑恢复、流体行为与级联恢复等跨子系统事务能力，不能只保存 terrain value。
+
+## 2026-10-28 SCIE-Port 0.14.0 全知之眼 V0.1
+
+本记录仅对应 `port/scnet-x25.01.17` 分支：新增只读神器 ID 949、原创单根骨骼观星仪
+模型及“万象解析”环境/方块面板、“全知视界”本地玩家 HUD。通过目标 Windows
+x25.01.17 固定哈希/ABI检查，真实 Engine 导入为 1 bone / 25 meshes / 784 triangles。
+新增 `GuiUpdate(ComponentGui)` Hook，使用已验证 Widget/Dialog API 与按世界释放的
+子系统，无地形/实体写入或网络包。环境数据来自真实 Terrain 柱温湿度等级（0–15），
+不使用现实单位。Release、27 组布局场景、现有规则、7 XDB 和包检查已确认；
+Windows 游戏画面、Android 7723 与联机均待验证。Builder Assistant 实现未修改。
+见 `SCIE-Port/docs/OMNISCIENT-EYE.md`。
 
 公开证据：
 

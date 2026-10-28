@@ -1,5 +1,7 @@
 # Blueprint Block Reference
 
+> 2026-10-28 SCIE-Port 0.42.0 审计：OmniscientEyeBlock（ID 949，DATA=0）为不可放置的手持神器，不支持用于建筑蓝图；未改变 Builder Assistant 的方块族、材料键或 DATA 范围。
+
 > **SCIE-Port 0.40.5 审计**：本次只调整衣物块 203 的四圣兽衣物穿戴 Layer、昆古尼尔 HUD 与瞄准准心；没有新增、移除或修改 Builder Assistant 支持的方块、族标签、DATA 范围或导入限制。本清单能力集合保持不变。
 
 > **v0.17.0 说明**：Portable Fortress Mk.I 本轮新增的是打包的技术白模 DAE 与设计/ABI 验证，不是蓝图方块、材料键或已实现的部署功能。本次没有新增、移除或修改任何 Builder Assistant 蓝图方块族、DATA 范围或导入限制；AI 生成蓝图时不得引用 `PortableFortress_Whitebox` 作为材料。

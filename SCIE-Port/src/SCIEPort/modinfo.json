@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.41.0",
+  "Version": "0.42.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer —— 拓展原版生存世界：生态植物、陆海空载具、特色装备与神话神器。模组内部标识保持 SCIE-Port（PackageName=SCIEPort，AssemblyName/RootNamespace=SCIEPort），方块索引、GUID、网络包与存档兼容逻辑不随品牌名变化。v0.41.0 四圣兽更名（万里青龙/北冥玄武/镇狱白虎/炽焰朱雀）、四件耐久统一为 500、朱雀靴移动速度提升至 150%，并新增体温钳制：北冥玄武使体温不低于安全下限以免疫低温感冒与严寒，炽焰朱雀使体温不高于安全上限以免疫过热；v0.40.6 四圣兽四件衣物在 .clo 合并失效时由代码补注册，修复创造栏/世界中看不到北冥玄武、镇狱白虎、炽焰朱雀的问题；v0.40.5 修复穿戴层级并恢复昆古尼尔投掷准心；v0.40.2 暂时关闭自然生物刷新以定位世界加载卡死。Android 7723 与多人同步仍待真机验证。",
+  "Description": "荒野探险家 / Wilderness Explorer —— 拓展原版生存世界：生态植物、陆海空载具、特色装备与神话神器。模组内部标识保持 SCIE-Port（PackageName=SCIEPort，AssemblyName/RootNamespace=SCIEPort），方块索引、GUID、网络包与存档兼容逻辑不随品牌名变化。v0.42.0 新增全知之眼（The All-Seeing Eye）V0.1：原创观星仪神器、万象解析环境/方块页、独立本地玩家全知视界 HUD；所有采集只读。v0.41.0 四圣兽更名（万里青龙/北冥玄武/镇狱白虎/炽焰朱雀）、四件耐久统一为 500、朱雀靴移动速度提升至 150%，并新增体温钳制：北冥玄武使体温不低于安全下限以免疫低温感冒与严寒，炽焰朱雀使体温不高于安全上限以免疫过热；v0.40.6 四圣兽四件衣物在 .clo 合并失效时由代码补注册，修复创造栏/世界中看不到北冥玄武、镇狱白虎、炽焰朱雀的问题；v0.40.5 修复穿戴层级并恢复昆古尼尔投掷准心；v0.40.2 暂时关闭自然生物刷新以定位世界加载卡死。Android 7723 与多人同步仍待真机验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

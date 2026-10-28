@@ -1,4 +1,5 @@
 using Game;
+using SCIEPort.Features.OmniscientEye;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
@@ -130,6 +131,7 @@ namespace SCIEPort.Mod
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);
             FourSaintsHud.Update(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false)?.RefreshLocalHealthBar(componentGui.m_componentPlayer);
         }
 

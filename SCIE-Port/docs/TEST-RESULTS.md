@@ -1,5 +1,32 @@
 # 测试结果
 
+## 2026-10-28 main 合入全知之眼 / 荒野探险家 0.42.0
+
+基线 `a856ced`（main 0.41.0），整合功能提交 `896469b`。
+保留 main 既有功能、品牌、网络包、四圣兽 0.41.0 调整与全部构建守卫；
+本次只导入全知之眼功能提交，没有导入开发分支上的其它工程。
+
+实际执行命令（仓库根）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+```
+
+结果：根/SCIE-Port ABI 与固定程序集哈希检查通过；ID 949 在原生与主线物品中无重复；
+模型实际导入 1 bone / 25 meshes / 784 triangles；不透明 PNG/UV/只读守卫通过。
+Gungnir 306、Stormhammer 671、Four Saints 37、Kelly 11、ATV 35、Off-road 20、
+Watercraft 16、Helicopter 41、Ecology 53、Corn 26、Bamboo 25、Flax 29、Sunflower 33、
+Apple 49、Vehicle activation 22、Portable fortress 319、Tank 既有规则及 Eye 27 布局
+场景全部通过。18 XDB、品牌契约、资源打包、net472 Release 全部通过，无编译警告/错误。
+
+最终包 `artifacts/SCIEPort.netmod`，版本 0.42.0 / AssemblyVersion 0.42.0.0，
+112 entries，3,522,668 bytes，SHA-256
+`C750C09FDDF0F9F69042E464E6BEE64DF16791E1ED6B12C3CE2709873443D74F`。
+另存同字节版本包 `artifacts/SCIEPort-0.42.0.netmod`。
+Windows 游戏内、Android 7723 与多人仍待验证；没有把离线结果升级为真机结论。
+Builder Assistant 源码未改；方块参考清单只更新“949 不可用于蓝图”的说明。
+
 # 0.40.6 四圣兽衣物补注册兜底（2026-10-27）
 
 - 背景：0.40.4（稀疏衣物索引空值）与 0.40.5（`ComponentClothing.CanWearClothing` 的 `incoming.Layer > current.Layer`，四件统一 Layer=10）已修掉创造栏崩溃与无法穿戴；但 `.clo` 合并本身仍可能整份失效——x25.01.17 在 `ClothingBlock.Initialize` 里把各 Mod 的 `.clo` 合并进原版衣物 XML，`GetFiles` 对每个文件的异常只记日志后继续（`获取文件[...]失败`），一旦合并被丢弃，四件衣物不会注册，创造栏与世界中都看不到。
@@ -314,6 +341,37 @@
 - Windows 游戏运行：待验证。本机未启动游戏。
 - Android 7723：待验证。单机回归、房主驾驶、普通客户端驾驶、双座两种角色互换、断线重连、跨区块及坦克炮塔/爆炸一致性均未实测。
 - 多人兼容结论：待验证。源码已覆盖全部现有载具，但在双 Android 实测通过前不得标记“联机正常”。移动同步继承原生驾驶员客户端信任边界；严格服务器权威为不支持。
+
+## 2026-10-28 全知之眼 V0.1 / SCIE-Port 0.14.0
+
+分支 `port/scnet-x25.01.17`；固定程序集目录 `E:\SCNET\SCNETx25.01.17`。
+
+执行命令（PowerShell，仓库根目录）：
+
+```powershell
+python SCIE-Port/scripts/New-OmniscientEyeAssets.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+```
+
+已确认：根与 SCIE-Port 依赖/ABI 检查；目标原生 260 Block 常量无 949，SCIE-Port
+全部 Block 常量无重复；真实 Engine 导入 1 bone / 25 meshes / 784 triangles；
+128×16 全不透明 PNG、Y_UP、identity 根变换、UV 范围；只读调用守卫；
+Kelly 11、ATV 32、Off-road 20、Watercraft 16、Tank 规则测试及 Eye 27 组布局测试；
+7 XDB 结构/父模板检查；net472 Release 与 44 条目 `.netmod` 检查。
+
+最终包 `artifacts/SCIEPort.netmod`：420,293 bytes；SHA-256
+`BB5676F22433FD66A151AC1095D1D76DBB334033A3D24E6A5F402935CB5E4A08`。
+
+首次小屏布局测试在 854×480 / 1.5× UI 发现固定宽 HUD 与两侧控件挤占，已改为
+保持字号、收窄底板（248–340 逻辑单位）。修正后全部 27 组布局通过。
+初次失败的测试进程曾被 Windows 错误报告锁住 apphost；测试工程已使用
+`UseAppHost=false`，修正后的 DLL 测试运行通过。未掩盖失败记录。
+
+模型正面与斜侧软件预览已人工检查（`artifacts/OmniscientEye-preview.png`），
+该预览不是游戏截图。不新增游戏资源依赖，不依赖透明材质或发光着色器。
+Windows 游戏内、Android 7723 和主机/普通客户端均 **待验证**；未连接真机。
+真机清单与生命周期审查见 [OMNISCIENT-EYE.md](OMNISCIENT-EYE.md)。
 
 日期：2026-10-19
 目标：`Survivalcraft NET 2.4 Net_x25.01.17`

@@ -1,4 +1,14 @@
 # SCIE-Port 兼容性记录
+
+## 0.42.0 main 合入全知之眼（2026-10-28）
+
+将功能提交 `896469b` 整合到 main 基线 `a856ced`（0.41.0），保留主线品牌、四圣兽
+新名称/500 耐久/朱雀 150% 移速及体温逻辑、全部既有模块/网络包/测试守卫。
+版本统一为 0.42.0；`GuiUpdate` 复用现有一次注册，在原有 HUD 调用后增加 Eye.Tick，
+没有重复注册；ID 949 经主线全部编号与原生 260 常量重新检查无重复。
+全知之眼仍为只读，本次没有引入分支上的其它工程或修改 Builder Assistant 实现。
+真实模型导入、Release 与主线自动检查结果见测试记录；Android 7723、Windows 游戏内
+界面与联机继续为待验证。下方 0.14.0 是开发分支历史记录，不是本次主线版本。
 ## 0.41.0 四圣兽更名·耐久统一·朱雀移速·体温钳制（离线已确认，Android 待验证，2026-10-27）
 
 四件衣物更名为万里青龙(200)/北冥玄武(201)/镇狱白虎(202)/炽焰朱雀(203)，`Sturdiness` 统一为 500，炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）。`.clo`（权威）与 `FourSaintsClothing.cs`（合并失效兜底）两条路径同步更新，`Layer` 仍统一为 10、`IsOuter=True`。方块索引 203、衣物数据号 200–203、GUID、网络包 245 与存档值均未改，因此本版对存档与联机完全兼容；改名只影响显示名，存档按方块/衣物索引存取。
@@ -277,6 +287,24 @@ Portable Fortress 由 Builder Assistant 正式迁入 SCIE-Port，成为独立玩
 | Windows 游戏运行 | 待验证 | 按用户约束未启动游戏 |
 | Android 7723 单机/主机/普通客户端 | 待验证 | 编译与离线规则不能证明真机同步；须执行双机矩阵 |
 | 严格服务器权威/抗作弊 | 不支持 | 移动继承 x25.01.17 原生“驾驶员客户端同步父车体”模型；未修改或 Hook 游戏本体 |
+
+## 0.14.0 全知之眼 V0.1（2026-10-28）
+
+目标分支 `port/scnet-x25.01.17`，基线 `a7e313a`；没有合并 main 或修改 Builder Assistant。
+新增物品 Block ID 949（扫描目标原生 260 个常量及本分支全部物品，未占用）。
+新增 `SubsystemOmniscientEye`，通过标准 `.xdb` / CSV 注册；新增现有 ABI
+`GuiUpdate(ComponentGui)` Hook，沿用当前 Loader 的一次注册入口，无额外网络包。
+使用真实 `CanvasWidget` / `LabelWidget` / `RectangleWidget` / `BevelledButtonWidget` /
+`Dialog` / `DialogsManager`。玩家 UI 属于当前 Project 的子系统，Dispose 移除 HUD、
+关闭对话框并释放玩家引用；不注册静态世界退出事件。坐标/区块每 0.2 秒、气候每 1 秒。
+温湿度来自 `Terrain.GetTemperature/GetHumidity(x,z)` 的 0–15 柱气候等级，
+不是摄氏度、百分比或玩家体温；高度为世界 Y。未加载区块显示未就绪。
+
+已确认：固定 Windows 程序集指纹/ABI，net472 Release；真实 Engine 模型导入
+1 bone / 25 meshes / 784 triangles；Y_UP、identity 根变换、UV、不透明 128×16 PNG；
+27 个 HUD 布局场景；现有规则套件、7 份 XDB、包资源守卫。
+待验证：Windows 游戏内使用、Android 7723 冷启动/手持/触屏/帧率、多本地玩家与联机。
+布局离线检查不能替代实机控件遮挡测试。清单见 [OMNISCIENT-EYE.md](OMNISCIENT-EYE.md)。
 
 目标：Survivalcraft NET 2.4 `Net_x25.01.17`，Android 为最终平台。
 

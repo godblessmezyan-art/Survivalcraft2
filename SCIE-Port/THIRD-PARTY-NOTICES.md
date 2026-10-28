@@ -25,6 +25,19 @@ by `scripts/New-StormhammerAssets.py`. They contain no upstream SCIE, game, or
 third-party binary/art source. `docs/images/stormhammer-concept-reference.png` is
 design-process documentation only and is not packaged in the `.netmod`.
 
+## Original All-Seeing Eye artifact (2026-10-28)
+
+`OmniscientEye.dae` and `OmniscientEye.png` were authored specifically for this
+project from the user's astrolabe/arcane-eye brief, without third-party geometry,
+textures, game assets or shaders. The deterministic source is
+`scripts/New-OmniscientEyeAssets.py` (Python standard library); the optional
+software preview uses Pillow and is not shipped inside the Mod.
+
+- DAE SHA-256: `FAA00D0A8EB4844349BAC85F528BDAA3BDC21BD708DEBD05A0F39B037347A87F`.
+- PNG SHA-256: `2D8DED9D68D2E144F715C9513706E19199282A65254F9FE3A4783D1442E9D8F1`.
+- Original project artwork, permitted for inclusion and redistribution with this Mod;
+  no Cenozoic Era source, model or texture is incorporated.
+
 ## Creature reference projects and original fox assets
 
 - Research reference: <https://github.com/XiaofengdiZhu/SurvivalcraftTemplateModForAPI>,
