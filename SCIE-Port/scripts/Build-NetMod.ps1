@@ -71,6 +71,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye safety/transaction tests failed.
 # port build usable when that optional SDK is not installed locally.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -789,4 +791,4 @@ Write-Host "Package: $package"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"
 
-Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.0.netmod') -Force
+Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.1.netmod') -Force

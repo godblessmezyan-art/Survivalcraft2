@@ -12,8 +12,8 @@ namespace SCIEPort.Features.AbyssReaper
         public double Duration {get;private set;}
         double start=-100,press=-1,last=-100; int next; bool down,impacted=true;
         /// <summary>Only a released press starts a swing; a held press becomes charged.</summary>
-        public void Input(bool held,double now) {
-            if(held&&!down)press=now;
+        public void Input(bool held,double now,float elapsedHold=0) {
+            if(held&&!down)press=Math.Max(0,now-Math.Max(0,Math.Min(5,elapsedHold)));
             if(!held&&down&&press>=0&&now>=start+Duration){
                 Stage=now-press>=.65?3:(now-last>1.05?0:next);
                 Duration=Stage==0?.35:Stage==1?.42:Stage==2?.58:.85;

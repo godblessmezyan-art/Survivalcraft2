@@ -15,35 +15,42 @@ namespace SCIEPort.Features.AbyssReaper
         readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
         readonly HashSet<GameEntitySystem.Entity> hit=new HashSet<GameEntitySystem.Entity>();
         readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
-        SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies;
+        SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies; SubsystemPlayers players;
         bool allowPlayers,allowPassive,showRifts;
         /// <inheritdoc/>
         public override int[] HandledBlocks => new[]{AbyssReaperBlock.Index};
         /// <inheritdoc/>
-        public UpdateOrder UpdateOrder => UpdateOrder.Default;
+        public UpdateOrder UpdateOrder => (UpdateOrder)((int)UpdateOrder.Input + 1);
         /// <inheritdoc/>
         public int[] DrawOrders {get;}=new[]{110};
         /// <inheritdoc/>
-        public override void Load(ValuesDictionary v) {base.Load(v);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);}
+        public override void Load(ValuesDictionary v) {base.Load(v);players=Project.FindSubsystem<SubsystemPlayers>(true);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);}
         /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
         public void Capture(ComponentInput input) {
             var p=input.m_componentPlayer; if(p==null)return;
             State s;bool active=Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
             if(!active){if(states.TryGetValue(p,out s)){Remove(p,s);states.Remove(p);}return;}
             if(!states.TryGetValue(p,out s)){s=new State();states.Add(p,s);}
-            bool blocked=p.ComponentGui.ModalPanelWidget!=null||DialogsManager.Dialogs.Count>0||p.ComponentHealth.Health<=0;
+            bool blocked=!p.PlayerData.IsReadyForPlaying||clock.GameTimeDelta<=0||p.ComponentGui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!input.AllowHandleInput||!Engine.Window.IsActive||p.ComponentSleep.SleepFactor>0||p.GameWidget==null||!p.GameWidget.ActiveCamera.IsEntityControlEnabled;
             var ray=input.m_playerInput.Dig??input.m_playerInput.Hit??input.m_playerInput.Aim;
             if(ray.HasValue)s.Ray=ray.Value;
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
             if(blocked){s.Combo=new AbyssCombo();return;}
-            s.Combo.Input(ray.HasValue,clock.GameTime);
+            float elapsed=0;
+            var touch=p.ComponentGui.ViewWidget?.TouchInput;
+            if(touch.HasValue&&touch.Value.InputType==TouchInputType.Hold)elapsed=touch.Value.Duration;
+            s.Combo.Input(ray.HasValue,clock.GameTime,elapsed);
         }
         /// <inheritdoc/>
         public override bool OnUse(Ray3 ray,ComponentMiner miner)=>true;
         /// <inheritdoc/>
         public void Update(float dt) {
+            // Native UpdateInput Hook is before touch/gamepad assembly; consume the completed input
+            // here at Input+1 (-9), strictly before ComponentPlayer Default (0).
+            foreach(var player in players.ComponentPlayers)
+                if(player.GameWidget!=null&&(CommonLib.WorkType==WorkType.Local||player.PlayerData.IsMainPlayer))Capture(player.ComponentInput);
             retired.Clear(); double now=clock.GameTime;
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
                 if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
@@ -87,7 +94,7 @@ namespace SCIEPort.Features.AbyssReaper
                 s.Panel.Children.Add(new RectangleWidget{Size=s.Panel.Size,FillColor=new Color(12,9,19,225),OutlineColor=new Color(90,80,103),OutlineThickness=1,IsHitTestVisible=false});
                 s.Label=new LabelWidget{Size=new Vector2(248,102),FontScale=.55f,Color=new Color(174,156,197),IsHitTestVisible=false};s.Panel.Children.Add(s.Label);s.Panel.SetWidgetPosition(s.Label,new Vector2(6,4));gui.ControlsContainerWidget.Children.Add(s.Panel);}
             s.Panel.IsVisible=gui.ModalPanelWidget==null;
-            s.Label.Text="阿比斯 · 终焉之镰  V0.1\n◇ 裂界星门 · 锁定    ◇ 断界斩 · 锁定\n◇ 虚影瞬狩 · 锁定\n◇ 终焉·万象坍缩 · 锁定\n"+(CommonLib.WorkType==WorkType.Client?"客户端战斗未开放":s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":"轻触连斩 · 长按松开蓄力重斩");
+            s.Label.Text="阿比斯 · 终焉之镰  V0.1.1\n◇ 裂界星门 · 锁定    ◇ 断界斩 · 锁定\n◇ 虚影瞬狩 · 锁定\n◇ 终焉·万象坍缩 · 锁定\n"+(CommonLib.WorkType==WorkType.Client?"客户端战斗未开放":s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(clock.GameTime)>0?"蓄力 "+(int)(s.Combo.Charge(clock.GameTime)*100)+"% · 持续按住":"轻触连斩 · 长按松开蓄力重斩");
         }
         /// <inheritdoc/>
         public void Draw(Camera camera,int order) {

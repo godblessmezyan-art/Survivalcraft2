@@ -42,7 +42,6 @@ namespace SCIEPort.Mod
         public override void UpdateInput(ComponentInput input, WidgetInput widgetInput)
         {
             ComponentPlayer player=input?.m_componentPlayer;
-            player?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Capture(input);
             if(player==null || Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue)!=DevouringEyeBlock.Index)return;
             // Entity taps/long presses use the same confirmation workflow, never vanilla hit/dig.
             input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;

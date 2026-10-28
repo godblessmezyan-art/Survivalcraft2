@@ -465,3 +465,13 @@ THIRD-PARTY-NOTICES.md
 - Python生成器/几何守卫/比例预览均通过；三段厚弧刃绕序已修正且加入正体积守卫。生成物PNG与DAE可重复生成。
 - 产物荒野探险家.netmod与版本副本荒野探险家-0.16.0.netmod字节一致：480669 bytes，52 entries；SHA256 DDFA9D56EBA5866D221FA1E714E90A5430C32087AE934079AAC7CBD9626F21C4。
 - 未启动游戏、未测试设备或真实网络。Android7723、第一/第三人称实际持握、原生触屏冲突与主机伤害传播待验证。普通客户端战斗不支持。初次完整构建因本机缺旧.NET runtime失败，改用Major roll-forward后全部通过；不把离线检查当游戏通过。
+
+## 2026-10-29 port0.16.1 / 阿比斯V0.1.1截图与长按修复
+
+- 基线16d4d52。用户7723截图已证明V0.1能加载并显示，但反馈主刃朝外/碎片串累赘/材质无光泽；补充长按无法触发。这些是旧版缺陷，未把离线测试冒充用户验收。
+- 重构为内向弧刃、八棱暗钢柄、银灰窄倒角、双面开放黑心紫光核心，清除原碎片长串。实际目标引擎导入1 bone / 34 meshes / 2480 triangles，256×16全不透明PNG。非退化/绕序/法线/UV、刃朝内/无旧碎片链守卫通过；能量表面积占2.87%。
+- 真实Windows及官方Android（Survivalcraft.dll SHA256 3520162AFB8DCCC51DD32A2FE22114D0325DD55D270B4B922AABF16A4AA4429B）反编译确认UpdateInput Hook在Mouse函数内，早于Gamepad/Widgets。新编译DLL实际IL确认移除早期Capture，采样顺序-9严格介于Input -10与Player 0。38项规则断言通过，涵盖触屏Hold延迟、拖动持续、短按、冷却内松手与时间原点保护。
+- 实际命令：FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2，PATH增加本机Microsoft/dotnet，DOTNET_ROLL_FORWARD=Major；powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。完整构建exit0，Test-Environment、原生导入/输入顺序、既有套件、9XDB与包检查通过。独立Release 0 warnings/0 errors。最终日志D:\Dev\Tools\scnet-audit\abyss-0161-release.log。
+- New-AbyssReaperAssets.py、Test-AbyssGeometry.py及Preview-AbyssReaper.py均exit0。当前preview-icon/fp/third/back.png为软件图，第一人称读取CSV并通过2772/1280横屏FOV65/85静止刃片视锥检查，不代表真实相机/动画/触屏控件验证。
+- 产物荒野探险家.netmod及同字节荒野探险家-0.16.1.netmod：505858 bytes / 52 entries；SHA256 86D698A4AA7705382FEE0FA6D093A0E4F160646482C68197F01537FCDCA1DB16。DAE/PNG最新哈希及渲染材质边界见ABYSS-REAPER.md。
+- 952、原有神器、战斗数值与协议未变；普通客户端仍不结算战斗。未操作Windows游戏/Android设备；新包主刃方向、材质亮度、0.65秒蓄力松手与三连斩实际触发、不同相机/UI/光线、联机/性能继续待用户复测。

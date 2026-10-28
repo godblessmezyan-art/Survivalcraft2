@@ -1,4 +1,8 @@
-# 阿比斯·终焉之镰 V0.1（port 0.16.0）
+# 阿比斯·终焉之镰 V0.1.1（port 0.16.1）
+
+当前版本：34 meshes / 2480 triangles，新增preview-*.png为当前预览。外观与长按修复说明见文末V0.1.1记录；下方保留初版参数用于追溯。
+
+## V0.1 初版记录
 
 基线：port/scnet-x25.01.17 69db2ff。原创资产由New-AbyssReaperAssets.py可重复生成，无外部美术来源。仅新增此神器；没有合入main或改动Builder Assistant。没有传送门、黑洞、天气或地形写入。
 
@@ -33,3 +37,16 @@ Client从不结算自定义伤害；Server只允许本地IsMainPlayer输入，�
 待验收：Android7723冷启动、图标/第一人称与第三人称持握比例，左右手/不同UI分辨率遮挡，轻触三连轨迹、长按蓄力/模态取消，墙后及中立/玩家安全，原生领地、同一目标单击去重，关ShowRifts后伤害，主机伤害传播、切换世界与帧率。未操作游戏或连接设备，不能宣称Android兼容。
 
 原创资产SHA256：DAE 1B0D0240C18B6BA60AF6EC263ECA5E98059CAA75434E54991604D6D708A5DF27；PNG 4F64390769ED1650503F93F50BCE5842FFBADE2BCE7CDF4443B13CABDFE71309。
+
+## 2026-10-29 V0.1.1（port 0.16.1）外观与真实触屏修复
+
+用户7723截图确认V0.1可见，但主刃朝外并出屏、碎片串累赘、核心被壳遮挡，且长按无法触发。原V0.1仅完成桌面编译/软件预览，不能据此视为设备验收。
+
+- 用Y轴180度正行列式旋转烘焙全部顶点/法线，改为右手内向弧刃。去掉原FloatingShard/ShardRift长串，保留刃隙附近两颗小碎片。方柄换八棱暗钢柄、锻造接头与窄银灰倒角。两侧开放核心黑心、暗紫内唇与双层窄光环，避免再看到棕色壳面。34 meshes/2480 triangles、单根identity、Y_UP；256×16全不透明PNG。
+- 原生BlocksManager.DrawMeshBlock使用预烘焙漫反射，不提供PBR/粗糙度/环境反射。本版仅对金属倒角做按朝向调制的方向高光，能量UV色带12–15使用真实BlockMeshVertex.IsEmissive，核心/刃缘缓慢呼吸，不伪称真实镜面或投射环境光。缓存网格/纹理/能量与高光顶点索引，绘制每次仅6组高光计算及原有顶点数组修改，单次DrawMeshBlock；不新增粒子或常驻大型光环。
+- FirstPersonScale .64→.46，Offset .50,-.38,-.95，旋转0,-8,-8。预览脚本读取实际CSV，给出ICON/FP/THIRD/BACK，并检查横屏2772/1280、垂直FOV65/85静止刃片在视锥内；是软件假设镜头检查，仍不等于7723实际投影/动作通过。旧proportions.png保留为V0.1历史图，当前用preview-*.png。
+- 真实反编译确认ComponentInput.Update先调用鼠标（其末尾才是UpdateInput Hook），再处理手柄和Widgets触屏。旧Capture太早，取不到触屏输入，并无法清理触屏后写入的原生攻击。现在只在Subsystem UpdateOrder Input+1=-9采样全部本地玩家，严格介于Input=-10与原生Player Default=0，移除Loader中的旧Capture，避免每帧重复采样。
+- 手机Hold第一次要等0.2秒才提供，首次蓄力按TouchInput.Duration回溯真实按下时点，拖动后继续保留起点；面板显示百分比，>=0.65秒显示蓄力完成，松开触发重斩。死亡、非实体相机、失焦、睡眠、模态窗口、未就绪、暂停、换物品会取消。战斗数值、合法目标判定、领地/墙体保护及客户端不结算权限不变。
+- Test-AbyssRuntime反射解码真实IL，确认原生调用顺序、Hook位置与新DLL的-9采样顺序；回归测试包含触屏延迟Hold、连续拖动、短按、冷却内松手与负时间起点保护。没有操作设备，更新后的朝向、光泽、蓄力与触屏UI仍待用户复测。
+
+V0.1.1原创资源SHA256：DAE 48BF03C9667DC181BD31387ED3F9F6A40007997E05A4E097CA0EBA3FF17EC3A8；PNG 8F294F389E15D44FFD0102B9A01925BF435B58DDAA633B266DC565579374587F。官方Android Survivalcraft.dll（3520162AFB8DCCC51DD32A2FE22114D0325DD55D270B4B922AABF16A4AA4429B）额外反编译确认同样先MouseHook、后Gamepad/Widgets；仍不等于7723真机修复已通过。

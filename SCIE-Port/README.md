@@ -1,5 +1,9 @@
 # SCIE-Port
 
+## 2026-10-29 port 0.16.1 / 阿比斯V0.1.1
+
+修正外向持镰、移除碎片长串，增加暗钢倒角方向高光与双面黑心紫光核心；修复UpdateInput Hook早于触屏输入导致长按失效，改为Input+1采样并显示蓄力百分比。952/949–951、战斗数值和权限不变，Android新包实效待用户复测。细节见ABYSS-REAPER.md与TEST-RESULTS.md。
+
 Version **0.15.0** on `port/scnet-x25.01.17` adds **吞噬之眼 / Eye of Oblivion V1**
 (creative → 神器, ID 950). Aim within six blocks, use to identify, then explicitly confirm
 recovery. V1 admits the exact unoccupied persistent `SCIEPortT34Tank` and registered native

@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-29 port 0.16.1 / 阿比斯V0.1.1
+
+修正外向持镰、移除碎片长串，增加暗钢倒角方向高光与双面黑心紫光核心；修复UpdateInput Hook早于触屏输入导致长按失效，改为Input+1采样并显示蓄力百分比。952/949–951、战斗数值和权限不变，Android新包实效待用户复测。细节见ABYSS-REAPER.md与TEST-RESULTS.md。
+
 ## 2026-10-28 Builder Assistant v0.16.0 家具模板 / schema 3
 
 仅更新 Builder Assistant，不修改当前分支 SCIE-Port 0.15.0 的版本、源码或结论。
