@@ -1,5 +1,20 @@
 # SCIE-Port
 
+Version **0.15.0** on `port/scnet-x25.01.17` adds **吞噬之眼 / Eye of Oblivion V1**
+(creative → 神器, ID 950). Aim within six blocks, use to identify, then explicitly confirm
+recovery. V1 admits the exact unoccupied persistent `SCIEPortT34Tank` and registered native
+simple blocks; containers, furniture/doghouses, players, unknown entities, moving structures,
+protected territory and unsafe neighbours are refused. Client use is identification-only;
+mutation is limited to the local main player or the server's local administrator.
+
+Recovery checks capacity, writes a before-image journal, removes one source, grants through
+the native inventory API and verifies a synchronous native save acknowledgement. Failed
+transactions roll back; pending crash journals lock recovery instead of guessing or granting
+again. Creative inventory requires a genuinely empty open visible slot (virtual catalogue
+entries are never used as storage). V1.1 vehicle expansion/annihilation and V1.2 region/batch/
+interactive restore are **not implemented**. Android 7723 gameplay and re-entry remain
+**待验证**. Details and device checklist: [DEVOURING-EYE.md](docs/DEVOURING-EYE.md).
+
 Version **0.14.0**, branch `port/scnet-x25.01.17`, adds **全知之眼 / The All-Seeing Eye V0.1**.
 Find the artifact in creative inventory → **神器**. Use it to open **万象解析**:
 environment and manually triggered block analysis (8 blocks); creature and diagnostic

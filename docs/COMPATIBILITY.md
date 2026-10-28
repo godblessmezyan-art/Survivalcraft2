@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-10-28 SCIE-Port 0.15.0 吞噬之眼 V1（port 分支）
+
+仅适用于 `port/scnet-x25.01.17`，不替代 main 0.42.0 的版本/测试记录。
+新增独立 Block ID 950（原生 260 常量及本分支全部 ID 重查无重复），只注册
+`SubsystemDevouringEye` 的标准 CSV/XDB，复用现有 `GuiUpdate(ComponentGui)` 主线程 Hook，
+新增已核验 `UpdateInput(ComponentInput,WidgetInput)` Hook，把本物品普通 Hit/Dig 转为确认使用。
+核实目标程序集原生领地 API、`Project.RemoveEntity(entity,false)`、ProjectNet 移除事件网络
+广播/EntityMaps 清理、SubsystemSpawn 移除登记、`Project.Save`、背包 AddNetSlotItems/
+RemoveNetSlotItems、`Terrain.ChangeCell` 及同步 SaveProject API。回收仅由 Local 主玩家 /
+Server 本地管理员执行，Client 只识别。V1 没有自定义网络包或批量操作。
+实际 Engine 导入为 1 bone / 27 meshes / 816 triangles；映射/事务故障测试与原生 API
+隔离测试已确认。Windows 完整游戏、Android 7723、坦克正常退出重进和多人仍待验证。
+待处理崩溃日志导致回收锁定，不能宣称已实现自动崩溃恢复或 V1.2 撤销。
+
 ## 2026-10-28 SCIE-Port 0.14.0 全知之眼 V0.1
 
 本记录仅对应 `port/scnet-x25.01.17` 分支：新增只读神器 ID 949、原创单根骨骼观星仪

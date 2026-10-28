@@ -3,11 +3,16 @@ This is not a screenshot or proof of Android rendering.
 """
 import math
 import importlib.util
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw
-spec = importlib.util.spec_from_file_location('eye', Path(__file__).with_name('New-OmniscientEyeAssets.py'))
+oblivion = '--devouring' in sys.argv
+spec = importlib.util.spec_from_file_location('eye', Path(__file__).with_name('New-DevouringEyeAssets.py' if oblivion else 'New-OmniscientEyeAssets.py'))
 eye = importlib.util.module_from_spec(spec); spec.loader.exec_module(eye)
-eye.generate()
+if oblivion:
+    eye.parts=eye.e.parts; eye.COLORS=eye.colors
+else:
+    eye.generate()
 
 def dot(a,b): return sum(x*y for x,y in zip(a,b))
 def cross(a,b): return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])
@@ -27,6 +32,6 @@ for camera, origin, title in [((0,.05,-3),(380,390),'FRONT'),((1.4,.65,-3),(1040
             projected.append((sum(dot(p,f) for p in (a,b,c))/3,points,color))
     for _,points,color in sorted(projected,reverse=True):draw.polygon(points,fill=color)
     draw.text((origin[0]-70,45),title,fill=(231,186,100))
-draw.text((40,800),'THE ALL-SEEING EYE | original geometry | 784 triangles | software QA preview, not game capture',fill=(150,204,218))
-out=Path(__file__).resolve().parents[1]/'artifacts/OmniscientEye-preview.png'
+draw.text((40,800),('EYE OF OBLIVION | 816 triangles' if oblivion else 'THE ALL-SEEING EYE | 784 triangles')+' | original geometry | software QA preview, not game capture',fill=(150,204,218))
+out=Path(__file__).resolve().parents[1]/('artifacts/DevouringEye-preview.png' if oblivion else 'artifacts/OmniscientEye-preview.png')
 out.parent.mkdir(exist_ok=True);im.save(out);print(out)

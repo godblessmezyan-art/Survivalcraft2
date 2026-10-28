@@ -18,6 +18,8 @@ $package = Join-Path $artifacts 'SCIEPort.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
+if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye native API/model checks failed.' }
 
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 $resolvedArtifacts = (Resolve-Path -LiteralPath $artifacts).Path
@@ -58,6 +60,8 @@ $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.T
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.OmniscientEye.Tests\SCIEPort.OmniscientEye.Tests.csproj') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITCODE" }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.DevouringEye.Tests\SCIEPort.DevouringEye.Tests.csproj') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye safety/transaction tests failed.' }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -119,6 +123,10 @@ try {
     foreach ($requiredEntry in @(
         'SCIEPort.dll',
         'Assets/Models/OmniscientEye.dae',
+        'Assets/Models/DevouringEye.dae',
+        'Assets/Textures/DevouringEye.png',
+        'Assets/Blocks/DevouringEye.csv',
+        'Assets/Database/DevouringEye.xdb',
         'Assets/Textures/OmniscientEye.png',
         'Assets/Blocks/OmniscientEye.csv',
         'Assets/Database/OmniscientEye.xdb',

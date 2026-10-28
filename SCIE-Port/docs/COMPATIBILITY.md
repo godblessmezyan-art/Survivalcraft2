@@ -1,5 +1,24 @@
 # SCIE-Port 兼容性记录
 
+## 0.15.0 吞噬之眼 / Eye of Oblivion V1（2026-10-28）
+
+分支 `port/scnet-x25.01.17`；新增 ID 950，与全知之眼 949 分离。新增真实 UpdateInput Hook
+将该物品普通 Hit/Dig 转为 Interact 确认流程，消除原生挖掘/攻击旁路。复用既有 GuiUpdate
+注册，按 Project 管理确认窗口/队列/事务锁，Dispose 取消任务并释放 UI 引用。
+不变更原生类、网络包、已有实体 GUID 或部署物品；T-34 新增只读 CanRecover 状态，
+禁止丢弃仍在飞行的炮弹。目标 EntityTemplate 名/GUID、五个组件类型、持久化状态、
+骑乘/父子/所有权依赖、移动/射击、待重生登记均复查。
+
+已确认：Windows 固定程序集/API/net472 编译；真实模型导入 1 bone / 27 meshes /
+816 triangles；Y_UP/identity 根变换/不透明 128×16 PNG；75 项纯规则与故障注入测试；
+真实 Project 移除/保存成员列表、背包满额/回滚、创造槽、Terrain DATA 往返、原生 JSON
+回执往返的隔离测试。实际坦克完整组件、Android、触屏、正常退出重进和多人待验证。
+
+权限来自原生 `SubsystemBedrockBlockBehavior.CheckIsInTerritoriy/AllowPlayerAction`；
+V1 保守拒绝所有原生领地（含本人领地）。没有通用第三方区域保护 API；额外保护模组
+需要独立适配，不能据此宣称任意保护模组兼容。块修改还遵守原生 TerrainChangeCell Hook，
+实际读取结果确认删除后才返还物品。细节与边界见 [DEVOURING-EYE.md](DEVOURING-EYE.md)。
+
 ## 0.14.0 全知之眼 V0.1（2026-10-28）
 
 目标分支 `port/scnet-x25.01.17`，基线 `a7e313a`；没有合并 main 或修改 Builder Assistant。

@@ -1,5 +1,40 @@
 # 测试结果
 
+## 2026-10-28 吞噬之眼 V1 / SCIE-Port 0.15.0（port 分支）
+
+基线 `896469b`，目标 `Net_x25.01.17`；不代表 main 版本。
+实际命令（仓库根）：
+
+```powershell
+python SCIE-Port/scripts/New-DevouringEyeAssets.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+```
+
+已确认：目标三项程序集固定哈希、API 1.42/net472、原生 260 常量及本分支物品无 950 冲突；
+模型实际导入 1 bone / 27 meshes / 816 triangles，Y_UP、identity 根、不透明 128×16 PNG/UV。
+75 项映射/颜色/方向/最近遮挡/边界/权限/满包/故障注入测试；异常移除、异常发放、
+提交失败后不重试补发，回滚失败锁定；重进待处理日志不自动补偿。
+真实目标 API 隔离探针验证：Project.RemoveEntity 不再进入 Save.Entities、重复删除不重复通知、
+恢复重新加入恰好一次；原生背包满额拒绝/回滚、创造槽、Terrain 数据/邻格往返；原生 JSON
+序列化/结构化回执反序列化往返。探针使用无组件的原生实体夹具，**不是完整坦克场景**。
+原生邻域 fixture 使用 Terrain 内存 API，**不是已测试带行为 Hook 的游戏地形操作**。
+
+保留失败证据：最初额外 JSON 探针在 PowerShell 缺游戏 binding redirects，找不到
+System.Buffers 4.0.2.0；隔离探针现从目标 GameDir 解析其真实依赖后通过，没有改游戏配置或
+打包这些 DLL。CodeDom 编译替代不能正确引用 EXE 的 Add-Type -Path 路径。
+输入复查发现长按原生 Dig 可能绕过确认，已新增 UpdateInput 定向转换及零攻击/挖掘能力守卫。
+
+既有 Kelly 11、ATV 32、Off-road 20、Watercraft 16、Tank、Eye 27 布局测试保留；
+8 XDB、Release 与包资源验证见本次构建。模型软件预览已经检查，不是游戏截图。
+Windows 完整坦克回收、正常退出重进、Android 7723、保护区/容器实际场景与双机全部待验证。
+V1.1/V1.2 功能未实现。完整边界、事务恢复流程和真机清单见 [DEVOURING-EYE.md](DEVOURING-EYE.md)。
+
+最终 Release：0.15.0 / AssemblyVersion 0.15.0.0，0 warning / 0 error；48 条目，
+448,872 bytes；`artifacts/SCIEPort.netmod` SHA-256
+`6DCFF85CA8F7D00791ADDF6BFA9ECC9991970EB3BAA1300E6BAF28B7C581C51B`。
+同字节版本包：`artifacts/SCIEPort-0.15.0-EyeOfOblivion.netmod`。
+
 ## 2026-10-28 全知之眼 V0.1 / SCIE-Port 0.14.0
 
 分支 `port/scnet-x25.01.17`；固定程序集目录 `E:\SCNET\SCNETx25.01.17`。

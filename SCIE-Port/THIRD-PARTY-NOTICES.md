@@ -1,5 +1,18 @@
 # Third-party notices
 
+## Original Eye of Oblivion artifact (2026-10-28)
+
+`Assets/Models/DevouringEye.dae` and `Assets/Textures/DevouringEye.png` are original
+project artwork commissioned for the Eye of Oblivion brief: obsidian seals, antique bronze
+rings and a faceted violet core. These are distinct assets from the All-Seeing Eye, with
+their own geometry, palette and content paths. Only project-authored mesh primitive helpers
+are shared by the generation scripts; no third-party model, texture or source was copied.
+The assets may be included and redistributed with this Mod.
+
+- DAE SHA-256: `2BFEE60F820E092E67598FF048BAFEB519361BEFAAFFB910620431B5D3899245`.
+- PNG SHA-256: `4F64390769ED1650503F93F50BCE5842FFBADE2BCE7CDF4443B13CABDFE71309`.
+- Reproducible source: `scripts/New-DevouringEyeAssets.py` (Python standard library).
+
 ## Original All-Seeing Eye artifact (2026-10-28)
 
 `OmniscientEye.dae` and `OmniscientEye.png` were authored specifically for this

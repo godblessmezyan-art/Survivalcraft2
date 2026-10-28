@@ -41,6 +41,9 @@ namespace SCIEPort.Features.Tanks
         /// <summary>Saved independent gun pitch used by the main-gun aiming controller.</summary>
         public float GunPitch => m_gunPitch;
 
+        /// <summary>Recovery must not abandon active shells or a firing cooldown.</summary>
+        public bool CanRecover => m_shells.Count == 0 && m_fireCooldown <= 0f;
+
         /// <summary>Updates persisted turret state without affecting hull steering.</summary>
         public void SetTurretAngles(float yaw, float pitch)
         {

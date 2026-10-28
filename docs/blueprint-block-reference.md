@@ -1,5 +1,9 @@
 # Blueprint Block Reference
 
+> 2026-10-28 SCIE-Port port 分支 0.15.0 审计：DevouringEyeBlock（ID 950、DATA=0）
+> 是不可放置的回收工具，不是建筑材料，不支持放进蓝图。Builder Assistant 方块族、
+> DATA 范围和材料能力未改变；回收工具的原生方块白名单也不扩展此蓝图清单。
+
 > 2026-10-28 独立 SCIE-Port 0.14.0 审计：`OmniscientEyeBlock`（ID 949，神器，
 > 创造 DATA=0）是不可放置的手持只读工具，**不支持用于建筑蓝图**；未新增方块族、
 > 材料键或可放置 DATA 范围。Builder Assistant 的下述能力清单与实现保持不变。
