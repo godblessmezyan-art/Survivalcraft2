@@ -170,3 +170,7 @@ renamed or redistributed; code and database bindings are rewritten for SCNET.
   `9F124EC309D91D91A33DD573E0A797DF79FFCDB1B11BAF1675C51D09A2D7DCCD`.
 - The visual design is a generic, low-poly T-34-style silhouette; no claimed
   manufacturer artwork, texture, sound or source-game asset is included.
+
+## Abyss · The Void Reaper V0.1
+
+AbyssReaper.dae/PNG及几何生成器、比例预览由本项目原创，未引入第三方美术。生成源scripts/New-AbyssReaperAssets.py；仅复用项目原创primitive/export结构。

@@ -1,0 +1,104 @@
+using System;
+using System.Collections.Generic;
+using Engine;
+using Engine.Graphics;
+using Game;
+using Game.NetWork;
+using TemplatesDatabase;
+namespace SCIEPort.Features.AbyssReaper
+{
+    /// <summary>Local/server-owned melee; no terrain writes or client damage packets.</summary>
+    public sealed class SubsystemAbyssReaper : SubsystemBlockBehavior, IUpdateable, IDrawable
+    {
+        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public CanvasWidget Panel; public LabelWidget Label; public double RiftUntil; }
+        readonly Dictionary<ComponentPlayer,State> states=new Dictionary<ComponentPlayer,State>();
+        readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
+        readonly HashSet<GameEntitySystem.Entity> hit=new HashSet<GameEntitySystem.Entity>();
+        readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
+        SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies;
+        bool allowPlayers,allowPassive,showRifts;
+        /// <inheritdoc/>
+        public override int[] HandledBlocks => new[]{AbyssReaperBlock.Index};
+        /// <inheritdoc/>
+        public UpdateOrder UpdateOrder => UpdateOrder.Default;
+        /// <inheritdoc/>
+        public int[] DrawOrders {get;}=new[]{110};
+        /// <inheritdoc/>
+        public override void Load(ValuesDictionary v) {base.Load(v);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);}
+        /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
+        public void Capture(ComponentInput input) {
+            var p=input.m_componentPlayer; if(p==null)return;
+            State s;bool active=Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
+            if(!active){if(states.TryGetValue(p,out s)){Remove(p,s);states.Remove(p);}return;}
+            if(!states.TryGetValue(p,out s)){s=new State();states.Add(p,s);}
+            bool blocked=p.ComponentGui.ModalPanelWidget!=null||DialogsManager.Dialogs.Count>0||p.ComponentHealth.Health<=0;
+            var ray=input.m_playerInput.Dig??input.m_playerInput.Hit??input.m_playerInput.Aim;
+            if(ray.HasValue)s.Ray=ray.Value;
+            // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
+            input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
+            input.m_playerInput.Interact=null;
+            if(blocked){s.Combo=new AbyssCombo();return;}
+            s.Combo.Input(ray.HasValue,clock.GameTime);
+        }
+        /// <inheritdoc/>
+        public override bool OnUse(Ray3 ray,ComponentMiner miner)=>true;
+        /// <inheritdoc/>
+        public void Update(float dt) {
+            retired.Clear(); double now=clock.GameTime;
+            foreach(var pair in states){var p=pair.Key;var s=pair.Value;
+                if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
+                float t=s.Combo.Phase(now);float arc=(float)Math.Sin(t*Math.PI);
+                Vector3 rotation=s.Combo.Stage==0?new Vector3(0,(t*2-1)*1.15f,-arc*.3f):s.Combo.Stage==1?new Vector3(0,(1-t*2)*1.3f,arc*.35f):new Vector3((t*2-1)*1.2f,0,arc*.25f);
+                if(t>=1)rotation=Vector3.Zero;
+                if(s.Combo.Charge(now)>0)rotation=new Vector3(-.65f*s.Combo.Charge(now),0,-.2f);
+                var fp=p.Entity.FindComponent<ComponentFirstPersonModel>();if(fp!=null)fp.ItemRotationOrder=rotation;
+                p.ComponentCreatureModel.InHandItemRotationOrder=rotation;
+                if(s.Combo.Impact(now)){if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
+            }
+            foreach(var p in retired){Remove(p,states[p]);states.Remove(p);}
+        }
+        void Strike(ComponentPlayer p,State s) {
+            if(CommonLib.WorkType==WorkType.Client)return;
+            if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)return; // No untrusted remote input path in V0.1.
+            Vector3 origin=p.ComponentCreatureModel.EyePosition;
+            Vector3 forward=p.ComponentCreatureModel.EyeRotation.GetForwardVector();
+            Vector3 flat=new Vector3(forward.X,0,forward.Z); if(flat.LengthSquared()<.001f)return;flat=Vector3.Normalize(flat);
+            hit.Clear();int visited=0;
+            foreach(var body in bodies.Bodies){if(++visited>512)break;
+                if(body.Entity==p.Entity||!body.Entity.IsAddedToProject||hit.Contains(body.Entity))continue;
+                var c=body.Entity.FindComponent<ComponentCreature>();if(c==null||c.ComponentHealth.Health<=0)continue;
+                bool player=c is ComponentPlayer;
+                bool hostile=c.Category==CreatureCategory.LandPredator||c.Category==CreatureCategory.WaterPredator;
+                if(player?!allowPlayers:(!hostile&&!allowPassive))continue;
+                Vector3 center=body.BoundingBox.Center();Vector3 delta=center-origin;
+                Vector3 horizontal=new Vector3(delta.X,0,delta.Z);float len=horizontal.Length();
+                if(!AbyssCombo.Sector(delta.Length(),len>.01f?Vector3.Dot(horizontal/len,flat):1,delta.Y,s.Combo.Stage))continue;
+                Territoriy region;if(SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(Terrain.ToCell(center.X),Terrain.ToCell(center.Z),out region))continue;
+                if(terrain.Raycast(origin,center,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue)continue;
+                hit.Add(body.Entity);
+                ComponentMiner.AttackBody(body,p,center,forward,s.Combo.Stage==3?52:s.Combo.Stage==2?34:22,true);
+                if(hit.Count>=24)break;
+            }
+        }
+        /// <summary>Four read-only locked slots, never buttons or fake releases.</summary>
+        public void TickGui(ComponentGui gui) {
+            State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
+            if(s.Panel==null){s.Panel=new CanvasWidget{Size=new Vector2(260,110),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Near,IsHitTestVisible=false};
+                s.Panel.Children.Add(new RectangleWidget{Size=s.Panel.Size,FillColor=new Color(12,9,19,225),OutlineColor=new Color(90,80,103),OutlineThickness=1,IsHitTestVisible=false});
+                s.Label=new LabelWidget{Size=new Vector2(248,102),FontScale=.55f,Color=new Color(174,156,197),IsHitTestVisible=false};s.Panel.Children.Add(s.Label);s.Panel.SetWidgetPosition(s.Label,new Vector2(6,4));gui.ControlsContainerWidget.Children.Add(s.Panel);}
+            s.Panel.IsVisible=gui.ModalPanelWidget==null;
+            s.Label.Text="阿比斯 · 终焉之镰  V0.1\n◇ 裂界星门 · 锁定    ◇ 断界斩 · 锁定\n◇ 虚影瞬狩 · 锁定\n◇ 终焉·万象坍缩 · 锁定\n"+(CommonLib.WorkType==WorkType.Client?"客户端战斗未开放":s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":"轻触连斩 · 长按松开蓄力重斩");
+        }
+        /// <inheritdoc/>
+        public void Draw(Camera camera,int order) {
+            if(!showRifts)return;var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
+            foreach(var pair in states){var p=pair.Key;var s=pair.Value;if(s.RiftUntil<=clock.GameTime)continue;
+                Vector3 c=p.ComponentCreatureModel.EyePosition+p.ComponentCreatureModel.EyeRotation.GetForwardVector()*1.8f;
+                for(int i=0;i<5;i++){Vector3 a=c+new Vector3((i%2==0?-.08f:.07f),.65f-i*.25f,0);Vector3 b=c+new Vector3((i%2==0?.07f:-.08f),.40f-i*.25f,0);batch.QueueLine(a,b,new Color(159,100,207));}}
+            renderer.Flush(camera.ViewProjectionMatrix);
+        }
+        void Remove(ComponentPlayer p,State s){if(s.Panel?.ParentWidget!=null)s.Panel.ParentWidget.Children.Remove(s.Panel);}
+        /// <inheritdoc/>
+        public override void Dispose(){foreach(var x in states)Remove(x.Key,x.Value);states.Clear();base.Dispose();}
+    }
+}

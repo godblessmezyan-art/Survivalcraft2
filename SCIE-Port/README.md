@@ -208,3 +208,8 @@ Porting rules and licensing requirements are in `AGENTS.md`,
 `docs/PORTING-GUIDELINES.md` and `THIRD-PARTY-NOTICES.md`.
 
 Agents taking over development should start with `docs/AGENT-HANDOFF.md`.
+
+
+## 2026-10-29 阿比斯 V0.1 / port 0.16.0
+
+指定port分支新增原创立体战镰952（自动扫描生成分配）、三连斩/蓄力重斩、四槽锁定UI。949/950及主线951保持不变，无地形/天气修改。真实手持动画API、编译与离线检查见SCIE-Port/docs/ABYSS-REAPER.md及测试记录；Android和联机实测待验证，普通客户端战斗不支持。

@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' })
 )
@@ -21,6 +21,7 @@ foreach ($item in $required.GetEnumerator()) {
 }
 
 $framework = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2'
+if ($env:FrameworkPathOverride) { $framework=$env:FrameworkPathOverride }
 if (-not (Test-Path -LiteralPath $framework -PathType Container)) {
     throw 'Missing .NET Framework 4.7.2 Targeting Pack.'
 }

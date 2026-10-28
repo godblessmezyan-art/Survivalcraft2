@@ -457,3 +457,11 @@ THIRD-PARTY-NOTICES.md
 - 自然生成：不支持。第一阶段没有添加任何自然生成注册或地形 Hook。
 - 多人联机：不支持。普通 Client 不会在本地创建狐狸，但尚未实现请求、服务端
   确认、实体复制和断线状态专项协议。
+
+## 2026-10-29 阿比斯V0.1 / port 0.16.0
+
+- 基线69db2ff09eb4f7aa80e82aac0f4bad0f3f47ece6，未合并main。指定目标程序集指纹与既有x25.01.17完全一致。
+- 实际命令：设置FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2、PATH增加本机Microsoft/dotnet、DOTNET_ROLL_FORWARD=Major；Windows PowerShell运行scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。最终exit0；Test-Environment、原生导入1/32/930、两种手持动画Order API、22项连击断言、既有套件及9XDB/包检查通过。独立Release 0 warnings/0 errors。日志D:\Dev\Tools\scnet-audit\abyss-v01-final.log。
+- Python生成器/几何守卫/比例预览均通过；三段厚弧刃绕序已修正且加入正体积守卫。生成物PNG与DAE可重复生成。
+- 产物荒野探险家.netmod与版本副本荒野探险家-0.16.0.netmod字节一致：480669 bytes，52 entries；SHA256 DDFA9D56EBA5866D221FA1E714E90A5430C32087AE934079AAC7CBD9626F21C4。
+- 未启动游戏、未测试设备或真实网络。Android7723、第一/第三人称实际持握、原生触屏冲突与主机伤害传播待验证。普通客户端战斗不支持。初次完整构建因本机缺旧.NET runtime失败，改用Major roll-forward后全部通过；不把离线检查当游戏通过。

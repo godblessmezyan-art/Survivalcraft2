@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
@@ -13,10 +13,13 @@ $upstream = Join-Path $projectRoot 'upstream\SCIE'
 $artifacts = Join-Path $projectRoot 'artifacts'
 $build = Join-Path $artifacts 'build'
 $stage = Join-Path $artifacts 'package'
-$zip = Join-Path $artifacts 'SCIEPort.zip'
-$package = Join-Path $artifacts 'SCIEPort.netmod'
+$zip = Join-Path $artifacts '荒野探险家.zip'
+$package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
+if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
 if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye native API/model checks failed.' }
@@ -120,6 +123,7 @@ Move-Item -LiteralPath $zip -Destination $package
 $archive = [IO.Compression.ZipFile]::OpenRead($package)
 try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
+    foreach ($resource in @('Assets/Models/AbyssReaper.dae','Assets/Textures/AbyssReaper.png','Assets/Blocks/AbyssReaper.csv','Assets/Database/AbyssReaper.xdb')) { if ($entries -notcontains $resource) { throw "Missing Abyss resource: $resource" } }
     foreach ($requiredEntry in @(
         'SCIEPort.dll',
         'Assets/Models/OmniscientEye.dae',
@@ -784,3 +788,5 @@ finally { $archive.Dispose() }
 Write-Host "Package: $package"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"
+
+Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.0.netmod') -Force

@@ -1,3 +1,4 @@
+using SCIEPort.Features.AbyssReaper;
 using Game;
 using Engine;
 using Game.NetWork;
@@ -32,6 +33,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void GuiUpdate(ComponentGui componentGui)
         {
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
         }
@@ -40,6 +42,7 @@ namespace SCIEPort.Mod
         public override void UpdateInput(ComponentInput input, WidgetInput widgetInput)
         {
             ComponentPlayer player=input?.m_componentPlayer;
+            player?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Capture(input);
             if(player==null || Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue)!=DevouringEyeBlock.Index)return;
             // Entity taps/long presses use the same confirmation workflow, never vanilla hit/dig.
             input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;

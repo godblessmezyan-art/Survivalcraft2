@@ -1066,3 +1066,8 @@ public static class Utils {
 | SCAPI `.scmod` | 不支持 | 专项端口只生成 `.netmod`，不重命名或复用 SCAPI DLL |
 
 完整变更、命令、遗留问题和 Android 测试步骤见 `docs/SCNET-X25-PORT.md`。
+
+
+## 2026-10-29 阿比斯 V0.1 / port 0.16.0
+
+指定port分支新增原创立体战镰952（自动扫描生成分配）、三连斩/蓄力重斩、四槽锁定UI。949/950及主线951保持不变，无地形/天气修改。真实手持动画API、编译与离线检查见SCIE-Port/docs/ABYSS-REAPER.md及测试记录；Android和联机实测待验证，普通客户端战斗不支持。
