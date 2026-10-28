@@ -1,5 +1,16 @@
 # 兼容性矩阵
 
+## 2026-10-28 SCIE-Port 0.14.0 全知之眼 V0.1
+
+本记录仅对应 `port/scnet-x25.01.17` 分支：新增只读神器 ID 949、原创单根骨骼观星仪
+模型及“万象解析”环境/方块面板、“全知视界”本地玩家 HUD。通过目标 Windows
+x25.01.17 固定哈希/ABI检查，真实 Engine 导入为 1 bone / 25 meshes / 784 triangles。
+新增 `GuiUpdate(ComponentGui)` Hook，使用已验证 Widget/Dialog API 与按世界释放的
+子系统，无地形/实体写入或网络包。环境数据来自真实 Terrain 柱温湿度等级（0–15），
+不使用现实单位。Release、27 组布局场景、现有规则、7 XDB 和包检查已确认；
+Windows 游戏画面、Android 7723 与联机均待验证。Builder Assistant 实现未修改。
+见 `SCIE-Port/docs/OMNISCIENT-EYE.md`。
+
 公开证据：
 
 - [SCNET x25.01.17 发布页](https://github.com/survivalcraft-net/survivalcraft-net/releases/tag/x25.01.17)

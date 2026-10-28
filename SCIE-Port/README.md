@@ -1,5 +1,18 @@
 # SCIE-Port
 
+Version **0.14.0**, branch `port/scnet-x25.01.17`, adds **全知之眼 / The All-Seeing Eye V0.1**.
+Find the artifact in creative inventory → **神器**. Use it to open **万象解析**:
+environment and manually triggered block analysis (8 blocks); creature and diagnostic
+pages are disabled extension entries. The panel toggles **全知视界**, which remains
+visible after switching items. The HUD reads coordinates/height/chunk at 0.2 seconds
+and column temperature/humidity game levels at 1 second. It has no terrain/entity
+write operations, durability use, network packets or world-placement behavior.
+
+The original opaque astrolabe model imports in the target Engine as **1 bone / 25 meshes /
+784 triangles**. Release/build checks are confirmed; Windows in-game and Android 7723
+rendering, touch operation and multiplayer behavior remain **待验证**. Detailed design,
+commands and the device test checklist: [OMNISCIENT-EYE.md](docs/OMNISCIENT-EYE.md).
+
 Independent migration workspace for authorized third-party Mods targeting
 Survivalcraft NET 2.4 `Net_x25.01.17`. It is deliberately separate from
 Builder Assistant, whose scope remains automatic building and blueprints.

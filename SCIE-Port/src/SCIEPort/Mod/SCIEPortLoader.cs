@@ -3,6 +3,7 @@ using Engine;
 using Game.NetWork;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Vehicles;
+using SCIEPort.Features.OmniscientEye;
 
 namespace SCIEPort.Mod
 {
@@ -23,6 +24,13 @@ namespace SCIEPort.Mod
 
             ModsManager.RegisterHook("BlocksInitalized", this);
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
+            ModsManager.RegisterHook("GuiUpdate", this);
+        }
+
+        /// <inheritdoc />
+        public override void GuiUpdate(ComponentGui componentGui)
+        {
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
         }
 
         /// <inheritdoc />

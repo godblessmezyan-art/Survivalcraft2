@@ -1,5 +1,23 @@
 # SCIE-Port 兼容性记录
 
+## 0.14.0 全知之眼 V0.1（2026-10-28）
+
+目标分支 `port/scnet-x25.01.17`，基线 `a7e313a`；没有合并 main 或修改 Builder Assistant。
+新增物品 Block ID 949（扫描目标原生 260 个常量及本分支全部物品，未占用）。
+新增 `SubsystemOmniscientEye`，通过标准 `.xdb` / CSV 注册；新增现有 ABI
+`GuiUpdate(ComponentGui)` Hook，沿用当前 Loader 的一次注册入口，无额外网络包。
+使用真实 `CanvasWidget` / `LabelWidget` / `RectangleWidget` / `BevelledButtonWidget` /
+`Dialog` / `DialogsManager`。玩家 UI 属于当前 Project 的子系统，Dispose 移除 HUD、
+关闭对话框并释放玩家引用；不注册静态世界退出事件。坐标/区块每 0.2 秒、气候每 1 秒。
+温湿度来自 `Terrain.GetTemperature/GetHumidity(x,z)` 的 0–15 柱气候等级，
+不是摄氏度、百分比或玩家体温；高度为世界 Y。未加载区块显示未就绪。
+
+已确认：固定 Windows 程序集指纹/ABI，net472 Release；真实 Engine 模型导入
+1 bone / 25 meshes / 784 triangles；Y_UP、identity 根变换、UV、不透明 128×16 PNG；
+27 个 HUD 布局场景；现有规则套件、7 份 XDB、包资源守卫。
+待验证：Windows 游戏内使用、Android 7723 冷启动/手持/触屏/帧率、多本地玩家与联机。
+布局离线检查不能替代实机控件遮挡测试。清单见 [OMNISCIENT-EYE.md](OMNISCIENT-EYE.md)。
+
 目标：Survivalcraft NET 2.4 `Net_x25.01.17`，Android 为最终平台。
 
 本表只使用“已确认 / 待验证 / 不支持”。编译和 Windows 程序集取证不能替代游戏运行、

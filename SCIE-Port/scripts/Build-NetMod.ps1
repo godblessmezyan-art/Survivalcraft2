@@ -17,6 +17,7 @@ $zip = Join-Path $artifacts 'SCIEPort.zip'
 $package = Join-Path $artifacts 'SCIEPort.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 $resolvedArtifacts = (Resolve-Path -LiteralPath $artifacts).Path
@@ -55,6 +56,8 @@ if ($LASTEXITCODE -ne 0) { throw "Watercraft rule tests failed: $LASTEXITCODE" }
 $tankTests = Join-Path $projectRoot 'tests\SCIEPort.Tanks.Tests\SCIEPort.Tanks.Tests.csproj'
 & $dotnetPath run --project $tankTests --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Tank drive rule tests failed: $LASTEXITCODE" }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.OmniscientEye.Tests\SCIEPort.OmniscientEye.Tests.csproj') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITCODE" }
 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
@@ -115,6 +118,10 @@ try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
     foreach ($requiredEntry in @(
         'SCIEPort.dll',
+        'Assets/Models/OmniscientEye.dae',
+        'Assets/Textures/OmniscientEye.png',
+        'Assets/Blocks/OmniscientEye.csv',
+        'Assets/Database/OmniscientEye.xdb',
         'modinfo.json',
         'THIRD-PARTY-NOTICES.md',
         'Assets/Blocks/SCIEPort.csv',

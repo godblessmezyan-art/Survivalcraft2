@@ -1,5 +1,9 @@
 # Blueprint Block Reference
 
+> 2026-10-28 独立 SCIE-Port 0.14.0 审计：`OmniscientEyeBlock`（ID 949，神器，
+> 创造 DATA=0）是不可放置的手持只读工具，**不支持用于建筑蓝图**；未新增方块族、
+> 材料键或可放置 DATA 范围。Builder Assistant 的下述能力清单与实现保持不变。
+
 > 本文件是 Builder Assistant v0.15.0 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。

@@ -1,5 +1,36 @@
 # 测试结果
 
+## 2026-10-28 全知之眼 V0.1 / SCIE-Port 0.14.0
+
+分支 `port/scnet-x25.01.17`；固定程序集目录 `E:\SCNET\SCNETx25.01.17`。
+
+执行命令（PowerShell，仓库根目录）：
+
+```powershell
+python SCIE-Port/scripts/New-OmniscientEyeAssets.py
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
+```
+
+已确认：根与 SCIE-Port 依赖/ABI 检查；目标原生 260 Block 常量无 949，SCIE-Port
+全部 Block 常量无重复；真实 Engine 导入 1 bone / 25 meshes / 784 triangles；
+128×16 全不透明 PNG、Y_UP、identity 根变换、UV 范围；只读调用守卫；
+Kelly 11、ATV 32、Off-road 20、Watercraft 16、Tank 规则测试及 Eye 27 组布局测试；
+7 XDB 结构/父模板检查；net472 Release 与 44 条目 `.netmod` 检查。
+
+最终包 `artifacts/SCIEPort.netmod`：420,293 bytes；SHA-256
+`BB5676F22433FD66A151AC1095D1D76DBB334033A3D24E6A5F402935CB5E4A08`。
+
+首次小屏布局测试在 854×480 / 1.5× UI 发现固定宽 HUD 与两侧控件挤占，已改为
+保持字号、收窄底板（248–340 逻辑单位）。修正后全部 27 组布局通过。
+初次失败的测试进程曾被 Windows 错误报告锁住 apphost；测试工程已使用
+`UseAppHost=false`，修正后的 DLL 测试运行通过。未掩盖失败记录。
+
+模型正面与斜侧软件预览已人工检查（`artifacts/OmniscientEye-preview.png`），
+该预览不是游戏截图。不新增游戏资源依赖，不依赖透明材质或发光着色器。
+Windows 游戏内、Android 7723 和主机/普通客户端均 **待验证**；未连接真机。
+真机清单与生命周期审查见 [OMNISCIENT-EYE.md](OMNISCIENT-EYE.md)。
+
 日期：2026-10-19
 目标：`Survivalcraft NET 2.4 Net_x25.01.17`
 本机仓库目录：`E:\Survivalcraft2\SCIE-Port`

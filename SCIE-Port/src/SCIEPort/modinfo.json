@@ -1,8 +1,8 @@
 {
   "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.13.0",
+  "Version": "0.14.0",
   "ApiVersion": "1.42",
-  "Description": "Authorized x25.01.17 port workspace. Creature phase 1 adds a manually spawned fox using native SCNET four-legged animation and AI; Android verification is required.",
+  "Description": "SCNET x25.01.17 authorized port collection. Adds 全知之眼 (The All-Seeing Eye) V0.1: read-only environment/block analysis and a local-player HUD. Original astrolabe artwork; Android verification is required.",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",
