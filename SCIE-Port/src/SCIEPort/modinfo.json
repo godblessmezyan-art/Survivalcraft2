@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.44.0",
+  "Version": "0.44.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer —— 拓展原版生存世界：生态植物、陆海空载具、特色装备与神话神器。模组内部标识保持 SCIE-Port（PackageName=SCIEPort，AssemblyName/RootNamespace=SCIEPort），方块索引、GUID、网络包与存档兼容逻辑不随品牌名变化。v0.44.0 全部新增物品使用独立 Tab（神器、载具、圣兽套装等），所有神器与四圣兽主题背景统一管理，安装包文件改为荒野探险家.netmod；内部 ID 与存档不变。v0.43.0 新增海神三叉戟·波塞冬 V1：原创金蓝三叉戟、手持水下呼吸与游泳加速、潮涌冲锋、沧海怒涛、触屏技能徽记和原创潮汐音效；巨浪不改变地形。v0.42.0 全知之眼（The All-Seeing Eye）V0.1：原创观星仪神器、万象解析环境/方块页、独立本地玩家全知视界 HUD；所有采集只读。保留四圣兽名称、500 耐久、朱雀 150% 移速与体温钳制，以及昆古尼尔投掷准心。Android 7723 与多人同步仍待真机验证。",
+  "Description": "荒野探险家 / Wilderness Explorer —— 拓展原版生存世界：生态植物、陆海空载具、特色装备与神话神器。模组内部标识保持 SCIE-Port（PackageName=SCIEPort，AssemblyName/RootNamespace=SCIEPort），方块索引、GUID、网络包与存档兼容逻辑不随品牌名变化。v0.44.1 合入四圣兽V3独立立体装甲、骨骼附件、装备图标与装备页人物预览修复，保留所有主线神器和展示功能；Android待用户验收。v0.44.0 全部新增物品使用独立 Tab（神器、载具、圣兽套装等），所有神器与四圣兽主题背景统一管理，安装包文件改为荒野探险家.netmod；内部 ID 与存档不变。v0.43.0 新增海神三叉戟·波塞冬 V1：原创金蓝三叉戟、手持水下呼吸与游泳加速、潮涌冲锋、沧海怒涛、触屏技能徽记和原创潮汐音效；巨浪不改变地形。v0.42.0 全知之眼（The All-Seeing Eye）V0.1：原创观星仪神器、万象解析环境/方块页、独立本地玩家全知视界 HUD；所有采集只读。保留四圣兽名称、500 耐久、朱雀 150% 移速与体温钳制，以及昆古尼尔投掷准心。Android 7723 与多人同步仍待真机验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -37,7 +37,18 @@ try {
     foreach ($asset in $assets) {
         $actual = Join-Path $projectDir $asset; $generated = Join-Path $tempProject $asset
         if (-not (Test-Path -LiteralPath $actual) -or -not (Test-Path -LiteralPath $generated)) { throw "Missing Four Saints asset: $asset" }
-        if ((Get-FileHash -LiteralPath $actual -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $generated -Algorithm SHA256).Hash) { throw "Four Saints asset is not reproducible: $asset" }
+        # Windows GDI+ encoders may emit different PNG chunks/compression for identical pixels.
+        # Compare decoded ARGB (including fully transparent RGB) rather than container bytes.
+        $originalBitmap = [Drawing.Bitmap]::new($actual)
+        $generatedBitmap = [Drawing.Bitmap]::new($generated)
+        try {
+            if ($originalBitmap.Width -ne $generatedBitmap.Width -or $originalBitmap.Height -ne $generatedBitmap.Height) { throw "Four Saints dimensions are not reproducible: $asset" }
+            for ($y=0; $y -lt $originalBitmap.Height; $y++) {
+                for ($x=0; $x -lt $originalBitmap.Width; $x++) {
+                    if ($originalBitmap.GetPixel($x,$y).ToArgb() -ne $generatedBitmap.GetPixel($x,$y).ToArgb()) { throw "Four Saints pixel is not reproducible: $asset ($x,$y)" }
+                }
+            }
+        } finally { $originalBitmap.Dispose(); $generatedBitmap.Dispose() }
     }
     foreach ($name in @('FourSaintsQinglong.png','FourSaintsXuanwu.png','FourSaintsBaihuLegs.png','FourSaintsZhuque.png')) {
         Test-Png (Join-Path $projectDir ('Assets\Textures\Clothing\'+$name)) 64 64 6 45

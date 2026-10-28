@@ -1,5 +1,10 @@
 # SCIE-Port 兼容性记录
 
+## 0.44.1 主线合并（2026-10-28）
+
+将四圣兽V3独立装甲、常驻骨骼附件、网格图标及装备页人物预览修复合入 main 0.44.0；保留全知之眼、波塞冬、独立分类及主题背景。合并衣物块 DrawBlock 与 GetCategory，不改变衣物203/200–203、既有属性技能、碰撞及协议。历史0.42/0.43四圣兽候选版本号与同时期主线神器版本号曾重叠，最终统一为0.44.1。Android7723及联机由用户验收，仍待验证。
+
+
 ## 0.44.0 独立 Tab、全神器/四圣兽背景、中文产物名（2026-10-28）
 
 53 条 CSV 配置归入 `SCIEPort.*` 独立分类键，通过目标实际 `BlocksManager.AddCategory`、
@@ -40,6 +45,18 @@ net472 Release、自动回归与包内容校验已确认；Windows 游戏、Andr
 全知之眼仍为只读，本次没有引入分支上的其它工程或修改 Builder Assistant 实现。
 真实模型导入、Release 与主线自动检查结果见测试记录；Android 7723、Windows 游戏内
 界面与联机继续为待验证。下方 0.14.0 是开发分支历史记录，不是本次主线版本。
+
+## 0.43.1 装备页立体人物预览（2026-10-28）
+
+用户澄清“模型仍旧”发生于背包/装备页人物预览，不是世界第三人称。根因：0.43.0仅接入SubsystemModelsRenderer世界绘制，而ClothingWidget通过PlayerModelWidget/ModelWidget独立绘制UI人物，不调用该Hook。新增FourSaintsClothingPreview，从现有GuiUpdate仅替换外层人物的原生ModelWidget绘制子控件，保留宿主PlayerModelWidget、原生底层衣物、旋转/动画/皮肤/相机/布局，base.Draw后提交四件缓存装甲。复用原生UI LitShader的View/Projection和GlobalTransform/DPI投影，使用其骨骼数组，不套世界相机或距离裁剪；DrawMeshBlock执行UI投影后Flush(Matrix.Identity)，避免重复投影。内部皮肤预览保持原生语义；其他Mod自定义ModelWidget子类不被替换。新增ABI守卫检查模型控件Draw虚方法、骨骼数组、Shader、人物所有者和子控件替换接口。没有新Hook/资源路径/协议，也未改属性、碰撞、ID、几何或贴图。Windows目标ABI与Release构建检查已确认；官方x25.01.17 Android APK反编译确认同一控件/字段/绘制链路，7723真机预览与交互仍待用户验收。ComponentSAClothing加载异常已由用户确认是其他Mod造成，未用吞异常或修改存档方式处理。Git操作按用户要求停止，未创建提交/更新远程分支。
+
+## 0.43.0 四圣兽V3整套统一验收候选（2026-10-28）
+
+在0.42.0青龙冠之上新增XuanwuArmorV3.dae（Body）、BaihuLegArmorV3.dae（Leg1/Leg2）、ZhuqueBootsV3.dae（Leg1/Leg2）与共享不透明FourSaintsArmorV3.png。现有OnModelRendererDrawExtra接入FourSaintsArmorRenderer，ClothingBlock.DrawBlock为衣物200–203分别提供真实网格图标；无新Hook/新网络字段。新增Settings根属性SCIEPortFourSaintsArmorV3Preview（默认true）与SCIEPortFourSaintsArmorDiagnostics（默认false），原冠体设置保持。三件真实目标导入分别1/40/1212、3/36/804、3/30/596（骨骼/网格/三角面），整套3292三角面。男女Body/双Leg30次合成姿态/相机变换、原生鞋底高度/静态腿间与裙摆净空已确认；游戏内动作/穿模、Android7723与主机/客户端/观察者分别待验证，用户明确要求统一自行验收。衣物块203/数据200–203、基础贴图、属性技能、物理、GUID、包240–245均未改变。完整构建/最终包证据见TEST-RESULTS.md，细节见FOUR-SAINTS-V3-FULL-ARMOR-AUDIT.md。
+
+## 0.42.0 四圣兽V3第一阶段青龙冠（2026-10-28）
+
+新增 `Assets/Models/QinglongCrown.dae`、`Assets/Textures/QinglongCrown.png`；现有 `OnModelRendererDrawExtra` 接入常驻 Head 附件，ClothingBlock.DrawBlock 为数据200使用相同网格图标，其他衣物图标不变。原生衣物块203、数据200–203、.clo基础贴图、属性/技能/物理、GUID及包240–245未改。新增设置根属性 `SCIEPortQinglongCrownV3Preview`（默认true，用户要求测试包直接显示）与 `SCIEPortQinglongCrownDiagnostics`（默认false）。目标x25.01.17核心三程序集哈希与既有记录完全一致，已确认真实API、1骨骼/31网格/680三角面导入和男女Head绑定基逆变换；模型缓存、正常衣物穿戴判断和单次投影不依赖技能反馈窗口。完整Release/包检查已确认，Windows带Mod动作/穿戴、Android7723和主客机分别待验证；用户指定自行验收，未进入第二阶段。详见 [V3审查](FOUR-SAINTS-V3-CROWN-AUDIT.md) 与 TEST-RESULTS.md。
 ## 0.41.0 四圣兽更名·耐久统一·朱雀移速·体温钳制（离线已确认，Android 待验证，2026-10-27）
 
 四件衣物更名为万里青龙(200)/北冥玄武(201)/镇狱白虎(202)/炽焰朱雀(203)，`Sturdiness` 统一为 500，炽焰朱雀靴 `MovementSpeedFactor` 提升到 1.5（镇狱白虎保持 1.2）。`.clo`（权威）与 `FourSaintsClothing.cs`（合并失效兜底）两条路径同步更新，`Layer` 仍统一为 10、`IsOuter=True`。方块索引 203、衣物数据号 200–203、GUID、网络包 245 与存档值均未改，因此本版对存档与联机完全兼容；改名只影响显示名，存档按方块/衣物索引存取。

@@ -1,0 +1,202 @@
+{
+  "name": "BaihuLegArmorV3",
+  "bones": 3,
+  "meshes": 36,
+  "triangles": 804,
+  "bounds": [
+    [
+      -0.15100000000000002,
+      0.15100000000000002
+    ],
+    [
+      -0.618,
+      -0.039
+    ],
+    [
+      -0.19099999999999998,
+      0.157
+    ]
+  ],
+  "parts": [
+    {
+      "name": "ThighPlateLeft0",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeLeft0",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "ThighPlateLeft1",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeLeft1",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "ThighPlateLeft2",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeLeft2",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "TigerKneeFrameLeft",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "TigerKneeMaskLeft",
+      "bone": "Leg1",
+      "triangles": 32
+    },
+    {
+      "name": "TigerEyeLeft-1",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "TigerFangLeft-1",
+      "bone": "Leg1",
+      "triangles": 30
+    },
+    {
+      "name": "TigerEyeLeft1",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "TigerFangLeft1",
+      "bone": "Leg1",
+      "triangles": 30
+    },
+    {
+      "name": "TigerMuzzleLeft",
+      "bone": "Leg1",
+      "triangles": 24
+    },
+    {
+      "name": "TigerNoseLeft",
+      "bone": "Leg1",
+      "triangles": 12
+    },
+    {
+      "name": "ShinPlateLeft",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "SweptShinLeft",
+      "bone": "Leg1",
+      "triangles": 20
+    },
+    {
+      "name": "ShinGoldSpineLeft",
+      "bone": "Leg1",
+      "triangles": 30
+    },
+    {
+      "name": "CalfRearLeft",
+      "bone": "Leg1",
+      "triangles": 16
+    },
+    {
+      "name": "ThighPlateRight0",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeRight0",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "ThighPlateRight1",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeRight1",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "ThighPlateRight2",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "TigerStripeRight2",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "TigerKneeFrameRight",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "TigerKneeMaskRight",
+      "bone": "Leg2",
+      "triangles": 32
+    },
+    {
+      "name": "TigerEyeRight-1",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "TigerFangRight-1",
+      "bone": "Leg2",
+      "triangles": 30
+    },
+    {
+      "name": "TigerEyeRight1",
+      "bone": "Leg2",
+      "triangles": 16
+    },
+    {
+      "name": "TigerFangRight1",
+      "bone": "Leg2",
+      "triangles": 30
+    },
+    {
+      "name": "TigerMuzzleRight",
+      "bone": "Leg2",
+      "triangles": 24
+    },
+    {
+      "name": "TigerNoseRight",
+      "bone": "Leg2",
+      "triangles": 12
+    },
+    {
+      "name": "ShinPlateRight",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "SweptShinRight",
+      "bone": "Leg2",
+      "triangles": 20
+    },
+    {
+      "name": "ShinGoldSpineRight",
+      "bone": "Leg2",
+      "triangles": 30
+    },
+    {
+      "name": "CalfRearRight",
+      "bone": "Leg2",
+      "triangles": 16
+    }
+  ]
+}

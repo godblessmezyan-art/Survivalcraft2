@@ -132,6 +132,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void GuiUpdate(ComponentGui componentGui)
         {
+            FourSaintsClothingPreview.Update(componentGui);
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemPoseidon>(false)?.TickGui(componentGui);
@@ -143,6 +144,8 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnModelRendererDrawExtra(SubsystemModelsRenderer modelsRenderer, ComponentModel componentModel, Camera camera, float? alphaThreshold)
         {
+            QinglongCrownRenderer.Draw(componentModel, camera);
+            FourSaintsArmorRenderer.Draw(componentModel, camera);
             AwakenedStormhammerVisuals.TouchAvatar(componentModel, camera);
             FourSaintsVisuals.TouchAvatar(componentModel, camera);
         }
@@ -208,6 +211,10 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void SaveSettings(XElement element)
         {
+            element.SetAttributeValue("SCIEPortQinglongCrownV3Preview", QinglongCrownRenderer.PreviewEnabled);
+            element.SetAttributeValue("SCIEPortFourSaintsArmorV3Preview", FourSaintsArmorRenderer.PreviewEnabled);
+            element.SetAttributeValue("SCIEPortFourSaintsArmorDiagnostics", FourSaintsArmorRenderer.Diagnostics);
+            element.SetAttributeValue("SCIEPortQinglongCrownDiagnostics", QinglongCrownRenderer.Diagnostics);
             element.SetAttributeValue("SCIEPortStormhammerVfxQuality", StormhammerOptions.Quality.ToString());
             element.SetAttributeValue("SCIEPortReducedLightningFlashes", StormhammerOptions.ReducedFlashes);
             element.SetAttributeValue("SCIEPortStormhammerCameraShake", StormhammerOptions.CameraShake);
@@ -223,6 +230,14 @@ namespace SCIEPort.Mod
             XAttribute qualityAttribute = element.Attribute("SCIEPortStormhammerVfxQuality");
             if (qualityAttribute != null && System.Enum.TryParse(qualityAttribute.Value, true, out quality)) StormhammerOptions.Quality = quality;
             bool value;
+            XAttribute armorPreview = element.Attribute("SCIEPortFourSaintsArmorV3Preview");
+            if (armorPreview != null && bool.TryParse(armorPreview.Value, out value)) FourSaintsArmorRenderer.PreviewEnabled = value;
+            XAttribute armorDiagnostics = element.Attribute("SCIEPortFourSaintsArmorDiagnostics");
+            if (armorDiagnostics != null && bool.TryParse(armorDiagnostics.Value, out value)) FourSaintsArmorRenderer.Diagnostics = value;
+            XAttribute crownPreview = element.Attribute("SCIEPortQinglongCrownV3Preview");
+            if (crownPreview != null && bool.TryParse(crownPreview.Value, out value)) QinglongCrownRenderer.PreviewEnabled = value;
+            XAttribute crownDiagnostics = element.Attribute("SCIEPortQinglongCrownDiagnostics");
+            if (crownDiagnostics != null && bool.TryParse(crownDiagnostics.Value, out value)) QinglongCrownRenderer.Diagnostics = value;
             XAttribute flashes = element.Attribute("SCIEPortReducedLightningFlashes");
             if (flashes != null && bool.TryParse(flashes.Value, out value)) StormhammerOptions.ReducedFlashes = value;
             XAttribute shake = element.Attribute("SCIEPortStormhammerCameraShake");

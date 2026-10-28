@@ -1,0 +1,222 @@
+{
+  "name": "XuanwuArmorV3",
+  "bones": 1,
+  "meshes": 40,
+  "triangles": 1212,
+  "bounds": [
+    [
+      -0.33572194351305007,
+      0.33572194351305007
+    ],
+    [
+      0.744,
+      1.345
+    ],
+    [
+      -0.279,
+      0.18199999999999997
+    ]
+  ],
+  "parts": [
+    {
+      "name": "CuirassLining",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "BronzeBreastFrame",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale00",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ScaleInset0",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale01",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ScaleInset1",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale02",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ScaleInset2",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale10",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale11",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale12",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale20",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale21",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ChestScale22",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "BackShell",
+      "bone": "Body",
+      "triangles": 32
+    },
+    {
+      "name": "TurtleShoulderLeft",
+      "bone": "Body",
+      "triangles": 72
+    },
+    {
+      "name": "ShoulderHexLeft",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ShoulderShellLeft",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ShoulderBronzeLinkLeft",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "SkirtLeft0",
+      "bone": "Body",
+      "triangles": 20
+    },
+    {
+      "name": "SkirtLeft1",
+      "bone": "Body",
+      "triangles": 20
+    },
+    {
+      "name": "BackSkirtLeft",
+      "bone": "Body",
+      "triangles": 16
+    },
+    {
+      "name": "SideRibLeft",
+      "bone": "Body",
+      "triangles": 16
+    },
+    {
+      "name": "TurtleShoulderRight",
+      "bone": "Body",
+      "triangles": 72
+    },
+    {
+      "name": "ShoulderHexRight",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ShoulderShellRight",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "ShoulderBronzeLinkRight",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "SkirtRight0",
+      "bone": "Body",
+      "triangles": 20
+    },
+    {
+      "name": "SkirtRight1",
+      "bone": "Body",
+      "triangles": 20
+    },
+    {
+      "name": "BackSkirtRight",
+      "bone": "Body",
+      "triangles": 16
+    },
+    {
+      "name": "SideRibRight",
+      "bone": "Body",
+      "triangles": 16
+    },
+    {
+      "name": "WaistClasp",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "CoiledSnake",
+      "bone": "Body",
+      "triangles": 204
+    },
+    {
+      "name": "SnakeNeck",
+      "bone": "Body",
+      "triangles": 48
+    },
+    {
+      "name": "SnakeHead",
+      "bone": "Body",
+      "triangles": 16
+    },
+    {
+      "name": "SnakeEye-1",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "SnakeEye1",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "BackHex0.94",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "BackHex1.08",
+      "bone": "Body",
+      "triangles": 24
+    },
+    {
+      "name": "BackHex1.22",
+      "bone": "Body",
+      "triangles": 24
+    }
+  ]
+}

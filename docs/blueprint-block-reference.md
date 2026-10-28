@@ -4,6 +4,10 @@
 > 仅改变移植工程展示，不增加 Builder Assistant 的方块、族标签或 DATA 能力。
 > 不得将 `SCIEPort.Artifacts` / `SCIEPort.Vehicles` 等分类键当作蓝图材料键使用。
 
+> **SCIE-Port 0.43.0 审计**：四圣兽V3仅新增衣物数据200–203的立体附件、装备图标和美术资源，未新增、移除或修改Builder Assistant支持的方块、族标签、DATA范围或导入限制。本清单能力集合保持不变，四圣兽装备模型不能作为蓝图建筑材料。
+
+> **SCIE-Port 0.40.5 审计**：本次只调整衣物块 203 的四圣兽衣物穿戴 Layer、昆古尼尔 HUD 与瞄准准心；没有新增、移除或修改 Builder Assistant 支持的方块、族标签、DATA 范围或导入限制。本清单能力集合保持不变。
+
 > 2026-10-28 边界补充：SCIE-Port 0.43.0 新增的海神三叉戟·波塞冬（951、DATA 0、
 > 非地形物品）不属于本清单材料；不允许在 Builder Assistant `cells`/家具模板中填写
 > `PoseidonBlock`、951 或 `scieport-poseidon`，不增加蓝图族标签或 DATA 支持范围。
@@ -538,3 +542,5 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 ```
 
 最后更新：2026-10-28，v0.19.0。详细取证、命令、测试及尚存限制见 [开发报告](BUILDER-DETAIL-STATES-0.18.0.md) 和 [165类方块审计](blueprint-block-audit-x25.01.17.md)。
+
+> 2026-10-28 SCIE-Port 0.44.1合并审计：仅整合四圣兽V3显示与0.44.0主线；Builder Assistant方块、族标签、DATA与家具模板能力均沿用0.19.0，无新增支持项。
