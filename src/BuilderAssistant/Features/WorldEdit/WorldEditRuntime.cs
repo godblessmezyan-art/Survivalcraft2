@@ -1250,7 +1250,9 @@ namespace BuilderAssistant.Features.WorldEdit
                 : "（已存入蓝图库：" + savedFileName + "）";
 
             Notify(gui, "已导入并载入蓝图「" + bp.Name + "」 尺寸 " + bp.SizeX + "×" + bp.SizeY + "×" + bp.SizeZ +
-                "，共 " + bp.CellCount + " 方块，已切换到粘贴模式。" + persist +
+                "，共 " + bp.CellCount + " 方块" +
+                (bp.FurniturePlacements.Count > 0 ? "，家具模板 " + bp.FurniturePlacements.Count + " 件（结构块降级）" : "") +
+                "，已切换到粘贴模式。" + persist +
                 "改用建造工具(901)对准地面两次点击即可落成（可撤销）。");
             return true;
         }

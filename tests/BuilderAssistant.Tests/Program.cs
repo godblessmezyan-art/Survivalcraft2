@@ -163,13 +163,14 @@ namespace BuilderAssistant.Tests
         }
     }
 
-    internal static class Program
+    internal static partial class Program
     {
         private static int _failures;
         private static int _checks;
 
         private static int Main(string[] args)
         {
+            TestFurnitureTemplates();
             // Offline artifact mode: `dotnet run -c Release -- --preview <dir>` writes the
             // treehouse manifest, 3-view elevation, layered floor plans and per-phase JSON to
             // <dir> for human review (task §4: the preview is NOT the same as "tests pass").

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BuilderAssistant.Core.Furniture;
 
 namespace BuilderAssistant.Core.Blueprints
 {
@@ -21,8 +22,18 @@ namespace BuilderAssistant.Core.Blueprints
         private readonly List<BlueprintCell> _cells;
         public IReadOnlyList<BlueprintCell> Cells { get { return _cells; } }
         public int CellCount { get { return _cells.Count; } }
+        public IReadOnlyList<BlueprintCell> StructureCells { get; private set; }
+        public IReadOnlyList<FurniturePlacement> FurniturePlacements { get; private set; }
+        private readonly Dictionary<CellPos, string> _furnitureContexts = new Dictionary<CellPos, string>();
+        public IEnumerable<CellPos> FurnitureFootprint { get { return _furnitureContexts.Keys; } }
+        public string FurnitureContext(CellPos relative)
+        {
+            string context;
+            return _furnitureContexts.TryGetValue(relative, out context) ? context : string.Empty;
+        }
 
-        public Blueprint(string name, int schemaVersion, int sizeX, int sizeY, int sizeZ, List<BlueprintCell> cells)
+        public Blueprint(string name, int schemaVersion, int sizeX, int sizeY, int sizeZ, List<BlueprintCell> cells,
+            List<BlueprintCell> structure = null, List<FurniturePlacement> placements = null)
         {
             if (cells == null) throw new ArgumentNullException("cells");
             Name = name;
@@ -31,6 +42,20 @@ namespace BuilderAssistant.Core.Blueprints
             SizeY = sizeY;
             SizeZ = sizeZ;
             _cells = cells;
+            StructureCells = (structure ?? cells).AsReadOnly();
+            FurniturePlacements = (placements ?? new List<FurniturePlacement>()).AsReadOnly();
+            foreach (FurniturePlacement p in FurniturePlacements)
+            {
+                FurnitureTemplate t;
+                if (!FurnitureTemplateRegistry.Default.TryGet(p.TemplateId, out t)) continue;
+                int sx = (p.Rotation & 1) == 0 ? t.SizeX : t.SizeZ;
+                int sz = (p.Rotation & 1) == 0 ? t.SizeZ : t.SizeX;
+                string context = "家具 " + p.TemplateId + " @" + p.Position + ": ";
+                for (int y = 0; y < t.SizeY; y++)
+                for (int x = 0; x < sx; x++)
+                for (int z = 0; z < sz; z++)
+                    _furnitureContexts[p.Position.Add(new CellPos(x, y, z))] = context;
+            }
         }
 
         /// <summary>
@@ -45,6 +70,27 @@ namespace BuilderAssistant.Core.Blueprints
             int r = ((rotationSteps % 4) + 4) % 4;
             int w = SizeX;
             int l = SizeZ;
+
+            if (FurniturePlacements.Count > 0)
+            {
+                var structure = new List<BlueprintCell>();
+                foreach (BlueprintCell cell in StructureCells) structure.Add(TransformCell(cell, w, l, r, mirrorX));
+                var placements = new List<FurniturePlacement>();
+                foreach (FurniturePlacement p in FurniturePlacements)
+                {
+                    FurnitureTemplate t;
+                    FurnitureTemplateRegistry.Default.TryGet(p.TemplateId, out t);
+                    int sx = (p.Rotation & 1) == 0 ? t.SizeX : t.SizeZ;
+                    int sz = (p.Rotation & 1) == 0 ? t.SizeZ : t.SizeX;
+                    CellPos a = TransformCell(new BlueprintCell(p.Position, ""), w, l, r, mirrorX).Relative;
+                    CellPos b = TransformCell(new BlueprintCell(p.Position.Add(new CellPos(sx - 1, 0, sz - 1)), ""), w, l, r, mirrorX).Relative;
+                    int rotation = ((p.Rotation + (p.MirrorX ? -r : r)) % 4 + 4) % 4;
+                    placements.Add(new FurniturePlacement(p.TemplateId,
+                        new CellPos(Math.Min(a.X, b.X), p.Position.Y, Math.Min(a.Z, b.Z)),
+                        rotation, p.Variant, p.Color, p.MirrorX ^ mirrorX));
+                }
+                return FurniturePlacementResolver.Compose(Name, SchemaVersion, structure, placements);
+            }
 
             var result = new List<BlueprintCell>(_cells.Count);
             for (int i = 0; i < _cells.Count; i++)
@@ -82,6 +128,22 @@ namespace BuilderAssistant.Core.Blueprints
 
             // Re-normalize so the min corner is again (0,0,0).
             return Normalize(Name, SchemaVersion, result);
+        }
+
+        internal static BlueprintCell TransformCell(BlueprintCell cell, int width, int length, int rotation, bool mirrorX)
+        {
+            int x = cell.Relative.X, z = cell.Relative.Z, nx, nz;
+            switch (rotation)
+            {
+                case 0: nx = x; nz = z; break;
+                case 1: nx = length - 1 - z; nz = x; break;
+                case 2: nx = width - 1 - x; nz = length - 1 - z; break;
+                default: nx = z; nz = width - 1 - x; break;
+            }
+            if (mirrorX) nx = ((rotation & 1) == 0 ? width : length) - 1 - nx;
+            int data = BlockOrientation.Rotate(cell.Family, cell.Data, rotation);
+            if (mirrorX) data = BlockOrientation.MirrorX(cell.Family, data);
+            return new BlueprintCell(new CellPos(nx, cell.Relative.Y, nz), cell.MaterialKey, cell.Family, data);
         }
 
         internal static Blueprint Normalize(string name, int schemaVersion, List<BlueprintCell> cells)

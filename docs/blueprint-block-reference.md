@@ -8,7 +8,7 @@
 > 创造 DATA=0）是不可放置的手持只读工具，**不支持用于建筑蓝图**；未新增方块族、
 > 材料键或可放置 DATA 范围。Builder Assistant 的下述能力清单与实现保持不变。
 
-> 本文件是 Builder Assistant v0.15.0 蓝图导入的**唯一权威方块能力清单**。
+> 本文件是 Builder Assistant v0.16.0 蓝图导入的**唯一权威方块能力清单**。
 > 任何 AI 或工具在生成 Survivalcraft NET x25.01.17 蓝图 JSON 前必须参考此文件。
 > 每次 Mod 版本更新后必须同步更新本文件并提交到 git。
 > 不在此文件中的方块一律**不支持**，导入会触发"未知材料键"干净拒绝。
@@ -30,14 +30,67 @@
 }
 ```
 
-- `schemaVersion`：必须 ≤ 2（v1 无 `f`/`d` 字段时视为纯 cube）。
+- `schemaVersion`：支持 1、2、3（v1 无 `f`/`d` 字段时视为纯 cube）。有家具必须使用 3；纯 cells 导出继续使用 2。
 - `kind`：必须为 `"builderassistant.blueprint"` 或省略。
-- `size`：advisory，导入后按 cells 包围盒重新计算；若声明与实际不一致则拒绝。
+- `size`：advisory，导入后按结构和展开家具的联合包围盒重新计算；若声明与实际不一致则拒绝。可省略。
 - `cells`：数组长度 ≤ **10000**（每事务硬上限，2026-10-20 由 2756 上调至 10000，历史 1024→2756→10000），坐标为相对值（最小角归一化到 0）。
 - 每轴尺寸 ≤ **64**。
 - 每格 `m` 为 `materials` 数组中的 `id` 索引。
 - `f` 可选：方块族标签（见下表），缺省为 `"cube"`。
 - `d` 可选：族内的 authored DATA 值（见合法范围），缺省为 `0`。
+
+## 家具模板（v0.16.0 / schema 3）
+
+原生 `FurnitureBlock`（227）仍不支持写入 `cells`；不接受设计 ID 或原始家具 DATA。
+`furniturePlacements` 是独立的模板调用接口，当前全部降级为本清单已支持的结构块。
+不会产生家具实体、世界设计表条目或新方块族，不新增可作者化 DATA 范围。
+
+```json
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "书屋布局",
+  "cells": [{"x":0,"y":0,"z":0,"key":"PlanksBlock"}],
+  "furniturePlacements": [
+    {"templateId":"TallBookshelf_A","x":1,"y":1,"z":1,"rotation":0},
+    {"templateId":"ReadingDesk_A","x":1,"y":1,"z":4,"rotation":0},
+    {"templateId":"WoodChair_A","x":2,"y":1,"z":6,"rotation":2}
+  ]
+}
+```
+
+`templateId` 必须精确匹配（区分大小写）。`x/y/z` 是相对联合蓝图原点的整数，
+表示旋转后包围盒最小角；`rotation` 必填且为 0/1/2/3，对应几何旋转 0/90/180/270 度，
+一次旋转 `(dx,dz)→(-dz,dx)`。模板默认前向为 -Z，依次转向 +X、+Z、-X。
+这不是原生方块 DATA 的方向编码。`mirrorX` 可省略，若提供必须为布尔值，在旋转后镜像 X。
+`color` 可省略或为 `"natural"`；`variant` 可省略或为 `"default"`；其他值明确拒绝，
+不会悄悄忽略颜色请求。家具蓝图相对坐标须在 ±1000000 内以防溢出。
+
+| 精确模板 id | 名称 | 未旋转尺寸 X×Y×Z | 实际写入格数 |
+| --- | --- | --- | --- |
+| TallBookshelf_A | 高书架 | 3×4×1 | 12 |
+| WideBookshelf_B | 宽书架 | 5×3×1 | 15 |
+| CornerBookshelf_C | 转角书架 | 3×4×3 | 20 |
+| ReadingDesk_A | 阅读桌 | 3×2×1 | 5 |
+| WritingDesk_B | 写字桌 | 4×2×1 | 6 |
+| WoodChair_A | 木椅 | 1×2×2 | 3 |
+| Bench_A | 长椅 | 3×2×2 | 9 |
+| Cabinet_A | 木柜 | 2×4×1 | 8 |
+| Bed_A | 床榻 | 2×2×3 | 12 |
+| LampStand_A | 灯架 | 1×4×1 | 4 |
+
+所有模板支持四向旋转；奇数 rotation 交换 X/Z 尺寸。占地包围盒为
+`[x,x+旋转尺寸X-1] × [y,y+尺寸Y-1] × [z,z+旋转尺寸Z-1]`（含端点）。
+家具的整个包围盒不能与结构 cells、门隐式上半格或其他家具包围盒重叠，清障模式也不能放宽
+蓝图内部重叠。世界中包围盒空隙也做施工前净空检查；开启原有覆盖/清软障规则时按该规则校验，
+但空隙不产生写入，原有物体不会被清掉。执行中仍对每个实际写入格重新检查。
+
+`cells: []` 可用于纯家具布局；结构和展开家具合计 **≤10000 格、每轴≤64**，仍每批≤32，
+全局归一化后同时平移结构和家具坐标，先结构、后家具，共享一次取消、失败回滚和撤销。
+JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
+书架中的“书”用砖块表示，床不能睡觉，木柜不储物，灯架不发光，椅子不提供原生坐下功能。
+这些是整格尺度的装饰组合，精细度低于原生铁锤微体素家具；**Android 7723 效果待验证**。
+完整取证和后续原生后端条件见 [FURNITURE-TEMPLATES.md](FURNITURE-TEMPLATES.md)。
 
 ## 支持的方块族与 DATA 合法范围
 
@@ -217,10 +270,31 @@
 
 ```json
 {
-  "modVersion": "0.15.0",
+  "modVersion": "0.16.0",
   "targetGame": "Survivalcraft NET x25.01.17",
-  "schemaVersion": 2,
-  "limits": { "maxCells": 10000, "maxAxis": 64, "maxPerBatch": 32 },
+  "schemaVersion": 3,
+  "supportedSchemaVersions": [1, 2, 3],
+  "furnitureTemplates": {
+    "backend": "structure-blocks-v1",
+    "rotationSteps": [0, 1, 2, 3],
+    "anchor": "rotated bounding-box minimum corner",
+    "color": ["natural"],
+    "variant": ["default"],
+    "nativeFurnitureBlock": "not supported",
+    "templates": [
+      {"id":"TallBookshelf_A","size":[3,4,1],"cells":12},
+      {"id":"WideBookshelf_B","size":[5,3,1],"cells":15},
+      {"id":"CornerBookshelf_C","size":[3,4,3],"cells":20},
+      {"id":"ReadingDesk_A","size":[3,2,1],"cells":5},
+      {"id":"WritingDesk_B","size":[4,2,1],"cells":6},
+      {"id":"WoodChair_A","size":[1,2,2],"cells":3},
+      {"id":"Bench_A","size":[3,2,2],"cells":9},
+      {"id":"Cabinet_A","size":[2,4,1],"cells":8},
+      {"id":"Bed_A","size":[2,2,3],"cells":12},
+      {"id":"LampStand_A","size":[1,4,1],"cells":4}
+    ]
+  },
+  "limits": { "maxCells": 10000, "includesExpandedFurniture": true, "maxAxis": 64, "maxPerBatch": 32 },
   "families": {
     "cube":   { "dataRange": [0, 0],  "tags": ["cube"] },
     "stairs": { "dataRange": [0, 7],  "tags": ["stairs"] },
@@ -266,4 +340,7 @@
 
 ---
 
-最后更新：v0.15.0（2026-10-20），合并版——含远端 v0.14.0 的每事务上限 2756→10000（`maxCells`/cells/安全表/大型结构说明已同步为 10000），以及本轮新增的“建造期清障模式（v0.15.0 运行时开关）”一节与机器可读 `buildBehavior.clearObstaclesMode`。下次 Mod 版本更新时必须同步修改本文件。
+历史更新：v0.15.0（2026-10-20），合并版——含远端 v0.14.0 的每事务上限 2756→10000（`maxCells`/cells/安全表/大型结构说明已同步为 10000），以及本轮新增的“建造期清障模式（v0.15.0 运行时开关）”一节与机器可读 `buildBehavior.clearObstaclesMode`。下次 Mod 版本更新时必须同步修改本文件。
+
+
+最后更新：v0.16.0（2026-10-28），新增 schema 3 与十个结构块降级家具模板；块族和 DATA 白名单不变，合并格数≤10000、每轴≤64、每批≤32。Android 7723 与联机仍待验证。

@@ -1,5 +1,36 @@
 # 兼容性矩阵
 
+## 2026-10-28 Builder Assistant v0.16.0 家具模板 / schema 3
+
+仅更新 Builder Assistant，不修改当前分支 SCIE-Port 0.15.0 的版本、源码或结论。
+目标 Windows 程序集位于本机 `E:\SCNET\SCNETx25.01.17`，版本 2.4.0.0、net472，
+三个 SHA-256 均与下文登记值一致；不将该结论继承到 Android 7723 重打包客户端。
+
+| 能力/环境 | 状态 | 证据与限制 |
+| --- | --- | --- |
+| Windows 家具 ABI | 已确认 | 对固定哈希 Survivalcraft.exe 反编译三类及 ReflectionOnly 签名检查；FurnitureBlock=227，DATA 引用世界 FurnitureDesign，设计表需独立持久化/GC，可能带设计链/电路状态。 |
+| 原生铁锤家具后端 | 不支持 | 本版本不注册或放置 FurnitureDesign，不输出 227 或复用其他世界 designIndex；原生事务保活、保存和网络机制待另行实现取证。 |
+| 家具模板降级后端 | 已确认 | 十模板、schema 3、元数据保留、四向/镜像、联合净空/冲突/总限额检查、结构先建、家具后建，共用 BuildTask。仅离线结果，不代表游戏运行。 |
+| 旧 cells 蓝图回归 | 已确认 | schema 1/2 解码保留，纯 cells 导出继续为 2，既有生成器/树屋/施工回归与新增家具测试共 1866/1866 检查通过。 |
+| net472 Release / .netmod | 已确认 | 真实游戏引用构建成功，0 警告/0 错误；入口/资源/类名唯一性/XDB 合并/无专有 DLL 守卫通过。 |
+| Windows 完整游戏运行 | 待验证 | 本轮未启动游戏进程。 |
+| Android 7723 家具模板 | 待验证 | 渠道程序集指纹、安装/触屏提示、导入/旋转、施工帧耗时、取消/撤销、保存重载与视觉效果待实机记录。 |
+| 联机房主/普通客户端 | 待验证 | 保留既有主机权威与 Client 禁写闸；房主施工/撤销同步、远端显示未做双端实测。 |
+
+本轮无新 Hook、加载器入口、modinfo 字段、包布局、Block ID、CSV、XDB、GUID 或网络包。
+modinfo 仅版本升为 0.16.0 并更新描述，目标框架保持 net472。
+每批仍 32，单事务结构+家具合计≤10000，单轴≤64，连续零进度停等≤240。
+家具完整包围盒排斥结构与其他家具，门的隐式上半格也计入；盒内空隙不产生清除写入。
+书架以砖块表示书，柜/床/椅无储物/睡眠/坐下功能，灯架不发光。
+
+实际执行：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-FurnitureAbi.ps1`，
+以及 `scripts/Build-NetMod.ps1`（自动执行 `Test-Environment.ps1`、`Test-Logic.ps1`，
+再运行 SDK MSBuild `/restore /t:Build /p:Configuration=Release` 与包校验）。
+最终产物 `artifacts/BuilderAssistant.netmod`，2,384,670 字节，SHA-256
+`F83EAD86F80AF41FA2FECA0E3E6B23BD6C2E75C03C52BF130CC05939E4CCD64F`。
+详细机制与真机步骤见 `docs/FURNITURE-TEMPLATES.md`；可导入的 286 格十模板示例见
+`docs/examples/bookhouse-furniture-v3.json`；AI 权威清单已同步为 v0.16.0。
+
 ## 2026-10-28 SCIE-Port 0.15.0 吞噬之眼 V1（port 分支）
 
 仅适用于 `port/scnet-x25.01.17`，不替代 main 0.42.0 的版本/测试记录。

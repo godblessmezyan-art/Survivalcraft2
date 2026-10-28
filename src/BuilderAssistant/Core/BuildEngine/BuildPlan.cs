@@ -106,11 +106,13 @@ namespace BuilderAssistant.Core.BuildEngine
     {
         public readonly CellPos Absolute;
         public readonly int Value;
+        public readonly string Context;
 
-        public PlannedChange(CellPos absolute, int value)
+        public PlannedChange(CellPos absolute, int value, string context = null)
         {
             Absolute = absolute;
             Value = value;
+            Context = context;
         }
     }
 }

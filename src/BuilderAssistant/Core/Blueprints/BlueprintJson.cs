@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using BuilderAssistant.Core.Json;
 using BuilderAssistant.Core.Safety;
+using BuilderAssistant.Core.Furniture;
 
 namespace BuilderAssistant.Core.Blueprints
 {
@@ -40,7 +41,7 @@ namespace BuilderAssistant.Core.Blueprints
     /// </summary>
     internal static class BlueprintJson
     {
-        public const int CurrentSchemaVersion = 2;
+        public const int CurrentSchemaVersion = 3;
         public const int FirstSupportedSchemaVersion = 1;
         public const string KindConstant = "builderassistant.blueprint";
 
@@ -53,9 +54,9 @@ namespace BuilderAssistant.Core.Blueprints
             // over the (already deterministically sorted) cell list.
             var keyToId = new Dictionary<string, int>(StringComparer.Ordinal);
             var orderedKeys = new List<string>();
-            for (int i = 0; i < blueprint.Cells.Count; i++)
+            for (int i = 0; i < blueprint.StructureCells.Count; i++)
             {
-                string key = blueprint.Cells[i].MaterialKey ?? string.Empty;
+                string key = blueprint.StructureCells[i].MaterialKey ?? string.Empty;
                 int id;
                 if (!keyToId.TryGetValue(key, out id))
                 {
@@ -66,7 +67,7 @@ namespace BuilderAssistant.Core.Blueprints
             }
 
             var root = JsonValue.NewObject();
-            root.Add("schemaVersion", JsonValue.NewNumber(CurrentSchemaVersion));
+            root.Add("schemaVersion", JsonValue.NewNumber(blueprint.FurniturePlacements.Count > 0 ? 3 : 2));
             root.Add("kind", JsonValue.NewString(KindConstant));
             root.Add("name", JsonValue.NewString(blueprint.Name ?? string.Empty));
 
@@ -92,9 +93,9 @@ namespace BuilderAssistant.Core.Blueprints
             root.Add("materials", materials);
 
             var cells = JsonValue.NewArray();
-            for (int i = 0; i < blueprint.Cells.Count; i++)
+            for (int i = 0; i < blueprint.StructureCells.Count; i++)
             {
-                BlueprintCell c = blueprint.Cells[i];
+                BlueprintCell c = blueprint.StructureCells[i];
                 var cell = JsonValue.NewObject();
                 cell.Add("x", JsonValue.NewNumber(c.Relative.X));
                 cell.Add("y", JsonValue.NewNumber(c.Relative.Y));
@@ -113,6 +114,25 @@ namespace BuilderAssistant.Core.Blueprints
                 cells.Add(cell);
             }
             root.Add("cells", cells);
+
+            if (blueprint.FurniturePlacements.Count > 0)
+            {
+                var placements = JsonValue.NewArray();
+                foreach (FurniturePlacement p in blueprint.FurniturePlacements)
+                {
+                    var item = JsonValue.NewObject();
+                    item.Add("templateId", JsonValue.NewString(p.TemplateId));
+                    item.Add("x", JsonValue.NewNumber(p.Position.X));
+                    item.Add("y", JsonValue.NewNumber(p.Position.Y));
+                    item.Add("z", JsonValue.NewNumber(p.Position.Z));
+                    item.Add("rotation", JsonValue.NewNumber(p.Rotation));
+                    if (p.MirrorX) item.Add("mirrorX", JsonValue.NewBool(true));
+                    item.Add("variant", JsonValue.NewString(p.Variant));
+                    item.Add("color", JsonValue.NewString(p.Color));
+                    placements.Add(item);
+                }
+                root.Add("furniturePlacements", placements);
+            }
 
             return root.ToJson();
         }
@@ -218,7 +238,7 @@ namespace BuilderAssistant.Core.Blueprints
                 result.AddError("缺少 cells 数组。");
                 return result;
             }
-            if (cells.Items.Count == 0)
+            if (cells.Items.Count == 0 && root.Get("furniturePlacements") == null)
             {
                 result.AddError("cells 为空，蓝图没有任何方块。");
                 return result;
@@ -325,7 +345,50 @@ namespace BuilderAssistant.Core.Blueprints
                 return result;
             }
 
-            Blueprint bp = Blueprint.Normalize(name, version, list);
+            var furniture = new List<FurniturePlacement>();
+            JsonValue furnitureNode = root.Get("furniturePlacements");
+            if (furnitureNode != null)
+            {
+                if (version < 3 || !furnitureNode.IsArray || furnitureNode.Items.Count > BuildSafetyLimits.MaxBlocksPerOperation)
+                {
+                    result.AddError("furniturePlacements 必须为 schemaVersion=3 的有界数组。");
+                    return result;
+                }
+                for (int i = 0; i < furnitureNode.Items.Count; i++)
+                {
+                    JsonValue p = furnitureNode.Items[i];
+                    string id;
+                    int x, y, z, rotation;
+                    if (!p.IsObject || !p.TryGetString("templateId", out id) || string.IsNullOrEmpty(id) ||
+                        !p.TryGetInt("x", out x) || !p.TryGetInt("y", out y) || !p.TryGetInt("z", out z) ||
+                        !p.TryGetInt("rotation", out rotation))
+                    {
+                        result.AddError("furniturePlacements[" + i + "] 需要 templateId 与整数 x/y/z/rotation。");
+                        return result;
+                    }
+                    string variant = "default", color = "natural";
+                    if ((p.Get("variant") != null && !p.TryGetString("variant", out variant)) ||
+                        (p.Get("color") != null && !p.TryGetString("color", out color)) ||
+                        (p.Get("mirrorX") != null && p.Get("mirrorX").Kind != JsonKind.Bool) || p.Get("props") != null)
+                    {
+                        result.AddError("furniturePlacements[" + i + "] 颜色/变体/镜像/props 无效。");
+                        return result;
+                    }
+                    furniture.Add(new FurniturePlacement(id, new CellPos(x, y, z), rotation, variant, color,
+                        p.Get("mirrorX") != null && p.Get("mirrorX").BoolValue));
+                }
+            }
+            Blueprint bp;
+            try
+            {
+                bp = furnitureNode == null ? Blueprint.Normalize(name, version, list) :
+                    FurniturePlacementResolver.Compose(name, version, list, furniture);
+            }
+            catch (ArgumentException ex)
+            {
+                result.AddError(ex.Message);
+                return result;
+            }
 
             if (bp.CellCount > BuildSafetyLimits.MaxBlocksPerOperation)
             {
