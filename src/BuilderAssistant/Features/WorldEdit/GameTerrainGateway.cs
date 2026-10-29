@@ -177,42 +177,6 @@ namespace BuilderAssistant.Features.WorldEdit
             return true;
         }
 
-        // Quick-placement override permits only known inert terrain blocks. Fluids and
-        // block entities in the edited cell or its direct neighbours are refused.
-        internal bool IsQuickClearSafe(CellPos cell, int value, ISet<CellPos> plannedCells)
-        {
-            int id = Terrain.ExtractContents(value);
-            Block target = BlockById(id);
-            if (id != 0)
-            {
-                if (target == null) return false;
-                string name = target.GetType().Name;
-                if (!QuickSimpleTerrain(name)) return false;
-            }
-            var entities = _subsystemTerrain.Project.FindSubsystem<SubsystemBlockEntities>(false);
-            if (entities == null) return false;
-            CellPos[] offsets = { new CellPos(0,0,0), new CellPos(1,0,0), new CellPos(-1,0,0),
-                new CellPos(0,1,0), new CellPos(0,-1,0), new CellPos(0,0,1), new CellPos(0,0,-1) };
-            foreach (CellPos offset in offsets)
-            {
-                CellPos p = cell.Add(offset);
-                int neighbour;
-                if (!TryGetCellValue(p, out neighbour)) return false;
-                int contents = Terrain.ExtractContents(neighbour);
-                Block block = BlockById(contents);
-                if ((contents != 0 && block == null) || block is FluidBlock ||
-                    entities.GetBlockEntity(p.X, p.Y, p.Z) != null) return false;
-                if (contents != 0 && (plannedCells == null || !plannedCells.Contains(p)) && !QuickSimpleTerrain(block.GetType().Name)) return false;
-            }
-            return true;
-        }
-
-        private static bool QuickSimpleTerrain(string name)
-        {
-            return name == "DirtBlock" || name == "StoneBlock" || name == "SandstoneBlock" ||
-                name == "BasaltBlock" || name == "GraniteBlock" || name == "LimestoneBlock";
-        }
-
         public bool SetCellValue(CellPos cell, int value)
         {
             if (!IsCellEditable(cell))

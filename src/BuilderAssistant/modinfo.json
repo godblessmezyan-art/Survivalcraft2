@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.21.0",
+  "Version": "0.21.1",
   "ApiVersion": "1.42",
-  "Description": "建筑助手 v0.21.0：903 蓝图管理、剪贴板导入、显式保存和快捷放置；保守清障需确认，复杂方块与流体不支持。Android 7723 界面、剪贴板和联机待验证。",
+  "Description": "建筑助手 v0.21.1：移除903快捷放置的地形类型白名单和邻近方块拦截，清障确认后按蓝图实际位置覆盖；保留施工限额、权限、分批、撤销和回滚。Android 7723 本次修正待真机验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

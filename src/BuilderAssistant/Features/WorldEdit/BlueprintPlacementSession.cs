@@ -84,17 +84,11 @@ namespace BuilderAssistant.Features.WorldEdit
                 wait = 0; snapshot = null; Message("预检失败：" + plan.FailureReason); gateway = null; return;
             }
             var values = new Dictionary<CellPos, int>(); int blocked = 0;
-            var plannedCells = new HashSet<CellPos>();
-            foreach (PlannedChange change in plan.Changes)
-            {
-                plannedCells.Add(change.Absolute);
-                if (change.Family == BlockFamily.Door) plannedCells.Add(change.Absolute.Add(new CellPos(0, 1, 0)));
-            }
             foreach (PlannedChange change in plan.Changes)
             {
                 int v;
-                if (!gateway.TryGetCellValue(change.Absolute, out v) || !gateway.IsQuickClearSafe(change.Absolute, v, plannedCells))
-                { wait = 0; snapshot = null; Message("目标或邻近存在流体、方块实体、复杂方块或未就绪区域，无法安全清障：" + change.Absolute); gateway = null; return; }
+                if (!gateway.TryGetCellValue(change.Absolute, out v))
+                { wait = 0; snapshot = null; Message("目标方块暂时不可读取，请等待区块就绪后重试：" + change.Absolute); gateway = null; return; }
                 values.Add(change.Absolute, v); if (!gateway.IsCellAir(change.Absolute)) blocked++;
             }
             snapshot = values; count = blocked; wait = 0;
@@ -112,17 +106,14 @@ namespace BuilderAssistant.Features.WorldEdit
             BuildPlan plan = BuildPlanner.Plan(selected, origin, WorldEditRuntime.Palette, gateway, clear, false);
             if (!plan.Success) { Message("确认时重新校验失败：" + plan.FailureReason); snapshot = null; return; }
             var expected = snapshot; var g = gateway;
-            var plannedCells = new HashSet<CellPos>(expected.Keys);
-            foreach (PlannedChange change in plan.Changes)
-                if (change.Family == BlockFamily.Door) plannedCells.Add(change.Absolute.Add(new CellPos(0, 1, 0)));
             foreach (PlannedChange change in plan.Changes)
             {
                 int old, now;
-                if (!expected.TryGetValue(change.Absolute, out old) || !g.TryGetCellValue(change.Absolute, out now) || !g.ValuesEquivalent(old, now) || !g.IsQuickClearSafe(change.Absolute, now, plannedCells))
-                { Message("目标或邻近地形已变化，未施工。请重新选择落点。"); snapshot = null; return; }
+                if (!expected.TryGetValue(change.Absolute, out old) || !g.TryGetCellValue(change.Absolute, out now) || !g.ValuesEquivalent(old, now))
+                { Message("目标地形已变化，未施工。请重新选择落点。"); snapshot = null; return; }
             }
             bool started = WorldEditRuntime.QuickStart(plan, selected, g, origin, clear,
-                (pos, value) => { int original; return TerrainAuthority.IsWritable(WorldEditRuntime.CurrentAuthority()) && expected.TryGetValue(pos, out original) && g.ValuesEquivalent(original, value) && g.IsQuickClearSafe(pos, value, plannedCells); });
+                (pos, value) => { int original; return TerrainAuthority.IsWritable(WorldEditRuntime.CurrentAuthority()) && expected.TryGetValue(pos, out original) && g.ValuesEquivalent(original, value); });
             snapshot = null; gateway = null;
             Message(started ? "开始施工；可使用 902 撤销。" : "无法开始施工，未修改地形。");
         }

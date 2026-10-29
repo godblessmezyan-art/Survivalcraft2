@@ -214,6 +214,7 @@ namespace BuilderAssistant.Tests
             TestExecuteThenUndoPreservesLaterEdits();
             TestRollbackOnMidBuildFailure();
             TestQuickPlacementWriteGuard();
+            TestQuickPlacementIgnoresUnwrittenNeighbours();
             TestCancelMidBuildRollsBack();
             TestRotationPreservesBlueprint();
             TestMirrorIsInvolution();
@@ -633,6 +634,30 @@ namespace BuilderAssistant.Tests
         }
 
         // --- Part 2/3: batched execution, undo that respects later player edits. ---
+        private static void TestQuickPlacementIgnoresUnwrittenNeighbours()
+        {
+            var terrain = new FakeTerrain(); var origin = new CellPos(10, 10, 10);
+            CellPos neighbour = origin.Add(new CellPos(0, -1, 0));
+            terrain.Occupy(neighbour, 888);
+            terrain.Missing.Add(neighbour);
+            terrain.Occupy(origin, 777);
+            var blueprint = LineBlueprint(2);
+            var plan = BuildPlanner.Plan(blueprint, origin, new FakeResolver(), terrain, true);
+            Check(plan.Success, "quick clear plans over arbitrary target values without inspecting unwritten neighbours");
+            Check(!BuildPlanner.Plan(blueprint, origin, new FakeResolver(), terrain, false).Success,
+                "clearing disabled still respects non-air targets");
+            var expected = new Dictionary<CellPos, int>();
+            foreach (var change in plan.Changes) expected[change.Absolute] = terrain.ValueAt(change.Absolute);
+            var task = new BuildTask("quick unrestricted", origin, plan.Changes, true);
+            task.SetPreWriteGuard((pos, value) => expected[pos] == value);
+            task.Advance(terrain, 32);
+            Check(task.State == BuildTaskState.Completed && terrain.Writes == 2,
+                "quick clear executes only the blueprint writes despite unreadable adjacent terrain");
+            Check(terrain.ValueAt(neighbour) == 888, "unwritten neighbouring block is unchanged");
+            task.Undo(terrain);
+            Check(terrain.ValueAt(origin) == 777, "ordinary target override still uses existing undo");
+        }
+
         private static void TestQuickPlacementWriteGuard()
         {
             var terrain = new FakeTerrain(); var origin = new CellPos(10, 10, 10);

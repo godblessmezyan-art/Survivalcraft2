@@ -35,7 +35,7 @@ namespace BuilderAssistant.Features.WorldEdit
             current=new LabelWidget { Size=new Vector2(405,100), WordWrap=true, FontScale=.68f, Color=Color.White }; Add(body,current,0,0);
             import=Button("从系统剪贴板导入",0,105,400); name=new TextBoxWidget { Size=new Vector2(390,44), Title="保存蓝图名称", Description="输入名称", MaximumLength=80, FontScale=.7f }; Add(body,new RectangleWidget { Size=new Vector2(400,46),FillColor=new Color(48,55,65),OutlineColor=Color.White,OutlineThickness=1 },0,158); Add(body,name,5,159);
             save=Button("保存当前蓝图",0,210,400); rotate=Button("朝向：0°",0,263,195); clearButton=Button("清障：开启",205,263,195);
-            Add(body,new LabelWidget { Text="仅覆盖蓝图实际需要写入的方块位置，不清理整个矩形区域，也不向外扩展。仅支持已识别的简单地形；复杂对象和流体附近不支持。",Size=new Vector2(400,76),WordWrap=true,FontScale=.63f,Color=Color.White },0,315);
+            Add(body,new LabelWidget { Text="仅覆盖蓝图实际需要写入的方块位置，不清理整个矩形区域，也不向外扩展。不检查周围方块类型。",Size=new Vector2(400,76),WordWrap=true,FontScale=.63f,Color=Color.White },0,315);
             start=Button("开始放置",0,395,400); refresh=Button("刷新蓝图库",0,448,195); load=Button("载入所选蓝图",205,448,195);
             message=new LabelWidget { Text="选择下方文件后载入。",Size=new Vector2(400,65),WordWrap=true,FontScale=.64f,Color=Color.White }; Add(body,message,0,503);
             cancel=new BevelledButtonWidget { Text="关闭",Size=new Vector2(160,42),FontScale=.7f }; Add(panel,cancel,288,452);
@@ -90,7 +90,7 @@ namespace BuilderAssistant.Features.WorldEdit
             this.player=player;this.confirm=confirm;this.cancel=cancel;
             panel=new CanvasWidget { Size=new Vector2(460,300),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center };Children.Add(panel);
             panel.Children.Add(new RectangleWidget { FillColor=new Color(20,28,37,245),OutlineColor=Color.White,OutlineThickness=2 });
-            var label=new LabelWidget { Size=new Vector2(420,190),WordWrap=true,FontScale=.68f,Color=Color.White,Text="清障并建造："+bp.Name+"\n位置："+pos+"\n尺寸："+bp.SizeX+"×"+bp.SizeY+"×"+bp.SizeZ+"\n将覆盖 "+count+" 个方块。仅写入蓝图所需位置；复杂对象与流体不支持，无法保证恢复所有副作用。" }; panel.Children.Add(label);panel.SetWidgetPosition(label,new Vector2(20,20));
+            var label=new LabelWidget { Size=new Vector2(420,190),WordWrap=true,FontScale=.68f,Color=Color.White,Text="清障并建造："+bp.Name+"\n位置："+pos+"\n尺寸："+bp.SizeX+"×"+bp.SizeY+"×"+bp.SizeZ+"\n将覆盖 "+count+" 个方块。仅写入蓝图所需位置；撤销不保证恢复物品、电路和流体连锁等副作用。" }; panel.Children.Add(label);panel.SetWidgetPosition(label,new Vector2(20,20));
             yes=new BevelledButtonWidget { Text="确认清障并建造",Size=new Vector2(200,48),FontScale=.65f };panel.Children.Add(yes);panel.SetWidgetPosition(yes,new Vector2(20,235));
             no=new BevelledButtonWidget { Text="取消",Size=new Vector2(200,48),FontScale=.7f };panel.Children.Add(no);panel.SetWidgetPosition(no,new Vector2(240,235));
         }

@@ -213,7 +213,7 @@ namespace BuilderAssistant.Core.BuildEngine
                     bool safe;
                     try { safe = _preWriteGuard(change.Absolute, oldValue); }
                     catch (Exception ex) { return Fail(gateway, "写前安全检查失败: " + ex.Message); }
-                    if (!safe) return Fail(gateway, "目标或邻近地形发生变化或不支持安全清障: " + change.Absolute);
+                    if (!safe) return Fail(gateway, "确认后目标地形发生变化，已中止: " + change.Absolute);
                 }
 
                 _writesThisAdvance += writeCost;
