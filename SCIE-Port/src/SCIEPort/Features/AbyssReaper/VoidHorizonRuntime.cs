@@ -12,12 +12,14 @@ namespace SCIEPort.Features.AbyssReaper
     {
         private readonly SubsystemTerrain terrain;private readonly SubsystemBodies bodies;private readonly SubsystemTime clock;
         private readonly bool allowPlayers,allowPassive;private readonly int quality;
+        private readonly SubsystemAudio audio;
+        private HorizonCueTimeline cues;
         private readonly VoidCooldowns ready=new VoidCooldowns();
         private readonly VoidHorizonScene scene=new VoidHorizonScene();
         private readonly HashSet<Entity> passHits=new HashSet<Entity>();
         private ComponentPlayer owner;private Vector3 center;private HorizonTimeline<Entity> timeline;private double nextPull;
-        internal VoidHorizonRuntime(SubsystemTerrain t,SubsystemBodies b,SubsystemTime c,bool players,bool passive,int quality)
-        {terrain=t;bodies=b;clock=c;allowPlayers=players;allowPassive=passive;this.quality=VoidSkillRules.Quality(quality);}
+        internal VoidHorizonRuntime(SubsystemTerrain t,SubsystemBodies b,SubsystemTime c,SubsystemAudio sound,bool players,bool passive,int quality)
+        {terrain=t;bodies=b;clock=c;audio=sound;allowPlayers=players;allowPassive=passive;this.quality=VoidSkillRules.Quality(quality);}
         internal bool Active => timeline!=null;
         internal bool Busy(ComponentPlayer p) => Active && p==owner && clock.GameTime-timeline.Started<2;
         internal double Remaining(ComponentPlayer p) => p!=null?ready.Remaining(p.PlayerGuid,clock.GameTime):0;
@@ -39,7 +41,8 @@ namespace SCIEPort.Features.AbyssReaper
             if(!WorldCutDamage.Finite(at)||!VoidPortalSafety.Ready(terrain,Terrain.ToCell(at.X),Terrain.ToCell(at.Z))||!VoidPortalSafety.Unprotected(Terrain.ToCell(at.X),Terrain.ToCell(at.Z)))
             {reason="区块未就绪或领地受保护";return false;}
             if(!ready.Start(p.PlayerGuid,clock.GameTime,VoidSkillRules.HorizonCooldown)){reason="终焉冷却或容量不足";return false;}
-            owner=p;center=at;timeline=new HorizonTimeline<Entity>(clock.GameTime);nextPull=clock.GameTime+8;
+            owner=p;center=at;timeline=new HorizonTimeline<Entity>(clock.GameTime);nextPull=clock.GameTime+8;cues=new HorizonCueTimeline();
+            Present(0);
             reason="终焉 · 万象坍缩";return true;
         }
         private bool Target(ComponentBody body)
@@ -90,9 +93,19 @@ namespace SCIEPort.Features.AbyssReaper
                 if(tick>=0)Affect(1);
                 if(elapsed>=8 && elapsed<14 && clock.GameTime>=nextPull) {nextPull=clock.GameTime+.25;Affect(0);}
                 if(timeline.TakeFinal(clock.GameTime))Affect(2);
+                Present(elapsed);
                 if(elapsed>=VoidSkillRules.HorizonDuration)Cancel();
             }
             catch(Exception error) { Log.Warning("[SCIEPort:Abyss] Horizon cancelled: "+error.GetType().Name);Cancel(); }
+        }
+        private void Present(double elapsed)
+        {
+            if(cues==null)return;
+            int cue=cues.Take(elapsed);
+            if(cue<0 || audio==null)return;
+            string[] names={"Wake","Rift","Collapse","Burst"};
+            try { audio.PlaySound("Audio/Abyss/Horizon"+names[cue],.8f,0f,center,36f,false); }
+            catch(Exception error) { Log.Warning("[SCIEPort:Abyss] Horizon sound unavailable: "+error.GetType().Name); }
         }
         internal float SkyBlend
         {
@@ -106,7 +119,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(Active)scene.Draw(camera,center,(float)(clock.GameTime-timeline.Started),SkyBlend,quality);
         }
-        private void Cancel(){if(timeline!=null)timeline.Cancel();timeline=null;owner=null;passHits.Clear();}
+        private void Cancel(){if(timeline!=null)timeline.Cancel();timeline=null;owner=null;cues=null;passHits.Clear();}
         public void Dispose(){Cancel();ready.Clear();passHits.Clear();scene.Dispose();}
     }
 }

@@ -38,6 +38,21 @@ namespace SCIEPort.Features.AbyssReaper
         // segments, 64 boundary segments and at most 32 branch/rune lines.
         internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,160,240,320);
     }
+    // At most one cue per stage, with no stale cue burst after a frame hitch.
+    internal sealed class HorizonCueTimeline
+    {
+        private int last=-1;
+        private double lastTime=-1;
+        internal int Take(double elapsed)
+        {
+            if(double.IsNaN(elapsed)||double.IsInfinity(elapsed)||elapsed<0||elapsed>=17)return -1;
+            if(elapsed<lastTime)return -1;
+            lastTime=elapsed;
+            int cue=elapsed<.5?0:elapsed>=2 && elapsed<2.5?1:elapsed>=14 && elapsed<14.5?2:elapsed>=16 && elapsed<16.5?3:-1;
+            if(cue<0 || cue<=last)return -1;
+            last=cue;return cue;
+        }
+    }
     internal sealed class VoidCooldowns
     {
         private const int MaxPlayers=64;

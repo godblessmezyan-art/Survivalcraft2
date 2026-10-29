@@ -762,6 +762,10 @@ try {
         'Assets/Textures/PoseidonSkills.png',
         'Assets/Blocks/Poseidon.csv',
         'Assets/Database/Poseidon.xdb',
+        'Assets/Audio/Abyss/HorizonWake.wav',
+        'Assets/Audio/Abyss/HorizonRift.wav',
+        'Assets/Audio/Abyss/HorizonCollapse.wav',
+        'Assets/Audio/Abyss/HorizonBurst.wav',
         'Assets/Audio/Poseidon/Surge.wav',
         'Assets/Audio/Poseidon/Tsunami.wav',
         'SCIEPort.dll',
@@ -2001,6 +2005,21 @@ try {
     $targetSoundDataType = $targetEngineAssembly.GetType('Engine.Media.SoundData', $true)
     $targetSoundLoad = $targetSoundDataType.GetMethod('Load', [Type[]]@([IO.Stream]))
     if ($null -eq $targetSoundLoad) { throw 'Target Engine.Media.SoundData.Load(Stream) ABI is missing.' }
+    foreach ($cue in @('Wake','Rift','Collapse','Burst')) {
+        $audioPath = Join-Path $projectDir "Assets\Audio\Abyss\Horizon$cue.wav"
+        $audioStream = [IO.File]::OpenRead($audioPath)
+        try { $decoded = $targetSoundLoad.Invoke($null,@($audioStream)) }
+        finally { $audioStream.Dispose() }
+        if ($decoded.ChannelsCount -ne 1 -or $decoded.SamplingFrequency -ne 22050 -or $decoded.Data.Length -ne 22050) { throw "Abyss horizon $cue must decode as one second of 22050 Hz mono PCM." }
+        $entry = $archive.GetEntry("Assets/Audio/Abyss/Horizon$cue.wav")
+        if ($null -eq $entry) { throw "Missing packaged horizon audio $cue." }
+        $packaged = $entry.Open()
+        try { $hash = [Security.Cryptography.SHA256]::Create(); try { $packageHash = [BitConverter]::ToString($hash.ComputeHash($packaged)) } finally { $hash.Dispose() } }
+        finally { $packaged.Dispose() }
+        $sourceHash = (Get-FileHash -LiteralPath $audioPath -Algorithm SHA256).Hash
+        if ($packageHash.Replace('-','') -ne $sourceHash) { throw "Packaged horizon audio $cue differs from source." }
+    }
+    Write-Host 'Abyss horizon audio: four one-second sounds decode on target Engine and match package.'
     $helicopterSoundStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Audio\SCIEPortHelicopterLoop.wav'))
     try { $targetHelicopterSound = $targetSoundLoad.Invoke($null,@($helicopterSoundStream)) }
     finally { $helicopterSoundStream.Dispose() }

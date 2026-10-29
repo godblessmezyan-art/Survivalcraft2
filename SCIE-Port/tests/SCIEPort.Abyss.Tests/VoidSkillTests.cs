@@ -17,6 +17,13 @@ internal static class VoidSkillTests
         Check(!cooldown.Start(id,24.99,15)&&cooldown.Remaining(id,24)==1,"blink exact cooldown");
         Check(cooldown.Start(id,25,180)&&cooldown.Remaining(id,25)==180,"horizon cooldown after ready");
         Check(!cooldown.Start(Guid.NewGuid(),double.NaN,15),"invalid clock cannot begin cooldown");
+        var cues=new HorizonCueTimeline();
+        Check(cues.Take(-1)==-1 && cues.Take(double.NaN)==-1 && cues.Take(0)==0 && cues.Take(1)==-1,"cue begins once and rejects invalid time");
+        Check(cues.Take(2)==1 && cues.Take(5)==-1 && cues.Take(14)==2 && cues.Take(15.7)==-1 && cues.Take(16)==3 && cues.Take(17)==-1,"ordered phase cues and silence");
+        Check(cues.Take(2)==-1 && cues.Take(double.PositiveInfinity)==-1,"cue clock regression and infinity rejected");
+        var skipped=new HorizonCueTimeline();Check(skipped.Take(15.5)==-1 && skipped.Take(16)==3,"late collapse is skipped to preserve silence");
+        var late=new HorizonCueTimeline();
+        Check(late.Take(16.2)==3 && late.Take(16.3)==-1,"frame hitch plays current cue once without replaying old stages");
         var timeline=new HorizonTimeline<int>(10);
         Check(timeline.TakeTick(17.9)==-1 && timeline.TakeTick(18)==0 && timeline.TakeTick(18.5)==-1,"first tick only once");
         Check(timeline.TakeTick(21.2)==3 && timeline.TakeTick(24)==-1,"no catch-up burst beyond domain");

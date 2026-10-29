@@ -43,7 +43,7 @@ namespace SCIEPort.Features.AbyssReaper
             PortalOperations=new VoidPortalOperations(this,terrain);
             portalScene=new VoidPortalScene(v.GetValue<int>("PortalEffectQuality",1));
             blink=new VoidBlinkRuntime(terrain,bodies,clock,allowPlayers,allowPassive,v.GetValue<int>("BlinkEffectQuality",1));
-            Horizon=new VoidHorizonRuntime(terrain,bodies,clock,allowPlayers,allowPassive,v.GetValue<int>("HorizonEffectQuality",1));
+            Horizon=new VoidHorizonRuntime(terrain,bodies,clock,Project.FindSubsystem<SubsystemAudio>(false),allowPlayers,allowPassive,v.GetValue<int>("HorizonEffectQuality",1));
             if(Portals!=null)portalTravel=new VoidPortalLocalTravel(terrain,players,clock,Portals);
             WorldCut=new WorldCutRuntime(Project,players,clock,terrain,bodies,allowPlayers,allowPassive,showRifts,v.GetValue<bool>("WorldCutLowEffects",false),WorldCutRules.Damage(v.GetValue<float>("WorldCutInitialDamage",100f),100),WorldCutRules.Damage(v.GetValue<float>("WorldCutCloseDamage",40f),40));}
         /// <inheritdoc/>

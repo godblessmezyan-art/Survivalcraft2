@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-10-29 main 0.52.0 终焉坍缩音效
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17、net472 和 ABI 检查通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：Release、包内容与原模型保护校验通过；4 个原创 1 秒单声道音效由目标 Engine 解码且包内 SHA-256 与源码一致。
+- 阿比斯技能纯规则 23 项通过，包含音效阶段一次触发、跳帧跳过旧音效、静默期和时间倒退；断界斩目标程序集隔离夹具 883 项通过。音效异常由呈现层捕获；这些结果不代表真实游戏播放。
+- `荒野探险家-0.52.0.netmod` SHA-256 `9B05128484F04F5DF70494344F90EA421F8227F3F25E180DFC1067F4B0550F9B`；与正式命名包一致。
+- Windows 游戏内、Android 7723 单人和主机的实际听感、音量与性能待验证；普通客户端终焉同步不支持，联机待验证。
+
 ## 2026-10-29 main 0.51.0 终焉坍缩视觉预览
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17 程序集、net472 和 ABI 检查通过。

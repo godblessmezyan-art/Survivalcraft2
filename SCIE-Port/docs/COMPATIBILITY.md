@@ -1,5 +1,13 @@
 # SCIE-Port 兼容性记录
 
+## 2026-10-29 main 0.52.0：终焉坍缩音效
+
+| 项目 | 状态 | 证据 / 限制 |
+| --- | --- | --- |
+| Windows x25.01.17 音频接口与资源 | 已确认 | SCNET Windows 2.4.0.0、net472 Release 编译使用 `SubsystemAudio.PlaySound`；新增 `Assets/Audio/Abyss/Horizon{Wake,Rift,Collapse,Burst}.wav`，目标 Engine `SoundData.Load` 和包内哈希校验通过。 |
+| 单人及本地主机音效和战斗 | 待验证 | 纯规则覆盖阶段一次触发、跳帧与静默；未运行游戏或听取实际音量。音频异常由呈现层捕获，不作为伤害条件。 |
+| Android 7723 与普通客户端 | 待验证 | 未取得或验证 7723 程序集，真实设备与联机听感待测试；普通客户端的终焉技能同步仍不支持。 |
+
 ## 2026-10-29 main 0.51.0：终焉坍缩视觉预览
 
 Windows x25.01.17 目标程序集 Release 编译及现有绘制 API 调用 **已确认**；未新增 Hook、网络包、物品 ID 或资源格式。游戏内渲染、性能与 Android 7723 **待验证**。普通客户端的新技能同步 **不支持**。
