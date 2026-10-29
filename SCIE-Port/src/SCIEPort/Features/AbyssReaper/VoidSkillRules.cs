@@ -53,6 +53,20 @@ namespace SCIEPort.Features.AbyssReaper
             last=cue;return cue;
         }
     }
+    // Presentation clock; never controls teleport, target selection or damage.
+    internal sealed class BlinkActionClock
+    {
+        internal const double Duration=.42;
+        private readonly double start;
+        private bool cancelled;
+        internal BlinkActionClock(double time) { start=time; }
+        internal double Progress(double now)
+        {
+            if(cancelled || double.IsNaN(now) || double.IsInfinity(now) || now<start || now-start>=Duration)return -1;
+            return (now-start)/Duration;
+        }
+        internal void Cancel() { cancelled=true; }
+    }
     internal sealed class VoidCooldowns
     {
         private const int MaxPlayers=64;

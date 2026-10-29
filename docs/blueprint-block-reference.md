@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.21.0
 
+> 2026-10-29：SCIE-Port 0.53.0 调整虚影瞬狩视听，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。
+
 > 2026-10-29：SCIE-Port 0.52.0 新增阿比斯音效，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。
 
 > 2026-10-29：SCIE-Port 0.51.0 调整阿比斯视觉预览；Builder Assistant 方块、DATA、族标签及蓝图限制均未变。

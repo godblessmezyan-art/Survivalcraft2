@@ -762,6 +762,8 @@ try {
         'Assets/Textures/PoseidonSkills.png',
         'Assets/Blocks/Poseidon.csv',
         'Assets/Database/Poseidon.xdb',
+        'Assets/Audio/Abyss/BlinkShift.wav',
+        'Assets/Audio/Abyss/BlinkHunt.wav',
         'Assets/Audio/Abyss/HorizonWake.wav',
         'Assets/Audio/Abyss/HorizonRift.wav',
         'Assets/Audio/Abyss/HorizonCollapse.wav',
@@ -2020,6 +2022,18 @@ try {
         if ($packageHash.Replace('-','') -ne $sourceHash) { throw "Packaged horizon audio $cue differs from source." }
     }
     Write-Host 'Abyss horizon audio: four one-second sounds decode on target Engine and match package.'
+    foreach ($cue in @('Shift','Hunt')) {
+        $audioPath = Join-Path $projectDir "Assets\Audio\Abyss\Blink$cue.wav"
+        $audioStream = [IO.File]::OpenRead($audioPath)
+        try { $decoded = $targetSoundLoad.Invoke($null,@($audioStream)) } finally { $audioStream.Dispose() }
+        if ($decoded.ChannelsCount -ne 1 -or $decoded.SamplingFrequency -ne 22050 -or $decoded.Data.Length -ne 22050) { throw "Abyss blink $cue must decode as one second of 22050 Hz mono PCM." }
+        $entry = $archive.GetEntry("Assets/Audio/Abyss/Blink$cue.wav")
+        if ($null -eq $entry) { throw "Missing packaged blink audio $cue." }
+        $packaged = $entry.Open()
+        try { $hash = [Security.Cryptography.SHA256]::Create(); try { $packageHash = [BitConverter]::ToString($hash.ComputeHash($packaged)) } finally { $hash.Dispose() } } finally { $packaged.Dispose() }
+        if ($packageHash.Replace('-','') -ne (Get-FileHash -LiteralPath $audioPath -Algorithm SHA256).Hash) { throw "Packaged blink audio $cue differs from source." }
+    }
+    Write-Host 'Abyss blink audio: two sounds decode on target Engine and match package.'
     $helicopterSoundStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Audio\SCIEPortHelicopterLoop.wav'))
     try { $targetHelicopterSound = $targetSoundLoad.Invoke($null,@($helicopterSoundStream)) }
     finally { $helicopterSoundStream.Dispose() }

@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-10-29 main 0.53.0 虚影瞬狩动作与视听
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17、net472 和 ABI 检查通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：Release、资源及原有阿比斯模型与物品参数校验通过；两段原创音效经目标 Engine 解码，包内哈希与源码一致。
+- `dotnet run --project SCIE-Port/tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj -c Release`：虚空技能规则 27 项通过，涵盖动作时间、取消和普攻输入排空；断界斩 441 项纯规则、883 项目标程序集隔离夹具通过。实际动画恢复、移动及命中效果未在游戏进程验证。
+- `荒野探险家-0.53.0.netmod` SHA-256 `DD8115D81A71C5695A1B0619215D5079914F74B84FE25FACC392C234A2A13F7B`；与正式命名包一致。
+- 单人、本地主机的触屏、动作、听感、落点和性能，以及 Android 7723 实机均待验证；普通客户端折跃同步不支持，真实联机待验证。
+
 ## 2026-10-29 main 0.52.0 终焉坍缩音效
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17、net472 和 ABI 检查通过。

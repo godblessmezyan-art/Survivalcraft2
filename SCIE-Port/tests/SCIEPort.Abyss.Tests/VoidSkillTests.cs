@@ -12,6 +12,12 @@ internal static class VoidSkillTests
         Check(VoidSkillRules.InBlinkRange(18)&&!VoidSkillRules.InBlinkRange(18.01f)&&!VoidSkillRules.InBlinkRange(float.NaN),"blink range boundary");
         Check(VoidSkillRules.InDomain(40,4,0,4)&&!VoidSkillRules.InDomain(40.01f,0,0,4)&&!VoidSkillRules.InDomain(0,4.01f,0,4),"domain radius and height");
         Check(VoidSkillRules.Phase(0)==HorizonPhase.Awakening && VoidSkillRules.Phase(2)==HorizonPhase.SkyRift && VoidSkillRules.Phase(5)==HorizonPhase.Descent && VoidSkillRules.Phase(8)==HorizonPhase.Domain && VoidSkillRules.Phase(14)==HorizonPhase.Collapse && VoidSkillRules.Phase(17)==HorizonPhase.Finished,"five phase edges");
+        var blinkAction=new BlinkActionClock(10);
+        Check(blinkAction.Progress(9)==-1 && blinkAction.Progress(10)==0 && blinkAction.Progress(10.2)>0 && blinkAction.Progress(10.43)==-1,"blink action boundaries and invalid time");
+        var input=new WorldCutInputGate();input.Accepted();
+        Check(!input.CanRequest(false,false,blinkAction.Progress(10.1)>=0) && !input.RouteNormal(true,blinkAction.Progress(10.1)>=0),"blink action prevents skill and held attack takeover");
+        Check(!input.RouteNormal(true,blinkAction.Progress(10.43)>=0) && !input.RouteNormal(false,false) && input.RouteNormal(true,false),"held attack drains before fresh normal input");
+        blinkAction.Cancel();Check(blinkAction.Progress(10)==-1 && blinkAction.Progress(double.NaN)==-1,"blink action cancel releases input");
         var cooldown=new VoidCooldowns();var id=Guid.NewGuid();
         Check(!cooldown.Start(Guid.Empty,0,15)&&cooldown.Start(id,10,15),"cooldown begins only for valid actor");
         Check(!cooldown.Start(id,24.99,15)&&cooldown.Remaining(id,24)==1,"blink exact cooldown");

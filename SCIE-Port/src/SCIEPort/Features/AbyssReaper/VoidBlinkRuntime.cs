@@ -10,16 +10,19 @@ namespace SCIEPort.Features.AbyssReaper
     // Single-player authority only; remote position protocol is intentionally not guessed.
     internal sealed class VoidBlinkRuntime : IDisposable
     {
-        private sealed class Visual { internal Vector3 From,To;internal double Expires; }
+        private sealed class Visual { internal Vector3 From,To;internal double Started,Expires;internal bool Hunt; }
         private readonly SubsystemTerrain terrain;private readonly SubsystemBodies bodies;private readonly SubsystemTime clock;
         private readonly bool allowPlayers,allowPassive;private readonly int quality;
+        private readonly SubsystemAudio audio;
+        private ComponentPlayer actionOwner;private BlinkActionClock action;private Vector3 lastOrder;private bool orderOwned;
         private readonly VoidCooldowns cooldowns=new VoidCooldowns();
         private readonly List<Visual> visuals=new List<Visual>();
         private readonly HashSet<Entity> hits=new HashSet<Entity>();
         private readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
-        internal VoidBlinkRuntime(SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,bool players,bool passive,int quality)
-        {this.terrain=terrain;this.bodies=bodies;this.clock=clock;allowPlayers=players;allowPassive=passive;this.quality=VoidSkillRules.Quality(quality);}
+        internal VoidBlinkRuntime(SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,SubsystemAudio audio,bool players,bool passive,int quality)
+        {this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.audio=audio;allowPlayers=players;allowPassive=passive;this.quality=VoidSkillRules.Quality(quality);}
         internal double Remaining(ComponentPlayer p) => p!=null?cooldowns.Remaining(p.PlayerGuid,clock.GameTime):0;
+        internal bool Busy(ComponentPlayer p) => actionOwner==p && action!=null && action.Progress(clock.GameTime)>=0;
         private bool Actor(ComponentPlayer p)
         {
             return (CommonLib.WorkType==WorkType.Local || CommonLib.WorkType==WorkType.Server) && p!=null && p.IsAddedToProject && p.PlayerData.IsMainPlayer && p.PlayerData.IsReadyForPlaying
@@ -81,11 +84,18 @@ namespace SCIEPort.Features.AbyssReaper
             // Capture cooldown before external damage hooks and never write a player on clients.
             if(!cooldowns.Start(p.PlayerGuid,clock.GameTime,VoidSkillRules.BlinkCooldown)){reason="折跃冷却或容量不足";return false;}
             p.ComponentBody.Position=destination;p.ComponentBody.Velocity=Vector3.Zero;
-            if(visuals.Count<8)visuals.Add(new Visual { From=old,To=destination,Expires=clock.GameTime+.55 });
-            if(hunt)Spin(p,destination);
-            reason=hunt?"虚影瞬狩 · 回旋斩":"虚影瞬狩 · 空间折跃";return true;
+            int hitCount=hunt?Spin(p,destination):0;
+            try
+            {
+                if(visuals.Count<8)visuals.Add(new Visual { From=old,To=destination,Started=clock.GameTime,Expires=clock.GameTime+.55,Hunt=hunt });
+                CancelAction();actionOwner=p;action=new BlinkActionClock(clock.GameTime);
+                try { audio?.PlaySound(hunt?"Audio/Abyss/BlinkHunt":"Audio/Abyss/BlinkShift",.75f,0f,destination,18f,false); }
+                catch(Exception error) { Log.Warning("[SCIEPort:Abyss] Blink sound unavailable: "+error.GetType().Name); }
+            }
+            catch(Exception error) { CancelAction();Log.Warning("[SCIEPort:Abyss] Blink presentation unavailable: "+error.GetType().Name); }
+            reason=hunt?"虚影瞬狩 · 回旋斩（"+hitCount+"个目标）":"虚影瞬狩 · 空间折跃";return true;
         }
-        private void Spin(ComponentPlayer player,Vector3 origin)
+        private int Spin(ComponentPlayer player,Vector3 origin)
         {
             hits.Clear();int scanned=0;
             foreach(var body in bodies.Bodies)
@@ -101,26 +111,91 @@ namespace SCIEPort.Features.AbyssReaper
                 try { ComponentMiner.AttackBody(body,player,center,delta.LengthSquared()>.01f?Vector3.Normalize(delta):Vector3.UnitZ,VoidSkillRules.BlinkPower,false); }
                 catch(Exception e) { Log.Warning("[SCIEPort:Abyss] Blink target failed: "+e.GetType().Name); }
             }
-            hits.Clear();
+            int count=hits.Count;hits.Clear();return count;
         }
-        internal void Update(){for(int i=visuals.Count-1;i>=0;i--)if(clock.GameTime>=visuals[i].Expires)visuals.RemoveAt(i);}
+        internal void Update()
+        {
+            for(int i=visuals.Count-1;i>=0;i--)if(clock.GameTime>=visuals[i].Expires)visuals.RemoveAt(i);
+            if(action==null)return;
+            double q=action.Progress(clock.GameTime);
+            if(q<0 || !Actor(actionOwner)) { CancelAction();return; }
+            try
+            {
+                float progress=(float)q;
+                Vector3 rotation=new Vector3(-.25f*(float)Math.Sin(progress*Math.PI), (1f-2f*progress)*1.35f, .28f*(float)Math.Sin(progress*Math.PI));
+                var fp=actionOwner.Entity.FindComponent<ComponentFirstPersonModel>(false);
+                if(fp!=null)fp.ItemRotationOrder=rotation;
+                actionOwner.ComponentCreatureModel.InHandItemRotationOrder=rotation;
+                lastOrder=rotation;orderOwned=true;
+            }
+            catch(Exception error) { CancelAction();Log.Warning("[SCIEPort:Abyss] Blink animation cancelled: "+error.GetType().Name); }
+        }
+        internal void Cancel(ComponentPlayer p) { if(actionOwner==p)CancelAction(); }
+        private void CancelAction()
+        {
+            if(action!=null)action.Cancel();
+            if(orderOwned && actionOwner!=null)
+            {
+                try
+                {
+                    var fp=actionOwner.Entity.FindComponent<ComponentFirstPersonModel>(false);
+                    if(fp!=null && fp.ItemRotationOrder==lastOrder)fp.ItemRotationOrder=Vector3.Zero;
+                    if(actionOwner.ComponentCreatureModel.InHandItemRotationOrder==lastOrder)actionOwner.ComponentCreatureModel.InHandItemRotationOrder=Vector3.Zero;
+                }
+                catch(Exception) { /* Owner can already be removed while the world is closing. */ }
+            }
+            action=null;actionOwner=null;orderOwned=false;
+        }
         internal void Draw(Camera camera)
         {
             if(visuals.Count==0)return;
             var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
+            int ghosts=VoidSkillRules.VfxSegments(quality,2,3,3);
+            int arcs=VoidSkillRules.VfxSegments(quality,8,12,20);
             foreach(var v in visuals)
             {
                 float fade=MathUtils.Saturate((float)((v.Expires-clock.GameTime)/.55));
-                foreach(var pos in new[]{v.From,v.To})
+                Vector3 path=v.To-v.From;path.Y=0;
+                Vector3 side=path.LengthSquared()>.001f?Vector3.Normalize(Vector3.Cross(path,Vector3.UnitY)):Vector3.UnitX;
+                for(int i=0;i<ghosts;i++)
+                {
+                    float f=(i+1f)/(ghosts+1f)*.35f;
+                    Vector3 c=v.From+(v.To-v.From)*f;
+                    float alpha=fade*(1f-f*.45f);
+                    Color color=new Color(139,65,205,(int)(150*alpha));
+                    Vector3 head=c+Vector3.UnitY*1.7f,shoulder=c+Vector3.UnitY*1.3f;
+                    batch.QueueLine(head,shoulder,color);
+                    batch.QueueLine(shoulder-side*.32f,shoulder+side*.32f,color);
+                    batch.QueueLine(shoulder,c+Vector3.UnitY*.65f,color);
+                    batch.QueueLine(c+Vector3.UnitY*.65f,c-side*.23f,color);
+                    batch.QueueLine(c+Vector3.UnitY*.65f,c+side*.23f,color);
+                }
+                if(v.Hunt)
+                {
+                    float q=1f-fade;
+                    float end=q*(float)Math.PI*2f;
+                    Vector3 center=v.To+Vector3.UnitY*.75f;
+                    for(int i=0;i<arcs;i++)
+                    {
+                        float a=end-(i+1)*1.5f/arcs,b=end-i*1.5f/arcs;
+                        Vector3 p=center+new Vector3((float)Math.Cos(a)*2.1f,0,(float)Math.Sin(a)*2.1f);
+                        Vector3 r=center+new Vector3((float)Math.Cos(b)*2.1f,0,(float)Math.Sin(b)*2.1f);
+                        batch.QueueLine(p,r,new Color(172,84,226,(int)(220*fade)));
+                    }
+                }
+                for(int endIndex=0;endIndex<2;endIndex++)
+                {
+                    Vector3 fissure=endIndex==0?v.From:v.To;
                     for(int i=0;i<VoidSkillRules.VfxSegments(quality,3,5,7);i++)
                     {
-                        Vector3 a=pos+Vector3.UnitY*(i*.32f)+Vector3.UnitX*((i%2==0?-.12f:.12f)*fade);
-                        Vector3 b=pos+Vector3.UnitY*((i+1)*.32f)+Vector3.UnitX*((i%2==0?.12f:-.12f)*fade);
+                        Vector3 a=fissure+Vector3.UnitY*(i*.25f)+side*((i%2==0?-.12f:.12f)*fade);
+                        Vector3 b=fissure+Vector3.UnitY*((i+1)*.25f)-side*((i%2==0?-.12f:.12f)*fade);
                         batch.QueueLine(a,b,new Color(144,65,200,(int)(220*fade)));
                     }
+                }
             }
             renderer.Flush(camera.ViewProjectionMatrix);
         }
-        public void Dispose(){cooldowns.Clear();visuals.Clear();hits.Clear();renderer.Clear();}
+        public void Dispose(){CancelAction();cooldowns.Clear();visuals.Clear();hits.Clear();renderer.Clear();}
     }
 }
