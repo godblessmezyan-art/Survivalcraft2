@@ -328,6 +328,10 @@ namespace SCIEPort.Features.FourSaints
             if (Now < victimState.RebirthEnd && !ignoreInvulnerability) return true;
 
             float adjusted = FourSaintsRules.EffectiveDamage(amount, false, xuanwu && attacker != null);
+            // Water shield consumes post-armour damage before Zhuque checks a lethal hit.
+            // The existing replay guard bypasses this entire handler on the residual injury.
+            adjusted = Project.FindSubsystem<SCIEPort.Features.Poseidon.SubsystemPoseidon>(false)?.AbsorbInjury(health, adjusted, ignoreInvulnerability) ?? adjusted;
+            if (adjusted <= 0f) return true;
             if (zhuque && !ignoreInvulnerability && adjusted > 0f && health.Health - adjusted <= FourSaintsRules.NativeHealthPerPoint)
             {
                 health.Health = MathUtils.Min(qinglong ? FourSaintsRules.QinglongMaximumHealth : FourSaintsRules.NativeMaximumHealth, 1f);

@@ -36,6 +36,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new GungnirPackage());
                 PackageManager.RegisterPackage(new FourSaintsPackage());
                 PackageManager.RegisterPackage(new PoseidonPackage());
+                PackageManager.RegisterPackage(new PoseidonV2Package());
                 PackageManager.RegisterPackage(new WorldCutPackage());
                 s_networkPackageRegistered = true;
             }
@@ -94,6 +95,7 @@ namespace SCIEPort.Mod
             if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
             if (fourSaints != null && attackPower > 0f)
                 attackPower += FourSaintsRules.DamageBonus(SubsystemFourSaints.Wears(attackingPlayer, ClothingSlot.Legs, FourSaintsRules.BaihuIndex), fourSaints.IsAwakened(attackingPlayer));
+            if (isMeleeAttack && SubsystemPoseidon.Equipped(attackingPlayer) && SubsystemPoseidon.InWater(attackingPlayer)) attackPower *= 2f;
             if (target != null && attacker != null && attacker.Project != null)
             {
                 SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
@@ -178,7 +180,7 @@ namespace SCIEPort.Mod
             float divineFlash = GungnirSkyVisuals.GetFlash();
             float abyssBlend = GameManager.Project?.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.SkyBlend ?? 0f;
             if (stormBlend <= 0f && stormFlash <= 0f && divineBlend <= 0f && divineFlash <= 0f)
-                return abyssBlend > 0f ? Color.Lerp(oldColor, new Color(24, 8, 37), .8f * abyssBlend) : oldColor;
+                return SeaTint(abyssBlend > 0f ? Color.Lerp(oldColor, new Color(24, 8, 37), .8f * abyssBlend) : oldColor);
             float stormGradient = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
             float zenith = MathUtils.Saturate(direction.Y);
             Color storm = Color.Lerp(new Color(46, 26, 92), new Color(9, 10, 34), stormGradient);
@@ -198,7 +200,13 @@ namespace SCIEPort.Mod
             if (divineFlash > 0f)
                 result = Color.Lerp(result, Color.Lerp(new Color(238, 203, 132), new Color(255, 255, 239), zenith), 0.72f * divineFlash);
 
-            return abyssBlend > 0f ? Color.Lerp(result, new Color(24, 8, 37), .8f * abyssBlend) : result;
+            return SeaTint(abyssBlend > 0f ? Color.Lerp(result, new Color(24, 8, 37), .8f * abyssBlend) : result);
+        }
+
+        private static Color SeaTint(Color color)
+        {
+            float blend=GameManager.Project?.FindSubsystem<SubsystemPoseidon>(false)?.LocalDomainBlend??0;
+            return blend>0?Color.Lerp(color,new Color(17,76,138),.78f*blend):color;
         }
 
         /// <inheritdoc />
@@ -222,6 +230,7 @@ namespace SCIEPort.Mod
             }
             if (stormFlash > 0f) viewFogColor = Color.Lerp(viewFogColor, new Color(96, 122, 186), 0.42f * stormFlash * MathUtils.Max(stormBlend, 0.35f));
             if (divineFlash > 0f) viewFogColor = Color.Lerp(viewFogColor, new Color(226, 205, 151), 0.48f * divineFlash);
+            viewFogColor = SeaTint(viewFogColor);
         }
 
         /// <inheritdoc />

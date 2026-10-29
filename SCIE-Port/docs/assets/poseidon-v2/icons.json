@@ -1,0 +1,41 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-30",
+  "transparent_background": true,
+  "processing": "RGBA Lanczos resize only; no icon redrawing",
+  "icons": {
+    "TideShield": {
+      "prompt": "Use case: stylized-concept. Asset type: production skill button icon for a mobile ocean-god trident in a dark fantasy game. One centered circular medallion on a genuinely transparent outside background, square canvas. Deep navy enamel, antique gold narrow rim, restrained aquamarine and pearl-white highlights. Sophisticated engraved metal and sculpted water, strong readable silhouette at 64 pixels, consistent premium game UI, no lettering, no numerals, no watermark, no extra frames or duplicate icons. Keep all art inside the circular rim with generous transparent margin. A faceted aquamarine shield bearing a small trident crest, encircled by a single expanding curved water wave. Communicates self protection and radial repulsion, shield is the dominant silhouette.",
+      "source": "icons/TideShield.png",
+      "sourceSha256": "9F6B12D3D82154A4FDB8A8AEE7D49649B1A95B6EB435A3A80C37A71A43D21FEB",
+      "asset": "src/SCIEPort/Assets/Textures/PoseidonTideShieldV2.png",
+      "assetSha256": "1546126EECE068387A314017AC6C379D80871E277F015C1BFEBA3178A65E1F00",
+      "size": [
+        256,
+        256
+      ]
+    },
+    "TidalWave": {
+      "prompt": "Use case: stylized-concept. Asset type: production skill button icon for a mobile ocean-god trident in a dark fantasy game. One centered circular medallion on a genuinely transparent outside background, square canvas. Deep navy enamel, antique gold narrow rim, restrained aquamarine and pearl-white highlights. Sophisticated engraved metal and sculpted water, strong readable silhouette at 64 pixels, consistent premium game UI, no lettering, no numerals, no watermark, no extra frames or duplicate icons. Keep all art inside the circular rim with generous transparent margin. A powerful forward-curling ocean breaker with a sharp pearl-white foam crest, a clear single sweeping silhouette. Communicates a directional sea wave attack.",
+      "source": "icons/TidalWave.png",
+      "sourceSha256": "0CF289224D4C2A82C6BB35DE85328924E03C65B180225C632B9B406C488C0BC1",
+      "asset": "src/SCIEPort/Assets/Textures/PoseidonTidalWaveV2.png",
+      "assetSha256": "E3BFEC1176688E8054A2FEFFAD84AE573D7CE140DFE1EAC59A7CD66C5BCED3A4",
+      "size": [
+        256,
+        256
+      ]
+    },
+    "SeaDomain": {
+      "prompt": "Use case: stylized-concept. Asset type: production skill button icon for a mobile ocean-god trident in a dark fantasy game. One centered circular medallion on a genuinely transparent outside background, square canvas. Deep navy enamel, antique gold narrow rim, restrained aquamarine and pearl-white highlights. Sophisticated engraved metal and sculpted water, strong readable silhouette at 64 pixels, consistent premium game UI, no lettering, no numerals, no watermark, no extra frames or duplicate icons. Keep all art inside the circular rim with generous transparent margin. An imposing trident crown rising above a tightly spiralling sea waterspout, with a dark sapphire orb behind it. Communicates sovereign ocean domain and water tornado ultimate; distinguish clearly from the ordinary breaker icon.",
+      "source": "icons/SeaDomain.png",
+      "sourceSha256": "6361485CA3A200A660B67D771C467A92C633AF691D6945FE8ED6D2A9D059D9A2",
+      "asset": "src/SCIEPort/Assets/Textures/PoseidonSeaDomainV2.png",
+      "assetSha256": "FEA0CF18BE810D1464E9134710542807AF4DF5286061333B40FD77CAD2FDE621",
+      "size": [
+        256,
+        256
+      ]
+    }
+  }
+}

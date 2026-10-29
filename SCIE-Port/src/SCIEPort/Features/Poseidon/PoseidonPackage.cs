@@ -38,14 +38,7 @@ namespace SCIEPort.Features.Poseidon
         /// <inheritdoc />
         public void Handle(ProjectNet project, NetNode node, bool isServer)
         {
-            var runtime = project.FindSubsystem<SubsystemPoseidon>(false);
-            if (runtime == null) return;
-            if (isServer)
-            {
-                var player = From?.PlayerData?.ComponentPlayer;
-                if (Kind == 0 && player != null && player.Entity.EntityId == Caster) runtime.Enqueue(player, this);
-            }
-            else if (From == node.Server && (Kind == 1 || Kind == 2)) runtime.Enqueue(null, this);
+            // Reserved V1 wire format. V2 uses authenticated package 248; mixed versions cannot cast.
         }
     }
 }

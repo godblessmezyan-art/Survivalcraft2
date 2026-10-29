@@ -1,32 +1,34 @@
 using System;
-
 namespace SCIEPort.Features.Poseidon
 {
-    /// <summary>Bounded, engine-independent first edition combat and presentation rules.</summary>
+    /// <summary>Pure V2 tide, shield and domain rules; one health point is 0.1 native health.</summary>
     internal static class PoseidonRules
     {
-        internal const float DashCooldown = 8f, WaveCooldown = 26f;
-        internal const float DashDuration = 0.55f, WaveWindup = 0.3f, WaveDuration = 1.5f;
-        internal const float WaveSpeed = 16f, WaveWidth = 8f, WaveHeight = 4f;
-        internal const int MaxCasts = 8, MaxHits = 24, MaxCandidates = 96;
-        internal const float SwimMultiplier = 2.6f;
-        internal static float Cooldown(byte skill) => skill == 1 ? DashCooldown : WaveCooldown;
-        internal static float DashSpeed(bool water) => water ? 22f : 17f;
-        internal static float Damage(byte skill, bool water) => skill == 1 ? (water ? 95f : 70f) : 135f;
-        internal static bool Newer(uint a, uint b) => unchecked((int)(a - b)) > 0;
-        internal static bool Finite(float x) => !float.IsNaN(x) && !float.IsInfinity(x);
-        internal static float SwimDelta(float current, float owned, bool active) => active ? Math.Max(0,current-owned)*(SwimMultiplier-1) : 0;
-        internal static float WaveDistance(float age) => Math.Max(0f, Math.Min(WaveDuration, age - WaveWindup)) * WaveSpeed;
-        internal static bool Alive(byte skill, float age) => age >= 0 && age < (skill == 1 ? DashDuration : WaveWindup + WaveDuration);
-        internal static bool InSweep(float along, float across, float height, float previous, float next, float radius)
-            => along >= previous - radius && along <= next + radius && Math.Abs(across) <= WaveWidth / 2 + radius && height >= -radius && height <= WaveHeight + radius;
-        internal static float SegmentDistanceSquared(float px, float py, float pz, float ax, float ay, float az, float bx, float by, float bz)
+        internal const float ShieldCooldown=15, WaveCooldown=11, DomainCooldown=60, DomainDuration=20;
+        internal const float ShieldDuration=.7f, ShieldRadius=6, WaveWindup=.3f, WaveDuration=1.5f;
+        internal const float WaveSpeed=16, WaveWidth=8, WaveHeight=4, DomainWaveDuration=2.5f;
+        internal const int MaxCasts=8, MaxHits=24, MaxCandidates=96;
+        internal const float SwimMultiplier=3, ShieldMaximum=5, NativeHealthPerPoint=.1f;
+        internal static bool Skill(byte skill)=>skill>=1&&skill<=3;
+        internal static float Cooldown(byte skill,bool domain=false)=>skill==1?(domain?7:15):skill==2?(domain?5:11):60;
+        internal static float Damage(byte skill,bool water)=>(skill==1?14:skill==2?44:55)*(water?2:1);
+        internal static float Duration(byte skill)=>skill==1?ShieldDuration:skill==2?WaveWindup+WaveDuration:DomainDuration;
+        internal static float ShieldPoints(float charges,bool water)=>Math.Max(0,Math.Min(5,charges))*(water?2:1);
+        internal static float Absorb(ref float charges,float amount,bool water)
         {
-            float x = bx - ax, y = by - ay, z = bz - az;
-            float n = x*x + y*y + z*z;
-            float t = n > 0.00001f ? Math.Max(0, Math.Min(1, ((px-ax)*x + (py-ay)*y + (pz-az)*z)/n)) : 0;
-            x = px-ax-t*x; y = py-ay-t*y; z = pz-az-t*z;
-            return x*x + y*y + z*z;
+            if(!Finite(amount)||amount<=0)return amount;
+            float unit=NativeHealthPerPoint*(water?2:1),used=Math.Min(Math.Max(0,charges),amount/unit);
+            charges=Math.Max(0,charges-used);return Math.Max(0,amount-used*unit);
         }
+        internal static bool Newer(uint a,uint b)=>unchecked((int)(a-b))>0;
+        internal static bool Finite(float x)=>!float.IsNaN(x)&&!float.IsInfinity(x);
+        internal static float SwimDelta(float current,float owned,bool active)=>active?Math.Max(0,current-owned)*(SwimMultiplier-1):0;
+        internal static float WaveDistance(float age,bool domain=false)=>Math.Max(0,Math.Min(domain?DomainWaveDuration:WaveDuration,age-WaveWindup))*(domain?14:WaveSpeed);
+        internal static bool Alive(byte skill,float age)=>age>=0&&age<(skill==1?ShieldDuration:skill==2?WaveWindup+WaveDuration:DomainDuration);
+        internal static float DomainBlend(float remaining)=>remaining<=0?0:Math.Min(1,Math.Min(remaining/.8f,(DomainDuration-remaining)/.5f));
+        internal static bool InSweep(float along,float across,float height,float previous,float next,float radius,bool domain=false)
+            =>along>=previous-radius&&along<=next+radius&&Math.Abs(across)<=(domain?7:WaveWidth/2)+radius&&height>=-radius&&height<=(domain?8:WaveHeight)+radius;
+        internal static bool InVortex(float along,float across,float height)
+            =>height>=-.5f&&height<=10&&((along-14)*(along-14)+(Math.Abs(across)-4)*(Math.Abs(across)-4)<=9);
     }
 }

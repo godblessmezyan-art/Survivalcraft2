@@ -239,3 +239,7 @@ Gungnir.dae, Gungnir.png, GungnirSkills.png and Audio/Gungnir/*.wav are original
 ## Abyss · The Void Reaper V0.1
 
 AbyssReaper.dae/PNG及几何生成器、比例预览由本项目原创，未引入第三方美术。生成源scripts/New-AbyssReaperAssets.py；仅复用项目原创primitive/export结构。
+
+## Poseidon V2 skill icons / 2026-10-30
+
+Original generated artwork authored for this project with the built-in OpenAI image_gen tool: TideShield, TidalWave and SeaDomain. No third-party character/model/reference image was provided. Full prompts, source PNGs, runtime RGBA256 resources and SHA-256 hashes are recorded in `docs/assets/poseidon-v2/icons.json`. The generation skill used was `C:/Users/85196/.codex/skills/.system/imagegen/SKILL.md`. Runtime resource names: `PoseidonTideShieldV2.png`, `PoseidonTidalWaveV2.png`, `PoseidonSeaDomainV2.png`. Processing consists solely of RGBA conversion and Lanczos downsampling; originals remain in docs for audit and redistribution with the project. Geometry and synthesized surf audio remain project original, not game assets.

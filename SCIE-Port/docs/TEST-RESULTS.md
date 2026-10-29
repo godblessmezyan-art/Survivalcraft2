@@ -1,4 +1,30 @@
-# 测试结果
+﻿# 测试结果
+
+## 2026-10-30 main 0.55.0 海神三技能、配色与Look技能按钮
+
+实际环境：`D:/Games/SCNET-x25.01.17` 固定哈希Windows公开程序集；目标net472。没有启动游戏、Android设备或真实多人会话。
+
+执行（仓库根目录，先把本地dotnet/Python加入PATH，FrameworkPathOverride指向net472 targeting pack，旧测试运行时使用DOTNET_ROLL_FORWARD=Major）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+最终构建exit0；Release 0警告/0错误。完整日志在忽略目录外的本机`D:/Dev/Tools/scnet-audit/poseidon-v2-release.log`。
+
+- `Test-Poseidon.ps1`：真实Engine导入1根identity/83网格/1504三角形；Y_UP、UV、不透明色板、原生API/39个原生包ID与内部ID查重通过。
+- 2004项纯规则与布局：15/11/60和领域7/5秒、14/44/55与水中翻倍、5/10盾、溢出伤害、入水不刷盾、3倍游速不累乘与恢复、20秒期限、波浪扫掠/双龙卷、42种窗口安全布局及圆形边角检查通过。
+- `Test-PoseidonRuntime.ps1`：真实压缩器66个字段值往返、246的41字节旧格式与248的78字节新格式、队列32上限/释放/迟到回调、原生护盾/蓝色叠层API和实际圆形控件HitTest通过。
+- `Test-PoseidonV2Assets.ps1`：三张内置image_gen原创图的源文件与运行图哈希、原生PNG解码/透明角/中心可见和包内哈希通过。完整提示词、原图及SHA-256见`docs/assets/poseidon-v2/icons.json`。
+- 阿比斯/断界斩/星门、昆古尼尔、四圣兽、妙尔尼尔、载具、植物/生态、独立分类以及21份XDB/22CSV/55行既有回归与包守卫通过。Builder Assistant未改。
+- `git diff --check`通过。软件配色图为现有真实生成器的正面/3/4预览，非游戏截图；图标为实际生图输出缩小并绑定，未程序重绘。
+
+产物：`SCIE-Port/artifacts/荒野探险家-0.55.0.netmod`，7,339,972字节，143项，SHA-256：
+`7ED64ECD7DEFC87094F41ED2892F9CECA3ABB6244C3BF06E94FF681F7FB8E304`。
+与未带版本名`荒野探险家.netmod`内容相同。
+
+本轮联机V2要求双方0.55.0。Windows游戏内、Android7723、真正服务端/普通客户端的水盾减伤与领域快照、多指触控、世界染色和GPU开销全部待用户验收；完整清单见`docs/POSEIDON.md`。
 
 ## 2026-10-29 main 0.54.0 阿比斯圆形技能与挥镰
 

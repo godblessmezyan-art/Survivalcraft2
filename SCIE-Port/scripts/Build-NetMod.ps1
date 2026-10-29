@@ -20,6 +20,7 @@ $package = Join-Path $artifacts '荒野探险家.netmod'
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
 
 # --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
@@ -761,6 +762,9 @@ try {
         'Assets/Models/PoseidonTrident.dae',
         'Assets/Textures/PoseidonTrident.png',
         'Assets/Textures/PoseidonSkills.png',
+        'Assets/Textures/PoseidonTideShieldV2.png',
+        'Assets/Textures/PoseidonTidalWaveV2.png',
+        'Assets/Textures/PoseidonSeaDomainV2.png',
         'Assets/Blocks/Poseidon.csv',
         'Assets/Database/Poseidon.xdb',
         'Assets/Audio/Abyss/BlinkShift.wav',
@@ -2355,6 +2359,7 @@ Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }
 & (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-AbyssHud.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir -Package $package
 
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"

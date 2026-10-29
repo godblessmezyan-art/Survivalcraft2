@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param([string]$GameDir = 'E:\SCNET\SCNETx25.01.17')
 $ErrorActionPreference = 'Stop'
 $poseidonRoot = Split-Path -Parent $PSScriptRoot
@@ -58,7 +58,7 @@ foreach ($t in $poseidonGame.GetTypes()) {
     elseif ($il.Length -eq 3 -and $il[0] -eq 0x1f) { $nativeId=[int]$il[1] }
     elseif ($il.Length -eq 2 -and $il[0] -ge 0x16 -and $il[0] -le 0x1e) { $nativeId=[int]$il[0]-0x16 }
     if ($nativeId -lt 0 -or $il[$il.Length-1] -ne 0x2a) { throw "Cannot audit native package getter without guessing: $t" }
-    if ($nativeId -eq 246) { throw "Native network ID 246 occupied: $t" }
+    if ($nativeId -eq 246 -or $nativeId -eq 248) { throw "Native network ID 246 occupied: $t" }
     $poseidonNativePackages++
 }
 $poseidonIds=@{}; $poseidonNetIds=@{}
@@ -73,14 +73,14 @@ foreach ($file in Get-ChildItem (Join-Path $poseidonProject 'Features') -Recurse
         if ($poseidonNetIds.ContainsKey($id)){throw "Duplicate network ID $id"};$poseidonNetIds[$id]=$file.Name
     }
 }
-if ($poseidonIds[951] -ne 'PoseidonBlock.cs' -or $poseidonNetIds[246] -ne 'PoseidonPackage.cs') { throw 'Independent IDs missing.' }
+if ($poseidonIds[951] -ne 'PoseidonBlock.cs' -or $poseidonNetIds[246] -ne 'PoseidonPackage.cs' -or $poseidonNetIds[248] -ne 'PoseidonV2Package.cs') { throw 'Independent IDs missing.' }
 $poseidonSource=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\SubsystemPoseidon.cs'))
 if ($poseidonSource -match '\b(ChangeCell|DestroyCell|SetCellValueFast|RemoveEntity|AddEntity|DamageActiveTool)\s*\(') { throw 'Poseidon must not alter terrain/entities/durability.' }
-foreach ($guard in @('if (!Authority || !Equipped(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'ApplyImpulse(desired -')) {
+foreach ($guard in @('if(!Authority||!Actor(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'PoseidonRules.Absorb(ref s.Shield')) {
     if (-not $poseidonSource.Contains($guard)) { throw "Missing safety contract: $guard" }
 }
-$poseidonPacket=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\PoseidonPackage.cs'))
-foreach ($guard in @('player.Entity.EntityId == Caster','From == node.Server','Kind == 0')) { if(-not $poseidonPacket.Contains($guard)){throw "Missing packet authority: $guard"} }
+$poseidonPacket=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\PoseidonV2Package.cs'))
+foreach ($guard in @('player.Entity.EntityId==Caster','From==node.Server','Kind==0')) { if(-not $poseidonPacket.Contains($guard)){throw "Missing packet authority: $guard"} }
 $poseidonRow=Import-Csv -Delimiter ';' (Join-Path $poseidonProject 'Assets\Blocks\Poseidon.csv')
 if($poseidonRow.IsPlaceable -ne 'FALSE' -or $poseidonRow.Durability -ne '-1' -or $poseidonRow.DefaultCreativeData -ne '0'){throw 'Item contract mismatch.'}
 if (($poseidonMaxY-$poseidonMinY)*[single]$poseidonRow.DefaultIconViewScale -gt 1.65) { throw 'Icon exceeds conservative native 1.8-unit viewport envelope.' }

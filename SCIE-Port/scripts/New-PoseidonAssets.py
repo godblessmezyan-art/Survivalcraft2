@@ -17,8 +17,8 @@ spec.loader.exec_module(primitives)
 parts = primitives.parts
 triangle = primitives.triangle
 box = primitives.box
-COLORS = [(8,25,53),(16,53,86),(24,91,134),(43,139,183),(57,191,214),(122,235,244),
-          (78,49,27),(141,97,44),(202,158,71),(245,210,126),(231,249,241),(24,71,89)]
+COLORS = [(7,23,45),(12,47,72),(18,76,108),(26,116,150),(44,173,193),(111,222,230),
+          (56,46,33),(112,86,48),(176,140,75),(218,190,123),(216,240,239),(18,60,77)]
 
 def tube(name, points, radii, color, sides=8):
     mesh=[]
@@ -65,7 +65,7 @@ def geometry():
         for i in range(16):
             y=-1.08+i*.098
             angle=i*.62+strand*math.pi
-            box('ShaftWave_%d_%d'%(strand,i),(.047*math.cos(angle),y,.047*math.sin(angle)),(.013,.052,.013),8,math.sin(angle)*.38)
+            box('ShaftWave_%d_%d'%(strand,i),(.047*math.cos(angle),y,.047*math.sin(angle)),(.013,.052,.013),4,math.sin(angle)*.38)
     # The head is a royal lyre/crescent, NOT three parallel spear sticks.
     tube('CrownNeck',[(0,.49,0),(0,.58,0),(0,.71,0)],[.08,.12,.10],8)
     for sign,side in [(-1,'Port'),(1,'Starboard')]:
@@ -74,13 +74,13 @@ def geometry():
         # Outward-curved prongs terminate lower than the central blade.
         outline=[(sign*.40,1.05),(sign*.54,1.08),(sign*.68,1.64),(sign*.48,1.45),(sign*.39,1.23)]
         if sign<0:outline.reverse()
-        blade(side+'Prong',outline,.073,8)
+        blade(side+'Prong',outline,.073,2)
         inner=[(sign*.435,1.15),(sign*.50,1.17),(sign*.60,1.49),(sign*.46,1.36)]
         if sign<0:inner.reverse()
         blade(side+'AquamarineInlay',inner,.018,3,.078)
         blade(side+'SeaFin',[(sign*.19,.72),(sign*.29,.87),(sign*.29,.67)] if sign>0 else [(sign*.29,.67),(sign*.29,.87),(sign*.19,.72)],.035,8)
-    blade('SovereignMainBlade',[(-.12,.74),(.12,.74),(.17,1.22),(0,1.84),(-.17,1.22)],.085,8)
-    blade('MainDeepBlueInlay',[(-.052,.89),(.052,.89),(.088,1.23),(0,1.68),(-.088,1.23)],.018,2,.09)
+    blade('SovereignMainBlade',[(-.12,.74),(.12,.74),(.17,1.22),(0,1.84),(-.17,1.22)],.085,2)
+    blade('MainDeepBlueInlay',[(-.052,.89),(.052,.89),(.088,1.23),(0,1.68),(-.088,1.23)],.018,3,.09)
     # Aquamarine gem in a substantial gilt bezel. White facets are opaque highlights, no emissive dependency.
     blade('GemBezel',[(-.16,.62),(0,.51),(.16,.62),(0,.87)],.13,8)
     blade('HeartOfTheOcean',[(-.115,.65),(0,.56),(.115,.65),(0,.82)],.025,3,.14)
@@ -123,28 +123,12 @@ def model():
     (ROOT/'Textures/PoseidonTrident.png').write_bytes(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',w,h,8,6,0,0,0))+chunk(b'IDAT',zlib.compress((b'\0'+row)*h,9))+chunk(b'IEND',b''))
 
 def icons():
-    from PIL import Image,ImageDraw
-    im=Image.new('RGBA',(512,256));d=ImageDraw.Draw(im)
-    for k in range(2):
-        x=k*256
-        d.ellipse((x+7,7,x+249,249),fill=(7,24,47,246),outline=(208,168,83,255),width=7)
-        d.ellipse((x+22,22,x+234,234),outline=(36,149,184,255),width=3)
-        if k==0:
-            for j in range(3):
-                points=[(x+42+i*4,133+j*17+round(math.sin(i*.17+j*.5)*13)) for i in range(41)]
-                d.line(points,fill=(61,188+j*15,229,255),width=7-j)
-            d.line([(x+111,181),(x+148,69)],fill=(249,216,137),width=8)
-            d.line([(x+119,91),(x+116,63),(x+149,83),(x+172,69),(x+169,95),(x+149,104),(x+119,91)],fill=(160,240,249),width=6)
-        else:
-            points=[(x+42,188),(x+43,127),(x+65,88),(x+102,62),(x+144,58),(x+177,73),(x+197,103),(x+181,125),(x+157,117),(x+155,95),(x+134,99),(x+123,129),(x+144,163),(x+203,189)]
-            d.polygon(points,fill=(23,108,170),outline=(146,237,248))
-            d.line(points[2:9],fill=(221,255,255),width=9)
-            for j in range(3):d.arc((x+52-j*7,151+j*7,x+212,208+j*9),0,170,fill=(66,205,231),width=4)
-        for i in range(8):
-            a=i*math.tau/8
-            px=x+128+round(112*math.cos(a));py=128+round(112*math.sin(a))
-            d.ellipse((px-3,py-3,px+3,py+3),fill=(252,223,149))
-    im.save(ROOT/'Textures/PoseidonSkills.png')
+    # imagegen originals are committed as provenance. Only resampling, no icon drawing.
+    from PIL import Image
+    source=Path(__file__).resolve().parents[1]/'docs/assets/poseidon-v2/icons'
+    for name in ('TideShield','TidalWave','SeaDomain'):
+        with Image.open(source/(name+'.png')) as image:
+            image.convert('RGBA').resize((256,256),Image.Resampling.LANCZOS).save(ROOT/'Textures'/('Poseidon'+name+'V2.png'))
 
 def sounds():
     folder=ROOT/'Audio/Poseidon';folder.mkdir(parents=True,exist_ok=True)
