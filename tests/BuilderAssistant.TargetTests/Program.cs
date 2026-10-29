@@ -28,6 +28,11 @@ internal static class TargetTests
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void Run()
     {
+        MethodInfo drawHook=typeof(ModLoader).GetMethod("GuiDraw",new[] { typeof(ComponentGui),typeof(Camera),typeof(int) });
+        Check(drawHook!=null && drawHook.IsVirtual && drawHook.ReturnType==typeof(void),"placement GuiDraw loader ABI");
+        Check(typeof(Camera).GetProperty("ViewProjectionMatrix").PropertyType==typeof(Engine.Matrix),"placement camera projection ABI");
+        Check(typeof(Widget).GetProperty("Margin").PropertyType==typeof(Engine.Vector2),"touch preview margin ABI");
+        Check(typeof(Engine.Graphics.FlatBatch3D).GetMethod("QueueBoundingBox",new[] { typeof(Engine.BoundingBox),typeof(Engine.Color) })!=null,"placement line-box rendering ABI");
         foreach (VanillaBlockCapability capability in VanillaBlockCapabilities.All)
         {
             Type type = typeof(Block).Assembly.GetType("Game." + capability.TypeName,true);

@@ -17,6 +17,13 @@ namespace BuilderAssistant.Features.WorldEdit
         public override int[] HandledBlocks => new[] { BlueprintToolBlock.Index };
 
         /// <inheritdoc />
+        public override void Dispose()
+        {
+            BlueprintPlacementSession.OnWorldDisposed(Project);
+            base.Dispose();
+        }
+
+        /// <inheritdoc />
         public override bool OnUse(Ray3 ray, ComponentMiner componentMiner)
         {
             if (Terrain.ExtractContents(componentMiner.ActiveBlockValue) != BlueprintToolBlock.Index)

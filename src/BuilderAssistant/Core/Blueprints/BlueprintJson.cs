@@ -68,7 +68,7 @@ namespace BuilderAssistant.Core.Blueprints
             }
 
             var root = JsonValue.NewObject();
-            root.Add("schemaVersion", JsonValue.NewNumber(blueprint.FurniturePlacements.Count > 0 ? 3 : 2));
+            root.Add("schemaVersion", JsonValue.NewNumber(CurrentSchemaVersion));
             root.Add("kind", JsonValue.NewString(KindConstant));
             root.Add("name", JsonValue.NewString(blueprint.Name ?? string.Empty));
 

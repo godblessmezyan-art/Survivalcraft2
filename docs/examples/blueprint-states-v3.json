@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "精细状态与门测试",
+  "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "z": 0,
+      "key": "BricksBlock",
+      "d": 7
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 0,
+      "key": "WoodenStairsBlock",
+      "f": "stairs",
+      "d": 995
+    },
+    {
+      "x": 2,
+      "y": 1,
+      "z": 0,
+      "key": "WoodenSlabBlock",
+      "f": "slab",
+      "d": 63
+    },
+    {
+      "x": 3,
+      "y": 1,
+      "z": 0,
+      "key": "WoodenDoorBlock",
+      "f": "door",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 0,
+      "key": "OakWoodBlock",
+      "f": "log",
+      "d": 2
+    }
+  ]
+}

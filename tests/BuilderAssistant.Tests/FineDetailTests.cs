@@ -73,7 +73,12 @@ namespace BuilderAssistant.Tests
         private static int DumpBlockCapabilities(string path)
         {
             var root = BuilderAssistant.Core.Json.JsonValue.NewObject();
-            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.21.1"));
+            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.22.0"));
+            root.Add("generationSpec", BuilderAssistant.Core.Json.JsonValue.NewString("BLUEPRINT-SPEC.md"));
+            root.Add("maxImportChars", BuilderAssistant.Core.Json.JsonValue.NewNumber(BlueprintImportService.MaxImportChars));
+            root.Add("maxBlocksPerOperation", BuilderAssistant.Core.Json.JsonValue.NewNumber(BuilderAssistant.Core.Safety.BuildSafetyLimits.MaxBlocksPerOperation));
+            root.Add("maxAxisLength", BuilderAssistant.Core.Json.JsonValue.NewNumber(BuilderAssistant.Core.Safety.BuildSafetyLimits.MaxSelectionAxisLength));
+            root.Add("maxBlocksPerBatch", BuilderAssistant.Core.Json.JsonValue.NewNumber(BuilderAssistant.Core.Safety.BuildSafetyLimits.MaxBlocksPerBatch));
             root.Add("maxSchemaVersion", BuilderAssistant.Core.Json.JsonValue.NewNumber(3));
             var furniture = BuilderAssistant.Core.Json.JsonValue.NewArray();
             foreach (var template in BuilderAssistant.Core.Furniture.FurnitureTemplateRegistry.Default.Templates)

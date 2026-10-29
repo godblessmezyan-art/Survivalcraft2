@@ -1,3 +1,7 @@
+## v0.22 蓝图库与预览回归
+
+`BlueprintLibraryTests.cs` 使用真实文件目录和真实导入/规划代码验证持久化、删除、命名冲突、路径隔离、10000格导入、公开JSON示例、四向预览、门关联格、地形快照失效、零写入和绘制标记预算。目标测试新增GuiDraw和原生线框ABI检查。设备验收见 [v0.22记录](../docs/BUILDER-BLUEPRINT-0.22.0.md)。
+
 # Tests
 
 Place game-independent unit tests here. Tests that require a live SCNET client must be documented as manual Windows/Android test cases under `docs/` and must never use a player's primary world.

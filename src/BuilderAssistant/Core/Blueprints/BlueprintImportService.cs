@@ -21,11 +21,11 @@ namespace BuilderAssistant.Core.Blueprints
     {
         /// <summary>
         /// Hard ceiling on the raw pasted text (in chars) before we even hand it to the
-        /// parser. A legal blueprint is at most 1024 cells (~tens of KB); this leaves
+        /// parser. A legal blueprint is at most 10000 cells; this leaves
         /// generous headroom while stopping a pathological multi-megabyte paste from
         /// stalling the main thread inside the tokenizer.
         /// </summary>
-        public const int MaxImportChars = 256 * 1024;
+        public const int MaxImportChars = 2 * 1024 * 1024;
 
         /// <param name="json">The full blueprint JSON text (clipboard paste / text box).</param>
         /// <param name="isMaterialSupported">

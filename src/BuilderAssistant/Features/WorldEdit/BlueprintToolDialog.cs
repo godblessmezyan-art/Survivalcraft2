@@ -17,10 +17,11 @@ namespace BuilderAssistant.Features.WorldEdit
         private readonly ScrollPanelWidget scroll;
         private readonly LabelWidget current, message;
         private readonly TextBoxWidget name;
-        private readonly BevelledButtonWidget import, save, start, rotate, clearButton, refresh, cancel, load;
+        private readonly BevelledButtonWidget import, save, start, rotate, clearButton, refresh, cancel, load, delete;
         private readonly List<BevelledButtonWidget> entries = new List<BevelledButtonWidget>();
         private readonly List<string> stems = new List<string>();
         private string chosen;
+        private Dialog deletion;
         private int direction;
         private bool clear = true;
         internal BlueprintToolDialog(ComponentPlayer player, Action<int,bool> begin, Action close)
@@ -36,8 +37,9 @@ namespace BuilderAssistant.Features.WorldEdit
             import=Button("从系统剪贴板导入",0,105,400); name=new TextBoxWidget { Size=new Vector2(390,44), Title="保存蓝图名称", Description="输入名称", MaximumLength=80, FontScale=.7f }; Add(body,new RectangleWidget { Size=new Vector2(400,46),FillColor=new Color(48,55,65),OutlineColor=Color.White,OutlineThickness=1 },0,158); Add(body,name,5,159);
             save=Button("保存当前蓝图",0,210,400); rotate=Button("朝向：0°",0,263,195); clearButton=Button("清障：开启",205,263,195);
             Add(body,new LabelWidget { Text="仅覆盖蓝图实际需要写入的方块位置，不清理整个矩形区域，也不向外扩展。不检查周围方块类型。",Size=new Vector2(400,76),WordWrap=true,FontScale=.63f,Color=Color.White },0,315);
-            start=Button("开始放置",0,395,400); refresh=Button("刷新蓝图库",0,448,195); load=Button("载入所选蓝图",205,448,195);
-            message=new LabelWidget { Text="选择下方文件后载入。",Size=new Vector2(400,65),WordWrap=true,FontScale=.64f,Color=Color.White }; Add(body,message,0,503);
+            start=Button("选择落点并预览",0,395,400); refresh=Button("刷新蓝图库",0,448,195); load=Button("载入所选蓝图",205,448,195);
+            delete=Button("删除所选文件",0,501,400);
+            message=new LabelWidget { Text="选择下方文件后载入。",Size=new Vector2(400,65),WordWrap=true,FontScale=.64f,Color=Color.White }; Add(body,message,0,555);
             cancel=new BevelledButtonWidget { Text="关闭",Size=new Vector2(160,42),FontScale=.7f }; Add(panel,cancel,288,452);
             UpdateCurrent(); Refresh();
         }
@@ -55,7 +57,7 @@ namespace BuilderAssistant.Features.WorldEdit
             foreach(var b in entries) body.Children.Remove(b); entries.Clear(); stems.Clear(); chosen=null;
             string error; var files=BlueprintStorage.ListNames(out error);
             if(error!=null) { message.Text=error; return; }
-            float y=575;
+            float y=625;
             foreach(string stem in files)
             {
                 string err; Blueprint bp=BlueprintStorage.LoadBlueprint(stem,out err);
@@ -68,18 +70,38 @@ namespace BuilderAssistant.Features.WorldEdit
         }
         public override void Update()
         {
+            if(deletion!=null)return;
             Vector2 size=player.GameWidget.GuiWidget.ActualSize; float scale=MathUtils.Min(1f,(size.X-16)/460f);
             if(scale>0) { float h=MathUtils.Min(500f,(size.Y-16)/scale);panel.Size=new Vector2(460,h);view.Size=new Vector2(436,MathUtils.Max(40,h-95));panel.SetWidgetPosition(cancel,new Vector2(288,h-48));panel.LayoutTransform=Matrix.CreateScale(scale); }
             if(import.IsClicked) { string raw=GameInterop.TryReadClipboardText(); string e=WorldEditRuntime.QuickImport(raw,"系统剪贴板"); message.Text=e==null?"已导入内存；点击保存才写入蓝图库。":"导入失败："+e; if(e==null)UpdateCurrent(); }
-            if(save.IsClicked) { string filename; string e=WorldEditRuntime.QuickSave(name.Text,out filename); message.Text=e==null?"已保存："+filename:"保存失败："+e; }
+            if(save.IsClicked) { string filename; string e=WorldEditRuntime.QuickSave(name.Text,out filename); if(e==null) { Refresh(); chosen=System.IO.Path.GetFileNameWithoutExtension(filename); } message.Text=e==null?"已保存："+filename:"保存失败："+e; }
             if(rotate.IsClicked) { direction=(direction+1)%4;rotate.Text="朝向："+(direction*90)+"°"; }
             if(clearButton.IsClicked) { clear=!clear;clearButton.Text="清障："+(clear?"开启":"关闭"); }
             if(refresh.IsClicked) Refresh();
-            for(int i=0;i<entries.Count;i++) if(entries[i].IsClicked) { chosen=stems[i]; message.Text="已选择："+chosen; }
+            for(int i=0;i<entries.Count;i++) if(entries[i].IsClicked) { chosen=stems[i]; message.Text="已选择文件："+chosen+".json"; }
+            if(delete.IsClicked)
+            {
+                if(chosen==null) message.Text="请先选择要删除的文件。";
+                else
+                {
+                    string stem=chosen;
+                    deletion=new MessageDialog("删除本地蓝图？",stem+".json\n删除后无法恢复；当前已载入内存的蓝图和世界建筑不受影响。","删除文件","取消", result =>
+                    {
+                        deletion=null;
+                        if(result==MessageDialogButton.Button1)
+                        {
+                            string error=BlueprintStorage.Delete(stem);
+                            Refresh(); message.Text=error??"文件已删除，当前内存蓝图仍可使用或重新保存。";
+                        }
+                    });
+                    DialogsManager.ShowDialog(player.GameWidget.GuiWidget,deletion);
+                }
+            }
             if(load.IsClicked) { string e=chosen==null?"请先选择文件。":WorldEditRuntime.QuickLoad(chosen); message.Text=e==null?"已载入当前蓝图。":"载入失败："+e; if(e==null)UpdateCurrent(); }
             if(start.IsClicked) { string e=WorldEditRuntime.QuickValidate(WorldEditRuntime.ClipboardBlueprint); if(e!=null)message.Text=e; else begin(direction,clear); }
-            if(cancel.IsClicked||Input.Back||Input.Cancel) { Input.Clear();close(); }
+            if(cancel.IsClicked||Input.Back||Input.Cancel) { Input.Clear();if(deletion!=null)DialogsManager.HideDialog(deletion);close(); }
         }
+        internal void CloseChildren() { if(deletion!=null)DialogsManager.HideDialog(deletion);deletion=null; }
     }
     internal sealed class BlueprintClearConfirmDialog : Dialog
     {

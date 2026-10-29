@@ -19,6 +19,7 @@ namespace BuilderAssistant.Mod
         public override void __ModInitialize()
         {
             ModsManager.RegisterHook("GuiUpdate", this);
+            ModsManager.RegisterHook("GuiDraw", this);
             ModsManager.RegisterHook("BlocksInitalized", this);
             string modVersion = typeof(BuilderAssistantModLoader).Assembly.GetName().Version.ToString();
             Log.Information("[BuilderAssistant] Loaded (SCNET x25.01.17, v" + modVersion + "; speedboat behavior unchanged, world-edit builds run in single player or as the multiplayer host; remote clients are refused).");
@@ -44,11 +45,19 @@ namespace BuilderAssistant.Mod
         }
 
         /// <summary>
-        /// Updates the local-player speedboat prototype (unchanged) and then
-        /// advances any in-flight build by a small batch, both on the main
-        /// thread. Each subsystem is isolated in its own try/catch so a world-edit
-        /// fault can never disable the speedboat hook, and vice versa.
+        /// Draws bounded read-only placement outlines in the owner's camera.
         /// </summary>
+        public override void GuiDraw(ComponentGui componentGui, Camera camera, int drawOrder)
+        {
+            try { BlueprintPlacementSession.Draw(componentGui, camera, drawOrder); }
+            catch (System.Exception exception)
+            {
+                BlueprintPlacementSession.Reset();
+                Log.Error("[BuilderAssistant] Placement preview stopped: " + exception);
+            }
+        }
+
+        /// <summary>Advances bounded construction and placement sessions on the game thread.</summary>
         public override void GuiUpdate(ComponentGui componentGui)
         {
             try

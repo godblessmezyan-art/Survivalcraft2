@@ -1,19 +1,17 @@
 # Builder Assistant for Survivalcraft NET
 
-SCIE-Port 已在 **main / 0.47.0** 接入阿比斯·终焉之镰 V0.2 紫曜巨镰 A3，
-保留三连斩与触屏长按蓄力，四项技能仍锁定；独立神器 Tab 和专属背景齐备。
-本次冲突解决保留 Builder Assistant 0.19.0 的全部代码与能力，未扩展建筑蓝图方块范围。
-详情见 [阿比斯开发记录](SCIE-Port/docs/ABYSS-REAPER.md)；Android 7723 与联机待验证。
+当前建筑助手 **v0.22.0**：剪贴板导入、本地蓝图库保存/载入/确认删除，以及可旋转、升降、重选的只读落点预览。支持63种原版材料与10种结构块家具模板；新生成和保存统一 schema 3，旧 schema 1/2 继续可读。SCIE-Port 是独立移植工程，其版本与内容不代表建筑助手能力。
 
-当前 Builder Assistant **v0.19.0** 新增家具模板接口与 schema 3：AI 可同时输出结构 `cells` 和
-`furniturePlacements`（模板 id、相对坐标、四向旋转），导入后先建结构，再建家具。
-首批 10 个模板采用明确的 **结构块降级**，不是原生铁锤微体素家具；原生家具的世界设计表、
-持久化、回收和网络同步尚未满足安全事务要求，当前不启用。家具共用原有 32 格分批、
-取消/回滚/撤销，v1/v2 蓝图继续可用。Android 7723 与联机效果均为**待验证**。
-详见 [家具机制、模板表、schema 3 与实机清单](docs/FURNITURE-TEMPLATES.md)，
-AI 生成前须读取 [权威方块与家具能力清单](docs/blueprint-block-reference.md)。
-本版同时保留 main v0.18.0 的精细 DATA、颜色、依附方块与安全施工能力。
+**使用：**903打开管理→导入或载入→保存（可选）→选择落点并预览→点地→调整旋转/高度→确认建造；有覆盖时确认清障。902撤销。删除所选文件不会删除当前内存蓝图或世界建筑。
 
+- [统一蓝图生成规范](docs/BLUEPRINT-SPEC.md)
+- [可复制 AI 提示词](docs/AI-BLUEPRINT-PROMPT.md)
+- [方块与家具能力表](docs/blueprint-block-reference.md) / [精确 DATA 机器矩阵](docs/blueprint-block-capabilities.json)
+- [v0.22 开发与设备验收记录](docs/BUILDER-BLUEPRINT-0.22.0.md)
+
+目标为 SCNET x25.01.17 / net472。Windows编译、固定程序集ABI及离线测试与Android7723真机验证分开记录；触屏、剪贴板、绘制、存读档和真实联机仍待设备验证。撤销仅承诺既有地形日志范围，不能保证恢复物品、电路或流体连锁副作用。
+
+## 历史功能记录
 
 > **v0.18.0 精细建筑能力**：63种原版类型；九种 PaintedCube、楼梯/半砖/栅栏16色和合法楼梯角形、三轴原木无损编解码；新增木梯、铁梯和火把的支撑排序与施工后复核。schema1/2继续读取，每事务10000、每批32、每轴64不变，撤销/回滚也分批。活板门、栅栏门、地毯、藤蔓因跨子系统恢复缺口仍不支持。Android/7723及联机均待验证。详见[方块清单](docs/blueprint-block-reference.md)、[逐类型矩阵](docs/blueprint-block-capabilities.json)和[开发报告](docs/BUILDER-DETAIL-STATES-0.18.0.md)。
 

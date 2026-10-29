@@ -15,8 +15,17 @@ foreach ($file in $requiredFiles) {
 
 $frameworkReference = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2'
 if (-not (Test-Path -LiteralPath $frameworkReference -PathType Container)) {
-    throw 'Missing .NET Framework 4.7.2 Targeting Pack (MSB3644 will occur).'
+    # SDK builds can use Microsoft's reference-assemblies NuGet package without a machine-wide pack.
+    $nugetRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget\packages' }
+    $referencePackage = Join-Path $nugetRoot 'microsoft.netframework.referenceassemblies.net472'
+    $frameworkReference = Get-ChildItem -LiteralPath $referencePackage -Directory -ErrorAction SilentlyContinue |
+        Sort-Object Name -Descending |
+        ForEach-Object { Join-Path $_.FullName 'build\.NETFramework\v4.7.2' } |
+        Where-Object { (Test-Path -LiteralPath (Join-Path $_ 'mscorlib.dll')) -and (Test-Path -LiteralPath (Join-Path $_ 'System.dll')) } |
+        Select-Object -First 1
+    if (-not $frameworkReference) { throw 'Missing .NET Framework 4.7.2 reference assemblies (targeting pack or restored Microsoft NuGet package).' }
 }
+Write-Host "Framework references: $frameworkReference"
 
 $survivalcraftPath = Join-Path $GameDir 'Survivalcraft.exe'
 $assemblyName = [System.Reflection.AssemblyName]::GetAssemblyName($survivalcraftPath)

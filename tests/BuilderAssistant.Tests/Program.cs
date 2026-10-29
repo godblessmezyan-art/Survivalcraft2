@@ -200,6 +200,7 @@ namespace BuilderAssistant.Tests
                 return DumpBlockCapabilities(args[1]);
 
             TestFurnitureTemplates();
+            TestBlueprintLibraryAndPreview();
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
 
             TestCottageShape(blueprint);
@@ -2526,7 +2527,7 @@ namespace BuilderAssistant.Tests
                 }
             }
             Check(identical, "round-trip preserves position+material+family+data verbatim");
-            Check(back.SchemaVersion == 2, "generated blueprint round-trips as schema v2");
+            Check(back.SchemaVersion == BlueprintJson.CurrentSchemaVersion, "new exports use the unified current schema");
         }
 
         // --- Planner/undo are NOT regressed: a generated blueprint flows through the exact

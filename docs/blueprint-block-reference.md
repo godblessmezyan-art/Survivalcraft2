@@ -1,37 +1,10 @@
-# Builder Assistant 蓝图方块能力清单 v0.21.1
+# Builder Assistant 蓝图方块能力清单 v0.22.0
 
-> 2026-10-30：SCIE-Port 0.55.1 仅修复阿比斯星门 XML 写入重载，不改变本清单方块、族标签、DATA、JSON schema 或蓝图支持范围。
+本文件只列出建筑材料、DATA 和家具能力；生成格式统一见 [蓝图生成规范](BLUEPRINT-SPEC.md)，可复制提示词见 [AI 提示模板](AI-BLUEPRINT-PROMPT.md)。
 
-> 2026-10-29：SCIE-Port 0.54.0 调整阿比斯图像技能 UI、挥镰动作及范围；Builder Assistant 的方块、族标签、DATA 和蓝图能力不变。
+支持 63 种原版方块，10 种结构块家具模板。schema 1/2/3 均可导入，新生成和新保存统一使用 schema 3。v0.22.0 不新增材料或 DATA；机器可读的 [逐类型能力矩阵](blueprint-block-capabilities.json) 由代码生成，列出精确 allowedData 和限额。
 
-> 2026-10-29：SCIE-Port 0.53.0 调整虚影瞬狩视听，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。
-
-> 2026-10-29：SCIE-Port 0.52.0 新增阿比斯音效，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。
-
-> 2026-10-29：SCIE-Port 0.51.0 调整阿比斯视觉预览；Builder Assistant 方块、DATA、族标签及蓝图限制均未变。
-
-> 2026-10-29 主线合并审计：SCIE-Port 0.47.0 的阿比斯（952）与吞噬之眼（950）是独立 Mod 神器，
-> v0.21.0 蓝图管理及快捷放置未改变方块、DATA、家具或 schema 的支持范围；v0.21.1 已移除清障目标类型白名单和邻近方块检查；蓝图自身支持范围不变。
-
-> v0.20.0 工作台界面重构未改变方块、DATA、家具模板或 JSON schema 支持范围。
-
-> 不属于 Builder Assistant 可建造白名单，也不得生成到蓝图 cells。Builder Assistant 保持 0.19.0，
-> 本页类型、族标签、DATA 范围、家具与安全限制均沿用已验证主线，无新增支持。
-
-> 2026-10-28 展示规范补充：SCIE-Port 0.44.0 的独立 Tab、神器/圣兽背景和中文包名
-> 仅改变移植工程展示，不增加 Builder Assistant 的方块、族标签或 DATA 能力。
-> 不得将 `SCIEPort.Artifacts` / `SCIEPort.Vehicles` 等分类键当作蓝图材料键使用。
-
-> **SCIE-Port 0.43.0 审计**：四圣兽V3仅新增衣物数据200–203的立体附件、装备图标和美术资源，未新增、移除或修改Builder Assistant支持的方块、族标签、DATA范围或导入限制。本清单能力集合保持不变，四圣兽装备模型不能作为蓝图建筑材料。
-
-> **SCIE-Port 0.40.5 审计**：本次只调整衣物块 203 的四圣兽衣物穿戴 Layer、昆古尼尔 HUD 与瞄准准心；没有新增、移除或修改 Builder Assistant 支持的方块、族标签、DATA 范围或导入限制。本清单能力集合保持不变。
-
-> 2026-10-28 边界补充：SCIE-Port 0.43.0 新增的海神三叉戟·波塞冬（951、DATA 0、
-> 非地形物品）不属于本清单材料；不允许在 Builder Assistant `cells`/家具模板中填写
-> `PoseidonBlock`、951 或 `scieport-poseidon`，不增加蓝图族标签或 DATA 支持范围。
-
-> 适用于 Survivalcraft NET x25.01.17 的 Builder Assistant。原 60 种保留，新增两种梯子和火把，共 63 种。Windows 固定哈希程序集/API 与离线规则已确认；Android 7723 真机行为均待验证。
-> 本清单和 [逐类型能力矩阵](blueprint-block-capabilities.json) 是 AI 生成蓝图的能力依据。SCIE-Port 的代码、方块、载具、神器及家具不是本工程材料；不得据其他工程的版本推断本工程能力。
+Windows 固定哈希 x25.01.17 的 ABI/离线测试已确认，Android 7723 与真实联机待验证。SCIE-Port 的神器、载具和物品不属于本清单，不得写入蓝图。
 
 ## 家具模板（v0.19.0 / schema 3）
 
@@ -559,17 +532,4 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 }
 ```
 
-最后更新：2026-10-28，v0.19.0。详细取证、命令、测试及尚存限制见 [开发报告](BUILDER-DETAIL-STATES-0.18.0.md) 和 [165类方块审计](blueprint-block-audit-x25.01.17.md)。
-
-> 2026-10-28 SCIE-Port 0.44.1合并审计：仅整合四圣兽V3显示与0.44.0主线；Builder Assistant方块、族标签、DATA与家具模板能力均沿用0.19.0，无新增支持项。
-
-
-四圣兽 0.48.0 仅调整 SCIE-Port 衣物属性，不新增或移除 Builder Assistant 蓝图方块、DATA 范围或能力。
-
-阿比斯 0.49.0 主线整合仅涉及 SCIE-Port 神器，不新增或变更 Builder Assistant 蓝图方块、DATA 范围或能力。
-
-阿比斯 0.50.0 星门区块加载不改变 Builder Assistant 蓝图方块、DATA 范围或能力。
-
-## SCIE-Port 0.55.0：海神三叉戟V2
-
-951/DATA0身份与方块/建筑能力不变。技能改为水盾潮环、方向巨浪及20秒海神领域，水中伤害/有效护盾翻倍、游速3倍；全部水域为视觉效果，不写入真实水或地形，不新增可用于蓝图的方块。新增网络包248，旧246格式保留但旧施放入口停用，海神V2需要双端同版。详见SCIE-Port/docs/POSEIDON.md；Android及联机实测待验收。
+最后更新：2026-10-30，v0.22.0。旧取证记录见 [精细状态报告](BUILDER-DETAIL-STATES-0.18.0.md)。

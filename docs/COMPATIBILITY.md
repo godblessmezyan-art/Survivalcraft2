@@ -1,5 +1,21 @@
 ﻿# 兼容性矩阵
 
+## 2026-10-30 Builder Assistant v0.22.0：统一蓝图规范、蓝图库和落点预览
+
+新生成/保存统一schema3，保留schema1/2/3导入。903提供剪贴板导入、显式保存、刷新载入和确认删除；只读落点范围、占地、原点、作者前向、Y高度及冲突线框支持旋转/升降/重选/确认。门隐式上半格和家具净空纳入快照；预览到确认期间地形变化要求再次确认；覆盖仍需清障确认，施工/撤销复用既有管线。未新增材料、族、DATA、GUID、网络包或原生微体素家具。
+
+| 项目 | 状态 | 证据和边界 |
+|---|---|---|
+| Windows固定x25.01.17/net472 | 已确认 | 原固定程序集哈希匹配；环境/Speedboat ABI/Portable Fortress导入、Release及包守卫通过，0警告0错误。环境检查支持微软NuGet的net472引用程序集。 |
+| 规则与持久化 | 已确认 | 2130项离线检查通过；真实临时目录保存/重名/中文/删除/路径隔离、10000格导入、公开JSON、零写入预览、四向范围、地形变化/门上半格、区块恢复、标记预算和原有撤销回滚回归。 |
+| 原生绘制/UI API | 已确认 | 1913项目标静态API检查通过。新增GuiDraw Hook；目标ComponentGui.Draw调用该Hook且drawOrder=9；使用原生FlatBatch3D线框、相机投影矩阵和触屏Widget，无Shader或GPU资源替换。此结论仅为编译/ABI，非实际画面。 |
+| 游戏内/Android7723/真实联机 | 待验证 | 未启动游戏、未操作设备。线框可见性、颜色/布局、多指输入/相机、剪贴板/存储、窗口生命周期、帧率和真实权限/地形同步按设备清单验收；普通客户端不可施工。 |
+
+实际执行：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-NetMod.ps1 -GameDir <本机SCNET目录>`。本机测试使用已安装.NET9运行net8规则测试（`DOTNET_ROLL_FORWARD=Major`）。正式产物`BuilderAssistant.netmod`及版本副本`BuilderAssistant-0.22.0.netmod`，SHA-256 `623D03FDF16C1F5D33A22C36DB9F20DD47BDD91C8318918A274D3420CC6AE55F`。
+
+规范见[BLUEPRINT-SPEC.md](BLUEPRINT-SPEC.md)，实现范围和设备验收见[v0.22记录](BUILDER-BLUEPRINT-0.22.0.md)。清障/撤销仍不保证恢复物品、电路、掉落或流体连锁副作用。
+
+
 ## 2026-10-30 main 0.55.1：SCIE-Port Android 星门存档修复
 
 旧包在用户 Android 运行时的 `XmlWriter.Create(StringBuilder, settings)` 缺失已由日志确认。改为 StringWriter/TextWriter；新增实际 DLL 调用签名守卫、空/满星门与实际子系统 Save 回归。不改变 XML v1、存档字段、已有 ID 或协议，不涉及 Builder Assistant。Android7723 进入/保存/退出/重进及真实联机状态仍为 **待验证**；本机验证细节见 `SCIE-Port/docs/TEST-RESULTS.md`。
