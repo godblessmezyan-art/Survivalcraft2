@@ -1,6 +1,22 @@
 ﻿# 测试结果
 
-## 2026-10-30 main 0.55.1：Android 星门存档 MissingMethod 紧急修复
+## 2026-10-30 main 0.55.2：星门 XML 兼容性再修复
+
+用户在 0.55.1 继续遇到 `XmlWriter.WriteStartElement(string)` 缺失，证实上一轮只改 Create 重载不足。保存现已完全移除 XmlWriter/XmlWriterSettings，使用固定 XML v1 编码；名称校验去掉 XmlConvert。读取只用固定 EntitySystem.dll 的 XmlUtils 原生加载链已引用的 XmlReader factory/settings，再交给 XElement.Load，提前限制长度并拒绝 DTD。解析方法禁止内联，外层仅捕获 MissingMemberException/TypeLoadException；运行时缺失接口时保留原始 VoidPortalRecords 并停用星门，不让该类解析错误阻断加载，不吞保存失败。
+
+实际最终构建命令（仓库根，本机 Python 加入 PATH，FrameworkPathOverride 指向 net472 reference assemblies 1.0.3）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+```
+
+最终构建 exit 0：环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行及包内容校验通过。208 项星门检查包含独立旧版 XmlWriter 生成的存档、空/64 星门、特殊字符/换行/emoji/Unicode 边界、fr-FR 坐标、损坏/重复/外部实体/无效链接拒绝；890 项原生隔离检查包含实际子系统 Save 和 ValuesDictionary 的存读档及损坏原文保留。成品 IL 扫描整个注册表（含辅助方法），确认没有 XmlWriter/XmlWriterSettings/XmlConvert 调用，reader 调用限定为已核实的原生解析入口；该守卫已在旧 0.55.1 DLL 上实际失败。最终 DLL 另核实 ReadDocument 标记 NoInlining。完整日志：本机忽略目录 `SCIE-Port/artifacts/hotfix-0.55.2-build.log`。
+
+最终包 `荒野探险家-0.55.2.netmod` / `荒野探险家.netmod` 字节一致：7,340,371 字节、143 项，SHA-256 `5140F51E3C2B15978D88AE78EB7424A52BC7DD47DD8253FBDC7B80383272A9FF`。包内 Version=0.55.2，程序集版本0.55.2.0；包内 DLL 与通过检查的 DLL 字节一致。对比 0.55.1 仅 DLL 和 modinfo 改变，模型/贴图/数据库全部保持。
+
+未运行 Android 7723 或真实多人世界，不能据离线结果声称已完成手机验收。替换旧包并完全重启游戏后，先在新建世界和旧世界副本检查“进入 → 保存 → 退出 → 重进”；已有星门名称/坐标/链接应保持。遇到“记录不可用”时原文仍保留，禁止通过删存档解决。`Child widget not present in container` 的堆栈位于退出保存异常之后，可能是连锁错误；用户日志起始部分缺失，若仍无法进入世界，需要新的完整日志中第一次 ERROR 来判断是否有独立的加载异常。
+
+## 2026-10-30 main 0.55.1：Android 星门存档 MissingMethod 紧急修复（不完整，已由 0.55.2 替代）
 
 用户日志显示 `SubsystemAbyssReaper.Save` 调用 `XmlWriter.Create(StringBuilder, XmlWriterSettings)` 时抛出 `Method not found`。Windows 固定程序集隔离夹具原先通过，不能据此推断 Android/Mono 的 System.Xml API 表面。本次改为 `StringWriter(StringBuilder, InvariantCulture)` + `XmlWriter.Create(TextWriter, settings)`；仍写 `VoidPortalRecords`、XML version=1，不迁移或清空记录，不吞掉保存异常。
 

@@ -1,6 +1,8 @@
 ﻿# 荒野探险家 / Wilderness Explorer
 
-**0.55.1（main，2026-10-30）**：紧急修复 Android 退出/保存世界时阿比斯星门调用 `XmlWriter.Create(StringBuilder, settings)` 导致的 `Method not found`，改用 `StringWriter` 和 `TextWriter` 重载。保留星门 XML v1、存档字段、已有内容及网络布局；新增成品 DLL 调用签名守卫与空/满星门存读档回归。Android 7723 进世界、保存、退出与重进仍需真机复测，见[测试结果](docs/TEST-RESULTS.md)。
+**0.55.2（main，2026-10-30）**：修正 0.55.1 未完全解决的 Android 星门存档错误。保存直接生成正确转义的 XML v1，完全移除 `XmlWriter` 调用；读取使用已核实的游戏原生 XML 解析链，移除可疑便捷方法/设置依赖。原有星门身份、名称、坐标与链接保持，不清空存档。Android 7723 进入、保存、退出与重进仍需实机复测，见[测试结果](docs/TEST-RESULTS.md)。
+
+**0.55.1（已由 0.55.2 替代）**：替换 `XmlWriter.Create` 重载后，用户实机仍报 `WriteStartElement(string)` 缺失，修复不完整。
 
 **0.55.0（main，2026-10-30）**：海神V2水盾潮环、方向巨浪与20秒海神领域；水中伤害/护盾翻倍、游速3倍。三张image_gen徽记围绕查看排布，配色改为深海蓝/海青/古金。完整构建已通过，Android与真实联机待用户验收，联机双方须同版。详见[海神V2](docs/POSEIDON.md)。
 

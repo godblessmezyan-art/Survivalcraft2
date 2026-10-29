@@ -9,7 +9,7 @@ public static class AbyssIL {
  static Dictionary<ushort,OpCode> codes=new Dictionary<ushort,OpCode>();
  static AbyssIL(){foreach(var f in typeof(OpCodes).GetFields(BindingFlags.Public|BindingFlags.Static)){var op=(OpCode)f.GetValue(null);codes[(ushort)op.Value]=op;}}
  public static string[] Calls(MethodInfo method){var names=new List<string>();foreach(var target in Methods(method))names.Add(target.Name);return names.ToArray();}
- public static MethodBase[] Methods(MethodInfo method){var methods=new List<MethodBase>();byte[] il=method.GetMethodBody().GetILAsByteArray();
+ public static MethodBase[] Methods(MethodBase method){var methods=new List<MethodBase>();var body=method.GetMethodBody();if(body==null)return methods.ToArray();byte[] il=body.GetILAsByteArray();
  for(int i=0;i<il.Length;){ushort key=il[i++];if(key==0xfe)key=(ushort)(0xfe00|il[i++]);var op=codes[key];int n=0;
  switch(op.OperandType){case OperandType.InlineNone:break;case OperandType.ShortInlineBrTarget:case OperandType.ShortInlineI:case OperandType.ShortInlineVar:n=1;break;
  case OperandType.InlineVar:n=2;break;case OperandType.InlineI8:case OperandType.InlineR:n=8;break;
@@ -21,12 +21,29 @@ public static class AbyssIL {
 '@
 Add-Type -TypeDefinition $decoder
 $registry=$mod.GetType('SCIEPort.Features.AbyssReaper.VoidPortalRegistry',$true)
-$serialize=$registry.GetMethod('Serialize',[Reflection.BindingFlags]'Instance,NonPublic')
-$xmlCalls=@([AbyssIL]::Methods($serialize) | Where-Object { $_.DeclaringType.FullName -eq 'System.Xml.XmlWriter' -and $_.Name -eq 'Create' })
-if($xmlCalls.Count -ne 1 -or $xmlCalls[0].GetParameters()[0].ParameterType.FullName -ne 'System.IO.TextWriter') {
-    throw 'Portal save must call XmlWriter.Create(TextWriter, settings); StringBuilder overload is missing on Android/Mono.'
+# Check all registry methods/constructors, including escaping, validation and read helpers.
+# The target game's XmlUtils.LoadXmlFromTextReader uses this exact reader factory and
+# these three settings. Convenience methods may be stripped on the Android runtime.
+$registryFlags=[Reflection.BindingFlags]'Public,NonPublic,Instance,Static,DeclaredOnly'
+$registryMethods=@($registry.GetMethods($registryFlags))+@($registry.GetConstructors($registryFlags))
+foreach($method in $registryMethods) {
+    foreach($call in [AbyssIL]::Methods($method)) {
+        $owner=$call.DeclaringType.FullName
+        if($owner -in @('System.Xml.XmlWriter','System.Xml.XmlWriterSettings','System.Xml.XmlConvert')) {
+            throw "Portal persistence must not depend on stripped XML APIs: $($method.Name) -> $owner.$($call.Name)."
+        }
+        if($owner -eq 'System.Xml.XmlReader') {
+            $parameters=@($call.GetParameters() | ForEach-Object { $_.ParameterType.FullName })
+            if($call.Name -ne 'Create' -or ($parameters -join ',') -ne 'System.IO.TextReader,System.Xml.XmlReaderSettings') {
+                throw "Portal reader uses an unaudited XML overload: $($method.Name) -> $call."
+            }
+        }
+        if($owner -eq 'System.Xml.XmlReaderSettings' -and $call.Name -notin @('.ctor','set_CheckCharacters','set_IgnoreComments','set_IgnoreProcessingInstructions')) {
+            throw "Portal reader uses a setting not retained by the native loader: $($method.Name) -> $call."
+        }
+    }
 }
-Write-Host 'Portal save compiled IL uses XmlWriter.Create(TextWriter, settings), avoiding the reported Android missing method.'
+Write-Host 'Portal persistence IL: no XmlWriter/XmlWriterSettings/XmlConvert; reader calls limited to native loader primitives (not Android runtime proof).'
 $input=$g.GetType('Game.ComponentInput')
 $calls=[AbyssIL]::Calls($input.GetMethod('Update'))
 $mouse=[Array]::IndexOf($calls,'UpdateInputFromMouseAndKeyboard');$touch=[Array]::IndexOf($calls,'UpdateInputFromWidgets')

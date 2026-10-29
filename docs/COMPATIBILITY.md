@@ -16,7 +16,11 @@
 规范见[BLUEPRINT-SPEC.md](BLUEPRINT-SPEC.md)，实现范围和设备验收见[v0.22记录](BUILDER-BLUEPRINT-0.22.0.md)。清障/撤销仍不保证恢复物品、电路、掉落或流体连锁副作用。
 
 
-## 2026-10-30 main 0.55.1：SCIE-Port Android 星门存档修复
+## 2026-10-30 main 0.55.2：SCIE-Port 星门 XML 完整修正
+
+0.55.1 在用户 Android 日志中继续报 `XmlWriter.WriteStartElement(string)` 缺失。0.55.2 完全移除星门保存的 XmlWriter 依赖，保留正确转义的 XML v1；读取改用在固定 EntitySystem.dll 中核实的原生解析调用，移除额外便捷方法/设置依赖。新增旧版 XML 与特殊字符回归、成品 IL 守卫。不改变星门字段、已有 ID 或协议，不涉及 Builder Assistant。Android 7723 实机与真实联机 **待验证**；详细证据见 `SCIE-Port/docs/TEST-RESULTS.md`。
+
+## 2026-10-30 main 0.55.1：SCIE-Port Android 星门存档修复（不完整，已由 0.55.2 替代）
 
 旧包在用户 Android 运行时的 `XmlWriter.Create(StringBuilder, settings)` 缺失已由日志确认。改为 StringWriter/TextWriter；新增实际 DLL 调用签名守卫、空/满星门与实际子系统 Save 回归。不改变 XML v1、存档字段、已有 ID 或协议，不涉及 Builder Assistant。Android7723 进入/保存/退出/重进及真实联机状态仍为 **待验证**；本机验证细节见 `SCIE-Port/docs/TEST-RESULTS.md`。
 

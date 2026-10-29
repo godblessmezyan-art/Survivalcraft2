@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.55.1",
+  "Version": "0.55.2",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.55.1 修复 Android 阿比斯星门存档时 XmlWriter 方法缺失，保留海神V2、阿比斯及四圣兽；星门存档格式不变。Android7723实机待验收，联机双方请使用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.55.2 移除星门保存的 XmlWriter 依赖，修复 Android WriteStartElement 方法缺失；读取改用游戏原生解析链，星门存档格式不变。保留海神V2、阿比斯及四圣兽，Android7723实机待验收，联机双方请使用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

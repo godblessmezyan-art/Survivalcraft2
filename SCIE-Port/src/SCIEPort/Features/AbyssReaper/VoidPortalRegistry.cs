@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace SCIEPort.Features.AbyssReaper
 {
@@ -37,7 +38,17 @@ namespace SCIEPort.Features.AbyssReaper
         internal static bool ValidName(string name)
         {
             if (string.IsNullOrWhiteSpace(name) || name.Length > 32 || name.Trim() != name) return false;
-            try { XmlConvert.VerifyXmlChars(name); return true; } catch (Exception e) when (e is XmlException || e is ArgumentException) { return false; }
+            // XML 1.0 characters, without XmlConvert helpers stripped from some Android builds.
+            for(int i=0;i<name.Length;i++)
+            {
+                char c=name[i];
+                if(c>=0xd800 && c<=0xdbff)
+                {
+                    if(++i>=name.Length || name[i]<0xdc00 || name[i]>0xdfff)return false;
+                }
+                else if((c<0x20 && c!='\t' && c!='\n' && c!='\r') || (c>=0xdc00 && c<=0xdfff) || c>=0xfffe)return false;
+            }
+            return true;
         }
         internal static bool ValidPosition(float x, float y, float z, float facing)
             => WorldCutRules.Coordinates(x, y, z) && WorldCutRules.Finite(facing) && Math.Abs(facing) <= 360f;
@@ -71,52 +82,93 @@ namespace SCIEPort.Features.AbyssReaper
         internal string Serialize()
         {
             var b=new StringBuilder();
-            var settings=new XmlWriterSettings { OmitXmlDeclaration=true, ConformanceLevel=ConformanceLevel.Document };
-            // Android/Mono does not provide the StringBuilder overload exposed by Windows.
-            using(var output=new StringWriter(b,CultureInfo.InvariantCulture))
-            using(var writer=XmlWriter.Create(output,settings))
+            // Fixed v1 schema: do not call XmlWriter, including its convenience overloads.
+            // Android logs confirmed both Create(StringBuilder, ...) and WriteStartElement(string) missing.
+            b.Append("<voidPortals");Attribute(b,"version",Version.ToString(CultureInfo.InvariantCulture));
+            Attribute(b,"world",WorldId.ToString("D"));Attribute(b,"limit",Limit.ToString(CultureInfo.InvariantCulture));
+            if(records.Count==0)b.Append(" />");
+            else
             {
-                writer.WriteStartElement("voidPortals");writer.WriteAttributeString("version",Version.ToString(CultureInfo.InvariantCulture));
-                writer.WriteAttributeString("world",WorldId.ToString("D"));writer.WriteAttributeString("limit",Limit.ToString(CultureInfo.InvariantCulture));
+                b.Append('>');
                 foreach (Portal p in records.Values)
                 {
-                    writer.WriteStartElement("portal");writer.WriteAttributeString("id",p.Id.ToString("D"));writer.WriteAttributeString("owner",p.Owner.ToString("D"));
-                    writer.WriteAttributeString("name",p.Name);writer.WriteAttributeString("x",p.X.ToString("R",CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("y",p.Y.ToString("R",CultureInfo.InvariantCulture));writer.WriteAttributeString("z",p.Z.ToString("R",CultureInfo.InvariantCulture));
-                    writer.WriteAttributeString("facing",p.Facing.ToString("R",CultureInfo.InvariantCulture));writer.WriteAttributeString("target",p.Target.ToString("D"));
-                    writer.WriteAttributeString("active",p.Active?"1":"0");writer.WriteEndElement();
+                    b.Append("<portal");Attribute(b,"id",p.Id.ToString("D"));Attribute(b,"owner",p.Owner.ToString("D"));
+                    Attribute(b,"name",p.Name);Attribute(b,"x",p.X.ToString("R",CultureInfo.InvariantCulture));
+                    Attribute(b,"y",p.Y.ToString("R",CultureInfo.InvariantCulture));Attribute(b,"z",p.Z.ToString("R",CultureInfo.InvariantCulture));
+                    Attribute(b,"facing",p.Facing.ToString("R",CultureInfo.InvariantCulture));Attribute(b,"target",p.Target.ToString("D"));
+                    Attribute(b,"active",p.Active?"1":"0");b.Append(" />");
                 }
-                writer.WriteEndElement();
+                b.Append("</voidPortals>");
             }
             if(b.Length>MaxDocument) throw new InvalidOperationException("Portal document exceeds limit.");
             return b.ToString();
         }
+        private static void Attribute(StringBuilder output,string key,string value)
+        {
+            output.Append(' ').Append(key).Append("=\"");
+            foreach(char c in value)
+            {
+                switch(c)
+                {
+                    case '&': output.Append("&amp;");break;
+                    case '<': output.Append("&lt;");break;
+                    case '>': output.Append("&gt;");break;
+                    case '"': output.Append("&quot;");break;
+                    // References preserve whitespace through XML attribute normalization.
+                    case '\t': output.Append("&#x9;");break;
+                    case '\n': output.Append("&#xA;");break;
+                    case '\r': output.Append("&#xD;");break;
+                    default: output.Append(c);break;
+                }
+            }
+            output.Append('"');
+        }
+        private static string Attribute(XElement element,string name) => element.Attribute(name)?.Value;
         // A rejected/corrupt document is never partially installed and remains available to the caller.
         internal static bool TryDeserialize(string raw, out VoidPortalRegistry result)
         {
+            result=null;
+            // Keep method-resolution failures inside a separate call boundary. On an unknown
+            // Android runtime the subsystem retains the original text and disables only portals.
+            try { return ReadDocument(raw,out result); }
+            catch(MissingMemberException) { return false; }
+            catch(TypeLoadException) { return false; }
+        }
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static bool ReadDocument(string raw,out VoidPortalRegistry result)
+        {
             result=null;if(string.IsNullOrEmpty(raw)||raw.Length>MaxDocument)return false;
+            // Reject DTDs before calling the native-backed parser, without optional settings setters.
+            if(raw.IndexOf("<!DOCTYPE",StringComparison.OrdinalIgnoreCase)>=0)return false;
             try
             {
-                var settings=new XmlReaderSettings { DtdProcessing=DtdProcessing.Prohibit, XmlResolver=null, MaxCharactersInDocument=MaxDocument, IgnoreWhitespace=true };
+                // These exact calls are used by x25 EntitySystem's XmlUtils.LoadXmlFromTextReader.
+                // Avoid XmlReader convenience methods and settings that the Android linker may strip.
+                var settings=new XmlReaderSettings { CheckCharacters=true, IgnoreComments=true, IgnoreProcessingInstructions=true };
                 using(var reader=XmlReader.Create(new StringReader(raw),settings))
                 {
-                    reader.MoveToContent();if(reader.Name!="voidPortals" || reader.GetAttribute("version")!="1")return false;
+                    XElement root=XElement.Load(reader,LoadOptions.None);
+                    if(root.Name.ToString()!="voidPortals" || Attribute(root,"version")!="1")return false;
                     Guid world;int limit;
-                    if(!Guid.TryParse(reader.GetAttribute("world"),out world)||world==Guid.Empty || !int.TryParse(reader.GetAttribute("limit"),NumberStyles.None,CultureInfo.InvariantCulture,out limit)||limit<1||limit>HardLimit)return false;
+                    if(!Guid.TryParse(Attribute(root,"world"),out world)||world==Guid.Empty || !int.TryParse(Attribute(root,"limit"),NumberStyles.None,CultureInfo.InvariantCulture,out limit)||limit<1||limit>HardLimit)return false;
                     var temp=new VoidPortalRegistry(world,limit);var targets=new Dictionary<Guid,Guid>();var active=new Dictionary<Guid,bool>();
-                    if(reader.IsEmptyElement){reader.Read();if(reader.MoveToContent()!=XmlNodeType.None)return false;result=temp;return true;}
-                    reader.ReadStartElement("voidPortals");
-                    while(reader.NodeType==XmlNodeType.Element)
+                    foreach(XNode node in root.Nodes())
                     {
-                        if(reader.Name!="portal" || !reader.IsEmptyElement)return false;
-                        Guid id,owner,target;float x,y,z,facing;string name=reader.GetAttribute("name"),enabled=reader.GetAttribute("active");
-                        if(!Guid.TryParse(reader.GetAttribute("id"),out id)||!Guid.TryParse(reader.GetAttribute("owner"),out owner)||!Guid.TryParse(reader.GetAttribute("target"),out target)
-                            || !float.TryParse(reader.GetAttribute("x"),NumberStyles.Float,CultureInfo.InvariantCulture,out x)||!float.TryParse(reader.GetAttribute("y"),NumberStyles.Float,CultureInfo.InvariantCulture,out y)
-                            || !float.TryParse(reader.GetAttribute("z"),NumberStyles.Float,CultureInfo.InvariantCulture,out z)||!float.TryParse(reader.GetAttribute("facing"),NumberStyles.Float,CultureInfo.InvariantCulture,out facing)
+                        var element=node as XElement;
+                        if(element==null)
+                        {
+                            var whitespace=node as XText;
+                            if(whitespace!=null && !(node is XCData) && string.IsNullOrWhiteSpace(whitespace.Value))continue;
+                            return false;
+                        }
+                        if(element.Name.ToString()!="portal" || !element.IsEmpty)return false;
+                        Guid id,owner,target;float x,y,z,facing;string name=Attribute(element,"name"),enabled=Attribute(element,"active");
+                        if(!Guid.TryParse(Attribute(element,"id"),out id)||!Guid.TryParse(Attribute(element,"owner"),out owner)||!Guid.TryParse(Attribute(element,"target"),out target)
+                            || !float.TryParse(Attribute(element,"x"),NumberStyles.Float,CultureInfo.InvariantCulture,out x)||!float.TryParse(Attribute(element,"y"),NumberStyles.Float,CultureInfo.InvariantCulture,out y)
+                            || !float.TryParse(Attribute(element,"z"),NumberStyles.Float,CultureInfo.InvariantCulture,out z)||!float.TryParse(Attribute(element,"facing"),NumberStyles.Float,CultureInfo.InvariantCulture,out facing)
                             || (enabled!="0"&&enabled!="1") || !temp.TryAdd(id,owner,name,x,y,z,facing))return false;
-                        targets.Add(id,target);active.Add(id,enabled=="1");reader.Read();
+                        targets.Add(id,target);active.Add(id,enabled=="1");
                     }
-                    reader.ReadEndElement();if(reader.MoveToContent()!=XmlNodeType.None)return false;
                     foreach(var pair in active)temp.records[pair.Key].Active=pair.Value;
                     foreach(var pair in targets)
                     {

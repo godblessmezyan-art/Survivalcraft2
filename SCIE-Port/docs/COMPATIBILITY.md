@@ -1,6 +1,14 @@
 ﻿# SCIE-Port 兼容性记录
 
-## 2026-10-30 main 0.55.1：Android 星门存档 XML 重载修复
+## 2026-10-30 main 0.55.2：移除星门 XmlWriter 依赖
+
+0.55.1 的用户日志进一步确认 `XmlWriter.WriteStartElement(string)` 缺失；仅替换 Create 重载不足。0.55.2 的保存路径改为固定 XML v1 文本编码，处理引号、尖括号、& 和属性中的制表符/换行/回车；名称校验使用 XML 1.0 字符规则。成品守卫禁止注册表及其辅助方法调用 XmlWriter、XmlWriterSettings、XmlConvert。
+
+读取改用 `XmlReader.Create(TextReader, XmlReaderSettings)` + `XElement.Load(XmlReader, LoadOptions.None)`，由本机固定 `EntitySystem.dll` 的 `XmlUtilities.XmlUtils.LoadXmlFromTextReader` 反编译证实是原生解析链。只使用同一方法已调用的设置 setter；启用字符校验，解析前限制 32768 字符并拒绝 DTD，再检查版本、64 个记录上限、坐标和链接。Windows 证据不能替代 Android 程序集证据。
+
+`VoidPortalRecords`、XML v1、WorldId、星门 ID/所有者/坐标/链接、XDB GUID、方块 ID 和网络布局保持。解析放在禁止内联的调用边界内；遇到 MissingMemberException（含 MissingMethodException）或 TypeLoadException 时沿用“不支持”路径，保留原文并停用星门，避免此类解析错误中断世界加载。不吞保存异常，不部分加载或清空记录。Android 7723 实机进入/保存/退出/重进与真实联机 **待验证**；实际构建记录见 [TEST-RESULTS.md](TEST-RESULTS.md)。
+
+## 2026-10-30 main 0.55.1：Android 星门存档 XML 重载修复（不完整，已由 0.55.2 替代）
 
 用户 Android 日志已确认旧 `XmlWriter.Create(StringBuilder, XmlWriterSettings)` 在其运行时缺失。改用 `StringWriter` 包装缓冲区并调用 TextWriter 重载；`VoidPortalRecords`、XML v1、WorldId、星门 ID/所有者/坐标/链接、XDB GUID、方块 ID 和网络包布局均保持。
 
