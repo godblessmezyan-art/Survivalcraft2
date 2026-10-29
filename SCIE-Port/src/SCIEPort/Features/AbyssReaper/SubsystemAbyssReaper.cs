@@ -18,6 +18,8 @@ namespace SCIEPort.Features.AbyssReaper
         SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies; SubsystemPlayers players;
         bool allowPlayers,allowPassive,showRifts;
         internal WorldCutRuntime WorldCut { get; private set; }
+        internal VoidPortalRegistry Portals { get; private set; }
+        private string portalLoadFailure;
         /// <inheritdoc/>
         public override int[] HandledBlocks => new[]{AbyssReaperBlock.Index};
         /// <inheritdoc/>
@@ -26,7 +28,18 @@ namespace SCIEPort.Features.AbyssReaper
         public int[] DrawOrders {get;}=new[]{110};
         /// <inheritdoc/>
         public override void Load(ValuesDictionary v) {base.Load(v);players=Project.FindSubsystem<SubsystemPlayers>(true);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);
+            string savedPortals=v.GetValue<string>("VoidPortalRecords", "");
+            VoidPortalRegistry loaded;
+            if (string.IsNullOrEmpty(savedPortals)) Portals=new VoidPortalRegistry(Guid.NewGuid(),v.GetValue<int>("VoidPortalLimit",VoidPortalRegistry.DefaultLimit));
+            else if(VoidPortalRegistry.TryDeserialize(savedPortals,out loaded)) Portals=loaded;
+            else { portalLoadFailure=savedPortals; Log.Error("[SCIEPort:Abyss] Portal records invalid or unsupported; retained unchanged and portal operations disabled."); }
             WorldCut=new WorldCutRuntime(Project,players,clock,terrain,bodies,allowPlayers,allowPassive,showRifts,v.GetValue<bool>("WorldCutLowEffects",false),WorldCutRules.Damage(v.GetValue<float>("WorldCutInitialDamage",100f),100),WorldCutRules.Damage(v.GetValue<float>("WorldCutCloseDamage",40f),40));}
+        /// <inheritdoc/>
+        public override void Save(ValuesDictionary values)
+        {
+            base.Save(values);
+            values.SetValue("VoidPortalRecords", portalLoadFailure ?? Portals.Serialize());
+        }
         /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
         public void Capture(ComponentInput input) {
             var p=input.m_componentPlayer; if(p==null)return;
