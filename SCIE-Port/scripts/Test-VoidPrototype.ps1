@@ -18,7 +18,8 @@ foreach($file in Get-ChildItem $path -Filter 'Void*.cs') {
     if($source -match '\b(ChangeCell|DestroyCell|SetCellValueFast|AddParticleSystem)\s*\('){throw "Unexpected terrain mutation or particle blob in $($file.Name)"}
 }
 $mod=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes($AssemblyPath))
-foreach($type in @('VoidPortalSafety','VoidPortalOperations','VoidPortalLocalTravel','VoidPortalScene','VoidBlinkRuntime','VoidHorizonRuntime','VoidCombatSafety')) {
+if (-not $game.GetType('Game.TerrainUpdater').GetField('m_pendingLocations',[Reflection.BindingFlags]'Instance,NonPublic')) { throw 'Audited queued terrain locations field missing.' }
+foreach($type in @('VoidChunkLease','VoidPortalSafety','VoidPortalOperations','VoidPortalLocalTravel','VoidPortalScene','VoidBlinkRuntime','VoidHorizonRuntime','VoidCombatSafety')) {
     if(!$mod.GetType("SCIEPort.Features.AbyssReaper.$type",$false)){throw "Missing compiled $type"}
 }
 Write-Host 'Void prototype: real target API, compiled runtime types and no terrain mutation passed (no gameplay or device exercised).'

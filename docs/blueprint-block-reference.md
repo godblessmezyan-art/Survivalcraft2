@@ -557,3 +557,5 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 四圣兽 0.48.0 仅调整 SCIE-Port 衣物属性，不新增或移除 Builder Assistant 蓝图方块、DATA 范围或能力。
 
 阿比斯 0.49.0 主线整合仅涉及 SCIE-Port 神器，不新增或变更 Builder Assistant 蓝图方块、DATA 范围或能力。
+
+阿比斯 0.50.0 星门区块加载不改变 Builder Assistant 蓝图方块、DATA 范围或能力。

@@ -17,13 +17,17 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly HashSet<Guid> current=new HashSet<Guid>();
         private readonly List<Guid> retired=new List<Guid>();
         private readonly Dictionary<Guid,ComponentPlayer> actors=new Dictionary<Guid,ComponentPlayer>();
+        private readonly Dictionary<Guid,VoidChunkLease> leases=new Dictionary<Guid,VoidChunkLease>();
+        private readonly HashSet<Guid> alreadyLoaded=new HashSet<Guid>();
+        private readonly Dictionary<Guid,double> releaseAfter=new Dictionary<Guid,double>();
         internal VoidPortalLocalTravel(SubsystemTerrain terrain,SubsystemPlayers players,SubsystemTime clock,VoidPortalRegistry registry)
         { this.terrain=terrain;this.players=players;this.clock=clock;this.registry=registry;travel=new VoidPortalTravel(registry,this); }
         public bool IsAuthority => CommonLib.WorkType==WorkType.Local || CommonLib.WorkType==WorkType.Server;
         private bool Player(Guid id,out ComponentPlayer p)
         {
             return actors.TryGetValue(id,out p) && p!=null && p.IsAddedToProject && p.PlayerData.IsMainPlayer && p.ComponentHealth.Health>0 && p.PlayerData.IsReadyForPlaying
-                && p.ComponentSleep.SleepFactor<=0 && p.ComponentRider.Mount==null && p.ComponentBody.ParentBody==null && p.ComponentBody.ChildBodies.Count==0;
+                && p.ComponentSleep.SleepFactor<=0 && p.ComponentRider.Mount==null && p.ComponentBody.ParentBody==null && p.ComponentBody.ChildBodies.Count==0
+                && p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true;
         }
         private static bool InPortal(ComponentPlayer player,VoidPortalRegistry.Portal portal)
         {
@@ -39,9 +43,26 @@ namespace SCIEPort.Features.AbyssReaper
                 && VoidPortalSafety.Ready(terrain,Terrain.ToCell(source.X),Terrain.ToCell(source.Z))
                 && VoidPortalSafety.Unprotected(Terrain.ToCell(source.X),Terrain.ToCell(source.Z));
         }
-        public bool BeginLoading(Guid id,VoidPortalRegistry.Portal destination) => IsAuthority;
+        public bool BeginLoading(Guid id,VoidPortalRegistry.Portal destination)
+        {
+            if(!IsAuthority || leases.ContainsKey(id) || alreadyLoaded.Contains(id))return false;
+            // Preserve the existing loaded-destination path even if a repackaged runtime lacks the audited private ABI.
+            if(ChunksReady(destination)){alreadyLoaded.Add(id);return true;}
+            VoidChunkLease lease;
+            if(!VoidChunkLease.TryCreate(terrain.TerrainUpdater,new Vector2(destination.X,destination.Z),out lease))return false;
+            leases.Add(id,lease);return true;
+        }
         public bool DestinationLoaded(Guid id,VoidPortalRegistry.Portal destination)
-            => IsAuthority && VoidPortalSafety.Ready(terrain,Terrain.ToCell(destination.X),Terrain.ToCell(destination.Z));
+        {
+            return IsAuthority && (leases.ContainsKey(id)||alreadyLoaded.Contains(id)) && ChunksReady(destination);
+        }
+        private bool ChunksReady(VoidPortalRegistry.Portal destination)
+        {
+            int x=Terrain.ToCell(destination.X),z=Terrain.ToCell(destination.Z);
+            for(int dx=-4;dx<=4;dx+=4)for(int dz=-4;dz<=4;dz+=4)
+                if(!VoidPortalSafety.Ready(terrain,x+dx,z+dz))return false;
+            return true;
+        }
         public bool TryFindLanding(Guid id,VoidPortalRegistry.Portal destination,out float x,out float y,out float z)
         {
             x=y=z=0;ComponentPlayer p;if(!Player(id,out p))return false;
@@ -60,12 +81,22 @@ namespace SCIEPort.Features.AbyssReaper
         {
             ComponentPlayer p;var position=new Vector3(x,y,z);
             if(!IsAuthority || !Player(id,out p) || !VoidPortalSafety.SafeLanding(terrain,p,position))return false;
-            p.ComponentBody.Position=position;p.ComponentBody.Velocity=Vector3.Zero;return true;
+            p.ComponentBody.Position=position;p.ComponentBody.Velocity=Vector3.Zero;
+            // Keep the destination lease briefly while the native player/camera update location catches up.
+            releaseAfter[id]=clock.GameTime+3;return true;
         }
-        public void EndLoading(Guid id) { }
+        public void EndLoading(Guid id)
+        {
+            alreadyLoaded.Remove(id);
+            double until;if(releaseAfter.TryGetValue(id,out until) && clock.GameTime<until)return;
+            releaseAfter.Remove(id);VoidChunkLease lease;
+            if(leases.TryGetValue(id,out lease)){leases.Remove(id);lease.Dispose();}
+        }
         internal void Update()
         {
             if(!IsAuthority)return;
+            retired.Clear();foreach(var pair in releaseAfter)if(clock.GameTime>=pair.Value)retired.Add(pair.Key);
+            foreach(var id in retired)EndLoading(id);
             current.Clear();int scanned=0;
             foreach(var p in players.ComponentPlayers)
             {
@@ -79,7 +110,8 @@ namespace SCIEPort.Features.AbyssReaper
                     if(!inside.Contains(id) && portal.Target!=Guid.Empty)
                     {
                         var result=travel.Begin(id,portal.Id,clock.GameTime);
-                        if(result==PortalTravelResult.Preparing)p.ComponentGui?.DisplaySmallMessage("星门：正在检查目的地",Color.White,false,false);
+                        if(result==PortalTravelResult.Preparing)p.ComponentGui?.DisplaySmallMessage("星门：正在加载目的地区块",Color.White,false,false);
+                        else p.ComponentGui?.DisplaySmallMessage("星门：无法安全准备传送",Color.Yellow,false,false);
                     }
                     break;
                 }
@@ -91,8 +123,8 @@ namespace SCIEPort.Features.AbyssReaper
             }
             inside.Clear();foreach(var id in current)inside.Add(id);
             retired.Clear();foreach(var pair in actors)if(pair.Value==null || !pair.Value.IsAddedToProject)retired.Add(pair.Key);
-            foreach(var id in retired){travel.Forget(id);inside.Remove(id);actors.Remove(id);}
+            foreach(var id in retired){travel.Forget(id);releaseAfter.Remove(id);EndLoading(id);inside.Remove(id);actors.Remove(id);}
         }
-        public void Dispose(){travel.Dispose();inside.Clear();current.Clear();retired.Clear();actors.Clear();}
+        public void Dispose(){travel.Dispose();foreach(var lease in leases.Values)lease.Dispose();leases.Clear();alreadyLoaded.Clear();releaseAfter.Clear();inside.Clear();current.Clear();retired.Clear();actors.Clear();}
     }
 }

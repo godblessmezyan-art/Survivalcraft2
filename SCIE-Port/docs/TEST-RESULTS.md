@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-10-29 main 0.50.0 星门区块加载
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：固定 Windows x25.01.17、net472、Release、资产/数据库和包校验通过。
+- 目标程序集原生隔离夹具共 883 项，新增临时更新位置的申请、排队前取消、应用后删除与分配刷新、其他写入者不被删除、客户端拒绝、到达后保留和释放，以及已经加载区块的回退、区块状态降级拒绝。四圣兽动作锁经目标程序集 IL 检查。离线测试不运行真实区块生成线程。
+- `荒野探险家-0.50.0.netmod` SHA-256 `95414893EBB07F8C16148C26563F69C82DAEA9D2C541EB4BE5C358FAE4367D1A`；与正式命名包一致。
+- 单人/主机的真实远距离加载、10 秒超时、取消、保存重开、到达后区块保留、性能及 Android 7723 实测均待验证。普通客户端新技能位置与状态同步不支持；完整 V1 视觉/音效尚未完成。
+
+
 ## 2026-10-29 main 0.49.0 阿比斯预览整合
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：固定 Windows x25.01.17、net472 和程序集哈希通过。

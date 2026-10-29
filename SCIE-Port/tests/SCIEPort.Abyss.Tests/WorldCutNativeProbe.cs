@@ -76,7 +76,59 @@ public static class WorldCutNativeProbe
         Check((int)queue.GetType().GetProperty("Count").GetValue(queue,null)==0,"late callback after Dispose is ignored");
         TerrainFixture(mod);
         PortalPersistenceFixture(mod);
+        ChunkLeaseFixture(mod);
         Console.WriteLine("WorldCut native packet, ID, touch hit-test, queue/flood/Dispose: "+checks+" checks passed (not device gameplay).");
+    }
+    private static void ChunkLeaseFixture(Assembly mod)
+    {
+        var work=CommonLib.WorkType;CommonLib.WorkType=WorkType.Local;
+        try
+        {
+            var updater=(TerrainUpdater)FormatterServices.GetUninitializedObject(typeof(TerrainUpdater));
+            var updaterType=typeof(TerrainUpdater);
+            var paramsField=updaterType.GetField("m_updateParameters",Flags);
+            object parameters=Activator.CreateInstance(paramsField.FieldType);
+            var active=new System.Collections.Generic.Dictionary<int,TerrainUpdater.UpdateLocation>();
+            paramsField.FieldType.GetField("Locations").SetValue(parameters,active);paramsField.SetValue(updater,parameters);
+            var pending=new System.Collections.Generic.Dictionary<int,TerrainUpdater.UpdateLocation?>();
+            updaterType.GetField("m_pendingLocations",Flags).SetValue(updater,pending);
+            Type leaseType=mod.GetType("SCIEPort.Features.AbyssReaper.VoidChunkLease",true);
+            MethodInfo create=leaseType.GetMethod("TryCreate",BindingFlags.Static|BindingFlags.NonPublic);
+            object[] args={updater,new Vector2(128,96),null};
+            Check((bool)create.Invoke(null,args),"native updater lease created");
+            object lease=args[2];int id=(int)Get(lease,"id");
+            Check(id < -1 && pending.ContainsKey(id) && pending[id].HasValue,"native updater queued owned location");
+            ((IDisposable)lease).Dispose();
+            Check(pending.ContainsKey(id)&&!pending[id].HasValue&&!active.ContainsKey(id),"cancel before update queues removal");
+            pending.Clear();object[] second={updater,new Vector2(128,96),null};
+            Check((bool)create.Invoke(null,second),"native updater second lease");
+            lease=second[2];id=(int)Get(lease,"id");active[id]=pending[id].Value;pending.Remove(id);
+            ((IDisposable)lease).Dispose();
+            Check(!active.ContainsKey(id)&&pending.ContainsKey(id)&&!pending[id].HasValue,"cancel after apply forces allocation refresh");
+            pending.Clear();object[] third={updater,new Vector2(128,96),null};
+            Check((bool)create.Invoke(null,third),"native updater third lease");
+            lease=third[2];id=(int)Get(lease,"id");var foreign=pending[id].Value;foreign.Center=new Vector2(900,900);pending[id]=foreign;
+            ((IDisposable)lease).Dispose();
+            Check(pending[id].HasValue&&pending[id].Value.Center==new Vector2(900,900),"foreign update is not removed");
+            pending.Clear();object[] fourth={updater,new Vector2(128,96),null};
+            Check((bool)create.Invoke(null,fourth),"lease for destination camera handoff");
+            lease=fourth[2];id=(int)Get(lease,"id");Guid actor=Guid.NewGuid();
+            Type travelType=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalLocalTravel",true);
+            object travel=FormatterServices.GetUninitializedObject(travelType);
+            var clock=(SubsystemTime)FormatterServices.GetUninitializedObject(typeof(SubsystemTime));clock.m_gameTime=1;
+            Put(travel,"clock",clock);
+            Put(travel,"alreadyLoaded",new System.Collections.Generic.HashSet<Guid>());
+            var leases=Activator.CreateInstance(travelType.GetField("leases",Flags).FieldType);
+            leases.GetType().GetMethod("Add").Invoke(leases,new object[]{actor,lease});Put(travel,"leases",leases);
+            var delay=new System.Collections.Generic.Dictionary<Guid,double>();delay.Add(actor,4);Put(travel,"releaseAfter",delay);
+            var end=travelType.GetMethod("EndLoading",Flags);end.Invoke(travel,new object[]{actor});
+            Check(pending[id].HasValue,"arrival grace retains destination while camera catches up");
+            clock.m_gameTime=4;end.Invoke(travel,new object[]{actor});
+            Check(!pending[id].HasValue,"destination lease released after grace");
+            CommonLib.WorkType=WorkType.Client;object[] client={updater,new Vector2(0,0),null};
+            Check(!(bool)create.Invoke(null,client),"client never creates authoritative chunk lease");
+        }
+        finally { CommonLib.WorkType=work; }
     }
     private static void PortalPersistenceFixture(Assembly mod)
     {
@@ -116,6 +168,22 @@ public static class WorldCutNativeProbe
             var safetyFlags=BindingFlags.Static|BindingFlags.NonPublic;
             MethodInfo ready=safety.GetMethod("Ready",safetyFlags),empty=safety.GetMethod("Empty",safetyFlags),floor=safety.GetMethod("StableFloor",safetyFlags),unprotected=safety.GetMethod("Unprotected",safetyFlags);
             Check((bool)ready.Invoke(null,new object[]{native,8,8}),"portal accepts valid loaded chunk");
+            Type registryType=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalRegistry",true);
+            object registry=Activator.CreateInstance(registryType,Flags,null,new object[]{Guid.NewGuid(),12},null);
+            Guid portalId=Guid.NewGuid();
+            Check((bool)registryType.GetMethod("TryAdd",Flags).Invoke(registry,new object[]{portalId,Guid.NewGuid(),"Loaded",8.5f,64f,8.5f,0f}),"loaded-destination fixture record");
+            object[] lookup={portalId,null};registryType.GetMethod("TryGet",Flags).Invoke(registry,lookup);
+            Type travelType=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalLocalTravel",true);
+            object travel=Activator.CreateInstance(travelType,Flags,null,new object[]{native,null,null,registry},null);
+            Guid actor=Guid.NewGuid();var oldWork=CommonLib.WorkType;CommonLib.WorkType=WorkType.Local;
+            try {
+                Check((bool)travelType.GetMethod("BeginLoading",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"already loaded destination does not require private updater ABI");
+                Check((bool)travelType.GetMethod("DestinationLoaded",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"loaded destination remains ready");
+                chunk.State=TerrainChunkState.InvalidContents1;
+                Check(!(bool)travelType.GetMethod("DestinationLoaded",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"chunk downgrade blocks movement");
+                chunk.State=TerrainChunkState.Valid;
+            } finally {CommonLib.WorkType=oldWork;}
+
             Check(!(bool)ready.Invoke(null,new object[]{native,40,40}),"portal rejects missing chunk");
             Check((bool)empty.Invoke(null,new object[]{native,8,64,8}),"portal clear air");
             Check(!(bool)empty.Invoke(null,new object[]{native,8,64,9}),"portal rejects wall");

@@ -44,3 +44,8 @@ if ([AbyssIL]::Calls($ownerSafe) -notcontains 'IsActionLocked') { throw 'WorldCu
 $skyCalls=[AbyssIL]::Calls($loader.GetMethod('ChangeSkyColor'))
 foreach($name in @('get_SkyBlend','GetStormBlend','GetSkyBlend')) { if($skyCalls -notcontains $name) { throw "Merged sky composer lacks $name." } }
 Write-Host 'WorldCut authority honors Four Saints lock; Abyss and existing artifact skies remain composed.'
+
+$portalTravel=$mod.GetType('SCIEPort.Features.AbyssReaper.VoidPortalLocalTravel', $true)
+$playerCheck=$portalTravel.GetMethod('Player',[Reflection.BindingFlags]'Instance,NonPublic')
+if ([AbyssIL]::Calls($playerCheck) -notcontains 'IsActionLocked') { throw 'Portal travel must respect Four Saints action lock.' }
+Write-Host 'Portal travel honors Four Saints action lock.'
