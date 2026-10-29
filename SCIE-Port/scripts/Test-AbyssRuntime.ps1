@@ -1,4 +1,4 @@
-param([string]$GameDir,[string]$AssemblyPath)
+﻿param([string]$GameDir,[string]$AssemblyPath)
 $ErrorActionPreference='Stop'
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}
 $g=[Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'Survivalcraft.exe'))
@@ -37,3 +37,10 @@ $comboInput=[Array]::IndexOf($captureCalls,'Input')
 if($lockCheck -lt 0 -or $comboInput -le $lockCheck){throw 'Merged main must check Four Saints action lock before accepting Abyss combo input'}
 Write-Host "Abyss real IL: MouseHook precedes Widgets; compiled sample order $order between Input $nativeInput and Player $player; no early Capture. Passed."
 Write-Host 'Abyss merged main: Four Saints action lock is checked before combo input. Passed.'
+
+$worldCut=$mod.GetType('SCIEPort.Features.AbyssReaper.WorldCutRuntime', $true)
+$ownerSafe=$worldCut.GetMethod('OwnerSafe',[Reflection.BindingFlags]'Instance,NonPublic')
+if ([AbyssIL]::Calls($ownerSafe) -notcontains 'IsActionLocked') { throw 'WorldCut server authority must enforce Four Saints action lock.' }
+$skyCalls=[AbyssIL]::Calls($loader.GetMethod('ChangeSkyColor'))
+foreach($name in @('get_SkyBlend','GetStormBlend','GetSkyBlend')) { if($skyCalls -notcontains $name) { throw "Merged sky composer lacks $name." } }
+Write-Host 'WorldCut authority honors Four Saints lock; Abyss and existing artifact skies remain composed.'

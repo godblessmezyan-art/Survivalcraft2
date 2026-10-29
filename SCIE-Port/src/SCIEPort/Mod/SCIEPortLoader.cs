@@ -36,6 +36,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new GungnirPackage());
                 PackageManager.RegisterPackage(new FourSaintsPackage());
                 PackageManager.RegisterPackage(new PoseidonPackage());
+                PackageManager.RegisterPackage(new WorldCutPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -175,7 +176,9 @@ namespace SCIEPort.Mod
             float stormFlash = AwakenedStormhammerVisuals.GetFlash();
             float divineBlend = GungnirSkyVisuals.GetSkyBlend();
             float divineFlash = GungnirSkyVisuals.GetFlash();
-            if (stormBlend <= 0f && stormFlash <= 0f && divineBlend <= 0f && divineFlash <= 0f) return oldColor;
+            float abyssBlend = GameManager.Project?.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.SkyBlend ?? 0f;
+            if (stormBlend <= 0f && stormFlash <= 0f && divineBlend <= 0f && divineFlash <= 0f)
+                return abyssBlend > 0f ? Color.Lerp(oldColor, new Color(24, 8, 37), .8f * abyssBlend) : oldColor;
             float stormGradient = MathUtils.Saturate(0.5f + direction.Y * 0.5f);
             float zenith = MathUtils.Saturate(direction.Y);
             Color storm = Color.Lerp(new Color(46, 26, 92), new Color(9, 10, 34), stormGradient);
@@ -195,7 +198,7 @@ namespace SCIEPort.Mod
             if (divineFlash > 0f)
                 result = Color.Lerp(result, Color.Lerp(new Color(238, 203, 132), new Color(255, 255, 239), zenith), 0.72f * divineFlash);
 
-            return result;
+            return abyssBlend > 0f ? Color.Lerp(result, new Color(24, 8, 37), .8f * abyssBlend) : result;
         }
 
         /// <inheritdoc />

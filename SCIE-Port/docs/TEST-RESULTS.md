@@ -1,5 +1,15 @@
 # 测试结果
 
+## 2026-10-29 main 0.49.0 阿比斯预览整合
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：固定 Windows x25.01.17、net472 和程序集哈希通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：完整 Release 构建、数据库、分类、资源保护及 `.netmod` 校验通过。普通攻击 38、断界斩 441、星门记录 21、模拟传送 23、技能规则 16、目标程序集原生夹具 868、四圣兽 37、库存目标 API 164 项检查通过；为离线/静态验证。
+- 附加 `Test-AbyssRuntime.ps1` 检查四圣兽动作锁先于阿比斯普攻、断界斩服务端授权也检查动作锁、天空合成保留妙尔尼尔和昆古尼尔。
+- 包 `荒野探险家-0.49.0.netmod` SHA-256 `B80CB031906763EA3A0A5E240CBD2369599DDD3D891B388FB604CAFCD028EBC9`；与 `荒野探险家.netmod` 字节一致。
+- 原主线 A3 模型、贴图、物品 ID、持握字段及主线神器保留；新增包 247，不改变 240–246。
+- 单人、主机、普通客户端、Windows 游戏内、Android 7723 均待验证。远距离星门主动加载及普通客户端新技能不支持；视觉和音效仍是开发预览。详见 [V1 技能状态](ABYSS-V1-SKILLS.md)。
+
+
 ## 2026-10-29 四圣兽强化 0.48.0
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：固定 Windows x25.01.17、net472、版本及哈希检查通过。

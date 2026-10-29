@@ -2,7 +2,8 @@
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    [string]$OutputDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectDir = Join-Path $projectRoot 'src\SCIEPort'
 $projectFile = Join-Path $projectDir 'SCIEPort.csproj'
 $upstream = Join-Path $projectRoot 'upstream\SCIE'
-$artifacts = Join-Path $projectRoot 'artifacts'
+$artifacts = if ([string]::IsNullOrWhiteSpace($OutputDir)) { Join-Path $projectRoot 'artifacts' } else { $OutputDir }
 $build = Join-Path $artifacts 'build'
 $stage = Join-Path $artifacts 'package'
 $zip = Join-Path $artifacts '荒野探险家.zip'
@@ -68,6 +69,7 @@ foreach ($brandCsv in Get-ChildItem -LiteralPath (Join-Path $projectDir 'Assets\
 Write-Host "Brand contract: $brandName / $brandEnglish / author $brandAuthor / PackageName $brandPackageName (internal)"
 & python (Join-Path $PSScriptRoot 'Test-AbyssGeometry.py')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss A3 geometry/runtime asset integrity failed.' }
+& (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
@@ -322,6 +324,10 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'WorldCut native regression failed' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidPrototype.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Void prototype API/safety regression failed' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -2313,9 +2319,9 @@ if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Rel
 $versionedPackage = Join-Path $artifacts ("荒野探险家-" + $modInfo.Version + '.netmod')
 Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }
+& (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -Package $package
+
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"
-
-Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.1.netmod') -Force
