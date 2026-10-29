@@ -24,6 +24,20 @@ namespace SCIEPort.Features.AbyssReaper
             return HorizonPhase.Collapse;
         }
     }
+    // Visual envelopes are pure and cannot advance gameplay timers.
+    internal static class VoidHorizonVisualRules
+    {
+        internal static float CoreScale(float elapsed)
+        {
+            if(float.IsNaN(elapsed) || elapsed<5 || elapsed>=16)return 0;
+            if(elapsed<=14)return 1f;
+            if(elapsed>=15.7f)return 0f;
+            return (15.7f-elapsed)/1.7f;
+        }
+        // Upper bounds per camera: 24 crack quads, 48 core triangles, 144 ring
+        // segments, 64 boundary segments and at most 32 branch/rune lines.
+        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,160,240,320);
+    }
     internal sealed class VoidCooldowns
     {
         private const int MaxPlayers=64;

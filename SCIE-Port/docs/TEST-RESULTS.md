@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-10-29 main 0.51.0 终焉坍缩视觉预览
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17 程序集、net472 和 ABI 检查通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：Release、完整自动回归与 .netmod 资源、数据库、原模型及物品参数校验通过。视觉收缩边界与三级预算纯规则测试通过；已有技能时序与命中去重回归通过。目标程序集检查确认独立绘制类已编入，扫描未发现地形写入或球形粒子调用。
+- `荒野探险家-0.51.0.netmod` SHA-256 `5C6E3FB7F9734F22EAACAC0E774023130C004D9AC610B67683D07C7A3567106A`；与正式命名包一致。
+- 本轮未运行游戏画面；视觉效果、性能、音效、Android 7723 触屏与普通客户端联机均待验证。普通客户端的新技能同步仍未完成。
+
 ## 2026-10-29 main 0.50.0 星门区块加载
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：固定 Windows x25.01.17、net472、Release、资产/数据库和包校验通过。

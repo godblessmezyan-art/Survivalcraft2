@@ -19,7 +19,7 @@ foreach($file in Get-ChildItem $path -Filter 'Void*.cs') {
 }
 $mod=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes($AssemblyPath))
 if (-not $game.GetType('Game.TerrainUpdater').GetField('m_pendingLocations',[Reflection.BindingFlags]'Instance,NonPublic')) { throw 'Audited queued terrain locations field missing.' }
-foreach($type in @('VoidChunkLease','VoidPortalSafety','VoidPortalOperations','VoidPortalLocalTravel','VoidPortalScene','VoidBlinkRuntime','VoidHorizonRuntime','VoidCombatSafety')) {
+foreach($type in @('VoidChunkLease','VoidPortalSafety','VoidPortalOperations','VoidPortalLocalTravel','VoidPortalScene','VoidBlinkRuntime','VoidHorizonRuntime','VoidHorizonScene','VoidCombatSafety')) {
     if(!$mod.GetType("SCIEPort.Features.AbyssReaper.$type",$false)){throw "Missing compiled $type"}
 }
 Write-Host 'Void prototype: real target API, compiled runtime types and no terrain mutation passed (no gameplay or device exercised).'
