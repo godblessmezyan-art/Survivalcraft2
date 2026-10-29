@@ -176,7 +176,8 @@ namespace BuilderAssistant.Core.Workbench
             else
             {
                 if (spec == null) return WorkbenchStatus.Fail("缺少建筑参数。");
-                BuildingType expected = choice.Kind == BuildingChoiceKind.Cottage ? BuildingType.Cottage : BuildingType.HouseTwoStory;
+                BuildingType expected = choice.Kind == BuildingChoiceKind.Cottage ? BuildingType.Cottage :
+                    choice.Kind == BuildingChoiceKind.FurnishedHome ? BuildingType.FurnishedHome : BuildingType.HouseTwoStory;
                 if (spec.Type != expected) return WorkbenchStatus.Fail("建筑类型与参数不一致。");
                 if (spec.Roof != RoofType.Hip && spec.Roof != RoofType.Gabled && spec.Roof != RoofType.Flat)
                     return WorkbenchStatus.Fail("屋顶类型无效。");
@@ -204,12 +205,12 @@ namespace BuilderAssistant.Core.Workbench
 
         public WorkbenchStatus CycleWidth()
         {
-            return CycleScalarAxis(Widths, isWidth: true);
+            return CycleScalarAxis(_choice != null && _choice.Kind == BuildingChoiceKind.FurnishedHome ? new[] {9,11,13,15,17,19,21} : Widths, isWidth: true);
         }
 
         public WorkbenchStatus CycleLength()
         {
-            return CycleScalarAxis(Lengths, isWidth: false);
+            return CycleScalarAxis(_choice != null && _choice.Kind == BuildingChoiceKind.FurnishedHome ? new[] {13,15,17,19,21,23,25} : Lengths, isWidth: false);
         }
 
         public WorkbenchStatus CycleFloors()
@@ -219,6 +220,7 @@ namespace BuilderAssistant.Core.Workbench
                 return NotApplicableToImported();
             }
             int[] candidates = _choice.Kind == BuildingChoiceKind.House ? HouseFloors : CottageFloors;
+            if (_choice.Kind == BuildingChoiceKind.FurnishedHome) return WorkbenchStatus.Ok("一室一厅固定单层。", _stage, false);
             int ni = NextIndex(candidates, _draft.Floors);
             _draft.Floors = candidates[ni];
             return AfterParamChange("楼层=" + _draft.Floors);
@@ -230,8 +232,9 @@ namespace BuilderAssistant.Core.Workbench
             {
                 return NotApplicableToImported();
             }
-            int ni = NextIndex(WallHeights, _draft.WallHeight);
-            _draft.WallHeight = WallHeights[ni];
+            int[] heights = _choice.Kind == BuildingChoiceKind.FurnishedHome ? new[] {4,5,6} : WallHeights;
+            int ni = NextIndex(heights, _draft.WallHeight);
+            _draft.WallHeight = heights[ni];
             return AfterParamChange("墙高(每层)=" + _draft.WallHeight);
         }
 

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System;
 using BuilderAssistant.Core.Blueprints;
+using BuilderAssistant.Core.Furniture;
 
 namespace BuilderAssistant.Core.Building
 {
@@ -69,6 +71,20 @@ namespace BuilderAssistant.Core.Building
             // 5. Independent structural QC.
             BuildingValidationResult qc = new BuildingValidator(spec, ctx, blueprint).Validate();
 
+            if (ctx.HomeLayout != null && qc.IsValid)
+            {
+                try
+                {
+                    blueprint = FurniturePlacementResolver.Compose(name, 3,
+                        new List<BlueprintCell>(blueprint.Cells), new List<FurniturePlacement>(ctx.HomeLayout.Furniture));
+                    qc = HomeCirculationValidator.Validate(blueprint, ctx.HomeLayout);
+                }
+                catch (ArgumentException exception)
+                {
+                    return BuildingGenResult.Failure(specResult, new BuildingValidationResult(new List<string> { exception.Message }));
+                }
+            }
+
             return BuildingGenResult.Succeeded(blueprint, specResult, qc, ctx);
         }
     }
@@ -85,6 +101,7 @@ namespace BuilderAssistant.Core.Building
         public readonly SpecValidationResult SpecResult;
         public readonly BuildingValidationResult QcResult;
         public readonly int CellCount;
+        public FurnishedHomeLayout HomeLayout { get; private set; }
         public readonly Dictionary<BlockFamily, int> FamilyCounts;
         public readonly Dictionary<string, int> MaterialCounts;
 
@@ -124,7 +141,9 @@ namespace BuilderAssistant.Core.Building
                 materials[c.MaterialKey] = m + 1;
             }
             bool ok = qcResult != null && qcResult.IsValid;
-            return new BuildingGenResult(ok, blueprint, specResult, qcResult, families, materials);
+            var result = new BuildingGenResult(ok, blueprint, specResult, qcResult, families, materials);
+            result.HomeLayout = ctx.HomeLayout;
+            return result;
         }
 
         /// <summary>Human-readable one-line summary for test output and logs.</summary>

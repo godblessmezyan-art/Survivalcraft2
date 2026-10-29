@@ -31,6 +31,7 @@ namespace BuilderAssistant.Core.Building
 
         // Front door. Set by OpeningGenerator; read by StairGenerator (keep the entry
         // clear of the stairwell) and BuildingValidator (the entrance must be passable).
+        public FurnishedHomeLayout HomeLayout;
         public bool HasDoor;
         public int DoorX;
         public int DoorY;   // bottom cell Y (ground floor wall base)

@@ -248,6 +248,9 @@ namespace BuilderAssistant.Core.Building
                 return 0;
             }
             int planeY = _ctx.WallBaseY(0) + (_spec.WallHeight / 2);
+            // A normal doorway has a lintel above its two-cell opening. Furnished homes
+            // prove two-high circulation independently after furniture composition.
+            if (_spec.Type == BuildingType.FurnishedHome) planeY = _ctx.WallBaseY(0);
             int startZ = _ctx.Z0 + 1;
             // If the door column at mid-height is a window (solid), fall back to a nearby
             // open interior cell so the reachability test is about connectivity, not glazing.

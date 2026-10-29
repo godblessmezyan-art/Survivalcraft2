@@ -81,6 +81,13 @@ namespace BuilderAssistant.Core.Building
             };
         }
 
+        public static BuildingSpec DefaultFurnishedHome()
+        {
+            return new BuildingSpec { Type=BuildingType.FurnishedHome, Width=11, Length=15,
+                Floors=1, WallHeight=4, Roof=RoofType.Gabled, Seed=0, HasChimney=false,
+                WindowDensity=65, Materials=MaterialProfile.Cottage() };
+        }
+
         /// <summary>
         /// The Y level of each story's FLOOR slab (its living surface). Story s occupies
         /// wall courses FloorSlabY(s)+1 .. +WallHeight, and story s+1's slab sits one above
@@ -186,6 +193,14 @@ namespace BuilderAssistant.Core.Building
                 errors.Add("双层住宅需至少 7x7 以容纳可通行楼梯井（当前 " + Width + "x" + Length + "）。");
             }
 
+            if (Type == BuildingType.FurnishedHome)
+            {
+                if (Width < 9 || Width > 21 || Length < 13 || Length > 25)
+                    errors.Add("一室一厅宽度需9..21、长度需13..25，以容纳家具和通道。");
+                if (Floors != 1 || WallHeight < 4 || WallHeight > 6)
+                    errors.Add("一室一厅固定单层，墙高需4..6（高柜和书架需要净空）。");
+                if (HasChimney) errors.Add("一室一厅当前不支持烟囱，请关闭HasChimney。");
+            }
             return new SpecValidationResult(errors);
         }
 

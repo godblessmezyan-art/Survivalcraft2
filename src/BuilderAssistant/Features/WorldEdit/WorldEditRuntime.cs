@@ -1447,9 +1447,13 @@ namespace BuilderAssistant.Features.WorldEdit
             if (_palette == null) return "材料表尚未就绪。";
             BlueprintImportResult r = BlueprintImportService.FromString(json, _palette.IsResolvableKey);
             if (!r.Success) return r.Detail;
-            string validation = QuickValidate(r.Blueprint);
+            return QuickAdopt(r.Blueprint, source);
+        }
+        internal static string QuickAdopt(Blueprint blueprint, string source)
+        {
+            string validation = QuickValidate(blueprint);
             if (validation != null) return validation;
-            _clipboard = r.Blueprint; _clipboardSourceName = r.Blueprint.Name; _clipboardRotation = 0;
+            _clipboard = blueprint; _clipboardSourceName = blueprint.Name; _clipboardRotation = 0;
             _hasPending = false; QuickBlueprintSource = source; return null;
         }
         internal static string QuickLoad(string stem)

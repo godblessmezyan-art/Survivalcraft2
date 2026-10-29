@@ -1,3 +1,7 @@
+## v0.23 一室一厅回归
+
+`FurnishedHomeTests.cs`验证参数矩阵、实际JSON往返与材料、两格高通行负例、四向施工/撤销、取消/失败回滚和工作台入口。`--furnished-homes <目录>`导出三份可导入蓝图与布局清单；绘图脚本从实际导出坐标渲染俯视图。验证记录见 [v0.23说明](../docs/BUILDER-FURNISHED-HOME-0.23.0.md)。
+
 ## v0.22 蓝图库与预览回归
 
 `BlueprintLibraryTests.cs` 使用真实文件目录和真实导入/规划代码验证持久化、删除、命名冲突、路径隔离、10000格导入、公开JSON示例、四向预览、门关联格、地形快照失效、零写入和绘制标记预算。目标测试新增GuiDraw和原生线框ABI检查。设备验收见 [v0.22记录](../docs/BUILDER-BLUEPRINT-0.22.0.md)。

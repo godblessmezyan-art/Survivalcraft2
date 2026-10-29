@@ -8,6 +8,8 @@ namespace BuilderAssistant.Core.Building
         /// <summary>A real two-storey house: two usable floors, load-bearing structure,
         /// a walkable stair between them, and a gabled roof.</summary>
         HouseTwoStory = 1,
+        /// <summary>Single-storey furnished living room and bedroom.</summary>
+        FurnishedHome = 2,
     }
 
     /// <summary>Roof shape the <c>RoofGenerator</c> produces.</summary>

@@ -14,7 +14,7 @@ namespace BuilderAssistant.Features.WorldEdit
         private readonly Action select, close;
         private readonly CanvasWidget panel, body, view;
         private readonly ScrollPanelWidget scroll;
-        private readonly BevelledButtonWidget choice, roof, rotation, defaults, random, generate, position, cancel;
+        private readonly BevelledButtonWidget choice, roof, rotation, defaults, random, generate, position, cancel, material, handoff;
         private readonly TextBoxWidget width, length, floors, height, seed, density;
         private readonly LabelWidget info;
         private string key;
@@ -32,14 +32,16 @@ namespace BuilderAssistant.Features.WorldEdit
             Add(panel, new LabelWidget { Text = "建筑工作台", FontScale = .9f, Color = Color.White }, 16, 10);
             scroll = new ScrollPanelWidget { Direction = LayoutDirection.Vertical, HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch };
             view = new CanvasWidget { Size = new Vector2(436, 405) }; Add(panel, view, 12, 48); view.Children.Add(scroll);
-            body = new CanvasWidget { Size = new Vector2(420, 730), HorizontalAlignment = WidgetAlignment.Near, VerticalAlignment = WidgetAlignment.Near }; scroll.Children.Add(body);
+            body = new CanvasWidget { Size = new Vector2(420, 845), HorizontalAlignment = WidgetAlignment.Near, VerticalAlignment = WidgetAlignment.Near }; scroll.Children.Add(body);
             choice = Button("建筑", 0, 0, 400);
             width = Field("宽度", 58); length = Field("长度", 112); floors = Field("楼层", 166); height = Field("每层墙高", 220);
             roof = Button("屋顶", 0, 274, 400); seed = Field("随机种子", 328); density = Field("窗户密度", 382);
             rotation = Button("朝向", 0, 436, 400);
             defaults = Button("恢复默认", 0, 490, 194); random = Button("随机种子", 206, 490, 194);
             generate = Button("生成蓝图", 0, 544, 400); position = Button("选择建造位置", 0, 598, 400);
-            info = new LabelWidget { Size = new Vector2(400, 75), FontScale = .65f, WordWrap = true, Color = Color.White }; Add(body, info, 0, 652);
+            material = Button("外墙材料", 0, 652, 400);
+            handoff = Button("交给903蓝图工具（保存 / 预览）", 0, 706, 400);
+            info = new LabelWidget { Size = new Vector2(400, 75), FontScale = .65f, WordWrap = true, Color = Color.White }; Add(body, info, 0, 760);
             cancel = new BevelledButtonWidget { Text = "关闭", Size = new Vector2(160, 42), FontScale = .7f }; Add(panel, cancel, 288, 452);
             key = workbench.Choice != null ? workbench.Choice.Key : "workbench_cottage";
             direction = workbench.Rotation; spec = workbench.Draft; generated = !workbench.NeedsRegenerate && workbench.EffectiveBlueprint() != null;
@@ -59,7 +61,9 @@ namespace BuilderAssistant.Features.WorldEdit
             bool imported = key == "workbench_imported";
             BuildingChoice c = service.Find(key); choice.Text = c != null ? c.DisplayName : "建筑不可用";
             foreach (var t in new[] { width,length,floors,height,seed,density }) t.IsEnabled = !imported;
-            roof.IsEnabled = random.IsEnabled = !imported;
+            roof.IsEnabled = random.IsEnabled = material.IsEnabled = !imported;
+            floors.IsEnabled = !imported && key != "workbench_furnished";
+            material.Text = spec != null && spec.Materials.Wall == BuilderAssistant.Core.Blueprints.BuildingMaterials.StoneWall ? "外墙：石砖（点击切换木板）" : "外墙：木板（点击切换石砖）";
             if (!imported && spec != null)
             {
                 width.Text=spec.Width.ToString(); length.Text=spec.Length.ToString(); floors.Text=spec.Floors.ToString(); height.Text=spec.WallHeight.ToString(); seed.Text=spec.Seed.ToString(); density.Text=spec.WindowDensity.ToString(); roofValue=spec.Roof;
@@ -67,7 +71,7 @@ namespace BuilderAssistant.Features.WorldEdit
             else { width.Text=length.Text=floors.Text=height.Text=seed.Text=density.Text=""; }
             roof.Text = imported ? "屋顶：导入蓝图固定" : "屋顶：" + RoofName();
             rotation.Text = "朝向：" + (direction * 90) + "°";
-            info.Text = imported ? "导入蓝图的尺寸和结构不可编辑；可调整朝向。" : "填写整数，生成后选择落点。拖动面板可滚动。";
+            info.Text = imported ? "导入蓝图的尺寸和结构不可编辑；可调整朝向。" : key == "workbench_furnished" ? "单层一室一厅：宽9..21、长13..25、墙高4..6。7件家具自动避让通道；家具保持原木配色。" : "填写整数，生成后选择落点。拖动面板可滚动。";
         }
         private string RoofName() { return roofValue == RoofType.Hip ? "四坡" : roofValue == RoofType.Gabled ? "人字" : "平顶"; }
         private bool Number(TextBoxWidget box, string name, out int value)
@@ -107,9 +111,30 @@ namespace BuilderAssistant.Features.WorldEdit
             }
             if (defaults.IsClicked) { BuildingChoice c=service.Find(key); service.TryMakeDefaultSpec(c,out spec); direction=0; generated=false; LoadFields(); }
             if (roof.IsClicked) { roofValue=roofValue==RoofType.Hip?RoofType.Gabled:roofValue==RoofType.Gabled?RoofType.Flat:RoofType.Hip; roof.Text="屋顶："+RoofName(); generated=false; }
+            if (material.IsClicked && spec != null)
+            {
+                bool stone = spec.Materials.Wall == BuilderAssistant.Core.Blueprints.BuildingMaterials.StoneWall;
+                spec.Materials = stone ? MaterialProfile.Cottage() : MaterialProfile.House();
+                material.Text = stone ? "外墙：木板（点击切换石砖）" : "外墙：石砖（点击切换木板）";
+                generated=false;
+            }
+            if (handoff.IsClicked && Apply())
+            {
+                if(!generated || workbench.NeedsRegenerate || workbench.EffectiveBlueprint()==null) info.Text="参数已变化，请先生成蓝图。";
+                else
+                {
+                    string error=WorldEditRuntime.QuickAdopt(workbench.EffectiveBlueprint(),"建筑工作台生成");
+                    if(error!=null) info.Text=error;
+                    else { close();player.ComponentGui.DisplaySmallMessage("已交给903蓝图工具，切换903可保存、预览和放置。",Color.White,false,false);return; }
+                }
+            }
             if (rotation.IsClicked) { direction=(direction+1)%4; rotation.Text="朝向："+(direction*90)+"°"; generated=false; }
             if (random.IsClicked) { byte[] bytes=new byte[4]; using(var rng=System.Security.Cryptography.RandomNumberGenerator.Create()) rng.GetBytes(bytes); seed.Text=BitConverter.ToInt32(bytes,0).ToString(); generated=false; }
-            if (generate.IsClicked && Apply()) { WorkbenchStatus r=workbench.Regenerate(); info.Text=r.Reason; generated=r.Accepted; }
+            if (generate.IsClicked && Apply())
+            {
+                WorkbenchStatus r=workbench.Regenerate(); info.Text=r.Reason; generated=r.Accepted;
+                if(r.Accepted && key=="workbench_furnished")info.Text="一室一厅已生成，7件家具与通道校验通过。可直接选择位置，或交给903保存并进行线框预览。";
+            }
             if (position.IsClicked && Apply())
             {
                 if (!generated || workbench.NeedsRegenerate || workbench.EffectiveBlueprint()==null) info.Text="参数已变化，请先生成蓝图。";
