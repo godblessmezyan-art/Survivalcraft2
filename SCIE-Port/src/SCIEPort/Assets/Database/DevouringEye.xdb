@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortDevouringEye>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortDevouringEye" Guid="1177a84e-54a3-4ed0-8405-df7682a481b0" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="612aa1d0-404f-4ab4-aa09-3af4e190d795" Value="SCIEPort.Features.DevouringEye.SubsystemDevouringEye" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortDevouringEye" Guid="2b724dfc-3dd4-4ad9-8b4a-2813a62123fa" InheritanceParent="1177a84e-54a3-4ed0-8405-df7682a481b0" />
+  </ProjectTemplate>
+</SCIEPortDevouringEye>

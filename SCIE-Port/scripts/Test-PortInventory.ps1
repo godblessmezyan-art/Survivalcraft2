@@ -8,7 +8,7 @@ $inventoryRows=@(Get-ChildItem (Join-Path $inventoryProject 'Assets\Blocks') -Fi
 foreach($row in $inventoryRows){
     if($inventoryAllowed -notcontains $row.DefaultCategory -or $row.DefaultCategory -eq 'SCIEPort.Misc'){throw "Release item must have a deliberate dedicated tab: $($row.'Class Name')"}
 }
-foreach($name in @('StormhammerBlock','StormhammerAwakenedBlock','GungnirBlock','PoseidonBlock','OmniscientEyeBlock')){
+foreach($name in @('StormhammerBlock','StormhammerAwakenedBlock','GungnirBlock','PoseidonBlock','OmniscientEyeBlock','DevouringEyeBlock','AbyssReaperBlock')){
     if(@($inventoryRows | Where-Object {$_.'Class Name' -eq $name -and $_.DefaultCategory -eq 'SCIEPort.Artifacts'}).Count -ne 1){throw "Artifact tab missing: $name"}
 }
 foreach($name in @('TankBlock','TankShellBlock','HelicopterBlock','AtvBlock','OffroadCarBlock','SteamBoatBlock','AirshipBlock','TrainBlock','CarriageBlock')){

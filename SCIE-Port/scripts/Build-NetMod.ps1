@@ -66,6 +66,13 @@ foreach ($brandCsv in Get-ChildItem -LiteralPath (Join-Path $projectDir 'Assets\
     }
 }
 Write-Host "Brand contract: $brandName / $brandEnglish / author $brandAuthor / PackageName $brandPackageName (internal)"
+& python (Join-Path $PSScriptRoot 'Test-AbyssGeometry.py')
+if ($LASTEXITCODE -ne 0) { throw 'Abyss A3 geometry/runtime asset integrity failed.' }
+& (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
+if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
+if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye native API/model checks failed.' }
 
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 $resolvedArtifacts = (Resolve-Path -LiteralPath $artifacts).Path
@@ -288,6 +295,8 @@ if (-not $tankControlSource.Contains('VehicleActivationService.IsGranted(From.GU
 }
 & $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.OmniscientEye.Tests\SCIEPort.OmniscientEye.Tests.csproj') --configuration Release --nologo
 if ($LASTEXITCODE -ne 0) { throw "Omniscient Eye layout tests failed: $LASTEXITCODE" }
+& $dotnetPath run --project (Join-Path $projectRoot 'tests\SCIEPort.DevouringEye.Tests\SCIEPort.DevouringEye.Tests.csproj') --configuration Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye safety/transaction tests failed.' }
 
 # V0.5 must package the analog cockpit, never the former two-button interface.
 $hudWidgetSource = Get-Content -Raw (Join-Path $projectDir 'Features\AirVehicles\Hud\HelicopterFlightHud.cs')
@@ -311,6 +320,8 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -738,6 +749,7 @@ Move-Item -LiteralPath $zip -Destination $package
 $archive = [IO.Compression.ZipFile]::OpenRead($package)
 try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
+    foreach ($resource in @('Assets/Models/AbyssReaper.dae','Assets/Textures/AbyssReaper.png','Assets/Blocks/AbyssReaper.csv','Assets/Database/AbyssReaper.xdb')) { if ($entries -notcontains $resource) { throw "Missing Abyss resource: $resource" } }
     foreach ($requiredEntry in @(
         'Assets/Models/PoseidonTrident.dae',
         'Assets/Textures/PoseidonTrident.png',
@@ -748,6 +760,10 @@ try {
         'Assets/Audio/Poseidon/Tsunami.wav',
         'SCIEPort.dll',
         'Assets/Models/OmniscientEye.dae',
+        'Assets/Models/DevouringEye.dae',
+        'Assets/Textures/DevouringEye.png',
+        'Assets/Blocks/DevouringEye.csv',
+        'Assets/Database/DevouringEye.xdb',
         'Assets/Textures/OmniscientEye.png',
         'Assets/Blocks/OmniscientEye.csv',
         'Assets/Database/OmniscientEye.xdb',
@@ -2301,3 +2317,5 @@ Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"
+
+Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.1.netmod') -Force

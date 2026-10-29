@@ -1,5 +1,23 @@
 # SCIE-Port 兼容性记录
 
+## 2026-10-29 main 0.47.0 / 阿比斯 V0.2
+
+在 main `6b33598` 合并 port `dcbe228`，保留 main 0.46.0 全部功能/品牌/打包守卫与 Builder Assistant 0.19.0。
+新增主线方块 950（吞噬之眼）、952（阿比斯），现有 949/951、衣物 203/200–203、网络包 240–246、GUID/存档身份不改。
+两个新物品均使用独立神器 Tab 和专属主题。未新增 Hook 或网络包；既有 GuiUpdate/UpdateInput 合并接入，
+阿比斯仍通过真实 Input+1=-9 子系统更新采样，四圣兽锁定时取消攻击。
+
+| 项目 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 目标 | 已确认 | 下列历史登记三程序集 SHA-256 未变；本轮 Test-Environment 重新比对通过 |
+| 阿比斯 A3 原生离线导入 | 已确认 | 1 identity bone / 32 meshes / 9,260 triangles，拓扑/UV/不透明色板/资源精确哈希检查通过 |
+| net472 Release / 包内容 | 已确认 | 4,010,467 bytes / 133 entries，SHA-256 `192704A9DE6D2A2E25549EFF65A660F3DF6708366B179CF40FA6206A9E22B26E`；21 XDB、22 CSV/55 行、全套离线检查通过；命令见 TEST-RESULTS.md |
+| 阿比斯普通客户端战斗 | 不支持 | 没有客户端自定义战斗请求协议，不结算客户端伤害 |
+| 吞噬之眼回收主线坦克 | 不支持 | 主线坦克包含端口五组件白名单以外的组件，保守拒绝，未扩大白名单 |
+| Android 7723 / Windows 游戏内 / 联机 / A3 性能 | 待验证 | 本轮未启动游戏或操作设备；旧运行版截图与离线模型验收不能替代 A3 实测 |
+
+独立遗迹工程是本次用户已发起合并中的新增目录，保留原样，不打包进 SCIEPort；其历史兼容性不由本轮继承。
+
 ## 0.46.0 合并 origin/main（四圣兽 V3）与本地直升机 HUD 主线（离线已确认，Android/双机待验证，2026-10-28）
 
 本地 main（含直升机 HUD 合并，原 0.45.0）与 origin/main 新增提交 `5d36821`（四圣兽 V3 独立装甲/骨骼附件/装备图标/装备页人物预览修复，原 0.44.1）自 `6fb084e`（v0.44.0）分叉。执行 `git merge origin/main` 后冲突集中在元数据与变更日志：`SCIEPort.csproj`、`modinfo.json` 版本统一升到 **0.46.0**（modinfo 与 csproj 一致以满足构建守卫），Description 合并两条主线；`README.md`、`COMPATIBILITY.md`、`TEST-RESULTS.md` 保留双方历史条目并新增 0.46.0 说明。四圣兽 V3 源码/资源（`Features/FourSaints/FourSaintsArmorRenderer.cs`、`QinglongCrownRenderer.cs`、`FourSaintsClothingPreview.cs`、`ClothingBlock.cs`、`FourSaintsVisuals.cs`、`Assets/Models/*V3.dae`、`Assets/Textures/FourSaintsArmorV3.png`/`QinglongCrown.png`、相关脚本与文档）与直升机 HUD 源码（`Features/AirVehicles/Hud/*` 等）由三方自动合并，无文本冲突；`Build-NetMod.ps1`、`Test-Environment.ps1` 自动合并双方新增守卫。
@@ -365,6 +383,29 @@ Portable Fortress 由 Builder Assistant 正式迁入 SCIE-Port，成为独立玩
 | Windows 游戏运行 | 待验证 | 按用户约束未启动游戏 |
 | Android 7723 单机/主机/普通客户端 | 待验证 | 编译与离线规则不能证明真机同步；须执行双机矩阵 |
 | 严格服务器权威/抗作弊 | 不支持 | 移动继承 x25.01.17 原生“驾驶员客户端同步父车体”模型；未修改或 Hook 游戏本体 |
+
+## 2026-10-29 port 0.16.1 / 阿比斯V0.1.1
+
+修正外向持镰、移除碎片长串，增加暗钢倒角方向高光与双面黑心紫光核心；修复UpdateInput Hook早于触屏输入导致长按失效，改为Input+1采样并显示蓄力百分比。952/949–951、战斗数值和权限不变，Android新包实效待用户复测。细节见ABYSS-REAPER.md与TEST-RESULTS.md。
+
+## 0.15.0 吞噬之眼 / Eye of Oblivion V1（2026-10-28）
+
+分支 `port/scnet-x25.01.17`；新增 ID 950，与全知之眼 949 分离。新增真实 UpdateInput Hook
+将该物品普通 Hit/Dig 转为 Interact 确认流程，消除原生挖掘/攻击旁路。复用既有 GuiUpdate
+注册，按 Project 管理确认窗口/队列/事务锁，Dispose 取消任务并释放 UI 引用。
+不变更原生类、网络包、已有实体 GUID 或部署物品；T-34 新增只读 CanRecover 状态，
+禁止丢弃仍在飞行的炮弹。目标 EntityTemplate 名/GUID、五个组件类型、持久化状态、
+骑乘/父子/所有权依赖、移动/射击、待重生登记均复查。
+
+已确认：Windows 固定程序集/API/net472 编译；真实模型导入 1 bone / 27 meshes /
+816 triangles；Y_UP/identity 根变换/不透明 128×16 PNG；75 项纯规则与故障注入测试；
+真实 Project 移除/保存成员列表、背包满额/回滚、创造槽、Terrain DATA 往返、原生 JSON
+回执往返的隔离测试。实际坦克完整组件、Android、触屏、正常退出重进和多人待验证。
+
+权限来自原生 `SubsystemBedrockBlockBehavior.CheckIsInTerritoriy/AllowPlayerAction`；
+V1 保守拒绝所有原生领地（含本人领地）。没有通用第三方区域保护 API；额外保护模组
+需要独立适配，不能据此宣称任意保护模组兼容。块修改还遵守原生 TerrainChangeCell Hook，
+实际读取结果确认删除后才返还物品。细节与边界见 [DEVOURING-EYE.md](DEVOURING-EYE.md)。
 
 ## 0.14.0 全知之眼 V0.1（2026-10-28）
 
@@ -763,3 +804,8 @@ THIRD-PARTY-NOTICES.md
 | 方块 ID 合并冲突 | 已确认 | 修复包首次真实加载又发现直升机与普通雷神之锤同占 941；为保留已发布直升机存档，直升机继续使用 941、苍穹之怒继续使用 942，普通雷神之锤迁移到 943。构建脚本现在拒绝任何重复 `Block.Index`。旧测试版中写入为 941 的雷神之锤无法与直升机无歧义区分，不能自动迁移。 |
 | Windows 加载 | 已确认 | 将 0.28.1 包临时部署到 x25.01.17 `NetMods` 后真实启动到主菜单；日志确认 81 资源、DLL、全部 XDB/CSV 正常加载，无“数据包存在冲突”或“BlocksData 中没有找到”错误。测试后恢复原安装包。 |
 | Android 7723 | 待验证 | 用户已确认 0.28.0 整包物品消失；0.28.1 尚待重新导入确认。 |
+
+
+## 2026-10-29 阿比斯 V0.1 / port 0.16.0
+
+指定port分支新增原创立体战镰952（自动扫描生成分配）、三连斩/蓄力重斩、四槽锁定UI。949/950及主线951保持不变，无地形/天气修改。真实手持动画API、编译与离线检查见SCIE-Port/docs/ABYSS-REAPER.md及测试记录；Android和联机实测待验证，普通客户端战斗不支持。

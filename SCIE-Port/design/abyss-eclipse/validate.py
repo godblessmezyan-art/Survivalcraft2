@@ -52,5 +52,5 @@ assert all(v['bladeWithinIdleFrustum'] for v in framing.values())
 result={'status':'passed','triangles':total,'meshes':len(parts),'topology':report,
         'axis':'Y_UP','root':'identity','texture':'opaque RGBA 256x16','idleFramingFov':[65,75,85],
         'scope':'Offline candidate integrity, NOT Android/game acceptance.'}
-(ROOT/'validation.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+(ROOT/'validation.json').write_text(json.dumps(result,indent=2),encoding='utf8',newline='\n')
 print(f'PASS: {len(parts)} closed consistently oriented meshes / {total} triangles; DAE, PNG and idle framing valid.')

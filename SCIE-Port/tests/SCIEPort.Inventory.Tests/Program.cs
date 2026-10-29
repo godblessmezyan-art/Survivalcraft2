@@ -21,8 +21,9 @@ internal static class Program
             Check(PortInventoryRules.IsSaint(203,index)==(index>=200 && index<=203),"clothing DATA isolation");
             Check(!PortInventoryRules.IsSaint(204,index),"not another block");
         }
-        foreach(int id in new[]{942,943,948,949,951})
+        foreach(int id in new[]{942,943,948,949,950,951,952})
             Check(PortInventoryRules.Select(id,-1,PortInventoryRules.Artifacts)!=PortInventoryRules.Theme.Artifact,"current artifacts require authored themes");
+        Check(PortInventoryRules.Select(952,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.AbyssReaper,"Abyss uses its own violet metal theme");
         Check(PortInventoryRules.Select(970,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Artifact,"future artifact fallback");
         Check(PortInventoryRules.Select(943,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.FalseHammer,"fake hammer gets its own subdued skin, not the true hammer skin");
         Check(PortInventoryRules.Select(1,-1,"Terrain")==PortInventoryRules.Theme.None,"ordinary item stays native");

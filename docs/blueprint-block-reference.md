@@ -1,5 +1,9 @@
 # Builder Assistant 蓝图方块能力清单 v0.19.0
 
+> 2026-10-29 主线合并审计：SCIE-Port 0.47.0 的阿比斯（952）与吞噬之眼（950）是独立 Mod 神器，
+> 不属于 Builder Assistant 可建造白名单，也不得生成到蓝图 cells。Builder Assistant 保持 0.19.0，
+> 本页类型、族标签、DATA 范围、家具与安全限制均沿用已验证主线，无新增支持。
+
 > 2026-10-28 展示规范补充：SCIE-Port 0.44.0 的独立 Tab、神器/圣兽背景和中文包名
 > 仅改变移植工程展示，不增加 Builder Assistant 的方块、族标签或 DATA 能力。
 > 不得将 `SCIEPort.Artifacts` / `SCIEPort.Vehicles` 等分类键当作蓝图材料键使用。

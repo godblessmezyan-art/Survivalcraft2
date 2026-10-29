@@ -1,4 +1,6 @@
 using Game;
+using SCIEPort.Features.AbyssReaper;
+using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
 using SCIEPort.Features.Inventory;
@@ -109,6 +111,13 @@ namespace SCIEPort.Mod
         {
             ComponentPlayer player = componentInput?.m_componentPlayer;
             SubsystemFourSaints runtime = player?.Project.FindSubsystem<SubsystemFourSaints>(false);
+            if (player != null && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == DevouringEyeBlock.Index)
+            {
+                componentInput.m_playerInput.Interact = componentInput.m_playerInput.Interact ?? componentInput.m_playerInput.Hit ?? componentInput.m_playerInput.Dig;
+                componentInput.m_playerInput.Hit = null;
+                componentInput.m_playerInput.Dig = null;
+                componentInput.m_playerInput.Aim = null;
+            }
             if (runtime == null || !runtime.IsActionLocked(player)) return;
             componentInput.m_playerInput.Move = Vector3.Zero;
             componentInput.m_playerInput.SneakMove = Vector3.Zero;
@@ -132,6 +141,8 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void GuiUpdate(ComponentGui componentGui)
         {
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
             FourSaintsClothingPreview.Update(componentGui);
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);

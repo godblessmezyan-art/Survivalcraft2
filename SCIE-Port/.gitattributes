@@ -1,0 +1,7 @@
+# These generated audit assets are compared by SHA-256, including after Windows checkout.
+src/SCIEPort/Assets/Models/AbyssReaper.dae text eol=lf
+design/abyss-eclipse/assets/*.dae text eol=lf
+design/abyss-eclipse/assets/*.json text eol=lf
+docs/assets/abyss-reaper/*.json text eol=lf
+design/abyss-eclipse/native-import.json text eol=lf
+design/abyss-eclipse/validation.json text eol=lf

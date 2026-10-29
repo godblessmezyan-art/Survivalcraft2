@@ -1,0 +1,386 @@
+{
+  "pools": [
+    {
+      "name": "baseline",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "SeedsBlock", "data": 5, "w": 9, "min": 5, "max": 8 },
+        { "block": "CottonWadBlock", "w": 7, "min": 4, "max": 6 },
+        { "block": "SeedsBlock", "data": 7, "w": 5, "min": 3, "max": 5 },
+        { "block": "SeedsBlock", "data": 6, "w": 4, "min": 3, "max": 5 },
+        { "block": "LeatherBlock", "w": 6, "min": 3, "max": 5 },
+        { "block": "FurBlock", "w": 6, "min": 3, "max": 5 },
+        { "block": "MalachiteChunkBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "CoalChunkBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "IronOreChunkBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "TorchBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "StickBlock", "w": 3, "min": 4, "max": 8 },
+        { "block": "OakWoodBlock", "w": 3, "min": 6, "max": 12 },
+        { "block": "CobblestoneBlock", "w": 3, "min": 8, "max": 16 },
+        { "block": "CopperAxeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "CopperShovelBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 13, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 11, "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "camp_supply",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "FurBlock", "w": 8, "min": 4, "max": 7 },
+        { "block": "LeatherBlock", "w": 6, "min": 3, "max": 5 },
+        { "block": "ArrowBlock", "data": 0, "w": 5, "min": 5, "max": 10 },
+        { "block": "SeedsBlock", "data": 5, "w": 5, "min": 4, "max": 7 },
+        { "block": "MatchBlock", "w": 5, "min": 3, "max": 5 },
+        { "block": "TorchBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "MalachiteChunkBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "OakWoodBlock", "w": 3, "min": 6, "max": 10 },
+        { "block": "ClothingBlock", "data": 5, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 12, "w": 2, "min": 1, "max": 1 },
+        { "block": "WoodenSpearBlock", "w": 2, "min": 1, "max": 2 },
+        { "block": "CopperMacheteBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "fisher_supply",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "StringBlock", "w": 8, "min": 4, "max": 7 },
+        { "block": "SeedsBlock", "data": 5, "w": 5, "min": 4, "max": 7 },
+        { "block": "CottonWadBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "TorchBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "EmptyBucketBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "CoalChunkBlock", "w": 4, "min": 3, "max": 6 },
+        { "block": "PlanksBlock", "w": 3, "min": 8, "max": 16 },
+        { "block": "ClothingBlock", "data": 31, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 29, "w": 2, "min": 1, "max": 1 },
+        { "block": "CopperSpearBlock", "w": 2, "min": 1, "max": 2 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "homestead_cellar",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "SeedsBlock", "data": 5, "w": 9, "min": 6, "max": 10 },
+        { "block": "FlourBlock", "w": 6, "min": 4, "max": 6 },
+        { "block": "SeedsBlock", "data": 7, "w": 5, "min": 3, "max": 5 },
+        { "block": "CottonWadBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "LeatherBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 4 },
+        { "block": "MalachiteChunkBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "WoodenRakeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "CopperRakeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "EmptyBucketBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "homestead",
+      "rolls": [4, 6],
+      "entries": [
+        { "block": "SeedsBlock", "data": 5, "w": 5, "min": 4, "max": 7 },
+        { "block": "CopperIngotBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "MalachiteChunkBlock", "w": 4, "min": 3, "max": 6 },
+        { "block": "CarpetBlock", "data": 14, "w": 3, "min": 1, "max": 2 },
+        { "block": "CarpetBlock", "data": 11, "w": 3, "min": 1, "max": 2 },
+        { "block": "FurBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "ClothingBlock", "data": 24, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 30, "w": 2, "min": 1, "max": 1 },
+        { "block": "IronIngotBlock", "w": 3, "min": 2, "max": 4 },
+        { "block": "WhistleBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "mine_supply",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "TorchBlock", "w": 7, "min": 4, "max": 8 },
+        { "block": "CoalChunkBlock", "w": 7, "min": 5, "max": 9 },
+        { "block": "IronOreChunkBlock", "w": 6, "min": 4, "max": 7 },
+        { "block": "MalachiteChunkBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "SaltpeterChunkBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "SulphurChunkBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "CopperIngotBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "GermaniumOreChunkBlock", "w": 3, "min": 2, "max": 4 },
+        { "block": "DiamondChunkBlock", "w": 2, "min": 1, "max": 2 },
+        { "block": "IronPickaxeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "CopperPickaxeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "SmallGunpowderKegBlock", "w": 2, "min": 1, "max": 2 },
+        { "block": "IronHammerBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "ship_supply",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "GunpowderBlock", "w": 7, "min": 3, "max": 6 },
+        { "block": "StringBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "CopperIngotBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "IronIngotBlock", "w": 5, "min": 3, "max": 5 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 4 },
+        { "block": "CottonWadBlock", "w": 4, "min": 4, "max": 7 },
+        { "block": "SmallGunpowderKegBlock", "w": 3, "min": 1, "max": 2 },
+        { "block": "PlanksBlock", "w": 3, "min": 8, "max": 16 },
+        { "block": "SaddleBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "IronMacheteBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 2, "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "ship_treasure",
+      "rolls": [5, 8],
+      "entries": [
+        { "block": "DiamondChunkBlock", "w": 6, "min": 1, "max": 3 },
+        { "block": "IronIngotBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "GermaniumChunkBlock", "w": 4, "min": 2, "max": 3 },
+        { "block": "FireworksBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "BulletBlock", "data": 0, "w": 4, "min": 6, "max": 10 },
+        { "block": "MusketBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "CompassBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "MediumGunpowderKegBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 27, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 10, "w": 2, "min": 1, "max": 1 },
+        { "block": "EggBlock", "data": 256, "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 2 }
+      ]
+    },
+    {
+      "name": "den_cache",
+      "rolls": [4, 6],
+      "entries": [
+        { "block": "FurBlock", "w": 7, "min": 4, "max": 7 },
+        { "block": "DiamondChunkBlock", "w": 6, "min": 1, "max": 2 },
+        { "block": "LeatherBlock", "w": 5, "min": 3, "max": 5 },
+        { "block": "MalachiteChunkBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 4 },
+        { "block": "ClothingBlock", "data": 6, "w": 3, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 18, "w": 3, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 7, "w": 2, "min": 1, "max": 1 },
+        { "block": "MusketBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "BulletBlock", "data": 0, "w": 3, "min": 3, "max": 6 },
+        { "block": "IronSpearBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "lighthouse_keeper",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "FireworksBlock", "w": 5, "min": 3, "max": 5 },
+        { "block": "MatchBlock", "w": 5, "min": 3, "max": 5 },
+        { "block": "StringBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "WickerLampBlock", "w": 4, "min": 2, "max": 3 },
+        { "block": "CottonWadBlock", "w": 4, "min": 4, "max": 7 },
+        { "block": "CoalChunkBlock", "w": 4, "min": 4, "max": 7 },
+        { "block": "ThermometerBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "HygrometerBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "CompassBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 24, "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "well_treasure",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "MalachiteChunkBlock", "w": 6, "min": 4, "max": 7 },
+        { "block": "IronOreChunkBlock", "w": 5, "min": 4, "max": 6 },
+        { "block": "DiamondChunkBlock", "w": 5, "min": 1, "max": 2 },
+        { "block": "SaltpeterChunkBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "CopperIngotBlock", "w": 4, "min": 4, "max": 6 },
+        { "block": "GermaniumChunkBlock", "w": 3, "min": 2, "max": 3 },
+        { "block": "CoalChunkBlock", "w": 4, "min": 4, "max": 7 },
+        { "block": "PigmentBlock", "data": 4, "w": 2, "min": 2, "max": 4 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "trader_goods",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "LeatherBlock", "w": 6, "min": 4, "max": 6 },
+        { "block": "FurBlock", "w": 5, "min": 4, "max": 6 },
+        { "block": "SeedsBlock", "data": 5, "w": 5, "min": 5, "max": 8 },
+        { "block": "MalachiteChunkBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "IronIngotBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "CarpetBlock", "data": 14, "w": 3, "min": 2, "max": 3 },
+        { "block": "CarpetBlock", "data": 4, "w": 3, "min": 2, "max": 3 },
+        { "block": "SaddleBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "PigmentBlock", "data": 14, "w": 3, "min": 2, "max": 4 },
+        { "block": "ClothingBlock", "data": 31, "w": 2, "min": 1, "max": 1 },
+        { "block": "IronAxeBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "WhistleBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "watchman",
+      "rolls": [4, 6],
+      "entries": [
+        { "block": "ArrowBlock", "data": 0, "w": 5, "min": 5, "max": 10 },
+        { "block": "ArrowBlock", "data": 2, "w": 4, "min": 4, "max": 8 },
+        { "block": "TorchBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "CoalChunkBlock", "w": 4, "min": 4, "max": 7 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 4 },
+        { "block": "CrossbowBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "MusketBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "BulletBlock", "data": 0, "w": 2, "min": 3, "max": 6 },
+        { "block": "ClothingBlock", "data": 33, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 10, "w": 1, "min": 1, "max": 1 },
+        { "block": "CompassBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "offering",
+      "rolls": [4, 6],
+      "entries": [
+        { "block": "MalachiteChunkBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "DiamondChunkBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "PigmentBlock", "data": 14, "w": 3, "min": 2, "max": 4 },
+        { "block": "PigmentBlock", "data": 11, "w": 3, "min": 2, "max": 4 },
+        { "block": "FireworksBlock", "w": 3, "min": 2, "max": 4 },
+        { "block": "GermaniumChunkBlock", "w": 3, "min": 2, "max": 3 },
+        { "block": "MarbleBlock", "w": 3, "min": 6, "max": 12 },
+        { "block": "IronIngotBlock", "w": 3, "min": 2, "max": 4 },
+        { "block": "", "w": 2 }
+      ]
+    },
+    {
+      "name": "arena",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "IronIngotBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "LeatherBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "IronSpearBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "StoneClubBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "ClothingBlock", "data": 2, "w": 3, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 10, "w": 3, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 3, "w": 2, "min": 1, "max": 1 },
+        { "block": "ArrowBlock", "data": 2, "w": 4, "min": 4, "max": 8 },
+        { "block": "DiamondChunkBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "MalachiteChunkBlock", "w": 4, "min": 3, "max": 6 },
+        { "block": "CrossbowBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "MusketBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "StoneBrickBlock", "w": 3, "min": 8, "max": 16 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "sky_cache",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "GunpowderBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "SmallGunpowderKegBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "CoalChunkBlock", "w": 5, "min": 4, "max": 8 },
+        { "block": "StringBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "DiamondChunkBlock", "w": 4, "min": 1, "max": 2 },
+        { "block": "IronIngotBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "FireworksBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "CompassBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "FeatherBlock", "w": 4, "min": 4, "max": 8 },
+        { "block": "PlanksBlock", "w": 3, "min": 8, "max": 16 },
+        { "block": "MatchBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "vault",
+      "rolls": [6, 8],
+      "entries": [
+        { "block": "DiamondChunkBlock", "w": 8, "min": 2, "max": 4 },
+        { "block": "GermaniumChunkBlock", "w": 5, "min": 2, "max": 4 },
+        { "block": "IronIngotBlock", "w": 5, "min": 5, "max": 9 },
+        { "block": "MusketBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "BulletBlock", "data": 0, "w": 4, "min": 6, "max": 12 },
+        { "block": "MediumGunpowderKegBlock", "w": 3, "min": 1, "max": 2 },
+        { "block": "FireworksBlock", "w": 4, "min": 4, "max": 6 },
+        { "block": "ClothingBlock", "data": 21, "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 19, "w": 2, "min": 1, "max": 1 },
+        { "block": "EggBlock", "data": 256, "w": 2, "min": 1, "max": 1 },
+        { "block": "DiamondMacheteBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "CompassBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 1 }
+      ]
+    },
+    {
+      "name": "desert_temple",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "DiamondChunkBlock", "w": 5, "min": 1, "max": 3 },
+        { "block": "GermaniumChunkBlock", "w": 5, "min": 2, "max": 4 },
+        { "block": "IronIngotBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "CopperIngotBlock", "w": 5, "min": 4, "max": 7 },
+        { "block": "SaddleBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "BreadBlock", "w": 4, "min": 2, "max": 4 },
+        { "block": "FeatherBlock", "w": 4, "min": 3, "max": 6 },
+        { "block": "StringBlock", "w": 4, "min": 3, "max": 6 },
+        { "block": "ClothingBlock", "data": 30, "w": 2, "min": 1, "max": 1 },
+        { "block": "DiamondMacheteBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "EggBlock", "data": 256, "w": 2, "min": 1, "max": 1 },
+        { "block": "", "w": 3 }
+      ]
+    },
+    {
+      "name": "jungle_temple",
+      "rolls": [5, 7],
+      "entries": [
+        { "block": "DiamondChunkBlock", "w": 5, "min": 1, "max": 3 },
+        { "block": "GermaniumChunkBlock", "w": 5, "min": 2, "max": 4 },
+        { "block": "IronIngotBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "MalachiteChunkBlock", "w": 5, "min": 3, "max": 6 },
+        { "block": "SaddleBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "BowBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "ArrowBlock", "w": 5, "min": 6, "max": 12 },
+        { "block": "FurBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "LeatherBlock", "w": 4, "min": 3, "max": 5 },
+        { "block": "DiamondSpearBlock", "w": 1, "min": 1, "max": 1 },
+        { "block": "", "w": 3 }
+      ]
+    },
+    {
+      "name": "trap_arrows",
+      "rolls": [1, 1],
+      "entries": [
+        { "block": "ArrowBlock", "w": 1, "min": 12, "max": 20 }
+      ]
+    },
+    {
+      "name": "monument_wing",
+      "rolls": [4, 6],
+      "entries": [
+        { "block": "IronIngotBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "CopperIngotBlock", "w": 5, "min": 4, "max": 8 },
+        { "block": "StringBlock", "w": 5, "min": 4, "max": 8 },
+        { "block": "RawFishBlock", "w": 4, "min": 2, "max": 4 },
+        { "block": "CompassBlock", "w": 3, "min": 1, "max": 1 },
+        { "block": "FireworksBlock", "w": 3, "min": 2, "max": 4 },
+        { "block": "", "w": 4 }
+      ]
+    },
+    {
+      "name": "monument_vault",
+      "rolls": [6, 8],
+      "entries": [
+        { "block": "DiamondChunkBlock", "w": 7, "min": 3, "max": 5 },
+        { "block": "GermaniumChunkBlock", "w": 6, "min": 3, "max": 6 },
+        { "block": "IronIngotBlock", "w": 5, "min": 6, "max": 10 },
+        { "block": "DiamondMacheteBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "DiamondSpearBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "ClothingBlock", "data": 21, "w": 2, "min": 1, "max": 1 },
+        { "block": "CompassBlock", "w": 2, "min": 1, "max": 1 },
+        { "block": "FireworksBlock", "w": 3, "min": 4, "max": 6 },
+        { "block": "", "w": 1 }
+      ]
+    }
+  ]
+}

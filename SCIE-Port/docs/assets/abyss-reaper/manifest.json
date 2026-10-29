@@ -1,0 +1,39 @@
+{
+  "design": "Eclipse / fractured god-scythe / violet great-scythe candidate A3",
+  "runtimeIntegrated": true,
+  "bladeRevision": {
+    "spanMultiplier": 1.38,
+    "verticalMultiplier": 1.13,
+    "bellyWidthMultiplier": 1.18,
+    "thicknessMultiplier": 1.1
+  },
+  "axis": "Y_UP",
+  "root": "identity",
+  "bonesExpected": 1,
+  "meshes": 32,
+  "triangles": 9260,
+  "bounds": [
+    [
+      -1.8181570912773815,
+      -1.61,
+      -0.246
+    ],
+    [
+      0.43,
+      1.7264499999999998,
+      0.246
+    ]
+  ],
+  "surfaceAreaFractions": {
+    "violetMetalAndGrip": 0.9096550366408173,
+    "coldLavenderBevels": 0.05743133461181684,
+    "brightVoidInlays": 0.03291362874736583
+  },
+  "sha256": {
+    "AbyssEclipseCandidate.dae": "31CC01959C4C19B2F7C8F10388455925F19BD2585945C2C7A416D218DF80BD34",
+    "AbyssEclipseCandidate.png": "48BC6997AC4A985F08D7BD862B47980B2FF082C12B16DCFF6B592B1CED106888"
+  },
+  "source": "Original parameterized geometry authored for this project; no third-party model or game content.",
+  "runtimeVersion": "0.47.0",
+  "artifactVersion": "0.2"
+}

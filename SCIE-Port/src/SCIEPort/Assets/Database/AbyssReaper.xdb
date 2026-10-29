@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortAbyssReaper>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortAbyssReaper" Guid="4d6f56fd-2163-4e21-8b9e-6e9fc5c4fe62" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="31da5db6-0803-4f55-8984-99660011c5e6" Value="SCIEPort.Features.AbyssReaper.SubsystemAbyssReaper" Type="string" />
+      <Parameter Name="AllowPlayers" Value="False" Type="bool" />
+      <Parameter Name="AllowPassive" Value="False" Type="bool" />
+      <Parameter Name="ShowRifts" Value="True" Type="bool" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortAbyssReaper" Guid="dd116461-072b-4392-9d2f-24fcf2f6b4d5" InheritanceParent="4d6f56fd-2163-4e21-8b9e-6e9fc5c4fe62" />
+  </ProjectTemplate>
+</SCIEPortAbyssReaper>

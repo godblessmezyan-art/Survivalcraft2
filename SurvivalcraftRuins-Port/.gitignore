@@ -1,0 +1,9 @@
+bin/
+obj/
+artifacts/
+TestResults/
+__pycache__/
+.worktrees/
+.superpowers/
+Game.log
+Snipaste_*.png

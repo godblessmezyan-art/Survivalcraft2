@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$GameDir)
+﻿param([Parameter(Mandatory=$true)][string]$GameDir)
 $ErrorActionPreference='Stop'
 # Run isolated Windows PowerShell. This never starts the game or builds a Mod.
 $enginePath=Join-Path $GameDir 'Engine.dll'
@@ -19,7 +19,7 @@ if($model.Bones.Count -ne 1 -or $model.Meshes.Count -ne $manifest.meshes -or $tr
 }
 $result=[ordered]@{status='passed';target='SCNET Net_x25.01.17 Windows Engine.Media.ModelData.Load';
     engineSha256=$engineHash;candidateSha256=(Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash;
-    bones=$model.Bones.Count;meshes=$model.Meshes.Count;triangles=$triangles;runtimeIntegrated=$false;
-    android='pending';releaseBuild='not performed: design confirmation stage'}
-$result | ConvertTo-Json | Set-Content (Join-Path $PSScriptRoot 'native-import.json') -Encoding UTF8
-Write-Host "PASS native candidate import: $($model.Bones.Count) bone / $($model.Meshes.Count) meshes / $triangles triangles. No runtime asset replaced."
+    bones=$model.Bones.Count;meshes=$model.Meshes.Count;triangles=$triangles;runtimeIntegrated=$true;
+    android='pending';releaseBuild='see SCIE-Port/docs/TEST-RESULTS.md for main 0.47.0 build evidence'}
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'native-import.json'), (($result | ConvertTo-Json) -replace "`r`n","`n") + "`n", [Text.UTF8Encoding]::new($false))
+Write-Host "PASS native candidate import: $($model.Bones.Count) bone / $($model.Meshes.Count) meshes / $triangles triangles. Runtime copy checked by Test-AbyssGeometry.py; no game process started."

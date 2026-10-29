@@ -1,5 +1,16 @@
 # 兼容性矩阵
 
+## 2026-10-29 main 0.47.0：阿比斯 V0.2 冲突解决与正式模型
+
+SCIE-Port 在 main 0.46.0 上整合 port 阿比斯/吞噬之眼，主线版本统一为 0.47.0。
+保留 main Builder Assistant 0.19.0 全部源码、家具 schema 3、精细 DATA 与蓝图支持范围；
+独立遗迹工程保留合并输入，不纳入本次 SCIEPort 包和验证结论。
+新增主线 Block 950/952，保留 949/951、全部既有衣物 ID、GUID 和网络包 240–246。
+无新增 Hook/签名/包布局/modinfo 字段，只扩展既有 GuiUpdate/UpdateInput 的调用并更新版本描述。
+目标三程序集固定哈希与 net472 环境检查已确认；A3 实际 Engine 导入为 1 bone / 32 meshes / 9,260 triangles。
+完整构建和包指纹见 [SCIE-Port 测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+Android 7723、Windows 游戏内、联机和模型性能为待验证；阿比斯普通客户端战斗、吞噬之眼回收主线坦克不支持。
+
 ## 0.44.1 主线合并（2026-10-28）
 
 将四圣兽V3独立装甲、常驻骨骼附件、网格图标及装备页人物预览修复合入 main 0.44.0；保留全知之眼、波塞冬、独立分类及主题背景。合并衣物块 DrawBlock 与 GetCategory，不改变衣物203/200–203、既有属性技能、碰撞及协议。历史0.42/0.43四圣兽候选版本号与同时期主线神器版本号曾重叠，最终统一为0.44.1。Android7723及联机由用户验收，仍待验证。
@@ -162,6 +173,55 @@ SCIE-Port 主线已同时包含昆古尼尔 V5.1/V5.1b、妙尔尼尔 V6/展示�
 完整的 165 项清单、六组件审计和后续路线见 `docs/blueprint-block-audit-x25.01.17.md`。运行时结构改为“能力元数据 → 实际 `BlocksManager` 注册表 → 按族严格编解码”：材料键与 `materials[].block` 冲突、cell 的 `f` 与真实方块族冲突、非法 DATA、颜色/横向原木等 schema 1/2 无法无损表示的状态均明确拒绝，不再掩码或静默降级。楼梯只剥离已经程序集验证为邻接派生的 corner 位。
 
 安全机制未改变：每事务 10000、每批 32、每轴 64、主线程写入、区块就绪检查、取消、写入前捕获撤销、失败回滚和 `WorkType.Client` 权限拒绝均沿用。容器/方块实体、电路、流体及动态世界状态未开放；它们分别需要实体子系统快照、电路队列/拓扑恢复、流体行为与级联恢复等跨子系统事务能力，不能只保存 terrain value。
+
+## 2026-10-29 port 0.16.1 / 阿比斯V0.1.1
+
+修正外向持镰、移除碎片长串，增加暗钢倒角方向高光与双面黑心紫光核心；修复UpdateInput Hook早于触屏输入导致长按失效，改为Input+1采样并显示蓄力百分比。952/949–951、战斗数值和权限不变，Android新包实效待用户复测。细节见ABYSS-REAPER.md与TEST-RESULTS.md。
+
+## 2026-10-28 Builder Assistant v0.16.0 家具模板 / schema 3
+
+仅更新 Builder Assistant，不修改当前分支 SCIE-Port 0.15.0 的版本、源码或结论。
+目标 Windows 程序集位于本机 `E:\SCNET\SCNETx25.01.17`，版本 2.4.0.0、net472，
+三个 SHA-256 均与下文登记值一致；不将该结论继承到 Android 7723 重打包客户端。
+
+| 能力/环境 | 状态 | 证据与限制 |
+| --- | --- | --- |
+| Windows 家具 ABI | 已确认 | 对固定哈希 Survivalcraft.exe 反编译三类及 ReflectionOnly 签名检查；FurnitureBlock=227，DATA 引用世界 FurnitureDesign，设计表需独立持久化/GC，可能带设计链/电路状态。 |
+| 原生铁锤家具后端 | 不支持 | 本版本不注册或放置 FurnitureDesign，不输出 227 或复用其他世界 designIndex；原生事务保活、保存和网络机制待另行实现取证。 |
+| 家具模板降级后端 | 已确认 | 十模板、schema 3、元数据保留、四向/镜像、联合净空/冲突/总限额检查、结构先建、家具后建，共用 BuildTask。仅离线结果，不代表游戏运行。 |
+| 旧 cells 蓝图回归 | 已确认 | schema 1/2 解码保留，纯 cells 导出继续为 2，既有生成器/树屋/施工回归与新增家具测试共 1866/1866 检查通过。 |
+| net472 Release / .netmod | 已确认 | 真实游戏引用构建成功，0 警告/0 错误；入口/资源/类名唯一性/XDB 合并/无专有 DLL 守卫通过。 |
+| Windows 完整游戏运行 | 待验证 | 本轮未启动游戏进程。 |
+| Android 7723 家具模板 | 待验证 | 渠道程序集指纹、安装/触屏提示、导入/旋转、施工帧耗时、取消/撤销、保存重载与视觉效果待实机记录。 |
+| 联机房主/普通客户端 | 待验证 | 保留既有主机权威与 Client 禁写闸；房主施工/撤销同步、远端显示未做双端实测。 |
+
+本轮无新 Hook、加载器入口、modinfo 字段、包布局、Block ID、CSV、XDB、GUID 或网络包。
+modinfo 仅版本升为 0.16.0 并更新描述，目标框架保持 net472。
+每批仍 32，单事务结构+家具合计≤10000，单轴≤64，连续零进度停等≤240。
+家具完整包围盒排斥结构与其他家具，门的隐式上半格也计入；盒内空隙不产生清除写入。
+书架以砖块表示书，柜/床/椅无储物/睡眠/坐下功能，灯架不发光。
+
+实际执行：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-FurnitureAbi.ps1`，
+以及 `scripts/Build-NetMod.ps1`（自动执行 `Test-Environment.ps1`、`Test-Logic.ps1`，
+再运行 SDK MSBuild `/restore /t:Build /p:Configuration=Release` 与包校验）。
+最终产物 `artifacts/BuilderAssistant.netmod`，2,384,670 字节，SHA-256
+`F83EAD86F80AF41FA2FECA0E3E6B23BD6C2E75C03C52BF130CC05939E4CCD64F`。
+详细机制与真机步骤见 `docs/FURNITURE-TEMPLATES.md`；可导入的 286 格十模板示例见
+`docs/examples/bookhouse-furniture-v3.json`；AI 权威清单已同步为 v0.16.0。
+
+## 2026-10-28 SCIE-Port 0.15.0 吞噬之眼 V1（port 分支）
+
+仅适用于 `port/scnet-x25.01.17`，不替代 main 0.42.0 的版本/测试记录。
+新增独立 Block ID 950（原生 260 常量及本分支全部 ID 重查无重复），只注册
+`SubsystemDevouringEye` 的标准 CSV/XDB，复用现有 `GuiUpdate(ComponentGui)` 主线程 Hook，
+新增已核验 `UpdateInput(ComponentInput,WidgetInput)` Hook，把本物品普通 Hit/Dig 转为确认使用。
+核实目标程序集原生领地 API、`Project.RemoveEntity(entity,false)`、ProjectNet 移除事件网络
+广播/EntityMaps 清理、SubsystemSpawn 移除登记、`Project.Save`、背包 AddNetSlotItems/
+RemoveNetSlotItems、`Terrain.ChangeCell` 及同步 SaveProject API。回收仅由 Local 主玩家 /
+Server 本地管理员执行，Client 只识别。V1 没有自定义网络包或批量操作。
+实际 Engine 导入为 1 bone / 27 meshes / 816 triangles；映射/事务故障测试与原生 API
+隔离测试已确认。Windows 完整游戏、Android 7723、坦克正常退出重进和多人仍待验证。
+待处理崩溃日志导致回收锁定，不能宣称已实现自动崩溃恢复或 V1.2 撤销。
 
 ## 2026-10-28 SCIE-Port 0.14.0 全知之眼 V0.1
 
@@ -1235,3 +1295,31 @@ public static class Utils {
 | 真机一次导入 >2756 且 ≤10000 格蓝图的分批写入帧耗时/卡顿 | 待验证 |
 | 10000 格单事务下存读档、撤销、有界停等表现 | 待验证（机制未改，但更大事务未实机测过） |
 | 联机房主权威下单事务 10000 格原版方块同步到未装 Mod 客户端 | 待验证 |
+
+## SurvivalcraftRuins SCNET x25.01.17 专项移植（独立工程）
+
+此结论只适用于 `SurvivalcraftRuins-Port/`，不替代 Builder Assistant 或 `SCIE-Port/`
+的任何证据。上游固定为 `godblessmezyan-art/SurvivalcraftRuins` 提交
+`53425779dc499c6f08b94f4b973f329217f92765`，许可证为 Mulan PSL v2。
+
+| 项目 | 状态 | 证据/限制 |
+| --- | --- | --- |
+| x25.01.17 Windows 目标程序集 | 已确认 | `E:\SCNET\SCNETx25.01.17` 三程序集 SHA-256 与本文件登记值一致 |
+| `net472` Release | 已确认 | 0 警告、0 错误；真实引用 `Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll` |
+| Hook 与网络角色 ABI | 已确认 | `OnTerrainContentsGenerated(TerrainChunk)` 位于 pass3 后/pass4 前；`SubsystemUpdate(float)`；`WorkType={Local,Server,Client}` |
+| 23 种结构/方块 Index/data 静态审计 | 已确认 | 87/87 测试通过；未知 BlockName/非法方向 data 硬拒绝，不写 Air；五组重复战利品池的顺序与数量有专门回归测试 |
+| `.netmod` 1.0.2 内容 | 已确认 | 335569 字节；SHA-256 `10350CBF9127BC43D1CB2F56C2E690E4103F73CA95A06C8C9BC2E44CC36A1FD1`；DLL、modinfo、LICENSE、13 个精确模板路径、loot 均存在；最终 DLL 无 `System.Linq.Enumerable` 方法引用 |
+| Android 7723 包导入与 Mod 初始化 | 已确认 | 2026-10-21 用户真机日志已进入 `[Ruins]` 运行路径；渠道程序集哈希仍待比对 |
+| Android 7723 世界生成（1.0.0） | 不支持 | 真机日志确认 `Enumerable.Repeat<T>` 缺失，`World bind failed` 持续重试，故不会生成遗迹 |
+| Android 7723 世界生成（1.0.1） | 不支持 | 真机确认 `Repeat` 问题消失，但按扩展名遍历资源未加载 `sky_fortress`，世界绑定仍失败 |
+| Android 7723 世界生成（1.0.2） | 待验证 | 改为精确读取全部必需资源、移除所有运行时 LINQ 引用并抑制重复绑定刷屏；须真机看到 `Loaded 13...`、`Bound to world` 并在新区块发现结构后确认 |
+| Server/房主同步 | 待验证 | 代码允许有效 Server 角色写入；区块、箱子、生物同步需真机验证 |
+| Client 主动写入 | 不支持 | 有效 Client 或角色不确定均拒绝地形、实体、守卫和持久化写入 |
+| SCAPI `.scmod` | 不支持 | 专项端口只生成 `.netmod`，不重命名或复用 SCAPI DLL |
+
+完整变更、命令、遗留问题和 Android 测试步骤见 `docs/SCNET-X25-PORT.md`。
+
+
+## 2026-10-29 阿比斯 V0.1 / port 0.16.0
+
+指定port分支新增原创立体战镰952（自动扫描生成分配）、三连斩/蓄力重斩、四槽锁定UI。949/950及主线951保持不变，无地形/天气修改。真实手持动画API、编译与离线检查见SCIE-Port/docs/ABYSS-REAPER.md及测试记录；Android和联机实测待验证，普通客户端战斗不支持。

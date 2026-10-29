@@ -1,5 +1,55 @@
 # 测试结果
 
+## 2026-10-29 main 0.47.0：合并冲突解决 / 阿比斯 V0.2 A3
+
+合并输入为 main `6b33598` 和 port `dcbe228`。原工作区已有 22 个冲突文件；先备份到
+`artifacts/merge-backup-20261029`，再按模块解决。Builder Assistant 的源码、测试、家具文档及
+重复的全知之眼实现保留 main；模组入口和构建脚本保留 main 全部功能/守卫并加入 port 新增项，
+没有回退到旧品牌或 0.16.x 版本。用户已发起合并中的独立遗迹工程/吞噬之眼新文件原样保留，
+它们的旧版本验证结论不作为阿比斯或本轮 Android 证据。
+
+阿比斯 A3 正式资源、0.47.0 元数据、专属神器分类/主题以及四圣兽锁定组合均已接入。
+正式 DAE/PNG 与原创设计生成源逐字节校验；为审计生成物固定 Git 换行行为，避免 Windows checkout
+改变 SHA-256。只对 JSON/DAE 的确定字节做约束，不改变 API、ID、战斗数值或游戏资源来源。
+
+实际命令（从仓库根执行，Windows PowerShell / 本机既有 .NET SDK，目标为固定哈希 Windows x25.01.17）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+python SCIE-Port/scripts/New-AbyssReaperAssets.py
+python SCIE-Port/scripts/Test-AbyssGeometry.py
+python SCIE-Port/scripts/Preview-AbyssReaper.py
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/design/abyss-eclipse/Test-NativeImport.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-AbyssRuntime.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath E:/Survivalcraft2/SCIE-Port/artifacts/build/SCIEPort.dll
+dotnet run --project tests/BuilderAssistant.Tests/BuilderAssistant.Tests.csproj -c Release
+```
+
+结果与边界：
+
+- 根与 SCIE-Port 环境检查均通过，目标三程序集哈希匹配登记值；没有升级 TargetFramework。
+- 真实 Engine 导入 1 bone / 32 meshes / 9,260 triangles；拓扑/法线/绕序/正体积/UV/透明度检查通过。
+- 正式资源软件预览通过横屏 2772:1280、假设垂直 FOV65/85 的静止刃片视锥检查；未验证实际相机和动作。
+- 阿比斯 38 项战斗断言、原生 IL 采样顺序 -9 检查、编译后四圣兽锁定先于 combo Input 检查通过。
+- 全部既有离线套件通过，包括直升机 8,119 项、四圣兽 37 项、波塞冬 1,561 项、全知之眼 27 场景、
+  吞噬之眼 75 项安全/故障事务检查；主线坦克额外组件安全拒绝，不扩大五组件白名单。
+- 独立分类/主题 739 项、真实目标分类/翻译/背景 ABI 164 项通过；22 CSV / 55 行；数据库 21 XDB 检查通过。
+- net472 Release 与包守卫通过；包内无游戏 DLL/PDB/上游 DLL、Builder Assistant 或遗迹工程。
+- Builder Assistant 源码和测试与合并前 main 无差异；离线 2,061 项检查全部通过。
+- 首次完整构建拦住了吞噬之眼旧脚本对变量名/空白的逐字匹配；修复为归一化后仍核对 Hit/Dig 清理和 Interact 路由，
+  保留原有安全断言，随后完整构建通过。
+
+最终包指纹：4,010,467 bytes / 133 entries，SHA-256 `192704A9DE6D2A2E25549EFF65A660F3DF6708366B179CF40FA6206A9E22B26E`。
+主包 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.47.0.netmod` 字节一致；
+包内 modinfo Version=0.47.0、DLL AssemblyVersion/FileVersion=0.47.0.0、PackageName/AssemblyName=SCIEPort。
+本机完整日志 `SCIE-Port/artifacts/merge-build-0.47.0.log`；Builder 测试日志 `artifacts/merge-builder-tests-20261029.log`。
+
+Windows 游戏内、Android 7723 渠道哈希/触控/左右手/多分辨率/低光/动画裁切、A3 移动端性能、
+单机和主机实际伤害及联机传播仍待验证；普通客户端阿比斯战斗不支持，四个技能仍锁定。
+新模型三角形为旧版 3.73 倍，离线检查不能代替设备帧耗时与视觉验收。
+
+
 ## 2026-10-28 合并 origin/main（四圣兽 V3 0.44.1）→ 本地直升机 HUD 主线 / 0.46.0
 
 本地 main（含 `feature/helicopter-hud` 合并，原 0.45.0，tip `23d08b6`）与 origin/main 新增提交 `5d36821`（四圣兽 V3 独立装甲/骨骼附件/装备图标/装备页人物预览修复，原 0.44.1）自 `6fb084e`（v0.44.0）分叉，形成 ahead 5 / behind 1。执行 `git merge origin/main` 后 4 个文件冲突，均为元数据/变更日志：
@@ -156,6 +206,14 @@ Windows 游戏内、Android 7723 模型/触屏/帧率、Local/房主/普通客�
 实际执行命令（仓库根）：
 
 ```powershell
+
+## 2026-10-28 吞噬之眼 V1 / SCIE-Port 0.15.0（port 分支）
+
+基线 `896469b`，目标 `Net_x25.01.17`；不代表 main 版本。
+实际命令（仓库根）：
+
+```powershell
+python SCIE-Port/scripts/New-DevouringEyeAssets.py
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:\SCNET\SCNETx25.01.17
 powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:\SCNET\SCNETx25.01.17 -Configuration Release
 ```
@@ -514,6 +572,30 @@ Builder Assistant 源码未改；方块参考清单只更新“949 不可用于�
 - Windows 游戏运行：待验证。本机未启动游戏。
 - Android 7723：待验证。单机回归、房主驾驶、普通客户端驾驶、双座两种角色互换、断线重连、跨区块及坦克炮塔/爆炸一致性均未实测。
 - 多人兼容结论：待验证。源码已覆盖全部现有载具，但在双 Android 实测通过前不得标记“联机正常”。移动同步继承原生驾驶员客户端信任边界；严格服务器权威为不支持。
+
+已确认：目标三项程序集固定哈希、API 1.42/net472、原生 260 常量及本分支物品无 950 冲突；
+模型实际导入 1 bone / 27 meshes / 816 triangles，Y_UP、identity 根、不透明 128×16 PNG/UV。
+75 项映射/颜色/方向/最近遮挡/边界/权限/满包/故障注入测试；异常移除、异常发放、
+提交失败后不重试补发，回滚失败锁定；重进待处理日志不自动补偿。
+真实目标 API 隔离探针验证：Project.RemoveEntity 不再进入 Save.Entities、重复删除不重复通知、
+恢复重新加入恰好一次；原生背包满额拒绝/回滚、创造槽、Terrain 数据/邻格往返；原生 JSON
+序列化/结构化回执反序列化往返。探针使用无组件的原生实体夹具，**不是完整坦克场景**。
+原生邻域 fixture 使用 Terrain 内存 API，**不是已测试带行为 Hook 的游戏地形操作**。
+
+保留失败证据：最初额外 JSON 探针在 PowerShell 缺游戏 binding redirects，找不到
+System.Buffers 4.0.2.0；隔离探针现从目标 GameDir 解析其真实依赖后通过，没有改游戏配置或
+打包这些 DLL。CodeDom 编译替代不能正确引用 EXE 的 Add-Type -Path 路径。
+输入复查发现长按原生 Dig 可能绕过确认，已新增 UpdateInput 定向转换及零攻击/挖掘能力守卫。
+
+既有 Kelly 11、ATV 32、Off-road 20、Watercraft 16、Tank、Eye 27 布局测试保留；
+8 XDB、Release 与包资源验证见本次构建。模型软件预览已经检查，不是游戏截图。
+Windows 完整坦克回收、正常退出重进、Android 7723、保护区/容器实际场景与双机全部待验证。
+V1.1/V1.2 功能未实现。完整边界、事务恢复流程和真机清单见 [DEVOURING-EYE.md](DEVOURING-EYE.md)。
+
+最终 Release：0.15.0 / AssemblyVersion 0.15.0.0，0 warning / 0 error；48 条目，
+448,872 bytes；`artifacts/SCIEPort.netmod` SHA-256
+`6DCFF85CA8F7D00791ADDF6BFA9ECC9991970EB3BAA1300E6BAF28B7C581C51B`。
+同字节版本包：`artifacts/SCIEPort-0.15.0-EyeOfOblivion.netmod`。
 
 ## 2026-10-28 全知之眼 V0.1 / SCIE-Port 0.14.0
 
@@ -1440,3 +1522,21 @@ Android 7723 联网/真机验证阶段。
 - 实际命令：设置FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2，在SCIE-Port执行scripts/Build-WithPinnedSdk.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。退出0，目标ABI、真实模型导入及60次合成骨骼检查、全部规则套件、160项分类ABI、19 XDB、Release与包检查通过。完整日志D:\Dev\Tools\scnet-audit\four-saints-main-0441-build.log。
 - 产物artifacts/荒野探险家.netmod及同字节荒野探险家-0.44.1.netmod：3,756,925 bytes / 125 entries；SHA256 0AD2C3A880A1136682FC233639DE483F356F2D65B1F430CF1E42834CB5DA5269。仅构建产物不纳入Git。
 - 没有新增ID、存档或协议变化。Android7723装备页/世界动作、帧率及单机/主机/客户端仍待用户验收，未启动游戏或连接设备。
+
+## 2026-10-29 阿比斯V0.1 / port 0.16.0
+
+- 基线69db2ff09eb4f7aa80e82aac0f4bad0f3f47ece6，未合并main。指定目标程序集指纹与既有x25.01.17完全一致。
+- 实际命令：设置FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2、PATH增加本机Microsoft/dotnet、DOTNET_ROLL_FORWARD=Major；Windows PowerShell运行scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。最终exit0；Test-Environment、原生导入1/32/930、两种手持动画Order API、22项连击断言、既有套件及9XDB/包检查通过。独立Release 0 warnings/0 errors。日志D:\Dev\Tools\scnet-audit\abyss-v01-final.log。
+- Python生成器/几何守卫/比例预览均通过；三段厚弧刃绕序已修正且加入正体积守卫。生成物PNG与DAE可重复生成。
+- 产物荒野探险家.netmod与版本副本荒野探险家-0.16.0.netmod字节一致：480669 bytes，52 entries；SHA256 DDFA9D56EBA5866D221FA1E714E90A5430C32087AE934079AAC7CBD9626F21C4。
+- 未启动游戏、未测试设备或真实网络。Android7723、第一/第三人称实际持握、原生触屏冲突与主机伤害传播待验证。普通客户端战斗不支持。初次完整构建因本机缺旧.NET runtime失败，改用Major roll-forward后全部通过；不把离线检查当游戏通过。
+
+## 2026-10-29 port0.16.1 / 阿比斯V0.1.1截图与长按修复
+
+- 基线16d4d52。用户7723截图已证明V0.1能加载并显示，但反馈主刃朝外/碎片串累赘/材质无光泽；补充长按无法触发。这些是旧版缺陷，未把离线测试冒充用户验收。
+- 重构为内向弧刃、八棱暗钢柄、银灰窄倒角、双面开放黑心紫光核心，清除原碎片长串。实际目标引擎导入1 bone / 34 meshes / 2480 triangles，256×16全不透明PNG。非退化/绕序/法线/UV、刃朝内/无旧碎片链守卫通过；能量表面积占2.87%。
+- 真实Windows及官方Android（Survivalcraft.dll SHA256 3520162AFB8DCCC51DD32A2FE22114D0325DD55D270B4B922AABF16A4AA4429B）反编译确认UpdateInput Hook在Mouse函数内，早于Gamepad/Widgets。新编译DLL实际IL确认移除早期Capture，采样顺序-9严格介于Input -10与Player 0。38项规则断言通过，涵盖触屏Hold延迟、拖动持续、短按、冷却内松手与时间原点保护。
+- 实际命令：FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2，PATH增加本机Microsoft/dotnet，DOTNET_ROLL_FORWARD=Major；powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release。完整构建exit0，Test-Environment、原生导入/输入顺序、既有套件、9XDB与包检查通过。独立Release 0 warnings/0 errors。最终日志D:\Dev\Tools\scnet-audit\abyss-0161-release.log。
+- New-AbyssReaperAssets.py、Test-AbyssGeometry.py及Preview-AbyssReaper.py均exit0。当前preview-icon/fp/third/back.png为软件图，第一人称读取CSV并通过2772/1280横屏FOV65/85静止刃片视锥检查，不代表真实相机/动画/触屏控件验证。
+- 产物荒野探险家.netmod及同字节荒野探险家-0.16.1.netmod：505858 bytes / 52 entries；SHA256 86D698A4AA7705382FEE0FA6D093A0E4F160646482C68197F01537FCDCA1DB16。DAE/PNG最新哈希及渲染材质边界见ABYSS-REAPER.md。
+- 952、原有神器、战斗数值与协议未变；普通客户端仍不结算战斗。未操作Windows游戏/Android设备；新包主刃方向、材质亮度、0.65秒蓄力松手与三连斩实际触发、不同相机/UI/光线、联机/性能继续待用户复测。

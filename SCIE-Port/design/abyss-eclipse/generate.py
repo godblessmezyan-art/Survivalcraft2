@@ -339,11 +339,14 @@ def export_dae():
     ET.indent(doc);ET.ElementTree(doc).write(OUT/'AbyssEclipseCandidate.dae',encoding='utf-8',xml_declaration=True)
 
 export_dae()
+# Preserve exact audited bytes across Windows Git checkouts.
+dae_path = OUT/'AbyssEclipseCandidate.dae'
+dae_path.write_bytes(dae_path.read_bytes().replace(b'\r\n', b'\n'))
 def chunk(t,b):return struct.pack('>I',len(b))+t+b+struct.pack('>I',zlib.crc32(t+b)&0xffffffff)
 row=b''.join(bytes((*PALETTE[x//16],255)) for x in range(256))
 (OUT/'AbyssEclipseCandidate.png').write_bytes(b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',256,16,8,6,0,0,0))+chunk(b'IDAT',zlib.compress((b'\0'+row)*16,9))+chunk(b'IEND',b''))
-(OUT/'geometry.json').write_text(json.dumps(PARTS,separators=(',',':')),encoding='utf8')
-(OUT/'palette.json').write_text(json.dumps(PALETTE),encoding='utf8')
+(OUT/'geometry.json').write_text(json.dumps(PARTS,separators=(',',':')),encoding='utf8',newline='\n')
+(OUT/'palette.json').write_text(json.dumps(PALETTE),encoding='utf8',newline='\n')
 vertices=[p for _,mesh in PARTS for a,b,c,_,_ in mesh for p in (a,b,c)]
 area=[0.0]*16
 for _,mesh in PARTS:
@@ -355,5 +358,5 @@ manifest={'design':'Eclipse / fractured god-scythe / violet great-scythe candida
     'surfaceAreaFractions':{'violetMetalAndGrip':sum(area[:6]+area[10:12])/sum(area),'coldLavenderBevels':sum(area[6:10])/sum(area),'brightVoidInlays':sum(area[12:])/sum(area)},
     'sha256':{p.name:hashlib.sha256(p.read_bytes()).hexdigest().upper() for p in OUT.glob('*') if p.suffix in ('.dae','.png')},
     'source':'Original parameterized geometry authored for this project; no third-party model or game content.'}
-(OUT/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf8')
+(OUT/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf8',newline='\n')
 print(json.dumps(manifest,indent=2))

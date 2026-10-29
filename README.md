@@ -1,5 +1,10 @@
 # Builder Assistant for Survivalcraft NET
 
+SCIE-Port 已在 **main / 0.47.0** 接入阿比斯·终焉之镰 V0.2 紫曜巨镰 A3，
+保留三连斩与触屏长按蓄力，四项技能仍锁定；独立神器 Tab 和专属背景齐备。
+本次冲突解决保留 Builder Assistant 0.19.0 的全部代码与能力，未扩展建筑蓝图方块范围。
+详情见 [阿比斯开发记录](SCIE-Port/docs/ABYSS-REAPER.md)；Android 7723 与联机待验证。
+
 当前 Builder Assistant **v0.19.0** 新增家具模板接口与 schema 3：AI 可同时输出结构 `cells` 和
 `furniturePlacements`（模板 id、相对坐标、四向旋转），导入后先建结构，再建家具。
 首批 10 个模板采用明确的 **结构块降级**，不是原生铁锤微体素家具；原生家具的世界设计表、

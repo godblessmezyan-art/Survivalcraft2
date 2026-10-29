@@ -1,12 +1,12 @@
-﻿{
+{
     "status":  "passed",
     "target":  "SCNET Net_x25.01.17 Windows Engine.Media.ModelData.Load",
     "engineSha256":  "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
-    "candidateSha256":  "8DEB38F733EA60412CE4E1541B1DA7A5597CF2688FF5A63C84336DDA4B2F1105",
+    "candidateSha256":  "31CC01959C4C19B2F7C8F10388455925F19BD2585945C2C7A416D218DF80BD34",
     "bones":  1,
     "meshes":  32,
     "triangles":  9260,
-    "runtimeIntegrated":  false,
+    "runtimeIntegrated":  true,
     "android":  "pending",
-    "releaseBuild":  "not performed: design confirmation stage"
+    "releaseBuild":  "see SCIE-Port/docs/TEST-RESULTS.md for main 0.47.0 build evidence"
 }
