@@ -29,11 +29,11 @@ namespace SCIEPort.Features.FourSaints
         private static readonly Spec[] s_specs =
         {
             new Spec { Index = FourSaintsRules.QinglongIndex, DisplayName = "万里青龙", Slot = ClothingSlot.Head, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsQinglong",
-                Description = "苍龙不息：每5秒恢复1点生命、免疫跌落伤害、最大生命增加5点。" },
+                Description = "苍龙不息：每5秒恢复1点生命及圣兽装备10点耐久、免疫跌落；生命上限+5，全套+10。" },
             new Spec { Index = FourSaintsRules.XuanwuIndex, DisplayName = "北冥玄武", Slot = ClothingSlot.Torso, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsXuanwu",
                 Description = "镇岳玄甲：免疫溺水、严寒与低温感冒，体温恒暖不寒；受到攻击时最终生命伤害减少3点。" },
             new Spec { Index = FourSaintsRules.BaihuIndex, DisplayName = "镇狱白虎", Slot = ClothingSlot.Legs, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsBaihuLegs",
-                Description = "西极杀伐：移动与攻击频率提升20%，跳跃高度增加约1格；可发动5秒杀伐觉醒。" },
+                Description = "西极杀伐：攻击附加5点伤害；觉醒期间附加15点，攻速和移速提升100%，跳跃增加2格。" },
             new Spec { Index = FourSaintsRules.ZhuqueIndex, DisplayName = "炽焰朱雀", Slot = ClothingSlot.Feet, Layer = 10, TexturePath = "Textures/Clothing/FourSaintsZhuque",
                 Description = "涅槃圣焰：移动速度提升50%，免疫火焰、岩浆、燃烧与过热；濒死时涅槃并短暂无敌。" }
         };
@@ -92,7 +92,7 @@ namespace SCIEPort.Features.FourSaints
                     Description = spec.Description,
                     Slot = spec.Slot,
                     ArmorProtection = 1f,
-                    Sturdiness = FourSaintsRules.UnifiedSturdiness,
+                    Sturdiness = FourSaintsRules.Sturdiness(spec.Index),
                     Insulation = 2f,
                     MovementSpeedFactor = spec.Slot == ClothingSlot.Legs ? FourSaintsRules.BaihuMovementSpeedFactor
                         : spec.Slot == ClothingSlot.Feet ? FourSaintsRules.ZhuqueMovementSpeedFactor

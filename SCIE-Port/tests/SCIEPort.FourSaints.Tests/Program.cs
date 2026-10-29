@@ -8,13 +8,20 @@ internal static class Program
     {
         Check(FourSaintsRules.EffectiveDamage(.2f, false, true) == 0f, "Xuanwu clamps below three points");
         Check(Near(FourSaintsRules.EffectiveDamage(.5f, false, true), .2f), "Xuanwu subtracts exactly three points");
-        Check(Near(FourSaintsRules.EffectiveDamage(1f, true, false), 1.5f), "Baihu damage multiplier is applied once");
-        Check(Near(FourSaintsRules.EffectiveDamage(1f, true, true), 1.2f), "Baihu then Xuanwu composition");
+        Check(Near(1f + FourSaintsRules.DamageBonus(true, false), 6f), "unarmed passive attack is base 1 plus 5");
+        Check(Near(1f + FourSaintsRules.DamageBonus(true, true), 16f), "awakening replaces passive bonus with 15");
+        Check(FourSaintsRules.DamageBonus(false, true) == 0f, "no bonus without Baihu");
+        Check(Near(FourSaintsRules.EffectiveDamage(1f, true, true), .7f), "Xuanwu reduction has no old Baihu multiplier");
         Check(Near(FourSaintsRules.AttackFrequency(true, false, false), 1.2f), "Baihu passive frequency");
         Check(Near(FourSaintsRules.AttackFrequency(true, true, false), 2f), "Awakening replaces passive frequency");
         Check(Near(FourSaintsRules.AttackFrequency(true, true, true), 2.2f), "Mjolnir and Baihu multiply without overwrite");
-        float jump = FourSaintsRules.JumpSpeedForOneExtraBlock(6f, 1f);
+        float jump = FourSaintsRules.JumpSpeedForExtraBlocks(6f, 1f, 1f);
         Check(Near((jump * jump - 36f) / 20f, 1f), "jump apex gains one block");
+        Check(Near((FourSaintsRules.JumpSpeedForExtraBlocks(6f, 1f, 2f) * FourSaintsRules.JumpSpeedForExtraBlocks(6f, 1f, 2f) - 36f) / 20f, 2f), "awakened jump gains two blocks");
+        Check(FourSaintsRules.Sturdiness(200) == 700 && FourSaintsRules.Sturdiness(201) == 1200 && FourSaintsRules.Sturdiness(202) == 600 && FourSaintsRules.Sturdiness(203) == 500, "four distinct sturdiness values");
+        Check(FourSaintsRules.RepairSteps(40f, 700f, 16, 2) == 0 && FourSaintsRules.RepairSteps(50f, 700f, 16, 2) == 1, "repair accrues across quantized durability levels");
+        Check(FourSaintsRules.RepairSteps(1000f, 700f, 16, 2) == 2 && FourSaintsRules.RepairSteps(10f, 700f, 16, 0) == 0, "repair clamps to existing damage");
+        Check(Near(FourSaintsRules.MaximumHealth(15), 2f) && Near(FourSaintsRules.MaximumHealth(1), 1.5f) && Near(FourSaintsRules.MaximumHealth(14), 1f), "full set and removal health limits");
         Check(FourSaintsRules.QinglongHealPeriod == 5.0 && Near(FourSaintsRules.QinglongHealAmount, .1f), "Qinglong heal cadence");
         Check(Near(FourSaintsRules.QinglongMaximumHealth, 1.5f), "Qinglong maximum health");
         Check(FourSaintsRules.BaihuDuration == 5.0 && FourSaintsRules.BaihuCooldown == 60.0, "Baihu duration and cooldown");

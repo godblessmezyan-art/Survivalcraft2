@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-10-29 四圣兽强化 0.48.0
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：固定 Windows x25.01.17、net472、版本及哈希检查通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：完整离线回归、目标程序集 API 检查、四圣兽 37 项规则断言、Release 编译、数据库、分类及 netmod 内容校验通过。衣物 `.clo` 四个 Sturdiness 值另以 XML 检查。
+- 产物：`荒野探险家-0.48.0.netmod`，SHA-256 `7A4D559F2C210CFD4D8922A4D15546AA11361A82D7B3DB776FAEE71C6AD76297`。
+- Windows 游戏内、Android 7723 单人、主机及普通客户端均待验证；实际伤害、四件修复和库存同步、20 格生命条、觉醒移动/跳跃、多神器组合及存读档必须实测。原生衣物损伤分档，修复零头只在运行时保留；见四圣兽记录。
+
+
 ## 2026-10-29 main 0.47.0：合并冲突解决 / 阿比斯 V0.2 A3
 
 合并输入为 main `6b33598` 和 port `dcbe228`。原工作区已有 22 个冲突文件；先备份到

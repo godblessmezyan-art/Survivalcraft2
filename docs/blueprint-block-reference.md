@@ -552,3 +552,6 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 最后更新：2026-10-28，v0.19.0。详细取证、命令、测试及尚存限制见 [开发报告](BUILDER-DETAIL-STATES-0.18.0.md) 和 [165类方块审计](blueprint-block-audit-x25.01.17.md)。
 
 > 2026-10-28 SCIE-Port 0.44.1合并审计：仅整合四圣兽V3显示与0.44.0主线；Builder Assistant方块、族标签、DATA与家具模板能力均沿用0.19.0，无新增支持项。
+
+
+四圣兽 0.48.0 仅调整 SCIE-Port 衣物属性，不新增或移除 Builder Assistant 蓝图方块、DATA 范围或能力。

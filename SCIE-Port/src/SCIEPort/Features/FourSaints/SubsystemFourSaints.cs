@@ -22,7 +22,8 @@ namespace SCIEPort.Features.FourSaints
             internal byte Equipment;
             internal double NextHeal, AwakenEnd, CooldownEnd, RebirthEnd, NextSnapshot;
             internal double QinglongPulseEnd, XuanwuPulseEnd, NextXuanwuPulse;
-            internal float JumpDelta;
+            internal float JumpDelta, WalkDelta;
+            internal readonly float[] RepairCredit = new float[4];
             internal int OriginalHealthBars = 10;
         }
 
@@ -108,9 +109,9 @@ namespace SCIEPort.Features.FourSaints
         {
             if (player == null || player.ComponentGui?.HealthBarWidget == null) return;
             State state = Get(player);
-            bool qinglong = (Equipment(player) & 1) != 0;
-            float maximum = qinglong ? FourSaintsRules.QinglongMaximumHealth : FourSaintsRules.NativeMaximumHealth;
-            player.ComponentGui.HealthBarWidget.BarsCount = qinglong ? 15 : state.OriginalHealthBars;
+            byte equipment = Equipment(player);
+            float maximum = FourSaintsRules.MaximumHealth(equipment);
+            player.ComponentGui.HealthBarWidget.BarsCount = (equipment & 1) != 0 ? (int)(maximum * 10f) : state.OriginalHealthBars;
             player.ComponentGui.HealthBarWidget.Value = MathUtils.Saturate(player.ComponentHealth.Health / maximum);
         }
 
@@ -165,6 +166,8 @@ namespace SCIEPort.Features.FourSaints
                 if (equipment != state.Equipment)
                 {
                     bool gainedQinglong = (equipment & 1) != 0 && (state.Equipment & 1) == 0;
+                    for (int i = 0; i < 4; i++)
+                        if ((equipment & 1) == 0 || (equipment & (1 << i)) == 0) state.RepairCredit[i] = 0f;
                     state.Equipment = equipment;
                     if (gainedQinglong) state.NextHeal = Now + FourSaintsRules.QinglongHealPeriod;
                     if ((equipment & 4) == 0) state.AwakenEnd = Now;
@@ -174,6 +177,7 @@ namespace SCIEPort.Features.FourSaints
                 ApplyZhuque(player, state);
                 ApplyTemperature(player, state);
                 ApplyJump(player, state);
+                ApplyMovement(player, state);
                 ApplyLock(player, state);
                 if (Authority && Now >= state.NextSnapshot)
                 {
@@ -190,11 +194,12 @@ namespace SCIEPort.Features.FourSaints
         private void ApplyHealth(ComponentPlayer player, State state)
         {
             bool qinglong = (state.Equipment & 1) != 0;
-            float maximum = qinglong ? FourSaintsRules.QinglongMaximumHealth : FourSaintsRules.NativeMaximumHealth;
+            float maximum = FourSaintsRules.MaximumHealth(state.Equipment);
             if (Authority && qinglong && player.ComponentHealth.Health > 0f && Now >= state.NextHeal)
             {
                 double periods = Math.Floor((Now - state.NextHeal) / FourSaintsRules.QinglongHealPeriod) + 1.0;
                 state.NextHeal += periods * FourSaintsRules.QinglongHealPeriod;
+                RepairEquipment(player, state);
                 if (player.ComponentHealth.Health < maximum)
                 {
                     player.ComponentHealth.Health = MathUtils.Min(maximum, player.ComponentHealth.Health + FourSaintsRules.QinglongHealAmount);
@@ -202,14 +207,14 @@ namespace SCIEPort.Features.FourSaints
                     CommonLib.Net.QueuePackage(new ComponentHealthPackage(player.ComponentHealth));
                 }
             }
-            if (Authority && !qinglong && player.ComponentHealth.Health > FourSaintsRules.NativeMaximumHealth)
+            if (Authority && player.ComponentHealth.Health > maximum)
             {
-                player.ComponentHealth.Health = FourSaintsRules.NativeMaximumHealth;
+                player.ComponentHealth.Health = maximum;
                 CommonLib.Net.QueuePackage(new ComponentHealthPackage(player.ComponentHealth));
             }
             if (player.PlayerData.IsMainPlayer && player.ComponentGui?.HealthBarWidget != null)
             {
-                player.ComponentGui.HealthBarWidget.BarsCount = qinglong ? 15 : state.OriginalHealthBars;
+                player.ComponentGui.HealthBarWidget.BarsCount = qinglong ? (int)(maximum * 10f) : state.OriginalHealthBars;
                 player.ComponentGui.HealthBarWidget.Value = MathUtils.Saturate(player.ComponentHealth.Health / maximum);
             }
         }
@@ -240,9 +245,55 @@ namespace SCIEPort.Features.FourSaints
             locomotion.JumpSpeed -= state.JumpDelta;
             state.JumpDelta = 0f;
             if ((state.Equipment & 4) == 0 || player.ComponentHealth.Health <= 0f || locomotion.IsCreativeFlyEnabled || player.ComponentRider.Mount != null) return;
-            float desired = FourSaintsRules.JumpSpeedForOneExtraBlock(locomotion.JumpSpeed, player.ComponentLevel.SpeedFactor);
+            float desired = FourSaintsRules.JumpSpeedForExtraBlocks(locomotion.JumpSpeed, player.ComponentLevel.SpeedFactor, IsAwakened(player) ? 2f : 1f);
             state.JumpDelta = MathUtils.Max(0f, desired - locomotion.JumpSpeed);
             locomotion.JumpSpeed += state.JumpDelta;
+        }
+
+        private void ApplyMovement(ComponentPlayer player, State state)
+        {
+            ComponentLocomotion locomotion = player.ComponentLocomotion;
+            locomotion.WalkSpeed -= state.WalkDelta;
+            state.WalkDelta = 0f;
+            if ((state.Equipment & 4) != 0 && IsAwakened(player) && player.ComponentHealth.Health > 0f)
+            {
+                state.WalkDelta = MathUtils.Max(0f, locomotion.WalkSpeed) * (2f / FourSaintsRules.BaihuMovementSpeedFactor - 1f);
+                locomotion.WalkSpeed += state.WalkDelta;
+            }
+        }
+
+        private void RepairEquipment(ComponentPlayer player, State state)
+        {
+            var slots = new[] { ClothingSlot.Head, ClothingSlot.Torso, ClothingSlot.Legs, ClothingSlot.Feet };
+            Block block = BlocksManager.Blocks[ClothingBlock.Index];
+            int levels = block.Durability + 1;
+            for (int slotIndex = 0; slotIndex < slots.Length; slotIndex++)
+            {
+                var values = new List<int>(player.ComponentClothing.GetClothes(slots[slotIndex]));
+                bool changed = false, found = false;
+                for (int i = 0; i < values.Count; i++)
+                {
+                    int value = values[i];
+                    if (Terrain.ExtractContents(value) != ClothingBlock.Index) continue;
+                    int index = ClothingBlock.GetClothingIndex(Terrain.ExtractData(value));
+                    if (index != FourSaintsRules.QinglongIndex + slotIndex) continue;
+                    found = true;
+                    int damage = block.GetDamage(value);
+                    if (damage <= 0) { state.RepairCredit[slotIndex] = 0f; continue; }
+                    state.RepairCredit[slotIndex] += FourSaintsRules.RepairPerPeriod;
+                    int steps = FourSaintsRules.RepairSteps(state.RepairCredit[slotIndex], FourSaintsRules.Sturdiness(index), levels, damage);
+                    if (steps > 0)
+                    {
+                        state.RepairCredit[slotIndex] -= steps * FourSaintsRules.Sturdiness(index) / levels;
+                        values[i] = block.SetDamage(value, damage - steps);
+                        if (damage == steps) state.RepairCredit[slotIndex] = 0f;
+                        changed = true;
+                    }
+                    break;
+                }
+                if (!found) state.RepairCredit[slotIndex] = 0f;
+                if (changed) { player.ComponentClothing.SetClothes(slots[slotIndex], values); player.ComponentClothing.OnSlotChange((int)slots[slotIndex]); }
+            }
         }
 
         private void ApplyLock(ComponentPlayer player, State state)
@@ -276,10 +327,7 @@ namespace SCIEPort.Features.FourSaints
             if (zhuque && (cause == LanguageControl.Get(ComponentHealth.fName, 1) || cause == LanguageControl.Get(ComponentHealth.fName, 5))) return true;
             if (Now < victimState.RebirthEnd && !ignoreInvulnerability) return true;
 
-            ComponentPlayer source = attacker?.Entity.FindComponent<ComponentPlayer>(false);
-            bool fireDamage = cause == LanguageControl.Get(ComponentHealth.fName, 5);
-            bool boosted = source != null && !fireDamage && IsAwakened(source);
-            float adjusted = FourSaintsRules.EffectiveDamage(amount, boosted, xuanwu && attacker != null);
+            float adjusted = FourSaintsRules.EffectiveDamage(amount, false, xuanwu && attacker != null);
             if (zhuque && !ignoreInvulnerability && adjusted > 0f && health.Health - adjusted <= FourSaintsRules.NativeHealthPerPoint)
             {
                 health.Health = MathUtils.Min(qinglong ? FourSaintsRules.QinglongMaximumHealth : FourSaintsRules.NativeMaximumHealth, 1f);
@@ -323,6 +371,7 @@ namespace SCIEPort.Features.FourSaints
         {
             if (state.Player == null || !state.Player.IsAddedToProject) return;
             state.Player.ComponentLocomotion.JumpSpeed -= state.JumpDelta;
+            state.Player.ComponentLocomotion.WalkSpeed -= state.WalkDelta;
             if (state.Player.ComponentGui?.HealthBarWidget != null) state.Player.ComponentGui.HealthBarWidget.BarsCount = state.OriginalHealthBars;
         }
 

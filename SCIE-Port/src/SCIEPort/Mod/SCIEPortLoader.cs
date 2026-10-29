@@ -91,6 +91,8 @@ namespace SCIEPort.Mod
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (fourSaints != null && fourSaints.IsActionLocked(attackingPlayer)) { attackPower = 0f; return false; }
             if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
+            if (fourSaints != null && attackPower > 0f)
+                attackPower += FourSaintsRules.DamageBonus(SubsystemFourSaints.Wears(attackingPlayer, ClothingSlot.Legs, FourSaintsRules.BaihuIndex), fourSaints.IsAwakened(attackingPlayer));
             if (target != null && attacker != null && attacker.Project != null)
             {
                 SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);

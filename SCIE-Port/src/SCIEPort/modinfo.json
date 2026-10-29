@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.47.0",
+  "Version": "0.48.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。v0.47.0 在 main 0.46.0 上整合阿比斯·终焉之镰 V0.2：紫曜巨镰 A3 原创模型、三连斩、长按蓄力、四个锁定技能槽、独立神器 Tab 和紫曜主题。保留四圣兽 V3、波塞冬、全知之眼及直升机移动端飞行 HUD；合入 port 已有吞噬之眼，主线坦克含额外组件时安全拒绝回收。内部 ID、GUID、网络包与存档归属保持不变。阿比斯普通客户端战斗不支持；Android 7723、联机及新模型性能待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。v0.48.0 强化四圣兽：青龙/玄武/白虎/朱雀耐久 700/1200/600/500；青龙修复套装，全套生命上限提升；白虎附加伤害及觉醒强化。保留原有物品、存档与网络身份。Android 7723、联机与游戏内效果待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -18,13 +18,29 @@ namespace SCIEPort.Features.FourSaints
         public const float XuanwuReduction = 0.3f;
         public const float BaihuNormalFrequency = 1.2f;
         public const float BaihuAwakenedFrequency = 2f;
-        public const float BaihuAwakenedDamage = 1.5f;
+        public const float BaihuPassiveDamage = 5f;
+        public const float BaihuAwakenedDamage = 15f;
+        public const float QinglongFullSetMaximumHealth = 2f;
+        public const float RepairPerPeriod = 10f;
         public const double BaihuDuration = 5.0;
         public const double BaihuCooldown = 60.0;
         public const double ZhuqueLockDuration = 1.0;
 
-        /// <summary>Every one of the four outfits now shares this durability.</summary>
-        public const float UnifiedSturdiness = 500f;
+        public static float Sturdiness(int index)
+        {
+            switch (index) { case QinglongIndex: return 700f; case XuanwuIndex: return 1200f;
+                case BaihuIndex: return 600f; case ZhuqueIndex: return 500f; default: return 0f; }
+        }
+        public static float MaximumHealth(byte equipment)
+        {
+            return (equipment & 1) == 0 ? NativeMaximumHealth : (equipment & 15) == 15 ? QinglongFullSetMaximumHealth : QinglongMaximumHealth;
+        }
+        public static float DamageBonus(bool baihu, bool awakened) => !baihu ? 0f : awakened ? BaihuAwakenedDamage : BaihuPassiveDamage;
+        public static int RepairSteps(float credit, float sturdiness, int nativeLevels, int damage)
+        {
+            if (nativeLevels <= 0 || sturdiness <= 0f || damage <= 0) return 0;
+            return Math.Min(damage, (int)(credit / (sturdiness / nativeLevels)));
+        }
         /// <summary>Baihu leg armour passive movement-speed multiplier (120%).</summary>
         public const float BaihuMovementSpeedFactor = 1.2f;
         /// <summary>Zhuque boots movement-speed multiplier (150%).</summary>
@@ -73,7 +89,7 @@ namespace SCIEPort.Features.FourSaints
 
         public static float EffectiveDamage(float amount, bool baihuAwakened, bool xuanwu)
         {
-            float result = Math.Max(0f, amount) * (baihuAwakened ? BaihuAwakenedDamage : 1f);
+            float result = Math.Max(0f, amount);
             return xuanwu ? Math.Max(0f, result - XuanwuReduction) : result;
         }
 
@@ -82,11 +98,11 @@ namespace SCIEPort.Features.FourSaints
             return (baihu ? (awakened ? BaihuAwakenedFrequency : BaihuNormalFrequency) : 1f) * (mjolnir ? 1.1f : 1f);
         }
 
-        public static float JumpSpeedForOneExtraBlock(float rawJumpSpeed, float levelSpeedFactor)
+        public static float JumpSpeedForExtraBlocks(float rawJumpSpeed, float levelSpeedFactor, float blocks)
         {
             float multiplier = 1f + 0.25f * (levelSpeedFactor - 1f);
             float effective = Math.Max(0f, rawJumpSpeed) * multiplier;
-            return (float)Math.Sqrt(effective * effective + 20f) / Math.Max(0.01f, multiplier);
+            return (float)Math.Sqrt(effective * effective + 20f * blocks) / Math.Max(0.01f, multiplier);
         }
 
         public static bool IsXuanwuEnvironmentalImmunity(bool equipped, string cause, string drowningCause, string lethalColdCause, string freezingCause)
