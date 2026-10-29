@@ -1,5 +1,23 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.55.1：Android 星门存档 MissingMethod 紧急修复
+
+用户日志显示 `SubsystemAbyssReaper.Save` 调用 `XmlWriter.Create(StringBuilder, XmlWriterSettings)` 时抛出 `Method not found`。Windows 固定程序集隔离夹具原先通过，不能据此推断 Android/Mono 的 System.Xml API 表面。本次改为 `StringWriter(StringBuilder, InvariantCulture)` + `XmlWriter.Create(TextWriter, settings)`；仍写 `VoidPortalRecords`、XML version=1，不迁移或清空记录，不吞掉保存异常。
+
+回归守卫直接解码成品 DLL 的 `VoidPortalRegistry.Serialize` IL 并要求 TextWriter 重载：在修改前的 0.55.0 DLL 上实际运行失败，准确拒绝旧问题签名。纯规则新增空注册表、64 个星门、中文/emoji/XML 特殊字符、fr-FR 小数环境与全部坐标字段往返；原生 Windows 夹具新增实际 `SubsystemAbyssReaper.Save` 的空记录和正常记录路径，保留损坏输入原样保存测试。
+
+实际构建命令（仓库根目录，使用本机 net472 NuGet reference assemblies；本地 SDK/Python 加入 PATH）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+```
+
+构建 exit 0，net472 Release、环境/ABI、全部既有离线回归、21 XDB、22 CSV/55 行和包内容校验通过；新包 IL 确认为 TextWriter 调用，152 项星门纯规则与 890 项目标程序集隔离检查通过。与 0.55.0 逐条解压比对，143 项中仅 `SCIEPort.dll` 和 `modinfo.json` 改变，所有资源及数据库字节相同。完整日志：本机忽略目录 `SCIE-Port/artifacts/hotfix-0.55.1-build.log`。
+
+产物 `荒野探险家-0.55.1.netmod` / `荒野探险家.netmod` 字节一致，7,339,987 字节 / 143 项，SHA-256：`BA23942419BCA039939F106E7FFE7140F3D84DB61DDB951FB149AA0D88F9BF7A`。包内 Version=0.55.1，AssemblyVersion/FileVersion=0.55.1.0；成品 DLL 与通过隔离检查的 DLL 字节一致。
+
+Android 7723 真机本轮未操作。安装后应在存档副本验证：无星门世界进入/手动保存/退出/重进；已有星门世界保存重进后名称、目标和坐标保持；重复切世界不再出现 MissingMethod。日志中的 `Child widget not present in container` 位于退出保存异常后，可能是连带错误，需在主错误修复后复测；`m.schub.top` DNS 失败不由 XML 写入导致，本修复不宣称解决网络服务问题。
+
 ## 2026-10-30 main 0.55.0 海神三技能、配色与Look技能按钮
 
 实际环境：`D:/Games/SCNET-x25.01.17` 固定哈希Windows公开程序集；目标net472。没有启动游戏、Android设备或真实多人会话。

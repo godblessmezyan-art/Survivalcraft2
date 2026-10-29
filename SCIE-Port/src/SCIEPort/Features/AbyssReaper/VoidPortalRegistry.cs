@@ -72,7 +72,9 @@ namespace SCIEPort.Features.AbyssReaper
         {
             var b=new StringBuilder();
             var settings=new XmlWriterSettings { OmitXmlDeclaration=true, ConformanceLevel=ConformanceLevel.Document };
-            using(var writer=XmlWriter.Create(b,settings))
+            // Android/Mono does not provide the StringBuilder overload exposed by Windows.
+            using(var output=new StringWriter(b,CultureInfo.InvariantCulture))
+            using(var writer=XmlWriter.Create(output,settings))
             {
                 writer.WriteStartElement("voidPortals");writer.WriteAttributeString("version",Version.ToString(CultureInfo.InvariantCulture));
                 writer.WriteAttributeString("world",WorldId.ToString("D"));writer.WriteAttributeString("limit",Limit.ToString(CultureInfo.InvariantCulture));

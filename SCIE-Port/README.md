@@ -1,5 +1,7 @@
 ﻿# 荒野探险家 / Wilderness Explorer
 
+**0.55.1（main，2026-10-30）**：紧急修复 Android 退出/保存世界时阿比斯星门调用 `XmlWriter.Create(StringBuilder, settings)` 导致的 `Method not found`，改用 `StringWriter` 和 `TextWriter` 重载。保留星门 XML v1、存档字段、已有内容及网络布局；新增成品 DLL 调用签名守卫与空/满星门存读档回归。Android 7723 进世界、保存、退出与重进仍需真机复测，见[测试结果](docs/TEST-RESULTS.md)。
+
 **0.55.0（main，2026-10-30）**：海神V2水盾潮环、方向巨浪与20秒海神领域；水中伤害/护盾翻倍、游速3倍。三张image_gen徽记围绕查看排布，配色改为深海蓝/海青/古金。完整构建已通过，Android与真实联机待用户验收，联机双方须同版。详见[海神V2](docs/POSEIDON.md)。
 
 **0.54.0（main，2026-10-29）**：阿比斯改用 imagegen 四图圆形技能按钮，围绕原生查看控件排列并镜像避障；普攻/蓄力的范围调整为 4.5/5.5 格，增加移握、横扫和弧形刀痕。三连斩时序、模型与持握尺寸保留；Android 7723、实际手感与联机待验证。

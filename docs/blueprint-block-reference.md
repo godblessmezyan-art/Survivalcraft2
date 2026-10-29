@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.21.1
 
+> 2026-10-30：SCIE-Port 0.55.1 仅修复阿比斯星门 XML 写入重载，不改变本清单方块、族标签、DATA、JSON schema 或蓝图支持范围。
+
 > 2026-10-29：SCIE-Port 0.54.0 调整阿比斯图像技能 UI、挥镰动作及范围；Builder Assistant 的方块、族标签、DATA 和蓝图能力不变。
 
 > 2026-10-29：SCIE-Port 0.53.0 调整虚影瞬狩视听，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。

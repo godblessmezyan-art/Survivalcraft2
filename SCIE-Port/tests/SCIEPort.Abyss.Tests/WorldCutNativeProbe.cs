@@ -143,17 +143,25 @@ public static class WorldCutNativeProbe
     {
         Type registry=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalRegistry",true);
         object instance=Activator.CreateInstance(registry,Flags,null,new object[]{Guid.NewGuid(),12},null);
+        Type subsystem=mod.GetType("SCIEPort.Features.AbyssReaper.SubsystemAbyssReaper",true);
+        object healthy=FormatterServices.GetUninitializedObject(subsystem);
+        Put(healthy,"<Portals>k__BackingField",instance);
+        var emptySaved=new ValuesDictionary();subsystem.GetMethod("Save").Invoke(healthy,new object[]{emptySaved});
+        object[] emptyParsed={emptySaved.GetValue<string>("VoidPortalRecords"),null};
+        Check((bool)registry.GetMethod("TryDeserialize",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,emptyParsed),"new world saves an empty portal registry");
+        Check((int)registry.GetProperty("Count",Flags).GetValue(emptyParsed[1],null)==0,"empty save retains zero portals");
         Guid id=Guid.NewGuid(),owner=Guid.NewGuid();
         object[] create={id,owner,"测试 & Portal",8.5f,64f,8.5f,0f};
         Check((bool)registry.GetMethod("TryAdd",Flags).Invoke(instance,create),"portal fixture create");
         string original=(string)registry.GetMethod("Serialize",Flags).Invoke(instance,null);
+        var healthySaved=new ValuesDictionary();subsystem.GetMethod("Save").Invoke(healthy,new object[]{healthySaved});
+        Check(healthySaved.GetValue<string>("VoidPortalRecords")==original,"subsystem saves healthy portal records through the actual Save entry");
         var dictionary=new ValuesDictionary();dictionary.SetValue("VoidPortalRecords",original);
         var xml=new XElement("Subsystem");dictionary.Save(xml);
         var loaded=new ValuesDictionary();loaded.ApplyOverrides(XElement.Parse(xml.ToString()));
         Check(loaded.GetValue<string>("VoidPortalRecords")==original,"native ValuesDictionary preserves escaped portal records");
         object[] parsed={loaded.GetValue<string>("VoidPortalRecords"),null};
         Check((bool)registry.GetMethod("TryDeserialize",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,parsed),"native saved record parses");
-        Type subsystem=mod.GetType("SCIEPort.Features.AbyssReaper.SubsystemAbyssReaper",true);
         object degraded=FormatterServices.GetUninitializedObject(subsystem);
         Put(degraded,"portalLoadFailure","<broken>");
         var saved=new ValuesDictionary();subsystem.GetMethod("Save").Invoke(degraded,new object[]{saved});

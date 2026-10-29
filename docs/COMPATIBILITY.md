@@ -1,5 +1,9 @@
 ﻿# 兼容性矩阵
 
+## 2026-10-30 main 0.55.1：SCIE-Port Android 星门存档修复
+
+旧包在用户 Android 运行时的 `XmlWriter.Create(StringBuilder, settings)` 缺失已由日志确认。改为 StringWriter/TextWriter；新增实际 DLL 调用签名守卫、空/满星门与实际子系统 Save 回归。不改变 XML v1、存档字段、已有 ID 或协议，不涉及 Builder Assistant。Android7723 进入/保存/退出/重进及真实联机状态仍为 **待验证**；本机验证细节见 `SCIE-Port/docs/TEST-RESULTS.md`。
+
 ## 2026-10-30 main 0.55.0：海神三叉戟 V2
 
 水御潮环15秒/14攻击力/刷新5点盾；方向巨浪11秒/44；海神领域60秒、20秒、55，领域内前两技能7/5秒。伤害与有效护盾水中翻倍，普通近战也翻倍，水中游速为原值3倍。蓝色世界采用限时天空/雾色与原生视口叠色，未修改地形或天气。

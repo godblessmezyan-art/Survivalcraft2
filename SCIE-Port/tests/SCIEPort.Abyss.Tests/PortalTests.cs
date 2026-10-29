@@ -7,6 +7,9 @@ internal static class PortalTests
     internal static void Run()
     {
         Guid world=Guid.NewGuid(), owner=Guid.NewGuid(), a=Guid.NewGuid(), b=Guid.NewGuid();
+        VoidPortalRegistry empty;
+        Check(VoidPortalRegistry.TryDeserialize(new VoidPortalRegistry(world,12).Serialize(),out empty)
+            && empty.Count==0 && empty.WorldId==world && empty.Limit==12,"empty new world persistence");
         var registry=new VoidPortalRegistry(world,2);
         Check(registry.TryAdd(a,owner,"家园 & 山",0,64,0,90),"create first");
         Check(!registry.TryAdd(a,owner,"duplicate",10,64,0,0),"duplicate id");
@@ -29,6 +32,21 @@ internal static class PortalTests
         Check(!VoidPortalRegistry.TryDeserialize(new string('x',VoidPortalRegistry.MaxDocument+1),out loaded),"bounded input");
         Check(!registry.Rename(a,"")&&!registry.Rename(a,new string('a',33)),"name bounds");
         Check(!registry.Rename(a,"bad\u0001name"),"reject invalid XML characters");
+        var culture=System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture=System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+            var fractional=new VoidPortalRegistry(world,64);
+            for(int i=0;i<64;i++)
+                Check(fractional.TryAdd(Guid.NewGuid(),owner,"星门 & <雪> \"北\" '南' 😀 "+i,i*8+.25f,64.5f,-.125f,90.25f),"max capacity escaped name "+i);
+            string xml=fractional.Serialize();
+            Check(!xml.StartsWith("<?xml") && xml.Contains("x=\"0.25\""),"declaration-free invariant XML");
+            Check(VoidPortalRegistry.TryDeserialize(xml,out loaded) && loaded.Count==64 && loaded.WorldId==world,"full registry roundtrip under non-invariant culture");
+            foreach(var entry in fractional.Records)
+                Check(loaded.TryGet(entry.Id,out portal) && portal.Name==entry.Name && portal.Owner==entry.Owner
+                    && portal.X==entry.X && portal.Y==entry.Y && portal.Z==entry.Z && portal.Facing==entry.Facing,"full registry fields preserved");
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture=culture; }
         Check(registry.Link(a,Guid.Empty),"cancel target");
         Console.WriteLine("Void portal registry and persistence: "+count+" checks passed (no game world exercised).");
     }

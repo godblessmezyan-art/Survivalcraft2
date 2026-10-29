@@ -8,17 +8,25 @@ using System;using System.Collections.Generic;using System.Reflection;using Syst
 public static class AbyssIL {
  static Dictionary<ushort,OpCode> codes=new Dictionary<ushort,OpCode>();
  static AbyssIL(){foreach(var f in typeof(OpCodes).GetFields(BindingFlags.Public|BindingFlags.Static)){var op=(OpCode)f.GetValue(null);codes[(ushort)op.Value]=op;}}
- public static string[] Calls(MethodInfo method){var names=new List<string>();byte[] il=method.GetMethodBody().GetILAsByteArray();
+ public static string[] Calls(MethodInfo method){var names=new List<string>();foreach(var target in Methods(method))names.Add(target.Name);return names.ToArray();}
+ public static MethodBase[] Methods(MethodInfo method){var methods=new List<MethodBase>();byte[] il=method.GetMethodBody().GetILAsByteArray();
  for(int i=0;i<il.Length;){ushort key=il[i++];if(key==0xfe)key=(ushort)(0xfe00|il[i++]);var op=codes[key];int n=0;
  switch(op.OperandType){case OperandType.InlineNone:break;case OperandType.ShortInlineBrTarget:case OperandType.ShortInlineI:case OperandType.ShortInlineVar:n=1;break;
  case OperandType.InlineVar:n=2;break;case OperandType.InlineI8:case OperandType.InlineR:n=8;break;
  case OperandType.InlineSwitch:n=4+4*BitConverter.ToInt32(il,i);break;
  default:n=4;break;}
- if(op.OperandType==OperandType.InlineMethod)names.Add(method.Module.ResolveMethod(BitConverter.ToInt32(il,i)).Name);i+=n;}
- return names.ToArray();}
+ if(op.OperandType==OperandType.InlineMethod)methods.Add(method.Module.ResolveMethod(BitConverter.ToInt32(il,i)));i+=n;}
+ return methods.ToArray();}
 }
 '@
 Add-Type -TypeDefinition $decoder
+$registry=$mod.GetType('SCIEPort.Features.AbyssReaper.VoidPortalRegistry',$true)
+$serialize=$registry.GetMethod('Serialize',[Reflection.BindingFlags]'Instance,NonPublic')
+$xmlCalls=@([AbyssIL]::Methods($serialize) | Where-Object { $_.DeclaringType.FullName -eq 'System.Xml.XmlWriter' -and $_.Name -eq 'Create' })
+if($xmlCalls.Count -ne 1 -or $xmlCalls[0].GetParameters()[0].ParameterType.FullName -ne 'System.IO.TextWriter') {
+    throw 'Portal save must call XmlWriter.Create(TextWriter, settings); StringBuilder overload is missing on Android/Mono.'
+}
+Write-Host 'Portal save compiled IL uses XmlWriter.Create(TextWriter, settings), avoiding the reported Android missing method.'
 $input=$g.GetType('Game.ComponentInput')
 $calls=[AbyssIL]::Calls($input.GetMethod('Update'))
 $mouse=[Array]::IndexOf($calls,'UpdateInputFromMouseAndKeyboard');$touch=[Array]::IndexOf($calls,'UpdateInputFromWidgets')
