@@ -1,0 +1,36 @@
+{
+  "files": {
+    "src/SCIEPort/Assets/Models/AbyssReaper.dae": "48BF03C9667DC181BD31387ED3F9F6A40007997E05A4E097CA0EBA3FF17EC3A8",
+    "src/SCIEPort/Assets/Textures/AbyssReaper.png": "8F294F389E15D44FFD0102B9A01925BF435B58DDAA633B266DC565579374587F",
+    "src/SCIEPort/Features/AbyssReaper/AbyssCombo.cs": "4833B31F8630EF44D3E2764EA5EEF3E8DCC064B16A75DA86933C44DF9B4FF256",
+    "src/SCIEPort/Features/AbyssReaper/AbyssId.cs": "0F110A400B207455934873552D04F52241D8EF9515CA54885DACF5EFB6AB8070",
+    "src/SCIEPort/Features/AbyssReaper/AbyssReaperBlock.cs": "4982E5EF7FCBEF7DC839B33B0461A0E6F7E3910E8ECFEAFA833FCD20C386F303"
+  },
+  "csvFields": {
+    "Class Name": "AbyssReaperBlock",
+    "DefaultDisplayName": "阿比斯·终焉之镰",
+    "DefaultCategory": "神器",
+    "Behaviors": "SCIEPortAbyssReaper",
+    "DisplayOrder": "952",
+    "DefaultIconBlockOffset": "0,0,0",
+    "DefaultIconViewOffset": "0.2,0.1,-1",
+    "DefaultIconViewScale": ".52",
+    "FirstPersonScale": ".46",
+    "FirstPersonOffset": ".50,-.38,-.95",
+    "FirstPersonRotation": "0,-8,-8",
+    "InHandScale": ".8",
+    "InHandOffset": "0,.12,0",
+    "InHandRotation": "0,0,-12",
+    "CraftingId": "scieport-abyss-reaper",
+    "DefaultCreativeData": "0",
+    "IsCollidable": "FALSE",
+    "IsPlaceable": "FALSE",
+    "IsGatherable": "TRUE",
+    "MaxStacking": "1",
+    "Durability": "-1",
+    "DefaultMeleePower": "0",
+    "ShovelPower": "0",
+    "QuarryPower": "0",
+    "HackPower": "0"
+  }
+}

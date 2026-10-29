@@ -5,6 +5,9 @@
       <Parameter Name="Class" Guid="31da5db6-0803-4f55-8984-99660011c5e6" Value="SCIEPort.Features.AbyssReaper.SubsystemAbyssReaper" Type="string" />
       <Parameter Name="AllowPlayers" Value="False" Type="bool" />
       <Parameter Name="AllowPassive" Value="False" Type="bool" />
+      <Parameter Name="WorldCutLowEffects" Value="False" Type="bool" />
+      <Parameter Name="WorldCutInitialDamage" Value="100" Type="float" />
+      <Parameter Name="WorldCutCloseDamage" Value="40" Type="float" />
       <Parameter Name="ShowRifts" Value="True" Type="bool" />
     </SubsystemTemplate>
   </Folder>

@@ -1,5 +1,8 @@
 # Blueprint Block Reference
 
+> 2026-10-29 port 0.17.0 审计：阿比斯二技能断界斩仅为独立神器运行功能；952 仍不得写入建筑蓝图。
+> Builder Assistant 方块、族标签、DATA、家具与安全能力集合均未改变；本次没有任何地形写入。
+
 > 2026-10-28 SCIE-Port port 分支 0.15.0 审计：DevouringEyeBlock（ID 950、DATA=0）
 > 是不可放置的回收工具，不是建筑材料，不支持放进蓝图。Builder Assistant 方块族、
 > DATA 范围和材料能力未改变；回收工具的原生方块白名单也不扩展此蓝图清单。

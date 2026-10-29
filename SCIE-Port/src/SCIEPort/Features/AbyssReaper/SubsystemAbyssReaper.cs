@@ -10,13 +10,14 @@ namespace SCIEPort.Features.AbyssReaper
     /// <summary>Local/server-owned melee; no terrain writes or client damage packets.</summary>
     public sealed class SubsystemAbyssReaper : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
-        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public CanvasWidget Panel; public LabelWidget Label; public double RiftUntil; }
+        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public WorldCutHud Hud; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil; }
         readonly Dictionary<ComponentPlayer,State> states=new Dictionary<ComponentPlayer,State>();
         readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
         readonly HashSet<GameEntitySystem.Entity> hit=new HashSet<GameEntitySystem.Entity>();
         readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
         SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies; SubsystemPlayers players;
         bool allowPlayers,allowPassive,showRifts;
+        internal WorldCutRuntime WorldCut { get; private set; }
         /// <inheritdoc/>
         public override int[] HandledBlocks => new[]{AbyssReaperBlock.Index};
         /// <inheritdoc/>
@@ -24,7 +25,8 @@ namespace SCIEPort.Features.AbyssReaper
         /// <inheritdoc/>
         public int[] DrawOrders {get;}=new[]{110};
         /// <inheritdoc/>
-        public override void Load(ValuesDictionary v) {base.Load(v);players=Project.FindSubsystem<SubsystemPlayers>(true);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);}
+        public override void Load(ValuesDictionary v) {base.Load(v);players=Project.FindSubsystem<SubsystemPlayers>(true);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);
+            WorldCut=new WorldCutRuntime(Project,players,clock,terrain,bodies,allowPlayers,allowPassive,showRifts,v.GetValue<bool>("WorldCutLowEffects",false),WorldCutRules.Damage(v.GetValue<float>("WorldCutInitialDamage",100f),100),WorldCutRules.Damage(v.GetValue<float>("WorldCutCloseDamage",40f),40));}
         /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
         public void Capture(ComponentInput input) {
             var p=input.m_componentPlayer; if(p==null)return;
@@ -37,11 +39,23 @@ namespace SCIEPort.Features.AbyssReaper
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
-            if(blocked){s.Combo=new AbyssCombo();return;}
+            if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);return;}
             float elapsed=0;
             var touch=p.ComponentGui.ViewWidget?.TouchInput;
             if(touch.HasValue&&touch.Value.InputType==TouchInputType.Hold)elapsed=touch.Value.Duration;
-            s.Combo.Input(ray.HasValue,clock.GameTime,elapsed);
+            bool skillPressed=s.Hud?.Poll(p.GuiWidget.Input)==true;
+            if(skillPressed)
+            {
+                bool meleeBusy=s.NormalImpactPending || s.Combo.Phase(clock.GameTime)<1 || s.Combo.Charge(clock.GameTime)>0;
+                if(s.InputGate.CanRequest(ray.HasValue,meleeBusy,WorldCut.Busy(p)))
+                { if(WorldCut.Request(p))s.InputGate.Accepted(); }
+                else WorldCut.Report(p,WorldCutFailure.Busy);
+            }
+            if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)))
+            {
+                s.Combo.Input(ray.HasValue,clock.GameTime,elapsed);
+                if(s.Combo.Phase(clock.GameTime)==0)s.NormalImpactPending=true;
+            }
         }
         /// <inheritdoc/>
         public override bool OnUse(Ray3 ray,ComponentMiner miner)=>true;
@@ -54,15 +68,17 @@ namespace SCIEPort.Features.AbyssReaper
             retired.Clear(); double now=clock.GameTime;
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
                 if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
+                if(WorldCut.Busy(p))continue;
                 float t=s.Combo.Phase(now);float arc=(float)Math.Sin(t*Math.PI);
                 Vector3 rotation=s.Combo.Stage==0?new Vector3(0,(t*2-1)*1.15f,-arc*.3f):s.Combo.Stage==1?new Vector3(0,(1-t*2)*1.3f,arc*.35f):new Vector3((t*2-1)*1.2f,0,arc*.25f);
                 if(t>=1)rotation=Vector3.Zero;
                 if(s.Combo.Charge(now)>0)rotation=new Vector3(-.65f*s.Combo.Charge(now),0,-.2f);
                 var fp=p.Entity.FindComponent<ComponentFirstPersonModel>();if(fp!=null)fp.ItemRotationOrder=rotation;
                 p.ComponentCreatureModel.InHandItemRotationOrder=rotation;
-                if(s.Combo.Impact(now)){if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
+                if(s.Combo.Impact(now)){s.NormalImpactPending=false;if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
             }
             foreach(var p in retired){Remove(p,states[p]);states.Remove(p);}
+            WorldCut.Update(dt);
         }
         void Strike(ComponentPlayer p,State s) {
             if(CommonLib.WorkType==WorkType.Client)return;
@@ -87,25 +103,26 @@ namespace SCIEPort.Features.AbyssReaper
                 if(hit.Count>=24)break;
             }
         }
-        /// <summary>Four read-only locked slots, never buttons or fake releases.</summary>
+        /// <summary>Only the second touch slot is unlocked; other skills remain unavailable.</summary>
         public void TickGui(ComponentGui gui) {
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
-            if(s.Panel==null){s.Panel=new CanvasWidget{Size=new Vector2(260,110),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Near,IsHitTestVisible=false};
-                s.Panel.Children.Add(new RectangleWidget{Size=s.Panel.Size,FillColor=new Color(12,9,19,225),OutlineColor=new Color(90,80,103),OutlineThickness=1,IsHitTestVisible=false});
-                s.Label=new LabelWidget{Size=new Vector2(248,102),FontScale=.55f,Color=new Color(174,156,197),IsHitTestVisible=false};s.Panel.Children.Add(s.Label);s.Panel.SetWidgetPosition(s.Label,new Vector2(6,4));gui.ControlsContainerWidget.Children.Add(s.Panel);}
-            s.Panel.IsVisible=gui.ModalPanelWidget==null;
-            s.Label.Text="阿比斯 · 终焉之镰  V0.1.1\n◇ 裂界星门 · 锁定    ◇ 断界斩 · 锁定\n◇ 虚影瞬狩 · 锁定\n◇ 终焉·万象坍缩 · 锁定\n"+(CommonLib.WorkType==WorkType.Client?"客户端战斗未开放":s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(clock.GameTime)>0?"蓄力 "+(int)(s.Combo.Charge(clock.GameTime)*100)+"% · 持续按住":"轻触连斩 · 长按松开蓄力重斩");
+            if(s.Hud==null)s.Hud=new WorldCutHud(gui);
+            string hint=WorldCut.Feedback(p);
+            if(hint==null)hint=s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(clock.GameTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
+            s.Hud.Update(WorldCut.Remaining(p),WorldCut.Busy(p),WorldCut.PendingRequest(p),hint,
+                gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput);
         }
         /// <inheritdoc/>
         public void Draw(Camera camera,int order) {
+            WorldCut?.Draw(camera);
             if(!showRifts)return;var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;if(s.RiftUntil<=clock.GameTime)continue;
                 Vector3 c=p.ComponentCreatureModel.EyePosition+p.ComponentCreatureModel.EyeRotation.GetForwardVector()*1.8f;
                 for(int i=0;i<5;i++){Vector3 a=c+new Vector3((i%2==0?-.08f:.07f),.65f-i*.25f,0);Vector3 b=c+new Vector3((i%2==0?.07f:-.08f),.40f-i*.25f,0);batch.QueueLine(a,b,new Color(159,100,207));}}
             renderer.Flush(camera.ViewProjectionMatrix);
         }
-        void Remove(ComponentPlayer p,State s){if(s.Panel?.ParentWidget!=null)s.Panel.ParentWidget.Children.Remove(s.Panel);}
+        void Remove(ComponentPlayer p,State s){s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);}
         /// <inheritdoc/>
-        public override void Dispose(){foreach(var x in states)Remove(x.Key,x.Value);states.Clear();base.Dispose();}
+        public override void Dispose(){WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;renderer.Clear();base.Dispose();}
     }
 }

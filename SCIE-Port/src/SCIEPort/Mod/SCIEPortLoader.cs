@@ -21,6 +21,7 @@ namespace SCIEPort.Mod
             if (!s_networkPackageRegistered)
             {
                 PackageManager.RegisterPackage(new TwoSeatAssignmentPackage());
+                PackageManager.RegisterPackage(new WorldCutPackage());
                 s_networkPackageRegistered = true;
             }
 

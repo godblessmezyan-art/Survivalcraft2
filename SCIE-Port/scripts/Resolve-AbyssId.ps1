@@ -1,4 +1,4 @@
-param([string]$GameDir)
+﻿param([string]$GameDir)
 $ErrorActionPreference='Stop'
 $repo=Split-Path (Split-Path $PSScriptRoot)
 [void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'Engine.dll'))
@@ -8,7 +8,7 @@ $used=New-Object 'System.Collections.Generic.HashSet[int]'
 foreach($t in $a.GetTypes()){if($a.GetType('Game.Block').IsAssignableFrom($t)){foreach($f in $t.GetFields()){if($f.Name -eq 'Index' -and $f.IsLiteral){[void]$used.Add([int]$f.GetRawConstantValue())}}}}
 $files=Get-ChildItem (Join-Path $repo 'SCIE-Port/src/SCIEPort') -Filter *.cs -Recurse | Where-Object Name -ne 'AbyssId.cs'
 foreach($f in $files){foreach($m in [regex]::Matches([IO.File]::ReadAllText($f.FullName),'const int Index\s*=\s*(\d+)')){[void]$used.Add([int]$m.Groups[1].Value)}}
-$main=& 'D:/Dev/Tools/MinGit/cmd/git.exe' -C $repo grep -h -E 'const int Index[ ]*=' origin/main -- SCIE-Port/src/SCIEPort
+$main=& git -C $repo grep -h -E 'const int Index[ ]*=' origin/main -- SCIE-Port/src/SCIEPort
 foreach($m in [regex]::Matches(($main -join "
 "),'const int Index\s*=\s*(\d+)')){[void]$used.Add([int]$m.Groups[1].Value)}
 $path=Join-Path $repo 'SCIE-Port/src/SCIEPort/Features/AbyssReaper/AbyssId.cs'

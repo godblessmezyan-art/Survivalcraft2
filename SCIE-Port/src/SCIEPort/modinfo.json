@@ -1,11 +1,11 @@
 {
-  "Name": "SCIE-Port 移植集合 (Audit Build)",
-  "Version": "0.16.1",
+  "Name": "荒野探险家",
+  "Version": "0.17.0",
   "ApiVersion": "1.42",
-  "Description": "SCNET x25.01.17 authorized port collection. 全知之眼 and 吞噬之眼 (Eye of Oblivion) V1: original artifacts, target identification, confirmed T34/simple-block recovery with journal and verified native save. Client identification only. Android verification is required. Abyss V0.1.1: inward scythe, dark steel highlights, exposed void iris and corrected post-touch charge sampling. Device revalidation pending.",
+  "Description": "荒野探险家 / Wilderness Explorer。port 0.17.0 为现有阿比斯·终焉之镰增加二技能断界斩：触屏第二槽、10秒冷却、25格黑紫弯月与裂隙闭合，100/40点名义攻击力，服务器权威伤害及客户端请求。现有模型、贴图、ID、持握参数和普通三连斩不变；其余三个技能锁定。保留全知之眼、吞噬之眼和既有移植内容。Android 7723及普通客户端联机待实测。",
   "ScVersion": "2.4.10.6",
-  "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
-  "Author": "SCIE-Port contributors; upstream authors credited in THIRD-PARTY-NOTICES.md",
+  "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/port/scnet-x25.01.17/SCIE-Port",
+  "Author": "zyan",
   "PackageName": "SCIEPort",
   "Dependencies": []
 }

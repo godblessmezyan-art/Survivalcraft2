@@ -1,5 +1,64 @@
 # 测试结果
 
+## 2026-10-29 port 0.17.0：阿比斯二技能“断界斩”V1
+
+目标分支 `port/scnet-x25.01.17`，基线 `dcbe228`；按用户要求不合并 main。
+仅新增第二技能、程序化视觉、触屏第二槽、独立状态/去重、服务器权威请求协议及测试。
+现有全部 DAE/PNG、武器绘制、952、AbyssCombo 与普通 Strike 方法逐字节/字段重查均未改。
+CSV 只更新说明，全部其它字段（包括手持缩放/偏移/旋转及普通攻击参数）由冻结清单守卫。
+其它神器源码未修改。XDB 沿用 GUID，新增三个技能参数，无真实地形/天气写入。
+
+实际命令（仓库根，现有 Windows PowerShell、.NET SDK，目标三程序集精确匹配既有登记哈希）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+dotnet run --project SCIE-Port/tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj -c Release
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-AbyssRuntime.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-WorldCut.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+```
+
+最终结果：上述命令 exit 0；独立 net472 Release **0 警告 / 0 错误**，全套构建及包内容守卫通过。
+完整日志 `SCIE-Port/artifacts/worldcut-0.17.0-build.log`，独立编译日志 `artifacts/worldcut-compile.log`。
+
+- 新增 **441** 项：状态机/接触与 25 格终点闭合/跳帧闭合边缘/取消/4 秒生命周期、每阶段去重、
+  24 目标上限、宽高/墙前缀/闭合范围、普通输入优先与排队排空、10 秒冷却、2 秒确认超时、
+  迟到确认/重复闭合墓碑、重连不清冷却、无权客户端/伪造发送者拒绝、视觉模式一致性、
+  曲面边界、320–1920 逻辑宽度及多种高度布局、原生控件被占用时隐藏。
+- 原普通三连斩/蓄力 **38** 项原样通过，AbyssCombo 与普通 Strike 保留基线实现。
+- 真实目标程序集夹具 **855** 项：80 组字段往返（含大坐标、非轴向方向、接近 uint 上限序号），
+  原生包 247 避碰（扫描 39 个原生 getter）、原生 64×62 ClickableWidget 命中区与坐标往返、
+  队列洪泛 32 上限/快照不可变/Dispose 清理/迟到回调/无效退出对象故障注入。
+  隔离的内存 Terrain 夹具还验证墙体最早安全截断、未加载区块拒绝、射线预算耗尽停止、
+  原生领地拒绝及方块仍原样；该夹具不是玩家世界。
+- 真实 API 的包编码是**压缩变长**：80 组夹具实测 **19–41 字节**，守卫上限 64 字节。
+  固定 40 字节的早期假设被实际构建断言拒绝，已按真实编码纠正；没有据通用 BinaryWriter 猜布局。
+- Input+1=-9 与原生 MouseHook→Widgets 顺序真实 IL 检查通过，未增加早期 Capture 或渲染 Hook。
+- 既有 Kelly 11、ATV 32、越野车 20、水上载具、坦克、全知之眼 27 场景与吞噬之眼 75 项及原生
+  事务/模型检查全部通过；原武器实际导入依然为 1 bone / 34 meshes / 2,480 triangles。
+- 构建前及包内 DAE/PNG SHA-256、CSV 全部非说明参数与品牌/版本检查通过；主包与版本副本同字节。
+  不运行武器资产生成器，不引入新图片或模型；包内只有本 Mod DLL 和已授权/原创资源。
+
+最终产物：517,155 bytes / 52 entries / 9 XDB；SHA-256 `7CEC66BB8F0C0C3E6E41667AC71C179E408DB9C1FFCC36B538A8AA72CB1C172B`。
+`SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.17.0.netmod`，包内 modinfo Version=0.17.0、
+DLL AssemblyVersion/FileVersion=0.17.0.0，PackageName/AssemblyName/RootNamespace 仍为 SCIEPort。
+
+| 场景 | 状态 | 本轮范围 |
+|---|---|---|
+| Local 单机实现/编译/夹具 | 已确认 | 状态/权限/碰撞/预算与非视觉伤害分支通过离线验证 |
+| Server 主机权威实现 | 已确认 | 包认证/本人身份、序号/冷却/取消、权威 AttackBody 分支与字段往返；未运行主机游戏 |
+| 普通 Client 自行结算技能伤害 | 不支持 | 只发送请求和播放服务器确认的视觉 |
+| 单机/主机实际游戏伤害 | 待验证 | 未启动完整 Windows/Android 游戏 |
+| Android 7723 实机 | 待验证 | 冷启动、第二槽逐指触摸、三连斩/蓄力互斥、左右手/分辨率、真实近黑弯月/紫边/裂痕、帧耗时 |
+| 普通客户端联机 | 待验证 | 两端安装本版，释放/重复点按/伪造拒绝、延迟/重连/取消、仅服务器伤害与双方视觉/冷却一致 |
+| 第三方保护 Mod / 外部包 ID 冲突 | 待验证 | 本轮仅验证原生领地、当前源码与主线预留号，不能继承其它 Mod 的兼容结论 |
+
+没有操作手机、没有真实双机，也没有用纯规则/内存夹具代替画面或联机验收。
+其它三个技能仍锁定；Builder Assistant 能力及源码未改，blueprint-block-reference.md 已记录不新增支持。
+
+
 ## 2026-10-28 吞噬之眼 V1 / SCIE-Port 0.15.0（port 分支）
 
 基线 `896469b`，目标 `Net_x25.01.17`；不代表 main 版本。

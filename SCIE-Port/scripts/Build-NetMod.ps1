@@ -17,6 +17,7 @@ $zip = Join-Path $artifacts '荒野探险家.zip'
 $package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
@@ -73,6 +74,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye safety/transaction tests failed.
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'WorldCut native regression failed' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }
@@ -787,8 +790,14 @@ try {
 }
 finally { $archive.Dispose() }
 
+& (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -Package $package
+
 Write-Host "Package: $package"
 Write-Host "Entries: $($entries -join ', ')"
 Write-Host "SHA-256: $((Get-FileHash -LiteralPath $package -Algorithm SHA256).Hash)"
 
-Copy-Item -LiteralPath $package -Destination (Join-Path $artifacts '荒野探险家-0.16.1.netmod') -Force
+$releaseVersion=(Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'modinfo.json')|ConvertFrom-Json).Version
+$versioned=Join-Path $artifacts ('荒野探险家-'+$releaseVersion+'.netmod')
+Copy-Item -LiteralPath $package -Destination $versioned -Force
+if((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versioned).Hash){throw 'Versioned release differs from main package'}
+Write-Host "Versioned package: $versioned"
