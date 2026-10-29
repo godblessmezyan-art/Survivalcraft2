@@ -14,6 +14,8 @@ internal static class PortalTests
         Check(!registry.TryAdd(Guid.NewGuid(),owner,"bad",float.NaN,64,0,0),"finite coordinates");
         Check(registry.TryAdd(b,owner,"远方",20,65,0,0),"create second");
         Check(!registry.TryAdd(Guid.NewGuid(),owner,"capacity",40,65,0,0),"limit");
+        Check(!registry.SetLimit(1)&&registry.Count==2,"lower limit does not discard existing records");
+        Check(registry.SetLimit(3)&&registry.Limit==3,"configured limit can be raised");
         Check(!registry.Link(a,a) && !registry.Link(a,Guid.NewGuid()),"invalid target");
         Check(registry.Link(a,b) && registry.Rename(b,"海底神殿"),"link and rename");
         string saved=registry.Serialize();VoidPortalRegistry loaded;

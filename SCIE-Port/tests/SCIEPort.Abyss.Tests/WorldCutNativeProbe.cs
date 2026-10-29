@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Xml.Linq;
+using TemplatesDatabase;
 using Engine;
 using Game;
 using Game.NetWork;
@@ -73,7 +75,28 @@ public static class WorldCutNativeProbe
         enqueue.Invoke(instance,new object[]{null,null,source});
         Check((int)queue.GetType().GetProperty("Count").GetValue(queue,null)==0,"late callback after Dispose is ignored");
         TerrainFixture(mod);
+        PortalPersistenceFixture(mod);
         Console.WriteLine("WorldCut native packet, ID, touch hit-test, queue/flood/Dispose: "+checks+" checks passed (not device gameplay).");
+    }
+    private static void PortalPersistenceFixture(Assembly mod)
+    {
+        Type registry=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalRegistry",true);
+        object instance=Activator.CreateInstance(registry,Flags,null,new object[]{Guid.NewGuid(),12},null);
+        Guid id=Guid.NewGuid(),owner=Guid.NewGuid();
+        object[] create={id,owner,"测试 & Portal",8.5f,64f,8.5f,0f};
+        Check((bool)registry.GetMethod("TryAdd",Flags).Invoke(instance,create),"portal fixture create");
+        string original=(string)registry.GetMethod("Serialize",Flags).Invoke(instance,null);
+        var dictionary=new ValuesDictionary();dictionary.SetValue("VoidPortalRecords",original);
+        var xml=new XElement("Subsystem");dictionary.Save(xml);
+        var loaded=new ValuesDictionary();loaded.ApplyOverrides(XElement.Parse(xml.ToString()));
+        Check(loaded.GetValue<string>("VoidPortalRecords")==original,"native ValuesDictionary preserves escaped portal records");
+        object[] parsed={loaded.GetValue<string>("VoidPortalRecords"),null};
+        Check((bool)registry.GetMethod("TryDeserialize",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,parsed),"native saved record parses");
+        Type subsystem=mod.GetType("SCIEPort.Features.AbyssReaper.SubsystemAbyssReaper",true);
+        object degraded=FormatterServices.GetUninitializedObject(subsystem);
+        Put(degraded,"portalLoadFailure","<broken>");
+        var saved=new ValuesDictionary();subsystem.GetMethod("Save").Invoke(degraded,new object[]{saved});
+        Check(saved.GetValue<string>("VoidPortalRecords")=="<broken>","save preserves failed input unchanged");
     }
     private static void TerrainFixture(Assembly mod)
     {
@@ -89,6 +112,20 @@ public static class WorldCutNativeProbe
             BlocksManager.Blocks[3]=new GraniteBlock { BlockIndex=3,IsCollidable=true };
             territoryField.SetValue(null,Activator.CreateInstance(territoryField.FieldType));
             terrain.SetCellValueFast(8,64,9,3);
+            Type safety=mod.GetType("SCIEPort.Features.AbyssReaper.VoidPortalSafety",true);
+            var safetyFlags=BindingFlags.Static|BindingFlags.NonPublic;
+            MethodInfo ready=safety.GetMethod("Ready",safetyFlags),empty=safety.GetMethod("Empty",safetyFlags),floor=safety.GetMethod("StableFloor",safetyFlags),unprotected=safety.GetMethod("Unprotected",safetyFlags);
+            Check((bool)ready.Invoke(null,new object[]{native,8,8}),"portal accepts valid loaded chunk");
+            Check(!(bool)ready.Invoke(null,new object[]{native,40,40}),"portal rejects missing chunk");
+            Check((bool)empty.Invoke(null,new object[]{native,8,64,8}),"portal clear air");
+            Check(!(bool)empty.Invoke(null,new object[]{native,8,64,9}),"portal rejects wall");
+            Check(!(bool)empty.Invoke(null,new object[]{native,8,0,8}),"portal rejects world boundary");
+            terrain.SetCellValueFast(8,63,8,3);
+            Check((bool)floor.Invoke(null,new object[]{native,8,63,8}),"portal accepts full safe floor");
+            BlocksManager.Blocks[3].HasCollisionBehavior=true;
+            Check(!(bool)floor.Invoke(null,new object[]{native,8,63,8}),"portal rejects collision hazard floor");
+            BlocksManager.Blocks[3].HasCollisionBehavior=false;
+            terrain.SetCellValueFast(8,63,8,0);
             Type damage=mod.GetType("SCIEPort.Features.AbyssReaper.WorldCutDamage",true);
             object checker=Activator.CreateInstance(damage,Flags,null,new object[]{native,null,null,false,false,100f,40f},null);
             MethodInfo step=damage.GetMethod("Step",Flags);
@@ -110,6 +147,8 @@ public static class WorldCutNativeProbe
             var protectedArea=new Territoriy { Origin=new Point2(8,7),OwnChunkCoord=new Point3(0,64,0),OwnerGuid=Guid.NewGuid(),
                 BoundBox=new BoundingBox(new Vector3(0,0,0),new Vector3(16,256,16)) };
             object dict=territoryField.GetValue(null);dict.GetType().GetMethod("Add").Invoke(dict,new object[]{protectedArea.OwnerGuid,protectedArea});
+            Check(!(bool)unprotected.Invoke(null,new object[]{8,7}),"portal rejects protected native territory");
+            Check(!(bool)empty.Invoke(null,new object[]{native,8,64,8}),"portal rejects protected air");
             object[] protectedArgs={new Vector3(8.5f,64.5f,7.5f),Vector3.UnitZ,-Vector3.UnitX,0f,.1f,0f};
             Check(step.Invoke(checker,protectedArgs).ToString()=="Protected","native protected territory stops the wave");
             Check(terrain.GetCellValue(8,64,9)==3,"skill collision did not modify isolated test terrain");

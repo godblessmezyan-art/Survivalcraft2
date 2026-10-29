@@ -28,6 +28,12 @@ namespace SCIEPort.Features.AbyssReaper
             if (worldId == Guid.Empty) throw new ArgumentException("worldId");
             WorldId = worldId; Limit = Math.Max(1, Math.Min(HardLimit, limit));
         }
+        internal bool SetLimit(int limit)
+        {
+            int clamped=Math.Max(1,Math.Min(HardLimit,limit));
+            if(clamped<records.Count)return false;
+            Limit=clamped;return true;
+        }
         internal static bool ValidName(string name)
         {
             if (string.IsNullOrWhiteSpace(name) || name.Length > 32 || name.Trim() != name) return false;

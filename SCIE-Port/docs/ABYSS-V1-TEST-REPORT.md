@@ -1,5 +1,16 @@
 # 阿比斯 V1 开发记录（进行中）
 
+## 2026-10-29 0.18.0 本地技能预览（未完成）
+
+- 环境：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1` 通过；完整阶段构建：`powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\abyss-v1-staging`，net472 Release 和包校验通过。
+- 离线断言：普通攻击 38、断界斩状态/输入/范围/去重 441、星门注册与序列化 21、模拟传送状态和故障 23、虚空冷却/阶段/几何规则 16。目标程序集原生夹具共 868 项，含武器包、触屏坐标、射线/领地、星门地面/空位及 `ValuesDictionary` 原生序列化回环；不是游戏进程或 Android 测试。`Test-VoidPrototype.ps1` 检查新代码使用的目标程序集 API、构建类型及未调用地形修改接口。
+- 独立开发包：`artifacts/abyss-v1-staging/荒野探险家-0.18.0.netmod`，SHA-256 `3AE81E2510BC8BADD0CB713C6101DC3FE0A6C1CDA331F5114B21A97658E145A7`；这是未完成预览，不是 V1 成品。
+- 星门记录、碰撞筛选、已加载落点传送、瞬狩与领域是本地/本地主机原型；未经真实世界或安卓运行测试。远距离主动加载、普通客户端新技能/状态同步不支持。已验证 SCNET 的远程玩家 BodyUpdate 会覆盖服务器端的位置，不能安全地以一次 PositionSet 冒充完整权威传送。
+- 原始模型、纹理、CSV 的物品/持握字段、AbyssCombo 和二技能核心未修改，冻结守卫通过。XDB 在原 GUID 上新增上限和画质参数，当前 SHA-256 `6895E106D214DB3C465FEC288BB9451F2B138D64E93D8B0E9D8803DD6ED47FC1`；后续阶段必须继续核对。
+- 四槽当前为文字按钮；星门、折跃、天空、黑洞、领域均为尚待审美和设备验收的简易效果，缺用户要求的完整演出及部分音效。无真实地形写入；第三方领地保护未适配。Android 7723、Windows 游戏内、正常存档重进、单人/主机/客户端真实联机全部待验证。
+- 用户本轮明确取消自动关机，不执行关机。
+
+
 ## 2026-10-29 阶段 A 部分实现
 
 - 指定目标 `port/scnet-x25.01.17` 基线 `d81e09e`；开发分支 `codex/abyss-v1`。目前尚未交付 V1，不能将本阶段包视为四技能成品。

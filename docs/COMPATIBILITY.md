@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-29 port 0.18.0 阿比斯 V1 开发预览
+
+指定 port 分支的开发预览增加已验证的 `ChangeSkyColor` Hook、星门保存字段及 XDB 画质/上限参数；保持原武器 ID、GUID 和包 247。单人及本地主机行为、Android 7723 和实际渲染待验证；普通客户端新技能及远距离区块主动加载不支持。预览不是 V1 成品。详见 [SCIE-Port 技能记录](../SCIE-Port/docs/ABYSS-V1-SKILLS.md)。
+
 ## 2026-10-29 port 0.17.0 / 阿比斯二技能断界斩 V1
 
 仅针对指定 `port/scnet-x25.01.17` / 基线 `dcbe228`，不修改或合并 main。

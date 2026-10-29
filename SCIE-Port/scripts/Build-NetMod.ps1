@@ -2,7 +2,8 @@
 param(
     [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    [string]$OutputDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -10,7 +11,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $projectDir = Join-Path $projectRoot 'src\SCIEPort'
 $projectFile = Join-Path $projectDir 'SCIEPort.csproj'
 $upstream = Join-Path $projectRoot 'upstream\SCIE'
-$artifacts = Join-Path $projectRoot 'artifacts'
+$artifacts = if ([string]::IsNullOrWhiteSpace($OutputDir)) { Join-Path $projectRoot 'artifacts' } else { $OutputDir }
 $build = Join-Path $artifacts 'build'
 $stage = Join-Path $artifacts 'package'
 $zip = Join-Path $artifacts '荒野探险家.zip'
@@ -76,6 +77,8 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'WorldCut native regression failed' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidPrototype.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Void prototype API/safety regression failed' }
 
 & (Join-Path $PSScriptRoot 'Test-Database.ps1')
 if ($LASTEXITCODE -ne 0) { throw "Database validation failed: $LASTEXITCODE" }

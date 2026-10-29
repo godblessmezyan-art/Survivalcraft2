@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.17.0",
+  "Version": "0.18.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。port 0.17.0 为现有阿比斯·终焉之镰增加二技能断界斩：触屏第二槽、10秒冷却、25格黑紫弯月与裂隙闭合，100/40点名义攻击力，服务器权威伤害及客户端请求。现有模型、贴图、ID、持握参数和普通三连斩不变；其余三个技能锁定。保留全知之眼、吞噬之眼和既有移植内容。Android 7723及普通客户端联机待实测。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.18.0 为阿比斯 V1 开发预览：星门、瞬狩和终焉坍缩具备本地及本地主机初版路径，二技能断界斩保留。远距离区块主动加载、普通客户端权限/位置同步和视觉验收尚未完成；Android 7723、单人和联机均待实测。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/port/scnet-x25.01.17/SCIE-Port",
   "Author": "zyan",

@@ -10,6 +10,8 @@ namespace SCIEPort.Features.AbyssReaper
         internal const float BlinkRange=18f, BlinkRadius=4f, BlinkPower=70f;
         internal const float HorizonRadius=40f, HorizonTickPower=12f, HorizonFinalPower=180f;
         internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=17;
+        internal static int Quality(int value) => Math.Max(0,Math.Min(2,value));
+        internal static int VfxSegments(int quality,int low,int medium,int high) => Quality(quality)==0?low:Quality(quality)==1?medium:high;
         internal static bool InBlinkRange(float distance) => WorldCutRules.Finite(distance) && distance>=0 && distance<=BlinkRange;
         internal static bool InDomain(float x,float y,float z,float maxHeight)
             => WorldCutRules.Finite(x)&&WorldCutRules.Finite(y)&&WorldCutRules.Finite(z)&&WorldCutRules.Finite(maxHeight)
@@ -21,6 +23,30 @@ namespace SCIEPort.Features.AbyssReaper
             if(elapsed<8)return HorizonPhase.Descent;if(elapsed<14)return HorizonPhase.Domain;
             return HorizonPhase.Collapse;
         }
+    }
+    internal sealed class VoidCooldowns
+    {
+        private const int MaxPlayers=64;
+        private readonly Dictionary<Guid,double> until=new Dictionary<Guid,double>();
+        private readonly List<Guid> expired=new List<Guid>();
+        internal double Remaining(Guid player,double now)
+        {
+            double deadline;
+            if(double.IsNaN(now)||double.IsInfinity(now))return double.PositiveInfinity;
+            return until.TryGetValue(player,out deadline)?Math.Max(0,deadline-now):0;
+        }
+        internal bool Start(Guid player,double now,double duration)
+        {
+            if(player==Guid.Empty || double.IsNaN(now)||double.IsInfinity(now)||double.IsNaN(duration)||double.IsInfinity(duration)||duration<=0||Remaining(player,now)>0)return false;
+            if(until.Count>=MaxPlayers)
+            {
+                expired.Clear();foreach(var pair in until)if(pair.Value<=now)expired.Add(pair.Key);
+                foreach(var id in expired)until.Remove(id);
+                if(until.Count>=MaxPlayers)return false;
+            }
+            until[player]=now+duration;return true;
+        }
+        internal void Clear(){until.Clear();expired.Clear();}
     }
     // A one-shot settlement ledger independent of presentation and frame frequency.
     internal sealed class HorizonTimeline<T>

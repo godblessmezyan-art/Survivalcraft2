@@ -28,6 +28,7 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("BlocksInitalized", this);
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("GuiUpdate", this);
+            ModsManager.RegisterHook("ChangeSkyColor", this);
             ModsManager.RegisterHook("UpdateInput", this);
         }
 
@@ -37,6 +38,13 @@ namespace SCIEPort.Mod
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
+        }
+
+        /// <inheritdoc />
+        public override Color ChangeSkyColor(Color oldColor,Vector3 direction,float timeOfDay,float precipitationIntensity,int temperature)
+        {
+            float blend=GameManager.Project?.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.SkyBlend ?? 0f;
+            return blend>0 ? Color.Lerp(oldColor,new Color(24,8,37),.8f*blend) : oldColor;
         }
 
         /// <inheritdoc />
