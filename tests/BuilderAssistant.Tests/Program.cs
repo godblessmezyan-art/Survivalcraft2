@@ -213,6 +213,7 @@ namespace BuilderAssistant.Tests
             TestPlanRejectsUnknownMaterial();
             TestExecuteThenUndoPreservesLaterEdits();
             TestRollbackOnMidBuildFailure();
+            TestQuickPlacementWriteGuard();
             TestCancelMidBuildRollsBack();
             TestRotationPreservesBlueprint();
             TestMirrorIsInvolution();
@@ -632,6 +633,31 @@ namespace BuilderAssistant.Tests
         }
 
         // --- Part 2/3: batched execution, undo that respects later player edits. ---
+        private static void TestQuickPlacementWriteGuard()
+        {
+            var terrain = new FakeTerrain(); var origin = new CellPos(10, 10, 10);
+            var plan = BuildPlanner.Plan(LineBlueprint(2), origin, new FakeResolver(), terrain, true);
+            var expected = new Dictionary<CellPos, int>();
+            foreach (var c in plan.Changes) expected[c.Absolute] = terrain.ValueAt(c.Absolute);
+            var task = new BuildTask("quick", origin, plan.Changes, true);
+            task.SetPreWriteGuard((pos, value) => expected.ContainsKey(pos) && expected[pos] == value);
+            task.Advance(terrain, 1);
+            terrain.Occupy(plan.Changes[1].Absolute, 777);
+            task.Advance(terrain, 1);
+            Check(task.State == BuildTaskState.Failed, "quick placement refuses terrain changed after confirmation");
+            Check(terrain.ValueAt(plan.Changes[1].Absolute) == 777, "guard never overwrites later player edit");
+            Check(terrain.ValueAt(plan.Changes[0].Absolute) == 0, "guard failure rolls back already written cells");
+            terrain = new FakeTerrain(); plan = BuildPlanner.Plan(LineBlueprint(2), origin, new FakeResolver(), terrain, true);
+            task = new BuildTask("guard exception", origin, plan.Changes, true);
+            task.SetPreWriteGuard((pos, value) => { throw new InvalidOperationException("unavailable"); });
+            task.Advance(terrain, 1);
+            Check(task.State == BuildTaskState.Failed && terrain.Writes == 0, "guard exception safely aborts without writes");
+            terrain = new FakeTerrain(); plan = BuildPlanner.Plan(LineBlueprint(2), origin, new FakeResolver(), terrain, false);
+            terrain.Occupy(plan.Changes[0].Absolute, 123);
+            Check(!BuildPlanner.Plan(LineBlueprint(2), origin, new FakeResolver(), terrain, false).Success,
+                "disabled clearing rejects non-air cells before writes");
+        }
+
         private static void TestExecuteThenUndoPreservesLaterEdits()
         {
             Console.WriteLine("[TestExecuteThenUndoPreservesLaterEdits]");

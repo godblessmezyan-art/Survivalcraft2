@@ -77,7 +77,8 @@ namespace BuilderAssistant.Infrastructure
                 string collided;
                 string stem = BlueprintNamePolicy.ResolveUnique(name, existing, out collided);
                 string path = Path.Combine(dir, stem + ".json");
-                File.WriteAllText(path, json, new UTF8Encoding(false));
+                using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(json);
                 savedFileName = stem + ".json";
                 return null;
             }

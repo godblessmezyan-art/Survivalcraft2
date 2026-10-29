@@ -191,6 +191,7 @@ namespace BuilderAssistant.Features.WorldEdit
             // inherits a stale clipboard or a half-finished copy selection.
             _mode = RuntimeMode.Cottage;
             _clipboard = null;
+            QuickBlueprintSource = null;
             _clipboardRotation = 0;
             _clipboardSourceName = null;
             _copyHasA = false;
@@ -213,6 +214,7 @@ namespace BuilderAssistant.Features.WorldEdit
             // Reset the v0.11 guided workbench session too: a fresh world starts the
             // Visual Building Workbench at its first step with no stale preview.
             WorkbenchSession.Reset();
+            BlueprintPlacementSession.Reset();
         }
 
         /// <summary>
@@ -484,6 +486,7 @@ namespace BuilderAssistant.Features.WorldEdit
         public static void Tick(ComponentGui gui)
         {
             WorkbenchSession.Tick(gui);
+            BlueprintPlacementSession.Tick(gui);
             if (_undoGateway != null)
             {
                 if (!CanMutateWorld(gui)) return;
@@ -1030,6 +1033,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 return true;
             }
 
+            QuickBlueprintSource = "游戏内复制";
             _clipboard = copy.Blueprint;
             _clipboardSourceName = copy.Blueprint.Name;
             _clipboardRotation = 0;
@@ -1162,6 +1166,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 return false;
             }
 
+            QuickBlueprintSource = "本地蓝图库";
             _clipboard = bp;
             _clipboardSourceName = bp.Name;
             _clipboardRotation = 0;
@@ -1436,6 +1441,55 @@ namespace BuilderAssistant.Features.WorldEdit
         /// the workbench can offer it as its read-only "Imported" choice. Null when empty. The
         /// workbench applies its OWN rotation on top, so it must be handed the base blueprint.
         /// </summary>
+        internal static string QuickBlueprintSource { get; private set; }
+        internal static string QuickImport(string json, string source)
+        {
+            if (_palette == null) return "材料表尚未就绪。";
+            BlueprintImportResult r = BlueprintImportService.FromString(json, _palette.IsResolvableKey);
+            if (!r.Success) return r.Detail;
+            string validation = QuickValidate(r.Blueprint);
+            if (validation != null) return validation;
+            _clipboard = r.Blueprint; _clipboardSourceName = r.Blueprint.Name; _clipboardRotation = 0;
+            _hasPending = false; QuickBlueprintSource = source; return null;
+        }
+        internal static string QuickLoad(string stem)
+        {
+            string error; string json = BlueprintStorage.Load(stem, out error);
+            return json == null ? error : QuickImport(json, "本地蓝图库");
+        }
+        internal static string QuickValidate(Blueprint bp)
+        {
+            if (bp == null) return "当前没有蓝图。";
+            if (_palette == null) return "材料表尚未就绪。";
+            foreach (BlueprintCell cell in bp.Cells)
+            {
+                int value; string error;
+                if (!_palette.TryResolve(cell.MaterialKey, cell.Family, cell.Data, out value, out error))
+                    return "不支持的材料或状态（" + cell.MaterialKey + "）：" + error;
+            }
+            return null;
+        }
+        internal static string QuickSave(string name, out string filename)
+        {
+            filename = null;
+            if (_clipboard == null) return "当前没有蓝图。";
+            if (string.IsNullOrWhiteSpace(name)) return "请输入蓝图名称。";
+            var bp = _clipboard;
+            var renamed = new Blueprint(name.Trim(), bp.SchemaVersion, bp.SizeX, bp.SizeY, bp.SizeZ,
+                new System.Collections.Generic.List<BlueprintCell>(bp.Cells),
+                new System.Collections.Generic.List<BlueprintCell>(bp.StructureCells),
+                new System.Collections.Generic.List<BuilderAssistant.Core.Furniture.FurniturePlacement>(bp.FurniturePlacements));
+            return BlueprintStorage.Save(name.Trim(), BlueprintJson.Serialize(renamed), out filename);
+        }
+        internal static bool QuickStart(BuildPlan plan, Blueprint bp, GameTerrainGateway gateway, CellPos origin,
+            bool clear, Func<CellPos, int, bool> guard)
+        {
+            if (IsBusy || !TerrainAuthority.IsWritable(CurrentAuthority()) || plan == null || !plan.Success) return false;
+            StartBuild(plan, bp, gateway, origin, false, clear);
+            _activeTask.SetPreWriteGuard(guard);
+            return true;
+        }
+
         internal static Blueprint ClipboardBlueprint
         {
             get { return _clipboard; }

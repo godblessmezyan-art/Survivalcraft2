@@ -93,7 +93,7 @@ namespace BuilderAssistant.Core.Blueprints
             if (set == null) return false;
             foreach (string x in set)
             {
-                if (string.Equals(x, s, StringComparison.Ordinal)) return true;
+                if (string.Equals(x, s, StringComparison.OrdinalIgnoreCase)) return true;
             }
             return false;
         }

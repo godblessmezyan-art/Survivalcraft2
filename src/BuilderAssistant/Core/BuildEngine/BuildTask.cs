@@ -67,6 +67,7 @@ namespace BuilderAssistant.Core.BuildEngine
         private readonly List<BlockUndoRecord> _pendingRollback = new List<BlockUndoRecord>();
         private readonly List<BlockUndoRecord> _pendingUndo = new List<BlockUndoRecord>();
         private readonly bool _allowOverride;
+        private Func<CellPos, int, bool> _preWriteGuard;
         private readonly bool _clearSoftObstructions;
         private int _idleAdvanceCalls;
         private string _stallReason;
@@ -104,6 +105,9 @@ namespace BuilderAssistant.Core.BuildEngine
             _clearSoftObstructions = clearSoftObstructions;
             State = BuildTaskState.Pending;
         }
+
+        /// <summary>Optional operation-specific last-moment terrain check before any write.</summary>
+        public void SetPreWriteGuard(Func<CellPos, int, bool> guard) { _preWriteGuard = guard; }
 
         /// <summary>Apply up to maxBatch cells. Returns how many were applied.</summary>
         public int Advance(ITerrainGateway gateway, int maxBatch)
@@ -202,6 +206,14 @@ namespace BuilderAssistant.Core.BuildEngine
                 if (!gateway.TryGetCellValue(change.Absolute, out oldValue))
                 {
                     return Fail(gateway, "无法读取原始方块: " + change.Absolute);
+                }
+
+                if (_preWriteGuard != null)
+                {
+                    bool safe;
+                    try { safe = _preWriteGuard(change.Absolute, oldValue); }
+                    catch (Exception ex) { return Fail(gateway, "写前安全检查失败: " + ex.Message); }
+                    if (!safe) return Fail(gateway, "目标或邻近地形发生变化或不支持安全清障: " + change.Absolute);
                 }
 
                 _writesThisAdvance += writeCost;

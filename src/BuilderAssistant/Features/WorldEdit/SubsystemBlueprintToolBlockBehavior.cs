@@ -24,7 +24,7 @@ namespace BuilderAssistant.Features.WorldEdit
                 return false;
             }
 
-            return WorldEditRuntime.OnBlueprintTool(componentMiner, ray);
+            return BlueprintPlacementSession.OnUse(componentMiner, ray);
         }
     }
 }
