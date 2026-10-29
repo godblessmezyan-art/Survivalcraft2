@@ -360,6 +360,7 @@ namespace BuilderAssistant.Tests
             TestWorkbenchSelectAndGenerate();
             TestWorkbenchSelectionCatalog();
             TestWorkbenchSeedDeterminism();
+            TestWorkbenchAtomicParameters();
             TestWorkbenchRotationFourTurnsIdentity();
             TestWorkbenchComplexOrientationRotates();
             TestWorkbenchPreviewAreaEqualsBuildArea();
@@ -3169,6 +3170,41 @@ namespace BuilderAssistant.Tests
             Check(vs.Accepted && a.CurrentBlueprint != null &&
                   BlueprintSignature(a.CurrentBlueprint) != BlueprintSignature(b.CurrentBlueprint),
                 "a different seed yields a different (but still valid) layout");
+        }
+
+        private static void TestWorkbenchAtomicParameters()
+        {
+            Console.WriteLine("[TestWorkbenchAtomicParameters]");
+            int parsed;
+            Check(!BuildingSpec.TryParseInteger("", out parsed) && !BuildingSpec.TryParseInteger("1.2", out parsed) &&
+                !BuildingSpec.TryParseInteger("2147483648", out parsed), "empty, non-integer and overflowing input are refused");
+            Check(BuildingSpec.TryParseInteger("-2147483648", out parsed) && parsed == int.MinValue &&
+                BuildingSpec.TryParseInteger("2147483647", out parsed) && parsed == int.MaxValue, "input accepts full int range");
+            BuildingSelectionService svc; BuildingWorkbench wb = NewWorkbench(out svc);
+            wb.SelectFirst(); wb.Regenerate(); Blueprint previous = wb.CurrentBlueprint;
+            FakeTerrain terrain = new FakeTerrain(); FakeResolver resolver = new FakeResolver(); BuildPreviewModel preview;
+            wb.PreviewAt(new CellPos(0, 1, 0), terrain, resolver, out preview);
+            BuildingSpec bad = wb.Draft; bad.Width = 1;
+            Check(!wb.TryApplySpec("workbench_cottage", bad, 0).Accepted && wb.Draft.Width != 1 && wb.CurrentBlueprint == previous,
+                "invalid whole-spec update is atomic and preserves blueprint");
+            BuildingSpec valid = wb.Draft; valid.Width = 10; valid.Seed = int.MinValue; valid.WindowDensity = 33;
+            Check(wb.TryApplySpec("workbench_cottage", valid, 2).Accepted && wb.Draft.Width == 10 && wb.Rotation == 2,
+                "complete valid parameters including full-range seed apply together");
+            valid.Width = 5;
+            Check(wb.Draft.Width == 10 && wb.CurrentBlueprint == previous, "caller cannot mutate draft and last blueprint remains intact");
+            BuildStartDescriptor descriptor;
+            Check(!wb.TryBeginBuild(WorldAuthority.SinglePlayer, terrain, resolver, out descriptor).Accepted && terrain.Writes == 0,
+                "atomic parameter edit invalidates preview without terrain writes");
+            Check(wb.Regenerate().Accepted, "valid edited parameters regenerate");
+            var original = wb.Draft; original.Seed = 7;
+            wb.TryApplySpec("workbench_cottage", original, 0); wb.Regenerate(); int signature = BlueprintSignature(wb.CurrentBlueprint);
+            var other = new BuildingWorkbench(new BuildingSelectionService()); other.TryApplySpec("workbench_cottage", original, 0); other.Regenerate();
+            Check(signature == BlueprintSignature(other.CurrentBlueprint), "same complete seed and spec are reproducible");
+            original.Seed = 8; other.TryApplySpec("workbench_cottage", original, 0); other.Regenerate();
+            Check(signature != BlueprintSignature(other.CurrentBlueprint), "different seeds actually alter layout");
+            svc.SetImportedBlueprint(previous);
+            Check(!wb.TryApplySpec("workbench_imported", original, 0).Accepted, "imported blueprint rejects synthetic dimensions");
+            Check(wb.TryApplySpec("workbench_imported", null, 3).Accepted && wb.Rotation == 3, "imported blueprint permits rotation");
         }
 
         private static void TestWorkbenchRotationFourTurnsIdentity()

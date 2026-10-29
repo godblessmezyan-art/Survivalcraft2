@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.19.0",
+  "Version": "0.20.0",
   "ApiVersion": "1.42",
-  "Description": "v0.19.0 integrates schema 3 furniture templates with the v0.18 fine block states and attached construction pipeline. Ten structure-block fallback templates; native hammer furniture is not enabled. 建筑助手 v0.18.0：63种原版建筑方块，保留16色染色、楼梯角形和原木三轴状态；支持木梯、铁梯和火把的支撑感知施工。兼容旧schema1/2蓝图，每事务10000格、每批32格、每轴64格，默认不覆盖，支持取消及分批撤销。活板门、栅栏门、地毯、藤蔓和复杂实体暂不支持。Windows程序集与离线规则已验证；Android 7723渲染、存读档及联机仍待验证，跨子系统完整撤销未实现。",
+  "Description": "建筑助手 v0.20.0：904 原生建筑配置窗口，支持直接输入参数、蓝图生成、只读落点预览与确认后重新校验；保留家具模板及安全施工。Android 7723 界面、软键盘、游戏内和联机均待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

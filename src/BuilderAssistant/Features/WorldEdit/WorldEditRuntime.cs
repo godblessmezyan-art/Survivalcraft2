@@ -483,6 +483,7 @@ namespace BuilderAssistant.Features.WorldEdit
         /// </summary>
         public static void Tick(ComponentGui gui)
         {
+            WorkbenchSession.Tick(gui);
             if (_undoGateway != null)
             {
                 if (!CanMutateWorld(gui)) return;

@@ -11,7 +11,7 @@ namespace BuilderAssistant.Core.Building
     /// It is intentionally simple (not statistically uniform); building layout only needs
     /// stable, well-spread choices, not cryptographic or high-quality sampling.
     /// </summary>
-    internal struct DeterministicRandom
+    internal sealed class DeterministicRandom
     {
         private uint _state;
 

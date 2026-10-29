@@ -77,7 +77,7 @@ namespace BuilderAssistant.Core.Workbench
         // --- Read-only view for the caller / tests. ---
         public WorkbenchStage Stage { get { return _stage; } }
         public BuildingChoice Choice { get { return _choice; } }
-        public BuildingSpec Draft { get { return _draft; } }
+        public BuildingSpec Draft { get { return _draft != null ? CopySpec(_draft) : null; } }
         public int Rotation { get { return _rotation; } }
         public Blueprint CurrentBlueprint { get { return _blueprint; } }
         public bool HasPreview { get { return _hasPreview; } }
@@ -160,6 +160,44 @@ namespace BuilderAssistant.Core.Workbench
             _stage = WorkbenchStage.Configure;
             Bump();
             return WorkbenchStatus.Ok("已选择：" + choice.DisplayName + DescribeParams(), _stage, true);
+        }
+
+        /// <summary>Validate and apply one complete configuration without exposing the draft.</summary>
+        public WorkbenchStatus TryApplySpec(string choiceKey, BuildingSpec spec, int rotation)
+        {
+            BuildingChoice choice = _service != null ? _service.Find(choiceKey) : null;
+            if (choice == null) return WorkbenchStatus.Fail("建筑选项不存在或导入蓝图已移除。");
+            if (rotation < 0 || rotation > 3) return WorkbenchStatus.Fail("朝向必须为 0、90、180 或 270 度。");
+            if (choice.Kind == BuildingChoiceKind.Imported)
+            {
+                if (spec != null || _service.ImportedBlueprint == null)
+                    return WorkbenchStatus.Fail("导入蓝图不可编辑建筑参数。");
+            }
+            else
+            {
+                if (spec == null) return WorkbenchStatus.Fail("缺少建筑参数。");
+                BuildingType expected = choice.Kind == BuildingChoiceKind.Cottage ? BuildingType.Cottage : BuildingType.HouseTwoStory;
+                if (spec.Type != expected) return WorkbenchStatus.Fail("建筑类型与参数不一致。");
+                if (spec.Roof != RoofType.Hip && spec.Roof != RoofType.Gabled && spec.Roof != RoofType.Flat)
+                    return WorkbenchStatus.Fail("屋顶类型无效。");
+                SpecValidationResult validation = spec.Validate();
+                if (!validation.IsValid) return WorkbenchStatus.Fail(validation.JoinedErrors());
+            }
+            bool sameChoice = _choice != null && _choice.Key == choice.Key;
+            bool changed = !sameChoice || _rotation != rotation ||
+                (spec != null && (_draft == null || _draft.Width != spec.Width || _draft.Length != spec.Length ||
+                _draft.Floors != spec.Floors || _draft.WallHeight != spec.WallHeight || _draft.Roof != spec.Roof ||
+                _draft.Seed != spec.Seed || _draft.WindowDensity != spec.WindowDensity ||
+                _draft.HasChimney != spec.HasChimney || !SameMaterials(_draft.Materials, spec.Materials)));
+            if (!changed) return WorkbenchStatus.Ok("参数未改变。", _stage, false);
+            _choice = choice;
+            _rotation = rotation;
+            _draft = spec != null ? CopySpec(spec) : null;
+            _draftDirty = spec != null;
+            MarkPreviewStale();
+            Bump();
+            _stage = WorkbenchStage.Configure;
+            return WorkbenchStatus.Ok("参数已应用。", _stage, true);
         }
 
         // ============================ PARAMETER CYCLING ============================
@@ -350,7 +388,8 @@ namespace BuilderAssistant.Core.Workbench
 
             bool genOk;
             string genReason = RegenerateInternal(out genOk);
-            string note = genOk ? null : ("（参数未生效，仍预览当前有效建筑：" + genReason + "）");
+            if (!genOk) return WorkbenchStatus.Fail("参数生成失败，无法预览或建造：" + genReason);
+            string note = null;
 
             Blueprint effective = EffectiveBlueprint();
             if (effective == null)
@@ -551,6 +590,14 @@ namespace BuilderAssistant.Core.Workbench
             }
             return " " + _draft.Width + "×" + _draft.Length + " 宽长，楼层 " + _draft.Floors +
                    "，每层墙高 " + _draft.WallHeight + "，" + RoofName(_draft.Roof) + "，种子 " + _draft.Seed + "。";
+        }
+
+        private static bool SameMaterials(MaterialProfile a, MaterialProfile b)
+        {
+            return a != null && b != null && a.Foundation == b.Foundation && a.Wall == b.Wall &&
+                a.Trim == b.Trim && a.Floor == b.Floor && a.Roof == b.Roof && a.Glass == b.Glass &&
+                a.Door == b.Door && a.Stair == b.Stair && a.InteriorStair == b.InteriorStair &&
+                a.Slab == b.Slab && a.Deck == b.Deck && a.Railing == b.Railing && a.InteriorWall == b.InteriorWall;
         }
 
         private static BuildingSpec CopySpec(BuildingSpec s)

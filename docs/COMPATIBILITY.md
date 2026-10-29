@@ -1,5 +1,18 @@
 # 兼容性矩阵
 
+## 2026-10-29 Builder Assistant v0.20.0 原生工作台配置窗口
+
+904 使用入口打开独立 Builder Assistant 原生 Dialog；配置、生成和选点预览不写地形，确认时再次检查权限和规划。默认不覆盖，既有 10000 格、每批 32、单轴 64、撤销和回滚不变。导入蓝图只允许朝向。无新方块 ID、Hook、网络包或 JSON schema。改用持久随机数状态修复值类型复制：同种子稳定，不同种子可改变布局；因此旧版相同种子重新生成的布局可能不同，已导出的蓝图不变。
+
+| 项目 | 状态 | 证据 / 限制 |
+| --- | --- | --- |
+| x25.01.17 Windows GUI 静态 API | 已确认 | 编译引用固定 Survivalcraft.exe，SHA-256 `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`；TextBoxWidget 获焦调用 Keyboard.ShowKeyboard，ScrollPanelWidget 支持垂直滚动；不能证明游戏中体验。 |
+| 参数、预览、权限与回归 | 已确认 | 离线测试与目标静态 API 检查，确认时重新规划；不代表游戏运行。 |
+| Windows 游戏窗口、Android 7723、联机 | 待验证 | 点击904、虚拟键盘、滚动、竖横屏触控、重复打开、返回键、切换世界、预览后障碍变化、施工撤销、存读档和房主/客户端同步均须实测。 |
+
+实际命令：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Build-NetMod.ps1`，执行依赖检查、2072 项离线检查、1909 项目标静态 API 检查、Release 构建和包内容守卫。包 SHA-256 `858912BFE135A3AC68A49559FB2F4ABCB016CCC7FC5AB05316CE0DC1AFF49003`。测试世界应为可丢弃单人世界。
+
+
 ## 2026-10-29 main 0.47.0：阿比斯 V0.2 冲突解决与正式模型
 
 SCIE-Port 在 main 0.46.0 上整合 port 阿比斯/吞噬之眼，主线版本统一为 0.47.0。

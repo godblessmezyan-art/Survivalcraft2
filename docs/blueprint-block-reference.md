@@ -1,6 +1,8 @@
-# Builder Assistant 蓝图方块能力清单 v0.19.0
+# Builder Assistant 蓝图方块能力清单 v0.20.0
 
 > 2026-10-29 主线合并审计：SCIE-Port 0.47.0 的阿比斯（952）与吞噬之眼（950）是独立 Mod 神器，
+> v0.20.0 工作台界面重构未改变方块、DATA、家具模板或 JSON schema 支持范围。
+
 > 不属于 Builder Assistant 可建造白名单，也不得生成到蓝图 cells。Builder Assistant 保持 0.19.0，
 > 本页类型、族标签、DATA 范围、家具与安全限制均沿用已验证主线，无新增支持。
 
@@ -291,7 +293,7 @@ Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲�
 
 ```json
 {
-  "modVersion": "0.19.0",
+  "modVersion": "0.20.0",
   "furnitureTemplates": {
     "backend": "structure-blocks-v1",
     "rotationSteps": [0, 1, 2, 3],

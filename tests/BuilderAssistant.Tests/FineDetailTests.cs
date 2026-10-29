@@ -73,7 +73,7 @@ namespace BuilderAssistant.Tests
         private static int DumpBlockCapabilities(string path)
         {
             var root = BuilderAssistant.Core.Json.JsonValue.NewObject();
-            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.19.0"));
+            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.20.0"));
             root.Add("maxSchemaVersion", BuilderAssistant.Core.Json.JsonValue.NewNumber(3));
             var furniture = BuilderAssistant.Core.Json.JsonValue.NewArray();
             foreach (var template in BuilderAssistant.Core.Furniture.FurnitureTemplateRegistry.Default.Templates)

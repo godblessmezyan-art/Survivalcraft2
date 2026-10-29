@@ -38,6 +38,13 @@ namespace BuilderAssistant.Core.Building
 
         public MaterialProfile Materials = MaterialProfile.Cottage();
 
+        /// <summary>Parse user input without throwing, including the complete signed int range.</summary>
+        public static bool TryParseInteger(string text, out int value)
+        {
+            return int.TryParse(text, System.Globalization.NumberStyles.Integer,
+                System.Globalization.CultureInfo.InvariantCulture, out value);
+        }
+
         /// <summary>The original 9x11x10 cottage, expressed as parameters.</summary>
         public static BuildingSpec DefaultCottage()
         {
