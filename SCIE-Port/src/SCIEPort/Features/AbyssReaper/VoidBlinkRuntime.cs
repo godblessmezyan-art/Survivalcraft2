@@ -14,7 +14,7 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly SubsystemTerrain terrain;private readonly SubsystemBodies bodies;private readonly SubsystemTime clock;
         private readonly bool allowPlayers,allowPassive;private readonly int quality;
         private readonly SubsystemAudio audio;
-        private ComponentPlayer actionOwner;private BlinkActionClock action;private Vector3 lastOrder;private bool orderOwned;
+        private ComponentPlayer actionOwner;private BlinkActionClock action;private Vector3 lastOrder,lastOffset;private bool orderOwned;
         private readonly VoidCooldowns cooldowns=new VoidCooldowns();
         private readonly List<Visual> visuals=new List<Visual>();
         private readonly HashSet<Entity> hits=new HashSet<Entity>();
@@ -122,11 +122,13 @@ namespace SCIEPort.Features.AbyssReaper
             try
             {
                 float progress=(float)q;
-                Vector3 rotation=new Vector3(-.25f*(float)Math.Sin(progress*Math.PI), (1f-2f*progress)*1.35f, .28f*(float)Math.Sin(progress*Math.PI));
+                var pose=AbyssMeleeMotion.Sample(2,progress);
+                Vector3 rotation=new Vector3(pose.Pitch,pose.Yaw,pose.Roll),offset=new Vector3(pose.X,pose.Y,pose.Z);
                 var fp=actionOwner.Entity.FindComponent<ComponentFirstPersonModel>(false);
-                if(fp!=null)fp.ItemRotationOrder=rotation;
+                if(fp!=null){fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
                 actionOwner.ComponentCreatureModel.InHandItemRotationOrder=rotation;
-                lastOrder=rotation;orderOwned=true;
+                actionOwner.ComponentCreatureModel.InHandItemOffsetOrder=offset*.35f;
+                lastOrder=rotation;lastOffset=offset;orderOwned=true;
             }
             catch(Exception error) { CancelAction();Log.Warning("[SCIEPort:Abyss] Blink animation cancelled: "+error.GetType().Name); }
         }
@@ -141,6 +143,8 @@ namespace SCIEPort.Features.AbyssReaper
                     var fp=actionOwner.Entity.FindComponent<ComponentFirstPersonModel>(false);
                     if(fp!=null && fp.ItemRotationOrder==lastOrder)fp.ItemRotationOrder=Vector3.Zero;
                     if(actionOwner.ComponentCreatureModel.InHandItemRotationOrder==lastOrder)actionOwner.ComponentCreatureModel.InHandItemRotationOrder=Vector3.Zero;
+                    if(fp!=null&&fp.ItemOffsetOrder==lastOffset)fp.ItemOffsetOrder=Vector3.Zero;
+                    if(actionOwner.ComponentCreatureModel.InHandItemOffsetOrder==lastOffset*.35f)actionOwner.ComponentCreatureModel.InHandItemOffsetOrder=Vector3.Zero;
                 }
                 catch(Exception) { /* Owner can already be removed while the world is closing. */ }
             }

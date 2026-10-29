@@ -71,6 +71,7 @@ Write-Host "Brand contract: $brandName / $brandEnglish / author $brandAuthor / P
 if ($LASTEXITCODE -ne 0) { throw 'Abyss A3 geometry/runtime asset integrity failed.' }
 & (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-AbyssHud.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
@@ -2353,6 +2354,7 @@ $versionedPackage = Join-Path $artifacts ("荒野探险家-" + $modInfo.Version 
 Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }
 & (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-AbyssHud.ps1') -GameDir $GameDir -Package $package
 
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"

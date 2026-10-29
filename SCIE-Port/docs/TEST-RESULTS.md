@@ -1,5 +1,15 @@
 # 测试结果
 
+## 2026-10-29 main 0.54.0 阿比斯圆形技能与挥镰
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：固定 Windows x25.01.17、net472 与已知程序集哈希通过。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：Release、完整自动回归、资源分类/数据库及 .netmod 内容校验通过。原 DAE、武器 PNG、CSV 持握字段、ID、原三连斩状态机保护哈希通过。
+- `dotnet run --project SCIE-Port/tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj -c Release`：圆形布局、镜像、避障、位移/旋转、4.5/5.5 格边界与有限值检查共 1590 项通过，含原生 `10*dt` 插值后的摆动幅度检查；断界斩纯规则 359 项、目标程序集隔离夹具 887 项通过，后者新增实际圆形 Widget 的中心、边缘和透明角命中检查。原始三连斩、技能去重/取消与星门测试保持通过。
+- `Test-AbyssHud.ps1`（随构建运行）：目标 Engine PNG 读取、1254 方形图集、四格透明度、图源与包内 SHA-256、虚拟 HitTest 和模型位移 API 验证通过。图集为内置 imagegen 原始输出，未改绘。
+- 软件预览：`dotnet run --project SCIE-Port/tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj -c Release -- --preview E:/Survivalcraft2/SCIE-Port/artifacts/abyss-feel-preview.json`，然后 `python SCIE-Port/scripts/Preview-AbyssCombat.py`；浏览器检查左右手和蓄力视图，4 个图标、零页面脚本异常。页面使用实际规则导出的坐标/轨迹和原 A3 几何，是软件模拟，非游戏截图。见 [预览页](assets/abyss-reaper/preview-controls.html)。
+- `荒野探险家-0.54.0.netmod` SHA-256 `A7E63CC9FB7C3D5A9AD7DD952C6F32055FF4410629A5F1BABB83061CB8772FC7`；与正式命名包一致。
+- 单人、本地主机实际挥动、墙体/移动方块遮挡和传播、设备图标可读性、Android 7723 触屏与 GPU/帧率均待验证；普通客户端普攻和三项新技能权威同步仍不支持。完整 V1 视觉验收尚未完成。
+
 ## 2026-10-29 main 0.53.0 虚影瞬狩动作与视听
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`：Windows x25.01.17、net472 和 ABI 检查通过。

@@ -70,14 +70,7 @@ internal static class WorldCutTests
             float side,forward,thickness;WorldCutRules.Crescent(i/100f,out side,out forward,out thickness);
             Check(Math.Abs(side)<=3.001f&&forward<=.0001f&&thickness>=0,"crescent silhouette bounds");
         }
-        foreach(float width in new[]{320f,640f,853f,1280f,1920f})foreach(float height in new[]{360f,480f,720f,1080f})
-        {
-            WorldCutHudLayout.Rect rect;var blockers=new List<WorldCutHudLayout.Rect>{new WorldCutHudLayout.Rect(0,height-100,width,100)};
-            Check(WorldCutHudLayout.Place(width,height,blockers,out rect),"touch HUD fits resolutions");Check(rect.X>=0&&rect.Y>=0&&rect.X+rect.W<=width&&rect.Y+rect.H<=height,"HUD remains in viewport");
-            Check(!rect.Overlaps(blockers[0]),"native hotbar not covered");Check(WorldCutHudLayout.Slot>=44,"minimum touch target");
-        }
-        WorldCutHudLayout.Rect hidden;Check(!WorldCutHudLayout.Place(270,200,new List<WorldCutHudLayout.Rect>(),out hidden),"hide when no safe space");
-        var covered=new List<WorldCutHudLayout.Rect>{new WorldCutHudLayout.Rect(0,0,1000,1000)};Check(!WorldCutHudLayout.Place(640,480,covered,out hidden),"hide rather than cover native controls");
+        AbyssFeelTests.Run();
         Console.WriteLine("WorldCut state/input/dedup/geometry/authority/cooldown/layout: "+count+" checks passed.");
     }
 }

@@ -15,6 +15,7 @@ namespace SCIEPort.Features.AbyssReaper
         readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
         readonly HashSet<GameEntitySystem.Entity> hit=new HashSet<GameEntitySystem.Entity>();
         readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
+        readonly AbyssMeleeScene meleeScene=new AbyssMeleeScene();
         VoidPortalScene portalScene;
         internal VoidPortalOperations PortalOperations { get; private set; }
         private VoidPortalLocalTravel portalTravel;
@@ -146,12 +147,13 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
                 if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
                 if(WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p))continue;
-                float t=s.Combo.Phase(now);float arc=(float)Math.Sin(t*Math.PI);
-                Vector3 rotation=s.Combo.Stage==0?new Vector3(0,(t*2-1)*1.15f,-arc*.3f):s.Combo.Stage==1?new Vector3(0,(1-t*2)*1.3f,arc*.35f):new Vector3((t*2-1)*1.2f,0,arc*.25f);
-                if(t>=1)rotation=Vector3.Zero;
-                if(s.Combo.Charge(now)>0)rotation=new Vector3(-.65f*s.Combo.Charge(now),0,-.2f);
-                var fp=p.Entity.FindComponent<ComponentFirstPersonModel>();if(fp!=null)fp.ItemRotationOrder=rotation;
+                float t=s.Combo.Phase(now);
+                var pose=AbyssMeleeMotion.Sample(s.Combo.Stage,t,s.Combo.Charge(now));
+                Vector3 rotation=new Vector3(pose.Pitch,pose.Yaw,pose.Roll),offset=new Vector3(pose.X,pose.Y,pose.Z);
+                var fp=p.Entity.FindComponent<ComponentFirstPersonModel>();
+                if(fp!=null){fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
                 p.ComponentCreatureModel.InHandItemRotationOrder=rotation;
+                p.ComponentCreatureModel.InHandItemOffsetOrder=offset*.35f;
                 if(s.Combo.Impact(now)){s.NormalImpactPending=false;if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
             }
             foreach(var p in retired){Remove(p,states[p]);states.Remove(p);}
@@ -166,18 +168,19 @@ namespace SCIEPort.Features.AbyssReaper
             Vector3 origin=p.ComponentCreatureModel.EyePosition;
             Vector3 forward=p.ComponentCreatureModel.EyeRotation.GetForwardVector();
             Vector3 flat=new Vector3(forward.X,0,forward.Z); if(flat.LengthSquared()<.001f)return;flat=Vector3.Normalize(flat);
-            hit.Clear();int visited=0;
+            hit.Clear();int visited=0,rays=0;
             foreach(var body in bodies.Bodies){if(++visited>512)break;
                 if(body.Entity==p.Entity||!body.Entity.IsAddedToProject||hit.Contains(body.Entity))continue;
                 var c=body.Entity.FindComponent<ComponentCreature>();if(c==null||c.ComponentHealth.Health<=0)continue;
                 bool player=c is ComponentPlayer;
                 bool hostile=c.Category==CreatureCategory.LandPredator||c.Category==CreatureCategory.WaterPredator;
-                if(player?!allowPlayers:(!hostile&&!allowPassive))continue;
+                if(player?(!allowPlayers||!Project.FindSubsystem<SubsystemGameInfo>(true).WorldSettings.IsFriendlyFireEnabled):(!hostile&&!allowPassive))continue;
                 Vector3 center=body.BoundingBox.Center();Vector3 delta=center-origin;
                 Vector3 horizontal=new Vector3(delta.X,0,delta.Z);float len=horizontal.Length();
-                if(!AbyssCombo.Sector(delta.Length(),len>.01f?Vector3.Dot(horizontal/len,flat):1,delta.Y,s.Combo.Stage))continue;
+                if(!AbyssMeleeMotion.Sector(delta.Length(),len>.01f?Vector3.Dot(horizontal/len,flat):1,delta.Y,s.Combo.Stage))continue;
                 Territoriy region;if(SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(Terrain.ToCell(center.X),Terrain.ToCell(center.Z),out region))continue;
-                if(terrain.Raycast(origin,center,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue)continue;
+                if(++rays>48)break;
+                if(!VoidCombatSafety.ClearPath(terrain,origin,center,AbyssMeleeMotion.ChargedReach))continue;
                 hit.Add(body.Entity);
                 ComponentMiner.AttackBody(body,p,center,forward,s.Combo.Stage==3?52:s.Combo.Stage==2?34:22,true);
                 if(hit.Count>=24)break;
@@ -198,7 +201,15 @@ namespace SCIEPort.Features.AbyssReaper
             portalScene?.Draw(camera,Portals,clock.GameTime);
             blink?.Draw(camera);
             Horizon?.Draw(camera);
-            if(!showRifts)return;var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
+            if(!showRifts)return;
+            foreach(var pair in states)
+            {
+                var player=pair.Key;
+                if(!player.Entity.IsAddedToProject||player.ComponentHealth.Health<=0||WorldCut.Busy(player)||Horizon.Busy(player)||blink.Busy(player))continue;
+                meleeScene.Queue(player,pair.Value.Combo.Stage,pair.Value.Combo.Phase(clock.GameTime));
+            }
+            meleeScene.Flush(camera);
+            var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;if(s.RiftUntil<=clock.GameTime)continue;
                 Vector3 c=p.ComponentCreatureModel.EyePosition+p.ComponentCreatureModel.EyeRotation.GetForwardVector()*1.8f;
                 for(int i=0;i<5;i++){Vector3 a=c+new Vector3((i%2==0?-.08f:.07f),.65f-i*.25f,0);Vector3 b=c+new Vector3((i%2==0?.07f:-.08f),.40f-i*.25f,0);batch.QueueLine(a,b,new Color(159,100,207));}}
@@ -206,6 +217,6 @@ namespace SCIEPort.Features.AbyssReaper
         }
         void Remove(ComponentPlayer p,State s){if(s.PortalDialog!=null)ClosePortalDialog(p,s.PortalDialog);s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);}
         /// <inheritdoc/>
-        public override void Dispose(){WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();renderer.Clear();base.Dispose();}
+        public override void Dispose(){WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
     }
 }

@@ -1,103 +1,121 @@
 using System;
 using System.Collections.Generic;
 using Engine;
+using Engine.Graphics;
 using Engine.Input;
 using Game;
 namespace SCIEPort.Features.AbyssReaper
 {
-    // Only slot two is a hit target. The panel/background/locked slots cannot consume world touches.
+    // Leave transparent sprite corners available to world input.
+    internal sealed class AbyssSkillHitTarget : ClickableWidget
+    {
+        public override bool HitTest(Vector2 point)
+        {
+            Vector2 p=ScreenToWidget(point);
+            return WorldCutHudLayout.Circle(p.X,p.Y,ActualSize.X,ActualSize.Y);
+        }
+    }
     internal sealed class WorldCutHud : IDisposable
     {
+        private sealed class Button
+        {
+            internal CanvasWidget Root;
+            internal RectangleWidget Icon,Glow;
+            internal LabelWidget Cooldown;
+            internal AbyssSkillHitTarget Hit;
+        }
         private readonly ComponentGui gui;
         private readonly CanvasWidget panel;
-        private readonly ClickableWidget cut,portal,blink,horizon;
-        private readonly LabelWidget cutText,blinkText,horizonText,status;
-        private readonly Widget[] nativeControls;
-        private readonly List<WorldCutHudLayout.Rect> obstacles=new List<WorldCutHudLayout.Rect>(16);
+        private readonly Button[] buttons=new Button[4];
+        private readonly LabelWidget status;
+        private readonly List<WorldCutHudLayout.Rect> obstacles=new List<WorldCutHudLayout.Rect>(32);
         private int capturedTouch=-1,capturedSlot;
         internal bool Visible => panel.IsVisible;
         internal WorldCutHud(ComponentGui owner)
         {
-            gui=owner;panel=new CanvasWidget { Size=new Vector2(WorldCutHudLayout.Width,WorldCutHudLayout.Height),HorizontalAlignment=WidgetAlignment.Near,VerticalAlignment=WidgetAlignment.Near,IsHitTestVisible=false };
-            Add(new RectangleWidget { Size=panel.Size,FillColor=new Color(10,6,17,230),OutlineColor=new Color(92,55,129),OutlineThickness=1,IsHitTestVisible=false },0,0);
-            string[] names={"裂界星门","断界斩","虚影瞬狩","终焉·万象坍缩"};
+            gui=owner;
+            panel=new CanvasWidget { Name="SCIEPort.Abyss.LookSkills",HorizontalAlignment=WidgetAlignment.Near,VerticalAlignment=WidgetAlignment.Near,IsHitTestVisible=false,IsVisible=false };
+            Texture2D atlas=ContentManager.Get<Texture2D>("Textures/AbyssSkillsV1");
+            string[] names={"星门","断界斩","瞬狩","终焉坍缩"};
             for(int i=0;i<4;i++)
             {
-                float x=8+i*66;
-                Add(new RectangleWidget { Size=new Vector2(64,62),FillColor=new Color(23,12,34,235),OutlineColor=i==3?new Color(210,158,76):new Color(174,113,224),OutlineThickness=1,IsHitTestVisible=false },x,8);
-                var label=new LabelWidget { Size=new Vector2(64,62),Text=names[i]+(i==0?"\n管理":"\n就绪"),FontScale=.48f,HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center,IsHitTestVisible=false };
-                Add(label,x,8);if(i==1)cutText=label;else if(i==2)blinkText=label;else if(i==3)horizonText=label;
+                float size=i==3?WorldCutHudLayout.Ultimate:WorldCutHudLayout.Slot;
+                var button=new Button();buttons[i]=button;
+                button.Root=new CanvasWidget { Size=new Vector2(size),IsHitTestVisible=false };
+                Vector2 uv=new Vector2((i%2)*.5f,(i/2)*.5f);
+                button.Icon=new RectangleWidget { Size=new Vector2(size),Subtexture=new Subtexture(atlas,uv,uv+new Vector2(.5f)),FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
+                button.Glow=new RectangleWidget { Size=new Vector2(size),Subtexture=button.Icon.Subtexture,FillColor=Color.Transparent,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
+                button.Cooldown=new LabelWidget { Size=new Vector2(size),TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=i==3?.92f:.8f,DropShadow=true,Color=Color.White,IsHitTestVisible=false };
+                var label=new LabelWidget { Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.38f,DropShadow=true,Color=new Color(237,218,255),IsHitTestVisible=false };
+                button.Hit=new AbyssSkillHitTarget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
+                button.Root.Children.Add(button.Icon);button.Root.Children.Add(button.Glow);button.Root.Children.Add(button.Cooldown);button.Root.Children.Add(label);button.Root.Children.Add(button.Hit);
+                CanvasWidget.SetPosition(label,new Vector2(0,size*.71f));
+                panel.Children.Add(button.Root);
             }
-            var portalArea=new CanvasWidget { Size=new Vector2(64,62),IsHitTestVisible=false };
-            portal=new ClickableWidget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
-            portalArea.Children.Add(portal);Add(portalArea,8,8);
-            var blinkArea=new CanvasWidget { Size=new Vector2(64,62),IsHitTestVisible=false };
-            blink=new ClickableWidget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
-            blinkArea.Children.Add(blink);Add(blinkArea,140,8);
-            var horizonArea=new CanvasWidget { Size=new Vector2(64,62),IsHitTestVisible=false };
-            horizon=new ClickableWidget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
-            horizonArea.Children.Add(horizon);Add(horizonArea,206,8);
-            var clickArea=new CanvasWidget { Size=new Vector2(64,62),IsHitTestVisible=false };
-            cut=new ClickableWidget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
-            clickArea.Children.Add(cut);Add(clickArea,74,8);
-            status=new LabelWidget { Size=new Vector2(264,32),FontScale=.48f,Color=new Color(194,168,219),IsHitTestVisible=false };Add(status,8,72);
-            gui.ControlsContainerWidget.Children.Add(panel);
-            nativeControls=new Widget[] { gui.MoveWidget,gui.LookWidget,gui.ShortInventoryWidget,gui.HealthBarWidget,gui.LevelLabelWidget,
-                gui.m_backButtonWidget,gui.m_inventoryButtonWidget,gui.m_clothingButtonWidget,gui.m_moreButtonWidget };
+            status=new LabelWidget { Size=new Vector2(232,24),FontScale=.42f,DropShadow=true,Color=new Color(221,190,244),IsHitTestVisible=false };
+            panel.Children.Add(status);gui.ControlsContainerWidget.Children.Add(panel);
         }
-        private void Add(Widget widget,float x,float y) { panel.Children.Add(widget);panel.SetWidgetPosition(widget,new Vector2(x,y)); }
         internal int Poll(WidgetInput input)
         {
-            if(!panel.IsVisibleGlobal || input==null){CancelInput();return 0;}
+            if(!panel.IsVisibleGlobal||input==null){CancelInput();return 0;}
             bool seen=false;
             foreach(var touch in input.TouchLocations)
             {
-                if(capturedTouch<0 && touch.State==TouchLocationState.Pressed)
-                {
-                    int slot=At(touch.Position);if(slot!=0){capturedTouch=touch.Id;capturedSlot=slot;}
-                }
+                if(capturedTouch<0&&touch.State==TouchLocationState.Pressed)
+                { int slot=At(touch.Position);if(slot!=0){capturedTouch=touch.Id;capturedSlot=slot;} }
                 if(touch.Id!=capturedTouch)continue;seen=true;
-                if(touch.State==TouchLocationState.Released){int slot=capturedSlot;capturedTouch=-1;capturedSlot=0;return At(touch.Position)==slot?slot:0;}
+                if(touch.State==TouchLocationState.Released)
+                { int slot=capturedSlot;CancelInput();return At(touch.Position)==slot?slot:0; }
             }
-            if(capturedTouch>=0 && !seen)CancelInput();
+            if(capturedTouch>=0&&!seen)CancelInput();
             if(!input.Click.HasValue)return 0;
-            var click=input.Click.Value;int picked=At(click.Start);return picked!=0 && At(click.End)==picked?picked:0;
+            var click=input.Click.Value;int picked=At(click.Start);return picked!=0&&At(click.End)==picked?picked:0;
         }
-        internal void CancelInput() { capturedTouch=-1;capturedSlot=0; }
+        internal void CancelInput(){capturedTouch=-1;capturedSlot=0;}
         private int At(Vector2 screen)
         {
-            if(Inside(portal,screen))return 1;
-            if(Inside(cut,screen))return 2;
-            if(Inside(blink,screen))return 3;
-            if(Inside(horizon,screen))return 4;
+            for(int i=0;i<4;i++)if(buttons[i].Hit.IsEnabledGlobal&&buttons[i].Hit.HitTest(screen))return i+1;
             return 0;
         }
-        private static bool Inside(Widget widget,Vector2 screen)
+        private WorldCutHudLayout.Rect Bounds(Widget widget)
         {
-            if(!widget.IsEnabledGlobal)return false;
-            Vector2 p=widget.ScreenToWidget(screen);return p.X>=0 && p.Y>=0 && p.X<widget.ActualSize.X && p.Y<widget.ActualSize.Y;
+            if(widget==null||!widget.IsVisibleGlobal||widget.ActualSize.X<=1||widget.ActualSize.Y<=1)return default(WorldCutHudLayout.Rect);
+            Vector2 a=gui.ControlsContainerWidget.ScreenToWidget(widget.GlobalBounds.Min),b=gui.ControlsContainerWidget.ScreenToWidget(widget.GlobalBounds.Max);
+            return new WorldCutHudLayout.Rect(Math.Min(a.X,b.X),Math.Min(a.Y,b.Y),Math.Abs(b.X-a.X),Math.Abs(b.Y-a.Y));
         }
         internal void Update(double remaining,double blinkRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked)
         {
+            if(blocked){panel.IsVisible=false;CancelInput();return;}
             obstacles.Clear();
-            foreach(var widget in nativeControls)
+            foreach(Widget widget in gui.ControlsContainerWidget.AllChildren)
             {
-                if(widget==null || !widget.IsVisibleGlobal || widget.ActualSize.X<=0 || widget.ActualSize.Y<=0)continue;
-                Vector2 a=gui.ControlsContainerWidget.ScreenToWidget(widget.WidgetToScreen(Vector2.Zero));
-                Vector2 b=gui.ControlsContainerWidget.ScreenToWidget(widget.WidgetToScreen(widget.ActualSize));
-                obstacles.Add(new WorldCutHudLayout.Rect(Math.Min(a.X,b.X),Math.Min(a.Y,b.Y),Math.Abs(a.X-b.X),Math.Abs(a.Y-b.Y)));
+                if(widget==panel||widget.IsChildWidgetOf(panel)||!widget.IsVisibleGlobal||!widget.IsHitTestVisible)continue;
+                if(!(widget is ButtonWidget)&&!(widget is TouchInputWidget)&&!(widget is MoveRoseWidget)&&!(widget is InventorySlotWidget))continue;
+                if(obstacles.Count>=254){panel.IsVisible=false;CancelInput();return;}
+                var r=Bounds(widget);if(r.Valid)obstacles.Add(r);
             }
-            WorldCutHudLayout.Rect place=default(WorldCutHudLayout.Rect);
-            panel.IsVisible=!blocked && WorldCutHudLayout.Place(gui.ControlsContainerWidget.ActualSize.X,gui.ControlsContainerWidget.ActualSize.Y,obstacles,out place);
-            if(panel.IsVisible)panel.Margin=new Vector2(place.X,place.Y);
-            cutText.Text="断界斩\n"+(pending?"等待主机":busy?"释放中":remaining>0?remaining.ToString("0.0")+"s":"就绪 · 10s");
-            horizonText.Text="终焉坍缩\n"+(horizonRemaining>0?horizonRemaining.ToString("0")+"s":"就绪 · 180s");
-            horizonText.Color=horizonRemaining>0?new Color(128,109,149):new Color(235,202,145);
-            blinkText.Text="虚影瞬狩\n"+(blinkRemaining>0?blinkRemaining.ToString("0.0")+"s":"就绪 · 15s");
-            blinkText.Color=blinkRemaining>0?new Color(128,109,149):new Color(220,184,255);
-            cutText.Color=remaining>0?new Color(128,109,149):new Color(220,184,255);
-            status.Text=feedback ?? "轻触连斩 · 长按蓄力";
+            obstacles.Add(Bounds(gui.MoveWidget));obstacles.Add(Bounds(gui.ShortInventoryWidget));
+            Vector2 size=gui.ControlsContainerWidget.ActualSize;panel.Size=size;
+            WorldCutHudLayout.Placement placement;
+            panel.IsVisible=WorldCutHudLayout.Place(size.X,size.Y,Bounds(gui.LookWidget),obstacles,SettingsManager.LeftHandedLayout,out placement);
+            if(!panel.IsVisible){CancelInput();return;}
+            for(int i=0;i<4;i++)
+            {
+                var r=placement.At(i);CanvasWidget.SetPosition(buttons[i].Root,new Vector2(r.X,r.Y));
+                double cooldown=i==1?remaining:i==2?blinkRemaining:i==3?horizonRemaining:0;
+                bool ready=cooldown<=0;
+                buttons[i].Cooldown.Text=i==1&&pending?"…":ready?string.Empty:Math.Ceiling(cooldown).ToString("0");
+                buttons[i].Icon.FillColor=ready&&!busy?Color.White:new Color(120,103,142,225);
+                float pulse=.5f+.5f*MathUtils.Sin((float)Time.RealTime*2.2f);
+                buttons[i].Glow.FillColor=ready&&!busy?new Color(177,112,240)*(buttons[i].Hit.IsPressed?.28f:.035f+pulse*.055f):Color.Transparent;
+            }
+            float left=Math.Min(placement.Portal.X,placement.Horizon.X),top=Math.Min(placement.Blink.Y,placement.Horizon.Y);
+            var statusRect=new WorldCutHudLayout.Rect(Math.Max(8,Math.Min(size.X-240,left-28)),top-26,232,24);
+            status.IsVisible=statusRect.Y>=8;
+            foreach(var obstacle in obstacles)if(statusRect.Overlaps(obstacle))status.IsVisible=false;
+            CanvasWidget.SetPosition(status,new Vector2(statusRect.X,statusRect.Y));
+            status.Text=feedback??"轻触连斩 · 长按蓄力";
         }
-        public void Dispose() { CancelInput();if(panel.ParentWidget!=null)panel.ParentWidget.Children.Remove(panel);obstacles.Clear(); }
+        public void Dispose(){CancelInput();if(panel.ParentWidget!=null)panel.ParentWidget.Children.Remove(panel);obstacles.Clear();}
     }
 }

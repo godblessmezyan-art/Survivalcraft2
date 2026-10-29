@@ -228,19 +228,20 @@ namespace SCIEPort.Features.AbyssReaper
         private void Animate(Cast cast)
         {
             double elapsed=Now-cast.Motion.Started;
-            float t=(float)elapsed;Vector3 order;
-            if(t>WorldCutRules.SweepEnd)order=Vector3.Zero;
-            else if(t<WorldCutRules.Windup){float q=t/WorldCutRules.Windup;order=new Vector3(-.2f*q,1.5f*q,.25f*q);}
-            else {float q=Math.Min(1,(t-WorldCutRules.Windup)/(WorldCutRules.SweepEnd-WorldCutRules.Windup));order=new Vector3(-.2f*(1-q),1.5f-3f*q,.25f*(1-q));}
-            var fp=cast.Owner.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)fp.ItemRotationOrder=order;
+            float t=(float)elapsed;
+            float phase=t<WorldCutRules.Windup?.22f*t/WorldCutRules.Windup:t<WorldCutRules.SweepEnd?.22f+.38f*(t-WorldCutRules.Windup)/(WorldCutRules.SweepEnd-WorldCutRules.Windup):.60f+.40f*(t-WorldCutRules.SweepEnd)/.22f;
+            var pose=AbyssMeleeMotion.Sample(0,phase);
+            Vector3 order=new Vector3(pose.Pitch,pose.Yaw,pose.Roll),offset=new Vector3(pose.X,pose.Y,pose.Z);
+            var fp=cast.Owner.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null){fp.ItemRotationOrder=order;fp.ItemOffsetOrder=offset;}
             cast.Owner.ComponentCreatureModel.InHandItemRotationOrder=order;
+            cast.Owner.ComponentCreatureModel.InHandItemOffsetOrder=offset*.35f;
         }
         private void Finish(Cast cast,bool cancel)
         {
             if(cancel&&cast.Motion.Phase!=WorldCutPhase.Finished)Publish(cast,5);
             Peer entry;if(peers.TryGetValue(cast.OwnerGuid,out entry)&&entry.MatchesEntity(cast.Owner.Entity.EntityId))entry.ActiveUntil=0;
-            cast.Motion.Cancel();cast.Hits.Clear();cast.Owner.ComponentCreatureModel.InHandItemRotationOrder=Vector3.Zero;
-            var fp=cast.Owner.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)fp.ItemRotationOrder=Vector3.Zero;
+            cast.Motion.Cancel();cast.Hits.Clear();cast.Owner.ComponentCreatureModel.InHandItemRotationOrder=Vector3.Zero;cast.Owner.ComponentCreatureModel.InHandItemOffsetOrder=Vector3.Zero;
+            var fp=cast.Owner.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null){fp.ItemRotationOrder=Vector3.Zero;fp.ItemOffsetOrder=Vector3.Zero;}
         }
         internal void Draw(Camera camera) { if(!disposed)scene.Draw(camera,casts,Now); }
         public void Dispose()

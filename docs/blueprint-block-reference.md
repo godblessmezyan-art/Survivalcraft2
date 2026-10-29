@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.21.1
 
+> 2026-10-29：SCIE-Port 0.54.0 调整阿比斯图像技能 UI、挥镰动作及范围；Builder Assistant 的方块、族标签、DATA 和蓝图能力不变。
+
 > 2026-10-29：SCIE-Port 0.53.0 调整虚影瞬狩视听，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。
 
 > 2026-10-29：SCIE-Port 0.52.0 新增阿比斯音效，不改变 Builder Assistant 方块、DATA、族标签或蓝图限制。

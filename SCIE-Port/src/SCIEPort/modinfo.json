@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.53.0",
+  "Version": "0.54.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.53.0 改进阿比斯虚影瞬狩的动作、残影与音效；保留 A3、四圣兽及现有神器。V1 技能视觉及普通客户端新技能同步尚未完成，Android 7723、游戏内存档和联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.54.0 重做阿比斯圆形技能触屏界面与大幅挥镰手感；保留 A3、四圣兽及现有神器。V1 技能视觉及普通客户端新技能同步尚未完成，Android 7723、游戏内存档和联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

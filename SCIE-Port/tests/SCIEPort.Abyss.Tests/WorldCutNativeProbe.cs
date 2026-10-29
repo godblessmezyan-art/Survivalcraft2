@@ -49,6 +49,15 @@ public static class WorldCutNativeProbe
         Check(ReferenceEquals(Widget.HitTestGlobal(root,at,w=>w.IsHitTestVisible),click),"slot two owns only its hit region through transparent parent");
         Vector2 back=click.ScreenToWidget(at);Check((back-new Vector2(32,31)).LengthSquared()<.0001f,"touch screen/widget coordinate roundtrip");
         Check(Widget.HitTestGlobal(root,new Vector2(20,20),w=>w.IsHitTestVisible)==null,"world touch outside slot is not swallowed");
+        // Verify the actual mod circular widget under the native UI layout transform.
+        var circle=(Widget)Activator.CreateInstance(mod.GetType("SCIEPort.Features.AbyssReaper.AbyssSkillHitTarget",true),true);
+        circle.HorizontalAlignment=WidgetAlignment.Stretch;circle.VerticalAlignment=WidgetAlignment.Stretch;
+        area.Children.Clear();area.Children.Add(circle);
+        root.Measure(new Vector2(640,480));root.Arrange(Vector2.Zero,new Vector2(640,480));
+        Check(ReferenceEquals(Widget.HitTestGlobal(root,circle.WidgetToScreen(new Vector2(32,31)),w=>w.IsHitTestVisible),circle),"native circular skill center clickable");
+        Check(Widget.HitTestGlobal(root,circle.WidgetToScreen(new Vector2(1,1)),w=>w.IsHitTestVisible)==null,"transparent icon corner leaves world input available");
+        Check(Widget.HitTestGlobal(root,circle.WidgetToScreen(new Vector2(63,61)),w=>w.IsHitTestVisible)==null,"opposite transparent corner does not intercept touch");
+        Check(circle.HitTest(circle.WidgetToScreen(new Vector2(32,4))),"circular edge remains reachable");
         // Exercise the real queue and Dispose with no world/player or graphics objects.
         Type runtime=mod.GetType("SCIEPort.Features.AbyssReaper.WorldCutRuntime",true);
         object instance=FormatterServices.GetUninitializedObject(runtime);

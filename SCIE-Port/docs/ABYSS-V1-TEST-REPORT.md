@@ -1,5 +1,7 @@
 # 阿比斯 V1 开发记录（进行中）
 
+> 0.54.0：圆形 imagegen 四技能 UI、挥镰移握/弧光和普攻 4.5/蓄力 5.5 格已构建；1590 项布局/动作/范围检查和 887 项目标程序集夹具通过。浏览器软件预览已检查；真实游戏、Android 7723 和双端联机仍待验证。详细命令和产物哈希见 [TEST-RESULTS.md](TEST-RESULTS.md)。
+
 ## 2026-10-29 main 0.50.0 星门区块加载
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`：固定 Windows x25.01.17、net472、Release、资产/数据库和包校验通过。
