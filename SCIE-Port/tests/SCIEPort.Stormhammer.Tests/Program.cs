@@ -16,17 +16,55 @@ internal static class Program
         GreatBoltSchedule();
         EquipmentBonuses();
         DomainRules();
+        ThunderGodRules();
         Console.WriteLine("Skywrath V5 lightning rule tests passed: " + s_count);
         return 0;
     }
 
     /// <summary>雷霆王域: 8 blocks, 7 seconds, 24 s cooldown, one 12-power tick per whole second.</summary>
+    /// <summary>雷神降世: shortened cooldowns plus a 7-power grind that ends with the window.</summary>
+    private static void ThunderGodRules()
+    {
+        Assert(Math.Abs(StormhammerDomainRules.ThunderGodTickPower - 7f) < 0.0001f, "the Thunder God grind must be exactly 7 attack power");
+        Assert(Math.Abs(StormhammerDomainRules.ThunderGodRadius - 8f) < 0.0001f, "the Thunder God grind radius must be 8 blocks");
+        Assert(StormhammerDomainRules.ThunderGodTickCount == 12, "the grind must run at most twelve cycles");
+
+        // 8 s -> 5 s exactly, and the same ratio shortens the realm to 15 s.
+        Assert(Math.Abs(StormhammerDomainRules.ReducedCooldown(8f, true) - 5f) < 0.0001f, "雷霆万钧 must be 5 s during the window");
+        Assert(Math.Abs(StormhammerDomainRules.ReducedCooldown(24f, true) - 15f) < 0.0001f, "雷霆王域 must drop to 15 s during the window");
+        Assert(Math.Abs(StormhammerDomainRules.ReducedCooldown(8f, false) - 8f) < 0.0001f, "the unbuffed judgment cooldown must stay 8 s");
+        Assert(Math.Abs(StormhammerDomainRules.ReducedCooldown(24f, false) - 24f) < 0.0001f, "the unbuffed realm cooldown must stay 24 s");
+        Assert(Math.Abs(StormhammerDomainRules.ThunderGodJudgmentCooldown - 5f) < 0.0001f, "the shared constant must agree with the rule");
+        Assert(Math.Abs(StormhammerDomainRules.ThunderGodDomainCooldown - 15f) < 0.0001f, "the realm cap constant must agree with the rule");
+
+        // Frame-rate invariance and the hard twelve-cycle cap.
+        foreach (double dt in new[] { 1.0 / 120.0, 1.0 / 60.0, 1.0 / 30.0, 0.2, 0.5 })
+        {
+            int ticks = 0;
+            for (double t = 0.0; t < 12.0; t += dt)
+            {
+                int due = StormhammerDomainRules.ThunderGodTicksDue(t);
+                if (due > ticks) ticks = due;
+            }
+            // The authority flushes any remaining cycles on the closing frame, so the rule only
+            // has to guarantee that the tick index never runs past the cap.
+            Assert(StormhammerDomainRules.ThunderGodTicksDue(12.0) == StormhammerDomainRules.ThunderGodTickCount,
+                "the closing frame must flush to exactly twelve cycles (dt " + dt + ")");
+            Assert(ticks > 0 && ticks <= StormhammerDomainRules.ThunderGodTickCount, "the grind must never exceed twelve cycles (dt " + dt + ")");
+        }
+        Assert(StormhammerDomainRules.ThunderGodTicksDue(0.0) == 1, "the first grind lands immediately on cast");
+        Assert(StormhammerDomainRules.ThunderGodTicksDue(11.99) == 12, "the last grind lands inside the twelfth second");
+        Assert(StormhammerDomainRules.ThunderGodTicksDue(12.0) == 12 && StormhammerDomainRules.ThunderGodTicksDue(60.0) == 12,
+            "the grind must be gone when the window closes, never a thirteenth cycle");
+        Assert(StormhammerDomainRules.ThunderGodTicksDue(-1.0) == 0, "a future window must not tick");
+    }
+
     private static void DomainRules()
     {
         Assert(Math.Abs(StormhammerDomainRules.Radius - 8f) < 0.0001f, "domain radius must be 8 blocks");
         Assert(Math.Abs(StormhammerDomainRules.Duration - 7f) < 0.0001f, "domain duration must be 7 seconds");
         Assert(Math.Abs(StormhammerDomainRules.Cooldown - 24f) < 0.0001f, "domain cooldown must be 24 seconds");
-        Assert(Math.Abs(StormhammerDomainRules.TickPower - 12f) < 0.0001f, "each cycle must deal exactly 12 attack power");
+        Assert(Math.Abs(StormhammerDomainRules.TickPower - 17f) < 0.0001f, "each cycle must deal exactly 17 lightning attack power");
         Assert(StormhammerDomainRules.TickCount == 7, "the domain must run exactly seven cycles");
 
         // Frame-rate invariance: no matter how often Update runs, the tick count is identical.

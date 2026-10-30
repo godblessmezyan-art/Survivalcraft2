@@ -4,18 +4,31 @@ namespace SCIEPort.Features.Stormhammer
 {
     /// <summary>
     /// Engine-independent policy for 雷霆王域 (Thunder Dominion): a 7 s, 8-block domain that
-    /// follows the caster and pays exactly one 12-power tick per whole second, seven times.
+    /// follows the caster and pays exactly one 17-power tick per whole second, seven times.
+    /// It also owns the 雷神降世 window rules: shortened cooldowns and a 7-power grind.
     /// </summary>
     internal static class StormhammerDomainRules
     {
         public const float Cooldown = 24f;
         public const float Duration = 7f;
         public const float Radius = 8f;
-        public const float TickPower = 12f;
+        public const float TickPower = 17f;
         public const int TickCount = 7;
         /// <summary>Visual-only: the ground ring expands from the caster to the full radius.</summary>
         public const float ExpandTime = 0.35f;
         public const float CollapseTime = 0.6f;
+
+        /// <summary>
+        /// 雷神降世 window: every skill cooldown is shortened and the caster grinds everything
+        /// around them for 7 power per second. Both stop the moment the window closes.
+        /// </summary>
+        public const float ThunderGodTickPower = 7f;
+        public const float ThunderGodRadius = 8f;
+        public const int ThunderGodTickCount = 12;
+        /// <summary>8 s -> 5 s for 雷霆万钧; the same ratio turns 24 s into 15 s for 雷霆王域.</summary>
+        public const float ThunderGodCooldownFactor = 0.625f;
+        public const float ThunderGodJudgmentCooldown = 8f * ThunderGodCooldownFactor;
+        public const float ThunderGodDomainCooldown = Cooldown * ThunderGodCooldownFactor;
 
         /// <summary>Full ticks that have elapsed. Frame rate can never add or skip a tick.</summary>
         public static int TicksDue(double elapsed)
@@ -45,6 +58,18 @@ namespace SCIEPort.Features.Stormhammer
             if (left >= CollapseTime) return 0f;
             if (left <= 0.0) return 1f;
             return (float)(1.0 - left / CollapseTime);
+        }
+
+        /// <summary>Skill cooldown after the Thunder God reduction. The ultimate itself is never reduced.</summary>
+        public static float ReducedCooldown(float baseCooldown, bool thunderGod)
+            => thunderGod ? baseCooldown * ThunderGodCooldownFactor : baseCooldown;
+
+        /// <summary>Whole seconds of the Thunder God window already elapsed, capped at twelve.</summary>
+        public static int ThunderGodTicksDue(double elapsed)
+        {
+            if (double.IsNaN(elapsed) || elapsed < 0.0) return 0;
+            double due = Math.Floor(elapsed) + 1.0;
+            return due >= ThunderGodTickCount ? ThunderGodTickCount : (int)due;
         }
 
         /// <summary>Overall opacity of the domain floor, closed at both ends.</summary>

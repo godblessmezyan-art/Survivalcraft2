@@ -1,8 +1,8 @@
 ﻿{
   "Name": "荒野探险家",
-  "Version": "0.56.0",
+  "Version": "0.56.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.56.0 妙尔尼尔与昆古尼尔各新增第二个主动技能：雷霆王域(24秒冷却/7秒/8格跟随领域，每秒12点)与神王敕令·命运裁断(39秒冷却、79点、全世界已加载敌对生物一次结算)；两者升级为三技能HUD。保留阿比斯、海神、四圣兽与载具，Android7723实机与联机待验收，双方请用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.56.1 雷神之锤强化：大招期间所有技能冷却缩短（雷霆万钧降至5秒、雷霆王域降至15秒），并每秒对周围8格内所有生物造成7点雷域伤害，大招结束立即消失；修复雷霆王域不结算伤害的bug，其持续伤害改为每秒17点雷电伤害。保留阿比斯、海神、四圣兽与载具，Android7723实机与联机待验收，双方请用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

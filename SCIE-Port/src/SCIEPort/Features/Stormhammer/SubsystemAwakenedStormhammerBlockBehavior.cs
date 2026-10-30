@@ -68,6 +68,8 @@ namespace SCIEPort.Features.Stormhammer
             public ComponentPlayer Player;
             public ushort EntityId;
             public double EndTime;
+            public double StartTime;
+            public int Ticks;
             public bool JudgmentBoostUsed;
         }
 
@@ -110,6 +112,7 @@ namespace SCIEPort.Features.Stormhammer
         private readonly Dictionary<ushort, EquipmentState> m_equipment = new Dictionary<ushort, EquipmentState>();
         private readonly List<PendingLightning> m_pendingLightning = new List<PendingLightning>();
         private readonly List<PendingJudgment> m_pendingJudgment = new List<PendingJudgment>();
+        private readonly List<ComponentBody> m_domainTargets = new List<ComponentBody>();
         private readonly Dictionary<long, double> m_meleeDedup = new Dictionary<long, double>();
         private SubsystemBodies m_bodies;
         private SubsystemTime m_time;
@@ -222,7 +225,7 @@ namespace SCIEPort.Features.Stormhammer
             if (sequence != 0) m_sequences[player.Entity.EntityId] = sequence;
             if (skill == StormhammerSkill.MyriadTribulation && m_ultimate != null) return;
 
-            float cooldown = Cooldown(skill);
+            float cooldown = Cooldown(player, skill);
             uint castId = m_nextCastId++;
             SetCooldown(player.Entity.EntityId, skill, cooldown);
             Publish(Event(player, castId, skill, StormhammerSkillEvent.Accepted, Vector3.Zero, Vector3.Zero, cooldown));
@@ -331,11 +334,16 @@ namespace SCIEPort.Features.Stormhammer
                 Player = player,
                 EntityId = id,
                 EndTime = m_time.GameTime + ThunderGodDuration,
+                StartTime = m_time.GameTime,
+                Ticks = 0,
                 JudgmentBoostUsed = false
             };
 
             // Refresh only the judgment cooldown; the ultimate keeps its own 55 s.
             SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);
+            // Cap the realm cooldown for the whole window so the ultimate really shortens
+            // every skill instead of only the judgment.
+            CapCooldown(id, StormhammerSkill.Dominion, StormhammerDomainRules.ThunderGodDomainCooldown);
             Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.Accepted, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, 0f));
             Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.ThunderGodStart, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, ThunderGodDuration));
             Diagnostic("thunder god start cast=" + castId + " until=" + (m_time.GameTime + ThunderGodDuration).ToString("0.00"));
@@ -351,7 +359,14 @@ namespace SCIEPort.Features.Stormhammer
                 bool invalid = state.Player == null || !state.Player.IsAddedToProject
                     || state.Player.ComponentHealth == null || state.Player.ComponentHealth.Health <= 0f
                     || !IsEquipped(state.Player);
-                if (!invalid && now < state.EndTime) continue;
+                if (!invalid && now < state.EndTime)
+                {
+                    TickThunderGod(state, now);
+                    continue;
+                }
+                // Flush the remaining cycles before closing the window so a long frame gap can
+                // never swallow grind ticks; a dead caster never keeps dealing damage.
+                if (!invalid) TickThunderGod(state, now);
                 (expired ?? (expired = new List<ushort>())).Add(pair.Key);
                 if (state.Player != null && state.Player.IsAddedToProject)
                 {
@@ -363,6 +378,37 @@ namespace SCIEPort.Features.Stormhammer
 
             if (expired == null) return;
             foreach (ushort id in expired) m_thunderGod.Remove(id);
+        }
+
+        /// <summary>
+        /// One 7-power grind per whole second for everything around the caster. Frame rate only
+        /// decides when the frame lands, never how many cycles run: the count is capped at twelve
+        /// and the field is gone the moment the window closes.
+        /// </summary>
+        private void TickThunderGod(ThunderGodState state, double now)
+        {
+            ComponentPlayer caster = state.Player;
+            if (caster == null || caster.ComponentHealth == null || caster.ComponentHealth.Health <= 0f) return;
+            double elapsed = now - state.StartTime;
+            int due = StormhammerDomainRules.ThunderGodTicksDue(elapsed);
+            if (due <= state.Ticks) return;
+            while (state.Ticks < due && state.Ticks < StormhammerDomainRules.ThunderGodTickCount)
+            {
+                state.Ticks++;
+                Vector3 center = caster.ComponentBody.BoundingBox.Center();
+                CollectCreatures(center, StormhammerDomainRules.ThunderGodRadius, caster, m_domainTargets);
+                int struck = 0;
+                for (int i = 0; i < m_domainTargets.Count; i++)
+                {
+                    ComponentBody body = m_domainTargets[i];
+                    if (body == null || !body.Entity.IsAddedToProject) continue;
+                    DealAttackPower(caster.ComponentMiner.ComponentCreature, body, StormhammerDomainRules.ThunderGodTickPower, "雷神降世·雷域", false, 1f);
+                    struck++;
+                }
+                Publish(Event(caster, 0u, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimatePulse,
+                    center, Vector3.UnitY, StormhammerDomainRules.ThunderGodRadius, (byte)state.Ticks));
+                Diagnostic("thunder god pulse tick=" + state.Ticks + " hits=" + struck);
+            }
         }
 
         /// <summary>
@@ -701,10 +747,15 @@ namespace SCIEPort.Features.Stormhammer
         private void TickDomain(ComponentPlayer caster, DomainState state, int tick)
         {
             Vector3 center = caster.ComponentBody.BoundingBox.Center();
+            // Snapshot first: damaging a creature can despawn it, and mutating the live body
+            // collection mid-iteration used to abort every tick, which read as "no damage".
+            CollectHostiles(center, StormhammerDomainRules.Radius, caster, m_domainTargets);
             HashSet<ComponentBody> struck = new HashSet<ComponentBody>();
             int published = 0;
-            foreach (ComponentBody body in ValidHostileTargets(center, StormhammerDomainRules.Radius, caster))
+            for (int i = 0; i < m_domainTargets.Count; i++)
             {
+                ComponentBody body = m_domainTargets[i];
+                if (body == null || !body.Entity.IsAddedToProject) continue;
                 if (!struck.Add(body)) continue;
                 DealAttackPower(caster.ComponentMiner.ComponentCreature, body, StormhammerDomainRules.TickPower, "雷霆王域", false, 1f);
                 if (published < 12)
@@ -781,19 +832,41 @@ namespace SCIEPort.Features.Stormhammer
         /// Hostile-only variant used by automatic area effects: neutral animals, livestock and
         /// tamed creatures are never struck, matching the shared targeting rule.
         /// </summary>
-        private IEnumerable<ComponentBody> ValidHostileTargets(Vector3 center, float radius, ComponentPlayer caster)
+        private void CollectHostiles(Vector3 center, float radius, ComponentPlayer caster, List<ComponentBody> result)
         {
+            result.Clear();
             float radiusSquared = radius * radius;
             foreach (ComponentBody body in m_bodies.Bodies)
             {
-                if (body == caster.ComponentBody || Vector3.DistanceSquared(center, body.BoundingBox.Center()) > radiusSquared) continue;
+                if (body == caster.ComponentBody || !body.Entity.IsAddedToProject) continue;
+                if (Vector3.DistanceSquared(center, body.BoundingBox.Center()) > radiusSquared) continue;
                 ComponentCreature creature = body.Entity.FindComponent<ComponentCreature>(false);
                 if (creature == null || creature.ComponentHealth == null || creature.ComponentHealth.Health <= 0f) continue;
                 if (!SCIEPort.Features.Targeting.CreatureTargetRules.IsHostile((int)creature.Category, body.Player != null,
                     false, false, m_gameInfo.WorldSettings.IsFriendlyFireEnabled)) continue;
-                yield return body;
+                result.Add(body);
             }
         }
+
+        /// <summary>The Thunder God grind hits every living creature, not only predators.</summary>
+        private void CollectCreatures(Vector3 center, float radius, ComponentPlayer caster, List<ComponentBody> result)
+        {
+            result.Clear();
+            float radiusSquared = radius * radius;
+            foreach (ComponentBody body in m_bodies.Bodies)
+            {
+                if (body == caster.ComponentBody || !body.Entity.IsAddedToProject) continue;
+                if (Vector3.DistanceSquared(center, body.BoundingBox.Center()) > radiusSquared) continue;
+                if (Related(caster.ComponentBody, body)) continue;
+                ComponentCreature creature = body.Entity.FindComponent<ComponentCreature>(false);
+                if (creature == null || creature.ComponentHealth == null || creature.ComponentHealth.Health <= 0f) continue;
+                if (body.Player != null && !m_gameInfo.WorldSettings.IsFriendlyFireEnabled) continue;
+                result.Add(body);
+            }
+        }
+
+        private static bool Related(ComponentBody a, ComponentBody b)
+            => a != null && b != null && (a.ParentBody == b || b.ParentBody == a || a.ChildBodies.Contains(b) || b.ChildBodies.Contains(a));
 
         /// <summary>
         /// Client-side domain lifecycle. The start event rebuilds the local visual state from the
@@ -863,6 +936,22 @@ namespace SCIEPort.Features.Stormhammer
         private StormhammerSkillPackage Event(ComponentPlayer caster, uint castId, StormhammerSkill skill, StormhammerSkillEvent kind, Vector3 position, Vector3 direction, float value = 0f, byte step = 0, ushort targetId = 0)
             => StormhammerSkillPackage.CreateEvent(caster.Entity.EntityId, castId, m_time.GameTime, skill, kind, position, direction, value, step, targetId);
 
+        /// <summary>Clamps a live cooldown down to the reduced value; never lengthens it.</summary>
+        private void CapCooldown(ushort casterId, StormhammerSkill skill, float cap)
+        {
+            double[] values;
+            if (!m_cooldowns.TryGetValue(casterId, out values)) return;
+            double limit = m_time.GameTime + cap;
+            if (values[(int)skill] <= limit) return;
+            values[(int)skill] = limit;
+            foreach (ComponentPlayer player in m_players.ComponentPlayers)
+            {
+                if (player.Entity.EntityId != casterId) continue;
+                Publish(Event(player, 0u, skill, StormhammerSkillEvent.Accepted, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, cap));
+                break;
+            }
+        }
+
         private void SetCooldown(ushort casterId, StormhammerSkill skill, float duration)
         {
             double[] values;
@@ -891,7 +980,14 @@ namespace SCIEPort.Features.Stormhammer
             return contents == StormhammerAwakenedBlock.Index || contents == StormhammerBlock.Index;
         }
         private static bool IsValidSkill(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment || skill == StormhammerSkill.MyriadTribulation || skill == StormhammerSkill.Dominion;
-        private static float Cooldown(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment ? JudgmentCooldown : skill == StormhammerSkill.Dominion ? StormhammerDomainRules.Cooldown : UltimateCooldown;
+        /// <summary>Authority cooldown for one skill, shortened while the Thunder God window is open.</summary>
+        private float Cooldown(ComponentPlayer player, StormhammerSkill skill)
+        {
+            if (skill == StormhammerSkill.MyriadTribulation) return UltimateCooldown;
+            bool buffed = player != null && IsThunderGodActive(player);
+            float baseCooldown = skill == StormhammerSkill.ThunderousJudgment ? JudgmentCooldown : StormhammerDomainRules.Cooldown;
+            return StormhammerDomainRules.ReducedCooldown(baseCooldown, buffed);
+        }
         private static bool IsNewer(ushort value, ushort previous) => value != previous && (ushort)(value - previous) < 32768;
 
         private static Vector3 SafeDirection(Vector3 value, Vector3 fallback)
