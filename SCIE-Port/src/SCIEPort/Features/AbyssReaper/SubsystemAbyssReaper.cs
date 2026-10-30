@@ -31,7 +31,7 @@ namespace SCIEPort.Features.AbyssReaper
         /// <inheritdoc/>
         public UpdateOrder UpdateOrder => (UpdateOrder)((int)UpdateOrder.Input + 1);
         /// <inheritdoc/>
-        public int[] DrawOrders {get;}=new[]{110};
+        public int[] DrawOrders {get;}=new[]{110,VoidHorizonRules.DrawOrder};
         /// <inheritdoc/>
         public override void Load(ValuesDictionary v) {base.Load(v);players=Project.FindSubsystem<SubsystemPlayers>(true);clock=Project.FindSubsystem<SubsystemTime>(true);terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);allowPlayers=v.GetValue<bool>("AllowPlayers",false);allowPassive=v.GetValue<bool>("AllowPassive",false);showRifts=v.GetValue<bool>("ShowRifts",true);
             string savedPortals=v.GetValue<string>("VoidPortalRecords", "");
@@ -44,7 +44,7 @@ namespace SCIEPort.Features.AbyssReaper
             PortalOperations=new VoidPortalOperations(this,terrain);
             portalScene=new VoidPortalScene(v.GetValue<int>("PortalEffectQuality",1));
             blink=new VoidBlinkRuntime(terrain,bodies,clock,Project.FindSubsystem<SubsystemAudio>(false),allowPlayers,allowPassive,v.GetValue<int>("BlinkEffectQuality",1));
-            Horizon=new VoidHorizonRuntime(terrain,bodies,clock,Project.FindSubsystem<SubsystemAudio>(false),allowPlayers,allowPassive,v.GetValue<int>("HorizonEffectQuality",1));
+            Horizon=new VoidHorizonRuntime(terrain,bodies,clock,Project.FindSubsystem<SubsystemAudio>(false),players,allowPassive,v.GetValue<int>("HorizonEffectQuality",1));
             if(Portals!=null)portalTravel=new VoidPortalLocalTravel(terrain,players,clock,Portals);
             WorldCut=new WorldCutRuntime(Project,players,clock,terrain,bodies,allowPlayers,allowPassive,showRifts,v.GetValue<bool>("WorldCutLowEffects",false),WorldCutRules.Damage(v.GetValue<float>("WorldCutInitialDamage",100f),100),WorldCutRules.Damage(v.GetValue<float>("WorldCutCloseDamage",40f),40));}
         /// <inheritdoc/>
@@ -67,7 +67,8 @@ namespace SCIEPort.Features.AbyssReaper
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
-            if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);return;}
+            if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);Horizon.Cancel(p);return;}
+            if(Horizon.Busy(p)){VoidHorizonRuntime.LockInput(p);s.Hud?.CancelInput();return;}
             if(interact.HasValue && !ray.HasValue && !WorldCut.Busy(p) && !Horizon.Busy(p) && !blink.Busy(p) && !s.NormalImpactPending && s.Combo.Phase(clock.GameTime)>=1)
             {
                 Guid aimed=FindPortal(p,interact.Value.Direction);
@@ -93,6 +94,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(s.Combo.Phase(clock.GameTime)==0)s.NormalImpactPending=true;
             }
         }
+        internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true;
         private bool PortalAction(ComponentPlayer p)
         {
             if(CommonLib.WorkType==WorkType.Client) { p.ComponentGui.DisplaySmallMessage("星门管理暂由主机操作",Color.Yellow,false,false);return false; }
@@ -190,17 +192,17 @@ namespace SCIEPort.Features.AbyssReaper
         public void TickGui(ComponentGui gui) {
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
             if(s.Hud==null)s.Hud=new WorldCutHud(gui);
-            string hint=WorldCut.Feedback(p);
+            string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);
             if(hint==null)hint=s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(clock.GameTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
             s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p),WorldCut.PendingRequest(p),hint,
                 gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput);
         }
         /// <inheritdoc/>
         public void Draw(Camera camera,int order) {
+            if(order==VoidHorizonRules.DrawOrder){Horizon?.Draw(camera);return;}
             WorldCut?.Draw(camera);
             portalScene?.Draw(camera,Portals,clock.GameTime);
             blink?.Draw(camera);
-            Horizon?.Draw(camera);
             if(!showRifts)return;
             foreach(var pair in states)
             {
@@ -215,7 +217,7 @@ namespace SCIEPort.Features.AbyssReaper
                 for(int i=0;i<5;i++){Vector3 a=c+new Vector3((i%2==0?-.08f:.07f),.65f-i*.25f,0);Vector3 b=c+new Vector3((i%2==0?.07f:-.08f),.40f-i*.25f,0);batch.QueueLine(a,b,new Color(159,100,207));}}
             renderer.Flush(camera.ViewProjectionMatrix);
         }
-        void Remove(ComponentPlayer p,State s){if(s.PortalDialog!=null)ClosePortalDialog(p,s.PortalDialog);s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);}
+        void Remove(ComponentPlayer p,State s){if(s.PortalDialog!=null)ClosePortalDialog(p,s.PortalDialog);s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);Horizon?.Cancel(p);}
         /// <inheritdoc/>
         public override void Dispose(){WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
     }

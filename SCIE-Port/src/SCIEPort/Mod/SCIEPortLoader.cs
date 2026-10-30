@@ -38,6 +38,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new PoseidonPackage());
                 PackageManager.RegisterPackage(new PoseidonV2Package());
                 PackageManager.RegisterPackage(new WorldCutPackage());
+                PackageManager.RegisterPackage(new VoidHorizonPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -45,6 +46,7 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
             ModsManager.RegisterHook("AttackBody", this);
+            ModsManager.RegisterHook("AttackPowerParameter", this);
             ModsManager.RegisterHook("OnCreatureInjure", this);
             ModsManager.RegisterHook("UpdateInput", this);
             ModsManager.RegisterHook("SubsystemUpdate", this);
@@ -89,6 +91,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
         {
+            if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (fourSaints != null && fourSaints.IsActionLocked(attackingPlayer)) { attackPower = 0f; return false; }
@@ -107,8 +110,19 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            if (DomainProtected(componentHealth)) { Skip=true; return; }
             if (SubsystemPoseidon.BlocksDrowning(componentHealth, attacker, cause)) { Skip = true; return; }
             Skip = componentHealth?.Project.FindSubsystem<SubsystemFourSaints>(false)?.HandleInjury(componentHealth, amount, attacker, ignoreInvulnerability, cause) == true;
+        }
+
+        private static bool DomainProtected(ComponentHealth health)
+            => health?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Protects(health)==true;
+
+        /// <inheritdoc />
+        public override void AttackPowerParameter(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float impulseFactor, ref float stunTimeFactor, ref bool recalculate)
+        {
+            if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false)))
+            { impulseFactor=0; stunTimeFactor=0; recalculate=false; }
         }
 
         /// <inheritdoc />

@@ -20,4 +20,5 @@ WorldCutTests.Run();
 PortalTests.Run();
 PortalTravelTests.Run();
 VoidSkillTests.Run();
+VoidHorizonTests.Run();
 Console.WriteLine("Abyss combat: "+checks+" assertions passed.");}}

@@ -27,16 +27,9 @@ namespace SCIEPort.Features.AbyssReaper
     // Visual envelopes are pure and cannot advance gameplay timers.
     internal static class VoidHorizonVisualRules
     {
-        internal static float CoreScale(float elapsed)
-        {
-            if(float.IsNaN(elapsed) || elapsed<5 || elapsed>=16)return 0;
-            if(elapsed<=14)return 1f;
-            if(elapsed>=15.7f)return 0f;
-            return (15.7f-elapsed)/1.7f;
-        }
-        // Upper bounds per camera: 24 crack quads, 48 core triangles, 144 ring
-        // segments, 64 boundary segments and at most 32 branch/rune lines.
-        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,160,240,320);
+        internal static float Smooth(float value) { value=Math.Max(0,Math.Min(1,value));return value*value*(3-2*value); }
+        // Dome, halo, event horizon, lensed arch, core and disk: 53 triangles/segment, bounded by 55.
+        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,2640,3960,5280);
     }
     // At most one cue per stage, with no stale cue burst after a frame hitch.
     internal sealed class HorizonCueTimeline
