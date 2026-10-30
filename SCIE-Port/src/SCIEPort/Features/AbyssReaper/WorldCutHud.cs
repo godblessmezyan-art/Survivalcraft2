@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
 using Engine.Input;
@@ -28,7 +27,6 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly CanvasWidget panel;
         private readonly Button[] buttons=new Button[4];
         private readonly LabelWidget status;
-        private readonly List<WorldCutHudLayout.Rect> obstacles=new List<WorldCutHudLayout.Rect>(32);
         private int capturedTouch=-1,capturedSlot;
         internal bool Visible => panel.IsVisible;
         internal WorldCutHud(ComponentGui owner)
@@ -77,31 +75,12 @@ namespace SCIEPort.Features.AbyssReaper
             for(int i=0;i<4;i++)if(buttons[i].Hit.IsEnabledGlobal&&buttons[i].Hit.HitTest(screen))return i+1;
             return 0;
         }
-        private WorldCutHudLayout.Rect Bounds(Widget widget)
-        {
-            if(widget==null||!widget.IsVisibleGlobal||widget.ActualSize.X<=1||widget.ActualSize.Y<=1)return default(WorldCutHudLayout.Rect);
-            Vector2 a=gui.ControlsContainerWidget.ScreenToWidget(widget.GlobalBounds.Min),b=gui.ControlsContainerWidget.ScreenToWidget(widget.GlobalBounds.Max);
-            return new WorldCutHudLayout.Rect(Math.Min(a.X,b.X),Math.Min(a.Y,b.Y),Math.Abs(b.X-a.X),Math.Abs(b.Y-a.Y));
-        }
         internal void Update(double remaining,double blinkRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked)
         {
             if(blocked){panel.IsVisible=false;CancelInput();return;}
-            obstacles.Clear();
-            foreach(Widget widget in gui.ControlsContainerWidget.AllChildren)
-            {
-                if(widget==panel||widget.IsChildWidgetOf(panel)||!widget.IsVisibleGlobal||!widget.IsHitTestVisible)continue;
-                if(!(widget is ButtonWidget)&&!(widget is TouchInputWidget)&&!(widget is MoveRoseWidget)&&!(widget is InventorySlotWidget))continue;
-                if(obstacles.Count>=254){panel.IsVisible=false;CancelInput();return;}
-                var r=Bounds(widget);if(r.Valid)obstacles.Add(r);
-            }
-            obstacles.Add(Bounds(gui.MoveWidget));obstacles.Add(Bounds(gui.ShortInventoryWidget));
-            Vector2 size=gui.ControlsContainerWidget.ActualSize;panel.Size=size;
-            WorldCutHudLayout.Placement placement;
-            panel.IsVisible=WorldCutHudLayout.Place(size.X,size.Y,Bounds(gui.LookWidget),obstacles,SettingsManager.LeftHandedLayout,out placement);
-            if(!panel.IsVisible){CancelInput();return;}
+            if(!Artifacts.ArtifactSkillHud.ArrangeWithStatus(gui,panel,status,buttons[0].Root,buttons[1].Root,buttons[2].Root,buttons[3].Root)){CancelInput();return;}
             for(int i=0;i<4;i++)
             {
-                var r=placement.At(i);CanvasWidget.SetPosition(buttons[i].Root,new Vector2(r.X,r.Y));
                 double cooldown=i==1?remaining:i==2?blinkRemaining:i==3?horizonRemaining:0;
                 bool ready=cooldown<=0;
                 buttons[i].Cooldown.Text=i==1&&pending?"…":ready?string.Empty:Math.Ceiling(cooldown).ToString("0");
@@ -109,13 +88,8 @@ namespace SCIEPort.Features.AbyssReaper
                 float pulse=.5f+.5f*MathUtils.Sin((float)Time.RealTime*2.2f);
                 buttons[i].Glow.FillColor=ready&&!busy?new Color(177,112,240)*(buttons[i].Hit.IsPressed?.28f:.035f+pulse*.055f):Color.Transparent;
             }
-            float left=Math.Min(placement.Portal.X,placement.Horizon.X),top=Math.Min(placement.Blink.Y,placement.Horizon.Y);
-            var statusRect=new WorldCutHudLayout.Rect(Math.Max(8,Math.Min(size.X-240,left-28)),top-26,232,24);
-            status.IsVisible=statusRect.Y>=8;
-            foreach(var obstacle in obstacles)if(statusRect.Overlaps(obstacle))status.IsVisible=false;
-            CanvasWidget.SetPosition(status,new Vector2(statusRect.X,statusRect.Y));
             status.Text=feedback??"轻触连斩 · 长按蓄力";
         }
-        public void Dispose(){CancelInput();if(panel.ParentWidget!=null)panel.ParentWidget.Children.Remove(panel);obstacles.Clear();}
+        public void Dispose(){CancelInput();if(panel.ParentWidget!=null)panel.ParentWidget.Children.Remove(panel);}
     }
 }

@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.56.0",
+  "Version": "0.57.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.56.0 重做阿比斯虚夜领域：展开新空间、远方巨型黑洞、连续撕裂面；大招期间免伤，范围伤害与牵引排除全部玩家。新增主机裁定的客户端施法同步，保留星门存档修复及已有内容。Android7723实机和真实联机待验收，联机双方请使用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.57.0 统一神器手游技能区：普通技能72、大招88，位于查看左侧弧线，左右手镜像、圆形命中、动态避让。保留原技能与联机逻辑。Android7723实机待验收，昆古尼尔新生图因服务连接失败尚未替换。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

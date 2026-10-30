@@ -1,5 +1,23 @@
 # 测试结果
 
+## 2026-10-31 main 0.57.0：神器统一触屏技能区
+
+已从 origin/main 拉取最新代码，起点为 `8742b6b`，fast-forward 检查显示已是最新。昆古尼尔、海神三叉戟、阿比斯、觉醒雷神之锤和四圣兽入口统一使用公共布局器；默认在查看左侧沿弧线排列，普通72、大招88、单圣兽76逻辑单位，左手模式镜像。保留原技能身份、冷却及主机裁定路径。阿比斯操作提示和雷神状态条跟随技能组并避让原生触控区，圆形命中保留透明角落的世界操作。
+
+实际构建命令（Python加入PATH，FrameworkPathOverride指向本机net472引用程序集）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+```
+
+新增96组公共布局检查：640/960/1280/1920 × 480/720/1080逻辑视口、左右手、1–4技能，验证查看左右关系、快捷栏避让和技能间不重叠；过小视口拒绝显示。这些是纯坐标测试，不是手机截图或真实触屏测试。完整Release包含环境/实际ABI、既有神器规则及资源回归、数据库与包内容检查。最终构建日志位于忽略目录 `SCIE-Port/artifacts/skill-layout-0.57.0-build.log`。
+
+最终完整构建exit 0。两份正式包字节一致，7,347,426字节、143项，Version=0.57.0，SHA-256 `BC324979844F4730226DD825C8766E9DC573F57D0D875C9207614945098B4C65`；包内DLL与本次 `artifacts/build/SCIEPort.dll` 一致，DLL SHA-256 `37E55567D56F631C4AA29071079E276B84EC1CEB410F237C3FA9CB5C7F1DF926`。相对0.56.0，DLL和元数据变化，NOTICE仅换行变化，所有游戏资源字节相同。独立包检查通过。
+
+昆古尼尔新生图 **未完成**：内置image_gen连续两次连接失败，无图片输出；提示词已保存到 `design/gungnir-skills-imagegen-prompt.md`，旧图集保持原字节，无新图片哈希。未用程序图或通用符号替代。CLI备用方式需要OPENAI_API_KEY，未自动切换。
+
+Android7723实际加载、触屏可达性、多指移动与施法、切武器、四圣兽与神器同时显示、真实单人/主机/客户端运行均 **待验证**；按 `docs/ARTIFACT-SKILL-LAYOUT.md` 验收。本次仅提交本地main，不推送GitHub。
+
 ## 2026-10-30 main 0.56.0：虚夜领域与大招免伤
 
 实现与设备步骤见 [VOID-HORIZON.md](VOID-HORIZON.md)。并入 origin/main `be4e312`，保留海神0.55.3–0.55.5和神器基准。阿比斯领域使用独立末尾视口绘制，期间原生伤害统一拦截，攻击护甲损耗/击退/眩晕一起保护；所有玩家排除于伤害和牵引。新协议249由主机裁定，字段上限、身份、队列、超时、终止标记和冷却隔离检查已纳入构建。阿比斯持有移速+20%、近战频率+10%及专属背景满足最新规范。

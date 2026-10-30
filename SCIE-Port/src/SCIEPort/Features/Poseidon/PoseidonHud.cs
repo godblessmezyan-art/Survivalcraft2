@@ -33,20 +33,10 @@ namespace SCIEPort.Features.Poseidon
                 &&!DialogsManager.HasDialogs(p.GuiWidget)&&p.GameWidget!=null&&p.GameWidget.ActiveCamera.IsEntityControlEnabled;
             View v;if(!m_views.TryGetValue(gui,out v)){if(!visible)return;v=Create(gui,p);m_views.Add(gui,v);}
             v.Root.IsVisible=visible;if(!visible)return;
-            var controls=gui.ControlsContainerWidget;v.Root.Size=controls.ActualSize;v.Obstacles.Clear();
-            foreach(Widget widget in controls.AllChildren)
-            {
-                if(widget==v.Root||widget.IsChildWidgetOf(v.Root)||!widget.IsVisibleGlobal||!widget.IsHitTestVisible)continue;
-                if(!(widget is ButtonWidget)&&!(widget is ClickableWidget)&&!(widget is TouchInputWidget)&&!(widget is MoveRoseWidget)&&!(widget is InventorySlotWidget))continue;
-                if(v.Obstacles.Count>=255){v.Root.IsVisible=false;return;}var bounds=Bounds(controls,widget);if(bounds.IsValid)v.Obstacles.Add(bounds);
-            }
-            v.Obstacles.Add(Bounds(controls,gui.ShortInventoryWidget));
-            PoseidonHudLayout.Placement place;
-            if(!PoseidonHudLayout.Place(controls.ActualSize.X,controls.ActualSize.Y,Bounds(controls,gui.LookWidget),v.Obstacles,SettingsManager.LeftHandedLayout,out place)){v.Root.IsVisible=false;return;}
+            if(!Artifacts.ArtifactSkillHud.Arrange(gui,v.Root,v.Badges))return;
             var state=m_runtime.Get(p);
             for(int i=0;i<3;i++)
             {
-                var r=place.At(i);CanvasWidget.SetPosition(v.Badges[i],new Vector2(r.X,r.Y));
                 float remaining=(float)Math.Max(0,state.Ready((byte)(i+1))-m_runtime.Now);
                 bool active=m_runtime.InDomain(state);float shield=m_runtime.ShieldPoints(state);
                 v.Labels[i].Text=i==2&&active?"领域 "+Math.Ceiling(state.DomainEnd-m_runtime.Now).ToString("0")
@@ -63,7 +53,7 @@ namespace SCIEPort.Features.Poseidon
             string[] assets={"PoseidonTideShieldV2","PoseidonTidalWaveV2","PoseidonSeaDomainV2"},names={"水御潮环","沧海怒涛","海神领域"};
             for(int i=0;i<3;i++)
             {
-                float size=i==2?84:68;var badge=new CanvasWidget{Size=new Vector2(size),IsHitTestVisible=false};
+                float size=i==2?88:72;var badge=new CanvasWidget{Size=new Vector2(size),IsHitTestVisible=false};
                 var icon=new RectangleWidget{Size=new Vector2(size),Subtexture=new Subtexture(ContentManager.Get<Texture2D>("Textures/"+assets[i]),Vector2.Zero,Vector2.One),FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false};
                 var label=new LabelWidget{Size=new Vector2(size),TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=i==2?.65f:.62f,DropShadow=true,Color=Color.White,IsHitTestVisible=false};
                 var name=new LabelWidget{Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.35f,DropShadow=true,Color=new Color(213,243,249),IsHitTestVisible=false};

@@ -32,7 +32,7 @@ namespace SCIEPort.Features.Gungnir
             internal Vector2 LastHotbarMin = new Vector2(float.MinValue);
             internal Vector2 LastHotbarMax = new Vector2(float.MinValue);
             internal Vector2 LastRootSize = new Vector2(float.MinValue);
-            internal bool LastLeftHanded;
+            internal bool LastLeftHanded=false;
         }
 
         private static readonly Dictionary<ComponentGui, Hud> s_huds = new Dictionary<ComponentGui, Hud>();
@@ -64,6 +64,7 @@ namespace SCIEPort.Features.Gungnir
             SubsystemGungnir runtime = player.Project.FindSubsystem<SubsystemGungnir>(false);
             if (runtime == null) { hud.Root.IsVisible = false; return; }
             Layout(gui, hud);
+            if(!hud.Root.IsVisible)return;
             SubsystemGungnir.State state = runtime.Get(player);
             double now = runtime.Now;
             SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), 15f, (float)(now - state.BuffVisualStart));
@@ -95,35 +96,7 @@ namespace SCIEPort.Features.Gungnir
 
         private static void Layout(ComponentGui gui, Hud hud)
         {
-            ContainerWidget controls = gui.ControlsContainerWidget;
-            Vector2 size = controls.ActualSize;
-            if (size.X < 1f || size.Y < 1f) return;
-            hud.Root.Size = size;
-            GungnirHudLayout.Rect look = ToLocalRect(controls, gui.LookWidget);
-            GungnirHudLayout.Rect hotbar = ToLocalRect(controls, gui.ShortInventoryWidget);
-            bool changed = Vector2.DistanceSquared(hud.LastLookMin, new Vector2(look.X, look.Y)) > 0.01f
-                || Vector2.DistanceSquared(hud.LastLookMax, new Vector2(look.Right, look.Bottom)) > 0.01f
-                || Vector2.DistanceSquared(hud.LastHotbarMin, new Vector2(hotbar.X, hotbar.Y)) > 0.01f
-                || Vector2.DistanceSquared(hud.LastHotbarMax, new Vector2(hotbar.Right, hotbar.Bottom)) > 0.01f
-                || Vector2.DistanceSquared(hud.LastRootSize, size) > 0.01f
-                || hud.LastLeftHanded != SettingsManager.LeftHandedLayout;
-            GungnirHudLayout.Result placement = GungnirHudLayout.Place(size.X, size.Y, look, hotbar, SettingsManager.LeftHandedLayout);
-            if (changed)
-            {
-                AvoidNativeControls(gui, hud, size, ref placement);
-                CanvasWidget.SetPosition(hud.Skills[0].Visual, new Vector2(placement.Blessing.X, placement.Blessing.Y));
-                CanvasWidget.SetPosition(hud.Skills[1].Visual, new Vector2(placement.Judgment.X, placement.Judgment.Y));
-                bool lookOverlap = placement.Blessing.Intersects(look) || placement.Judgment.Intersects(look);
-                bool hotbarOverlap = placement.Blessing.Intersects(hotbar) || placement.Judgment.Intersects(hotbar);
-                bool nativeOverlap = OverlapsNativeControls(gui, hud, placement.Blessing) || OverlapsNativeControls(gui, hud, placement.Judgment);
-                Log.Information(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "[SCIEPort:GungnirHUD] viewport={0:0.#}x{1:0.#} look=({2:0.#},{3:0.#},{4:0.#},{5:0.#}) blessing=({6:0.#},{7:0.#},72,72) judgment=({8:0.#},{9:0.#},88,88) mirrored={10} fallback={11} overlapLook={12} overlapHotbar={13} overlapNative={14} hitTarget=iconOnly",
-                    size.X, size.Y, look.X, look.Y, look.Width, look.Height, placement.Blessing.X, placement.Blessing.Y,
-                    placement.Judgment.X, placement.Judgment.Y, placement.Mirrored, placement.UsedFallback, lookOverlap, hotbarOverlap, nativeOverlap));
-                hud.LastLookMin = new Vector2(look.X, look.Y); hud.LastLookMax = new Vector2(look.Right, look.Bottom);
-                hud.LastHotbarMin = new Vector2(hotbar.X, hotbar.Y); hud.LastHotbarMax = new Vector2(hotbar.Right, hotbar.Bottom);
-                hud.LastRootSize = size; hud.LastLeftHanded = SettingsManager.LeftHandedLayout;
-            }
+            Artifacts.ArtifactSkillHud.Arrange(gui,hud.Root,hud.Skills[0].Visual,hud.Skills[1].Visual);
         }
 
         private static void AvoidNativeControls(ComponentGui gui, Hud hud, Vector2 viewport, ref GungnirHudLayout.Result placement)
@@ -216,7 +189,7 @@ namespace SCIEPort.Features.Gungnir
             skill.Cooldown = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 80f ? 0.92f : 0.78f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
             skill.Energy = new RectangleWidget { Size = new Vector2(size - 10f, 3f), FillColor = new Color(224, 184, 91), OutlineColor = Color.Transparent, OutlineThickness = 0f, IsHitTestVisible = false };
             skill.HitTarget = new CanvasWidget { Size = new Vector2(size), IsHitTestVisible = false };
-            skill.Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
+            skill.Clickable = new Artifacts.ArtifactSkillHitTarget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
             skill.HitTarget.Children.Add(skill.Clickable);
             skill.Visual.Children.Add(skill.Icon);
             skill.Visual.Children.Add(skill.ReadyGlow);

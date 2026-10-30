@@ -18,7 +18,7 @@ namespace SCIEPort.Features.FourSaints
             internal Vector2 LastSize = new Vector2(-1f);
             internal Vector2 LastLookMin = new Vector2(-1f), LastLookMax = new Vector2(-1f);
             internal Vector2 LastHotbarMin = new Vector2(-1f), LastHotbarMax = new Vector2(-1f);
-            internal bool LastLeftHanded;
+            internal bool LastLeftHanded=false;
         }
         private static readonly Dictionary<ComponentGui, Hud> s_huds = new Dictionary<ComponentGui, Hud>();
 
@@ -38,6 +38,7 @@ namespace SCIEPort.Features.FourSaints
             SubsystemFourSaints runtime = player.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (runtime == null) { hud.Root.IsVisible = false; return; }
             Layout(gui, hud);
+            if(!hud.Root.IsVisible)return;
             bool active = runtime.IsAwakened(player);
             bool locked = runtime.IsActionLocked(player);
             // Snapshot deadlines are intentionally exposed only through bounded display helpers.
@@ -65,7 +66,7 @@ namespace SCIEPort.Features.FourSaints
             hud.Time = new LabelWidget { Size = new Vector2(76f), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = .8f, DropShadow = true, Color = Color.White, IsHitTestVisible = false };
             hud.Meter = new RectangleWidget { Size = new Vector2(66f, 3f), FillColor = new Color(225, 192, 112), OutlineColor = Color.Transparent, IsHitTestVisible = false };
             var hit = new CanvasWidget { Size = new Vector2(76f), IsHitTestVisible = false };
-            hud.Click = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
+            hud.Click = new Artifacts.ArtifactSkillHitTarget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
             hit.Children.Add(hud.Click); hud.Visual.Children.Add(hud.Icon); hud.Visual.Children.Add(hud.Glow); hud.Visual.Children.Add(hud.Time); hud.Visual.Children.Add(hud.Meter); hud.Visual.Children.Add(hit);
             CanvasWidget.SetPosition(hud.Meter, new Vector2(5f, 68f)); hud.Root.Children.Add(hud.Visual); gui.ControlsContainerWidget.Children.Add(hud.Root);
             return hud;
@@ -73,29 +74,7 @@ namespace SCIEPort.Features.FourSaints
 
         private static void Layout(ComponentGui gui, Hud hud)
         {
-            ContainerWidget controls = gui.ControlsContainerWidget;
-            Vector2 size = controls.ActualSize;
-            if (size.X < 1f || size.Y < 1f) return;
-            FourSaintsHudLayout.Rect look = Rect(controls, gui.LookWidget);
-            FourSaintsHudLayout.Rect hotbar = Rect(controls, gui.ShortInventoryWidget);
-            if (Vector2.DistanceSquared(hud.LastSize, size) < .01f
-                && Vector2.DistanceSquared(hud.LastLookMin, new Vector2(look.X, look.Y)) < .01f
-                && Vector2.DistanceSquared(hud.LastLookMax, new Vector2(look.Right, look.Bottom)) < .01f
-                && Vector2.DistanceSquared(hud.LastHotbarMin, new Vector2(hotbar.X, hotbar.Y)) < .01f
-                && Vector2.DistanceSquared(hud.LastHotbarMax, new Vector2(hotbar.Right, hotbar.Bottom)) < .01f
-                && hud.LastLeftHanded == SettingsManager.LeftHandedLayout) return;
-            FourSaintsHudLayout.Rect placement = FourSaintsHudLayout.Place(size.X, size.Y, look, hotbar, SettingsManager.LeftHandedLayout);
-            for (int attempt = 0; attempt < 24 && OverlapsNative(controls, hud, placement); attempt++)
-            {
-                if (placement.Y >= 92f) placement.Y -= 14f;
-                else placement.X = MathUtils.Clamp(placement.X - (SettingsManager.LeftHandedLayout ? -14f : 14f), 8f, size.X - placement.Width - 8f);
-            }
-            CanvasWidget.SetPosition(hud.Visual, new Vector2(placement.X, placement.Y));
-            Log.Information(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "[SCIEPort:FourSaintsHUD] viewport={0:0.#}x{1:0.#} look=({2:0.#},{3:0.#},{4:0.#},{5:0.#}) baihu=({6:0.#},{7:0.#},76,76) overlapLook={8} overlapHotbar={9}",
-                size.X, size.Y, look.X, look.Y, look.Width, look.Height, placement.X, placement.Y, placement.Intersects(look), placement.Intersects(hotbar)));
-            hud.LastSize = size; hud.LastLookMin = new Vector2(look.X, look.Y); hud.LastLookMax = new Vector2(look.Right, look.Bottom);
-            hud.LastHotbarMin = new Vector2(hotbar.X, hotbar.Y); hud.LastHotbarMax = new Vector2(hotbar.Right, hotbar.Bottom); hud.LastLeftHanded = SettingsManager.LeftHandedLayout;
+            Artifacts.ArtifactSkillHud.Arrange(gui,hud.Root,hud.Visual);
         }
 
         private static bool OverlapsNative(ContainerWidget controls, Hud hud, FourSaintsHudLayout.Rect rect)

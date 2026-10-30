@@ -19,16 +19,17 @@ namespace SCIEPort.Features.Stormhammer
                 // Icon only. The skill name and the cyan outline box were removed on request:
                 // on a phone they covered the world and the icons already say which skill it is.
                 Size = new Vector2(size, size);
+                IsHitTestVisible=false;
                 Frame = new RectangleWidget
                 {
                     Size = new Vector2(size),
                     Subtexture = new Subtexture(atlas, new Vector2(icon * 0.25f, 0f), new Vector2((icon + 1) * 0.25f, 1f)),
                     FillColor = Color.White,
                     OutlineColor = Color.Transparent,
-                    OutlineThickness = 0f
+                    OutlineThickness = 0f, IsHitTestVisible=false
                 };
-                CooldownLabel = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 90f ? 1.05f : 0.86f, DropShadow = true, Color = Color.White };
-                Clickable = new ClickableWidget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
+                CooldownLabel = new LabelWidget { Size = new Vector2(size), TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter, FontScale = size >= 90f ? 1.05f : 0.86f, DropShadow = true, Color = Color.White, IsHitTestVisible=false };
+                Clickable = new Artifacts.ArtifactSkillHitTarget { HorizontalAlignment = WidgetAlignment.Stretch, VerticalAlignment = WidgetAlignment.Stretch, SoundName = "Audio/UI/ButtonClick" };
                 Children.Add(Frame);
                 Children.Add(CooldownLabel);
                 Children.Add(Clickable);
@@ -49,6 +50,7 @@ namespace SCIEPort.Features.Stormhammer
         private sealed class HudState
         {
             public CanvasWidget Root;
+            public CanvasWidget Status;
             public SkillButton Judgment;
             public SkillButton Ultimate;
             public LabelWidget ThunderGodLabel;
@@ -69,6 +71,7 @@ namespace SCIEPort.Features.Stormhammer
             bool equipped = SubsystemAwakenedStormhammerBlockBehavior.IsEquipped(player);
             state.Root.IsVisible = equipped && gui.ControlsContainerWidget.IsVisible;
             if (!equipped) return;
+            if(!Artifacts.ArtifactSkillHud.ArrangeWithStatus(gui,state.Root,state.Status,state.Judgment,state.Ultimate))return;
             SubsystemAwakenedStormhammerBlockBehavior behavior = player.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
             if (behavior == null) { state.Root.IsVisible = false; return; }
             state.Judgment.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.ThunderousJudgment));
@@ -91,9 +94,10 @@ namespace SCIEPort.Features.Stormhammer
             Texture2D atlas = ContentManager.Get<Texture2D>("Textures/StormhammerAwakenedSkills");
             HudState state = new HudState
             {
-                Root = new CanvasWidget { Name = "SCIEPort.SkywrathV3Skills", Size = new Vector2(220f, 250f), HorizontalAlignment = WidgetAlignment.Far, VerticalAlignment = WidgetAlignment.Center, Margin = new Vector2(12f, 0f), IsVisible = false },
-                Judgment = new SkillButton(atlas, 1, 78f),
-                Ultimate = new SkillButton(atlas, 2, 96f)
+                Root = new CanvasWidget { Name = "SCIEPort.SkywrathV3Skills", Size = new Vector2(220f, 250f), HorizontalAlignment = WidgetAlignment.Near, VerticalAlignment = WidgetAlignment.Near, IsHitTestVisible=false, IsVisible = false },
+                Status = new CanvasWidget { Size = new Vector2(196f,24f), IsHitTestVisible=false },
+                Judgment = new SkillButton(atlas, 1, 72f),
+                Ultimate = new SkillButton(atlas, 2, 88f)
             };
             state.ThunderGodLabel = new LabelWidget
             {
@@ -103,7 +107,7 @@ namespace SCIEPort.Features.Stormhammer
                 FontScale = 0.62f,
                 DropShadow = true,
                 Color = new Color(236, 248, 255),
-                IsVisible = false
+                IsVisible = false, IsHitTestVisible=false
             };
             state.ThunderGodBar = new RectangleWidget
             {
@@ -111,16 +115,15 @@ namespace SCIEPort.Features.Stormhammer
                 FillColor = new Color(120, 206, 255, 220),
                 OutlineColor = Color.Transparent,
                 OutlineThickness = 0f,
-                IsVisible = false
+                IsVisible = false, IsHitTestVisible=false
             };
             state.Root.Children.Add(state.Judgment);
             state.Root.Children.Add(state.Ultimate);
-            state.Root.Children.Add(state.ThunderGodLabel);
-            state.Root.Children.Add(state.ThunderGodBar);
-            CanvasWidget.SetPosition(state.Judgment, new Vector2(126f, 148f));
-            CanvasWidget.SetPosition(state.Ultimate, new Vector2(64f, 24f));
-            CanvasWidget.SetPosition(state.ThunderGodLabel, new Vector2(12f, 0f));
-            CanvasWidget.SetPosition(state.ThunderGodBar, new Vector2(12f, 20f));
+            state.Status.Children.Add(state.ThunderGodLabel);
+            state.Status.Children.Add(state.ThunderGodBar);
+            state.Root.Children.Add(state.Status);
+            CanvasWidget.SetPosition(state.ThunderGodLabel, Vector2.Zero);
+            CanvasWidget.SetPosition(state.ThunderGodBar, new Vector2(0f, 20f));
             gui.ControlsContainerWidget.Children.Add(state.Root);
             return state;
         }

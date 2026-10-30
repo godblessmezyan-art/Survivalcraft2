@@ -1,0 +1,5 @@
+# 昆古尼尔双技能徽记生成请求
+
+2026-10-31：内置 image_gen 连续两次返回 `connection failed: error sending request`，未产出图片。以下是实际请求提示词；无原图、无新资源、无可记录的新图片哈希。旧 GungnirSkills.png 暂保留。
+
+Create one transparent 2:1 horizontal game UI skill icon atlas, exactly TWO equal square cells side by side, each with a perfectly centered ornate circular medallion, transparent outside circle and transparent atlas corners. Original polished mobile fantasy action RPG ability art. No letters, words, numbers, logos. Norse divine spear Gungnir theme, dark teal, antique gold, white-gold light, strong silhouette readable at 72 pixels. LEFT CELL: Odin's blessing, upright golden spear encircled by teal protective wings and a delicate Norse rune halo (abstract marks only), luminous turquoise centre, elegant gold circular frame. RIGHT CELL: divine judgment ultimate, huge white-gold spear descending from heaven splitting dark teal storm clouds, dramatic radiant impact and gold sparks, slightly more ornate gold circular frame. Match both circles size and center; circular frame fits inside 90 percent of each cell. Fully painted high quality icons, no UI background, no sheet dividers, no labels, exactly two icons.
