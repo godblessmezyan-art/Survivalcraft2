@@ -22,6 +22,8 @@ namespace SCIEPort.Features.Gungnir
         internal uint Sequence;
         internal Vector3 Position, Direction, Target;
         internal float Blessing, BlessingCooldown, JudgmentCooldown, JudgmentAge;
+        /// <summary>Appended tail field (0.56.0): Fate Severance cooldown. Existing field order is untouched.</summary>
+        internal float FatalismCooldown;
         internal bool Equipped;
         /// <inheritdoc />
         public void WriteData(PackageStreamWriter w)
@@ -29,6 +31,7 @@ namespace SCIEPort.Features.Gungnir
             w.Write(Kind); w.Write(Command); w.Write(Phase); w.Write(Caster); w.Write(Sequence);
             w.Write(Position); w.Write(Direction); w.Write(Target);
             w.Write(Blessing); w.Write(BlessingCooldown); w.Write(JudgmentCooldown); w.Write(JudgmentAge); w.Write(Equipped);
+            w.Write(FatalismCooldown);
         }
         /// <inheritdoc />
         public void ReadData(PackageStreamReader r)
@@ -36,6 +39,7 @@ namespace SCIEPort.Features.Gungnir
             Kind = r.ReadByte(); Command = r.ReadByte(); Phase = r.ReadByte(); Caster = r.ReadUInt16(); Sequence = r.ReadUInt32();
             Position = r.ReadVector3(); Direction = r.ReadVector3(); Target = r.ReadVector3();
             Blessing = r.ReadSingle(); BlessingCooldown = r.ReadSingle(); JudgmentCooldown = r.ReadSingle(); JudgmentAge = r.ReadSingle(); Equipped = r.ReadBoolean();
+            FatalismCooldown = r.ReadSingle();
         }
         /// <inheritdoc />
         public void Handle(ProjectNet project, NetNode node, bool isServer)

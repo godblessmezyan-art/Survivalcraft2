@@ -7,7 +7,9 @@ namespace SCIEPort.Features.Stormhammer
     internal enum StormhammerSkill : byte
     {
         ThunderousJudgment = 1,
-        MyriadTribulation = 2
+        MyriadTribulation = 2,
+        /// <summary>雷霆王域, appended so existing wire values 1 and 2 never move.</summary>
+        Dominion = 3
     }
 
     internal enum StormhammerSkillEvent : byte
@@ -25,7 +27,10 @@ namespace SCIEPort.Features.Stormhammer
         UltimateEnd = 10,
         AvatarState = 11,
         ThunderGodStart = 12,
-        ThunderGodEnd = 13
+        ThunderGodEnd = 13,
+        DomainStart = 14,
+        DomainTick = 15,
+        DomainEnd = 16
     }
 
     /// <summary>Authenticated V3.2 skill request and authoritative presentation event.</summary>

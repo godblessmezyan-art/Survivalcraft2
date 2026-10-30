@@ -2279,7 +2279,7 @@ try {
         try {
             if ($bitmap.Width -ne $textureCheck.Width -or $bitmap.Height -ne $textureCheck.Height) { throw "$($textureCheck.Name) dimensions changed." }
             if ($textureCheck.Name -eq 'StormhammerAwakenedSkills.png') {
-                for ($slot = 0; $slot -lt 3; $slot++) {
+                for ($slot = 0; $slot -lt 4; $slot++) {
                     $opaque = 0
                     for ($y = 0; $y -lt 512; $y += 8) { for ($x = $slot * 512; $x -lt ($slot + 1) * 512; $x += 8) { if ($bitmap.GetPixel($x,$y).A -gt 32) { $opaque++ } } }
                     if ($opaque -lt 500) { throw "Awakened skill icon slot $slot is empty or unreadable." }
@@ -2294,14 +2294,14 @@ try {
         throw 'Skywrath V3.2 CSV identity, non-aimable skill-button mode, or durability changed.'
     }
     $awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
-    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 2) {
-        throw 'Skywrath V3.2 HUD must instantiate exactly two active skills.'
+    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 3) {
+        throw 'Skywrath V3.3 HUD must instantiate exactly three active skills.'
     }
     $awakenedBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
     foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 8f','UltimateCooldown = 55f')) {
         if (-not $awakenedBehavior.Contains($requiredCombatRule)) { throw "Skywrath V3.2 combat rule missing: $requiredCombatRule" }
     }
-    foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛','雷霆王域')) {
+    foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛')) {
         if ($awakenedBehavior.Contains($removedSkill) -or $awakenedSource.Contains($removedSkill)) { throw "Removed Skywrath skill remains active: $removedSkill" }
     }
     $skillPackageSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillPackage.cs')

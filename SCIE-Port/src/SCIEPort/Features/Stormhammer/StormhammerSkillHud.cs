@@ -50,6 +50,7 @@ namespace SCIEPort.Features.Stormhammer
         {
             public CanvasWidget Root;
             public SkillButton Judgment;
+            public SkillButton Dominion;
             public SkillButton Ultimate;
             public LabelWidget ThunderGodLabel;
             public RectangleWidget ThunderGodBar;
@@ -72,6 +73,7 @@ namespace SCIEPort.Features.Stormhammer
             SubsystemAwakenedStormhammerBlockBehavior behavior = player.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
             if (behavior == null) { state.Root.IsVisible = false; return; }
             state.Judgment.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.ThunderousJudgment));
+            state.Dominion.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.Dominion));
             state.Ultimate.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.MyriadTribulation));
             float thunderGod = behavior.GetThunderGodRemaining(player);
             bool active = thunderGod > 0f;
@@ -83,6 +85,7 @@ namespace SCIEPort.Features.Stormhammer
                 state.ThunderGodBar.Size = new Vector2(196f * MathUtils.Saturate(thunderGod / 12f), 4f);
             }
             if (state.Judgment.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.ThunderousJudgment);
+            if (state.Dominion.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.Dominion);
             if (state.Ultimate.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.MyriadTribulation);
         }
 
@@ -93,6 +96,7 @@ namespace SCIEPort.Features.Stormhammer
             {
                 Root = new CanvasWidget { Name = "SCIEPort.SkywrathV3Skills", Size = new Vector2(220f, 250f), HorizontalAlignment = WidgetAlignment.Far, VerticalAlignment = WidgetAlignment.Center, Margin = new Vector2(12f, 0f), IsVisible = false },
                 Judgment = new SkillButton(atlas, 1, 78f),
+                Dominion = new SkillButton(atlas, 3, 78f),
                 Ultimate = new SkillButton(atlas, 2, 96f)
             };
             state.ThunderGodLabel = new LabelWidget
@@ -114,10 +118,12 @@ namespace SCIEPort.Features.Stormhammer
                 IsVisible = false
             };
             state.Root.Children.Add(state.Judgment);
+            state.Root.Children.Add(state.Dominion);
             state.Root.Children.Add(state.Ultimate);
             state.Root.Children.Add(state.ThunderGodLabel);
             state.Root.Children.Add(state.ThunderGodBar);
             CanvasWidget.SetPosition(state.Judgment, new Vector2(126f, 148f));
+            CanvasWidget.SetPosition(state.Dominion, new Vector2(16f, 128f));
             CanvasWidget.SetPosition(state.Ultimate, new Vector2(64f, 24f));
             CanvasWidget.SetPosition(state.ThunderGodLabel, new Vector2(12f, 0f));
             CanvasWidget.SetPosition(state.ThunderGodBar, new Vector2(12f, 20f));

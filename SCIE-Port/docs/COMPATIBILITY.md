@@ -1,5 +1,20 @@
 ﻿# SCIE-Port 兼容性记录
 
+## 2026-10-30 main 0.56.0：妙尔尼尔与昆古尼尔第三技能
+
+两件神器各新增一个主动技能，原有 Hook、方法签名、存档字段、方块 ID（942/943/948）与包 ID（243/244）全部不变。
+
+- 昆古尼尔：`GungnirPackage`(244) 只在**尾部追加** `FatalismCooldown:float`，前面所有字段顺序与语义不变；新增 `Kind=4` 事件（Phase 1 起手 / Phase 2 结算，`Blessing` 携带命中数）。命令 5 为新增，1~4 不变。伤害仍走 `ComponentMiner.AttackBody`。
+- 妙尔尼尔：`StormhammerSkill.Dominion=3` 追加在枚举尾部，`StormhammerSkillEvent` 追加 14/15/16；`StormhammerSkillPackage`(243) 字段未改，复用 `Value/Step/TargetId`。冷却数组由 3 槽扩到 4 槽。
+- 新增纯规则命名空间 `Features/Targeting/CreatureTargetRules`，用原生 `CreatureCategory` 位标志判定敌对，已进入两个测试工程。
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 技能数值与去重规则 | 已确认 | 离线纯规则：Gungnir 381 项、Stormhammer 728 项全部通过，覆盖 79/39、12/7/8/24、7 跳、30 目标去重与友军排除。 |
+| Release 构建与包内容 | 已确认 | 构建 exit 0，图标槽位与三按钮守卫通过，见 [TEST-RESULTS.md](TEST-RESULTS.md)。 |
+| 混版（0.55.x ↔ 0.56.0） | 不支持 | 244 尾部新增字段、243 新增事件值，双方必须同为 0.56.0。 |
+| Android 7723 / 真实联机 | 待验证 | 未实机运行；触控、演出与断线清理需用户验收。 |
+
 ## 2026-10-30 main 0.55.5：神器默认属性与攻速口径统一
 
 新增规范：神器默认持有移速 +20%、近战攻速 +10%、专属物品栏背景（见根 `AGENTS.md`）。本版把两件现有神器补到该基线，不改 Hook 名、方法签名、包布局或存档字段。

@@ -15,8 +15,56 @@ internal static class Program
         PhasedStormSchedule();
         GreatBoltSchedule();
         EquipmentBonuses();
+        DomainRules();
         Console.WriteLine("Skywrath V5 lightning rule tests passed: " + s_count);
         return 0;
+    }
+
+    /// <summary>雷霆王域: 8 blocks, 7 seconds, 24 s cooldown, one 12-power tick per whole second.</summary>
+    private static void DomainRules()
+    {
+        Assert(Math.Abs(StormhammerDomainRules.Radius - 8f) < 0.0001f, "domain radius must be 8 blocks");
+        Assert(Math.Abs(StormhammerDomainRules.Duration - 7f) < 0.0001f, "domain duration must be 7 seconds");
+        Assert(Math.Abs(StormhammerDomainRules.Cooldown - 24f) < 0.0001f, "domain cooldown must be 24 seconds");
+        Assert(Math.Abs(StormhammerDomainRules.TickPower - 12f) < 0.0001f, "each cycle must deal exactly 12 attack power");
+        Assert(StormhammerDomainRules.TickCount == 7, "the domain must run exactly seven cycles");
+
+        // Frame-rate invariance: no matter how often Update runs, the tick count is identical.
+        foreach (double dt in new[] { 1.0 / 120.0, 1.0 / 60.0, 1.0 / 30.0, 0.2, 0.5 })
+        {
+            int ticks = 0;
+            for (double t = 0.0; t < StormhammerDomainRules.Duration; t += dt)
+            {
+                int due = StormhammerDomainRules.TicksDue(t);
+                if (due > ticks) ticks = due;
+            }
+            Assert(ticks == StormhammerDomainRules.TickCount, "domain tick count must not depend on frame rate (dt " + dt + ")");
+        }
+        Assert(StormhammerDomainRules.TicksDue(-0.5) == 0 && StormhammerDomainRules.TicksDue(0.0) == 1, "the opening beat must fire once at t=0");
+        Assert(StormhammerDomainRules.TicksDue(0.99) == 1 && StormhammerDomainRules.TicksDue(1.0) == 2, "a cycle completes only on the whole second");
+        Assert(StormhammerDomainRules.TicksDue(99) == StormhammerDomainRules.TickCount, "catch-up can never exceed seven cycles");
+
+        // Lifecycle: duration, death, weapon loss and disposal all close the field.
+        Assert(!StormhammerDomainRules.ShouldEnd(0.0, true, true) && !StormhammerDomainRules.ShouldEnd(6.99, true, true), "a live armed domain must stay open");
+        Assert(StormhammerDomainRules.ShouldEnd(7.0, true, true), "the domain must end exactly at seven seconds");
+        Assert(StormhammerDomainRules.ShouldEnd(2.0, false, true), "caster death must end the domain");
+        Assert(StormhammerDomainRules.ShouldEnd(2.0, true, false), "switching the hammer away must end the domain");
+        Assert(StormhammerDomainRules.Active(0.0) && StormhammerDomainRules.Active(6.99) && !StormhammerDomainRules.Active(7.0)
+            && !StormhammerDomainRules.Active(-0.01), "active window changed");
+
+        // Visual ring: expands to the full radius, holds, then collapses inside the duration.
+        float previous = -1f;
+        for (double t = 0.0; t < 0.35; t += 0.01)
+        {
+            float radius = StormhammerDomainRules.DrawnRadius(t);
+            Assert(radius >= previous && radius <= StormhammerDomainRules.Radius, "domain ring must expand monotonically");
+            previous = radius;
+        }
+        Assert(Math.Abs(StormhammerDomainRules.DrawnRadius(1.0) - StormhammerDomainRules.Radius) < 0.0001f, "the ring must hold the full eight blocks");
+        Assert(StormhammerDomainRules.DrawnRadius(StormhammerDomainRules.Duration - 0.01) < 0.5f, "the ring must collapse before the domain ends");
+        Assert(StormhammerDomainRules.DrawnRadius(StormhammerDomainRules.Duration) == 0f, "the ring must be gone at the end of the lease");
+        Assert(StormhammerDomainRules.Alpha(-0.01) == 0f && StormhammerDomainRules.Alpha(7.0) == 0f && StormhammerDomainRules.Alpha(1.0) > 0.99f,
+            "domain opacity must be closed at both ends");
     }
 
     private static void EquipmentBonuses()

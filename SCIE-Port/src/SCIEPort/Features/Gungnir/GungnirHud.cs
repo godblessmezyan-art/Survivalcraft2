@@ -9,6 +9,9 @@ namespace SCIEPort.Features.Gungnir
     /// <summary>Touch-first HUD anchored to the target build's real native Look control.</summary>
     internal static class GungnirHud
     {
+        /// <summary>Atlas cells: 0 Rune Blessing, 1 Fate Severance, 2 Eternal Judgment.</summary>
+        private const int IconCount = 3;
+
         private sealed class SkillButton
         {
             internal CanvasWidget Visual;
@@ -26,7 +29,7 @@ namespace SCIEPort.Features.Gungnir
         private sealed class Hud
         {
             internal CanvasWidget Root;
-            internal readonly SkillButton[] Skills = new SkillButton[2];
+            internal readonly SkillButton[] Skills = new SkillButton[3];
             internal Vector2 LastLookMin = new Vector2(float.MinValue);
             internal Vector2 LastLookMax = new Vector2(float.MinValue);
             internal Vector2 LastHotbarMin = new Vector2(float.MinValue);
@@ -67,11 +70,14 @@ namespace SCIEPort.Features.Gungnir
             SubsystemGungnir.State state = runtime.Get(player);
             double now = runtime.Now;
             SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), 15f, (float)(now - state.BuffVisualStart));
-            SetState(hud.Skills[1], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));
+            float fatalismAge = (float)(now - state.FatalismStart);
+            SetState(hud.Skills[1], (float)(state.FatalismReady - now), (float)(GungnirRules.FatalismEnd - fatalismAge), GungnirRules.FatalismEnd, fatalismAge);
+            SetState(hud.Skills[2], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));
             for (int i = 0; i < hud.Skills.Length; i++)
             {
+                // Explicit mapping, never index+1: Rune Blessing=1, Fate Severance=5, Eternal Judgment=2.
                 if (hud.Skills[i].Clickable.IsClicked)
-                    runtime.Request(player, (byte)(i + 1), player.GameWidget.ActiveCamera.ViewDirection);
+                    runtime.Request(player, GungnirRules.HudCommand(i), player.GameWidget.ActiveCamera.ViewDirection);
             }
         }
 
@@ -112,14 +118,16 @@ namespace SCIEPort.Features.Gungnir
             {
                 AvoidNativeControls(gui, hud, size, ref placement);
                 CanvasWidget.SetPosition(hud.Skills[0].Visual, new Vector2(placement.Blessing.X, placement.Blessing.Y));
-                CanvasWidget.SetPosition(hud.Skills[1].Visual, new Vector2(placement.Judgment.X, placement.Judgment.Y));
-                bool lookOverlap = placement.Blessing.Intersects(look) || placement.Judgment.Intersects(look);
-                bool hotbarOverlap = placement.Blessing.Intersects(hotbar) || placement.Judgment.Intersects(hotbar);
-                bool nativeOverlap = OverlapsNativeControls(gui, hud, placement.Blessing) || OverlapsNativeControls(gui, hud, placement.Judgment);
+                CanvasWidget.SetPosition(hud.Skills[1].Visual, new Vector2(placement.Fatalism.X, placement.Fatalism.Y));
+                CanvasWidget.SetPosition(hud.Skills[2].Visual, new Vector2(placement.Judgment.X, placement.Judgment.Y));
+                bool lookOverlap = placement.Blessing.Intersects(look) || placement.Fatalism.Intersects(look) || placement.Judgment.Intersects(look);
+                bool hotbarOverlap = placement.Blessing.Intersects(hotbar) || placement.Fatalism.Intersects(hotbar) || placement.Judgment.Intersects(hotbar);
+                bool nativeOverlap = OverlapsNativeControls(gui, hud, placement.Blessing) || OverlapsNativeControls(gui, hud, placement.Fatalism) || OverlapsNativeControls(gui, hud, placement.Judgment);
                 Log.Information(string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                    "[SCIEPort:GungnirHUD] viewport={0:0.#}x{1:0.#} look=({2:0.#},{3:0.#},{4:0.#},{5:0.#}) blessing=({6:0.#},{7:0.#},72,72) judgment=({8:0.#},{9:0.#},88,88) mirrored={10} fallback={11} overlapLook={12} overlapHotbar={13} overlapNative={14} hitTarget=iconOnly",
+                    "[SCIEPort:GungnirHUD] viewport={0:0.#}x{1:0.#} look=({2:0.#},{3:0.#},{4:0.#},{5:0.#}) blessing=({6:0.#},{7:0.#},72,72) fatalism=({8:0.#},{9:0.#},72,72) judgment=({15:0.#},{16:0.#},88,88) mirrored={10} fallback={11} overlapLook={12} overlapHotbar={13} overlapNative={14} hitTarget=iconOnly",
                     size.X, size.Y, look.X, look.Y, look.Width, look.Height, placement.Blessing.X, placement.Blessing.Y,
-                    placement.Judgment.X, placement.Judgment.Y, placement.Mirrored, placement.UsedFallback, lookOverlap, hotbarOverlap, nativeOverlap));
+                    placement.Fatalism.X, placement.Fatalism.Y, placement.Mirrored, placement.UsedFallback, lookOverlap, hotbarOverlap, nativeOverlap,
+                    placement.Judgment.X, placement.Judgment.Y));
                 hud.LastLookMin = new Vector2(look.X, look.Y); hud.LastLookMax = new Vector2(look.Right, look.Bottom);
                 hud.LastHotbarMin = new Vector2(hotbar.X, hotbar.Y); hud.LastHotbarMax = new Vector2(hotbar.Right, hotbar.Bottom);
                 hud.LastRootSize = size; hud.LastLeftHanded = SettingsManager.LeftHandedLayout;
@@ -184,9 +192,11 @@ namespace SCIEPort.Features.Gungnir
                 }
             };
             hud.Skills[0] = CreateButton(atlas, 0, GungnirHudLayout.BlessingSize, new Color(111, 226, 214), false);
-            hud.Skills[1] = CreateButton(atlas, 1, GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
+            hud.Skills[1] = CreateButton(atlas, 1, GungnirHudLayout.FatalismSize, new Color(238, 216, 158), false);
+            hud.Skills[2] = CreateButton(atlas, 2, GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
             hud.Root.Children.Add(hud.Skills[0].Visual);
             hud.Root.Children.Add(hud.Skills[1].Visual);
+            hud.Root.Children.Add(hud.Skills[2].Visual);
             gui.ControlsContainerWidget.Children.Add(hud.Root);
             return hud;
         }
@@ -198,7 +208,7 @@ namespace SCIEPort.Features.Gungnir
             skill.Icon = new RectangleWidget
             {
                 Size = new Vector2(size),
-                Subtexture = new Subtexture(atlas, new Vector2(icon * 0.5f, 0f), new Vector2((icon + 1) * 0.5f, 1f)),
+                Subtexture = new Subtexture(atlas, new Vector2(icon * (1f / IconCount), 0f), new Vector2((icon + 1) * (1f / IconCount), 1f)),
                 FillColor = Color.White,
                 OutlineColor = Color.Transparent,
                 OutlineThickness = 0f,
