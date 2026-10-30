@@ -1,5 +1,17 @@
 ﻿# SCIE-Port 兼容性记录
 
+## 2026-10-30 main 0.55.3：海神三技能全向判定与玩家水中移速
+
+`ComponentLocomotion` 的实际移动分支已复核：`WalkSpeed` 是玩家（含水中）唯一读取的移动速度，`SwimSpeed` 只在 `SwimSpeed>0 && SwimOrder.HasValue` 时生效，而 x25.01.17 中只有 `ComponentPilot` 写入 `SwimOrder`，玩家输入链路从不设置，因此对玩家写 `SwimSpeed` 不会改变移动。0.55.3 起海神的 +200% 水中移速改以 `WalkSpeed` 独立增量实现，同时保留 `SwimSpeed` 增量给 AI 路径；两者均可读写，ABI 检查已覆盖。这是设计缺陷修复，不涉及 Hook 名、方法签名、包布局或存档字段变更。
+
+领域命中判定由朝向扫掠改为纯半径 `InVortex(radial,height,radius)`，覆盖四面八方；半径上限 18 格、高 10 格，候选查询以领域中心为圆心。地形视线、区块加载、友伤开关、命中集合与 0.08 秒查询间隔不变，网络包 248 的 78 字节布局与快照字段不变。
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| `ComponentLocomotion.WalkSpeed` / `SwimSpeed` 可写 | 已确认 | 固定 x25.01.17 程序集属性可读写；反编译 `NormalMovement` 证实玩家路径只消费 `WalkSpeed`。 |
+| 全向领域判定与演出 | 待验证 | 2320 项纯规则/布局检查（含 72 方位等价性）与 Release 构建通过；未在设备上目视确认覆盖面与遮挡观感。 |
+| Android 7723 游泳提速 | 待验证 | 需实机确认浸水 >0.5 时约为原速 3 倍、浅滩不加速、反复出入水无叠加。 |
+
 ## 2026-10-30 main 0.55.2：移除星门 XmlWriter 依赖
 
 0.55.1 的用户日志进一步确认 `XmlWriter.WriteStartElement(string)` 缺失；仅替换 Create 重载不足。0.55.2 的保存路径改为固定 XML v1 文本编码，处理引号、尖括号、& 和属性中的制表符/换行/回车；名称校验使用 XML 1.0 字符规则。成品守卫禁止注册表及其辅助方法调用 XmlWriter、XmlWriterSettings、XmlConvert。

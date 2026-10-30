@@ -18,7 +18,7 @@ namespace SCIEPort.Features.Poseidon
             internal double ShieldReady,WaveReady,DomainReady,DomainEnd,NextSnapshot,LastRequest=-100,LastSnapshot=-100;
             internal Vector3 DomainOrigin,DomainDirection;
             internal bool DomainWater;
-            internal float Shield,SwimDelta;
+            internal float Shield,WalkDelta,SwimDelta;
             internal double Ready(byte skill)=>skill==1?ShieldReady:skill==2?WaveReady:DomainReady;
         }
         internal sealed class Cast
@@ -66,6 +66,8 @@ namespace SCIEPort.Features.Poseidon
         }
         internal void TickGui(ComponentGui gui)=>m_hud.Update(gui);
         internal static bool InWater(ComponentPlayer p)=>p.ComponentBody.ImmersionFactor>.25f&&p.ComponentBody.ImmersionFluidBlock is WaterBlock;
+        // Native players never receive a SwimOrder, so only deeply wading/swimming bodies take the speed passive.
+        internal static bool Swimming(ComponentPlayer p)=>p.ComponentBody.ImmersionFactor>PoseidonRules.SwimImmersion&&p.ComponentBody.ImmersionFluidBlock is WaterBlock;
         internal static bool BlocksDrowning(ComponentHealth health,ComponentCreature attacker,string cause)
         {
             var p=health?.Entity.FindComponent<ComponentPlayer>(false);if(!Equipped(p)||attacker!=null||cause!=LanguageControl.Get(ComponentHealth.fName,7))return false;
@@ -163,31 +165,36 @@ namespace SCIEPort.Features.Poseidon
         private void ApplyPassive(State s,bool active)
         {
             var p=s.Player;var locomotion=p.ComponentLocomotion;
-            float delta=PoseidonRules.SwimDelta(locomotion.SwimSpeed,s.SwimDelta,active&&InWater(p));
-            locomotion.SwimSpeed+=delta-s.SwimDelta;s.SwimDelta=delta;
-            if(active&&InWater(p))p.ComponentHealth.Air=1;
+            locomotion.WalkSpeed-=s.WalkDelta;locomotion.SwimSpeed-=s.SwimDelta;s.WalkDelta=0;s.SwimDelta=0;
+            if(!active)return;
+            if(InWater(p))p.ComponentHealth.Air=1;
+            if(!Swimming(p))return;
+            // Native player movement reads WalkSpeed (SwimSpeed is only consumed by AI SwimOrder),
+            // so the +200% water speed owns a WalkSpeed increment; the SwimSpeed copy keeps AI paths honest.
+            s.WalkDelta=PoseidonRules.SpeedDelta(locomotion.WalkSpeed);locomotion.WalkSpeed+=s.WalkDelta;
+            s.SwimDelta=PoseidonRules.SpeedDelta(locomotion.SwimSpeed);locomotion.SwimSpeed+=s.SwimDelta;
         }
         private void Strike(Cast c,float age)
         {
-            bool radial=c.Skill==1,domain=c.Skill==3;
-            if(!radial&&age<PoseidonRules.WaveWindup)return;
-            float next=radial?PoseidonRules.ShieldRadius*MathUtils.Saturate(age/PoseidonRules.ShieldDuration):PoseidonRules.WaveDistance(age,domain);
+            bool domain=c.Skill==3,sweep=c.Skill==2,radial=!sweep;
+            if(sweep&&age<PoseidonRules.WaveWindup)return;
+            float next=domain?PoseidonRules.DomainRadiusAt(age):sweep?PoseidonRules.WaveDistance(age):PoseidonRules.ShieldRadius*MathUtils.Saturate(age/PoseidonRules.ShieldDuration);
             Vector3 sight=c.Origin+Vector3.UnitY*.8f;
             if(!Loaded(sight)){c.Start=-100;return;}
-            if(!radial&&c.Distance>=0)
+            if(sweep&&c.Distance>=0)
             {
                 var a=sight+c.Direction*c.Distance;var b=sight+c.Direction*next;
-                if(!Loaded(b)||Wall(a,b)){c.Distance=-1;if(!domain){c.Start=-100;return;}}
+                if(!Loaded(b)||Wall(a,b)){c.Distance=-1;c.Start=-100;return;}
             }
-            bool wave=!radial&&c.Distance>=0;
-            if(domain&&age>PoseidonRules.WaveWindup+PoseidonRules.DomainWaveDuration)wave=false;
             var side=Vector3.Cross(c.Direction,Vector3.UnitY);
-            if (Authority) Query(c,c.Origin+c.Direction*(radial?0:domain?16:12),radial?7:domain?26:19,body=>
+            if (Authority) Query(c,c.Origin,domain?PoseidonRules.DomainRadius+1:sweep?19:7,body=>
             {
-                Vector3 delta=body.BoundingBox.Center()-c.Origin;
-                if(radial)return new Vector2(delta.X,delta.Z).LengthSquared()<=(next+.5f)*(next+.5f)&&delta.Y>=-.5f&&delta.Y<=3;
+                Vector3 delta=body.BoundingBox.Center()-c.Origin;float flat=new Vector2(delta.X,delta.Z).Length();
+                // The waterspout is evaluated by radius only, so it reaches every bearing around the caster.
+                if(domain)return PoseidonRules.InVortex(flat,delta.Y,next);
+                if(radial)return flat<=next+.5f&&delta.Y>=-.5f&&delta.Y<=3;
                 float along=Vector3.Dot(delta,c.Direction),across=Vector3.Dot(delta,side);
-                return (wave&&PoseidonRules.InSweep(along,across,delta.Y,c.Distance,next,.5f,domain))||(domain&&PoseidonRules.InVortex(along,across,delta.Y));
+                return PoseidonRules.InSweep(along,across,delta.Y,c.Distance,next,.5f);
             },sight);
             if(c.Distance>=0)c.Distance=next;
         }
@@ -208,8 +215,8 @@ namespace SCIEPort.Features.Poseidon
         }
         private static bool Related(ComponentBody a,ComponentBody b)=>a.ParentBody==b||b.ParentBody==a||a.ChildBodies.Contains(b)||b.ChildBodies.Contains(a);
         private bool Wall(Vector3 a,Vector3 b)=>m_terrain.Raycast(a,b,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue;
-        internal bool ClearWave(Vector3 origin,Vector3 direction,float age,bool large)
-        {Vector3 a=origin+Vector3.UnitY*.8f,b=a+direction*PoseidonRules.WaveDistance(age,large);return Loaded(b)&&!Wall(a,b);}
+        internal bool ClearWave(Vector3 origin,Vector3 direction,float age)
+        {Vector3 a=origin+Vector3.UnitY*.8f,b=a+direction*PoseidonRules.WaveDistance(age);return Loaded(b)&&!Wall(a,b);}
         private bool Loaded(Vector3 p)
         {if(!Finite(p)||p.Y<1||p.Y>254)return false;var c=m_terrain.Terrain.GetChunkAtCell(Terrain.ToCell(p.X),Terrain.ToCell(p.Z));return c!=null&&c.State>=TerrainChunkState.Valid;}
         private static bool Finite(Vector3 v)=>PoseidonRules.Finite(v.X)&&PoseidonRules.Finite(v.Y)&&PoseidonRules.Finite(v.Z);

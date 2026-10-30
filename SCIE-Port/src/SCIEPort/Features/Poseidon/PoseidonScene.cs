@@ -24,20 +24,26 @@ namespace SCIEPort.Features.Poseidon
                 if(SubsystemPoseidon.Equipped(s.Player)&&runtime.Fresh(s)&&s.Shield>0&&Vector3.DistanceSquared(s.Player.ComponentBody.Position,c.ViewPosition)<1600)Shield(s);
                 if(!runtime.InDomain(s)||Vector3.DistanceSquared(s.DomainOrigin,c.ViewPosition)>6400)continue;
                 float remaining=(float)(s.DomainEnd-runtime.Now),age=20-remaining,fade=PoseidonRules.DomainBlend(remaining);
-                var side=Vector3.Cross(s.DomainDirection,Vector3.UnitY);
-                Vortex(s.DomainOrigin+s.DomainDirection*14+side*4,age,fade,1);
-                if(!low)Vortex(s.DomainOrigin+s.DomainDirection*14-side*4,age,fade,-1);
-                Ring(s.DomainOrigin+Vector3.UnitY*.08f,24,.10f,new Color(29,139,208,60)*fade);
+                // Twelve o'clock symmetry: waterspouts at every bearing replace the old forward-facing pair.
+                int spouts=low?3:segments>=32?5:4;
+                if(!low)Vortex(s.DomainOrigin,age,fade,1,9);
+                for(int i=0;i<spouts;i++)
+                {
+                    float bearing=i*6.283185f/spouts+age*.10f;
+                    var center=s.DomainOrigin+new Vector3(MathUtils.Cos(bearing),0,MathUtils.Sin(bearing))*PoseidonRules.DomainSpoutRadius+Vector3.UnitY*.06f;
+                    Vortex(center,age,fade,i%2==0?1:-1,6);
+                }
+                Ring(s.DomainOrigin+Vector3.UnitY*.08f,PoseidonRules.DomainRadius,.10f,new Color(29,139,208,60)*fade);
                 Ring(s.DomainOrigin+Vector3.UnitY*.10f,3.0f+.15f*MathUtils.Sin(age*2),.05f,new Color(130,226,242,110)*fade);
-                // One enormous incoming breaker, followed by the surviving twenty-second sea domain.
-                if(age<3.3f)Wave(s.DomainOrigin,s.DomainDirection,age,true,fade);
+                // One full-circle breaker expanding to the whole domain radius, followed by the standing whirlpool.
+                Surge(s.DomainOrigin,age,fade);
             }
             foreach(var cast in runtime.Casts)
             {
                 if(Vector3.DistanceSquared(cast.Origin,c.ViewPosition)>6400)continue;
                 float age=(float)(runtime.Now-cast.Start);
                 if(cast.Skill==1)Radial(cast.Origin,age);
-                else if(cast.Skill==2&&cast.Distance>=0)Wave(cast.Origin,cast.Direction,age,false,1);
+                else if(cast.Skill==2&&cast.Distance>=0)Wave(cast.Origin,cast.Direction,age,1);
             }
             renderer.Flush(c.ViewProjectionMatrix);
         }
@@ -71,14 +77,14 @@ namespace SCIEPort.Features.Poseidon
                 Beam(p,q,.025f,new Color(85,218,241,140));
             }
         }
-        private void Wave(Vector3 origin,Vector3 direction,float age,bool large,float overall)
+        private void Wave(Vector3 origin,Vector3 direction,float age,float overall)
         {
-            if(!runtime.ClearWave(origin,direction,age,large))return;
-            float total=PoseidonRules.WaveWindup+(large?PoseidonRules.DomainWaveDuration:PoseidonRules.WaveDuration);
+            if(!runtime.ClearWave(origin,direction,age))return;
+            float total=PoseidonRules.WaveWindup+PoseidonRules.WaveDuration;
             float reveal=MathUtils.Saturate(age/PoseidonRules.WaveWindup),fade=MathUtils.Saturate((total-age)/.35f)*overall;
             if(fade<=0)return;
-            Vector3 front=origin+direction*PoseidonRules.WaveDistance(age,large),side=Vector3.Cross(direction,Vector3.UnitY);
-            float width=large?14:8,height=large?7.7f:3.7f;
+            Vector3 front=origin+direction*PoseidonRules.WaveDistance(age),side=Vector3.Cross(direction,Vector3.UnitY);
+            float width=8,height=3.7f;
             for(int i=0;i<segments;i++)
             {
                 float u=i/(float)segments,v=(i+1f)/segments,edge=MathUtils.Sin((u+v)*.5f*MathUtils.PI);
@@ -89,7 +95,7 @@ namespace SCIEPort.Features.Poseidon
                     Vector3 p=Surface(front,side,direction,v,z,age,width,height*reveal),q=Surface(front,side,direction,u,z,age,width,height*reveal);
                     Color col=Color.Lerp(new Color(9,51,103,175),new Color(42,166,200,130),t);
                     Quad(water,a,b,p,q,col*(fade*edge));
-                    if(row==6)Beam(q,p,large?.10f:.065f,new Color(216,249,251,230)*(fade*edge));
+                    if(row==6)Beam(q,p,.065f,new Color(216,249,251,230)*(fade*edge));
                 }
                 if(i%2==0)
                 {
@@ -106,9 +112,29 @@ namespace SCIEPort.Features.Poseidon
             float curl=-MathUtils.Sin(t*MathUtils.PI*.92f)*1.15f+t*t*1.10f;
             return o+side*((u-.5f)*width)+Vector3.UnitY*(.08f+t*(height+MathUtils.Sin(u*19-age*6)*.16f)*edge)+dir*(curl+.16f*MathUtils.Cos(u*6.28f));
         }
-        private void Vortex(Vector3 center,float age,float fade,int sign)
+        // The ultimate's opening breaker is a closed cylinder: every bearing receives the same front.
+        private void Surge(Vector3 origin,float age,float fade)
         {
-            int rings=10;
+            float t=PoseidonRules.DomainSurge(age);if(t<=0||t>=1)return;
+            float radius=PoseidonRules.DomainRadius*(float)Math.Sqrt(t),swell=MathUtils.Sin(t*MathUtils.PI*.92f);
+            for(int i=0;i<segments;i++)
+            {
+                float a=i*6.283185f/segments,b=(i+1)*6.283185f/segments;
+                Vector3 u=new Vector3(MathUtils.Cos(a),0,MathUtils.Sin(a)),v=new Vector3(MathUtils.Cos(b),0,MathUtils.Sin(b));
+                float hu=(4.6f+1.4f*MathUtils.Sin(a*3f+age*4.5f))*swell,hv=(4.6f+1.4f*MathUtils.Sin(b*3f+age*4.5f))*swell;
+                for(int row=0;row<6;row++)
+                {
+                    float r=row/6f,z=(row+1f)/6,lean=.42f*z;
+                    Color col=Color.Lerp(new Color(9,51,103,175),new Color(42,166,200,130),z);
+                    Quad(water,origin+u*(radius-lean*.15f)+Vector3.UnitY*(r*hu),origin+v*(radius-lean*.15f)+Vector3.UnitY*(r*hv),
+                        origin+v*(radius-lean)+Vector3.UnitY*(z*hv),origin+u*(radius-lean)+Vector3.UnitY*(z*hu),col*fade);
+                }
+                Beam(origin+u*radius+Vector3.UnitY*hu,origin+v*radius+Vector3.UnitY*hv,.10f,new Color(216,249,251,230)*fade);
+            }
+            Ring(origin+Vector3.UnitY*.08f,MathUtils.Max(radius,.7f),.05f,new Color(111,210,227,140)*fade);
+        }
+        private void Vortex(Vector3 center,float age,float fade,int sign,int rings)
+        {
             for(int y=0;y<rings;y++)for(int i=0;i<segments;i++)
             {
                 float t=y/(float)rings,z=(y+1f)/rings,a=i*6.283185f/segments,b=(i+1)*6.283185f/segments;

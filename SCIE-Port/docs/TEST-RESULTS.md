@@ -1,5 +1,26 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.55.3：海神三叉戟全向水龙卷与水中提速修复
+
+用户反馈两点：大招水龙卷应覆盖四面八方（旧版只朝施法朝向在正前方放两座水龙卷，判定用 `along/across` 的前向扫掠加两个偏移涡团）；持有三叉戟水中移速+200% 没有生效。第二点经目标程序集确认是真实缺陷：`Game.ComponentLocomotion` 只在 `SwimSpeed > 0 && SwimOrder.HasValue` 分支读取 `SwimSpeed`（x25.01.17 反编译 `NormalMovement`），玩家输入从不写入 `SwimOrder`（只有 `ComponentPilot` 写），所以旧实现改 `SwimSpeed` 对玩家完全无效。
+
+修改内容：
+- 领域判定改为纯半径：`PoseidonRules.InVortex(radial,height,radius)` 只读取目标与领域中心的水平距离和高度，`DomainRadiusAt(age)=18*sqrt(saturate((age-0.3)/2.2))` 在 2.2 秒内由 0 扩散到 18 格后恒定；`Strike` 的候选查询中心从 `Origin+Direction*16` 改为 `Origin`，半径 19。前后左右斜向完全等价，仍保留施法者头部到目标的墙体检查，不隔墙伤害。
+- 演出改为闭合潮涌水墙（`Surge`，2.2 秒扩散后收束）+ 环绕水龙卷（Low 3 / Medium 4 / High 5 座，按圆周均布并随时间旋转）+ 中心涡眼 + 18 格边界潮纹；旧的 `Wave(...,large)` 前向巨浪与 `DomainWaveDuration` 分支删除，二技能方向浪不变。
+- 移速改为 `WalkSpeed` 增量：`ApplyPassive` 先归还自己上次的增量再按 `SpeedDelta(base)=base*2` 重算，`SwimSpeed` 增量同时保留给 AI 路径；游泳判定为 `WaterBlock` 且浸水比例 >0.5（与原生游泳分支一致），浅滩浸水不足一半不加速。增量在离水/换物品/离开世界/Dispose 时归还，反复进出不叠加。
+
+验证（离线，未启动游戏或 Android 设备）。实际构建命令（仓库根，Framework 引用与 Python 均用本机已装版本）：
+
+```text
+SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
+```
+
+构建 exit 0：环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.3-build.log`。海神纯规则与布局检查由 2004 项增至 2320 项：新增 72 个方位（每 5 度）等距等价性、领域外沿 18 格边界、潮涌半径单调且收敛到 18、`SpeedDelta` 精确为 +200% 且 1000 帧不累积、零/负速度不产生增量。静态契约新增 `PoseidonRules.InVortex(flat,delta.Y,next)`、`locomotion.WalkSpeed+=s.WalkDelta`、`Swimming(p)` 三条守卫，`ComponentLocomotion.WalkSpeed` 写入能力纳入 ABI 检查。66 字段压缩往返与 41/78 字节包布局未变，网络协议无改动。
+
+最终包 `荒野探险家-0.55.3.netmod` / `荒野探险家.netmod` 字节一致：7,340,593 字节、143 项，SHA-256 `18DEEE1B98E3BB75DB0E3B757216FA2D904765607BD8E03B5530E4CA5705168E`；包内 Version=0.55.3、程序集 0.55.3.0，包内 `SCIEPort.dll` SHA-256 `A4E0BFD1047E1257997F141F9E38D61FEC6D53C4634AB4B0DA478CED8766714B`。相对 0.55.2 只改 `SCIEPort.dll` 与 `modinfo.json`，模型、贴图、数据库、音频保持原字节。
+
+未在 Android 7723 或真实多人世界运行，因此不声称手机验收完成。装机后需实测：站在领域中心朝四个方向各放一次确认全向覆盖且同一目标不重复受伤；游泳速度约为此前 3 倍、浅滩不加速、反复出水入水无叠加、卸下即恢复。若速度仍无变化，需确认是否处于浸水 >0.5 的游泳状态而非浅滩行走。
+
 ## 2026-10-30 main 0.55.2：星门 XML 兼容性再修复
 
 用户在 0.55.1 继续遇到 `XmlWriter.WriteStartElement(string)` 缺失，证实上一轮只改 Create 重载不足。保存现已完全移除 XmlWriter/XmlWriterSettings，使用固定 XML v1 编码；名称校验去掉 XmlConvert。读取只用固定 EntitySystem.dll 的 XmlUtils 原生加载链已引用的 XmlReader factory/settings，再交给 XElement.Load，提前限制长度并拒绝 DTD。解析方法禁止内联，外层仅捕获 MissingMemberException/TypeLoadException；运行时缺失接口时保留原始 VoidPortalRecords 并停用星门，不让该类解析错误阻断加载，不吞保存失败。

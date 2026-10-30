@@ -23,9 +23,10 @@ internal static class Program
         Check(float.IsNaN(PoseidonRules.Absorb(ref shield,float.NaN,false))&&shield==3,"nonfinite shield ignored");
         shield=PoseidonRules.ShieldMaximum;shield=PoseidonRules.ShieldMaximum;Check(shield==5,"refresh nonstacking");
         float speed=3,delta=0;
-        for(int i=0;i<1000;i++){float next=PoseidonRules.SwimDelta(speed,delta,true);speed+=next-delta;delta=next;Check(Near(speed,9),"swim +200% no accumulation");}
+        for(int i=0;i<1000;i++){speed-=delta;delta=PoseidonRules.SpeedDelta(speed);speed+=delta;Check(Near(speed,9),"swim +200% no accumulation");}
         speed-=delta;Check(Near(speed,3),"swim restored");
-        Check(PoseidonRules.WaveDistance(0)==0&&PoseidonRules.WaveDistance(99)==24&&PoseidonRules.WaveDistance(99,true)==35,"wave travel bounded");
+        Check(PoseidonRules.SpeedDelta(0)==0&&PoseidonRules.SpeedDelta(-2f)==0&&Near(PoseidonRules.SpeedDelta(2f),4f),"water speed bonus is exactly +200%");
+        Check(PoseidonRules.WaveDistance(0)==0&&PoseidonRules.WaveDistance(99)==24,"wave travel bounded");
         foreach(float dt in new[]{1f/120,1f/30,.08f,.3f,2f})
         {
             float previous=0;
@@ -34,7 +35,17 @@ internal static class Program
         Check(PoseidonRules.Alive(3,19.99f)&&!PoseidonRules.Alive(3,20),"domain exact hard lease");
         Check(PoseidonRules.DomainBlend(20)==0&&Near(PoseidonRules.DomainBlend(19),1)&&PoseidonRules.DomainBlend(0)==0,"domain fade restore");
         Check(PoseidonRules.InSweep(5,4,2,4,6,.5f)&&!PoseidonRules.InSweep(5,4.6f,2,4,6,.5f),"wave slab edges");
-        Check(PoseidonRules.InVortex(14,4,5)&&PoseidonRules.InVortex(14,-4,5)&&!PoseidonRules.InVortex(14,0,5)&&!PoseidonRules.InVortex(14,4,11),"vortex volume");
+        Check(PoseidonRules.InVortex(14,4,18)&&PoseidonRules.InVortex(0,4,18)&&!PoseidonRules.InVortex(19,4,18)&&!PoseidonRules.InVortex(14,11,18),"vortex volume");
+        // 四面八方：same distance, every bearing. The rule only reads the radius, so no direction can be favoured.
+        for(int bearing=0;bearing<360;bearing+=5)
+        {
+            double a=bearing*Math.PI/180;float x=(float)Math.Cos(a)*12f,z=(float)Math.Sin(a)*12f;
+            Check(PoseidonRules.InVortex((float)Math.Sqrt(x*x+z*z),2,18),"vortex covers bearing "+bearing);
+        }
+        Check(PoseidonRules.InVortex(18,2,18)&&!PoseidonRules.InVortex(18.6f,2,18),"vortex outer boundary");
+        Check(PoseidonRules.DomainRadiusAt(-1)==0&&PoseidonRules.DomainRadiusAt(0)==0&&Near(PoseidonRules.DomainRadiusAt(99),PoseidonRules.DomainRadius),"surge settles at full radius");
+        float previousRadius=0;
+        for(float t=0;t<4;t+=1f/60) { float r=PoseidonRules.DomainRadiusAt(t);Check(r>=previousRadius&&r<=PoseidonRules.DomainRadius,"surge radius monotonic");previousRadius=r; }
         Check(PoseidonRules.Newer(0,uint.MaxValue)&&!PoseidonRules.Newer(1,1)&&!PoseidonRules.Newer(0,1),"network replay");
         Check(PoseidonHudLayout.Circle(34,34,68,68)&&!PoseidonHudLayout.Circle(0,0,68,68)&&!PoseidonHudLayout.Circle(float.NaN,34,68,68),"round real hit region");
         int placed=0;
