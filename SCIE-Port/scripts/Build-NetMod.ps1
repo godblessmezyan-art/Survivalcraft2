@@ -324,8 +324,8 @@ if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
-if ($LASTEXITCODE -ne 0) { throw 'Abyss native input timing regression' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidHorizon.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Abyss native input/domain regression' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'WorldCut native regression failed' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidPrototype.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')

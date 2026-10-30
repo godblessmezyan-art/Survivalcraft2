@@ -1,4 +1,12 @@
-﻿# SCIE-Port 兼容性记录
+# SCIE-Port 兼容性记录
+
+## 2026-10-30 SCIE-Port 0.56.0：虚夜领域与大招伤害保护
+
+终焉坍缩从原世界特效改为施法者独立全景空间：连续裂口展开、360°地平线、固定远方黑洞及吸积盘遮挡；真实实体与地形保持。主机接受后的17秒内拒绝原生 Injure 伤害（含 ignoreInvulnerability），并拦截攻击护甲损耗、击退和眩晕。全部玩家无条件排除于大招伤害和牵引。新增249号领域协议，240–248保持；普通客户端可请求施法，由主机裁定，双方须同版。
+
+Windows 固定 Net_x25.01.17 / 2.4.0.0 / net472 编译 **已确认**；目标 Survivalcraft.exe SHA-256 `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`、Engine.dll `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`、EntitySystem.dll `7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C`。
+
+新增 `AttackPowerParameter` Hook，签名与原生调用链已反编译核实；既有 `OnCreatureInjure` 在普通无敌判断之前执行，原生 `ComponentHealthPackage.RequestInjure` 进入同一 Injure。网络轮询在 Window.Frame 上，原生包按 ReliableOrdered 发送。绘制复用原生 FlatBatch3D，新增末尾顺序2147483631，不更换渲染目标、不创建Shader。源/成品测试和包信息见测试结果。Android/7723实际程序集、游戏画面、触屏性能、单人/本地主机/普通客户端真实运行均 **待验证**。不涉及Builder Assistant或新增蓝图方块能力。
 
 ## 2026-10-30 main 0.56.3：永恒裁决恢复距离衰减
 

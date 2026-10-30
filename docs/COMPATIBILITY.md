@@ -1,4 +1,8 @@
-﻿# 兼容性矩阵
+# 兼容性矩阵
+
+## 2026-10-30 SCIE-Port 0.56.0：虚夜领域
+
+新增249领域请求/状态协议及AttackPowerParameter Hook，主机裁定17秒大招免伤，伤害和牵引排除全部玩家；施法者全景虚夜覆盖原世界，退出恢复。Windows固定x25.01.17/net472编译与原生接口 **已确认**，Android7723、实机画面和真实联机 **待验证**；详见 [移植工程兼容性](../SCIE-Port/docs/COMPATIBILITY.md) 与 [测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。Builder Assistant、蓝图材料/族/DATA和限制保持。
 
 ## 2026-10-30 Builder Assistant v0.23.0：一室一厅自动室内布局
 

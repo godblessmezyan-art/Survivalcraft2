@@ -7,8 +7,8 @@ internal static class VoidSkillTests
     internal static void Run()
     {
         Check(VoidSkillRules.VfxSegments(-1,8,16,24)==8 && VoidSkillRules.VfxSegments(1,8,16,24)==16 && VoidSkillRules.VfxSegments(9,8,16,24)==24,"quality bounds and budgets");
-        Check(VoidHorizonVisualRules.CoreScale(5)==1 && VoidHorizonVisualRules.CoreScale(14)==1 && VoidHorizonVisualRules.CoreScale(15.7f)==0 && VoidHorizonVisualRules.CoreScale(float.NaN)==0,"collapse envelope and quiet gap");
-        Check(VoidHorizonVisualRules.PrimitiveBudget(-1)==160 && VoidHorizonVisualRules.PrimitiveBudget(1)==240 && VoidHorizonVisualRules.PrimitiveBudget(4)==320,"presentation budgets by quality");
+        Check(VoidHorizonVisualRules.Smooth(-1)==0 && VoidHorizonVisualRules.Smooth(0)==0 && VoidHorizonVisualRules.Smooth(.5f)==.5f && VoidHorizonVisualRules.Smooth(2)==1,"domain transition clamp and midpoint");
+        Check(VoidHorizonVisualRules.PrimitiveBudget(-1)==2640 && VoidHorizonVisualRules.PrimitiveBudget(1)==3960 && VoidHorizonVisualRules.PrimitiveBudget(4)==5280,"presentation budgets by quality");
         Check(VoidSkillRules.InBlinkRange(18)&&!VoidSkillRules.InBlinkRange(18.01f)&&!VoidSkillRules.InBlinkRange(float.NaN),"blink range boundary");
         Check(VoidSkillRules.InDomain(40,4,0,4)&&!VoidSkillRules.InDomain(40.01f,0,0,4)&&!VoidSkillRules.InDomain(0,4.01f,0,4),"domain radius and height");
         Check(VoidSkillRules.Phase(0)==HorizonPhase.Awakening && VoidSkillRules.Phase(2)==HorizonPhase.SkyRift && VoidSkillRules.Phase(5)==HorizonPhase.Descent && VoidSkillRules.Phase(8)==HorizonPhase.Domain && VoidSkillRules.Phase(14)==HorizonPhase.Collapse && VoidSkillRules.Phase(17)==HorizonPhase.Finished,"five phase edges");

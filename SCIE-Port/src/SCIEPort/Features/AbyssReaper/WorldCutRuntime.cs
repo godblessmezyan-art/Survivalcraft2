@@ -85,7 +85,8 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private bool OwnerSafe(ComponentPlayer p) => p!=null && p.Project==project && p.Entity.IsAddedToProject && p.ComponentHealth.Health>0
             && p.PlayerData.IsReadyForPlaying && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index
-            && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true;
+            && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
+            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true;
         private void Reject(ComponentPlayer p,Client to,WorldCutPackage request,WorldCutFailure reason)
         {
             var e=Get(p);if(e!=null)e.PendingUntil=0;Report(p,reason);
