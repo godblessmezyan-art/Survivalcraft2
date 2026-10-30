@@ -24,7 +24,7 @@ public static class AbyssHostNativeProbe
     {
         var e=Bare<Entity>();Put(e,"m_project",p);Put(e,"m_isAddedToProject",true);Put(e,"m_components",new List<Component>());return e;
     }
-    static ComponentPlayer Player(Project p,SubsystemBodies bodies,int index)
+    internal static ComponentPlayer Player(Project p,SubsystemBodies bodies,int index)
     {
         var e=Entity(p);var player=new ComponentPlayer();player.m_entity=e;player.PlayerGuid=Guid.NewGuid();
         player.ComponentHealth=new ComponentHealth();player.ComponentHealth.m_entity=e;player.ComponentHealth.Health=1;

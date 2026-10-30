@@ -195,9 +195,9 @@ public static class WorldCutNativeProbe
             Guid actor=Guid.NewGuid();var oldWork=CommonLib.WorkType;CommonLib.WorkType=WorkType.Local;
             try {
                 Check((bool)travelType.GetMethod("BeginLoading",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"already loaded destination does not require private updater ABI");
-                Check((bool)travelType.GetMethod("DestinationLoaded",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"loaded destination remains ready");
+                Check((bool)travelType.GetMethod("ChunksReady",Flags).Invoke(travel,new object[]{lookup[1]}),"loaded destination chunks remain ready before actor handshake");
                 chunk.State=TerrainChunkState.InvalidContents1;
-                Check(!(bool)travelType.GetMethod("DestinationLoaded",Flags).Invoke(travel,new object[]{actor,lookup[1]}),"chunk downgrade blocks movement");
+                Check(!(bool)travelType.GetMethod("ChunksReady",Flags).Invoke(travel,new object[]{lookup[1]}),"chunk downgrade blocks movement");
                 chunk.State=TerrainChunkState.Valid;
             } finally {CommonLib.WorkType=oldWork;}
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SCIEPort.Features.AbyssReaper;
 internal static class PortalTravelTests
 {
@@ -6,9 +7,10 @@ internal static class PortalTravelTests
     {
         public bool authority=true,eligible=true,begin=true,loaded,landing=true,move=true,throwLanding;
         public int starts,ends,moves;public Action duringLanding;
+        public Dictionary<Guid,Guid> targets=new Dictionary<Guid,Guid>();
         public bool IsAuthority=>authority;
         public bool IsActorEligible(Guid actor,VoidPortalRegistry.Portal source)=>eligible;
-        public bool BeginLoading(Guid actor,VoidPortalRegistry.Portal dest){starts++;return begin;}
+        public bool BeginLoading(Guid actor,VoidPortalRegistry.Portal dest){starts++;targets[actor]=dest.Id;return begin;}
         public bool DestinationLoaded(Guid actor,VoidPortalRegistry.Portal dest)=>loaded;
         public bool TryFindLanding(Guid actor,VoidPortalRegistry.Portal dest,out float x,out float y,out float z)
         { if(throwLanding)throw new InvalidOperationException();duringLanding?.Invoke();x=dest.X+2;y=dest.Y;z=dest.Z;return landing; }
@@ -47,6 +49,19 @@ internal static class PortalTravelTests
         Check(registry.TryAdd(a,owner,"A",0,64,0,0)&&registry.Link(a,b),"restore source");
         Check(t.Begin(actor,a,26)==PortalTravelResult.Preparing,"start for dispose");int ends=w.ends;t.Dispose();
         Check(t.PendingCount==0&&w.ends==ends+1,"dispose releases loading");
+        var third=Guid.NewGuid();var other=Guid.NewGuid();
+        Check(registry.TryAdd(third,owner,"C",60,64,0,0),"third permanent gate");
+        var sharedWorld=new World();var shared=new VoidPortalTravel(registry,sharedWorld);
+        Check(shared.Begin(actor,a,b,30)==PortalTravelResult.Preparing&&shared.Begin(other,a,third,30)==PortalTravelResult.Preparing,"two actors select different targets from same gate");
+        Check(sharedWorld.targets[actor]==b&&sharedWorld.targets[other]==third,"per-actor targets never overwrite each other");
+        registry.Link(a,Guid.Empty);
+        Check(shared.Update(other,31)==PortalTravelResult.Preparing,"legacy shared link is irrelevant to explicit choice");
+        registry.Remove(b);sharedWorld.loaded=true;
+        Check(shared.Update(actor,32)==PortalTravelResult.Cancelled&&shared.Update(other,32)==PortalTravelResult.Arrived,"deleting one destination cancels only affected actor");
+        Check(shared.Begin(Guid.NewGuid(),a,a,33)==PortalTravelResult.Invalid,"self destination rejected");
+        var saved=registry.Serialize();VoidPortalRegistry restored;
+        Check(VoidPortalRegistry.TryDeserialize(saved,out restored)&&restored.Count==registry.Count,"permanent shared gates survive world serialization");
+        shared.Dispose();
         Console.WriteLine("Portal travel authority/timeout/cleanup/retrigger: "+count+" checks passed (simulated world only).");
     }
 }

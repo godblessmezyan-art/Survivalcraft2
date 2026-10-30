@@ -13,9 +13,9 @@ namespace SCIEPort.Features.AbyssReaper
         private bool Actor(ComponentPlayer player)
         {
             return CommonLib.WorkType!=WorkType.Client && player!=null && player.IsAddedToProject && player.Project==runtime.Project
-                && player.PlayerGuid!=Guid.Empty && player.PlayerData.IsMainPlayer && player.ComponentHealth.Health>0 && player.PlayerData.IsReadyForPlaying
+                && player.PlayerGuid!=Guid.Empty && player.ComponentHealth.Health>0 && player.PlayerData.IsReadyForPlaying
                 && player.ComponentSleep.SleepFactor<=0 && player.ComponentRider.Mount==null
-                && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index && runtime.Portals!=null;
+                && runtime.Portals!=null;
         }
         private bool Near(ComponentPlayer player,VoidPortalRegistry.Portal portal)
         {
@@ -34,7 +34,8 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private bool OwnsNearby(ComponentPlayer player,Guid id,out VoidPortalRegistry.Portal portal)
         {
-            portal=null;return Actor(player)&&runtime.Portals.TryGet(id,out portal)&&portal.Active&&portal.Owner==player.PlayerGuid&&Near(player,portal);
+            // All connected players manage the shared world registry. Owner is provenance only.
+            portal=null;return Actor(player)&&runtime.Portals.TryGet(id,out portal)&&portal.Active;
         }
         internal bool Rename(ComponentPlayer player,Guid id,string name)
         { VoidPortalRegistry.Portal portal;return OwnsNearby(player,id,out portal)&&runtime.Portals.Rename(id,name); }

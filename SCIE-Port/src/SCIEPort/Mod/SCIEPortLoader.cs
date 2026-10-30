@@ -39,6 +39,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new PoseidonV2Package());
                 PackageManager.RegisterPackage(new WorldCutPackage());
                 PackageManager.RegisterPackage(new VoidHorizonPackage());
+                PackageManager.RegisterPackage(new VoidPortalPackage());
                 s_networkPackageRegistered = true;
             }
 

@@ -1,5 +1,27 @@
 # 测试结果
 
+## 2026-10-31 main 0.58.0：共享永久星门与普通客户端传送
+
+用户最终规则：所有星门永久存在、可命名/删除并随世界存档；所有联机玩家同等管理权限；目的地从已记录门中选择，按玩家独立，支持随处施法建立永久出发门与操作已有门。没有远程坐标放置或临时入口。具体交互、数量限制与真机步骤见 [SHARED-VOID-PORTALS.md](SHARED-VOID-PORTALS.md)。
+
+实现新增250包，240–249及v1存档不改；保留世界身份/星门身份，Owner只作来源记录。主机验证请求连接、当前实体、序号及空间，在更新线程写记录；客户端完整接收一个版本后替换共享列表，半份快照不覆盖。传送采用源/目标区块租约、客户端准备/提交/确认、原生位置及速度插值重置；客户端预加载不向主机广播错误的原生玩家位置。死亡、断线、删除源门/目标门、超时和Dispose释放会话。不会修改地形，神器攻击/伤害及8秒虚夜保持。
+
+实际构建命令（本机Python加入PATH，FrameworkPathOverride指向net472引用程序集）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+```
+
+针对性net472 Release编译0警告0错误。传送纯规则30项通过，新增两人同源不同目的地、旧全局链接无干扰、删除一门仅取消对应玩家、拒绝自身目的地和存读档。原生星门夹具564项通过：250无包ID冲突、32组实际编码往返、文本长度/UTF-8拒绝、非创建者普通客户端改名/删除、队列处理时身份及原始连接Token重检、请求重放、逐包快照原子替换、同编号伪造主机、错误/重复提交、客户端加载/输入锁/回退/清理、主机等待拥有者确认、旧NetPosition重置、目标删除取消、同时抵达的落点包围盒预留和私有加载位置回收。原生房主普攻/星门13项继续通过。
+
+ABI取证来自目标程序集：PackageManager从当前NetNode.Clients中取得From；Client的==仅比较ID，所以新包使用ReferenceEquals验证主机。NetNode统一ReliableOrdered发送；ComponentBody.Server更新读取netPosition，传送同时重建NetPosition/NetVelocity并重置SendPosition/SendVelocity。TerrainUpdater.SetUpdateLocation在客户端会自动发送PlayerDataPackage，新的受信预加载只写其已审计的待处理位置，避免提前移动原生玩家区块范围。
+
+首次完整构建发现旧“区块已加载”夹具没有玩家上下文，却调用了新版包含玩家握手的DestinationLoaded；已改为直接验证ChunksReady，新增完整星门夹具验证实际玩家路径。另一次同编号伪造客户端测试发现Handle在检查主机身份之前读取未绑定的PlayerData；已把玩家资料读取限制在通过状态检查的服务端请求分支，并加入原始连接Token快照保护。修复后针对性检查通过。无真实游戏/设备证据冒充。
+
+最终完整Release exit 0：环境/ABI、全套既有规则和资源、705项领域原生回归、890项断界/区块/原生触控回归、13项房主及564项共享星门原生检查、30项传送规则、21 XDB、22 CSV/55行与包校验通过。日志位于忽略目录 `SCIE-Port/artifacts/shared-portals-0.58.0-build.log`。两份正式包字节一致，7,356,706字节、143项，Version=0.58.0，SHA-256 `C5E91FD3D1BFF031F991E4B57D47A51906AF3A79056A5AD7D0AEE1F3AE64AB34`；包内DLL与本次构建一致，SHA-256 `2765F9907D98B3934050B1DF09C1A756076D0C7AEDD7A3061CC7B0DB3246358C`。相对0.57.1只有DLL与modinfo变化，游戏资源字节保持。
+
+Android7723实际加载、UI字号/触屏、真实物理落点、远距离区块网络传输、延迟/掉线/重连及真实多用户并发均 **待验证**。所有联机参与者须同为0.58.0；普通客户端的普攻与瞬狩支持范围不扩大。本次仅提交本地main，不推送GitHub。
+
 ## 2026-10-31 main 0.57.1：房主阿比斯伤害、星门与8秒大招
 
 用户确认故障发生在联机房主。定位到普攻采集触摸射线但结算忽略其方向、AllowPassive默认False使主动瞄准的普通生物也被跳过、手机原生Tap同时填充Hit/Interact而旧星门判断要求无攻击输入、星门球形选区小于可见门面的下沿。未把这些已确认的代码缺陷当作用户设备上所有故障原因的证明。

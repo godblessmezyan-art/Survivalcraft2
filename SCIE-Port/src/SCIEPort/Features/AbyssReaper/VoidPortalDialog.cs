@@ -1,73 +1,78 @@
 using System;
 using System.Collections.Generic;
 using Engine;
+using Engine.Graphics;
 using Game;
 namespace SCIEPort.Features.AbyssReaper
 {
-    // Local authority management. Client request/replication and travel remain separate work.
-    internal sealed class VoidPortalDialog : Dialog
+    internal sealed class VoidPortalDialog:Dialog
     {
         private SubsystemAbyssReaper runtime;
         private ComponentPlayer player;
-        private readonly Guid source;
+        private Guid source,selected,created;
         private readonly CanvasWidget panel;
+        private readonly LabelWidget subtitle,pages;
         private readonly TextBoxWidget name;
-        private readonly LabelWidget info;
-        private readonly BevelledButtonWidget previous,next,link,unlink,rename,delete,close;
-        private Guid selected;
-        private bool deleteArmed;
+        private readonly BevelledButtonWidget[] rows=new BevelledButtonWidget[5];
+        private readonly Guid[] ids=new Guid[5];
+        private readonly BevelledButtonWidget previous,next,refresh,create,rename,delete,travel,close;
+        private int page;
+        private Guid deleteArmed;
         internal VoidPortalDialog(SubsystemAbyssReaper runtime,ComponentPlayer player,Guid source)
         {
             this.runtime=runtime;this.player=player;this.source=source;
-            panel=new CanvasWidget { Size=new Vector2(550,360),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center };Children.Add(panel);
-            panel.Children.Add(new RectangleWidget { FillColor=new Color(12,5,20,245),OutlineColor=new Color(136,76,184),OutlineThickness=2 });
-            Add(new LabelWidget { Text="裂界星门 · 管理",Color=new Color(222,188,250),FontScale=.85f },16,12);
-            name=new TextBoxWidget { Size=new Vector2(310,42),FontScale=.75f,MaximumLength=32 };Add(name,16,52);
-            VoidPortalRegistry.Portal current;if(runtime.Portals.TryGet(source,out current))name.Text=current.Name;
-            rename=Button("重命名",336,52,95);delete=Button("删除",440,52,94);
-            info=new LabelWidget { Size=new Vector2(510,125),Color=new Color(210,177,230),FontScale=.7f,WordWrap=true };Add(info,20,108);
-            previous=Button("上一座",16,244,115);next=Button("下一座",140,244,115);
-            link=Button("设置目标",264,244,130);unlink=Button("取消目标",402,244,132);
-            close=Button("关闭",374,305,160);
-            Select(1);
+            created=runtime.Gateways.LastCreated;
+            panel=new CanvasWidget{Size=new Vector2(620,464),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center,IsHitTestVisible=false};Children.Add(panel);
+            panel.Children.Add(new RectangleWidget{Size=panel.Size,FillColor=new Color(12,5,20,248),OutlineColor=new Color(136,76,184),OutlineThickness=2,IsHitTestVisible=false});
+            Add(new LabelWidget{Text="裂界星门 · 世界共享",FontScale=.85f,Color=new Color(228,202,250),IsHitTestVisible=false},16,10);
+            subtitle=new LabelWidget{Size=new Vector2(588,36),FontScale=.43f,WordWrap=true,Color=new Color(210,190,226),IsHitTestVisible=false};Add(subtitle,16,42);
+            for(int i=0;i<5;i++)rows[i]=Button("",16,84+i*42,588,38);
+            name=new TextBoxWidget{Size=new Vector2(430,38),MaximumLength=32,FontScale=.65f,Text="星门"};Add(name,16,302);
+            rename=Button("保存名称",454,302,150,38);
+            previous=Button("上一页",16,350,100,36);next=Button("下一页",224,350,100,36);refresh=Button("刷新列表",464,350,140,36);
+            pages=new LabelWidget{Size=new Vector2(100,36),FontScale=.55f,TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,IsHitTestVisible=false};Add(pages,120,350);
+            create=Button("建立永久星门",16,408,164,42);delete=Button("删除所选",188,408,120,42);travel=Button("前往所选星门",316,408,170,42);close=Button("关闭",494,408,110,42);
         }
-        private void Add(Widget w,float x,float y){panel.Children.Add(w);panel.SetWidgetPosition(w,new Vector2(x,y));}
-        private BevelledButtonWidget Button(string text,float x,float y,float width)
-        { var b=new BevelledButtonWidget { Text=text,Size=new Vector2(width,42),FontScale=.65f,CenterColor=new Color(27,12,38),BevelColor=new Color(131,88,158) };Add(b,x,y);return b; }
-        private List<VoidPortalRegistry.Portal> Destinations()
-        {
-            var result=new List<VoidPortalRegistry.Portal>();
-            if(runtime?.Portals!=null)foreach(var p in runtime.Portals.Records)if(p.Active && p.Id!=source)result.Add(p);
-            result.Sort((a,b)=>string.CompareOrdinal(a.Name,b.Name));return result;
-        }
-        private void Select(int step)
-        {
-            var list=Destinations();if(list.Count==0){selected=Guid.Empty;return;}
-            int i=list.FindIndex(p=>p.Id==selected);if(i<0)i=step>0?-1:0;
-            selected=list[(i+step+list.Count)%list.Count].Id;
-        }
+        private void Add(Widget w,float x,float y){panel.Children.Add(w);CanvasWidget.SetPosition(w,new Vector2(x,y));}
+        private BevelledButtonWidget Button(string text,float x,float y,float width,float height)
+        {var b=new BevelledButtonWidget{Text=text,Size=new Vector2(width,height),FontScale=.55f,CenterColor=new Color(27,12,38),BevelColor=new Color(131,88,158)};Add(b,x,y);return b;}
         public override void Update()
         {
-            if(runtime==null || player==null)return;
-            if(!player.IsAddedToProject || player.GameWidget==null){runtime.ClosePortalDialog(player,this);return;}
-            Vector2 available=player.GameWidget.GuiWidget.ActualSize;
-            float scale=MathUtils.Min(1,MathUtils.Min((available.X-16)/550,(available.Y-16)/360));if(scale>0)panel.LayoutTransform=Matrix.CreateScale(scale);
-            VoidPortalRegistry.Portal current,destination;
-            if(runtime.Portals==null || !runtime.Portals.TryGet(source,out current)){runtime.ClosePortalDialog(player,this);return;}
-            if(previous.IsClicked)Select(-1);if(next.IsClicked)Select(1);
-            string result="";
-            if(rename.IsClicked)result=runtime.PortalOperations.Rename(player,source,name.Text)?"已重命名":"重命名失败：请检查名称、距离和所有权";
-            if(link.IsClicked)result=selected!=Guid.Empty && runtime.PortalOperations.Link(player,source,selected)?"已设置目标":"设置失败：请检查目标、距离和所有权";
-            if(unlink.IsClicked)result=runtime.PortalOperations.Link(player,source,Guid.Empty)?"已取消目标":"取消失败：请检查距离和所有权";
-            if(delete.IsClicked)
+            if(runtime==null||player==null)return;
+            if(!player.IsAddedToProject||player.GameWidget==null){runtime.ClosePortalDialog(player,this);return;}
+            Vector2 available=player.GuiWidget.ActualSize;float scale=MathUtils.Min(1,MathUtils.Min((available.X-16)/620,(available.Y-16)/464));
+            if(scale>0)panel.LayoutTransform=Matrix.CreateScale(scale);
+            var net=runtime.Gateways;var registry=runtime.Portals;
+            if(net.LastCreated!=Guid.Empty&&created!=net.LastCreated){created=net.LastCreated;source=created;}
+            var list=new List<VoidPortalRegistry.Portal>();if(registry!=null)foreach(var gate in registry.Records)if(gate.Active)list.Add(gate);
+            list.Sort((a,b)=>{int n=string.CompareOrdinal(a.Name,b.Name);return n!=0?n:a.Id.CompareTo(b.Id);});
+            if(previous.IsClicked)page--;if(next.IsClicked)page++;
+            int count=Math.Max(1,(list.Count+4)/5);page=Math.Max(0,Math.Min(count-1,page));pages.Text=(page+1)+" / "+count;
+            previous.IsEnabled=page>0;next.IsEnabled=page+1<count;
+            VoidPortalRegistry.Portal chosen=null,origin=null;
+            if(registry!=null){registry.TryGet(selected,out chosen);registry.TryGet(source,out origin);}
+            if(source!=Guid.Empty&&origin==null)source=Guid.Empty;
+            for(int i=0;i<5;i++)
             {
-                if(!deleteArmed){deleteArmed=true;delete.Text="再次删除";result="再次点击确认删除";}
-                else if(runtime.PortalOperations.Delete(player,source)){runtime.ClosePortalDialog(player,this);return;}
-                else result="删除失败：请检查距离和所有权";
+                int at=page*5+i;rows[i].IsVisible=at<list.Count;ids[i]=at<list.Count?list[at].Id:Guid.Empty;
+                if(at>=list.Count)continue;var gate=list[at];
+                float distance=Vector3.Distance(player.ComponentBody.Position,new Vector3(gate.X,gate.Y,gate.Z));
+                rows[i].Text=(gate.Id==selected?"● ":"")+gate.Name+"  ("+gate.X.ToString("0.0")+", "+gate.Y.ToString("0")+", "+gate.Z.ToString("0.0")+")  "+distance.ToString("0")+"格";
+                rows[i].CenterColor=gate.Id==selected?new Color(72,35,98):new Color(27,12,38);
+                if(rows[i].IsClicked){selected=gate.Id;chosen=gate;name.Text=gate.Name;deleteArmed=Guid.Empty;}
             }
-            string target=runtime.Portals.TryGet(current.Target,out destination)?destination.Name:"未设置";
-            string option=runtime.Portals.TryGet(selected,out destination)?destination.Name+" ("+destination.X.ToString("0")+", "+destination.Y.ToString("0")+", "+destination.Z.ToString("0")+")":"没有其他星门";
-            info.Text="当前："+current.Name+"  目标："+target+"\n可选目的地："+option+"\n单人/本地主机仅传送到已加载且安全的目的地。\n"+result;
+            subtitle.Text=(origin!=null?"出发："+origin.Name:"随处开门：前往时会在附近建立并保留一座永久星门")+"\n"+net.Feedback;
+            rename.IsEnabled=delete.IsEnabled=chosen!=null;travel.IsEnabled=chosen!=null&&chosen.Id!=source;
+            delete.Text=deleteArmed==selected&&selected!=Guid.Empty?"确认删除":"删除所选";
+            if(refresh.IsClicked)net.Request(player,VoidPortalNetwork.Sync,Guid.Empty,Guid.Empty,"");
+            if(create.IsClicked)net.Request(player,VoidPortalNetwork.Create,Guid.Empty,Guid.Empty,name.Text.Trim());
+            if(rename.IsClicked&&chosen!=null)net.Request(player,VoidPortalNetwork.Rename,chosen.Id,Guid.Empty,name.Text.Trim());
+            if(delete.IsClicked&&chosen!=null)
+            {
+                if(deleteArmed!=chosen.Id)deleteArmed=chosen.Id;
+                else{net.Request(player,VoidPortalNetwork.Delete,chosen.Id,Guid.Empty,"");deleteArmed=Guid.Empty;}
+            }
+            if(travel.IsClicked&&chosen!=null)net.Request(player,VoidPortalNetwork.Choose,source,chosen.Id,"");
             if(close.IsClicked||Input.Back||Input.Cancel){Input.Clear();runtime.ClosePortalDialog(player,this);}
         }
         internal void Release(){runtime=null;player=null;}

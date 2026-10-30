@@ -20,9 +20,16 @@ namespace SCIEPort.Features.AbyssReaper
         private VoidChunkLease(TerrainUpdater updater,Dictionary<int,TerrainUpdater.UpdateLocation?> pending,int id,Vector2 center)
         {this.updater=updater;this.pending=pending;this.id=id;this.center=center;}
         internal static bool TryCreate(TerrainUpdater updater,Vector2 center,out VoidChunkLease lease)
+            => Create(updater,center,false,out lease);
+        // Only the authenticated portal preflight calls this. Do not advertise a second native
+        // player update location to the server while that player is still at the source.
+        internal static bool TryCreateClient(TerrainUpdater updater,Vector2 center,out VoidChunkLease lease)
+            => CommonLib.WorkType==WorkType.Client?Create(updater,center,true,out lease):Fail(out lease);
+        private static bool Fail(out VoidChunkLease lease){lease=null;return false;}
+        private static bool Create(TerrainUpdater updater,Vector2 center,bool client,out VoidChunkLease lease)
         {
             lease=null;
-            if(updater==null || CommonLib.WorkType==WorkType.Client || PendingField==null || !WorldCutRules.Finite(center.X) || !WorldCutRules.Finite(center.Y))return false;
+            if(updater==null || (CommonLib.WorkType==WorkType.Client&&!client) || PendingField==null || !WorldCutRules.Finite(center.X) || !WorldCutRules.Finite(center.Y))return false;
             Dictionary<int,TerrainUpdater.UpdateLocation?> pending;
             Dictionary<int,TerrainUpdater.UpdateLocation> active;
             try { pending=PendingField.GetValue(updater) as Dictionary<int,TerrainUpdater.UpdateLocation?>;active=updater.UpdateLocations; }
@@ -37,7 +44,8 @@ namespace SCIEPort.Features.AbyssReaper
                 var created=new VoidChunkLease(updater,pending,id,center);
                 try
                 {
-                    updater.SetUpdateLocation(id,center,Distance,Distance);
+                    if(client)pending[id]=new TerrainUpdater.UpdateLocation { Center=center,LastChunksUpdateCenter=center,VisibilityDistance=Distance,ContentDistance=Distance };
+                    else updater.SetUpdateLocation(id,center,Distance,Distance);
                     TerrainUpdater.UpdateLocation? value;
                     if(!pending.TryGetValue(id,out value)||!value.HasValue||!created.Owns(value.Value)){created.Dispose();return false;}
                     lease=created;return true;
