@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory=$true)][string]$GameDir,
     [Parameter(Mandatory=$true)][string]$AssemblyPath,
     [Parameter(Mandatory=$true)][string]$OutputDir,
-    [float[]]$Times=@(1.5,2.5,3,4,10,15,16.5)
+    [float[]]$Times=@(.3,.5,.8,1.3,2.5,3.3,3.8,4.1,4.2)
 )
 $ErrorActionPreference='Stop'
 foreach($name in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')) { [void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $name)) }

@@ -26,22 +26,15 @@ namespace SCIEPort.Features.AbyssReaper
         internal int Queue(Vector3 origin,Vector3 facing,float t,int quality)
         {
             renderer.Clear();triangles=0;
-            if(!VoidHorizonRules.Live(t) || !WorldCutDamage.Finite(origin) || !WorldCutDamage.Finite(facing) || facing.LengthSquared()<.01f)return 0;
-            t=VoidHorizonVisualRules.SceneTime(t);
+            if(t>=(float)VoidSkillRules.HorizonDuration || !VoidHorizonRules.Live(t) || !WorldCutDamage.Finite(origin) || !WorldCutDamage.Finite(facing) || facing.LengthSquared()<.01f)return 0;
             facing=new Vector3(facing.X,0,facing.Z);
             if(facing.LengthSquared()<.01f)return 0;
             facing=Vector3.Normalize(facing);
             Vector3 right=Vector3.Normalize(Vector3.Cross(facing,Vector3.UnitY));
             int segments=VoidSkillRules.VfxSegments(quality,48,72,96);
-            if(t<2) { Rift(origin+facing*20+Vector3.UnitY*3,right,Vector3.UnitY,t/2,segments);return triangles; }
-            if(t<4 || t>=16)
-            {
-                float progress=t<4?VoidHorizonVisualRules.Smooth((t-2)/2):1-VoidHorizonVisualRules.Smooth(t-16);
-                Aperture(origin,facing,right,progress,segments,t);
-                return triangles;
-            }
             Environment(origin,segments,t);
-            BlackHole(origin,facing,right,t,segments);
+            if(t>=VoidSkillRules.DomainStart)BlackHole(origin,facing,right,t,segments);
+            if(t>=VoidSkillRules.ExpansionStart)Aperture(origin,facing,right,VoidHorizonVisualRules.Expansion(t),segments,t);
             return triangles;
         }
         private static Vector3 Sphere(float longitude,float latitude)
@@ -51,76 +44,67 @@ namespace SCIEPort.Features.AbyssReaper
             // An empty plane below a thin horizon; no stars, creatures, terrain or magic circles.
             float glow=(float)Math.Exp(-Math.Abs(y)*90);
             Color baseColor=y<0?new Color(4,5,10):new Color(7,5,17);
-            float fold=VoidHorizonVisualRules.Smooth((t-14)/2);
-            return Color.Lerp(baseColor,new Color(99,84,135),glow*(.55f+.25f*fold));
+            return Color.Lerp(baseColor,new Color(99,84,135),glow*.65f);
         }
         private void Environment(Vector3 origin,int n,float t)
         {
-            var batch=Batch(0,true);
+            float opacity=VoidHorizonVisualRules.Entry(t);
+            var batch=Batch(0,opacity>=1);
             for(int j=0;j<Latitudes.Length-1;j++)for(int i=0;i<n;i++)
             {
                 float a=2*Pi*i/n,b=2*Pi*(i+1)/n;
                 Vector3 da=Sphere(a,Latitudes[j]),db=Sphere(b,Latitudes[j]),dc=Sphere(b,Latitudes[j+1]),dd=Sphere(a,Latitudes[j+1]);
-                Color low=Sky(da.Y,t),high=Sky(dc.Y,t);
+                Color low=Sky(da.Y,t),high=Sky(dc.Y,t);low.A=high.A=(byte)(255*opacity);
                 Tri(batch,origin+da*32,origin+db*32,origin+dc*32,low,low,high);
                 Tri(batch,origin+da*32,origin+dc*32,origin+dd*32,low,high,high);
             }
         }
-        private Vector3 Cap(Vector3 forward,Vector3 right,float a,float theta)
-            => forward*(float)Math.Cos(theta)+(right*(float)Math.Cos(a)+Vector3.UnitY*(float)Math.Sin(a))*(float)Math.Sin(theta);
-        private float Edge(float a,float progress)
-        {
-            float ripple=(float)(Math.Sin(a*3+.4)*.045+Math.Sin(a*7+1.1)*.018+Math.Sin(a*13)*.008);
-            float stretch=MathUtils.Lerp(.18f+.82f*Math.Abs((float)Math.Cos(a)),1,VoidHorizonVisualRules.Smooth(progress*1.7f));
-            return MathUtils.Clamp(Pi*progress*stretch+ripple*(float)Math.Sin(Pi*progress),0,Pi);
-        }
+        private Vector3 Cap(Vector3 forward,Vector3 right,Vector3 up,float a,float theta)
+            => forward*(float)Math.Cos(theta)+(right*(float)Math.Cos(a)+up*(float)Math.Sin(a))*(float)Math.Sin(theta);
         private void Aperture(Vector3 origin,Vector3 forward,Vector3 right,float progress,int n,float t)
         {
-            var fill=Batch(0,true);var rim=Batch(1);
-            const int bands=12;
+            // The expansion is centred on the hole, including its elevation above the horizon.
+            Vector3 normal=Vector3.Normalize(forward*24+Vector3.UnitY*6.8f),up=Vector3.Normalize(Vector3.Cross(right,normal));
+            var fill=Batch(6,true);var rim=Batch(7);
+            float angle=VoidHorizonVisualRules.ExpansionAngle(t);
+            const int bands=4;
             for(int i=0;i<n;i++)
             {
-                float a=2*Pi*i/n,b=2*Pi*(i+1)/n,ea=Edge(a,progress),eb=Edge(b,progress);
+                float a=2*Pi*i/n,b=2*Pi*(i+1)/n,ea=angle,eb=angle;
                 for(int j=0;j<bands;j++)
                 {
-                    Vector3 da=Cap(forward,right,a,ea*j/bands),db=Cap(forward,right,b,eb*j/bands),dc=Cap(forward,right,b,eb*(j+1)/bands),dd=Cap(forward,right,a,ea*(j+1)/bands);
-                    Tri(fill,origin+da*32,origin+db*32,origin+dc*32,Sky(da.Y,t),Sky(db.Y,t),Sky(dc.Y,t));
-                    Tri(fill,origin+da*32,origin+dc*32,origin+dd*32,Sky(da.Y,t),Sky(dc.Y,t),Sky(dd.Y,t));
+                    Vector3 da=Cap(normal,right,up,a,ea*j/bands),db=Cap(normal,right,up,b,eb*j/bands),dc=Cap(normal,right,up,b,eb*(j+1)/bands),dd=Cap(normal,right,up,a,ea*(j+1)/bands);
+                    Color inner=new Color(1,0,4),edge=new Color(13,4,26);
+                    Color low=Color.Lerp(inner,edge,j/(float)bands),high=Color.Lerp(inner,edge,(j+1)/(float)bands);
+                    Tri(fill,origin+da*32,origin+db*32,origin+dc*32,low,low,high);
+                    Tri(fill,origin+da*32,origin+dc*32,origin+dd*32,low,high,high);
                 }
-                float width=.005f+.018f*(float)Math.Sin(Pi*progress);
-                Quad(rim,origin+Cap(forward,right,a,ea)*31,origin+Cap(forward,right,b,eb)*31,
-                    origin+Cap(forward,right,b,Math.Max(0,eb-width))*31,origin+Cap(forward,right,a,Math.Max(0,ea-width))*31,new Color(181,147,225,210));
-            }
-        }
-        private void Rift(Vector3 center,Vector3 right,Vector3 up,float progress,int n)
-        {
-            var dark=Batch(0,true);var lip=Batch(1);
-            float grow=VoidHorizonVisualRules.Smooth(progress),length=12*grow;
-            for(int i=0;i<n;i++)
-            {
-                float a=(float)i/n,b=(float)(i+1)/n;
-                float ya=(float)(Math.Sin(a*5)*.65+Math.Sin(a*19)*.12),yb=(float)(Math.Sin(b*5)*.65+Math.Sin(b*19)*.12);
-                float wa=(float)Math.Pow(Math.Max(0,Math.Sin(a*Pi)),.75)*(.04f+.42f*grow),wb=(float)Math.Pow(Math.Max(0,Math.Sin(b*Pi)),.75)*(.04f+.42f*grow);
-                Vector3 pa=center+right*((a*2-1)*length)+up*ya,pb=center+right*((b*2-1)*length)+up*yb;
-                Quad(dark,pa+up*wa,pb+up*wb,pb-up*wb,pa-up*wa,new Color(1,0,4));
-                Quad(lip,pa+up*wa,pb+up*wb,pb+up*(wb+.035f*grow),pa+up*(wa+.035f*grow),new Color(177,133,232,230));
-                Quad(lip,pa-up*wa,pb-up*wb,pb-up*(wb+.065f*grow),pa-up*(wa+.065f*grow),new Color(90,61,153,180));
+                Color glow=Color.Lerp(new Color(190,127,255),new Color(113,226,255),.5f+.5f*(float)Math.Cos(a));
+                for(int band=3;band>=0;band--)
+                {
+                    float outer=Math.Min(Pi,angle+.012f*(band+1)),inner=Math.Min(Pi,angle+.012f*band);
+                    Color haze=glow;haze.A=(byte)(90/(1+band*band));
+                    Quad(rim,origin+Cap(normal,right,up,a,inner)*31,origin+Cap(normal,right,up,b,inner)*31,
+                        origin+Cap(normal,right,up,b,outer)*31,origin+Cap(normal,right,up,a,outer)*31,haze);
+                }
+                float width=.002f+.002f*(float)Math.Sin(Pi*progress);
+                Quad(rim,origin+Cap(normal,right,up,a,ea)*31,origin+Cap(normal,right,up,b,eb)*31,
+                    origin+Cap(normal,right,up,b,Math.Max(0,eb-width))*31,origin+Cap(normal,right,up,a,Math.Max(0,ea-width))*31,new Color(231,226,255,220));
             }
         }
         private void BlackHole(Vector3 origin,Vector3 facing,Vector3 right,float t,int n)
         {
-            float emergence=VoidHorizonVisualRules.Smooth((t-4)/3);
-            float fold=VoidHorizonVisualRules.Smooth((t-14)/2);
-            // The event horizon stays gigantic through collapse; it never becomes a little projectile.
-            float radius=7.6f*(.94f+.06f*emergence+.12f*fold);
-            Vector3 center=origin+facing*24+Vector3.UnitY*(6.8f-1.6f*(1-emergence));
+            float emergence=VoidHorizonVisualRules.Hole(t);
+            // The formed event horizon remains large as the engulfing front starts from its centre.
+            float radius=7.6f*(.15f+.85f*emergence);
+            Vector3 center=origin+facing*24+Vector3.UnitY*6.8f;
             Vector3 normal=Vector3.Normalize(center-origin),up=Vector3.Normalize(Vector3.Cross(right,normal));
             Vector3 diskRight=right*.985f+up*.173f,diskUp=up*.985f-right*.173f;
             // A broad, dim lens halo, progressively tighter towards the razor event horizon.
             for(int band=0;band<7;band++)
             {
                 float inner=1.0f+band*.065f,outer=inner+.065f;
-                Ring(Batch(1),center,right,up,radius*inner,radius*outer,1,n,t,new Color(84,57,132,(int)((32-band*4)*emergence)));
+                Ring(Batch(1),center,right,up,radius*inner,radius*outer,1,n,t,new Color(123,132,220,(int)((7-band)*(7-band)*3*emergence)),(int)((6-band)*(6-band)*3*emergence));
             }
             Disk(Batch(2),center,diskRight,diskUp,radius,n,t,emergence,false);
             var core=Batch(3,true);
@@ -129,7 +113,7 @@ namespace SCIEPort.Features.AbyssReaper
                 float a=2*Pi*i/n,b=2*Pi*(i+1)/n;
                 Tri(core,center,Point(center,right,up,radius,a,1),Point(center,right,up,radius,b,1),new Color(0,0,2),new Color(0,0,2),new Color(0,0,2));
             }
-            Ring(Batch(4),center,right,up,radius*1.001f,radius*1.012f,1,n,t,new Color(205,184,241,(int)(230*emergence)));
+            Ring(Batch(4),center,right,up,radius*1.001f,radius*1.024f,1,n,t,new Color(239,224,255,(int)(250*emergence)));
             // Lensed rear disk bends over the core. The near half crosses in front: actual occlusion.
             Lens(Batch(4),center,diskRight,diskUp,radius,n,t,emergence);
             Disk(Batch(5),center,diskRight,diskUp,radius,n,t,emergence,true);
@@ -150,12 +134,18 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private static Vector3 Point(Vector3 center,Vector3 right,Vector3 up,float radius,float angle,float flatten)
             => center+right*(radius*(float)Math.Cos(angle))+up*(radius*flatten*(float)Math.Sin(angle));
-        private void Ring(FlatBatch3D batch,Vector3 center,Vector3 right,Vector3 up,float inner,float outer,float flatten,int n,float t,Color color)
+        private void Ring(FlatBatch3D batch,Vector3 center,Vector3 right,Vector3 up,float inner,float outer,float flatten,int n,float t,Color color,int outerAlpha=-1)
         {
             for(int i=0;i<n;i++)
             {
                 float a=2*Pi*i/n,b=2*Pi*(i+1)/n;
-                Quad(batch,Point(center,right,up,inner,a,flatten),Point(center,right,up,inner,b,flatten),Point(center,right,up,outer,b,flatten),Point(center,right,up,outer,a,flatten),color);
+                Color low=color,high=color;
+                if(outerAlpha>=0)
+                {
+                    low=Color.Lerp(new Color(181,122,250,(int)color.A),new Color(93,220,250,(int)color.A),.5f+.5f*(float)Math.Cos(a));high=low;high.A=(byte)outerAlpha;
+                }
+                Vector3 pa=Point(center,right,up,inner,a,flatten),pb=Point(center,right,up,inner,b,flatten),pc=Point(center,right,up,outer,b,flatten),pd=Point(center,right,up,outer,a,flatten);
+                Tri(batch,pa,pb,pc,low,low,high);Tri(batch,pa,pc,pd,low,high,high);
             }
         }
         private void Disk(FlatBatch3D batch,Vector3 center,Vector3 right,Vector3 up,float radius,int n,float t,float fade,bool front)

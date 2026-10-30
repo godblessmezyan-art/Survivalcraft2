@@ -18,7 +18,7 @@ namespace SCIEPort.Features.AbyssReaper
             internal Vector3 Center,Direction;
             internal HorizonTimeline<Entity> Timeline;
             internal readonly HorizonCueTimeline Cues=new HorizonCueTimeline();
-            internal double NextPull,NextSnapshot,LeaseUntil;
+            internal double NextSnapshot,LeaseUntil;
             internal bool VisualOnly;
         }
         private struct Pending { internal ComponentPlayer Owner; internal Client Reply; internal VoidHorizonPackage Packet; }
@@ -34,7 +34,14 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly List<Cast> casts=new List<Cast>(VoidHorizonRules.MaxCasts);
         private readonly Queue<Pending> queue=new Queue<Pending>();
         private readonly List<Guid> retired=new List<Guid>();
-        private readonly HashSet<Entity> passHits=new HashSet<Entity>();
+        private sealed class Settlement
+        {
+            internal Cast Cast;
+            internal readonly DynamicArray<ComponentBody> Candidates=new DynamicArray<ComponentBody>();
+            internal readonly HashSet<Entity> Seen=new HashSet<Entity>();
+            internal int Next;
+        }
+        private readonly List<Settlement> settlements=new List<Settlement>();
         private uint revision;
         private bool disposed;
         private double Now => clock.GameTime;
@@ -128,13 +135,13 @@ namespace SCIEPort.Features.AbyssReaper
                 || p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true)
             {Reject(pending,"当前无法展开虚夜");return;}
             if(Remaining(p)>0){Reject(pending,"终焉坍缩冷却中");return;}
-            if(Find(p)!=null || casts.Count>=VoidHorizonRules.MaxCasts || bodies.Bodies.Count>512){Reject(pending,"领域容量已满");return;}
+            if(Find(p)!=null || casts.Count+settlements.Count>=VoidHorizonRules.MaxCasts){Reject(pending,"领域容量已满");return;}
             Vector3 at=p.ComponentBody.Position,forward=p.ComponentCreatureModel.EyeRotation.GetForwardVector();forward.Y=0;
             if(!WorldCutDamage.Finite(at) || !WorldCutDamage.Finite(forward) || forward.LengthSquared()<.01f
                 || !VoidPortalSafety.Ready(terrain,Terrain.ToCell(at.X),Terrain.ToCell(at.Z)) || !VoidPortalSafety.Unprotected(Terrain.ToCell(at.X),Terrain.ToCell(at.Z)))
             {Reject(pending,"区块未就绪或领地受保护");return;}
             // Origin, direction, damage and immunity are chosen by authority, never the request.
-            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Connection=pending.Reply,Sequence=request.Sequence,Center=at,Direction=Vector3.Normalize(forward),Timeline=new HorizonTimeline<Entity>(Now),NextPull=Now+VoidSkillRules.DomainStart,NextSnapshot=Now+.5 };
+            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Connection=pending.Reply,Sequence=request.Sequence,Center=at,Direction=Vector3.Normalize(forward),Timeline=new HorizonTimeline<Entity>(Now),NextSnapshot=Now+.5 };
             peer.ReadyAt=Now+VoidSkillRules.HorizonCooldown;peer.PendingUntil=0;
             casts.Add(cast);LockInput(p);Present(cast,0);Publish(cast,VoidHorizonRules.Snapshot);
         }
@@ -180,40 +187,57 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private bool Target(Cast cast,ComponentBody body)
         {
-            if(body==null || body.Entity==cast.Owner.Entity || !body.IsAddedToProject || body.Project!=cast.Owner.Project || body.ParentBody!=null || body.ChildBodies.Count>0)return false;
+            if(body==null || body.Entity==cast.Owner.Entity || !body.IsAddedToProject || body.Project!=cast.Owner.Project)return false;
             var creature=body.Entity.FindComponent<ComponentCreature>(false);
             if(creature==null || creature.ComponentHealth.Health<=0)return false;
             bool player=body.Entity.FindComponent<ComponentPlayer>(false)!=null;
             bool hostile=creature.Category==CreatureCategory.LandPredator || creature.Category==CreatureCategory.WaterPredator;
             if(!VoidHorizonRules.TargetAllowed(player,hostile,allowPassive))return false;
+            // Do not destroy a living player's mount or carrier and drop that player into danger.
+            if(body.ParentBody?.Entity.FindComponent<ComponentPlayer>(false)!=null)return false;
+            foreach(var child in body.ChildBodies)if(child.Entity.FindComponent<ComponentPlayer>(false)!=null)return false;
             Vector3 center=body.BoundingBox.Center(),delta=center-cast.Center;
-            return WorldCutDamage.Finite(center) && VoidSkillRules.InDomain(delta.X,delta.Y,delta.Z,12f);
+            return WorldCutDamage.Finite(center) && VoidSkillRules.InDomain(delta.X,delta.Y,delta.Z,VoidSkillRules.HorizonHeight)
+                && VoidPortalSafety.Ready(terrain,Terrain.ToCell(center.X),Terrain.ToCell(center.Z))
+                && VoidPortalSafety.Unprotected(Terrain.ToCell(center.X),Terrain.ToCell(center.Z));
         }
-        private void Affect(Cast cast,int mode)
+        private void StartSettlement(Cast cast)
         {
             if(!Authority || cast.VisualOnly)return;
-            int scanned=0,accepted=0,rays=0;passHits.Clear();
-            foreach(var body in bodies.Bodies)
+            var job=new Settlement{Cast=cast};
+            float radius=VoidSkillRules.HorizonRadius;
+            bodies.FindBodiesInArea(new Vector2(cast.Center.X-radius,cast.Center.Z-radius),new Vector2(cast.Center.X+radius,cast.Center.Z+radius),job.Candidates);
+            settlements.Add(job);
+        }
+        // Native Injure takes normalized health, unlike AttackBody's armor/resilience-scaled power.
+        // Environmental damage avoids spawning a separate attacker XP burst for every erased NPC.
+        internal static void Execute(ComponentHealth health)
+        {
+            if(CommonLib.WorkType!=WorkType.Local&&CommonLib.WorkType!=WorkType.Server)return;
+            if(health==null||!health.IsAddedToProject||health.Entity.FindComponent<ComponentPlayer>(false)!=null)return;
+            float amount=VoidHorizonRules.ExecutionAmount(health.Health);
+            if(amount>0)health.Injure(amount,null,true,"阿比斯·虚夜湮灭");
+        }
+        private void ProcessSettlements()
+        {
+            if(!Authority)return;
+            int budget=VoidHorizonRules.SettlementBudget;
+            for(int i=0;i<settlements.Count&&budget>0;)
             {
-                if(++scanned>512 || accepted>=24)break;
-                if(!Target(cast,body) || passHits.Contains(body.Entity))continue;
-                if(++rays>64)break;
-                if(!VoidCombatSafety.ClearPath(terrain,cast.Center+Vector3.UnitY,body.BoundingBox.Center(),48f))continue;
-                if(mode==2 && !cast.Timeline.AddFinalTarget(body.Entity,24))continue;
-                passHits.Add(body.Entity);accepted++;
-                Vector3 delta=cast.Center-body.Position;
-                if(mode==0)
+                var job=settlements[i];var cast=job.Cast;
+                if(!cast.Owner.IsAddedToProject||cast.Owner.PlayerGuid!=cast.OwnerGuid||cast.Owner.Project!=terrain.Project)
+                {settlements.RemoveAt(i);continue;}
+                while(job.Next<job.Candidates.Count&&budget>0)
                 {
-                    delta.Y=0;
-                    if(delta.LengthSquared()>.25f && WorldCutDamage.Finite(body.Velocity) && body.Velocity.LengthSquared()<100f)
-                        body.Velocity+=Vector3.Normalize(delta)*.35f;
-                }
-                else
-                {
-                    Vector3 target=body.BoundingBox.Center(),direction=target-cast.Center;
-                    try { ComponentMiner.AttackBody(body,cast.Owner,target,direction.LengthSquared()>.01f?Vector3.Normalize(direction):Vector3.UnitZ,mode==2?VoidSkillRules.HorizonFinalPower:VoidSkillRules.HorizonTickPower,false); }
+                    var body=job.Candidates.Array[job.Next++];budget--;
+                    try
+                    {
+                        if(!Target(cast,body)||!job.Seen.Add(body.Entity))continue;
+                        Execute(body.Entity.FindComponent<ComponentHealth>(false));
+                    }
                     catch(Exception error){Log.Warning("[SCIEPort:Abyss] Horizon target failed: "+error.GetType().Name);}
                 }
+                if(job.Next>=job.Candidates.Count)settlements.RemoveAt(i);else i++;
             }
         }
         internal static void LockInput(ComponentPlayer p)
@@ -244,9 +268,7 @@ namespace SCIEPort.Features.AbyssReaper
                     LockInput(cast.Owner);
                     if(!cast.VisualOnly)
                     {
-                        if(cast.Timeline.TakeTick(Now)>=0)Affect(cast,1);
-                        if(elapsed>=VoidSkillRules.DomainStart && elapsed<VoidSkillRules.DomainEnd && Now>=cast.NextPull){cast.NextPull=Now+.25;Affect(cast,0);}
-                        if(cast.Timeline.TakeFinal(Now))Affect(cast,2);
+                        if(cast.Timeline.TakeFinal(Now))StartSettlement(cast);
                         if(Now>=cast.NextSnapshot){cast.NextSnapshot=Now+.5;Publish(cast,VoidHorizonRules.Snapshot);}
                     }
                     Present(cast,elapsed);
@@ -254,6 +276,7 @@ namespace SCIEPort.Features.AbyssReaper
                 }
                 catch(Exception error){Log.Warning("[SCIEPort:Abyss] Horizon cancelled: "+error.GetType().Name);Stop(cast,Authority);}
             }
+            ProcessSettlements();
             retired.Clear();
             foreach(var pair in peers)
             {
@@ -313,7 +336,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             lock(queue){disposed=true;queue.Clear();}
             foreach(var cast in casts)cast.Timeline.Cancel();
-            casts.Clear();peers.Clear();retired.Clear();passHits.Clear();scene.Dispose();
+            casts.Clear();peers.Clear();retired.Clear();settlements.Clear();scene.Dispose();
         }
     }
 }

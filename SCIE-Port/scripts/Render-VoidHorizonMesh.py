@@ -77,16 +77,19 @@ def main():
     parser.add_argument('directory', type=Path)
     args = parser.parse_args()
     views = [
-        ('stable-front', 10, 0, 0), ('stable-side', 10, 90, 0),
-        ('stable-back', 10, 180, 0), ('stable-up', 10, 0, 80),
-        ('stable-down', 10, 0, -80), ('stable-zenith', 10, 0, 90), ('stable-nadir', 10, 0, -90), ('expansion-front', 2.5, 0, 0),
-        ('expansion-side', 3, 90, 0), ('emergence-start', 4, 0, 0),
-        ('collapse-front', 15, 0, 0), ('exit-front', 16.5, 0, 0),
-        ('rift-front', 1.5, 0, 0),
+        ('entry', .3, 0, 0), ('empty-domain', .5, 0, 0), ('hole-forming', .8, 0, 0),
+        ('stable-front', 1.3, 0, 0), ('stable-side', 1.3, 90, 0), ('stable-back', 1.3, 180, 0),
+        ('stable-up', 1.3, 0, 80), ('stable-down', 1.3, 0, -80),
+        ('stable-zenith', 1.3, 0, 90), ('stable-nadir', 1.3, 0, -90),
+        ('expansion-front', 2.5, 0, 0), ('engulf-front', 3.3, 0, 0),
+        ('engulf-side', 3.8, 90, 0), ('coverage', 4.1, 0, 0), ('instant-exit', 4.2, 0, 0),
     ]
     cards, report = [], []
     for name, time, yaw, pitch in views:
-        mesh = np.loadtxt(args.directory/f'mesh-{time:.1f}.tsv', comments='#')
+        mesh_path = args.directory/f'mesh-{time:.1f}.tsv'
+        with mesh_path.open(encoding='utf-8-sig') as stream:
+            has_data = any(line.strip() and not line.startswith('#') for line in stream)
+        mesh = np.loadtxt(mesh_path, comments='#') if has_data else np.empty((0, 23))
         picture, uncovered = render(mesh, yaw, pitch)
         picture.save(args.directory/f'{name}.png')
         report.append(dict(view=name, time=time, yaw=yaw, pitch=pitch, triangles=len(mesh), uncovered_pixels=uncovered))

@@ -1,4 +1,4 @@
-param([string]$GameDir,[string]$AssemblyPath)
+﻿param([string]$GameDir,[string]$AssemblyPath)
 $ErrorActionPreference='Stop'
 # Retains the existing native input/persistence checks and shares its IL decoder.
 . (Join-Path $PSScriptRoot 'Test-AbyssRuntime.ps1') -GameDir $GameDir -AssemblyPath $AssemblyPath
@@ -26,7 +26,7 @@ if(!$protection -or [AbyssIL]::Calls($protection) -notcontains 'Protects'){throw
 foreach($name in @('OnCreatureInjure','AttackBody','AttackPowerParameter')) {
  if([AbyssIL]::Calls($loader.GetMethod($name)) -notcontains 'DomainProtected'){throw "Missing native damage coverage: $name"}
 }
-if([AbyssIL]::Calls($domain.GetMethod('Affect',$flags)) -notcontains 'Target'){throw 'Damage and pull must share target protection.'}
+if([AbyssIL]::Calls($domain.GetMethod('ProcessSettlements',$flags)) -notcontains 'Target'){throw 'Annihilation must enforce target protection.'}
 $late=2147483631
 if($instance.DrawOrders -notcontains $late){throw 'Missing complete-domain late viewport pass.'}
 # Do not instantiate native drawables: some static initializers compile GPU shaders.
@@ -41,7 +41,8 @@ $options=New-Object System.CodeDom.Compiler.CompilerParameters
 $options.GenerateInMemory=$true
 foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $file))}
 foreach($file in @('System.dll','System.Core.dll')){[void]$options.ReferencedAssemblies.Add($file)}
-$result=$compiler.CompileAssemblyFromSource($options,[IO.File]::ReadAllText((Join-Path $root 'tests/SCIEPort.Abyss.Tests/VoidHorizonNativeProbe.cs')))
+$sources=[string[]]@([IO.File]::ReadAllText((Join-Path $root 'tests/SCIEPort.Abyss.Tests/VoidHorizonNativeProbe.cs')),[IO.File]::ReadAllText((Join-Path $root 'tests/SCIEPort.Abyss.Tests/VoidAnnihilationNativeProbe.cs')))
+$result=$compiler.CompileAssemblyFromSource($options,$sources)
 if($result.Errors.HasErrors){throw (($result.Errors|ForEach-Object ToString)-join "`n")}
-try { $result.CompiledAssembly.GetType('VoidHorizonNativeProbe',$true).GetMethod('Run').Invoke($null,@($mod)) }
+try { $result.CompiledAssembly.GetType('VoidHorizonNativeProbe',$true).GetMethod('Run').Invoke($null,@($mod));$result.CompiledAssembly.GetType('VoidAnnihilationNativeProbe',$true).GetMethod('Run').Invoke($null,@($mod)) }
 catch { Write-Host $_.Exception.ToString(); throw }

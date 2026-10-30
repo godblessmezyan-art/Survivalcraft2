@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.58.0",
+  "Version": "0.59.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.58.0 共享永久星门：多人可建立、命名、删除和管理，随世界保存；支持随处开门及操作已有星门，每人独立选择已记录的目的地。房主与客户端请统一版本，Android实机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.59.0 虚夜湮灭：先进入空旷领域、生成黑洞，再从黑洞扩张；4.2秒覆盖完成立即退场并湮灭128格已加载范围的非玩家生物。施法期间免伤、排除玩家，保留共享永久星门。Android实机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

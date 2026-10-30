@@ -4,13 +4,16 @@ namespace SCIEPort.Features.AbyssReaper
     internal static class VoidHorizonRules
     {
         internal const int DrawOrder=2147483631, MaxCasts=4, MaxPeers=64, MaxQueue=32, RequestsPerFrame=8;
+        internal const int SettlementBudget=128;
+        internal static float ExecutionAmount(float health) => !WorldCutRules.Finite(health)||health<=0?0:(float)Math.Min(float.MaxValue,(double)health+Math.Max(1,health));
         internal const byte Request=0, Snapshot=1, Reject=2, Cancel=3, End=4;
         internal const double SnapshotInterval=.5, Lease=2;
         internal static bool Live(double elapsed) => !double.IsNaN(elapsed) && elapsed>=0 && elapsed<VoidSkillRules.HorizonDuration;
         internal static bool Dispatch(bool server,bool fromServer,bool ownsCaster,byte kind)
             => server ? ownsCaster && (kind==Request || kind==Cancel) : fromServer && (kind==Snapshot || kind==Reject || kind==End);
         // Friendly-fire settings never opt players into this area attack (including its pull).
-        internal static bool TargetAllowed(bool player,bool hostile,bool allowPassive) => !player && (hostile || allowPassive);
+        // The ultimate deliberately ignores the old hostile/passive restriction: all NPCs qualify.
+        internal static bool TargetAllowed(bool player,bool hostile,bool allowPassive) => !player;
         internal static bool ValidSnapshot(float elapsed,float cooldown)
             => WorldCutRules.Finite(elapsed) && elapsed>=0 && elapsed<=VoidSkillRules.HorizonDuration && WorldCutRules.Finite(cooldown) && cooldown>=0 && cooldown<=180.1f;
     }

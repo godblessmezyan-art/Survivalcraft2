@@ -8,9 +8,9 @@ namespace SCIEPort.Features.AbyssReaper
     internal static class VoidSkillRules
     {
         internal const float BlinkRange=18f, BlinkRadius=4f, BlinkPower=70f;
-        internal const float HorizonRadius=40f, HorizonTickPower=12f, HorizonFinalPower=180f;
-        internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=8;
-        internal const double RiftStart=.6, DescentStart=1.2, DomainStart=2, DomainEnd=6, FinalImpact=7.2;
+        internal const float HorizonRadius=128f, HorizonHeight=256f;
+        internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=4.2;
+        internal const double DomainStart=.5, ExpansionStart=1.3, FinalImpact=HorizonDuration;
         internal static int Quality(int value) => Math.Max(0,Math.Min(2,value));
         internal static int VfxSegments(int quality,int low,int medium,int high) => Quality(quality)==0?low:Quality(quality)==1?medium:high;
         internal static bool InBlinkRange(float distance) => WorldCutRules.Finite(distance) && distance>=0 && distance<=BlinkRange;
@@ -20,26 +20,25 @@ namespace SCIEPort.Features.AbyssReaper
         internal static HorizonPhase Phase(double elapsed)
         {
             if(double.IsNaN(elapsed)||elapsed<0||elapsed>=HorizonDuration)return HorizonPhase.Finished;
-            if(elapsed<RiftStart)return HorizonPhase.Awakening;if(elapsed<DescentStart)return HorizonPhase.SkyRift;
-            if(elapsed<DomainStart)return HorizonPhase.Descent;if(elapsed<DomainEnd)return HorizonPhase.Domain;
-            return HorizonPhase.Collapse;
+            if(elapsed<DomainStart)return HorizonPhase.Awakening;
+            return elapsed<ExpansionStart?HorizonPhase.Descent:HorizonPhase.Domain;
         }
     }
     // Visual envelopes are pure and cannot advance gameplay timers.
     internal static class VoidHorizonVisualRules
     {
         internal static float Smooth(float value) { value=Math.Max(0,Math.Min(1,value));return value*value*(3-2*value); }
-        // Dome, halo, event horizon, lensed arch, core and disk: 53 triangles/segment, bounded by 55.
-        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,2640,3960,5280);
-        // Preserve the authored geometry envelopes while compressing the gameplay timeline.
-        internal static float SceneTime(double elapsed)
+        // Background/hole 53 + expanding membrane/halo 18 = 71 triangles per segment, capped at 72.
+        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,3456,5184,6912);
+        internal static float Entry(double t) => Smooth((float)(t/VoidSkillRules.DomainStart));
+        internal static float Hole(double t) => Smooth((float)((t-VoidSkillRules.DomainStart)/(VoidSkillRules.ExpansionStart-VoidSkillRules.DomainStart)));
+        internal static float Expansion(double t) => Math.Max(0,Math.Min(1,(float)((t-VoidSkillRules.ExpansionStart)/(VoidSkillRules.FinalImpact-VoidSkillRules.ExpansionStart))));
+        // Gentle growth followed by a rapid engulfing front; no full-screen hold or exit tail.
+        internal static float ExpansionAngle(double t)
         {
-            if(elapsed<VoidSkillRules.RiftStart)return (float)(elapsed/VoidSkillRules.RiftStart*2);
-            if(elapsed<VoidSkillRules.DomainStart)return (float)(2+(elapsed-VoidSkillRules.RiftStart)/(VoidSkillRules.DomainStart-VoidSkillRules.RiftStart)*2);
-            if(elapsed<VoidSkillRules.DomainEnd)return (float)(4+(elapsed-VoidSkillRules.DomainStart)/(VoidSkillRules.DomainEnd-VoidSkillRules.DomainStart)*10);
-            if(elapsed<VoidSkillRules.FinalImpact)return (float)(14+(elapsed-VoidSkillRules.DomainEnd)/(VoidSkillRules.FinalImpact-VoidSkillRules.DomainEnd)*2);
-            return (float)(16+(elapsed-VoidSkillRules.FinalImpact)/(VoidSkillRules.HorizonDuration-VoidSkillRules.FinalImpact));
+            float q=Expansion(t);return .30f+.24f*q+((float)Math.PI-.54f)*(float)Math.Pow(q,8);
         }
+
     }
     // At most one cue per stage, with no stale cue burst after a frame hitch.
     internal sealed class HorizonCueTimeline
@@ -51,7 +50,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(double.IsNaN(elapsed)||double.IsInfinity(elapsed)||elapsed<0||elapsed>=VoidSkillRules.HorizonDuration)return -1;
             if(elapsed<lastTime)return -1;
             lastTime=elapsed;
-            int cue=elapsed<.3?0:elapsed>=VoidSkillRules.RiftStart && elapsed<VoidSkillRules.RiftStart+.3?1:elapsed>=VoidSkillRules.DomainEnd && elapsed<VoidSkillRules.DomainEnd+.3?2:elapsed>=VoidSkillRules.FinalImpact && elapsed<VoidSkillRules.FinalImpact+.3?3:-1;
+            int cue=elapsed<.25?0:elapsed>=VoidSkillRules.DomainStart && elapsed<VoidSkillRules.DomainStart+.25?1:elapsed>=VoidSkillRules.ExpansionStart && elapsed<VoidSkillRules.ExpansionStart+.25?2:elapsed>=VoidSkillRules.FinalImpact-.25?3:-1;
             if(cue<0 || cue<=last)return -1;
             last=cue;return cue;
         }
@@ -98,18 +97,9 @@ namespace SCIEPort.Features.AbyssReaper
     internal sealed class HorizonTimeline<T>
     {
         private readonly HashSet<T> finalHits=new HashSet<T>();
-        private int tick=-1;
         private bool cancelled,final;
         internal readonly double Started;
         internal HorizonTimeline(double now) { Started=now; }
-        internal int TakeTick(double now)
-        {
-            if(cancelled || final || double.IsNaN(now) || double.IsInfinity(now))return -1;
-            double elapsed=now-Started;if(elapsed<VoidSkillRules.DomainStart || elapsed>=VoidSkillRules.DomainEnd)return -1;
-            // Keep six erosion pulses within the shorter four-second domain; no catch-up burst.
-            int next=(int)Math.Floor((elapsed-VoidSkillRules.DomainStart)*1.5);if(next<=tick)return -1;
-            tick=next;return tick;
-        }
         internal bool TakeFinal(double now)
         {
             if(cancelled||final||double.IsNaN(now)||double.IsInfinity(now)||now<Started+VoidSkillRules.FinalImpact)return false;

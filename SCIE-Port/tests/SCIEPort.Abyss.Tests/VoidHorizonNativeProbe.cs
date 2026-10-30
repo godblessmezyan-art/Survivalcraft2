@@ -33,7 +33,7 @@ public static class VoidHorizonNativeProbe
             Put(packet,"Kind",(byte)(i%5));Put(packet,"Reason",(byte)(i%3));Put(packet,"Caster",(ushort)(60000+i));
             Put(packet,"Sequence",i<24?(uint)(i+1):uint.MaxValue-(uint)i);Put(packet,"Revision",(uint)(300+i));
             Put(packet,"Origin",new Vector3(i*1234.5f,64.125f,-i*120.5f));Put(packet,"Direction",new Vector3(.6f,0,.8f));
-            Put(packet,"Elapsed",i*.16f);Put(packet,"Cooldown",180-i*.16f);
+            Put(packet,"Elapsed",i*.08f);Put(packet,"Cooldown",180-i*.08f);
             var writer=new PackageStreamWriter();packet.WriteData(writer);byte[] bytes=writer.Data();
             min=Math.Min(min,bytes.Length);max=Math.Max(max,bytes.Length);
             Check(packet.ID==249&&bytes.Length<=64,"dedicated bounded packet");
@@ -53,7 +53,7 @@ public static class VoidHorizonNativeProbe
         Geometry(mod);
         Console.WriteLine("Void horizon native protocol/lifecycle/immunity/geometry: "+checks+" checks passed (not gameplay/device proof).");
     }
-    private static ComponentPlayer Player(Project project,int index)
+    internal static ComponentPlayer Player(Project project,int index)
     {
         var entity=Bare<Entity>();Put(entity,"m_project",project);Put(entity,"m_isAddedToProject",true);Put(entity,"m_components",new List<Component>());
         var player=new ComponentPlayer();player.m_entity=entity;player.PlayerGuid=Guid.NewGuid();
@@ -111,8 +111,8 @@ public static class VoidHorizonNativeProbe
             float impulse=1,stun=1;bool recalculate=true;
             loader.AttackPowerParameter(player.ComponentBody,teammate,Vector3.Zero,Vector3.UnitX,ref impulse,ref stun,ref recalculate);
             Check(impulse==0&&stun==0,"native attack impulse/stun suppressed");
-            clock.m_gameTime=107.999;Check((bool)Call(runtime,"Protects",player.ComponentHealth),"immune through end of domain");
-            clock.m_gameTime=108;Check(!(bool)Call(runtime,"Protects",player.ComponentHealth),"immunity ends even before Update cleanup");
+            clock.m_gameTime=104.199;Check((bool)Call(runtime,"Protects",player.ComponentHealth),"immune through end of domain");
+            clock.m_gameTime=104.2;Check(!(bool)Call(runtime,"Protects",player.ComponentHealth),"immunity ends even before Update cleanup");
             clock.m_gameTime=99;Check(!(bool)Call(runtime,"Protects",player.ComponentHealth),"clock regression never extends immunity");
             clock.m_gameTime=101;Put(cast,"VisualOnly",true);Put(cast,"LeaseUntil",101d);
             Check(!(bool)Call(runtime,"Protects",player.ComponentHealth),"expired client lease grants no immunity");
@@ -153,11 +153,11 @@ public static class VoidHorizonNativeProbe
     {
         var scene=New(mod.GetType("SCIEPort.Features.AbyssReaper.VoidHorizonScene",true));
         var budget=mod.GetType("SCIEPort.Features.AbyssReaper.VoidHorizonVisualRules",true).GetMethod("PrimitiveBudget",BindingFlags.Static|BindingFlags.NonPublic);
-        foreach(int quality in new[]{0,1,2})foreach(float time in new[]{0f,.3f,.6f,1.2f,1.99f,2f,4f,5.9f,6f,7.19f,7.2f,7.6f,8f})
+        foreach(int quality in new[]{0,1,2})foreach(float time in new[]{0f,.3f,.5f,.7f,1f,1.3f,2f,3f,3.7f,4f,4.199f,4.2f,5f})
         {
             int count=(int)Call(scene,"Queue",Vector3.Zero,Vector3.UnitZ,time,quality);
             Check(count>=0&&count<=(int)budget.Invoke(null,new object[]{quality}),"bounded actual queued geometry q="+quality+" t="+time);
-            if(time>=2&&time<7.2)Check(count>100,"full domain contains opaque background geometry");
+            if(time>=.5&&time<4.2f)Check(count>100,"full domain contains opaque background geometry");
             var renderer=(PrimitivesRenderer3D)Get(scene,"renderer");int actual=0;bool finite=true;
             foreach(BaseBatch item in renderer.m_allBatches)
             {
