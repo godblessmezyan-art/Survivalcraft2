@@ -33,7 +33,9 @@ namespace SCIEPort.Features.Poseidon
                     var center=s.DomainOrigin+new Vector3(MathUtils.Cos(bearing),0,MathUtils.Sin(bearing))*PoseidonRules.DomainSpoutRadius+Vector3.UnitY*.06f;
                     Vortex(center,age,fade,i%2==0?1:-1,6);
                 }
-                Ring(s.DomainOrigin+Vector3.UnitY*.08f,PoseidonRules.DomainRadius,.10f,new Color(29,139,208,60)*fade);
+                // The damage band is the blue ring of waterspouts, so the foam edges mark exactly that radius.
+                Ring(s.DomainOrigin+Vector3.UnitY*.08f,PoseidonRules.DomainRingOuter,.10f,new Color(29,139,208,60)*fade);
+                Ring(s.DomainOrigin+Vector3.UnitY*.08f,PoseidonRules.DomainRingInner,.05f,new Color(29,139,208,40)*fade);
                 Ring(s.DomainOrigin+Vector3.UnitY*.10f,3.0f+.15f*MathUtils.Sin(age*2),.05f,new Color(130,226,242,110)*fade);
                 // One full-circle breaker expanding to the whole domain radius, followed by the standing whirlpool.
                 Surge(s.DomainOrigin,age,fade);
@@ -84,18 +86,18 @@ namespace SCIEPort.Features.Poseidon
             float reveal=MathUtils.Saturate(age/PoseidonRules.WaveWindup),fade=MathUtils.Saturate((total-age)/.35f)*overall;
             if(fade<=0)return;
             Vector3 front=origin+direction*PoseidonRules.WaveDistance(age),side=Vector3.Cross(direction,Vector3.UnitY);
-            float width=8,height=3.7f;
+            float width=PoseidonRules.WaveWidth,height=7.2f;
             for(int i=0;i<segments;i++)
             {
                 float u=i/(float)segments,v=(i+1f)/segments,edge=MathUtils.Sin((u+v)*.5f*MathUtils.PI);
-                for(int row=0;row<7;row++)
+                for(int row=0;row<8;row++)
                 {
-                    float t=row/7f,z=(row+1f)/7;
+                    float t=row/8f,z=(row+1f)/8;
                     Vector3 a=Surface(front,side,direction,u,t,age,width,height*reveal),b=Surface(front,side,direction,v,t,age,width,height*reveal);
                     Vector3 p=Surface(front,side,direction,v,z,age,width,height*reveal),q=Surface(front,side,direction,u,z,age,width,height*reveal);
                     Color col=Color.Lerp(new Color(9,51,103,175),new Color(42,166,200,130),t);
                     Quad(water,a,b,p,q,col*(fade*edge));
-                    if(row==6)Beam(q,p,.065f,new Color(216,249,251,230)*(fade*edge));
+                    if(row==7)Beam(q,p,.065f,new Color(216,249,251,230)*(fade*edge));
                 }
                 if(i%2==0)
                 {
@@ -116,7 +118,7 @@ namespace SCIEPort.Features.Poseidon
         private void Surge(Vector3 origin,float age,float fade)
         {
             float t=PoseidonRules.DomainSurge(age);if(t<=0||t>=1)return;
-            float radius=PoseidonRules.DomainRadius*(float)Math.Sqrt(t),swell=MathUtils.Sin(t*MathUtils.PI*.92f);
+            float radius=PoseidonRules.DomainSurgeRadius*(float)Math.Sqrt(t),swell=MathUtils.Sin(t*MathUtils.PI*.92f);
             for(int i=0;i<segments;i++)
             {
                 float a=i*6.283185f/segments,b=(i+1)*6.283185f/segments;

@@ -78,7 +78,7 @@ foreach ($file in Get-ChildItem (Join-Path $poseidonProject 'Features') -Recurse
 if ($poseidonIds[951] -ne 'PoseidonBlock.cs' -or $poseidonNetIds[246] -ne 'PoseidonPackage.cs' -or $poseidonNetIds[248] -ne 'PoseidonV2Package.cs') { throw 'Independent IDs missing.' }
 $poseidonSource=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\SubsystemPoseidon.cs'))
 if ($poseidonSource -match '\b(ChangeCell|DestroyCell|SetCellValueFast|RemoveEntity|AddEntity|DamageActiveTool)\s*\(') { throw 'Poseidon must not alter terrain/entities/durability.' }
-foreach ($guard in @('if(!Authority||!Actor(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'PoseidonRules.Absorb(ref s.Shield', 'PoseidonRules.InVortex(flat,delta.Y,next)', 'locomotion.WalkSpeed+=s.WalkDelta', 'Swimming(p)')) {
+foreach ($guard in @('if(!Authority||!Actor(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'PoseidonRules.Absorb(ref s.Shield', 'PoseidonRules.InVortex(flat,delta.Y)', 'PoseidonRules.TickDamage(c.Water)', 'PoseidonRules.DomainTickInterval', 'locomotion.WalkSpeed+=s.WalkDelta', 'Swimming(p)')) {
     if (-not $poseidonSource.Contains($guard)) { throw "Missing safety contract: $guard" }
 }
 $poseidonPacket=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\PoseidonV2Package.cs'))

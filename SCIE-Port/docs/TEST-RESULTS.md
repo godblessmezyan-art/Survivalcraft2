@@ -1,5 +1,27 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.55.4：海神三叉戟数值强化与水龙卷持续伤害
+
+用户要求：水中伤害两倍改三倍；水中移速太慢，200% 改 500%；大招水龙卷范围内要造成 52 点持续伤害，且只有蓝色水龙卷范围有（不是全屏）；二技能范围太小，要一道巨浪扑过去，加宽加高。
+
+修改内容：
+- 伤害倍率：`WaterDamageMultiplier` 2→3（一技能 14→42、二技能 44→132、普攻 55→165）；水盾吸收倍率单独保留为 `WaterShieldMultiplier=2`，不与伤害倍率耦合。
+- 移速：`WaterSpeedMultiplier` 3→6（+500%），仍是 `WalkSpeed` 自有增量、浸水 >0.5 触发、退出归还。
+- 大招改为环带持续伤害：`InVortex(radial,height)` 只判定半径 4.5–11.5 格、高 10 格的环带（与 5 座水龙卷的实际位置对齐），`DomainTickInterval=1` 秒、`DomainTickDamage=52`（水中 ×3=156）。`Cast.Ticks` 保存每个目标的下次可命中时间，`Prune` 在跟踪数达 96 时清理到期项；水龙卷改为向心拉扯（4 点内向冲量 +1.2 格抬升）把目标留在环内。扩散到 18 格的潮涌现在只是演出，不再造成伤害；边界潮纹改画在 11.5 格，与实际伤害带一致。
+- 二技能：`WaveWidth` 8→15、`WaveHeight` 4→8，演出高度 3.7→7.2 并把水墙细分从 7 行提到 8 行，射程 24 格不变。
+
+验证（离线，未启动游戏或 Android 设备）。实际构建命令（仓库根）：
+
+```text
+SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
+```
+
+构建 exit 0：环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.4-build.log`。海神纯规则与布局检查 2320 → 2402 项：新增水中三倍伤害、每跳 52/156、环带内外沿（4.4/11.6 拒绝）、72 方位环内外等价、15×8 巨浪边界与潮涌半径单调。静态契约新增 `PoseidonRules.InVortex(flat,delta.Y)`、`PoseidonRules.TickDamage(c.Water)`、`PoseidonRules.DomainTickInterval` 三条守卫；包 248 仍为 78 字节、66 字段往返不变，协议无改动。
+
+最终包 `荒野探险家-0.55.4.netmod` / `荒野探险家.netmod` 字节一致：7,341,084 字节、143 项，SHA-256 `80916119A44F481306F1967C2C547B9B7617A4E99D3BC3A8B6A14D3A5DD4F21E`；包内 Version=0.55.4、程序集 0.55.4.0，包内 `SCIEPort.dll` SHA-256 `1966E997392D01DB1B37B4D5FD7F5E7029F9A29737EBEEE43CF882249CF171BE`，与通过检查的构建输出一致。逐项比对 0.55.3 的 143 项，只有 `SCIEPort.dll` 与 `modinfo.json` 变化，模型、贴图、数据库、音频字节相同。
+
+未在 Android 7723 或真实多人世界运行，不声称手机验收完成。装机后重点确认：环带内是否每秒掉血且离开即停、领域中心与 18 格潮涌边缘不掉血、游泳速度是否 6 倍且高速下不穿墙。
+
 ## 2026-10-30 main 0.55.3：海神三叉戟全向水龙卷与水中提速修复
 
 用户反馈两点：大招水龙卷应覆盖四面八方（旧版只朝施法朝向在正前方放两座水龙卷，判定用 `along/across` 的前向扫掠加两个偏移涡团）；持有三叉戟水中移速+200% 没有生效。第二点经目标程序集确认是真实缺陷：`Game.ComponentLocomotion` 只在 `SwimSpeed > 0 && SwimOrder.HasValue` 分支读取 `SwimSpeed`（x25.01.17 反编译 `NormalMovement`），玩家输入从不写入 `SwimOrder`（只有 `ComponentPilot` 写），所以旧实现改 `SwimSpeed` 对玩家完全无效。

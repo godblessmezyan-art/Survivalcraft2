@@ -30,11 +30,14 @@ namespace SCIEPort.Features.Poseidon
             internal float Distance;
             internal bool Water;
             internal readonly HashSet<Entity> Hit=new HashSet<Entity>();
+            // Waterspout grind keeps a per-target cooldown, so the ring ticks instead of hitting once.
+            internal readonly Dictionary<int,double> Ticks=new Dictionary<int,double>();
         }
         private readonly Dictionary<ushort,State> m_states=new Dictionary<ushort,State>();
         internal readonly List<Cast> Casts=new List<Cast>(PoseidonRules.MaxCasts);
         internal IEnumerable<State> States=>m_states.Values;
         private readonly DynamicArray<ComponentBody> m_candidates=new DynamicArray<ComponentBody>();
+        private readonly List<int> m_stale=new List<int>();
         private readonly List<ushort> m_remove=new List<ushort>();
         private sealed class Pending {internal ComponentPlayer Player;internal PoseidonV2Package Packet;}
         private readonly Queue<Pending> m_pending=new Queue<Pending>();
@@ -170,15 +173,15 @@ namespace SCIEPort.Features.Poseidon
             if(InWater(p))p.ComponentHealth.Air=1;
             if(!Swimming(p))return;
             // Native player movement reads WalkSpeed (SwimSpeed is only consumed by AI SwimOrder),
-            // so the +200% water speed owns a WalkSpeed increment; the SwimSpeed copy keeps AI paths honest.
+            // so the +500% water speed owns a WalkSpeed increment; the SwimSpeed copy keeps AI paths honest.
             s.WalkDelta=PoseidonRules.SpeedDelta(locomotion.WalkSpeed);locomotion.WalkSpeed+=s.WalkDelta;
             s.SwimDelta=PoseidonRules.SpeedDelta(locomotion.SwimSpeed);locomotion.SwimSpeed+=s.SwimDelta;
         }
         private void Strike(Cast c,float age)
         {
-            bool domain=c.Skill==3,sweep=c.Skill==2,radial=!sweep;
+            bool domain=c.Skill==3,sweep=c.Skill==2;
             if(sweep&&age<PoseidonRules.WaveWindup)return;
-            float next=domain?PoseidonRules.DomainRadiusAt(age):sweep?PoseidonRules.WaveDistance(age):PoseidonRules.ShieldRadius*MathUtils.Saturate(age/PoseidonRules.ShieldDuration);
+            float next=sweep?PoseidonRules.WaveDistance(age):PoseidonRules.ShieldRadius*MathUtils.Saturate(age/PoseidonRules.ShieldDuration);
             Vector3 sight=c.Origin+Vector3.UnitY*.8f;
             if(!Loaded(sight)){c.Start=-100;return;}
             if(sweep&&c.Distance>=0)
@@ -187,31 +190,52 @@ namespace SCIEPort.Features.Poseidon
                 if(!Loaded(b)||Wall(a,b)){c.Distance=-1;c.Start=-100;return;}
             }
             var side=Vector3.Cross(c.Direction,Vector3.UnitY);
-            if (Authority) Query(c,c.Origin,domain?PoseidonRules.DomainRadius+1:sweep?19:7,body=>
+            if (Authority) Query(c,c.Origin,domain?PoseidonRules.DomainRingOuter+1:sweep?19:7,body=>
             {
                 Vector3 delta=body.BoundingBox.Center()-c.Origin;float flat=new Vector2(delta.X,delta.Z).Length();
-                // The waterspout is evaluated by radius only, so it reaches every bearing around the caster.
-                if(domain)return PoseidonRules.InVortex(flat,delta.Y,next);
-                if(radial)return flat<=next+.5f&&delta.Y>=-.5f&&delta.Y<=3;
-                float along=Vector3.Dot(delta,c.Direction),across=Vector3.Dot(delta,side);
-                return PoseidonRules.InSweep(along,across,delta.Y,c.Distance,next,.5f);
+                // Only the blue ring of waterspouts grinds; every bearing at the same distance is equivalent.
+                if(domain)return PoseidonRules.InVortex(flat,delta.Y);
+                if(sweep)
+                {
+                    float along=Vector3.Dot(delta,c.Direction),across=Vector3.Dot(delta,side);
+                    return PoseidonRules.InSweep(along,across,delta.Y,c.Distance,next,.5f);
+                }
+                return flat<=next+.5f&&delta.Y>=-.5f&&delta.Y<=3;
             },sight);
-            if(c.Distance>=0)c.Distance=next;
+            if(!domain&&c.Distance>=0)c.Distance=next;
         }
         private void Query(Cast c,Vector3 center,float radius,Func<ComponentBody,bool> overlaps,Vector3 sightOrigin)
         {
+            bool repeat=c.Skill==3;
             m_candidates.Clear();m_bodies.FindBodiesAroundPoint(new Vector2(center.X,center.Z),radius,m_candidates);
-            for(int i=0;i<Math.Min(m_candidates.Count,PoseidonRules.MaxCandidates)&&c.Hit.Count<PoseidonRules.MaxHits;i++)
+            for(int i=0;i<Math.Min(m_candidates.Count,PoseidonRules.MaxCandidates);i++)
             {
-                var b=m_candidates.Array[i];if(b==c.Player.ComponentBody||!b.Entity.IsAddedToProject||c.Hit.Contains(b.Entity)||Related(c.Player.ComponentBody,b))continue;
+                var b=m_candidates.Array[i];
+                if(b==c.Player.ComponentBody||!b.Entity.IsAddedToProject||Related(c.Player.ComponentBody,b))continue;
                 if(b.Player!=null&&!m_info.WorldSettings.IsFriendlyFireEnabled)continue;
+                if(repeat?Cooling(c,b):c.Hit.Contains(b.Entity))continue;
                 var health=b.Entity.FindComponent<ComponentHealth>(false);
                 if(health==null||health.Health<=0||!overlaps(b)||!Loaded(b.Position)||Wall(sightOrigin,b.BoundingBox.Center()))continue;
-                c.Hit.Add(b.Entity);Vector3 direction=c.Direction;
-                if(c.Skill==1){direction=b.BoundingBox.Center()-c.Origin;direction.Y=0;if(direction.LengthSquared()<.01f)direction=Vector3.UnitZ;else direction=Vector3.Normalize(direction);}
-                ComponentMiner.AttackBody(b,c.Player,b.BoundingBox.Center(),direction,PoseidonRules.Damage(c.Skill,c.Water),false);
-                b.ApplyImpulse(direction*(c.Skill==1?7:c.Skill==2?8:10)+Vector3.UnitY*(c.Skill==3?3:1.5f));
+                if(repeat){if(c.Ticks.Count>=PoseidonRules.MaxTickTargets&&!Prune(c))continue;c.Ticks[b.Entity.EntityId]=Now+PoseidonRules.DomainTickInterval;}
+                else{if(c.Hit.Count>=PoseidonRules.MaxHits)break;c.Hit.Add(b.Entity);}
+                Vector3 direction=c.Direction;
+                if(c.Skill==1||repeat)
+                {
+                    direction=b.BoundingBox.Center()-c.Origin;direction.Y=0;
+                    direction=direction.LengthSquared()<.01f?Vector3.UnitZ:Vector3.Normalize(direction);
+                    // The whirlpool drags its victims back toward the eye instead of throwing them out of the ring.
+                    if(repeat)direction=-direction;
+                }
+                ComponentMiner.AttackBody(b,c.Player,b.BoundingBox.Center(),direction,repeat?PoseidonRules.TickDamage(c.Water):PoseidonRules.Damage(c.Skill,c.Water),false);
+                b.ApplyImpulse(direction*(repeat?4:c.Skill==1?7:c.Skill==2?8:10)+Vector3.UnitY*(repeat?1.2f:c.Skill==3?3:1.5f));
             }
+        }
+        private bool Cooling(Cast c,ComponentBody b)
+        {double next;return c.Ticks.TryGetValue(b.Entity.EntityId,out next)&&Now<next;}
+        private bool Prune(Cast c)
+        {
+            m_stale.Clear();foreach(var pair in c.Ticks)if(Now>=pair.Value)m_stale.Add(pair.Key);
+            foreach(var id in m_stale)c.Ticks.Remove(id);return c.Ticks.Count<PoseidonRules.MaxTickTargets;
         }
         private static bool Related(ComponentBody a,ComponentBody b)=>a.ParentBody==b||b.ParentBody==a||a.ChildBodies.Contains(b)||b.ChildBodies.Contains(a);
         private bool Wall(Vector3 a,Vector3 b)=>m_terrain.Raycast(a,b,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue;

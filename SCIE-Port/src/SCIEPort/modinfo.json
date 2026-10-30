@@ -1,8 +1,8 @@
 ﻿{
   "Name": "荒野探险家",
-  "Version": "0.55.3",
+  "Version": "0.55.4",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.55.3 海神三叉戟大招改为全向水龙卷：四面八方均匀覆盖18格（旧版仅朝前方双龙卷），并修复水中移速+200%（原 SwimSpeed 对玩家无效，改用原生 WalkSpeed 增量）。保留海神V2、阿比斯及四圣兽，Android7723实机待验收，联机双方请使用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.55.4 海神增强：水中伤害改三倍、水中移速改为+500%、大招水龙卷环内每秒52点持续伤害（只伤水龙卷范围）、二技能巨浪加宽到15格高8格。保留海神V2、阿比斯及四圣兽，Android7723实机待验收，联机双方请使用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",
