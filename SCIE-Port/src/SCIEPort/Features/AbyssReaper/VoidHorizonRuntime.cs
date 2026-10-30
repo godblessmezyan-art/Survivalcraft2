@@ -134,7 +134,7 @@ namespace SCIEPort.Features.AbyssReaper
                 || !VoidPortalSafety.Ready(terrain,Terrain.ToCell(at.X),Terrain.ToCell(at.Z)) || !VoidPortalSafety.Unprotected(Terrain.ToCell(at.X),Terrain.ToCell(at.Z)))
             {Reject(pending,"区块未就绪或领地受保护");return;}
             // Origin, direction, damage and immunity are chosen by authority, never the request.
-            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Connection=pending.Reply,Sequence=request.Sequence,Center=at,Direction=Vector3.Normalize(forward),Timeline=new HorizonTimeline<Entity>(Now),NextPull=Now+8,NextSnapshot=Now+.5 };
+            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Connection=pending.Reply,Sequence=request.Sequence,Center=at,Direction=Vector3.Normalize(forward),Timeline=new HorizonTimeline<Entity>(Now),NextPull=Now+VoidSkillRules.DomainStart,NextSnapshot=Now+.5 };
             peer.ReadyAt=Now+VoidSkillRules.HorizonCooldown;peer.PendingUntil=0;
             casts.Add(cast);LockInput(p);Present(cast,0);Publish(cast,VoidHorizonRules.Snapshot);
         }
@@ -142,7 +142,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(CommonLib.WorkType!=WorkType.Server || cast.Connection==null)return;
             CommonLib.Net.QueuePackage(new VoidHorizonPackage { To=cast.Connection,Kind=kind,Caster=cast.Owner.Entity.EntityId,Sequence=cast.Sequence,Revision=NextRevision(),
-                Origin=cast.Center,Direction=cast.Direction,Elapsed=(float)Math.Max(0,Math.Min(17,Now-cast.Timeline.Started)),Cooldown=(float)Remaining(cast.Owner) });
+                Origin=cast.Center,Direction=cast.Direction,Elapsed=(float)Math.Max(0,Math.Min(VoidSkillRules.HorizonDuration,Now-cast.Timeline.Started)),Cooldown=(float)Remaining(cast.Owner) });
         }
         private void Receive(VoidHorizonPackage packet)
         {
@@ -162,7 +162,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(packet.Kind==VoidHorizonRules.Reject){peer.Feedback=packet.Cooldown>0?"终焉坍缩冷却中":"主机未允许展开虚夜";peer.FeedbackUntil=Now+2;}
                 return;
             }
-            if(!Actor(p) || packet.Elapsed>=17)
+            if(!Actor(p) || packet.Elapsed>=VoidSkillRules.HorizonDuration)
             {
                 CancelSequence(p,peer);
                 if(cast!=null)Stop(cast,false);
@@ -174,7 +174,7 @@ namespace SCIEPort.Features.AbyssReaper
                 cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Sequence=packet.Sequence,Center=packet.Origin,Direction=packet.Direction,Timeline=new HorizonTimeline<Entity>(Now-packet.Elapsed),VisualOnly=true };
                 casts.Add(cast);
             }
-            // Catch up only: reordering must never rewind the domain or extend its 17-second life.
+            // Catch up only: reordering must never rewind or extend the domain lifetime.
             if(packet.Elapsed>Now-cast.Timeline.Started)cast.Timeline=new HorizonTimeline<Entity>(Now-packet.Elapsed);
             cast.LeaseUntil=Now+VoidHorizonRules.Lease;
         }
@@ -245,12 +245,12 @@ namespace SCIEPort.Features.AbyssReaper
                     if(!cast.VisualOnly)
                     {
                         if(cast.Timeline.TakeTick(Now)>=0)Affect(cast,1);
-                        if(elapsed>=8 && elapsed<14 && Now>=cast.NextPull){cast.NextPull=Now+.25;Affect(cast,0);}
+                        if(elapsed>=VoidSkillRules.DomainStart && elapsed<VoidSkillRules.DomainEnd && Now>=cast.NextPull){cast.NextPull=Now+.25;Affect(cast,0);}
                         if(cast.Timeline.TakeFinal(Now))Affect(cast,2);
                         if(Now>=cast.NextSnapshot){cast.NextSnapshot=Now+.5;Publish(cast,VoidHorizonRules.Snapshot);}
                     }
                     Present(cast,elapsed);
-                    if(elapsed>=17)Stop(cast,Authority);
+                    if(elapsed>=VoidSkillRules.HorizonDuration)Stop(cast,Authority);
                 }
                 catch(Exception error){Log.Warning("[SCIEPort:Abyss] Horizon cancelled: "+error.GetType().Name);Stop(cast,Authority);}
             }

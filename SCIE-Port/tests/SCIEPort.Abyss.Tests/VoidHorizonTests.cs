@@ -6,7 +6,7 @@ internal static class VoidHorizonTests
     private static void Check(bool value,string text){count++;if(!value)throw new Exception("Void horizon: "+text);}
     internal static void Run()
     {
-        Check(!VoidHorizonRules.Live(-.001)&&VoidHorizonRules.Live(0)&&VoidHorizonRules.Live(16.999)&&!VoidHorizonRules.Live(17),"immunity starts on acceptance and ends before cleanup frame");
+        Check(!VoidHorizonRules.Live(-.001)&&VoidHorizonRules.Live(0)&&VoidHorizonRules.Live(7.999)&&!VoidHorizonRules.Live(8),"immunity starts on acceptance and ends before cleanup frame");
         Check(!VoidHorizonRules.Live(double.NaN)&&!VoidHorizonRules.Live(double.PositiveInfinity),"invalid clock never grants immunity");
         for(int hostile=0;hostile<2;hostile++)for(int passive=0;passive<2;passive++)
             Check(!VoidHorizonRules.TargetAllowed(true,hostile!=0,passive!=0),"players excluded irrespective of target settings");
@@ -18,7 +18,7 @@ internal static class VoidHorizonTests
             Check(VoidHorizonRules.Dispatch(true,false,true,kind)==(kind==0||kind==3),"server accepts only request/cancel");
             Check(VoidHorizonRules.Dispatch(false,true,false,kind)==(kind==1||kind==2||kind==4),"client accepts only authoritative state");
         }
-        Check(VoidHorizonRules.ValidSnapshot(0,180)&&VoidHorizonRules.ValidSnapshot(17,0)&&!VoidHorizonRules.ValidSnapshot(float.NaN,0)&&!VoidHorizonRules.ValidSnapshot(1,float.PositiveInfinity)&&!VoidHorizonRules.ValidSnapshot(18,1)&&!VoidHorizonRules.ValidSnapshot(0,-1),"wire bounds");
+        Check(VoidHorizonRules.ValidSnapshot(0,180)&&VoidHorizonRules.ValidSnapshot(8,0)&&!VoidHorizonRules.ValidSnapshot(float.NaN,0)&&!VoidHorizonRules.ValidSnapshot(1,float.PositiveInfinity)&&!VoidHorizonRules.ValidSnapshot(8.001f,1)&&!VoidHorizonRules.ValidSnapshot(0,-1),"wire bounds");
         var peer=new HorizonSession{Seen=0,Feedback=null,FeedbackUntil=0};Guid token=Guid.NewGuid();peer.Bind(11,token);
         Check(peer.Request(10)==1&&peer.Request(10.1)==0,"one pending request");
         Check(peer.Process(1)&&!peer.Process(1)&&!peer.Process(0),"server replay protection");

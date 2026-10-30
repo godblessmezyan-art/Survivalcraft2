@@ -9,7 +9,8 @@ namespace SCIEPort.Features.AbyssReaper
     {
         internal const float BlinkRange=18f, BlinkRadius=4f, BlinkPower=70f;
         internal const float HorizonRadius=40f, HorizonTickPower=12f, HorizonFinalPower=180f;
-        internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=17;
+        internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=8;
+        internal const double RiftStart=.6, DescentStart=1.2, DomainStart=2, DomainEnd=6, FinalImpact=7.2;
         internal static int Quality(int value) => Math.Max(0,Math.Min(2,value));
         internal static int VfxSegments(int quality,int low,int medium,int high) => Quality(quality)==0?low:Quality(quality)==1?medium:high;
         internal static bool InBlinkRange(float distance) => WorldCutRules.Finite(distance) && distance>=0 && distance<=BlinkRange;
@@ -19,8 +20,8 @@ namespace SCIEPort.Features.AbyssReaper
         internal static HorizonPhase Phase(double elapsed)
         {
             if(double.IsNaN(elapsed)||elapsed<0||elapsed>=HorizonDuration)return HorizonPhase.Finished;
-            if(elapsed<2)return HorizonPhase.Awakening;if(elapsed<5)return HorizonPhase.SkyRift;
-            if(elapsed<8)return HorizonPhase.Descent;if(elapsed<14)return HorizonPhase.Domain;
+            if(elapsed<RiftStart)return HorizonPhase.Awakening;if(elapsed<DescentStart)return HorizonPhase.SkyRift;
+            if(elapsed<DomainStart)return HorizonPhase.Descent;if(elapsed<DomainEnd)return HorizonPhase.Domain;
             return HorizonPhase.Collapse;
         }
     }
@@ -30,6 +31,15 @@ namespace SCIEPort.Features.AbyssReaper
         internal static float Smooth(float value) { value=Math.Max(0,Math.Min(1,value));return value*value*(3-2*value); }
         // Dome, halo, event horizon, lensed arch, core and disk: 53 triangles/segment, bounded by 55.
         internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,2640,3960,5280);
+        // Preserve the authored geometry envelopes while compressing the gameplay timeline.
+        internal static float SceneTime(double elapsed)
+        {
+            if(elapsed<VoidSkillRules.RiftStart)return (float)(elapsed/VoidSkillRules.RiftStart*2);
+            if(elapsed<VoidSkillRules.DomainStart)return (float)(2+(elapsed-VoidSkillRules.RiftStart)/(VoidSkillRules.DomainStart-VoidSkillRules.RiftStart)*2);
+            if(elapsed<VoidSkillRules.DomainEnd)return (float)(4+(elapsed-VoidSkillRules.DomainStart)/(VoidSkillRules.DomainEnd-VoidSkillRules.DomainStart)*10);
+            if(elapsed<VoidSkillRules.FinalImpact)return (float)(14+(elapsed-VoidSkillRules.DomainEnd)/(VoidSkillRules.FinalImpact-VoidSkillRules.DomainEnd)*2);
+            return (float)(16+(elapsed-VoidSkillRules.FinalImpact)/(VoidSkillRules.HorizonDuration-VoidSkillRules.FinalImpact));
+        }
     }
     // At most one cue per stage, with no stale cue burst after a frame hitch.
     internal sealed class HorizonCueTimeline
@@ -38,10 +48,10 @@ namespace SCIEPort.Features.AbyssReaper
         private double lastTime=-1;
         internal int Take(double elapsed)
         {
-            if(double.IsNaN(elapsed)||double.IsInfinity(elapsed)||elapsed<0||elapsed>=17)return -1;
+            if(double.IsNaN(elapsed)||double.IsInfinity(elapsed)||elapsed<0||elapsed>=VoidSkillRules.HorizonDuration)return -1;
             if(elapsed<lastTime)return -1;
             lastTime=elapsed;
-            int cue=elapsed<.5?0:elapsed>=2 && elapsed<2.5?1:elapsed>=14 && elapsed<14.5?2:elapsed>=16 && elapsed<16.5?3:-1;
+            int cue=elapsed<.3?0:elapsed>=VoidSkillRules.RiftStart && elapsed<VoidSkillRules.RiftStart+.3?1:elapsed>=VoidSkillRules.DomainEnd && elapsed<VoidSkillRules.DomainEnd+.3?2:elapsed>=VoidSkillRules.FinalImpact && elapsed<VoidSkillRules.FinalImpact+.3?3:-1;
             if(cue<0 || cue<=last)return -1;
             last=cue;return cue;
         }
@@ -95,13 +105,14 @@ namespace SCIEPort.Features.AbyssReaper
         internal int TakeTick(double now)
         {
             if(cancelled || final || double.IsNaN(now) || double.IsInfinity(now))return -1;
-            double elapsed=now-Started;if(elapsed<8 || elapsed>=14)return -1;
-            int next=(int)Math.Floor(elapsed-8);if(next<=tick)return -1;
+            double elapsed=now-Started;if(elapsed<VoidSkillRules.DomainStart || elapsed>=VoidSkillRules.DomainEnd)return -1;
+            // Keep six erosion pulses within the shorter four-second domain; no catch-up burst.
+            int next=(int)Math.Floor((elapsed-VoidSkillRules.DomainStart)*1.5);if(next<=tick)return -1;
             tick=next;return tick;
         }
         internal bool TakeFinal(double now)
         {
-            if(cancelled||final||double.IsNaN(now)||double.IsInfinity(now)||now-Started<16)return false;
+            if(cancelled||final||double.IsNaN(now)||double.IsInfinity(now)||now<Started+VoidSkillRules.FinalImpact)return false;
             final=true;return true;
         }
         internal bool AddFinalTarget(T target,int max)

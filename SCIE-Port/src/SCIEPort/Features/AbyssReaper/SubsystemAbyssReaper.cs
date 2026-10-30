@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
     /// <summary>Local/server-owned melee; no terrain writes or client damage packets.</summary>
     public sealed class SubsystemAbyssReaper : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
-        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public WorldCutHud Hud; public VoidPortalDialog PortalDialog; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil,CombatTime,LastSample; }
+        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public Vector3 SwingDirection; public WorldCutHud Hud; public VoidPortalDialog PortalDialog; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil,CombatTime,LastSample; }
         readonly Dictionary<ComponentPlayer,State> states=new Dictionary<ComponentPlayer,State>();
         readonly Dictionary<ComponentPlayer,float> walkBonuses=new Dictionary<ComponentPlayer,float>();
         readonly List<ComponentPlayer> speedRetired=new List<ComponentPlayer>();
@@ -65,15 +65,17 @@ namespace SCIEPort.Features.AbyssReaper
             s.CombatTime+=Math.Max(0,clock.GameTime-s.LastSample)*attackFrequency;s.LastSample=clock.GameTime;
             bool blocked=!p.PlayerData.IsReadyForPlaying||clock.GameTimeDelta<=0||p.ComponentGui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!input.AllowHandleInput||!Engine.Window.IsActive||p.ComponentSleep.SleepFactor>0||p.GameWidget==null||!p.GameWidget.ActiveCamera.IsEntityControlEnabled
                 ||Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true;
-            var ray=input.m_playerInput.Dig??input.m_playerInput.Hit??input.m_playerInput.Aim;
-            var interact=input.m_playerInput.Interact;
+            var sampled=input.m_playerInput;
+            var ray=sampled.Dig??sampled.Hit??sampled.Aim;
+            var interact=sampled.Interact;
             if(ray.HasValue)s.Ray=ray.Value;
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
             if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);Horizon.Cancel(p);return;}
             if(Horizon.Busy(p)){VoidHorizonRuntime.LockInput(p);s.Hud?.CancelInput();return;}
-            if(interact.HasValue && !ray.HasValue && !WorldCut.Busy(p) && !Horizon.Busy(p) && !blink.Busy(p) && !s.NormalImpactPending && s.Combo.Phase(s.CombatTime)>=1)
+            // Native phone Tap emits Interact AND Hit. Aimed portal interaction wins over melee.
+            if(WantsPortalInteraction(sampled,s.NormalImpactPending||s.Combo.Phase(s.CombatTime)<1,WorldCut.Busy(p)||blink.Busy(p)))
             {
                 Guid aimed=FindPortal(p,interact.Value.Direction);
                 if(aimed!=Guid.Empty && OpenPortalDialog(p,aimed)){s.InputGate.Accepted();return;}
@@ -95,7 +97,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
             {
                 s.Combo.Input(ray.HasValue,s.CombatTime,elapsed*attackFrequency);
-                if(s.Combo.Phase(s.CombatTime)==0)s.NormalImpactPending=true;
+                if(s.Combo.Phase(s.CombatTime)==0){s.NormalImpactPending=true;s.SwingDirection=MeleeDirection(s.Ray.Direction,p.ComponentCreatureModel.EyeRotation.GetForwardVector());}
             }
         }
         internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true;
@@ -122,9 +124,15 @@ namespace SCIEPort.Features.AbyssReaper
             direction=Vector3.Normalize(direction);Vector3 eye=player.ComponentCreatureModel.EyePosition;Guid found=Guid.Empty;float nearest=6f;
             foreach(var portal in Portals.Records)
             {
-                Vector3 center=new Vector3(portal.X,portal.Y+2f,portal.Z),delta=center-eye;float along=Vector3.Dot(delta,direction);
-                if(!portal.Active||along<0||along>nearest||(delta-direction*along).LengthSquared()>2.25f)continue;
-                if(terrain.Raycast(eye,center,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue)continue;
+                // Hit the visible 1.35 x 1.85 oval in its own plane, including its lower edge.
+                float normal=portal.Facing==0?direction.Z:direction.X;
+                if(!portal.Active||Math.Abs(normal)<.001f)continue;
+                float along=((portal.Facing==0?portal.Z:portal.X)-(portal.Facing==0?eye.Z:eye.X))/normal;
+                if(along<0||along>nearest)continue;
+                Vector3 at=eye+direction*along;
+                float side=(portal.Facing==0?at.X-portal.X:at.Z-portal.Z)/1.35f,vertical=(at.Y-portal.Y-2)/1.85f;
+                if(side*side+vertical*vertical>1)continue;
+                if(terrain.Raycast(eye,at,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue)continue;
                 nearest=along;found=portal.Id;
             }
             return found;
@@ -193,18 +201,23 @@ namespace SCIEPort.Features.AbyssReaper
             if(CommonLib.WorkType==WorkType.Client)return;
             if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)return; // No untrusted remote input path in V0.1.
             Vector3 origin=p.ComponentCreatureModel.EyePosition;
-            Vector3 forward=p.ComponentCreatureModel.EyeRotation.GetForwardVector();
-            Vector3 flat=new Vector3(forward.X,0,forward.Z); if(flat.LengthSquared()<.001f)return;flat=Vector3.Normalize(flat);
+            Vector3 forward=MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector());
+            float reach=s.Combo.Stage==3?AbyssMeleeMotion.ChargedReach:AbyssMeleeMotion.NormalReach;
+            var aimed=bodies.Raycast(origin,origin+forward*reach,.15f,(body,distance)=>body.Entity!=p.Entity);
+            var primary=aimed.HasValue?aimed.Value.ComponentBody:null;
+            Vector3 flat=new Vector3(forward.X,0,forward.Z);flat=flat.LengthSquared()<.001f?Vector3.UnitZ:Vector3.Normalize(flat);
             hit.Clear();int visited=0,rays=0;
             foreach(var body in bodies.Bodies){if(++visited>512)break;
                 if(body.Entity==p.Entity||!body.Entity.IsAddedToProject||hit.Contains(body.Entity))continue;
                 var c=body.Entity.FindComponent<ComponentCreature>();if(c==null||c.ComponentHealth.Health<=0)continue;
                 bool player=c is ComponentPlayer;
                 bool hostile=c.Category==CreatureCategory.LandPredator||c.Category==CreatureCategory.WaterPredator;
-                if(player?(!allowPlayers||!Project.FindSubsystem<SubsystemGameInfo>(true).WorldSettings.IsFriendlyFireEnabled):(!hostile&&!allowPassive))continue;
+                // A deliberately aimed animal can be hit like any normal weapon. Passive sweep
+                // collateral remains opt-in; the default still excludes every other player.
+                if(!MeleeTargetAllowed(player,hostile,body==primary,allowPassive,allowPlayers,player&&Project.FindSubsystem<SubsystemGameInfo>(true).WorldSettings.IsFriendlyFireEnabled))continue;
                 Vector3 center=body.BoundingBox.Center();Vector3 delta=center-origin;
                 Vector3 horizontal=new Vector3(delta.X,0,delta.Z);float len=horizontal.Length();
-                if(!AbyssMeleeMotion.Sector(delta.Length(),len>.01f?Vector3.Dot(horizontal/len,flat):1,delta.Y,s.Combo.Stage))continue;
+                if(!AbyssMeleeMotion.Sector(delta.Length(),body==primary||len<=.01f?1:Vector3.Dot(horizontal/len,flat),delta.Y,s.Combo.Stage))continue;
                 Territoriy region;if(SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(Terrain.ToCell(center.X),Terrain.ToCell(center.Z),out region))continue;
                 if(++rays>48)break;
                 if(!VoidCombatSafety.ClearPath(terrain,origin,center,AbyssMeleeMotion.ChargedReach))continue;
@@ -213,6 +226,15 @@ namespace SCIEPort.Features.AbyssReaper
                 if(hit.Count>=24)break;
             }
         }
+        internal static Vector3 MeleeDirection(Vector3 aimed,Vector3 fallback)
+        {
+            if(!WorldCutDamage.Finite(aimed)||aimed.LengthSquared()<.001f)aimed=fallback;
+            return WorldCutDamage.Finite(aimed)&&aimed.LengthSquared()>=.001f?Vector3.Normalize(aimed):Vector3.UnitZ;
+        }
+        internal static bool MeleeTargetAllowed(bool player,bool hostile,bool primary,bool passive,bool players,bool friendlyFire)
+            => player?players&&friendlyFire:hostile||primary||passive;
+        internal static bool WantsPortalInteraction(PlayerInput input,bool meleeBusy,bool skillBusy)
+            => input.Interact.HasValue&&!meleeBusy&&!skillBusy;
         /// <summary>Updates the touch HUD and skill cooldown feedback.</summary>
         public void TickGui(ComponentGui gui) {
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;

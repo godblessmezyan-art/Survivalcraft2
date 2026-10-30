@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.57.0",
+  "Version": "0.57.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.57.0 统一神器手游技能区：普通技能72、大招88，位于查看左侧弧线，左右手镜像、圆形命中、动态避让。保留原技能与联机逻辑。Android7723实机待验收，昆古尼尔新生图因服务连接失败尚未替换。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.57.1 修复房主阿比斯普攻瞄准、普通生物命中和触屏星门交互；虚夜大招缩短为8秒，期间免伤，范围伤害排除玩家。Android实机效果待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

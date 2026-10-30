@@ -12,7 +12,7 @@ namespace SCIEPort.Features.AbyssReaper
         // Friendly-fire settings never opt players into this area attack (including its pull).
         internal static bool TargetAllowed(bool player,bool hostile,bool allowPassive) => !player && (hostile || allowPassive);
         internal static bool ValidSnapshot(float elapsed,float cooldown)
-            => WorldCutRules.Finite(elapsed) && elapsed>=0 && elapsed<=17 && WorldCutRules.Finite(cooldown) && cooldown>=0 && cooldown<=180.1f;
+            => WorldCutRules.Finite(elapsed) && elapsed>=0 && elapsed<=VoidSkillRules.HorizonDuration && WorldCutRules.Finite(cooldown) && cooldown>=0 && cooldown<=180.1f;
     }
     // Binds replay protection to an entity AND connection, but keeps the player's cooldown.
     internal sealed class HorizonSession

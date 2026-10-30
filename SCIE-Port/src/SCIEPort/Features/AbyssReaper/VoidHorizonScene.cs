@@ -27,6 +27,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             renderer.Clear();triangles=0;
             if(!VoidHorizonRules.Live(t) || !WorldCutDamage.Finite(origin) || !WorldCutDamage.Finite(facing) || facing.LengthSquared()<.01f)return 0;
+            t=VoidHorizonVisualRules.SceneTime(t);
             facing=new Vector3(facing.X,0,facing.Z);
             if(facing.LengthSquared()<.01f)return 0;
             facing=Vector3.Normalize(facing);
