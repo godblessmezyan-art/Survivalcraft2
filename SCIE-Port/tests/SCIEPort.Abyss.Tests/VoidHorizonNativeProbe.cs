@@ -85,6 +85,14 @@ public static class VoidHorizonNativeProbe
             Put(subsystem,"m_project",project);Put(subsystem,"<Horizon>k__BackingField",runtime);project.m_subsystems.Add(subsystem);
             int index=(int)mod.GetType("SCIEPort.Features.AbyssReaper.AbyssReaperBlock",true).GetField("Index").GetRawConstantValue();
             var player=Player(project,index);var teammate=Player(project,index);
+            player.ComponentLocomotion.WalkSpeed=4;
+            for(int i=0;i<100;i++)Call(subsystem,"ApplyHeldSpeed",player,true);
+            Check(Math.Abs(player.ComponentLocomotion.WalkSpeed-4.8f)<.0001f,"held 20 percent movement never compounds");
+            player.ComponentLocomotion.WalkSpeed+=2;Call(subsystem,"ApplyHeldSpeed",player,true);
+            Check(Math.Abs(player.ComponentLocomotion.WalkSpeed-7.2f)<.0001f,"held bonus recomputes on external baseline");
+            Call(subsystem,"ApplyHeldSpeed",player,false);
+            Check(Math.Abs(player.ComponentLocomotion.WalkSpeed-6)<.0001f,"unequip returns only owned movement delta");
+
             object list=Get(runtime,"casts");Type castType=list.GetType().GetGenericArguments()[0];
             object cast=New(castType);Put(cast,"Owner",player);Put(cast,"OwnerGuid",player.PlayerGuid);Put(cast,"Center",Vector3.Zero);Put(cast,"Direction",Vector3.UnitZ);
             Type timelineType=mod.GetType("SCIEPort.Features.AbyssReaper.HorizonTimeline`1",true).MakeGenericType(typeof(Entity));

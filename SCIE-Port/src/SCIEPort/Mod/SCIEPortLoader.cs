@@ -88,6 +88,7 @@ namespace SCIEPort.Mod
             // Artifact default attack speed: the plain hammer and the trident each add their own 10%.
             if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
             else if (contents == PoseidonBlock.Index) frequency *= PoseidonRules.AttackSpeedFactor;
+            else if (contents == AbyssReaperBlock.Index) frequency *= 1.1f;
             if (frequency > 1f) miner.m_lastHitTime -= .66 * (1.0 - 1.0 / frequency);
         }
 

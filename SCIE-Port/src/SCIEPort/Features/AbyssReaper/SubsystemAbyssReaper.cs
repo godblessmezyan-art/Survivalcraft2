@@ -10,8 +10,10 @@ namespace SCIEPort.Features.AbyssReaper
     /// <summary>Local/server-owned melee; no terrain writes or client damage packets.</summary>
     public sealed class SubsystemAbyssReaper : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
-        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public WorldCutHud Hud; public VoidPortalDialog PortalDialog; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil; }
+        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public WorldCutHud Hud; public VoidPortalDialog PortalDialog; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil,CombatTime,LastSample; }
         readonly Dictionary<ComponentPlayer,State> states=new Dictionary<ComponentPlayer,State>();
+        readonly Dictionary<ComponentPlayer,float> walkBonuses=new Dictionary<ComponentPlayer,float>();
+        readonly List<ComponentPlayer> speedRetired=new List<ComponentPlayer>();
         readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
         readonly HashSet<GameEntitySystem.Entity> hit=new HashSet<GameEntitySystem.Entity>();
         readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
@@ -58,7 +60,9 @@ namespace SCIEPort.Features.AbyssReaper
             var p=input.m_componentPlayer; if(p==null)return;
             State s;bool active=Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
             if(!active){if(states.TryGetValue(p,out s)){Remove(p,s);states.Remove(p);}return;}
-            if(!states.TryGetValue(p,out s)){s=new State();states.Add(p,s);}
+            if(!states.TryGetValue(p,out s)){s=new State { CombatTime=clock.GameTime,LastSample=clock.GameTime };states.Add(p,s);}
+            float attackFrequency=1.1f*(Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);
+            s.CombatTime+=Math.Max(0,clock.GameTime-s.LastSample)*attackFrequency;s.LastSample=clock.GameTime;
             bool blocked=!p.PlayerData.IsReadyForPlaying||clock.GameTimeDelta<=0||p.ComponentGui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!input.AllowHandleInput||!Engine.Window.IsActive||p.ComponentSleep.SleepFactor>0||p.GameWidget==null||!p.GameWidget.ActiveCamera.IsEntityControlEnabled
                 ||Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true;
             var ray=input.m_playerInput.Dig??input.m_playerInput.Hit??input.m_playerInput.Aim;
@@ -69,7 +73,7 @@ namespace SCIEPort.Features.AbyssReaper
             input.m_playerInput.Interact=null;
             if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);Horizon.Cancel(p);return;}
             if(Horizon.Busy(p)){VoidHorizonRuntime.LockInput(p);s.Hud?.CancelInput();return;}
-            if(interact.HasValue && !ray.HasValue && !WorldCut.Busy(p) && !Horizon.Busy(p) && !blink.Busy(p) && !s.NormalImpactPending && s.Combo.Phase(clock.GameTime)>=1)
+            if(interact.HasValue && !ray.HasValue && !WorldCut.Busy(p) && !Horizon.Busy(p) && !blink.Busy(p) && !s.NormalImpactPending && s.Combo.Phase(s.CombatTime)>=1)
             {
                 Guid aimed=FindPortal(p,interact.Value.Direction);
                 if(aimed!=Guid.Empty && OpenPortalDialog(p,aimed)){s.InputGate.Accepted();return;}
@@ -80,7 +84,7 @@ namespace SCIEPort.Features.AbyssReaper
             int skillPressed=s.Hud?.Poll(p.GuiWidget.Input)??0;
             if(skillPressed!=0)
             {
-                bool meleeBusy=s.NormalImpactPending || s.Combo.Phase(clock.GameTime)<1 || s.Combo.Charge(clock.GameTime)>0;
+                bool meleeBusy=s.NormalImpactPending || s.Combo.Phase(s.CombatTime)<1 || s.Combo.Charge(s.CombatTime)>0;
                 if(s.InputGate.CanRequest(ray.HasValue,meleeBusy,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
                 { if(skillPressed==1) { if(PortalAction(p))s.InputGate.Accepted(); }
                   else if(skillPressed==2) { if(WorldCut.Request(p))s.InputGate.Accepted(); }
@@ -90,8 +94,8 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
             {
-                s.Combo.Input(ray.HasValue,clock.GameTime,elapsed);
-                if(s.Combo.Phase(clock.GameTime)==0)s.NormalImpactPending=true;
+                s.Combo.Input(ray.HasValue,s.CombatTime,elapsed*attackFrequency);
+                if(s.Combo.Phase(s.CombatTime)==0)s.NormalImpactPending=true;
             }
         }
         internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true;
@@ -141,6 +145,7 @@ namespace SCIEPort.Features.AbyssReaper
         public override bool OnUse(Ray3 ray,ComponentMiner miner)=>true;
         /// <inheritdoc/>
         public void Update(float dt) {
+            UpdateHeldSpeed();
             // Native UpdateInput Hook is before touch/gamepad assembly; consume the completed input
             // here at Input+1 (-9), strictly before ComponentPlayer Default (0).
             foreach(var player in players.ComponentPlayers)
@@ -149,20 +154,40 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
                 if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
                 if(WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p))continue;
-                float t=s.Combo.Phase(now);
-                var pose=AbyssMeleeMotion.Sample(s.Combo.Stage,t,s.Combo.Charge(now));
+                float t=s.Combo.Phase(s.CombatTime);
+                var pose=AbyssMeleeMotion.Sample(s.Combo.Stage,t,s.Combo.Charge(s.CombatTime));
                 Vector3 rotation=new Vector3(pose.Pitch,pose.Yaw,pose.Roll),offset=new Vector3(pose.X,pose.Y,pose.Z);
                 var fp=p.Entity.FindComponent<ComponentFirstPersonModel>();
                 if(fp!=null){fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
                 p.ComponentCreatureModel.InHandItemRotationOrder=rotation;
                 p.ComponentCreatureModel.InHandItemOffsetOrder=offset*.35f;
-                if(s.Combo.Impact(now)){s.NormalImpactPending=false;if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
+                if(s.Combo.Impact(s.CombatTime)){s.NormalImpactPending=false;if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
             }
             foreach(var p in retired){Remove(p,states[p]);states.Remove(p);}
             WorldCut.Update(dt);
             try { portalTravel?.Update(); } catch(Exception error) { Log.Warning("[SCIEPort:Abyss] Portal travel cancelled: "+error.GetType().Name); }
             blink?.Update();
             Horizon?.Update();
+        }
+        private void ApplyHeldSpeed(ComponentPlayer p,bool equipped)
+        {
+            float owned;if(walkBonuses.TryGetValue(p,out owned))p.ComponentLocomotion.WalkSpeed-=owned;
+            walkBonuses.Remove(p);
+            float baseline=p.ComponentLocomotion.WalkSpeed;
+            if(equipped && walkBonuses.Count<64 && p.IsAddedToProject && p.ComponentHealth.Health>0 && WorldCutRules.Finite(baseline))
+            {
+                float delta=Math.Max(0,baseline)*.2f;
+                walkBonuses[p]=delta;p.ComponentLocomotion.WalkSpeed+=delta;
+            }
+        }
+        private void UpdateHeldSpeed()
+        {
+            speedRetired.Clear();
+            foreach(var pair in walkBonuses)
+                if(!pair.Key.IsAddedToProject || pair.Key.ComponentHealth.Health<=0 || Terrain.ExtractContents(pair.Key.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index) speedRetired.Add(pair.Key);
+            foreach(var p in speedRetired)ApplyHeldSpeed(p,false);
+            foreach(var p in players.ComponentPlayers)
+                if(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index)ApplyHeldSpeed(p,true);
         }
         void Strike(ComponentPlayer p,State s) {
             if(CommonLib.WorkType==WorkType.Client)return;
@@ -193,7 +218,7 @@ namespace SCIEPort.Features.AbyssReaper
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
             if(s.Hud==null)s.Hud=new WorldCutHud(gui);
             string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);
-            if(hint==null)hint=s.Combo.Charge(clock.GameTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(clock.GameTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
+            if(hint==null)hint=s.Combo.Charge(s.CombatTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(s.CombatTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
             s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p),WorldCut.PendingRequest(p),hint,
                 gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput);
         }
@@ -208,7 +233,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 var player=pair.Key;
                 if(!player.Entity.IsAddedToProject||player.ComponentHealth.Health<=0||WorldCut.Busy(player)||Horizon.Busy(player)||blink.Busy(player))continue;
-                meleeScene.Queue(player,pair.Value.Combo.Stage,pair.Value.Combo.Phase(clock.GameTime));
+                meleeScene.Queue(player,pair.Value.Combo.Stage,pair.Value.Combo.Phase(pair.Value.CombatTime));
             }
             meleeScene.Flush(camera);
             var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
@@ -219,6 +244,6 @@ namespace SCIEPort.Features.AbyssReaper
         }
         void Remove(ComponentPlayer p,State s){if(s.PortalDialog!=null)ClosePortalDialog(p,s.PortalDialog);s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);Horizon?.Cancel(p);}
         /// <inheritdoc/>
-        public override void Dispose(){WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
+        public override void Dispose(){foreach(var pair in walkBonuses)pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;walkBonuses.Clear();speedRetired.Clear();WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
     }
 }
