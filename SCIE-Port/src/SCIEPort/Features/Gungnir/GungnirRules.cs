@@ -43,8 +43,17 @@ namespace SCIEPort.Features.Gungnir
         public static double AttackInterval(bool blessed, float externalFrequency = 1f) => 0.6600000262260437 / ((blessed ? 2.0 : 1.5) * Math.Max(1f, externalFrequency));
         /// <summary>Additive multipliers relative to the unmodified equipment baseline.</summary>
         public static float SpeedFactor(bool blessed) => blessed ? 2f : 1.5f;
-        /// <summary>Linear radial falloff, with no damage outside the legal sphere.</summary>
-        public static float JudgmentDamage(float distance) => float.IsNaN(distance) || distance < 0 || distance > 7 ? 0 : JudgmentPower;
+        /// <summary>Edge of the judgment sphere, in blocks.</summary>
+        public const float JudgmentRadius = 7f;
+        /// <summary>Share of the power still dealt at the rim of the sphere.</summary>
+        public const float JudgmentEdgeFactor = 0.5f;
+        /// <summary>
+        /// Linear radial falloff from 341 at the centre to 170.5 at the rim; nothing outside the
+        /// legal sphere. Keeping half power at the edge preserves the original 300->150 shape.
+        /// </summary>
+        public static float JudgmentDamage(float distance) => float.IsNaN(distance) || distance < 0 || distance > JudgmentRadius
+            ? 0
+            : JudgmentPower * (1f - (1f - JudgmentEdgeFactor) * distance / JudgmentRadius);
         /// <summary>
         /// Uniform Fate Severance roll. The authority supplies an integer roll in [0, 90] from
         /// its own RNG; out-of-range rolls are clamped so the power can never leave [10, 100].

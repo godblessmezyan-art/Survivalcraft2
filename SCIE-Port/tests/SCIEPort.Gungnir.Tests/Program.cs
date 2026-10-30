@@ -42,10 +42,13 @@ internal static class Program
         Check(!GungnirRules.ShouldConsumeAim(true) && GungnirRules.ShouldConsumeAim(false), "hold must not trigger x25.01.17 aim cancellation");
         float last = float.MaxValue;
         for (int i = 0; i <= 70; i++)
-        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(Math.Abs(power - 341f) < 0.001f || power == 0f, "Eternal Judgment must be a flat 341 inside its sphere"); last = power; }
+        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(power <= last && power >= 170.5f - 0.001f && power <= 341f + 0.001f, "Judgment falloff must descend from 341 to 170.5"); last = power; }
         Check(GungnirRules.JudgmentDamage(7.001f) == 0 && GungnirRules.JudgmentDamage(float.NaN) == 0 && GungnirRules.JudgmentDamage(float.PositiveInfinity) == 0, "Invalid radius must never damage");
-        Check(Math.Abs(GungnirRules.JudgmentDamage(0f) - 341f) < 0.001f && Math.Abs(GungnirRules.JudgmentDamage(3.5f) - 341f) < 0.001f
-            && Math.Abs(GungnirRules.JudgmentDamage(7f) - 341f) < 0.001f && GungnirRules.JudgmentPower == 341f, "Eternal Judgment must not fall off with distance");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(0f) - 341f) < 0.001f, "Judgment centre power must stay 341");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(3.5f) - 255.75f) < 0.001f, "Judgment mid-radius power must be half-way down");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(7f) - 170.5f) < 0.001f, "Judgment rim power must stay 170.5");
+        Check(GungnirRules.JudgmentPower == 341f && GungnirRules.JudgmentRadius == 7f && GungnirRules.JudgmentEdgeFactor == 0.5f,
+            "judgment falloff constants changed");
         foreach (var sample in new[]
         {
             (Width: 1280f, Height: 720f, Scale: 1f),

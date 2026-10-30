@@ -1,8 +1,8 @@
 ﻿{
   "Name": "荒野探险家",
-  "Version": "0.56.2",
+  "Version": "0.56.3",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.56.2 昆古尼尔数值调整：卢恩神佑冷却6秒、持续9秒；命运裁断伤害改为每目标10~100随机；永恒裁决固定341点。上一版雷神之锤大招冷却缩减与每跳17点雷域保留。Android7723实机与联机待验收，双方请用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.56.3 永恒裁决恢复距离衰减：中心341点、边缘170.5点（保持原300→150的50%比例），半径7格外不结算。卢恩神佑6秒/9秒、命运裁断10~100随机保留。Android7723实机与联机待验收，双方请用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",
