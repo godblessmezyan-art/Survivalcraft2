@@ -35,14 +35,17 @@ internal static class Program
             Check(Math.Abs(hits - (blessed ? 200 : 150)) <= 1, "Authority attack gate changed under command flood");
         }
         Check(GungnirRules.SpeedFactor(false) == 1.5f && GungnirRules.SpeedFactor(true) == 2, "Buff stacking regressed");
-        Check(GungnirRules.BlessingCooldown == 8f, "Rune Blessing cooldown must be 8 seconds");
+        Check(GungnirRules.BlessingCooldown == 6f, "Rune Blessing cooldown must be 6 seconds");
+        Check(GungnirRules.BlessingDuration == 9f, "Rune Blessing must last 9 seconds");
         Check(GungnirRules.JudgmentCooldown == 50f, "Eternal Judgment cooldown must be 50 seconds");
         Check(GungnirRules.HolyDamageDelay == 0.4f, "holy follow-up must remain visually separated from the native hit");
         Check(!GungnirRules.ShouldConsumeAim(true) && GungnirRules.ShouldConsumeAim(false), "hold must not trigger x25.01.17 aim cancellation");
         float last = float.MaxValue;
         for (int i = 0; i <= 70; i++)
-        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(power <= last && power >= 150 && power <= 300, "Falloff discontinuity"); last = power; }
+        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(Math.Abs(power - 341f) < 0.001f || power == 0f, "Eternal Judgment must be a flat 341 inside its sphere"); last = power; }
         Check(GungnirRules.JudgmentDamage(7.001f) == 0 && GungnirRules.JudgmentDamage(float.NaN) == 0 && GungnirRules.JudgmentDamage(float.PositiveInfinity) == 0, "Invalid radius must never damage");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(0f) - 341f) < 0.001f && Math.Abs(GungnirRules.JudgmentDamage(3.5f) - 341f) < 0.001f
+            && Math.Abs(GungnirRules.JudgmentDamage(7f) - 341f) < 0.001f && GungnirRules.JudgmentPower == 341f, "Eternal Judgment must not fall off with distance");
         foreach (var sample in new[]
         {
             (Width: 1280f, Height: 720f, Scale: 1f),
@@ -126,7 +129,18 @@ internal static class Program
         }
         // ---- 0.56.0 Fate Severance (神王敕令·命运裁断) ----
         Check(GungnirRules.Fatalism == 5, "Fate Severance must be command 5 so 1-4 keep their wire meaning");
-        Check(GungnirRules.FatalismPower == 79f, "Fate Severance power must be exactly 79");
+        Check(GungnirRules.FatalismPowerMin == 10f && GungnirRules.FatalismPowerMax == 100f, "Fate Severance must roll inside 10..100");
+        Check(Math.Abs(GungnirRules.FatalismRoll(0) - 10f) < 0.001f && Math.Abs(GungnirRules.FatalismRoll(90) - 100f) < 0.001f,
+            "Fate Severance roll bounds changed");
+        Check(Math.Abs(GungnirRules.FatalismRoll(-5) - 10f) < 0.001f && Math.Abs(GungnirRules.FatalismRoll(400) - 100f) < 0.001f,
+            "out-of-range rolls must clamp inside 10..100");
+        bool inRange = true;
+        for (int roll = 0; roll <= 90; roll++)
+        {
+            float power = GungnirRules.FatalismRoll(roll);
+            if (power < 10f || power > 100f) inRange = false;
+        }
+        Check(inRange, "every Fate Severance roll must stay inside 10..100");
         Check(GungnirRules.FatalismCooldown == 39f, "Fate Severance cooldown must be exactly 39 seconds");
         Check(GungnirRules.HudCommand(0) == GungnirRules.Blessing && GungnirRules.HudCommand(1) == GungnirRules.Fatalism
             && GungnirRules.HudCommand(2) == GungnirRules.Judgment && GungnirRules.HudCommand(3) == 0,

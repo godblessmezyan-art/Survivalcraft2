@@ -63,6 +63,7 @@ namespace SCIEPort.Features.Gungnir
         private readonly List<PendingFatalism> m_pendingFatalism = new List<PendingFatalism>();
         private readonly List<ComponentBody> m_fatalismScratch = new List<ComponentBody>();
         private uint m_nextFatalismCast = 1;
+        private readonly System.Random m_random = new System.Random();
         internal double Now => m_time.GameTime;
         private bool Authority => CommonLib.WorkType != WorkType.Client;
         /// <inheritdoc />
@@ -137,7 +138,7 @@ namespace SCIEPort.Features.Gungnir
             if (packet.Command == GungnirRules.Blessing)
             {
                 if (Now < s.BuffReady) return;
-                s.BuffVisualStart = Now; s.BuffEnd = Now + 15; s.BuffReady = Now + GungnirRules.BlessingCooldown;
+                s.BuffVisualStart = Now; s.BuffEnd = Now + GungnirRules.BlessingDuration; s.BuffReady = Now + GungnirRules.BlessingCooldown;
                 Sound("Invoke", p.ComponentBody.Position);
             }
             else if (packet.Command == GungnirRules.Judgment)
@@ -417,7 +418,7 @@ namespace SCIEPort.Features.Gungnir
                     ComponentHealth health = target.Entity.FindComponent<ComponentHealth>(false);
                     if (health == null || health.Health <= 0f) continue;
                     // Rune Blessing never multiplies the edict: the power is fixed at 79.
-                    Damage(caster, target, GungnirRules.FatalismPower, Vector3.UnitY);
+                    Damage(caster, target, GungnirRules.FatalismRoll(m_random.Next(0, 91)), Vector3.UnitY);
                     hits++;
                 }
                 State state = Get(caster);

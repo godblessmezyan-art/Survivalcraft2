@@ -1,8 +1,8 @@
 ﻿{
   "Name": "荒野探险家",
-  "Version": "0.56.1",
+  "Version": "0.56.2",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.56.1 雷神之锤强化：大招期间所有技能冷却缩短（雷霆万钧降至5秒、雷霆王域降至15秒），并每秒对周围8格内所有生物造成7点雷域伤害，大招结束立即消失；修复雷霆王域不结算伤害的bug，其持续伤害改为每秒17点雷电伤害。保留阿比斯、海神、四圣兽与载具，Android7723实机与联机待验收，双方请用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.56.2 昆古尼尔数值调整：卢恩神佑冷却6秒、持续9秒；命运裁断伤害改为每目标10~100随机；永恒裁决固定341点。上一版雷神之锤大招冷却缩减与每跳17点雷域保留。Android7723实机与联机待验收，双方请用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

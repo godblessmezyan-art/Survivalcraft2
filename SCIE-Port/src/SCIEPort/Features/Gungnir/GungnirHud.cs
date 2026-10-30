@@ -69,7 +69,7 @@ namespace SCIEPort.Features.Gungnir
             Layout(gui, hud);
             SubsystemGungnir.State state = runtime.Get(player);
             double now = runtime.Now;
-            SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), 15f, (float)(now - state.BuffVisualStart));
+            SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), GungnirRules.BlessingDuration, (float)(now - state.BuffVisualStart));
             float fatalismAge = (float)(now - state.FatalismStart);
             SetState(hud.Skills[1], (float)(state.FatalismReady - now), (float)(GungnirRules.FatalismEnd - fatalismAge), GungnirRules.FatalismEnd, fatalismAge);
             SetState(hud.Skills[2], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));

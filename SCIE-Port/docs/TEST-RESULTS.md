@@ -1,5 +1,19 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.56.2：昆古尼尔数值调整
+
+用户要求：一技能冷却 6 秒、持续 9 秒；二技能伤害改为 10~100 随机；大招伤害 341。
+
+- 卢恩神佑：`BlessingCooldown` 8→6，新增 `BlessingDuration=9` 并由子系统与 HUD 共用（原先硬编码 15）。
+- 神王敕令：`FatalismPower=79` 换成 `FatalismPowerMin/Max=10/100` 与 `FatalismRoll(roll)`（越界自动夹紧），权威端用 `System.Random.Next(0,91)` 为每个目标单独掷点。
+- 永恒裁决：`JudgmentDamage` 取消 300→150 线性衰减，改为半径 7 格内固定 `JudgmentPower=341`，半径外仍为 0。
+
+验证（离线）：Gungnir 规则 381 → **386** 项，覆盖 6 秒冷却、9 秒持续、掷点上下界与夹紧、341 平伤与球外 0 伤害；构建守卫同步改为校验新常量。Release 构建 exit 0。
+
+最终包 `荒野探险家-0.56.2.netmod` / `荒野探险家.netmod` 字节一致：7,849,362 字节、143 项，SHA-256 `AC756DE109235D1EDDAA0693A73E3351130C2EB0BDC86AAE044CFC966AF9D350`；包内 Version=0.56.2、程序集 0.56.2.0，包内 `SCIEPort.dll` SHA-256 `0F75A9FC7B886EBB33C1AB26ECB9E921117D8AD2B2DBB34CFB6EA4C761C27FFA`；相对 0.56.1 只有 `SCIEPort.dll` 与 `modinfo.json` 变化。
+
+Android 7723 与真实联机未运行，随机伤害的实际手感与客户端数字表现待验证。
+
 ## 2026-10-30 main 0.56.1：雷神之锤大招冷却缩减与雷域，修复王域不结算
 
 用户要求：大招期间所有技能 CD 减少、一技能降到 5 秒；一定范围内所有生物每秒 7 点持续伤害，大招结束消失；修复二技能没有伤害的 bug，持续伤害改为 17 点雷电伤害。

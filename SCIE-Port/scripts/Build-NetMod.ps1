@@ -442,7 +442,7 @@ if (-not $awakenedSource.Contains('ApplyEquipmentModifiers()') -or -not $awakene
 }
 $gungnirRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirRules.cs')
 $gungnirBehaviorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\SubsystemGungnir.cs')
-foreach ($gungnirRule in @('BlessingCooldown = 8f', 'JudgmentCooldown = 50f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
+foreach ($gungnirRule in @('BlessingCooldown = 6f', 'BlessingDuration = 9f', 'JudgmentCooldown = 50f', 'JudgmentPower = 341f', 'FatalismPowerMin = 10f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
     if (-not $gungnirRulesSource.Contains($gungnirRule)) { throw "Gungnir V5.2 control/balance rule missing: $gungnirRule" }
 }
 foreach ($gungnirBehaviorRule in @('public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;', 'UpdateThrowInput(p, s)', 'ComponentAimingSights.ShowAimingSights', 'GungnirRules.ThrowLease', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {

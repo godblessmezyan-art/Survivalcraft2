@@ -10,9 +10,15 @@ namespace SCIEPort.Features.Gungnir
         /// <summary>Fate Severance is appended as command 5 so 1-4 keep their wire meaning.</summary>
         public const byte Fatalism = 5;
         /// <summary>Rune Blessing and Eternal Judgment cooldowns, in seconds.</summary>
-        public const float BlessingCooldown = 8f, JudgmentCooldown = 50f;
+        public const float BlessingCooldown = 6f, JudgmentCooldown = 50f;
+        /// <summary>Rune Blessing lasts nine seconds from the accepted cast.</summary>
+        public const float BlessingDuration = 9f;
         /// <summary>Fate Severance: a world-wide edict with a fixed power and cooldown.</summary>
-        public const float FatalismCooldown = 39f, FatalismPower = 79f;
+        public const float FatalismCooldown = 39f;
+        /// <summary>Fate Severance rolls one power per target inside [10, 100].</summary>
+        public const float FatalismPowerMin = 10f, FatalismPowerMax = 100f;
+        /// <summary>Eternal Judgment hits a flat 341 attack power inside its legal sphere.</summary>
+        public const float JudgmentPower = 341f;
         /// <summary>Presentation timeline shared by the authority and every client.</summary>
         public const float FatalismMark = 0.15f, FatalismImpact = 0.45f, FatalismEnd = 0.9f;
         /// <summary>Package kinds carried in the existing Kind byte.</summary>
@@ -38,7 +44,13 @@ namespace SCIEPort.Features.Gungnir
         /// <summary>Additive multipliers relative to the unmodified equipment baseline.</summary>
         public static float SpeedFactor(bool blessed) => blessed ? 2f : 1.5f;
         /// <summary>Linear radial falloff, with no damage outside the legal sphere.</summary>
-        public static float JudgmentDamage(float distance) => float.IsNaN(distance) || distance < 0 || distance > 7 ? 0 : 300f - 150f * distance / 7f;
+        public static float JudgmentDamage(float distance) => float.IsNaN(distance) || distance < 0 || distance > 7 ? 0 : JudgmentPower;
+        /// <summary>
+        /// Uniform Fate Severance roll. The authority supplies an integer roll in [0, 90] from
+        /// its own RNG; out-of-range rolls are clamped so the power can never leave [10, 100].
+        /// </summary>
+        public static float FatalismRoll(int roll)
+            => FatalismPowerMin + (roll < 0 ? 0 : roll > 90 ? 90 : roll);
         /// <summary>Native gravity is 10 cells/s²; locomotion applies the level factor separately.</summary>
         public static float JumpSpeed(float levelFactor) => (float)Math.Sqrt(80) / Math.Max(0.1f, 1 + 0.25f * (levelFactor - 1));
         /// <summary>Wrap-safe sequence validation with a half-window rejection.</summary>
