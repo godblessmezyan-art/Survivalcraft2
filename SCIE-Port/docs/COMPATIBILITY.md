@@ -8,6 +8,45 @@ Windows 固定 Net_x25.01.17 / 2.4.0.0 / net472 编译 **已确认**；目标 Su
 
 新增 `AttackPowerParameter` Hook，签名与原生调用链已反编译核实；既有 `OnCreatureInjure` 在普通无敌判断之前执行，原生 `ComponentHealthPackage.RequestInjure` 进入同一 Injure。网络轮询在 Window.Frame 上，原生包按 ReliableOrdered 发送。绘制复用原生 FlatBatch3D，新增末尾顺序2147483631，不更换渲染目标、不创建Shader。源/成品测试和包信息见测试结果。Android/7723实际程序集、游戏画面、触屏性能、单人/本地主机/普通客户端真实运行均 **待验证**。不涉及Builder Assistant或新增蓝图方块能力。
 
+## 2026-10-30 main 0.55.5：神器默认属性与攻速口径统一
+
+新增规范：神器默认持有移速 +20%、近战攻速 +10%、专属物品栏背景（见根 `AGENTS.md`）。本版把两件现有神器补到该基线，不改 Hook 名、方法签名、包布局或存档字段。
+
+- 移速：仍是 `ComponentLocomotion.WalkSpeed` 自有增量。海神陆地 +20%、游泳 +500%（两档互斥，先归还旧增量再重算）；雷神之锤把 `HoldsHammer` 扩到 942/943，普通形态也享受 ×1.20。
+- 攻速：沿用原生的 `ComponentMiner.m_lastHitTime` 前移口径（`0.66*(1-1/frequency)`）。`OnMinerHit` 中武器倍率与 `SubsystemFourSaints.AttackFrequency` **相乘**；四圣兽的 1.1 只在觉醒锤装备时由 `FourSaintsRules.AttackFrequency` 计入，因此不会与武器倍率重复叠乘。
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| `WalkSpeed` / `m_lastHitTime` 写入 | 已确认 | 固定 x25.01.17 程序集字段可写；`m_lastHitTime` 已由既有 Stormhammer 实现验证。 |
+| 陆地 +20% / 攻速 +10% 规则 | 已确认 | 3397 项纯规则与布局检查（离线），含两条移速增量的 1000 帧不累积断言。 |
+| 手感与叠加 | 待验证 | 与四圣兽攻速、载具、其他神器的组合手感未实测；水中/陆地切换阈值为浸水 >0.5。 |
+| Android 7723 与联机 | 待验证 | 未启动设备或真实多人世界。 |
+
+## 2026-10-30 main 0.55.4：海神数值倍率与领域持续伤害
+
+纯数值与判定调整，不改 Hook、方法签名、包布局或存档字段：水中伤害倍率 2→3（水盾吸收倍率仍为 2，两者已拆成独立常量）、水中移速 +200%→+500%（仍是 `WalkSpeed` 自有增量）、二技能巨浪 8×4→15×8、大招领域由"全向圆盘一次命中"改为"水龙卷环带（半径 4.5–11.5 格、高 10 格）每秒 52 点持续伤害"。
+
+`ComponentMiner.AttackBody` 与 `ComponentBody.ApplyImpulse` 的调用方式未变，持续伤害只是对同一目标按秒重复调用，不新增持久实体、不写地形；`Cast.Ticks` 为纯内存结构，随技能结束释放。网络包 248 的 78 字节布局与字段语义不变（快照只描述领域剩余时间/原点/方向），客户端不需要额外字段。
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| 倍率与环带判定规则 | 已确认 | 2402 项纯规则/布局检查（离线），含水中三倍、每跳 52/156、环带内外沿与 72 方位等价。 |
+| Release 构建与包内容 | 已确认 | 环境/ABI、net472 Release、全部既有回归与包校验通过，见 [TEST-RESULTS.md](TEST-RESULTS.md)。 |
+| 持续伤害节奏手感 | 待验证 | 1 秒/跳、52（水中 156）在实机上是否过强需用户确认；数值集中在 `PoseidonRules` 常量，可直接调。 |
+| Android 7723 与联机 | 待验证 | 未启动设备或真实多人世界；高速游泳（×6）是否穿墙需实机确认。 |
+
+## 2026-10-30 main 0.55.3：海神三技能全向判定与玩家水中移速
+
+`ComponentLocomotion` 的实际移动分支已复核：`WalkSpeed` 是玩家（含水中）唯一读取的移动速度，`SwimSpeed` 只在 `SwimSpeed>0 && SwimOrder.HasValue` 时生效，而 x25.01.17 中只有 `ComponentPilot` 写入 `SwimOrder`，玩家输入链路从不设置，因此对玩家写 `SwimSpeed` 不会改变移动。0.55.3 起海神的 +200% 水中移速改以 `WalkSpeed` 独立增量实现，同时保留 `SwimSpeed` 增量给 AI 路径；两者均可读写，ABI 检查已覆盖。这是设计缺陷修复，不涉及 Hook 名、方法签名、包布局或存档字段变更。
+
+领域命中判定由朝向扫掠改为纯半径 `InVortex(radial,height,radius)`，覆盖四面八方；半径上限 18 格、高 10 格，候选查询以领域中心为圆心。地形视线、区块加载、友伤开关、命中集合与 0.08 秒查询间隔不变，网络包 248 的 78 字节布局与快照字段不变。
+
+| 项目 | 状态 | 证据与边界 |
+| --- | --- | --- |
+| `ComponentLocomotion.WalkSpeed` / `SwimSpeed` 可写 | 已确认 | 固定 x25.01.17 程序集属性可读写；反编译 `NormalMovement` 证实玩家路径只消费 `WalkSpeed`。 |
+| 全向领域判定与演出 | 待验证 | 2320 项纯规则/布局检查（含 72 方位等价性）与 Release 构建通过；未在设备上目视确认覆盖面与遮挡观感。 |
+| Android 7723 游泳提速 | 待验证 | 需实机确认浸水 >0.5 时约为原速 3 倍、浅滩不加速、反复出入水无叠加。 |
+
 ## 2026-10-30 main 0.55.2：移除星门 XmlWriter 依赖
 
 0.55.1 的用户日志进一步确认 `XmlWriter.WriteStartElement(string)` 缺失；仅替换 Create 重载不足。0.55.2 的保存路径改为固定 XML v1 文本编码，处理引号、尖括号、& 和属性中的制表符/换行/回车；名称校验使用 XML 1.0 字符规则。成品守卫禁止注册表及其辅助方法调用 XmlWriter、XmlWriterSettings、XmlConvert。

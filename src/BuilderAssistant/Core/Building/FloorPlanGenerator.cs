@@ -13,6 +13,15 @@ namespace BuilderAssistant.Core.Building
     {
         public void Generate(BuildingContext ctx)
         {
+            if (ctx.Spec.Type == BuildingType.FurnishedHome)
+            {
+                ctx.HomeLayout=FurnishedHomeLayout.Create(ctx.Spec);
+                for(int x=1;x<ctx.Spec.Width-1;x++)
+                for(int y=1;y<=ctx.Spec.WallHeight;y++)
+                    if(x!=ctx.HomeLayout.Entrance.X || y>2)
+                        ctx.SetCube(x,y,ctx.HomeLayout.PartitionZ,ctx.Spec.Materials.InteriorWall);
+                return;
+            }
             int doorX = (ctx.X0 + ctx.X1) / 2;
             string wall = ctx.Spec.Materials.InteriorWall;
             string beam = ctx.Spec.Materials.Trim;

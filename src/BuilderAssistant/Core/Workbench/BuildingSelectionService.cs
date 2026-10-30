@@ -13,6 +13,7 @@ namespace BuilderAssistant.Core.Workbench
         House,
         /// <summary>A blueprint the player imported/copied this session (params are read-only).</summary>
         Imported,
+        FurnishedHome,
     }
 
     /// <summary>A selectable entry in the workbench: a display name + a way to seed the spec.</summary>
@@ -52,6 +53,7 @@ namespace BuilderAssistant.Core.Workbench
                 {
                     new BuildingChoice("workbench_cottage", "小屋 (Cottage)", BuildingChoiceKind.Cottage),
                     new BuildingChoice("workbench_house", "两层住宅 (Two-Story House)", BuildingChoiceKind.House),
+                    new BuildingChoice("workbench_furnished", "一室一厅（自动家具）", BuildingChoiceKind.FurnishedHome),
                 };
                 if (_importedBlueprint != null)
                 {
@@ -91,6 +93,9 @@ namespace BuilderAssistant.Core.Workbench
                     return true;
                 case BuildingChoiceKind.House:
                     spec = BuildingSpec.DefaultTwoStoryHouse();
+                    return true;
+                case BuildingChoiceKind.FurnishedHome:
+                    spec = BuildingSpec.DefaultFurnishedHome();
                     return true;
                 case BuildingChoiceKind.Imported:
                 default:

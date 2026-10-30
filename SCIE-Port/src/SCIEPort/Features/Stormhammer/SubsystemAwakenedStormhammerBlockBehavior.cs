@@ -500,7 +500,7 @@ namespace SCIEPort.Features.Stormhammer
                 ComponentLocomotion locomotion = player.ComponentLocomotion;
                 locomotion.WalkSpeed -= state.WalkDelta;
                 state.WalkDelta = 0f;
-                bool enabled = IsEquipped(player) && player.ComponentHealth.Health > 0f
+                bool enabled = HoldsHammer(player)
                     && !locomotion.IsCreativeFlyEnabled && player.ComponentRider.Mount == null;
                 if (!enabled) continue;
                 state.WalkDelta = MathUtils.Max(0f, locomotion.WalkSpeed) * (StormhammerEquipmentRules.MovementFactor - 1f);
@@ -683,6 +683,13 @@ namespace SCIEPort.Features.Stormhammer
         }
 
         internal static bool IsEquipped(ComponentPlayer player) => player != null && player.IsAddedToProject && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == StormhammerAwakenedBlock.Index;
+        /// <summary>Both hammer forms carry the artifact default +20% ground movement.</summary>
+        internal static bool HoldsHammer(ComponentPlayer player)
+        {
+            if (player == null || !player.IsAddedToProject || player.ComponentHealth.Health <= 0f) return false;
+            int contents = Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue);
+            return contents == StormhammerAwakenedBlock.Index || contents == StormhammerBlock.Index;
+        }
         private static bool IsValidSkill(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment || skill == StormhammerSkill.MyriadTribulation;
         private static float Cooldown(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment ? JudgmentCooldown : UltimateCooldown;
         private static bool IsNewer(ushort value, ushort previous) => value != previous && (ushort)(value - previous) < 32768;

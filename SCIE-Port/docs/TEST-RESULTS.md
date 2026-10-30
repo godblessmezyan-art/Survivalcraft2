@@ -1,5 +1,64 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.55.5：神器默认属性规范与两件神器补齐
+
+用户要求：以后开发的神器若无特殊标注，默认 +20% 移速、+10% 攻速，并必须有该神器专属的物品栏背景；同时给海神三叉戟补陆地 +20% 移速（水中不变）与 +10% 攻速，给雷神之锤补 +20% 移速与 +10% 攻速。另要求助手不再推送 GitHub，只负责解冲突与提交。
+
+修改内容：
+- 规范：根 `AGENTS.md` 新增"神器默认属性与物品栏基准"章节，并把原来的"默认提交并推送"改为"默认只提交，`git push` 由用户执行"；`SCIE-Port/AGENTS.md` 与 `docs/INVENTORY-STANDARD.md` 同步登记三项要求（移速 +20%、攻速 +10%、专属背景），缺一不得标记完成。
+- 海神：`SpeedDelta(base,water)` 拆成陆地 +20%（`LandSpeedBonus`）与水中 +500%（`WaterSpeedBonus`）两条互斥增量，`ApplyPassive` 先归还再按当前状态重算；`AttackSpeedFactor=1.1` 在 `OnMinerHit` 里把 `m_lastHitTime` 前移 `0.66*(1-1/1.1)`，与四圣兽攻速相乘。
+- 雷神之锤：新增 `HoldsHammer`（942 与 943 都算持有），普通形态也获得 ×1.20 移速；`OnMinerHit` 对 943 同样按 ×1.10 缩短门限。觉醒形态原有数值不变，不与四圣兽的 1.1 重复叠乘。
+- 顺带修正 0.55.4 遗留：`AttackBody` 里水中近战倍率仍硬编码 `*2f`，改为 `PoseidonRules.MeleeMultiplier(true)`（×3），与文档的 55→165 一致。
+
+验证（离线）。实际构建命令：`SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`，exit 0，环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.5-build.log`。海神纯规则与布局检查 2402 → 3397 项，新增陆地 +20% 与水中 +500% 两条增量各 1000 帧不累积、攻速常量与近战倍率断言。静态契约新增/保留 `locomotion.WalkSpeed+=s.WalkDelta` 等守卫。
+
+未在 Android 7723 或真实多人世界运行。装机后需确认：陆地行走是否略快于原来、游泳仍为约 6 倍、近战间隔是否缩短约 10%、普通雷神之锤是否同样加速。
+
+最终包 `荒野探险家-0.55.5.netmod` / `荒野探险家.netmod` 字节一致：7,341,120 字节、143 项，SHA-256 `22D05B96FBBFDAE27D6810FEB9ED1D68AA6BCAA4CE3DA8A296C96CDAA3DB5322`；包内 Version=0.55.5、程序集 0.55.5.0，包内 `SCIEPort.dll` SHA-256 `1497A94F07733B80222EE5C84F60E5F5675854FBA939B7E269F0B412E5D372AC`，与构建输出一致。按用户 2026-10-30 要求，本次只做本地提交，未推送 GitHub。
+
+## 2026-10-30 main 0.55.4：海神三叉戟数值强化与水龙卷持续伤害
+
+用户要求：水中伤害两倍改三倍；水中移速太慢，200% 改 500%；大招水龙卷范围内要造成 52 点持续伤害，且只有蓝色水龙卷范围有（不是全屏）；二技能范围太小，要一道巨浪扑过去，加宽加高。
+
+修改内容：
+- 伤害倍率：`WaterDamageMultiplier` 2→3（一技能 14→42、二技能 44→132、普攻 55→165）；水盾吸收倍率单独保留为 `WaterShieldMultiplier=2`，不与伤害倍率耦合。
+- 移速：`WaterSpeedMultiplier` 3→6（+500%），仍是 `WalkSpeed` 自有增量、浸水 >0.5 触发、退出归还。
+- 大招改为环带持续伤害：`InVortex(radial,height)` 只判定半径 4.5–11.5 格、高 10 格的环带（与 5 座水龙卷的实际位置对齐），`DomainTickInterval=1` 秒、`DomainTickDamage=52`（水中 ×3=156）。`Cast.Ticks` 保存每个目标的下次可命中时间，`Prune` 在跟踪数达 96 时清理到期项；水龙卷改为向心拉扯（4 点内向冲量 +1.2 格抬升）把目标留在环内。扩散到 18 格的潮涌现在只是演出，不再造成伤害；边界潮纹改画在 11.5 格，与实际伤害带一致。
+- 二技能：`WaveWidth` 8→15、`WaveHeight` 4→8，演出高度 3.7→7.2 并把水墙细分从 7 行提到 8 行，射程 24 格不变。
+
+验证（离线，未启动游戏或 Android 设备）。实际构建命令（仓库根）：
+
+```text
+SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
+```
+
+构建 exit 0：环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.4-build.log`。海神纯规则与布局检查 2320 → 2402 项：新增水中三倍伤害、每跳 52/156、环带内外沿（4.4/11.6 拒绝）、72 方位环内外等价、15×8 巨浪边界与潮涌半径单调。静态契约新增 `PoseidonRules.InVortex(flat,delta.Y)`、`PoseidonRules.TickDamage(c.Water)`、`PoseidonRules.DomainTickInterval` 三条守卫；包 248 仍为 78 字节、66 字段往返不变，协议无改动。
+
+最终包 `荒野探险家-0.55.4.netmod` / `荒野探险家.netmod` 字节一致：7,341,084 字节、143 项，SHA-256 `80916119A44F481306F1967C2C547B9B7617A4E99D3BC3A8B6A14D3A5DD4F21E`；包内 Version=0.55.4、程序集 0.55.4.0，包内 `SCIEPort.dll` SHA-256 `1966E997392D01DB1B37B4D5FD7F5E7029F9A29737EBEEE43CF882249CF171BE`，与通过检查的构建输出一致。逐项比对 0.55.3 的 143 项，只有 `SCIEPort.dll` 与 `modinfo.json` 变化，模型、贴图、数据库、音频字节相同。
+
+未在 Android 7723 或真实多人世界运行，不声称手机验收完成。装机后重点确认：环带内是否每秒掉血且离开即停、领域中心与 18 格潮涌边缘不掉血、游泳速度是否 6 倍且高速下不穿墙。
+
+## 2026-10-30 main 0.55.3：海神三叉戟全向水龙卷与水中提速修复
+
+用户反馈两点：大招水龙卷应覆盖四面八方（旧版只朝施法朝向在正前方放两座水龙卷，判定用 `along/across` 的前向扫掠加两个偏移涡团）；持有三叉戟水中移速+200% 没有生效。第二点经目标程序集确认是真实缺陷：`Game.ComponentLocomotion` 只在 `SwimSpeed > 0 && SwimOrder.HasValue` 分支读取 `SwimSpeed`（x25.01.17 反编译 `NormalMovement`），玩家输入从不写入 `SwimOrder`（只有 `ComponentPilot` 写），所以旧实现改 `SwimSpeed` 对玩家完全无效。
+
+修改内容：
+- 领域判定改为纯半径：`PoseidonRules.InVortex(radial,height,radius)` 只读取目标与领域中心的水平距离和高度，`DomainRadiusAt(age)=18*sqrt(saturate((age-0.3)/2.2))` 在 2.2 秒内由 0 扩散到 18 格后恒定；`Strike` 的候选查询中心从 `Origin+Direction*16` 改为 `Origin`，半径 19。前后左右斜向完全等价，仍保留施法者头部到目标的墙体检查，不隔墙伤害。
+- 演出改为闭合潮涌水墙（`Surge`，2.2 秒扩散后收束）+ 环绕水龙卷（Low 3 / Medium 4 / High 5 座，按圆周均布并随时间旋转）+ 中心涡眼 + 18 格边界潮纹；旧的 `Wave(...,large)` 前向巨浪与 `DomainWaveDuration` 分支删除，二技能方向浪不变。
+- 移速改为 `WalkSpeed` 增量：`ApplyPassive` 先归还自己上次的增量再按 `SpeedDelta(base)=base*2` 重算，`SwimSpeed` 增量同时保留给 AI 路径；游泳判定为 `WaterBlock` 且浸水比例 >0.5（与原生游泳分支一致），浅滩浸水不足一半不加速。增量在离水/换物品/离开世界/Dispose 时归还，反复进出不叠加。
+
+验证（离线，未启动游戏或 Android 设备）。实际构建命令（仓库根，Framework 引用与 Python 均用本机已装版本）：
+
+```text
+SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
+```
+
+构建 exit 0：环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.3-build.log`。海神纯规则与布局检查由 2004 项增至 2320 项：新增 72 个方位（每 5 度）等距等价性、领域外沿 18 格边界、潮涌半径单调且收敛到 18、`SpeedDelta` 精确为 +200% 且 1000 帧不累积、零/负速度不产生增量。静态契约新增 `PoseidonRules.InVortex(flat,delta.Y,next)`、`locomotion.WalkSpeed+=s.WalkDelta`、`Swimming(p)` 三条守卫，`ComponentLocomotion.WalkSpeed` 写入能力纳入 ABI 检查。66 字段压缩往返与 41/78 字节包布局未变，网络协议无改动。
+
+最终包 `荒野探险家-0.55.3.netmod` / `荒野探险家.netmod` 字节一致：7,340,593 字节、143 项，SHA-256 `18DEEE1B98E3BB75DB0E3B757216FA2D904765607BD8E03B5530E4CA5705168E`；包内 Version=0.55.3、程序集 0.55.3.0，包内 `SCIEPort.dll` SHA-256 `A4E0BFD1047E1257997F141F9E38D61FEC6D53C4634AB4B0DA478CED8766714B`。相对 0.55.2 只改 `SCIEPort.dll` 与 `modinfo.json`，模型、贴图、数据库、音频保持原字节。
+
+未在 Android 7723 或真实多人世界运行，因此不声称手机验收完成。装机后需实测：站在领域中心朝四个方向各放一次确认全向覆盖且同一目标不重复受伤；游泳速度约为此前 3 倍、浅滩不加速、反复出水入水无叠加、卸下即恢复。若速度仍无变化，需确认是否处于浸水 >0.5 的游泳状态而非浅滩行走。
+
 ## 2026-10-30 main 0.55.2：星门 XML 兼容性再修复
 
 用户在 0.55.1 继续遇到 `XmlWriter.WriteStartElement(string)` 缺失，证实上一轮只改 Create 重载不足。保存现已完全移除 XmlWriter/XmlWriterSettings，使用固定 XML v1 编码；名称校验去掉 XmlConvert。读取只用固定 EntitySystem.dll 的 XmlUtils 原生加载链已引用的 XmlReader factory/settings，再交给 XElement.Load，提前限制长度并拒绝 DTD。解析方法禁止内联，外层仅捕获 MissingMemberException/TypeLoadException；运行时缺失接口时保留原始 VoidPortalRecords 并停用星门，不让该类解析错误阻断加载，不吞保存失败。

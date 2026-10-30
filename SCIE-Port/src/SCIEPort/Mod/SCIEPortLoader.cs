@@ -84,7 +84,10 @@ namespace SCIEPort.Mod
                 playerProbability = 1f; creatureProbability = 1f;
                 SubsystemStormhammerBlockBehavior.OnMeleeHit(miner, componentBody, hitPoint);
             }
-            float frequency = fourSaints != null ? fourSaints.AttackFrequency(player) : (contents == StormhammerAwakenedBlock.Index ? 1.1f : 1f);
+            float frequency = fourSaints != null ? fourSaints.AttackFrequency(player) : (contents == StormhammerAwakenedBlock.Index ? StormhammerEquipmentRules.AttackSpeedFactor : 1f);
+            // Artifact default attack speed: the plain hammer and the trident each add their own 10%.
+            if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
+            else if (contents == PoseidonBlock.Index) frequency *= PoseidonRules.AttackSpeedFactor;
             if (frequency > 1f) miner.m_lastHitTime -= .66 * (1.0 - 1.0 / frequency);
         }
 
@@ -98,7 +101,7 @@ namespace SCIEPort.Mod
             if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
             if (fourSaints != null && attackPower > 0f)
                 attackPower += FourSaintsRules.DamageBonus(SubsystemFourSaints.Wears(attackingPlayer, ClothingSlot.Legs, FourSaintsRules.BaihuIndex), fourSaints.IsAwakened(attackingPlayer));
-            if (isMeleeAttack && SubsystemPoseidon.Equipped(attackingPlayer) && SubsystemPoseidon.InWater(attackingPlayer)) attackPower *= 2f;
+            if (isMeleeAttack && SubsystemPoseidon.Equipped(attackingPlayer) && SubsystemPoseidon.InWater(attackingPlayer)) attackPower *= PoseidonRules.MeleeMultiplier(true);
             if (target != null && attacker != null && attacker.Project != null)
             {
                 SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);

@@ -1,10 +1,10 @@
-# 给 AI 的蓝图生成提示词 v0.22.0
+# 给 AI 的蓝图生成提示词 v0.23.0
 
 唯一生成规范：[BLUEPRINT-SPEC.md](BLUEPRINT-SPEC.md)。材料与家具：[blueprint-block-reference.md](blueprint-block-reference.md)；精确 DATA：[机器矩阵](blueprint-block-capabilities.json)。本文件不维护另一套旧格式。
 
 将以下提示词和上述三个文件的内容一起交给 AI：
 
-> 你是 Survivalcraft NET x25.01.17 / Builder Assistant v0.22.0 的蓝图生成器。请依据提供的统一规范、材料能力表和机器矩阵生成指定建筑。只输出一个严格 JSON 对象，不解释、不加 Markdown。
+> 你是 Survivalcraft NET x25.01.17 / Builder Assistant v0.23.0 的蓝图生成器。请依据提供的统一规范、材料能力表和机器矩阵生成指定建筑。只输出一个严格 JSON 对象，不解释、不加 Markdown。
 >
 > 使用 schemaVersion=3、kind="builderassistant.blueprint"、中文 name 和 cells 数组。每格 x/y/z 为唯一整数，材料只用能力表里的精确 key；非 cube 必须写实际 f，d 必须来自该类型 allowedData。推荐内联 key 并省略 size。未知能力请在设计中改用已支持材料，不捏造字段或方块。
 >

@@ -199,6 +199,9 @@ namespace BuilderAssistant.Tests
             if (args != null && args.Length == 2 && args[0] == "--capabilities")
                 return DumpBlockCapabilities(args[1]);
 
+            if (args != null && args.Length == 2 && args[0] == "--furnished-homes")
+                return DumpFurnishedHomes(args[1]);
+            TestFurnishedHomes();
             TestFurnitureTemplates();
             TestBlueprintLibraryAndPreview();
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
@@ -3193,14 +3196,16 @@ namespace BuilderAssistant.Tests
             Console.WriteLine("[TestWorkbenchSelectionCatalog]");
             BuildingSelectionService svc;
             BuildingWorkbench wb = NewWorkbench(out svc);
-            Check(svc.Choices.Count == 2, "parametric catalog offers cottage + house (no imported yet)");
+            Check(svc.Choices.Count == 3, "parametric catalog offers cottage, house and furnished home");
             Check(wb.SelectFirst().Accepted && wb.Choice.Kind == BuildingChoiceKind.Cottage, "first choice is the cottage");
             WorkbenchStatus next = wb.SelectNextChoice();
             Check(next.Accepted && wb.Choice.Kind == BuildingChoiceKind.House, "cycling advances to the house");
-            // Importing adds a third, read-only choice.
+            wb.SelectNextChoice();
+            Check(wb.Choice.Kind == BuildingChoiceKind.FurnishedHome, "cycling reaches furnished home");
+            // Importing adds a read-only choice.
             Blueprint imported = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
             svc.SetImportedBlueprint(imported);
-            Check(svc.Choices.Count == 3, "an imported blueprint appears as a third choice once loaded");
+            Check(svc.Choices.Count == 4, "loaded imported blueprint is an additional read-only choice");
             wb.SelectNextChoice();
             Check(wb.Choice != null && wb.Choice.Kind == BuildingChoiceKind.Imported, "cycling reaches the imported choice");
             Check(wb.CycleWidth().Accepted == false, "dimension knobs are refused for an imported blueprint");

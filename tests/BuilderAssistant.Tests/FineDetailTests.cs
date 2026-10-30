@@ -73,7 +73,7 @@ namespace BuilderAssistant.Tests
         private static int DumpBlockCapabilities(string path)
         {
             var root = BuilderAssistant.Core.Json.JsonValue.NewObject();
-            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.22.0"));
+            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.23.0"));
             root.Add("generationSpec", BuilderAssistant.Core.Json.JsonValue.NewString("BLUEPRINT-SPEC.md"));
             root.Add("maxImportChars", BuilderAssistant.Core.Json.JsonValue.NewNumber(BlueprintImportService.MaxImportChars));
             root.Add("maxBlocksPerOperation", BuilderAssistant.Core.Json.JsonValue.NewNumber(BuilderAssistant.Core.Safety.BuildSafetyLimits.MaxBlocksPerOperation));

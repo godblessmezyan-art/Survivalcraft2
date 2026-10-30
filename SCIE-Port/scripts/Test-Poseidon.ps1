@@ -37,8 +37,10 @@ try {
     for($x=0;$x -lt 256;$x++) { for($y=0;$y -lt 16;$y++) { if($poseidonBitmap.GetPixel($x,$y).A -ne 255){throw 'Weapon texture must be opaque.'} } }
 } finally { $poseidonBitmap.Dispose() }
 $poseidonHealth = $poseidonGame.GetType('Game.ComponentHealth',$true)
-$poseidonSwim = $poseidonGame.GetType('Game.ComponentLocomotion',$true).GetProperty('SwimSpeed')
-if (-not $poseidonHealth.GetProperty('Air').CanWrite -or -not $poseidonSwim.CanWrite) { throw 'Actual breathing/swimming ABI mismatch.' }
+$poseidonLocomotion = $poseidonGame.GetType('Game.ComponentLocomotion',$true)
+$poseidonSwim = $poseidonLocomotion.GetProperty('SwimSpeed')
+$poseidonWalk = $poseidonLocomotion.GetProperty('WalkSpeed')
+if (-not $poseidonHealth.GetProperty('Air').CanWrite -or -not $poseidonSwim.CanWrite -or -not $poseidonWalk.CanWrite) { throw 'Actual breathing/swimming ABI mismatch.' }
 if (-not $poseidonGame.GetType('Game.ComponentBody',$true).GetMethod('ApplyImpulse')) { throw 'Missing authoritative native impulse.' }
 $poseidonBlock = $poseidonGame.GetType('Game.Block',$true)
 foreach ($t in $poseidonGame.GetTypes()) {
@@ -76,7 +78,7 @@ foreach ($file in Get-ChildItem (Join-Path $poseidonProject 'Features') -Recurse
 if ($poseidonIds[951] -ne 'PoseidonBlock.cs' -or $poseidonNetIds[246] -ne 'PoseidonPackage.cs' -or $poseidonNetIds[248] -ne 'PoseidonV2Package.cs') { throw 'Independent IDs missing.' }
 $poseidonSource=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\SubsystemPoseidon.cs'))
 if ($poseidonSource -match '\b(ChangeCell|DestroyCell|SetCellValueFast|RemoveEntity|AddEntity|DamageActiveTool)\s*\(') { throw 'Poseidon must not alter terrain/entities/durability.' }
-foreach ($guard in @('if(!Authority||!Actor(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'PoseidonRules.Absorb(ref s.Shield')) {
+foreach ($guard in @('if(!Authority||!Actor(p)', 'if (Authority) Query', 'c.Hit.Add', 'PoseidonRules.MaxCandidates', 'ApplyPassive(s,false)', 'm_hud?.Dispose()', 'Wall(sightOrigin', 'PoseidonRules.Absorb(ref s.Shield', 'PoseidonRules.InVortex(flat,delta.Y)', 'PoseidonRules.TickDamage(c.Water)', 'PoseidonRules.DomainTickInterval', 'locomotion.WalkSpeed+=s.WalkDelta', 'Swimming(p)')) {
     if (-not $poseidonSource.Contains($guard)) { throw "Missing safety contract: $guard" }
 }
 $poseidonPacket=[IO.File]::ReadAllText((Join-Path $poseidonProject 'Features\Poseidon\PoseidonV2Package.cs'))

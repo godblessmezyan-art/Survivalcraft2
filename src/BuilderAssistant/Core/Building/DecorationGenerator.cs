@@ -21,7 +21,7 @@ namespace BuilderAssistant.Core.Building
             {
                 AddRidgeFinials(ctx);
             }
-            BuildFurniture(ctx);
+            if(ctx.Spec.Type != BuildingType.FurnishedHome) BuildFurniture(ctx);
         }
 
         private static void BuildChimney(BuildingContext ctx)
