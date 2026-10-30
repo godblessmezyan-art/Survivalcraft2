@@ -171,11 +171,12 @@ namespace SCIEPort.Features.Poseidon
             locomotion.WalkSpeed-=s.WalkDelta;locomotion.SwimSpeed-=s.SwimDelta;s.WalkDelta=0;s.SwimDelta=0;
             if(!active)return;
             if(InWater(p))p.ComponentHealth.Air=1;
-            if(!Swimming(p))return;
-            // Native player movement reads WalkSpeed (SwimSpeed is only consumed by AI SwimOrder),
-            // so the +500% water speed owns a WalkSpeed increment; the SwimSpeed copy keeps AI paths honest.
-            s.WalkDelta=PoseidonRules.SpeedDelta(locomotion.WalkSpeed);locomotion.WalkSpeed+=s.WalkDelta;
-            s.SwimDelta=PoseidonRules.SpeedDelta(locomotion.SwimSpeed);locomotion.SwimSpeed+=s.SwimDelta;
+            // Native player movement reads WalkSpeed (SwimSpeed is only consumed by AI SwimOrder):
+            // +20% on the ground, the much larger water bonus only while actually swimming.
+            bool swimming=Swimming(p);
+            s.WalkDelta=PoseidonRules.SpeedDelta(locomotion.WalkSpeed,swimming);locomotion.WalkSpeed+=s.WalkDelta;
+            if(!swimming)return;
+            s.SwimDelta=PoseidonRules.SpeedDelta(locomotion.SwimSpeed,true);locomotion.SwimSpeed+=s.SwimDelta;
         }
         private void Strike(Cast c,float age)
         {

@@ -24,9 +24,14 @@ internal static class Program
         Check(float.IsNaN(PoseidonRules.Absorb(ref shield,float.NaN,false))&&shield==3,"nonfinite shield ignored");
         shield=PoseidonRules.ShieldMaximum;shield=PoseidonRules.ShieldMaximum;Check(shield==5,"refresh nonstacking");
         float speed=3,delta=0;
-        for(int i=0;i<1000;i++){speed-=delta;delta=PoseidonRules.SpeedDelta(speed);speed+=delta;Check(Near(speed,18),"swim +500% no accumulation");}
+        for(int i=0;i<1000;i++){speed-=delta;delta=PoseidonRules.SpeedDelta(speed,true);speed+=delta;Check(Near(speed,18),"swim +500% no accumulation");}
         speed-=delta;Check(Near(speed,3),"swim restored");
-        Check(PoseidonRules.SpeedDelta(0)==0&&PoseidonRules.SpeedDelta(-2f)==0&&Near(PoseidonRules.SpeedDelta(2f),10f),"water speed bonus is exactly +500%");
+        float walk=3,walkDelta=0;
+        for(int i=0;i<1000;i++){walk-=walkDelta;walkDelta=PoseidonRules.SpeedDelta(walk,false);walk+=walkDelta;Check(Near(walk,3.6f),"ground +20% no accumulation");}
+        walk-=walkDelta;Check(Near(walk,3),"ground restored");
+        Check(PoseidonRules.SpeedDelta(0,true)==0&&PoseidonRules.SpeedDelta(-2f,true)==0&&Near(PoseidonRules.SpeedDelta(2f,true),10f),"water speed bonus is exactly +500%");
+        Check(Near(PoseidonRules.SpeedDelta(5f,false),1f)&&Near(5f+PoseidonRules.SpeedDelta(5f,false),6f),"ground speed bonus is exactly +20%");
+        Check(PoseidonRules.AttackSpeedFactor==1.1f&&PoseidonRules.MeleeMultiplier(true)==3f&&PoseidonRules.MeleeMultiplier(false)==1f,"artifact attack speed and melee multiplier");
         Check(PoseidonRules.WaveDistance(0)==0&&PoseidonRules.WaveDistance(99)==24,"wave travel bounded");
         foreach(float dt in new[]{1f/120,1f/30,.08f,.3f,2f})
         {

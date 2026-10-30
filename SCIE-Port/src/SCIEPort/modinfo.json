@@ -1,8 +1,8 @@
 ﻿{
   "Name": "荒野探险家",
-  "Version": "0.55.4",
+  "Version": "0.55.5",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.55.4 海神增强：水中伤害改三倍、水中移速改为+500%、大招水龙卷环内每秒52点持续伤害（只伤水龙卷范围）、二技能巨浪加宽到15格高8格。保留海神V2、阿比斯及四圣兽，Android7723实机待验收，联机双方请使用同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.55.5 落地神器默认属性：新神器默认+20%移速、+10%攻速并带专属物品栏背景；海神三叉戟补陆地+20%移速与+10%攻速（水中不变），雷神之锤普通形态同样享有。保留海神V2、阿比斯及四圣兽，Android7723实机待验收，联机双方请使用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

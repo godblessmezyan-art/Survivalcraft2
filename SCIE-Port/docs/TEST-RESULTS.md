@@ -1,5 +1,21 @@
 ﻿# 测试结果
 
+## 2026-10-30 main 0.55.5：神器默认属性规范与两件神器补齐
+
+用户要求：以后开发的神器若无特殊标注，默认 +20% 移速、+10% 攻速，并必须有该神器专属的物品栏背景；同时给海神三叉戟补陆地 +20% 移速（水中不变）与 +10% 攻速，给雷神之锤补 +20% 移速与 +10% 攻速。另要求助手不再推送 GitHub，只负责解冲突与提交。
+
+修改内容：
+- 规范：根 `AGENTS.md` 新增"神器默认属性与物品栏基准"章节，并把原来的"默认提交并推送"改为"默认只提交，`git push` 由用户执行"；`SCIE-Port/AGENTS.md` 与 `docs/INVENTORY-STANDARD.md` 同步登记三项要求（移速 +20%、攻速 +10%、专属背景），缺一不得标记完成。
+- 海神：`SpeedDelta(base,water)` 拆成陆地 +20%（`LandSpeedBonus`）与水中 +500%（`WaterSpeedBonus`）两条互斥增量，`ApplyPassive` 先归还再按当前状态重算；`AttackSpeedFactor=1.1` 在 `OnMinerHit` 里把 `m_lastHitTime` 前移 `0.66*(1-1/1.1)`，与四圣兽攻速相乘。
+- 雷神之锤：新增 `HoldsHammer`（942 与 943 都算持有），普通形态也获得 ×1.20 移速；`OnMinerHit` 对 943 同样按 ×1.10 缩短门限。觉醒形态原有数值不变，不与四圣兽的 1.1 重复叠乘。
+- 顺带修正 0.55.4 遗留：`AttackBody` 里水中近战倍率仍硬编码 `*2f`，改为 `PoseidonRules.MeleeMultiplier(true)`（×3），与文档的 55→165 一致。
+
+验证（离线）。实际构建命令：`SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release`，exit 0，环境/ABI、net472 Release、全部既有回归、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/poseidon-0.55.5-build.log`。海神纯规则与布局检查 2402 → 3397 项，新增陆地 +20% 与水中 +500% 两条增量各 1000 帧不累积、攻速常量与近战倍率断言。静态契约新增/保留 `locomotion.WalkSpeed+=s.WalkDelta` 等守卫。
+
+未在 Android 7723 或真实多人世界运行。装机后需确认：陆地行走是否略快于原来、游泳仍为约 6 倍、近战间隔是否缩短约 10%、普通雷神之锤是否同样加速。
+
+最终包 `荒野探险家-0.55.5.netmod` / `荒野探险家.netmod` 字节一致：7,341,120 字节、143 项，SHA-256 `22D05B96FBBFDAE27D6810FEB9ED1D68AA6BCAA4CE3DA8A296C96CDAA3DB5322`；包内 Version=0.55.5、程序集 0.55.5.0，包内 `SCIEPort.dll` SHA-256 `1497A94F07733B80222EE5C84F60E5F5675854FBA939B7E269F0B412E5D372AC`，与构建输出一致。按用户 2026-10-30 要求，本次只做本地提交，未推送 GitHub。
+
 ## 2026-10-30 main 0.55.4：海神三叉戟数值强化与水龙卷持续伤害
 
 用户要求：水中伤害两倍改三倍；水中移速太慢，200% 改 500%；大招水龙卷范围内要造成 52 点持续伤害，且只有蓝色水龙卷范围有（不是全屏）；二技能范围太小，要一道巨浪扑过去，加宽加高。
