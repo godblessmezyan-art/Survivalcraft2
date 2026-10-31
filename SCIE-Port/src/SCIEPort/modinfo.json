@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.65.1",
+  "Version": "0.65.2",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.65.1 修复死亡权柄地狱三头犬召唤后不可见的问题；保留原创三头模型、三首噬魂35基础伤害/3格/4秒、七只军势、次位面和现有契约存档。Android7723及真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.65.2 强化刻尔柏洛斯为37伤害/1秒/移速7，冥界猎犬生命37/伤害17/移速5，夜魇战马生命37/移速10。冥界军势面板显示主机同步的当前生命值，保留原有契约和次位面存档。Android7723及真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

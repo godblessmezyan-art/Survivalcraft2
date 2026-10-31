@@ -1,0 +1,24 @@
+{
+  "kind": "Compiled constant metadata only; not live gameplay verification",
+  "assembly_sha256": "96CA652B1D032EDCEE554608EBC1D6B3C3761134D2293E6C4E885F488475AD06",
+  "constants": {
+    "SCIEPort.Features.AbyssReaper.DeathSummonStats": {
+      "HoundHealth": 37.0,
+      "HoundDamage": 17.0,
+      "HoundSpeed": 5.0,
+      "HorseHealth": 37.0,
+      "HorseSpeed": 10.0,
+      "CerberusSpeed": 7.0
+    },
+    "SCIEPort.Features.AbyssReaper.CerberusRules": {
+      "Template": "SCIEPortCerberus",
+      "Name": "地狱三头犬·刻尔柏洛斯",
+      "SummonKind": 2,
+      "Damage": 37.0,
+      "Range": 3.0,
+      "Cooldown": 1.0,
+      "ImpactDelay": 0.24,
+      "AnimationDuration": 0.6
+    }
+  }
+}

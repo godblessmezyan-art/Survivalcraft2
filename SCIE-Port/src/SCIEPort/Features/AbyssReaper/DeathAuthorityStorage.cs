@@ -20,8 +20,8 @@ namespace SCIEPort.Features.AbyssReaper
         private void HealArmy(Guid owner)
         {
             foreach(var g in guards.Values)if(g.Owner==owner)Heal(g.Creature);
-            foreach(var f in hidden.Values)if(f.Owner==owner)f.HealOnReturn=true;
-            foreach(var f in saved.Values)if(!f.Discard&&f.Owner==owner)f.HealOnReturn=true;
+            foreach(var f in hidden.Values)if(f.Owner==owner){f.HealOnReturn=true;if(f.HealthKnown)f.HealthFraction=1;FriendPacket(f);}
+            foreach(var f in saved.Values)if(!f.Discard&&f.Owner==owner){f.HealOnReturn=true;if(f.HealthKnown)f.HealthFraction=1;FriendPacket(f);}
         }
         private string StowArmy(ComponentPlayer p)
         {
@@ -98,18 +98,26 @@ namespace SCIEPort.Features.AbyssReaper
                 else discardedEntities.RemoveAt(i);
             }
         }
-        private void UpdateClientMounts()
+        private void UpdateClientSummons()
         {
-            foreach(var pair in clientMountBonuses)pair.Key.WalkSpeed-=pair.Value;clientMountBonuses.Clear();
-            foreach(var f in clientFriends.Values)if(f.Warhorse&&!f.Hidden&&!f.Pending)
+            clientSummonsSeen.Clear();
+            foreach(var f in clientFriends.Values)if((f.Special||f.Cerberus)&&!f.Hidden&&!f.Pending)
                 terrain.Project.FindEntityById(f.EntityId,entity=>
                 {
                     if(!entity.IsAddedToProject)return;
-                    var locomotion=entity.FindComponent<ComponentLocomotion>(false);if(locomotion!=null&&!clientMountBonuses.ContainsKey(locomotion)){float bonus=Math.Max(0,locomotion.WalkSpeed)*.7f;locomotion.WalkSpeed+=bonus;clientMountBonuses.Add(locomotion,bonus);}
-                    var steed=entity.FindComponent<ComponentSteedBehavior>(false);var rider=entity.FindComponent<ComponentMount>(false)?.Rider?.ComponentCreature as ComponentPlayer;
-                    if(steed!=null)steed.IsActive=rider?.PlayerData.IsMainPlayer==true;
+                    var creature=entity.FindComponent<ComponentCreature>(false);float health,speed;
+                    if(creature==null||!DeathSummonStats.Profile(f.Special,entity.ValuesDictionary.DatabaseObject.Name,out health,out speed))return;
+                    var locomotion=creature.ComponentLocomotion;clientSummonsSeen.Add(locomotion);
+                    if(!clientSummonBonuses.ContainsKey(locomotion)){var bonus=new DeathSummonStats.Bonus();bonus.Apply(creature,f.Special,entity.ValuesDictionary.DatabaseObject.Name);clientSummonBonuses.Add(locomotion,bonus);}
+                    if(f.Warhorse)
+                    {
+                        var steed=entity.FindComponent<ComponentSteedBehavior>(false);var rider=entity.FindComponent<ComponentMount>(false)?.Rider?.ComponentCreature as ComponentPlayer;
+                        if(steed!=null)steed.IsActive=rider?.PlayerData.IsMainPlayer==true;
+                    }
                 });
+            retiredClientSummons.Clear();foreach(var pair in clientSummonBonuses)if(!clientSummonsSeen.Contains(pair.Key)){pair.Value.Release();retiredClientSummons.Add(pair.Key);}
+            foreach(var locomotion in retiredClientSummons)clientSummonBonuses.Remove(locomotion);
         }
-        private void ClearClientMounts(){foreach(var pair in clientMountBonuses)pair.Key.WalkSpeed-=pair.Value;clientMountBonuses.Clear();}
+        private void ClearClientSummons(){foreach(var pair in clientSummonBonuses)pair.Value.Release();clientSummonBonuses.Clear();clientSummonsSeen.Clear();retiredClientSummons.Clear();}
     }
 }

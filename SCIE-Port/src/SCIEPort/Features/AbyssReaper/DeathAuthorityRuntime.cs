@@ -146,7 +146,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(disposed)return;
             if(!Authority)
             {
-                var token=CommonLib.Net?.Server?.TokenId??Guid.Empty;if(token!=serverToken){serverToken=token;clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();snapshotId=lastSnapshot=0;hasClock=worldKnown=false;syncEchoes.Clear();lastServerTime=0;deferredWaves.Clear();waves.Clear();scene.Clear();foreach(var s in states.Values){s.Revision=0;s.EmpowerUntil=0;s.PendingUntil=0;s.NextSync=0;}}
+                var token=CommonLib.Net?.Server?.TokenId??Guid.Empty;if(token!=serverToken){serverToken=token;ClearClientSummons();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();snapshotId=lastSnapshot=0;hasClock=worldKnown=false;syncEchoes.Clear();lastServerTime=0;deferredWaves.Clear();waves.Clear();scene.Clear();foreach(var s in states.Values){s.Revision=0;s.EmpowerUntil=0;s.PendingUntil=0;s.NextSync=0;}}
                 if(hasClock)lastServerTime=Math.Max(lastServerTime,Now+clockOffset);
                 foreach(var p in players.ComponentPlayers)if(p.PlayerData.IsMainPlayer&&Actor(p,false)){var s=Get(p);if(Now>=s.NextSync){s.NextSync=Now+2;Request(p,DeathAuthorityRules.Sync,Vector3.UnitZ);}break;}
             }
@@ -154,14 +154,14 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority&&hasClock&&deferredWaves.Count>0){var waiting=deferredWaves.ToArray();deferredWaves.Clear();foreach(var packet in waiting)Receive(packet);}
             foreach(var s in states.Values){if(s.PendingUntil>0&&Now>=s.PendingUntil){s.PendingUntil=0;Message(s.Player,"房主响应超时，请重试");}if(!Actor(s.Player)||!s.Death){if(s.EmpowerUntil>0)ClearMarks(s.Player.PlayerGuid);s.EmpowerUntil=0;}}
             retiredMarks.Clear();foreach(var item in marks)if(!item.Key.IsAddedToProject||item.Key.ComponentHealth.Health<=0||Now>=item.Value.Until)retiredMarks.Add(item.Key);foreach(var c in retiredMarks)marks.Remove(c);
-            if(Authority){UpdateDiscarded();UpdateGuards();UpdateWaves();}
-            else{UpdateClientMounts();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
+            if(Authority){UpdateDiscarded();UpdateGuards();UpdateWaves();UpdateArmyHealth();}
+            else{UpdateClientSummons();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
             if(Now>=nextDrawBind){nextDrawBind=Now+.5;drawOwners.Clear();foreach(var p in players.ComponentPlayers){var fp=p.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)drawOwners[fp.m_drawBlockEnvironmentData]=p;var human=p.Entity.FindComponent<ComponentHumanModel>(false);if(human!=null)drawOwners[human.m_drawBlockEnvironmentData]=p;}}
             scene.Update(Now);
         }
         internal bool EmpoweredDraw(DrawBlockEnvironmentData e){ComponentPlayer p;return e!=null&&drawOwners.TryGetValue(e,out p)&&Empowered(p);}
         private void ClearMarks(Guid id){retiredMarks.Clear();foreach(var pair in marks)if(pair.Value.Owner==id)retiredMarks.Add(pair.Key);foreach(var c in retiredMarks)marks.Remove(c);}
         internal void Draw(Camera camera)=>scene.Draw(camera,waves,Now,Quality);
-        public void Dispose(){if(disposed)return;disposed=true;ClearClientMounts();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
+        public void Dispose(){if(disposed)return;disposed=true;ClearClientSummons();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
     }
 }

@@ -4,7 +4,7 @@
     <EntityTemplate Name="SCIEPortCerberus" Guid="fdd33315-6052-5782-916d-aebf2852eecd" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
       <MemberComponentTemplate Name="Creature" Guid="a94fbdb8-a7a6-5ad4-a63c-763f9e809e01">
         <Parameter Name="DisplayName" Guid="1e0b070b-9fe4-5fff-ae2c-573bb7007062" Value="地狱三头犬·刻尔柏洛斯" Type="string" />
-        <Parameter Name="Description" Guid="406adb1e-fd32-5d6b-ad87-5508c53aabbe" Value="死亡权柄唯一契约兽。三首噬魂：单目标35伤害、3格、4秒。骑乘待第二阶段。" Type="string" />
+        <Parameter Name="Description" Guid="406adb1e-fd32-5d6b-ad87-5508c53aabbe" Value="死亡权柄唯一契约兽。三首噬魂：单目标37伤害、3格、1秒。骑乘待第二阶段。" Type="string" />
         <Parameter Name="ConstantSpawn" Guid="d60c5032-64d9-528c-aef9-2aae6271a4c6" Value="True" Type="bool" />
         <Parameter Name="KillVerbs" Guid="f3fffc69-2fe9-56a3-a758-068fddd80129" Value="mauled" Type="string" />
       </MemberComponentTemplate>
@@ -30,12 +30,12 @@
         <Parameter Name="FireResilience" Guid="d5fbd969-a8cc-5d33-a728-cfebac9581e8" Value="40" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Locomotion" Guid="27412f93-40ec-5872-9cd4-3691808a2896">
-        <Parameter Name="WalkSpeed" Guid="b749f546-92c8-5449-9bba-bfb371064c62" Value="5.8" Type="float" />
+        <Parameter Name="WalkSpeed" Guid="b749f546-92c8-5449-9bba-bfb371064c62" Value="7" Type="float" />
         <Parameter Name="TurnSpeed" Guid="e86a5611-2fcf-55ed-a852-0f5b71df35f8" Value="4" Type="float" />
         <Parameter Name="AccelerationFactor" Guid="d11d155f-0db5-53eb-af72-d9cea77f0fbf" Value="0.7" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Miner" Guid="6177e311-a72a-5286-8c46-1aa3fb5b4f68">
-        <Parameter Name="AttackPower" Guid="cad0e2c1-2bb9-53bf-a46d-db250dbe378a" Value="35" Type="float" />
+        <Parameter Name="AttackPower" Guid="cad0e2c1-2bb9-53bf-a46d-db250dbe378a" Value="37" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Spawn" Guid="6896b987-9908-5f16-a300-4359c2c095b8">
         <Parameter Name="AutoDespawn" Guid="9eb70440-756a-5e22-9a56-5503d6f7599f" Value="False" Type="bool" />

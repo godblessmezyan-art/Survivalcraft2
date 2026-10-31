@@ -1,5 +1,17 @@
 # 测试结果
 
+## 2026-11-01 main 0.65.2：军势数值和生命列，仅编译/资源检查
+
+基线`4aef004` / 0.65.1，工作区干净；回退点`backup/abyss-0.65.1-before-army-balance`及旧包保留。按用户要求：刻尔柏洛斯37基础伤害/1秒间隔/WalkSpeed7；专属猎犬37生命基准/17基础伤害/WalkSpeed5；战马37生命基准/WalkSpeed10，伤害12保持。旧召唤绑定/现身同样应用，保留生命百分比；自有速度和韧性增量不逐帧叠加，不修改普通转化生物及野生模板。详情见[军势说明](ABYSS-ARMY-0.65.2.md)。
+
+面板七行新增独立生命列，名字截断，低血量变色，面板/字体仍沿用原有自适应尺寸；普通客户端显示房主Kind3健康元数据，房主每0.5秒仅检查最多24个现存契约，值变化才发。次位面记录生命，旧隐藏快照只读恢复信息，待加载无记录显示待同步。252字节布局/原249/250保持；契约读v1/v2写v2，增加可选健康字段，旧0–4秒咬合剩余值读入后截到1秒，不让健康元数据损坏导致契约丢失。
+
+执行设置`FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2`，直接运行`Build-ManualTestCandidate.ps1 -GameDir D:/Games/SCNET-x25.01.17 -BaselinePackage <0.65.1包> -AssetUpdates @('Assets/Database/AbyssCerberus.xdb')`。最终`artifacts/army-0.65.2-package.log`：Release退出0，**0警告0错误**。初次缺少TextAnchor的Engine.Graphics命名空间已修正。读取实际编译程序集常量确认新数值（`design/death-army/compiled-values-0.65.2.json`）；原生数据库静态合并确认新Cerberus模板37/7/300，原狼/马模板原值仍为25/4、30/6.7，强化由契约局部运行时实现。原生Steed等接口只读检查不代表骑乘行为通过。
+
+包最终8,580,656字节/153条目，SHA256 `68AC99867F5BEA637DEA92969DB104220D5C6BFEC22CD9F0DDC818ADF229DF9A`；DLL SHA `96CA652B1D032EDCEE554608EBC1D6B3C3761134D2293E6C4E885F488475AD06`。仅XDB/DLL/modinfo三条变化，其余150条逐字节保持，无新增或删除；模型/贴图与0.65.1一致，模板GUID及继承身份保持，源文件与包内资源相同，通用名和版本副本字节一致。详见`design/death-army/package-comparison-0.65.2.json`。
+
+沿用用户亲自测试的安排，**未运行自动化行为套件、GPU、真实游戏、Android或多人会话**。主机/普通客户端骑乘速度、受伤/回血时面板刷新、长名称触屏布局、旧存档及次位面恢复、37点基础伤害/1秒间隔均 **待验证**，未继承旧版本测试通过结论。各方统一0.65.2，其他神器/方块ID/星门/七只及唯一性机制保持。
+
 ## 2026-11-01 main 0.65.1：三头犬不可见及同批模型绘制修复
 
 基线`8649582` / 0.65.0，开发前工作区干净；回退分支`backup/abyss-0.65.0-before-render-fix`和旧包保留。用户确认召唤有记录并显示成功但看不到三头犬，并补充多只猎犬只显示一头。只读审计固定目标：`Game.ModLoader.GetMaxInstancesCount()`返回7，本工程未覆盖；`SubsystemModelsRenderer.DrawInstancedModels`按实体设置`ModelShader.InstancesCount`，超过`Transforms.MaxWorldMatrices`会抛`Invalid instances count.`。旧DAE实际9骨，属于确定资源不兼容，且可打断同一批次后续模型绘制；猎犬症状是否完全由此造成仍待用户复测。

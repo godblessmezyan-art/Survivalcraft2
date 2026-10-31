@@ -1,0 +1,18 @@
+{
+  "kind": "Package integrity and template identity only; no game, GPU or behavioral tests",
+  "baseline_sha256": "5F094F42E7091BB46663F750448C8869DF666402623A3B20AEEA3B2657F275CD",
+  "package_sha256": "68AC99867F5BEA637DEA92969DB104220D5C6BFEC22CD9F0DDC818ADF229DF9A",
+  "dll_sha256": "96CA652B1D032EDCEE554608EBC1D6B3C3761134D2293E6C4E885F488475AD06",
+  "bytes": 8580656,
+  "entries": 153,
+  "added": [],
+  "removed": [],
+  "changed": [
+    "Assets/Database/AbyssCerberus.xdb",
+    "SCIEPort.dll",
+    "modinfo.json"
+  ],
+  "preserved": 150,
+  "template_identity_preserved": true,
+  "model_texture_identical_to_0_65_1": true
+}
