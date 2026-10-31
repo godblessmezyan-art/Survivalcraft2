@@ -204,7 +204,12 @@ namespace SCIEPort.Features.AbyssReaper
                     choiceSource=packet.Portal;
                     VoidPortalDialog d;if(dialogs.TryGetValue(p,out d))Close(p,d);
                 }
-                p.ComponentGui?.DisplaySmallMessage(packet.Text,Color.White,false,false);return;
+                // A corrupt/unsupported world record is already preserved and logged at load.
+                // Keep its error in the portal dialog, but do not show an unsolicited HUD toast
+                // when the initial background sync runs without an open dialog.
+                if(packet.Text!="星门存档不可用，原记录已保留" || dialogs.ContainsKey(p))
+                    p.ComponentGui?.DisplaySmallMessage(packet.Text,Color.White,false,false);
+                return;
             }
             if(packet.Kind>=Prepare){Travel?.Receive(p,packet);return;}
             if(Authority)return;
@@ -252,6 +257,10 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority)return;
             retired.Clear();foreach(var pair in peers)if(!Actor(pair.Value.Player))retired.Add(pair.Key);
             foreach(var id in retired)peers.Remove(id);
+            // A failed save load intentionally leaves Portals null and the raw record intact.
+            // Do not re-issue a failed background snapshot every 0.25 game seconds.
+            // Explicit Sync still goes through Snapshot and reports the problem to the player.
+            if(owner.Portals==null)return;
             if(clock.GameTime<nextSync)return;nextSync=clock.GameTime+.25;
             int budget=2;
             foreach(var p in players.ComponentPlayers)
