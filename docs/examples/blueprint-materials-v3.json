@@ -1,0 +1,1123 @@
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "基础地形与装饰18种展台",
+  "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 0,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 1,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 2,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 3,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 4,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 5,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 6,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 7,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 8,
+      "key": "DirtBlock"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 1,
+      "key": "DirtBlock",
+      "f": "cube",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 1,
+      "key": "IceBlock",
+      "f": "cube",
+      "d": 0
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 1,
+      "key": "SandBlock",
+      "f": "falling",
+      "d": 0
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 1,
+      "key": "GravelBlock",
+      "f": "falling",
+      "d": 0
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 1,
+      "key": "GrassBlock",
+      "f": "grass",
+      "d": 0
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "z": 1,
+      "key": "SoilBlock",
+      "f": "soil",
+      "d": 7
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 4,
+      "key": "SnowBlock",
+      "f": "snow",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 4,
+      "key": "TallGrassBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 4,
+      "key": "RedFlowerBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 4,
+      "key": "PurpleFlowerBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 4,
+      "key": "WhiteFlowerBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "z": 4,
+      "key": "DryBushBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 7,
+      "key": "LargeDryBushBlock",
+      "f": "plant",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 7,
+      "key": "FallenLeavesBlock",
+      "f": "groundcover",
+      "d": 0
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 7,
+      "key": "CarpetBlock",
+      "f": "carpet",
+      "d": 11
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 7,
+      "key": "GravestoneBlock",
+      "f": "gravestone",
+      "d": 11
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 7,
+      "key": "JackOLanternBlock",
+      "f": "lantern",
+      "d": 2
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "z": 7,
+      "key": "CairnBlock",
+      "f": "cairn",
+      "d": 0
+    }
+  ]
+}

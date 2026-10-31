@@ -71,6 +71,16 @@ namespace BuilderAssistant.Features.WorldEdit
                 case BlockFamily.Log: return block is WoodBlock;
                 case BlockFamily.Ladder: return block is LadderBlock;
                 case BlockFamily.Torch: return block is TorchBlock;
+                case BlockFamily.Falling: return block is SandBlock || block is GravelBlock;
+                case BlockFamily.Grass: return block is GrassBlock;
+                case BlockFamily.Soil: return block is SoilBlock;
+                case BlockFamily.Snow: return block is SnowBlock;
+                case BlockFamily.Plant: return block is CrossBlock;
+                case BlockFamily.Carpet: return block is CarpetBlock;
+                case BlockFamily.GroundCover: return block is FallenLeavesBlock;
+                case BlockFamily.Gravestone: return block is GravestoneBlock;
+                case BlockFamily.Lantern: return block is JackOLanternBlock;
+                case BlockFamily.Cairn: return block is CairnBlock;
                 default: return false;
             }
         }

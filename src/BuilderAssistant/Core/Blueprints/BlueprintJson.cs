@@ -330,7 +330,7 @@ namespace BuilderAssistant.Core.Blueprints
                     string famTag = famNode.IsString ? famNode.StringValue : null;
                     if (!famNode.IsString || !BlockOrientation.TryParseFamilyTag(famTag, out family))
                     {
-                        result.AddError("cells[" + i + "] 朝向/方块族标签非法（应为 cube/stairs/slab/fence/door/log）：" + famTag);
+                        result.AddError("cells[" + i + "] 朝向/方块族标签非法（参见当前能力表）：" + famTag);
                         continue;
                     }
                 }

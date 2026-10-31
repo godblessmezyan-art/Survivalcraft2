@@ -19,6 +19,7 @@
     <Compile Include="FurnitureTests.cs" />
     <Compile Include="BlueprintLibraryTests.cs" />
     <Compile Include="FurnishedHomeTests.cs" />
+    <Compile Include="TerrainMaterialTests.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Building\FurnishedHomeLayout.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Building\HomeCirculationValidator.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Core\Blueprints\BlueprintFileLibrary.cs" />

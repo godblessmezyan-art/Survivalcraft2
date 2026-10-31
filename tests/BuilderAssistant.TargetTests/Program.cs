@@ -4,7 +4,7 @@ using System.Reflection;
 using BuilderAssistant.Core.Blueprints;
 using Game;
 
-internal static class TargetTests
+internal static partial class TargetTests
 {
     private static int _checks;
     private static void Check(bool pass, string name)
@@ -33,6 +33,7 @@ internal static class TargetTests
         Check(typeof(Camera).GetProperty("ViewProjectionMatrix").PropertyType==typeof(Engine.Matrix),"placement camera projection ABI");
         Check(typeof(Widget).GetProperty("Margin").PropertyType==typeof(Engine.Vector2),"touch preview margin ABI");
         Check(typeof(Engine.Graphics.FlatBatch3D).GetMethod("QueueBoundingBox",new[] { typeof(Engine.BoundingBox),typeof(Engine.Color) })!=null,"placement line-box rendering ABI");
+        TestTerrainMaterialSupport();
         foreach (VanillaBlockCapability capability in VanillaBlockCapabilities.All)
         {
             Type type = typeof(Block).Assembly.GetType("Game." + capability.TypeName,true);
@@ -47,6 +48,16 @@ internal static class TargetTests
                 case BlockFamily.Log: expected = typeof(WoodBlock); break;
                 case BlockFamily.Ladder: expected = typeof(LadderBlock); break;
                 case BlockFamily.Torch: expected = typeof(TorchBlock); break;
+                case BlockFamily.Falling: expected = typeof(CubeBlock); break;
+                case BlockFamily.Grass: expected = typeof(GrassBlock); break;
+                case BlockFamily.Soil: expected = typeof(SoilBlock); break;
+                case BlockFamily.Snow: expected = typeof(SnowBlock); break;
+                case BlockFamily.Plant: expected = typeof(CrossBlock); break;
+                case BlockFamily.Carpet: expected = typeof(CarpetBlock); break;
+                case BlockFamily.GroundCover: expected = typeof(FallenLeavesBlock); break;
+                case BlockFamily.Gravestone: expected = typeof(GravestoneBlock); break;
+                case BlockFamily.Lantern: expected = typeof(JackOLanternBlock); break;
+                case BlockFamily.Cairn: expected = typeof(CairnBlock); break;
                 default: throw new InvalidOperationException("Unexpected family");
             }
             Check(expected.IsAssignableFrom(type) && type.GetField("Index").IsLiteral, "registry runtime family/index " + capability.TypeName);

@@ -1,20 +1,33 @@
-# Builder Assistant 蓝图方块能力清单 v0.23.0
+# Builder Assistant 蓝图方块能力清单 v0.24.0
 
-2026-10-31：SCIE-Port 0.62.0仅更新阿比斯冷却/普攻斩痕/蓄力重击及247命令类型；材料、族、DATA、家具模板、施工限额和蓝图存档格式保持，神器技能不能作为蓝图方块。
+更新于2026-10-31。支持 **81种**原版材料、10种结构块家具模板；本轮新增18种地形和装饰材料。格式见[统一规范](BLUEPRINT-SPEC.md)，精确合法DATA见[代码生成矩阵](blueprint-block-capabilities.json)，提示词见[AI生成提示](AI-BLUEPRINT-PROMPT.md)。schema1/2/3继续可读，新输出使用schema3。
 
-2026-10-31：SCIE-Port 0.61.1仅扩大阿比斯三技能视觉；本清单的材料、族、DATA、家具模板、限额与存档格式保持，技能几何不是蓝图方块。
+Windows固定哈希x25.01.17的ABI及隔离规则验证与Android7723实机分开记录；真实游戏、手机行为和联机同步均待验证。SCIE-Port是独立工程，神器/载具及其ID不能用于蓝图。
 
-2026-10-31：SCIE-Port 0.61.0仅改阿比斯技能/HUD/图标及新增独立251协议；本清单63种材料、族标签、DATA、家具模板和施工限额保持，不得将神器ID952或技能几何写入蓝图。此为能力无变更记录。
+## v0.24.0 新增材料
 
-本文件只列出建筑材料、DATA 和家具能力；生成格式统一见 [蓝图生成规范](BLUEPRINT-SPEC.md)，可复制提示词见 [AI 提示模板](AI-BLUEPRINT-PROMPT.md)。
+| 类型 | f | 精确d | 支撑与自然行为 |
+|---|---|---|---|
+| DirtBlock | cube | 0 | 泥土；邻近草地可自然扩散到泥土 |
+| IceBlock | cube | 0 | 冰；天气或其他原生机制可破坏/改变，不冻结环境 |
+| SandBlock / GravelBlock | falling | 0 | 沙/砂砾；Y>0需下方完整顶面或耕地，按依赖先建支撑，完工复核 |
+| GrassBlock | grass | 0/1 | 0普通、1积雪边缘标记；由上方积雪和光照等环境重算，不是颜色 |
+| SoilBlock | soil | 0..7 | 位0湿润，位1..2肥力0..3；会受踩踏、覆盖、灌溉等影响 |
+| SnowBlock | snow | 0 | 固定1/8格薄雪，不能用DATA改变厚度；支撑用原生CanSupportSnow |
+| TallGrassBlock | plant | 0/8 | 0成熟高草，8幼草；下方需泥土/草地/沙/耕地，幼草可长大 |
+| RedFlowerBlock / PurpleFlowerBlock / WhiteFlowerBlock | plant | 0/1 | 0成熟花、1幼花；土类支撑规则同上，幼花可长大 |
+| DryBushBlock / LargeDryBushBlock | plant | 0 | 枯灌木；土类支撑规则同上，拒绝幼草/幼花的DATA |
+| FallenLeavesBlock | groundcover | 0 | 固定1/16格落叶；需不透明支撑，受季节/天气影响 |
+| CarpetBlock | carpet | 0..15 | 颜色索引；需不透明支撑，降雨可使其消失 |
+| GravestoneBlock | gravestone | 0..15 | 低3位造型0..7，位3轴向0/1；每90°切换轴向，镜像保持轴向 |
+| JackOLanternBlock | lantern | 0..3 | 南瓜灯四向；下方需不透明顶面或栅栏，保留原生发光 |
+| CairnBlock | cairn | 0 | 石堆；本工具要求不透明地基，只开放0，不复制原生掉落变种DATA |
 
-支持 63 种原版方块，10 种结构块家具模板。schema 1/2/3 均可导入，新生成和新保存统一使用 schema 3。v0.23.0 不新增材料或 DATA；机器可读的 [逐类型能力矩阵](blueprint-block-capabilities.json) 由代码生成，列出精确 allowedData 和限额。
+所有依附材料的支撑可来自蓝图，也可来自已加载世界；清障不绕过支撑要求。不透明地基不等于任意碰撞形状，沙/砂砾的活板门等特殊支撑暂不接受。不可悬空生成沙柱；Y=0按原生世界底边视为沙/砂砾隐式支撑。
 
-v0.23.0 新增工作台“一室一厅（自动家具）”，使用现有7个模板自动分房并避让通道；不增加任何材料、族标签、DATA或家具模板ID。示例见 [一室一厅](examples/furnished-homes/)，生成参数见 [开发说明](BUILDER-FURNISHED-HOME-0.23.0.md)。
+**自然材料可以导入和建造，但不会被永久定格。** 本版不拦截天气、随机轮询、移动沙块、自然生长或掉落。撤销只对仍匹配已写值的格子执行，已自然变化/被玩家修改的格子保留；不保证回收移动方块、掉落物或撤回周围自然传播。`environmentMutable=true`、`undoTerrain=false`记录这一边界，并非禁用已有撤销。
 
-Windows 固定哈希 x25.01.17 的 ABI/离线测试已确认，Android 7723 与真实联机待验证。SCIE-Port 的神器、载具和物品不属于本清单，不得写入蓝图。
-
-2026-10-30：SCIE-Port 0.56.0 仅更新神器领域视觉、伤害保护及独立网络包249；本蓝图材料、族、DATA 与限制无变化，神器不得作为蓝图方块。
+[18种材料展台JSON](examples/blueprint-materials-v3.json)可直接导入；不需要新schema。该展台没有真实水、岩浆、电路、容器或实体状态。
 
 ## 家具模板（v0.19.0 / schema 3）
 
@@ -72,11 +85,11 @@ JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
 
 ## JSON 格式与兼容性
 
-继续读取 schemaVersion 1/2/3，纯 cells 默认导出 2，含家具模板导出 3。`d` 是该类型/族的原生 DATA 整数，已经能够无歧义表达颜色、角形、轴向和朝向，家具模板以独立 furniturePlacements 列表使用 schemaVersion 3，精细方块仍沿用原有 DATA 编码。旧文件中的合法值含义不变；新状态文件不能由旧 Mod 完整重建，应升级 Mod，不能删掉 `d` 降级。
+继续读取 schemaVersion 1/2/3，新生成和保存统一导出 3（包括纯 cells）。`d` 是该类型/族的原生 DATA 整数，已经能够无歧义表达颜色、角形、轴向和朝向，家具模板以独立 furniturePlacements 列表使用 schemaVersion 3，精细方块仍沿用原有 DATA 编码。旧文件中的合法值含义不变；新状态文件不能由旧 Mod 完整重建，应升级 Mod，不能删掉 `d` 降级。
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "kind": "builderassistant.blueprint",
   "name": "painted-sample",
   "size": {
@@ -106,7 +119,7 @@ JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
 - `cells` 最多 10000 格，任何轴最多 64 格；引擎生成的门上半格也计入事务、尺寸和批次限制。每批最多 32 格，撤销和回滚也分批。
 - 坐标必须是整数、唯一；规范化后最小角为 (0,0,0)。`size` 若提供必须与计算结果一致。
 - 材料可用 `materials`+`m`，也可用 cell 的 `key`。`materials[].block` 若提供，必须与材料映射一致。
-- `f` 缺省为 `cube`，`d` 缺省为 0；楼梯、半砖、栅栏、门、原木、梯子和火把必须显式写相应 `f`。非字符串 `f` 拒绝。
+- `f` 缺省为 `cube`，`d` 缺省为 0；任何非 cube 材料必须显式写对应 `f`（见机器矩阵）。非字符串 `f` 拒绝。
 - 非法 DATA、无颜色标志但带颜色负载、未定义的楼梯 corner=3、原木别名 3 和未知高位全部拒绝，不做掩码截断。
 - `props`、复杂实体状态、可执行 `buildOps` 继续拒绝。不得写数字方块 ID、Mod 工具 ID 或未开放类型。
 
@@ -129,11 +142,11 @@ JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
 
 坐标旋转 `(dx,dz)->(-dz,dx)`；旋转编号每次减1 mod4。镜像反转 X；普通朝向编号 `(-r)&3`；楼梯角形镜像为 `(1-r)&3`；门镜像还切换位3。横向原木每次90度互换1/2，X镜像不变。所有颜色位保留。
 
-## 支持的具体类型
+## 支持的具体类型（由当前机器矩阵列出）
 
 ### cube
 
-`CobblestoneBlock`, `StoneBrickBlock`, `PlanksBlock`, `BricksBlock`, `GlassBlock`, `BasaltBlock`, `GraniteBlock`, `MarbleBlock`, `SandstoneBlock`, `ClayBlock`, `LimestoneBlock`, `MalachiteBlock`, `CoalBlock`, `CoalOreBlock`, `CopperBlock`, `CopperOreBlock`, `DiamondBlock`, `DiamondOreBlock`, `GermaniumOreBlock`, `IronBlock`, `IronOreBlock`, `SaltpeterOreBlock`, `SemiconductorBlock`, `SulphurOreBlock`, `FramedGlassBlock`, `WindowBlock`, `WickerLampBlock`, `SpruceLeavesBlock`, `TallSpruceLeavesBlock`
+`CobblestoneBlock`, `StoneBrickBlock`, `PlanksBlock`, `BricksBlock`, `GlassBlock`, `BasaltBlock`, `GraniteBlock`, `MarbleBlock`, `SandstoneBlock`, `ClayBlock`, `LimestoneBlock`, `MalachiteBlock`, `CoalBlock`, `CoalOreBlock`, `CopperBlock`, `CopperOreBlock`, `DiamondBlock`, `DiamondOreBlock`, `GermaniumOreBlock`, `IronBlock`, `IronOreBlock`, `SaltpeterOreBlock`, `SemiconductorBlock`, `SulphurOreBlock`, `FramedGlassBlock`, `WindowBlock`, `WickerLampBlock`, `SpruceLeavesBlock`, `TallSpruceLeavesBlock`, `DirtBlock`, `IceBlock`
 
 ### stairs
 
@@ -163,6 +176,46 @@ JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
 
 `TorchBlock`
 
+### falling
+
+`SandBlock`, `GravelBlock`
+
+### grass
+
+`GrassBlock`
+
+### soil
+
+`SoilBlock`
+
+### snow
+
+`SnowBlock`
+
+### plant
+
+`TallGrassBlock`, `RedFlowerBlock`, `PurpleFlowerBlock`, `WhiteFlowerBlock`, `DryBushBlock`, `LargeDryBushBlock`
+
+### groundcover
+
+`FallenLeavesBlock`
+
+### carpet
+
+`CarpetBlock`
+
+### gravestone
+
+`GravestoneBlock`
+
+### lantern
+
+`JackOLanternBlock`
+
+### cairn
+
+`CairnBlock`
+
 ## 逻辑材料键
 
 | key | 真实类型 |
@@ -187,371 +240,106 @@ JSON 导出保留模板引用；整份蓝图旋转/镜像也保留引用。
 | `LogBranch` | `OakWoodBlock` |
 | `Leaves` | `SpruceLeavesBlock` |
 
-## 支撑、施工与撤销边界
+## 支撑、施工与撤销
 
-目标程序集 `CellFace` 向量：0=(0,0,+1)、1=(+1,0,0)、2=(0,0,-1)、3=(-1,0,0)、4=(0,+1,0)。梯子/火把的支撑坐标为本格减此向量。梯子使用目标 `IsFaceTransparent` 判断接触面；火把检查支撑 `IsCollidable`。支撑可以来自蓝图，也可以来自已加载世界；计划先验证，再按依赖排序，执行前再验证，完成后跨一次更新按批复核。
+梯子/火把沿用既有安装面规则；新地面依附材料使用正下方一格。BuildPlanner按依赖先放支撑，BuildTask在写前和完工阶段分批复核；撤销按逆依赖移除，恢复失败保留队列。门关联格限制、10000格事务/64格单轴/32格批次、区块等待、主机权限和保护后续修改不变。
 
-撤销按依赖逆序进行，失败时停止并保留剩余队列。门上半格在修改前抓取原值；门目前只接受空气下半落点和空闲上半格，清障模式也不能绕过。已经存在的门不能通过覆盖模式替换。光照变化不被误判为玩家编辑；真正的后续方块/DATA 修改保留。
+`preserveData`表示JSON/复制/旋转编解码无损，不保证引擎永不重算状态。原生楼梯/栅栏连接、草地积雪标记、幼苗生长、天气和耕地变化仍由游戏管理。没有全子系统撤销承诺。
 
-**能力矩阵中的 `preserveData` 是 JSON/codec 无损，不保证引擎永不重算形状。** 栅栏连接和直楼梯邻接角形可被原生事件更新；当前没有覆盖所有异步邻格、电路、拾取物和随机 tick 的事务日志。楼梯/栅栏/门的 `undoTerrain=false` 表示一般环境下不能保证完整 terrain 恢复，并非完全禁用已有撤销。两种梯子和火把有可逆的受控 fixture，但支撑被外部拆除产生的掉落物不属于地形快照。不得宣传全世界/全子系统完整撤销。
+## 逐类型能力矩阵
 
-### 逐类型能力矩阵
+放置、复制、旋转、镜像和保存均为规则支持；手机实际效果待验证。完整allowedData数组、requiresSupport和environmentMutable由代码导出。
 
-下表由当前目录导出。放/复制/旋转/镜像/保存 DATA 为该版本规则支持；Android 均待验证。“terrain撤销”只针对无外部并发编辑的受控放置，“完整撤销”涵盖原生行为涉及的所有子系统。
+| 类型 | f | 支撑 | 自然变化 | terrain完整恢复保证 | 全子系统恢复保证 |
+|---|---|:---:|:---:|:---:|:---:|
+| `CobblestoneBlock` | cube | 否 | 否 | 是 | 是 |
+| `StoneBrickBlock` | cube | 否 | 否 | 是 | 是 |
+| `PlanksBlock` | cube | 否 | 否 | 是 | 是 |
+| `BricksBlock` | cube | 否 | 否 | 是 | 是 |
+| `GlassBlock` | cube | 否 | 否 | 是 | 是 |
+| `BasaltBlock` | cube | 否 | 否 | 是 | 是 |
+| `GraniteBlock` | cube | 否 | 否 | 是 | 是 |
+| `MarbleBlock` | cube | 否 | 否 | 是 | 是 |
+| `SandstoneBlock` | cube | 否 | 否 | 是 | 是 |
+| `ClayBlock` | cube | 否 | 否 | 是 | 是 |
+| `LimestoneBlock` | cube | 否 | 否 | 是 | 是 |
+| `MalachiteBlock` | cube | 否 | 否 | 是 | 是 |
+| `CoalBlock` | cube | 否 | 否 | 是 | 是 |
+| `CoalOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `CopperBlock` | cube | 否 | 否 | 是 | 是 |
+| `CopperOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `DiamondBlock` | cube | 否 | 否 | 是 | 是 |
+| `DiamondOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `GermaniumOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `IronBlock` | cube | 否 | 否 | 是 | 是 |
+| `IronOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `SaltpeterOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `SemiconductorBlock` | cube | 否 | 否 | 是 | 是 |
+| `SulphurOreBlock` | cube | 否 | 否 | 是 | 是 |
+| `FramedGlassBlock` | cube | 否 | 否 | 是 | 是 |
+| `WindowBlock` | cube | 否 | 否 | 是 | 是 |
+| `WickerLampBlock` | cube | 否 | 否 | 是 | 否 |
+| `SpruceLeavesBlock` | cube | 否 | 否 | 是 | 否 |
+| `TallSpruceLeavesBlock` | cube | 否 | 否 | 是 | 否 |
+| `WoodenStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `CobblestoneStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `StoneStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `StoneBrickStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `BrickStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `BasaltStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `MarbleStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `SandstoneStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `DirtStairsBlock` | stairs | 否 | 否 | 否 | 否 |
+| `WoodenSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `CobblestoneSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `StoneSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `StoneBrickSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `BrickSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `BasaltSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `MarbleSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `SandstoneSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `DirtSlabBlock` | slab | 否 | 否 | 是 | 否 |
+| `WoodenFenceBlock` | fence | 否 | 否 | 否 | 否 |
+| `StoneFenceBlock` | fence | 否 | 否 | 否 | 否 |
+| `BrickFenceBlock` | fence | 否 | 否 | 否 | 否 |
+| `BasaltFenceBlock` | fence | 否 | 否 | 否 | 否 |
+| `IronFenceBlock` | fence | 否 | 否 | 否 | 否 |
+| `WoodenDoorBlock` | door | 否 | 否 | 否 | 否 |
+| `IronDoorBlock` | door | 否 | 否 | 否 | 否 |
+| `CellDoorBlock` | door | 否 | 否 | 否 | 否 |
+| `OakWoodBlock` | log | 否 | 否 | 是 | 否 |
+| `BirchWoodBlock` | log | 否 | 否 | 是 | 否 |
+| `SpruceWoodBlock` | log | 否 | 否 | 是 | 否 |
+| `MimosaWoodBlock` | log | 否 | 否 | 是 | 否 |
+| `PoplarWoodBlock` | log | 否 | 否 | 是 | 否 |
+| `WoodenLadderBlock` | ladder | 是 | 否 | 是 | 否 |
+| `IronLadderBlock` | ladder | 是 | 否 | 是 | 否 |
+| `TorchBlock` | torch | 是 | 否 | 是 | 否 |
+| `DirtBlock` | cube | 否 | 是 | 否 | 否 |
+| `IceBlock` | cube | 否 | 是 | 否 | 否 |
+| `SandBlock` | falling | 是 | 是 | 否 | 否 |
+| `GravelBlock` | falling | 是 | 是 | 否 | 否 |
+| `GrassBlock` | grass | 否 | 是 | 否 | 否 |
+| `SoilBlock` | soil | 否 | 是 | 否 | 否 |
+| `SnowBlock` | snow | 是 | 是 | 否 | 否 |
+| `TallGrassBlock` | plant | 是 | 是 | 否 | 否 |
+| `RedFlowerBlock` | plant | 是 | 是 | 否 | 否 |
+| `PurpleFlowerBlock` | plant | 是 | 是 | 否 | 否 |
+| `WhiteFlowerBlock` | plant | 是 | 是 | 否 | 否 |
+| `DryBushBlock` | plant | 是 | 是 | 否 | 否 |
+| `LargeDryBushBlock` | plant | 是 | 是 | 否 | 否 |
+| `FallenLeavesBlock` | groundcover | 是 | 是 | 否 | 否 |
+| `CarpetBlock` | carpet | 是 | 是 | 否 | 否 |
+| `GravestoneBlock` | gravestone | 是 | 否 | 是 | 否 |
+| `JackOLanternBlock` | lantern | 是 | 否 | 是 | 否 |
+| `CairnBlock` | cairn | 是 | 否 | 是 | 否 |
 
-| 类型 | f | 放 | 复制 | 旋转 | 镜像 | DATA | terrain撤销 | 完整撤销 |
-|---|---|---|---|---|---|---|---|---|
-| `CobblestoneBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `StoneBrickBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `PlanksBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `BricksBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `GlassBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `BasaltBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `GraniteBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `MarbleBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `SandstoneBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `ClayBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `LimestoneBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `MalachiteBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `CoalBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `CoalOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `CopperBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `CopperOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `DiamondBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `DiamondOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `GermaniumOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `IronBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `IronOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `SaltpeterOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `SemiconductorBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `SulphurOreBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `FramedGlassBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `WindowBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 是 |
-| `WickerLampBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `SpruceLeavesBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `TallSpruceLeavesBlock` | cube | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `WoodenStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `CobblestoneStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `StoneStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `StoneBrickStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `BrickStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `BasaltStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `MarbleStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `SandstoneStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `DirtStairsBlock` | stairs | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `WoodenSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `CobblestoneSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `StoneSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `StoneBrickSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `BrickSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `BasaltSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `MarbleSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `SandstoneSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `DirtSlabBlock` | slab | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `WoodenFenceBlock` | fence | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `StoneFenceBlock` | fence | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `BrickFenceBlock` | fence | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `BasaltFenceBlock` | fence | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `IronFenceBlock` | fence | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `WoodenDoorBlock` | door | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `IronDoorBlock` | door | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `CellDoorBlock` | door | 是 | 是 | 是 | 是 | 是 | 不支持 | 不支持 |
-| `OakWoodBlock` | log | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `BirchWoodBlock` | log | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `SpruceWoodBlock` | log | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `MimosaWoodBlock` | log | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `PoplarWoodBlock` | log | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `WoodenLadderBlock` | ladder | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `IronLadderBlock` | ladder | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
-| `TorchBlock` | torch | 是 | 是 | 是 | 是 | 是 | 是 | 不支持 |
+## 尚未开放
 
-机器矩阵包含逐类型 **精确 allowedData 数组**。更新代码后重新生成：`dotnet tests/BuilderAssistant.Tests/bin/Release/net8.0/BuilderAssistant.Tests.dll --capabilities docs/blueprint-block-capabilities.json`。
+- 容器/库存/文本/方块实体：箱子、熔炉、发射器、告示牌等。
+- 原生FurnitureBlock设计注册与设计表、复杂交互家具。
+- 流体传播、火、爆炸物、活塞、电路与电控门类（活板门、栅栏门等）。
+- 树苗长成整树、农作物跨格改土、季节落叶树冠和藤蔓延迟扩展等尚未逐类接入的生长方块。
+- 未知自定义Mod方块。未进入本清单的类型仍拒绝，不能把“除超复杂都想扩展”理解为直接放开全部原版ID。
 
-## 仍不支持的细节与复杂方块
-
-| 类型 | 已取证 DATA | 拒绝原因 |
-|---|---|---|
-| WoodenTrapdoorBlock / CellTrapdoorBlock | 0..15：旋转/开合/上下翻转 | 实现 IElectricElementBlock；支撑有侧面、上下与斜邻 OR 条件，尚无电路节点/更新队列事务 |
-| WoodenFenceGateBlock / IronFenceGateBlock | 几何0..15，可加16+32*c；handed位为反逻辑 | 原生电路元素和延迟开合没有完整快照恢复 |
-| CarpetBlock | 0..15颜色 | 下方必须非透明；降雨随机轮询会删除，天气/掉落事务未证明 |
-| IvyBlock | 0..3面 | 支撑方向与梯子相反，可挂同面上方藤蔓；60秒延迟生长队列及级联删除未事务化 |
-
-上述门类完成研究用变换 codec 和离线方向还原测试，但不注册材料、不接受导入族标签。容器/文本/家具、电路、流体、重力、其他生长/季节方块及未知自定义方块继续不支持。
-
-## Android 验证与下一阶段
-
-Android 7723 待验证：渠道程序集哈希、所有16色及角形/轴向渲染、梯子攀爬、火把粒子与光照、支撑移除/重载、取消/分批撤销、不同触屏分辨率、4419格建造帧耗时、单机/房主/普通客户端。普通客户端仍拒绝主动写入；主机同步尚未实测。
-
-家具与复杂块的前置条件：取得目标 Furniture/BlockEntities 的索引映射和持久 payload ABI，限制并观察完整影响范围，在修改前快照实体、库存、文本与电路队列，支持失败/取消/卸载后的恢复和冲突检测，再通过无玩家主存档的单人和联机实测。原生家具 payload 后端仍未实现；v0.19.0 的 schema3 仅执行结构块家具模板，不写入原生设计表。
-
-## 机器可读摘要
-
-```json
-{
-  "modVersion": "0.21.1",
-  "furnitureTemplates": {
-    "backend": "structure-blocks-v1",
-    "rotationSteps": [0, 1, 2, 3],
-    "anchor": "rotated bounding-box minimum corner",
-    "color": ["natural"],
-    "variant": ["default"],
-    "nativeFurnitureBlock": "not supported",
-    "templates": [
-      {"id":"TallBookshelf_A","size":[3,4,1],"cells":12},
-      {"id":"WideBookshelf_B","size":[5,3,1],"cells":15},
-      {"id":"CornerBookshelf_C","size":[3,4,3],"cells":20},
-      {"id":"ReadingDesk_A","size":[3,2,1],"cells":5},
-      {"id":"WritingDesk_B","size":[4,2,1],"cells":6},
-      {"id":"WoodChair_A","size":[1,2,2],"cells":3},
-      {"id":"Bench_A","size":[3,2,2],"cells":9},
-      {"id":"Cabinet_A","size":[2,4,1],"cells":8},
-      {"id":"Bed_A","size":[2,2,3],"cells":12},
-      {"id":"LampStand_A","size":[1,4,1],"cells":4}
-    ]
-  },
-
-  "targetGame": "Survivalcraft NET x25.01.17",
-  "schemaVersion": 3,
-  "limits": {
-    "maxCells": 10000,
-    "maxAxis": 64,
-    "maxPerBatch": 32,
-    "maxCellsIncludesGeneratedCells": true
-  },
-  "families": {
-    "cube": {
-      "defaultData": 0,
-      "paintedCubeData": "0 or 1+2*color",
-      "colorRange": [
-        0,
-        15
-      ],
-      "paintOnlyOnTypes": [
-        "CobblestoneBlock",
-        "StoneBrickBlock",
-        "PlanksBlock",
-        "BricksBlock",
-        "BasaltBlock",
-        "GraniteBlock",
-        "MarbleBlock",
-        "SandstoneBlock",
-        "ClayBlock"
-      ]
-    },
-    "stairs": {
-      "geometryRange": [
-        0,
-        23
-      ],
-      "paintedData": "geometry+32+64*color",
-      "colorRange": [
-        0,
-        15
-      ],
-      "invalidCorner": 3
-    },
-    "slab": {
-      "geometryRange": [
-        0,
-        1
-      ],
-      "paintedData": "geometry+2+4*color",
-      "colorRange": [
-        0,
-        15
-      ]
-    },
-    "fence": {
-      "geometryRange": [
-        0,
-        15
-      ],
-      "paintedData": "geometry+16+32*color",
-      "colorRange": [
-        0,
-        15
-      ],
-      "geometry": "engine-derived connections"
-    },
-    "door": {
-      "dataRange": [
-        0,
-        15
-      ],
-      "note": "bottom only; reserve air upper; native electricity not fully undoable"
-    },
-    "log": {
-      "dataValues": [
-        0,
-        1,
-        2
-      ],
-      "axis": {
-        "0": "Y",
-        "1": "Z",
-        "2": "X"
-      },
-      "invalidAlias": 3
-    },
-    "ladder": {
-      "dataRange": [
-        0,
-        3
-      ],
-      "support": "position-CellFaceVector(data); support face must be opaque"
-    },
-    "torch": {
-      "dataRange": [
-        0,
-        4
-      ],
-      "support": "position-CellFaceVector(data); support must be collidable"
-    }
-  },
-  "supportedBlocks": {
-    "cube": [
-      "CobblestoneBlock",
-      "StoneBrickBlock",
-      "PlanksBlock",
-      "BricksBlock",
-      "GlassBlock",
-      "BasaltBlock",
-      "GraniteBlock",
-      "MarbleBlock",
-      "SandstoneBlock",
-      "ClayBlock",
-      "LimestoneBlock",
-      "MalachiteBlock",
-      "CoalBlock",
-      "CoalOreBlock",
-      "CopperBlock",
-      "CopperOreBlock",
-      "DiamondBlock",
-      "DiamondOreBlock",
-      "GermaniumOreBlock",
-      "IronBlock",
-      "IronOreBlock",
-      "SaltpeterOreBlock",
-      "SemiconductorBlock",
-      "SulphurOreBlock",
-      "FramedGlassBlock",
-      "WindowBlock",
-      "WickerLampBlock",
-      "SpruceLeavesBlock",
-      "TallSpruceLeavesBlock"
-    ],
-    "stairs": [
-      "WoodenStairsBlock",
-      "CobblestoneStairsBlock",
-      "StoneStairsBlock",
-      "StoneBrickStairsBlock",
-      "BrickStairsBlock",
-      "BasaltStairsBlock",
-      "MarbleStairsBlock",
-      "SandstoneStairsBlock",
-      "DirtStairsBlock"
-    ],
-    "slab": [
-      "WoodenSlabBlock",
-      "CobblestoneSlabBlock",
-      "StoneSlabBlock",
-      "StoneBrickSlabBlock",
-      "BrickSlabBlock",
-      "BasaltSlabBlock",
-      "MarbleSlabBlock",
-      "SandstoneSlabBlock",
-      "DirtSlabBlock"
-    ],
-    "fence": [
-      "WoodenFenceBlock",
-      "StoneFenceBlock",
-      "BrickFenceBlock",
-      "BasaltFenceBlock",
-      "IronFenceBlock"
-    ],
-    "door": [
-      "WoodenDoorBlock",
-      "IronDoorBlock",
-      "CellDoorBlock"
-    ],
-    "log": [
-      "OakWoodBlock",
-      "BirchWoodBlock",
-      "SpruceWoodBlock",
-      "MimosaWoodBlock",
-      "PoplarWoodBlock"
-    ],
-    "ladder": [
-      "WoodenLadderBlock",
-      "IronLadderBlock"
-    ],
-    "torch": [
-      "TorchBlock"
-    ]
-  },
-  "logicalKeys": {
-    "StoneBase": "CobblestoneBlock",
-    "StoneWall": "StoneBrickBlock",
-    "WoodWall": "PlanksBlock",
-    "WoodTrim": "PlanksBlock",
-    "Roof": "BricksBlock",
-    "Glass": "GlassBlock",
-    "Floor": "PlanksBlock",
-    "RoofStairs": "WoodenStairsBlock",
-    "InteriorStairs": "WoodenStairsBlock",
-    "EntryDoor": "WoodenDoorBlock",
-    "WindowSill": "StoneSlabBlock",
-    "FlatDeck": "StoneSlabBlock",
-    "GardenFence": "WoodenFenceBlock",
-    "StoneRailing": "StoneFenceBlock",
-    "InteriorWall": "PlanksBlock",
-    "SupportBeam": "PlanksBlock",
-    "LogTrunk": "OakWoodBlock",
-    "LogBranch": "OakWoodBlock",
-    "Leaves": "SpruceLeavesBlock"
-  },
-  "notSupported": [
-    "WoodenTrapdoorBlock",
-    "CellTrapdoorBlock",
-    "WoodenFenceGateBlock",
-    "IronFenceGateBlock",
-    "CarpetBlock",
-    "IvyBlock",
-    "fluids",
-    "plants except SpruceLeavesBlock/TallSpruceLeavesBlock",
-    "snow",
-    "ice",
-    "gravity blocks",
-    "entity-bearing blocks",
-    "electric circuits",
-    "saplings",
-    "furniture blocks",
-    "unknown custom blocks"
-  ],
-  "buildBehavior": {
-    "defaultOverride": false,
-    "clearObstacles": "explicit opt-in; native linked/dynamic state is not fully undoable; doors require air even with override",
-    "attachmentOrder": "topological support-first; reverse for undo",
-    "generatedDoorTop": "reserved and snapshotted before write; included in 10000/64/32 limits",
-    "verification": "next update; at most 32 inspected cells per call",
-    "restoration": "at most 32 cells per call; stop on failure and retry; do not overwrite later edits",
-    "fullUndo": "see per-type matrix; terrain snapshots do not imply all-subsystem undo"
-  },
-  "capabilityMatrix": "blueprint-block-capabilities.json",
-  "android7723": "待验证"
-}
-```
-
-最后更新：2026-10-30，v0.23.0。旧取证记录见 [精细状态报告](BUILDER-DETAIL-STATES-0.18.0.md)。
-
-2026-10-31：SCIE-Port 0.57.0仅统一神器技能UI，无蓝图材料、族、DATA或约束变化。
-
-2026-10-31：SCIE-Port 0.57.1修复神器普攻/星门输入并缩短虚夜，不增改任何蓝图材料、族、DATA或施工约束；无地形写入。
-
-2026-10-31：SCIE-Port 0.58.0扩展共享星门记录/交互和联机传送，无蓝图材料、族、DATA或施工能力变化，不写地形。
-
-2026-10-31：SCIE-Port 0.59.0仅修改虚夜视觉与生物伤害结算；无蓝图材料、族、DATA、施工或地形能力变更。
-
-2026-10-31：SCIE-Port 0.59.1修复永久星门建门请求、只读选址和UI反馈，不写地形；蓝图材料、族、DATA与施工能力保持。
-
-2026-10-31：SCIE-Port 0.60.0仅通过原生深度测试重制虚夜视觉遮蔽，不写真实方块/地形/建筑或存档；本清单的材料、族、DATA与限制不变。
+详细取证、验证和设备清单见[v0.24报告](BUILDER-MATERIALS-0.24.0.md)与[165类审计](blueprint-block-audit-x25.01.17.md)。批量生成前以当前机器矩阵为准。

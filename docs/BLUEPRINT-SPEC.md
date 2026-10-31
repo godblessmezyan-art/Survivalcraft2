@@ -1,4 +1,4 @@
-# Builder Assistant 统一蓝图生成规范 v0.23.0
+# Builder Assistant 统一蓝图生成规范 v0.24.0
 
 本规范定义 AI 新生成和游戏新保存的交换格式。解析器以 `BlueprintJson` / `BlueprintImportService` 为准，旧 schema 1/2 文件仍可导入，不改变旧坐标、DATA 和家具外观。新输出统一 schema 3；不需要 schema 4。
 
@@ -9,7 +9,7 @@
 - `cells`：必填数组。每格为 `{ "x":0, "y":0, "z":0, "key":"PlanksBlock", "f":"cube", "d":0 }`。
 - `x/y/z` 是相对整数坐标，建议从 0 开始，限制在 ±1000000 以内，不能重复。导入时整体平移，使结构与家具联合最小角为 `(0,0,0)`。
 - `key` 只能使用 [能力清单](blueprint-block-reference.md) 的具体类型名或已列出的逻辑材料键。推荐具体类型名。大小写严格匹配，不写数字方块 ID。
-- `f` 默认为 `cube`，非立方方块必须显式写实际族：`stairs/slab/fence/door/log/ladder/torch`。`d` 默认为 0；必须是该类型的合法 DATA，不能仅根据范围猜测，精确集合见 [机器矩阵](blueprint-block-capabilities.json) 的 `allowedData`。
+- `f` 默认为 `cube`，非立方方块必须显式写实际族：`stairs/slab/fence/door/log/ladder/torch`，以及v0.24新增的`falling/grass/soil/plant/snow/groundcover/carpet/gravestone/lantern/cairn`。`d` 默认为 0；必须是该类型的合法 DATA，不能仅根据范围猜测，精确集合见 [机器矩阵](blueprint-block-capabilities.json) 的 `allowedData`。
 - 推荐 cell 使用内联 `key`。也可提供 `materials:[{"id":0,"key":"PlanksBlock","block":"PlanksBlock"}]` 并用 `m:0` 引用；id 使用非负唯一整数，cell 不同时写 `m` 和 `key`；`block` 若填写须与 key 实际映射一致。
 - 推荐省略 `size`，由程序计算；若提供 `{ "x":宽,"y":高,"z":长 }`，必须匹配实际方块包围盒，含家具展开后的格子。
 - 结构与展开家具合计最多 **10000 格**，任意轴跨度最多 **64 格**；门自动生成的上半格也计入施工限额。每批写入、撤销、回滚最多 **32 格**。
@@ -59,3 +59,9 @@
 904工作台新增“一室一厅（自动家具）”：宽9..21、长13..25、单层、墙高4..6，可选三种屋顶、木板/石砖外墙、窗户密度及完整整数种子。输出仍是本规范的schema3，含7个既有家具模板，不需要新JSON字段。材料选择影响房屋外壳，家具保留模板原木配色。
 
 生成后点击“交给903蓝图工具”，切换903即可命名保存、预览和施工，不自动保存到磁盘。房间规划和通行报告属于生成器内部数据，不能把它们编进JSON的未知字段。[三份示范蓝图](examples/furnished-homes/)可直接导入；床榻、木柜、灯架等均为结构装饰，不新增睡眠/储物/照明交互能力。
+
+## v0.24.0 自然地形和装饰材料
+
+新增18种材料，共81种。精确类型/f/d以[能力表](blueprint-block-reference.md)和机器矩阵为准：高草幼苗位是8、花幼苗位是1；草地0/1、耕地0..7、地毯0..15均不是cube染色公式。不能把原生Cube继承关系当作蓝图f标签。
+
+沙、砂砾只接受有支撑放置（世界底Y=0例外）；草花需土类支撑，地毯、落叶、石饰等有各自地基约束，预检/施工/完成时复核。自然生长、融化、天气和移动沙块不会被工具暂停，无法保证完整恢复这些副作用。[18种材料展台](examples/blueprint-materials-v3.json)用于验证普通建造路径；不要为填房间而用空气格清空整个区域。

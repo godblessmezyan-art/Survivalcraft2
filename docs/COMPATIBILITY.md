@@ -1,5 +1,20 @@
 # 兼容性矩阵
 
+## 2026-10-31 Builder Assistant v0.24.0：81种材料与地面支撑
+
+新增18种基础地形/装饰：泥土、草地、耕地、沙、砂砾、冰、雪、高草、三种花、两种枯灌木、落叶、地毯、南瓜灯、墓碑和石堆。增加falling/grass/soil/plant/snow/groundcover/gravestone/lantern/cairn，并启用carpet，精确DATA及实际运行类型核对。旧类型、schema1/2/3、10家具模板与施工预算不变，无新Hook/ID/网络包。
+
+| 项目 | 状态 | 证据和边界 |
+|---|---|---|
+| Windows固定x25.01.17/net472 | 已确认 | 固定游戏哈希、环境/ABI、原有模型导入、Release 0警告0错误及包内容/XDB守卫通过。 |
+| 规则与支持范围 | 已确认 | 3193项离线检查通过；81种合法DATA穷举往返/变换、18种逐一规划/施工/即时撤销、支撑排序/悬空拒绝、Y0边界、支撑丢失和后续变化保护；旧生成器/家具/蓝图库回归通过。 |
+| 原生方法隔离验证 | 已确认 | 2014项检查，含真实目标DATA getter/setter、雪/落叶/植物/地毯支撑谓词、灯的栅栏例外和雪层碰撞高度。只使用配置好的原生Block对象，不执行世界、物理线程或GPU。 |
+| 环境副作用完整恢复 | 不支持 | 保留原生天气、草地扩散、水肥、幼苗生长、掉落和移动沙块；撤销不覆盖已变化格，也不回收这些跨格/异步副作用。 |
+| 游戏内/Android7723/真实联机 | 待验证 | 用户暂不测试，本轮未启动游戏或操作设备。真实回调时序、融化/下落/生长、触屏/帧率、保存重进和房主/普通客户端同步需后续实测。 |
+
+执行`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-NetMod.ps1 -GameDir <本机SCNET目录>`；材料审计由同包程序集和BlocksData重新导出，165类中81类开放。包SHA-256 `4CB503EB7EA574DB9FA1E0B88814230DF49F1F286B34DD7F39E66D77C0D16732`。范围与复现见[v0.24报告](BUILDER-MATERIALS-0.24.0.md)，[示例](examples/blueprint-materials-v3.json)与[能力表](blueprint-block-reference.md)已同步。
+
+
 ## 2026-10-31 SCIE-Port 0.62.0：阿比斯普攻与蓄力断界斩
 
 大招/二/三CD69/3/36；大普攻斩面、重击通过247原布局新增开始/释放/取消类型，主机核实后复用断界斩。249/250/251布局与星门v1保持，无新ID/Hook。固定Windows x25.01.17/net472与离线原生/GPU合成 **已确认**；Android/真实联机 **待验证**，普通客户端平A伤害原限制保持。详见[战斗更新](../SCIE-Port/docs/ABYSS-COMBAT-0.62.md)。Builder Assistant能力保持。

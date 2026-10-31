@@ -110,7 +110,7 @@ namespace BuilderAssistant.Core.BuildEngine
         public readonly BlockFamily Family;
         public readonly int Data;
         public readonly string Context;
-        public bool HasSupport { get { return Family == BlockFamily.Ladder || Family == BlockFamily.Torch; } }
+        public bool HasSupport { get { return AttachmentRules.RequiresSupport(Family) && !(Family == BlockFamily.Falling && Absolute.Y == 0); } }
 
         public PlannedChange(CellPos absolute, int value, BlockFamily family = BlockFamily.Cube, int data = 0, string context = null)
         {

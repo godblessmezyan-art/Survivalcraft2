@@ -49,7 +49,10 @@ namespace BuilderAssistant.Features.WorldEdit
         {
             Blueprint bp=WorldEditRuntime.ClipboardBlueprint;
             string error=WorldEditRuntime.QuickValidate(bp);
-            current.Text=bp==null ? "当前蓝图：无" : "当前："+bp.Name+"\n来源："+(WorldEditRuntime.QuickBlueprintSource ?? "游戏内复制或旧缓存")+"\n尺寸："+bp.SizeX+" × "+bp.SizeY+" × "+bp.SizeZ+"；方块："+bp.CellCount+"；家具："+bp.FurniturePlacements.Count+"\n"+(error==null ? "格式及材料校验通过" : error);
+            bool natural=false;
+            if(bp!=null)foreach(BlueprintCell cell in bp.Cells)
+            { VanillaBlockCapability c;string type;if(VanillaBlockCapabilities.TryGetByMaterialKey(cell.MaterialKey,out c,out type) && c.EnvironmentMutable)natural=true; }
+            current.Text=bp==null ? "当前蓝图：无" : "当前："+bp.Name+"\n来源："+(WorldEditRuntime.QuickBlueprintSource ?? "游戏内复制或旧缓存")+"\n尺寸："+bp.SizeX+" × "+bp.SizeY+" × "+bp.SizeZ+"；方块："+bp.CellCount+"；家具："+bp.FurniturePlacements.Count+"\n"+(error==null ? (natural?"校验通过；自然材料受融化/生长/支撑影响":"格式及材料校验通过") : error);
             if(bp!=null) name.Text=bp.Name ?? "";
         }
         private void Refresh()

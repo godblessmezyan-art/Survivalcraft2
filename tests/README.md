@@ -1,3 +1,7 @@
+## v0.24 地形和装饰
+
+`TerrainMaterialTests.cs`验证18种新增材料的规划/建造/撤销、地基排序、悬空拒绝、Y0、支撑丢失和后续修改保护；既有FineDetailTests对81种材料穷举合法DATA并验证变换/往返。目标项目的新探针运行真实游戏DATA和支撑方法。范围及自然副作用边界见[v0.24记录](../docs/BUILDER-MATERIALS-0.24.0.md)。
+
 ## v0.23 一室一厅回归
 
 `FurnishedHomeTests.cs`验证参数矩阵、实际JSON往返与材料、两格高通行负例、四向施工/撤销、取消/失败回滚和工作台入口。`--furnished-homes <目录>`导出三份可导入蓝图与布局清单；绘图脚本从实际导出坐标渲染俯视图。验证记录见 [v0.23说明](../docs/BUILDER-FURNISHED-HOME-0.23.0.md)。

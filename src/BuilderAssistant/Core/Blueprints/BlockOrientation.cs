@@ -6,8 +6,9 @@ namespace BuilderAssistant.Core.Blueprints
     internal enum BlockFamily
     {
         Cube, Stairs, Slab, Fence, Door, Log, Ladder, Torch,
-        // Codec research only: these families do not activate a material capability.
+        // Trapdoor/FenceGate/Ivy remain research-only; Carpet is active since v0.24.0.
         Trapdoor, FenceGate, Carpet, Ivy,
+        Falling, Grass, Soil, Plant, Snow, GroundCover, Gravestone, Lantern, Cairn,
     }
 
     internal static class BlockOrientation
@@ -23,9 +24,18 @@ namespace BuilderAssistant.Core.Blueprints
                 case BlockFamily.Slab: return ValidPaint(data, 1, 2, 2);
                 case BlockFamily.Fence:
                 case BlockFamily.FenceGate: return ValidPaint(data, 15, 16, 5);
+                case BlockFamily.Gravestone:
                 case BlockFamily.Door:
                 case BlockFamily.Trapdoor:
                 case BlockFamily.Carpet: return data <= 15;
+                case BlockFamily.Falling:
+                case BlockFamily.Snow:
+                case BlockFamily.GroundCover:
+                case BlockFamily.Cairn: return data == 0;
+                case BlockFamily.Grass: return data <= 1;
+                case BlockFamily.Plant: return data == 0 || data == 1 || data == 8;
+                case BlockFamily.Soil: return data <= 7;
+                case BlockFamily.Lantern: return data <= 3;
                 case BlockFamily.Log: return data <= 2; // SetCutFace never emits alias 3.
                 case BlockFamily.Ladder:
                 case BlockFamily.Ivy: return data <= 3;
@@ -84,6 +94,15 @@ namespace BuilderAssistant.Core.Blueprints
                 case BlockFamily.Slab: return "0..1；可加 2+4*color，color=0..15";
                 case BlockFamily.Fence:
                 case BlockFamily.FenceGate: return "0..15；可加 16+32*color，color=0..15";
+                case BlockFamily.Falling:
+                case BlockFamily.Snow:
+                case BlockFamily.GroundCover:
+                case BlockFamily.Cairn: return "0";
+                case BlockFamily.Grass:
+                case BlockFamily.Plant: return "按类型：草地/花0..1，高草0/8，枯灌木0";
+                case BlockFamily.Soil: return "0..7（水分位0，肥力位1..2）";
+                case BlockFamily.Lantern: return "0..3";
+                case BlockFamily.Gravestone: return "0..15（造型位0..2，轴向位3）";
                 case BlockFamily.Log: return "0(Y),1(Z),2(X)";
                 case BlockFamily.Ladder:
                 case BlockFamily.Ivy: return "0..3";
@@ -120,6 +139,7 @@ namespace BuilderAssistant.Core.Blueprints
             int r = ((steps % 4) + 4) % 4;
             switch (family)
             {
+                case BlockFamily.Lantern:
                 case BlockFamily.Stairs:
                 case BlockFamily.Door:
                 case BlockFamily.Trapdoor:
@@ -134,6 +154,8 @@ namespace BuilderAssistant.Core.Blueprints
                     for (int i = 0; i < r; i++)
                         mask = ((mask >> 3) & 1) | ((mask >> 1) & 2) | ((mask << 2) & 4) | ((mask << 2) & 8);
                     return (data & ~15) | mask;
+                case BlockFamily.Gravestone:
+                    return data ^ ((r & 1) << 3);
                 case BlockFamily.Log:
                     return data == 0 || (r & 1) == 0 ? data : 3 - data;
                 default: return data;
@@ -151,6 +173,7 @@ namespace BuilderAssistant.Core.Blueprints
                 case BlockFamily.Door:
                 case BlockFamily.FenceGate:
                     return ((data & ~3) | ((-data) & 3)) ^ 8;
+                case BlockFamily.Lantern:
                 case BlockFamily.Trapdoor:
                 case BlockFamily.Ladder:
                 case BlockFamily.Ivy:
@@ -176,6 +199,16 @@ namespace BuilderAssistant.Core.Blueprints
                 case "log": family = BlockFamily.Log; return true;
                 case "ladder": family = BlockFamily.Ladder; return true;
                 case "torch": family = BlockFamily.Torch; return true;
+                case "falling": family = BlockFamily.Falling; return true;
+                case "grass": family = BlockFamily.Grass; return true;
+                case "soil": family = BlockFamily.Soil; return true;
+                case "plant": family = BlockFamily.Plant; return true;
+                case "snow": family = BlockFamily.Snow; return true;
+                case "groundcover": family = BlockFamily.GroundCover; return true;
+                case "carpet": family = BlockFamily.Carpet; return true;
+                case "gravestone": family = BlockFamily.Gravestone; return true;
+                case "lantern": family = BlockFamily.Lantern; return true;
+                case "cairn": family = BlockFamily.Cairn; return true;
                 default: return false; // Research-only families are deliberately not importable.
             }
         }

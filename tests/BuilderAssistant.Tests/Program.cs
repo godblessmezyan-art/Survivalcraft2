@@ -201,6 +201,7 @@ namespace BuilderAssistant.Tests
 
             if (args != null && args.Length == 2 && args[0] == "--furnished-homes")
                 return DumpFurnishedHomes(args[1]);
+            TestExpandedMaterials();
             TestFurnishedHomes();
             TestFurnitureTemplates();
             TestBlueprintLibraryAndPreview();
@@ -1563,8 +1564,8 @@ namespace BuilderAssistant.Tests
         private static void TestVanillaCapabilityCatalogFirstExpansion()
         {
             Console.WriteLine("[TestVanillaCapabilityCatalogFirstExpansion]");
-            Check(VanillaBlockCapabilities.Count == 63,
-                "the first audited expansion contains exactly 63 authorable vanilla block types");
+            Check(VanillaBlockCapabilities.Count == 81,
+                "the current audited catalog contains 81 authorable vanilla block types");
 
             string[] newStatic =
             {

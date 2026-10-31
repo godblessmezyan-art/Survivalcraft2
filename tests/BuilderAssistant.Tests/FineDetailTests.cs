@@ -73,7 +73,7 @@ namespace BuilderAssistant.Tests
         private static int DumpBlockCapabilities(string path)
         {
             var root = BuilderAssistant.Core.Json.JsonValue.NewObject();
-            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.23.0"));
+            root.Add("modVersion", BuilderAssistant.Core.Json.JsonValue.NewString("0.24.0"));
             root.Add("generationSpec", BuilderAssistant.Core.Json.JsonValue.NewString("BLUEPRINT-SPEC.md"));
             root.Add("maxImportChars", BuilderAssistant.Core.Json.JsonValue.NewNumber(BlueprintImportService.MaxImportChars));
             root.Add("maxBlocksPerOperation", BuilderAssistant.Core.Json.JsonValue.NewNumber(BuilderAssistant.Core.Safety.BuildSafetyLimits.MaxBlocksPerOperation));
@@ -112,6 +112,8 @@ namespace BuilderAssistant.Tests
                 var data = BuilderAssistant.Core.Json.JsonValue.NewArray();
                 for (int d = 0; d < 1024; d++) if (c.IsValidData(d)) data.Add(BuilderAssistant.Core.Json.JsonValue.NewNumber(d));
                 row.Add("allowedData", data);
+                row.Add("requiresSupport", BuilderAssistant.Core.Json.JsonValue.NewBool(AttachmentRules.RequiresSupport(c.Family)));
+                row.Add("environmentMutable", BuilderAssistant.Core.Json.JsonValue.NewBool(c.EnvironmentMutable));
                 blocks.Add(row);
             }
             root.Add("blocks", blocks);
@@ -166,7 +168,7 @@ namespace BuilderAssistant.Tests
                 }
                 Check(laws, f + " researched direction codec returns to original");
             }
-            foreach (string type in new[] { "WoodenTrapdoorBlock", "CellTrapdoorBlock", "WoodenFenceGateBlock", "IronFenceGateBlock", "CarpetBlock", "IvyBlock" })
+            foreach (string type in new[] { "WoodenTrapdoorBlock", "CellTrapdoorBlock", "WoodenFenceGateBlock", "IronFenceGateBlock", "IvyBlock" })
             {
                 VanillaBlockCapability ignored;
                 Check(!VanillaBlockCapabilities.TryGetByTypeName(type, out ignored), type + " stays unsupported until subsystem rollback is proven");

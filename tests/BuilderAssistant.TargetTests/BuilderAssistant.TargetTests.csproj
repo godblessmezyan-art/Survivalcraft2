@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="TerrainMaterialTests.cs" />
+    <Compile Include="../../src/BuilderAssistant/Features/WorldEdit/VanillaSupportRules.cs" />
     <Compile Include="../../src/BuilderAssistant/Core/Blueprints/VanillaBlockCapabilities.cs" />
     <Compile Include="../../src/BuilderAssistant/Core/Blueprints/BuildingMaterials.cs" />
     <Compile Include="../../src/BuilderAssistant/Core/Building/MaterialCatalog.cs" />

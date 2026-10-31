@@ -191,9 +191,7 @@ namespace BuilderAssistant.Features.WorldEdit
         {
             Block block = BlockById(Terrain.ExtractContents(value));
             if (block == null) return false;
-            return family == BlockFamily.Ladder
-                ? !block.IsFaceTransparent(_subsystemTerrain, face, value)
-                : family == BlockFamily.Torch && block.IsCollidable;
+            return VanillaSupportRules.Supports(block,_subsystemTerrain,value,family,face);
         }
 
         private bool PlacementMatches(int current, int expected)

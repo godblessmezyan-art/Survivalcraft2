@@ -12,6 +12,8 @@ namespace BuilderAssistant.Core.Blueprints
         Connected = 2,
         DerivedMultiCell = 3,
         Attached = 4,
+        Natural = 5,
+        Gravity = 6,
     }
 
     /// <summary>
@@ -31,13 +33,16 @@ namespace BuilderAssistant.Core.Blueprints
         public bool CanMirror { get { return true; } }
         public bool CanSaveState { get { return true; } }
         // Exact terrain restoration only. Arbitrary external subsystem effects are not claimed.
-        public bool CanUndoTerrain { get { return Family != BlockFamily.Door && Family != BlockFamily.Stairs && Family != BlockFamily.Fence; } }
+        public bool CanUndoTerrain { get { return Kind != BlockCapabilityKind.Natural && Kind != BlockCapabilityKind.Gravity && Family != BlockFamily.Door && Family != BlockFamily.Stairs && Family != BlockFamily.Fence; } }
+        public bool EnvironmentMutable { get { return Kind == BlockCapabilityKind.Natural || Kind == BlockCapabilityKind.Gravity; } }
         public bool CanUndoAllSubsystems { get { return Kind == BlockCapabilityKind.Static &&
             TypeName != "SpruceLeavesBlock" && TypeName != "TallSpruceLeavesBlock" && TypeName != "WickerLampBlock"; } }
 
         public bool IsValidData(int data)
         {
             return BlockOrientation.IsValidAuthoredData(Family, data) &&
+                (!(TypeName == "DryBushBlock" || TypeName == "LargeDryBushBlock") || data == 0) &&
+                (Family != BlockFamily.Plant || (TypeName == "TallGrassBlock" ? data == 0 || data == 8 : data <= 1)) &&
                 (Family != BlockFamily.Cube || SupportsPaint || data == 0);
         }
 
@@ -168,6 +173,21 @@ namespace BuilderAssistant.Core.Blueprints
             });
             // Torch particle lifecycle is paired by the native added/removed behavior.
             AddMany(d, BlockFamily.Torch, BlockCapabilityKind.Attached, new[] { "TorchBlock" });
+            AddMany(d, BlockFamily.Cube, BlockCapabilityKind.Natural, new[] { "DirtBlock", "IceBlock" });
+            AddMany(d, BlockFamily.Falling, BlockCapabilityKind.Gravity, new[] { "SandBlock", "GravelBlock" });
+            AddMany(d, BlockFamily.Grass, BlockCapabilityKind.Natural, new[] { "GrassBlock" });
+            AddMany(d, BlockFamily.Soil, BlockCapabilityKind.Natural, new[] { "SoilBlock" });
+            AddMany(d, BlockFamily.Snow, BlockCapabilityKind.Natural, new[] { "SnowBlock" });
+            AddMany(d, BlockFamily.Plant, BlockCapabilityKind.Natural, new[]
+            {
+                "TallGrassBlock", "RedFlowerBlock", "PurpleFlowerBlock", "WhiteFlowerBlock", "DryBushBlock", "LargeDryBushBlock",
+            });
+            AddMany(d, BlockFamily.GroundCover, BlockCapabilityKind.Natural, new[] { "FallenLeavesBlock" });
+            AddMany(d, BlockFamily.Carpet, BlockCapabilityKind.Natural, new[] { "CarpetBlock" });
+            AddMany(d, BlockFamily.Gravestone, BlockCapabilityKind.Attached, new[] { "GravestoneBlock" });
+            AddMany(d, BlockFamily.Lantern, BlockCapabilityKind.Attached, new[] { "JackOLanternBlock" });
+            // Only authored DATA=0 is exposed; native loot variants are deliberately not recreated.
+            AddMany(d, BlockFamily.Cairn, BlockCapabilityKind.Attached, new[] { "CairnBlock" });
             return d;
         }
 
