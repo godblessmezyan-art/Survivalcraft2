@@ -114,6 +114,37 @@ public static class PortalNetworkNativeProbe
             Check(f.Cells.GetCellValue(8,63,9)==3,"creation does not edit native floor");
         }
     }
+    static void UnavailableRegistry(Assembly mod)
+    {
+        // Simulate a world whose saved portal XML could not be loaded.
+        // Original text stays owned by the subsystem; background sync must not spam replies.
+        CommonLib.WorkType=WorkType.Server;
+        using(var f=new Fixture(mod,false))
+        {
+            Pending().Clear();
+            Put(f.Owner,"<Portals>k__BackingField",null);
+            Call(f.Net,"Update");
+            f.Clock.m_gameTime+=1;
+            Call(f.Net,"Update");
+            Check(Pending().Count==0,"unavailable registry emits no background warning loop");
+            Check(((IDictionary)Get(f.Net,"peers")).Count==0,"unavailable registry does not create unsynced peers repeatedly");
+
+            Call(f.Net,"Request",f.Player,(byte)0,Guid.Empty,Guid.Empty,"");
+            Call(f.Net,"Update");
+            Check(Feedback(f)=="星门存档不可用，原记录已保留","explicit portal refresh still reports preserved records");
+
+            Pending().Clear();
+            f.Clock.m_gameTime+=1;
+            Call(f.Net,"Update");
+            Check(Pending().Count==0,"explicit warning is not repeated by automatic synchronization");
+
+            // A later successful recovery must still allow the normal snapshot to flow.
+            Put(f.Owner,"<Portals>k__BackingField",f.Registry);
+            f.Clock.m_gameTime+=1;
+            Call(f.Net,"Update");
+            Check(Pending().Count>=2,"available registry resumes automatic snapshots");
+        }
+    }
     public static void Run(Assembly mod)
     {
         var work=CommonLib.WorkType;var node=CommonLib.Net;var territories=SubsystemBedrockBlockBehavior.Territories;
@@ -141,6 +172,7 @@ public static class PortalNetworkNativeProbe
             rejected=false;try{((IPackage)New(packetType)).ReadData(new PackageStreamReader(invalidUtf8.Data()));}catch(System.Text.DecoderFallbackException){rejected=true;}
             Check(rejected,"invalid UTF8 rejected");
             Creation(mod,WorkType.Local,true);Creation(mod,WorkType.Server,true);Creation(mod,WorkType.Server,false);
+            UnavailableRegistry(mod);
             CommonLib.WorkType=WorkType.Server;
             using(var server=new Fixture(mod,false))
             {
