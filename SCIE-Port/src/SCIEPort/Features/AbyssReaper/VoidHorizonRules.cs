@@ -3,6 +3,8 @@ namespace SCIEPort.Features.AbyssReaper
 {
     internal static class VoidHorizonRules
     {
+        // After terrain 0/100, models 1/99/201, particles 300 and overlays 1101;
+        // x25.01.17 retains their depth attachment throughout this viewport pass.
         internal const int DrawOrder=2147483631, MaxCasts=4, MaxPeers=64, MaxQueue=32, RequestsPerFrame=8;
         internal const int SettlementBudget=128;
         internal static float ExecutionAmount(float health) => !WorldCutRules.Finite(health)||health<=0?0:(float)Math.Min(float.MaxValue,(double)health+Math.Max(1,health));

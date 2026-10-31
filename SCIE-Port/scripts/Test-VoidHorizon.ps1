@@ -35,6 +35,10 @@ foreach($name in @('Game.ComponentScreenOverlays','Game.SubsystemModelsRenderer'
  if(-not $g.GetType($name,$true).GetProperty('DrawOrders')){throw "Native drawing API missing: $name"}
 }
 Write-Host 'Horizon ABI: native injury callbacks use Injure; all three damage hooks protect caster; complete-domain late pass registered (no native renderer instantiated).'
+if(-not [Engine.Graphics.DepthStencilState]::DepthRead.DepthBufferTestEnable -or [Engine.Graphics.DepthStencilState]::DepthRead.DepthBufferWriteEnable -or [Engine.Graphics.DepthStencilState]::DepthRead.DepthBufferFunction.ToString() -ne 'LessEqual'){throw 'Distance shell requires read-only native LessEqual depth.'}
+if([Engine.Graphics.BlendState]::NonPremultiplied.ColorSourceBlend.ToString() -ne 'SourceAlpha'){throw 'Straight RGBA requires native NonPremultiplied blending.'}
+if([Engine.Graphics.RenderTarget2D].GetField('m_depthBuffer',[Reflection.BindingFlags]'Instance,NonPublic').FieldType -ne [int]){throw 'Re-audit native depth attachment before adding texture-depth assumptions.'}
+Write-Host 'Distance erosion ABI: native LessEqual depth read/no write, straight alpha and renderbuffer-only depth attachment confirmed.'
 $root=Split-Path $PSScriptRoot
 $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider
 $options=New-Object System.CodeDom.Compiler.CompilerParameters

@@ -153,16 +153,22 @@ public static class VoidHorizonNativeProbe
     {
         var scene=New(mod.GetType("SCIEPort.Features.AbyssReaper.VoidHorizonScene",true));
         var budget=mod.GetType("SCIEPort.Features.AbyssReaper.VoidHorizonVisualRules",true).GetMethod("PrimitiveBudget",BindingFlags.Static|BindingFlags.NonPublic);
-        foreach(int quality in new[]{0,1,2})foreach(float time in new[]{0f,.3f,.5f,.7f,1f,1.3f,2f,3f,3.7f,4f,4.199f,4.2f,5f})
+        foreach(int quality in new[]{0,1,2})foreach(float time in new[]{0f,.3f,.5f,.7f,1f,1.3f,2f,3f,3.08f,3.099f,3.7f,4f,4.199f,4.2f,5f})
         {
-            int count=(int)Call(scene,"Queue",Vector3.Zero,Vector3.UnitZ,time,quality);
+            int count=(int)Call(scene,"Queue",Vector3.UnitY*1.6f,Vector3.Zero,Vector3.UnitZ,time,quality,128f,Vector3.UnitZ);
             Check(count>=0&&count<=(int)budget.Invoke(null,new object[]{quality}),"bounded actual queued geometry q="+quality+" t="+time);
-            if(time>=.5&&time<4.2f)Check(count>100,"full domain contains opaque background geometry");
+            if(time>0&&time<4.2f)Check(count>100,"live effect queues actual geometry");
             var renderer=(PrimitivesRenderer3D)Get(scene,"renderer");int actual=0;bool finite=true;
             foreach(BaseBatch item in renderer.m_allBatches)
             {
                 var batch=item as FlatBatch3D;if(batch==null)continue;
                 actual+=batch.TriangleIndices.Count/3;
+                if(batch.TriangleIndices.Count>0&&item.Layer<10)
+                {
+                    Check(time>.7f,"opening never queues panorama background");
+                    Check(batch.DepthStencilState==(time<3.1f?DepthStencilState.DepthRead:DepthStencilState.None),"distance erosion uses intact scene depth until full coverage");
+                    Check(!batch.DepthStencilState.DepthBufferWriteEnable,"effect never overwrites native world depth");
+                }
                 foreach(var vertex in batch.TriangleVertices)
                     finite &= !float.IsNaN(vertex.Position.X)&&!float.IsInfinity(vertex.Position.X)
                         &&!float.IsNaN(vertex.Position.Y)&&!float.IsInfinity(vertex.Position.Y)
@@ -172,5 +178,12 @@ public static class VoidHorizonNativeProbe
             Check(finite,"all vertices finite, including fractional-power rift tips");
             ((IDisposable)scene).Dispose();
         }
+        Call(scene,"Queue",Vector3.Zero,Vector3.Zero,Vector3.UnitZ,.4f,1,128f,Vector3.UnitZ);
+        var output=(PrimitivesRenderer3D)Get(scene,"renderer");Vector3 hole=Vector3.Zero;
+        foreach(BaseBatch item in output.m_allBatches)if(item.Layer==12&&((FlatBatch3D)item).TriangleIndices.Count>0)hole=((FlatBatch3D)item).TriangleVertices.Array[0].Position;
+        Call(scene,"Queue",new Vector3(10,0,0),Vector3.Zero,Vector3.UnitZ,.4f,1,128f,Vector3.UnitZ);
+        foreach(BaseBatch item in output.m_allBatches)if(item.Layer==12&&((FlatBatch3D)item).TriangleIndices.Count>0)
+            Check((((FlatBatch3D)item).TriangleVertices.Array[0].Position-hole+new Vector3(10,0,0)).Length()<.001f,"hole is anchored to accepted world origin, not camera translation");
+        ((IDisposable)scene).Dispose();
     }
 }

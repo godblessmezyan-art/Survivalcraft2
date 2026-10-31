@@ -1,5 +1,28 @@
 # 测试结果
 
+## 2026-10-31 main 0.60.0：真实场景深度侵蚀与坍缩爆发
+
+开发前本地与fetch后的origin/main均为9ff150a/0.59.1，工作区干净；建立本地回退分支`backup/abyss-0.59.1-before-distance-erosion`。只改阿比斯大招视觉、对应纯规则、测试及文档，不更改其它神器、星门、伤害/免伤参数或协议。完整方案和逐项真机验收见 [VOID-HORIZON.md](VOID-HORIZON.md)。
+
+实际反编译固定目标的SubsystemDrawing、ViewWidget、TerrainRenderer、ModelsRenderer、Sky、Particles、FirstPersonModel、BasePerspectiveCamera以及Engine的RenderTarget/DepthStencil/Blend/FlatBatch。深度附件是renderbuffer，无法直接当深度纹理；使用原生只读LessEqual深度球面连续向内推进。天空与景物原生绘制保留至各自深度被边界越过；开场不画环境，3.1秒才完整虚夜。固定施法世界位置的黑洞复用暗核/盘/透镜，3.7秒坍缩、3.92秒有形冲击波扩张，4.2秒零网格恢复。全程无真实方块/地形/存档修改，无自定义Shader、运行FBO或实体删除；伤害仍由主机4.2秒的原更新入口执行。
+
+实际执行（本机Python加入PATH、FrameworkPathOverride指向net472引用程序集）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-VoidHorizonGpu.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/distance-gpu
+```
+
+完整Release exit 0、针对性net472编译0警告0错误；环境/ABI、所有既有资产与规则、994项视觉时序/距离规则、64项权威/免伤/重放、985项原生领域/几何/世界锚点检查、12项原生实际HP湮灭检查（600 NPC）、596项星门原生检查、890项断界/区块检查、21 XDB及22 CSV/55行、成品包守卫通过。记录为忽略目录`artifacts/void-distance-0.60.0-build.log`。249包仍33–47字节、249/250无新冲突、v1星门往返及旧记录回归通过，原协议/持久化实现未改。
+
+新增Windows原生Engine/OpenGL测试程序实际运行，**45项GPU像素检查通过**：三档下开场三种深度物体不变，远→中→近依次消失，16/24位深度均可；透明混合且写深度的水面像素数量逐阶段递减；同一栋建筑先保留、再部分切入、最后消失；森林与近模型的距离顺序正确；转身时黑洞仍在背后；黑洞黑色像素面积在收缩阶段减少，爆发明亮波前横向扩展超过100像素；4.2秒与原场景逐像素一致。预览实际检查发现原生AlphaBlend为预乘色约定，改用已验证NonPremultiplied，避免晕光/裂隙过曝。此程序只绘制合成几何，没有加载Project/真实游戏世界/存档或使用网络，**不能称为游戏实拍或Android验收**。
+
+另以`-Animation`实际输出0..4.2秒的127帧960×540原生GPU记录；`Render-VoidHorizonGpuPreview.py`加上明确标签后输出关键帧、全时间轴和MP4（`artifacts/distance-gpu/`）。已查看黑洞原世界遮挡、侵蚀建筑/水面、收缩和爆发关键帧。相机四方向、±80°及天顶/天底截图已输出。CPU导出/投影独立位于`artifacts/distance-cpu/`，有单独CPU标签：中档1692/6300/2844/3480三角形，结束0三角形；全领域七方向0露底像素。三档上限4608/6912/9216，运行批处理缓存有界，不每帧分配大型数组/扫描地图。
+
+正式包及版本副本字节一致，7,358,197字节、143项、Version=0.60.0；包SHA-256 `164BA73E8A1806B3CA7B71DD3941789DF9BDE8C4D5D9F4C58C531B7FF9D39F31`，DLL SHA-256 `918B0B51C88DCAD4D2FE78438A8144C2BD539FF9DB220F0C5181F51862203FAE`。包内DLL与GPU测试DLL逐字节一致。相对0.59.1仅DLL/modinfo变化；全部模型、音频、贴图和数据库保持。旧0.59.1包保留，SHA-256仍为`B4B5A04120A85C6BAD657B9CFE5155001BCA3D22F91D4948FD2C014C17135911`。
+
+Android7723真实山峰/湖泊/建筑/生物、真实单人/房主/普通客户端、手机帧率/密集实体网络吞吐、取消/换武器/掉线恢复均 **待验证**。没有声称合成GPU或CPU预览可替代这些项目。无深度第三方绘制/部分粒子无法保证按自身距离切分，水下叠色/特殊透明层与侵蚀边缘的网格深度近似误差需实机观察。没有实现原场景像素折射；几何透镜与空间形变的限制已记录。只本地提交，不自动推送/发布。
+
 ## 2026-10-31 main 0.59.1：永久星门建门无响应修复
 
 旧0.59.0原生DLL夹具已复现：打开列表发出Sync后，同一更新帧的Create被共享0.15秒限流静默吞掉。另有平视射线无法命中地面、普通客户端自动快照覆盖建门回执的问题。新逻辑为读取/修改独立限流并返回拒绝提示；平视/仰视时最多6个身前候选点，明确瞄准地面则保留该落点的安全判定；自动选址保留名称。面板620×488随视口缩放，在列表上方单列反馈。原生Widget反编译确认子树仍可命中、子控件先于Dialog更新；未把面板IsHitTestVisible=false误判为屏蔽按钮。

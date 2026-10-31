@@ -2,7 +2,7 @@ param(
     [Parameter(Mandatory=$true)][string]$GameDir,
     [Parameter(Mandatory=$true)][string]$AssemblyPath,
     [Parameter(Mandatory=$true)][string]$OutputDir,
-    [float[]]$Times=@(.3,.5,.8,1.3,2.5,3.3,3.8,4.1,4.2)
+    [float[]]$Times=@(.35,.7,1.3,2,2.6,3.1,3.7,3.82,3.94,4.04,4.15,4.2)
 )
 $ErrorActionPreference='Stop'
 foreach($name in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')) { [void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $name)) }
@@ -27,10 +27,10 @@ public static class VoidMeshExport
             var queue=type.GetMethod("Queue",flags);
             foreach(float time in times)
             {
-                int claimed=(int)queue.Invoke(scene,new object[]{Vector3.Zero,Vector3.UnitZ,time,1});
+                int claimed=(int)queue.Invoke(scene,new object[]{Vector3.UnitY*1.6f,Vector3.Zero,Vector3.UnitZ,time,1,128f,Vector3.UnitZ});
                 var renderer=(PrimitivesRenderer3D)type.GetField("renderer",flags).GetValue(scene);
                 renderer.m_allBatches.Sort((a,b)=>a.Layer.CompareTo(b.Layer));
-                string suffix=time.ToString("0.0",CultureInfo.InvariantCulture);
+                string suffix=time.ToString("0.00",CultureInfo.InvariantCulture);
                 int count=0;
                 using(var writer=new StreamWriter(Path.Combine(output,"mesh-"+suffix+".tsv")))
                 {
@@ -40,7 +40,7 @@ public static class VoidMeshExport
                         var batch=item as FlatBatch3D;if(batch==null)continue;
                         for(int i=0;i<batch.TriangleIndices.Count;i+=3)
                         {
-                            writer.Write(item.Layer+"\t"+(item.BlendState==BlendState.Opaque?"1":"0"));
+                            writer.Write(item.Layer+"\t"+(item.BlendState==BlendState.Opaque?"1":"0")+"\t"+(item.DepthStencilState.DepthBufferTestEnable?"1":"0"));
                             for(int j=0;j<3;j++)
                             {
                                 var v=batch.TriangleVertices.Array[batch.TriangleIndices.Array[i+j]];

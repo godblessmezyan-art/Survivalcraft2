@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal const float BlinkRange=18f, BlinkRadius=4f, BlinkPower=70f;
         internal const float HorizonRadius=128f, HorizonHeight=256f;
         internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=4.2;
-        internal const double DomainStart=.5, ExpansionStart=1.3, FinalImpact=HorizonDuration;
+        internal const double ExpansionStart=.7, HorizonAdvance=2, DomainStart=3.1, CollapseStart=3.7, BurstStart=3.92, FinalImpact=HorizonDuration;
         internal static int Quality(int value) => Math.Max(0,Math.Min(2,value));
         internal static int VfxSegments(int quality,int low,int medium,int high) => Quality(quality)==0?low:Quality(quality)==1?medium:high;
         internal static bool InBlinkRange(float distance) => WorldCutRules.Finite(distance) && distance>=0 && distance<=BlinkRange;
@@ -20,23 +20,28 @@ namespace SCIEPort.Features.AbyssReaper
         internal static HorizonPhase Phase(double elapsed)
         {
             if(double.IsNaN(elapsed)||elapsed<0||elapsed>=HorizonDuration)return HorizonPhase.Finished;
-            if(elapsed<DomainStart)return HorizonPhase.Awakening;
-            return elapsed<ExpansionStart?HorizonPhase.Descent:HorizonPhase.Domain;
+            if(elapsed<ExpansionStart)return HorizonPhase.Awakening;
+            if(elapsed<HorizonAdvance)return HorizonPhase.SkyRift;
+            if(elapsed<DomainStart)return HorizonPhase.Descent;
+            return elapsed<CollapseStart?HorizonPhase.Domain:HorizonPhase.Collapse;
         }
     }
     // Visual envelopes are pure and cannot advance gameplay timers.
     internal static class VoidHorizonVisualRules
     {
         internal static float Smooth(float value) { value=Math.Max(0,Math.Min(1,value));return value*value*(3-2*value); }
-        // Background/hole 53 + expanding membrane/halo 18 = 71 triangles per segment, capped at 72.
-        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,3456,5184,6912);
-        internal static float Entry(double t) => Smooth((float)(t/VoidSkillRules.DomainStart));
-        internal static float Hole(double t) => Smooth((float)((t-VoidSkillRules.DomainStart)/(VoidSkillRules.ExpansionStart-VoidSkillRules.DomainStart)));
-        internal static float Expansion(double t) => Math.Max(0,Math.Min(1,(float)((t-VoidSkillRules.ExpansionStart)/(VoidSkillRules.FinalImpact-VoidSkillRules.ExpansionStart))));
-        // Gentle growth followed by a rapid engulfing front; no full-screen hold or exit tail.
-        internal static float ExpansionAngle(double t)
+        // Four depth-tested shell surfaces (three edge bands + opaque void), hole and bounded shards.
+        internal static int PrimitiveBudget(int quality) => VoidSkillRules.VfxSegments(quality,4608,6912,9216);
+        internal static float Hole(double t) => Smooth((float)(t/VoidSkillRules.ExpansionStart));
+        internal static float Expansion(double t) => Smooth((float)((t-VoidSkillRules.ExpansionStart)/(VoidSkillRules.DomainStart-VoidSkillRules.ExpansionStart)));
+        internal static float Collapse(double t) => Smooth((float)((t-VoidSkillRules.CollapseStart)/(VoidSkillRules.BurstStart-VoidSkillRules.CollapseStart)));
+        internal static float Burst(double t) => Smooth((float)((t-VoidSkillRules.BurstStart)/(VoidSkillRules.HorizonDuration-VoidSkillRules.BurstStart)));
+        internal static float Radius(double t,float visibility)
         {
-            float q=Expansion(t);return .30f+.24f*q+((float)Math.PI-.54f)*(float)Math.Pow(q,8);
+            float far=Math.Max(96,Math.Min(1024,WorldCutRules.Finite(visibility)?visibility:128))*1.12f;
+            if(t<VoidSkillRules.HorizonAdvance)
+                return far+(64-far)*Smooth((float)((t-VoidSkillRules.ExpansionStart)/(VoidSkillRules.HorizonAdvance-VoidSkillRules.ExpansionStart)));
+            return .12f+63.88f*(1-Smooth((float)((t-VoidSkillRules.HorizonAdvance)/(VoidSkillRules.DomainStart-VoidSkillRules.HorizonAdvance))));
         }
 
     }
@@ -50,7 +55,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(double.IsNaN(elapsed)||double.IsInfinity(elapsed)||elapsed<0||elapsed>=VoidSkillRules.HorizonDuration)return -1;
             if(elapsed<lastTime)return -1;
             lastTime=elapsed;
-            int cue=elapsed<.25?0:elapsed>=VoidSkillRules.DomainStart && elapsed<VoidSkillRules.DomainStart+.25?1:elapsed>=VoidSkillRules.ExpansionStart && elapsed<VoidSkillRules.ExpansionStart+.25?2:elapsed>=VoidSkillRules.FinalImpact-.25?3:-1;
+            int cue=elapsed<.25?0:elapsed>=VoidSkillRules.ExpansionStart && elapsed<VoidSkillRules.ExpansionStart+.25?1:elapsed>=VoidSkillRules.CollapseStart && elapsed<VoidSkillRules.CollapseStart+.2?2:elapsed>=VoidSkillRules.BurstStart?3:-1;
             if(cue<0 || cue<=last)return -1;
             last=cue;return cue;
         }

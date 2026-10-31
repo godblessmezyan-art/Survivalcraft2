@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.59.1",
+  "Version": "0.60.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.59.1 修复永久星门新建无响应：列表同步不再吞掉建门请求，平视可自动在身前安全空地建立永久门，面板明确显示结果。保留4.2秒虚夜湮灭、施法免伤和共享星门存档。Android实机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.60.0 虚夜视觉重制：原世界中黑洞降临，原生深度测试让领域从地平线由远到近侵蚀山地、水面和生物，最后收缩爆发；总时长4.2秒及原有湮灭、免伤、共享星门机制保持。Android实机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

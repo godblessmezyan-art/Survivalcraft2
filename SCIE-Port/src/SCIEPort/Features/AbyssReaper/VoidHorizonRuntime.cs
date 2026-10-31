@@ -304,7 +304,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             foreach(var cast in casts)
                 if(camera.GameWidget.PlayerData.ComponentPlayer==cast.Owner && OwnerValid(cast) && (!cast.VisualOnly || Now<cast.LeaseUntil))
-                    scene.Draw(camera,cast.Direction,(float)(Now-cast.Timeline.Started),quality);
+                    scene.Draw(camera,cast.Center,cast.Direction,(float)(Now-cast.Timeline.Started),quality,SettingsManager.VisibilityRange);
         }
         internal void Cancel(ComponentPlayer p)
         {
