@@ -96,12 +96,14 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Wave:
                     if(!s.Death||Now<s.WaveReady||waves.Count>=4){StatePacket(p,"死亡蔓延冷却中或容量已满");return;}
                     var cast=new WaveCast{Owner=p,Guid=p.PlayerGuid,Sequence=q.Sequence,Center=p.ComponentBody.Position,Started=Now};waves.Add(cast);s.WaveReady=Now+36;
-                    Send(new DeathAuthorityPackage{Kind=2,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=q.Sequence,Position=cast.Center});StatePacket(p,"死亡领域 · 由近及远蔓延");break;
+                    Send(new DeathAuthorityPackage{Kind=2,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=q.Sequence,Position=cast.Center});StatePacket(p,"死亡领域 · 扩散完成湮灭敌人、回满军势");break;
                 case DeathAuthorityRules.Summon:
                     if(!s.Death||Now<s.SummonReady){StatePacket(p,"专属召唤尚未就绪");return;}
-                    string reason;if(Summon(p,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
-                case DeathAuthorityRules.Dismiss:Dismiss(p,q.Target);StatePacket(p,"契约管理已处理");break;
+                    string reason;if(Summon(p,q.Target,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
+                case DeathAuthorityRules.Dismiss:StatePacket(p,Dismiss(p,q.Target));break;
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
+                case DeathAuthorityRules.Stow:StatePacket(p,StowArmy(p));break;
+                case DeathAuthorityRules.Manifest:StatePacket(p,ManifestArmy(p));break;
                 default:StatePacket(p,"无效的死亡权柄操作");break;
             }
         }
@@ -142,14 +144,14 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority&&hasClock&&deferredWaves.Count>0){var waiting=deferredWaves.ToArray();deferredWaves.Clear();foreach(var packet in waiting)Receive(packet);}
             foreach(var s in states.Values){if(s.PendingUntil>0&&Now>=s.PendingUntil){s.PendingUntil=0;Message(s.Player,"房主响应超时，请重试");}if(!Actor(s.Player)||!s.Death){if(s.EmpowerUntil>0)ClearMarks(s.Player.PlayerGuid);s.EmpowerUntil=0;}}
             retiredMarks.Clear();foreach(var item in marks)if(!item.Key.IsAddedToProject||item.Key.ComponentHealth.Health<=0||Now>=item.Value.Until)retiredMarks.Add(item.Key);foreach(var c in retiredMarks)marks.Remove(c);
-            if(Authority){UpdateGuards();UpdateWaves();}
-            else for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);
+            if(Authority){UpdateDiscarded();UpdateGuards();UpdateWaves();}
+            else{UpdateClientMounts();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
             if(Now>=nextDrawBind){nextDrawBind=Now+.5;drawOwners.Clear();foreach(var p in players.ComponentPlayers){var fp=p.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)drawOwners[fp.m_drawBlockEnvironmentData]=p;var human=p.Entity.FindComponent<ComponentHumanModel>(false);if(human!=null)drawOwners[human.m_drawBlockEnvironmentData]=p;}}
             scene.Update(Now);
         }
         internal bool EmpoweredDraw(DrawBlockEnvironmentData e){ComponentPlayer p;return e!=null&&drawOwners.TryGetValue(e,out p)&&Empowered(p);}
         private void ClearMarks(Guid id){retiredMarks.Clear();foreach(var pair in marks)if(pair.Value.Owner==id)retiredMarks.Add(pair.Key);foreach(var c in retiredMarks)marks.Remove(c);}
         internal void Draw(Camera camera)=>scene.Draw(camera,waves,Now,Quality);
-        public void Dispose(){if(disposed)return;disposed=true;lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
+        public void Dispose(){if(disposed)return;disposed=true;ClearClientMounts();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
     }
 }

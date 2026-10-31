@@ -41,6 +41,7 @@ public static class DeathAuthorityNativeProbe
             var values=new ValuesDictionary{DatabaseObject=database.FindDatabaseObject("Wolf_Gray",game.EntityTemplateType,true)};Put(c.Entity,"m_valuesDictionary",values);return c;
         }
         internal void Request(byte action,Vector3 direction){Check((bool)Call(Death,"Request",Player,action,direction,(ushort)0),"local command queued");Call(Death,"Update");}
+        internal ushort Key(ComponentCreature c){return (ushort)Get(((IDictionary)Get(Death,"guards"))[c.Entity.EntityId],"Key");}
         public void Dispose(){((IDisposable)Death).Dispose();((IDisposable)Base).Dispose();}
     }
     static void Combat()
@@ -59,8 +60,9 @@ public static class DeathAuthorityNativeProbe
             var s=Call(f.Death,"Get",f.Player);f.Clock.m_gameTime+=1.1;f.Request(1,-Vector3.UnitZ);
             Check(!(bool)Call(f.Death,"IsDeath",f.Player)&&!(bool)Call(f.Death,"Empowered",f.Player)&&(bool)Call(f.Death,"IsFriendly",c),"switching to void ends empowerment while retaining army");
             Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==1,"one converted creature consumes one common slot");
-            var data=(ValuesDictionary)Call(f.Death,"Save");Check(data.GetValue<int>("Count")==1&&data.GetValue<int>("Version")==1,"contract save contains owner/entity/template/spawn fingerprint");
-            Call(f.Death,"Dismiss",f.Player,(ushort)11);Check(!(bool)Call(f.Death,"IsFriendly",c)&&!c.Entity.FindComponent<ComponentBehaviorSelector>(true).IsDisableBehavior&&c.ComponentSpawn.AutoDespawn,"dismiss restores original native AI/despawn settings");
+            var data=(ValuesDictionary)Call(f.Death,"Save");Check(data.GetValue<int>("Count")==1&&data.GetValue<int>("Version")==2,"contract save contains versioned stable key/entity/template/spawn fingerprint");
+            Call(f.Death,"Dismiss",f.Player,f.Key(c));Check(!(bool)Call(f.Death,"IsFriendly",c)&&!c.IsAddedToProject,"dismiss removes converted creature instead of restoring wild AI");
+            c=f.Creature(11,new Vector3(8.5f,64,2));
             var replacement=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));Call(replacement,"Load",data);Call(replacement,"EntityAdded",c.Entity);
             Check((bool)Call(replacement,"IsFriendly",c),"saved native entity ID and fingerprint rebind the contract");((IDisposable)replacement).Dispose();
             Put(s,"Death",true);Put(s,"EmpowerUntil",f.Clock.GameTime+12);f.Clock.m_gameTime+=12.01;
@@ -69,15 +71,15 @@ public static class DeathAuthorityNativeProbe
         using(var f=new Fixture())
         {
             f.Request(1,-Vector3.UnitZ);f.Clock.m_gameTime+=.2;f.Request(2,-Vector3.UnitZ);
-            for(ushort id=20;id<26;id++)Check((bool)Call(f.Death,"Adopt",f.Creature(id,new Vector3(12+(id-20),64,8)),f.Player.PlayerGuid,false),"adopt up to six");
-            Check(!(bool)Call(f.Death,"Adopt",f.Creature(27,new Vector3(19,64,8)),f.Player.PlayerGuid,false),"seventh common/special slot is rejected");
+            for(ushort id=20;id<27;id++)Check((bool)Call(f.Death,"Adopt",f.Creature(id,new Vector3(12+(id-20),64,8)),f.Player.PlayerGuid,false),"adopt up to seven");
+            Check(!(bool)Call(f.Death,"Adopt",f.Creature(27,new Vector3(19,64,8)),f.Player.PlayerGuid,false),"eighth common/special slot is rejected");
             var waiting=f.Creature(28,new Vector3(8.5f,64,2));f.Clock.m_gameTime+=.2;f.Request(5,-Vector3.UnitZ);f.Clock.m_gameTime+=.5;f.Request(5,-Vector3.UnitZ);
             Check(waiting.ComponentHealth.Health>0&&waiting.ComponentHealth.Health<.02f&&!(bool)Call(f.Death,"IsFriendly",waiting),"full army does not kill the target on attempted second-hit conversion");
         }
         using(var f=new Fixture())
         {
             f.Request(1,-Vector3.UnitZ);var friend=f.Creature(30,new Vector3(10,64,8));Call(f.Death,"Adopt",friend,f.Player.PlayerGuid,false);
-            var hostile=f.Creature(31,new Vector3(11,64,10),true);var neutral=f.Creature(32,new Vector3(13,64,10));
+            var hostile=f.Creature(31,new Vector3(11,64,10),true);var neutral=f.Creature(32,new Vector3(13,64,10));friend.ComponentHealth.Health=.25f;
             f.Clock.m_gameTime+=.2;f.Request(3,-Vector3.UnitZ);f.Clock.m_gameTime+=1.249;Call(f.Death,"Update");Check(hostile.ComponentHealth.Health==1,"wave does not execute before full expansion");
             f.Clock.m_gameTime+=.002;Call(f.Death,"Update");Check(hostile.ComponentHealth.Health==0&&neutral.ComponentHealth.Health==1&&friend.ComponentHealth.Health==1&&f.Player.ComponentHealth.Health==1,"wave executes hostile NPC while preserving neutral/friendly/player");
             Check((double)Call(f.Death,"Remaining",f.Player,(byte)3)>34,"wave uses the independent 36-second cooldown");
@@ -106,9 +108,9 @@ public static class DeathAuthorityNativeProbe
             Check(!recorder.Targets.Contains(f.Player.ComponentBody),"owner never selected for allied melee");
             f.Player.ComponentMiner.Inventory.RemoveSlotItems(0,1);f.Clock.m_gameTime+=.6;Call(f.Death,"Update");Check((bool)Call(f.Death,"IsFriendly",friend),"army survives weapon unequip");
             ModsManager.ModHooks.Clear();
-            var saved=(ValuesDictionary)Call(f.Death,"Save");Call(f.Death,"Dismiss",f.Player,(ushort)50);Call(f.Death,"Load",saved);f.Clock.m_gameTime+=20;Call(f.Death,"Update");
+            var saved=(ValuesDictionary)Call(f.Death,"Save");var key=f.Key(friend);Call(f.Death,"Dismiss",f.Player,key);Call(f.Death,"Load",saved);f.Clock.m_gameTime+=20;Call(f.Death,"Update");
             Check(((ValuesDictionary)Call(f.Death,"Save")).GetValue<int>("Count")==1,"unloaded contract is not silently discarded after a timeout");
-            var list=(IList)Call(f.Death,"Friends",f.Player.PlayerGuid);Check(list.Count==1,"pending saved contract remains manageable");Call(f.Death,"Dismiss",f.Player,(ushort)50);
+            var list=(IList)Call(f.Death,"Friends",f.Player.PlayerGuid);Check(list.Count==1,"pending saved contract remains manageable");Call(f.Death,"Dismiss",f.Player,key);
             Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==0,"owner may release unresolved saved contract");
         }
         using(var f=new Fixture())
@@ -149,8 +151,8 @@ public static class DeathAuthorityNativeProbe
             var state=Activator.CreateInstance(f.Owner.GetType().GetNestedType("State",BindingFlags.NonPublic),true);Put(state,"Ray",new Ray3(f.Player.ComponentCreatureModel.EyePosition,-Vector3.UnitZ));Put(state,"CombatTime",20d);
             Call(f.Owner,"UpdateMeleeInput",f.Player,state,true,0f);Put(state,"CombatTime",22d);Call(f.Owner,"UpdateMeleeInput",f.Player,state,false,0f);
             Check((int)Get(Get(state,"Combo"),"<Stage>k__BackingField")<3,"empowered long hold resolves to normal attack instead of charged heavy");
-            var creature=f.Creature(80,new Vector3(10,64,8));Call(f.Death,"Adopt",creature,f.Player.PlayerGuid,false);var stranger=Guid.NewGuid();var original=f.Player.PlayerGuid;f.Player.PlayerGuid=stranger;
-            Call(f.Death,"Dismiss",f.Player,(ushort)80);Check((bool)Call(f.Death,"IsFriendly",creature),"another player cannot dismiss this owner's contract");f.Player.PlayerGuid=original;
+            var creature=f.Creature(80,new Vector3(10,64,8));Call(f.Death,"Adopt",creature,f.Player.PlayerGuid,false);var key=f.Key(creature);var stranger=Guid.NewGuid();var original=f.Player.PlayerGuid;f.Player.PlayerGuid=stranger;
+            Call(f.Death,"Dismiss",f.Player,key);Check((bool)Call(f.Death,"IsFriendly",creature),"another player cannot dismiss this owner's contract");f.Player.PlayerGuid=original;
         }
         CommonLib.WorkType=WorkType.Client;
         using(var f=new Fixture())

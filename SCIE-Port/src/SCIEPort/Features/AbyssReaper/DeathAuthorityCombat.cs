@@ -54,7 +54,7 @@ namespace SCIEPort.Features.AbyssReaper
                     if(!Convertible(c)){Message(p,"目标不支持灵魂转化");continue;}
                     Mark mark;if(marks.TryGetValue(c,out mark)&&mark.Owner==p.PlayerGuid&&Now<mark.Until)
                     {
-                        if(Count(p.PlayerGuid)>=6||guards.Count+saved.Count>=24){Message(p,"召唤名额已满，请在军势面板释放契约");continue;}
+                        if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit){Message(p,"召唤名额已满（七只），请在军势面板释放契约");continue;}
                         if(Adopt(c,p.PlayerGuid,false)){c.ComponentHealth.Health=1;CommonLib.Net?.QueuePackage(new ComponentHealthPackage(c.ComponentHealth));marks.Remove(c);Message(p,"灵魂契约成立 · 生命已恢复");}
                     }
                     else
@@ -75,7 +75,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 var w=waves[i];if(!Actor(w.Owner)||w.Owner.PlayerGuid!=w.Guid){waves.RemoveAt(i);continue;}
                 double t=Now-w.Started;
-                if(!w.Impacted&&t>=DeathAuthorityRules.WaveImpact){w.Impacted=true;bodies.FindBodiesInArea(w.Center.XZ-new Vector2(24),w.Center.XZ+new Vector2(24),w.Targets);}
+                if(!w.Impacted&&t>=DeathAuthorityRules.WaveImpact){w.Impacted=true;HealArmy(w.Guid);bodies.FindBodiesInArea(w.Center.XZ-new Vector2(24),w.Center.XZ+new Vector2(24),w.Targets);}
                 if(w.Impacted)while(budget>0&&w.Cursor<w.Targets.Count)
                 {
                     budget--;var b=w.Targets.Array[w.Cursor++];var c=b?.Entity.FindComponent<ComponentCreature>(false);if(!Hostile(c,w.Owner)||!w.Seen.Add(c.Entity))continue;var delta=b.BoundingBox.Center()-w.Center;

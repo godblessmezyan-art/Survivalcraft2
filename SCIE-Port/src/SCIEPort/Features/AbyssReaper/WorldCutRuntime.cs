@@ -100,7 +100,11 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal bool EndCharge(ComponentPlayer p,bool heavy)
         {
-            var e=Get(p,false);if(e==null||e.LocalCharge==0)return false;
+            var e=Get(p,false);
+            // A phone can first report Hold after the press began. Still route its heavy release
+            // through the host's own charging clock, even if no begin was sampled locally.
+            if(heavy&&(e==null||e.LocalCharge==0)){BeginCharge(p);e=Get(p,false);}
+            if(e==null||e.LocalCharge==0){if(heavy)Report(p,WorldCutFailure.Unavailable);return false;}
             uint sequence=e.LocalCharge;e.LocalCharge=0;
             if(heavy){e.PendingUntil=Now+2;e.Feedback="蓄力断界斩 · 主机确认中";e.FeedbackUntil=Now+2;}
             Command(p,heavy?WorldCutRules.ChargeRelease:WorldCutRules.ChargeCancel,sequence);return heavy;
@@ -124,6 +128,15 @@ namespace SCIEPort.Features.AbyssReaper
             var e=Get(p);if(e!=null)e.PendingUntil=0;Report(p,reason);
             if(CommonLib.WorkType==WorkType.Server && to!=null)CommonLib.Net.QueuePackage(new WorldCutPackage { To=to,Kind=2,Reason=(byte)reason,Caster=request.Caster,Sequence=request.Sequence,Cooldown=(float)Remaining(p) });
         }
+        private bool ArmCharge(Pending pending,Peer e)
+        {
+            var p=pending.Owner;if(!OwnerSafe(p)||clock.GameTimeDelta<=0||!e.NewRequest(pending.Packet.Sequence))return false;
+            if(casts.Exists(c=>c.OwnerGuid==p.PlayerGuid)||e.ActiveUntil>Now)return false;
+            float frequency=1.1f*(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);
+            if(!WorldCutRules.Finite(frequency)||frequency<=0)return false;
+            e.ChargeSequence=pending.Packet.Sequence;e.ChargeOwner=p;e.ChargeReply=pending.Reply;e.ChargeToken=pending.Token;e.ChargeReleased=false;
+            e.ChargeReady=Now+WorldCutRules.ChargeTime/Math.Max(.1f,Math.Min(10,frequency));e.ChargeUntil=Now+WorldCutRules.ChargeLease;return true;
+        }
         private void Accept(Pending pending)
         {
             var p=pending.Owner;var request=pending.Packet;
@@ -136,17 +149,12 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 if(!OwnerSafe(p)||clock.GameTimeDelta<=0)return;
                 if(e.ChargeSequence==request.Sequence){if(!e.ChargeReleased)e.ChargeUntil=Now+WorldCutRules.ChargeLease;return;}
-                if(!e.NewRequest(request.Sequence))return;
-                if(casts.Exists(c=>c.OwnerGuid==p.PlayerGuid)||e.ActiveUntil>Now)return;
-                float frequency=1.1f*(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);
-                if(!WorldCutRules.Finite(frequency)||frequency<=0)return;
-                e.ChargeSequence=request.Sequence;e.ChargeOwner=p;e.ChargeReply=pending.Reply;e.ChargeToken=pending.Token;e.ChargeReleased=false;
-                e.ChargeReady=Now+WorldCutRules.ChargeTime/Math.Max(.1f,Math.Min(10,frequency));e.ChargeUntil=Now+WorldCutRules.ChargeLease;return;
+                ArmCharge(pending,e);return;
             }
             if(request.Kind==WorldCutRules.ChargeCancel){if(WorldCutRules.Newer(request.Sequence,e.Processed))e.Processed=request.Sequence;if(e.ChargeSequence==request.Sequence)ClearCharge(e);return;}
             if(request.Kind==WorldCutRules.ChargeRelease)
             {
-                if(e.ChargeSequence!=request.Sequence&&!WorldCutRules.Newer(request.Sequence,e.Processed))return;
+                if(e.ChargeSequence!=request.Sequence&&!ArmCharge(pending,e))return;
                 if(e.ChargeSequence!=request.Sequence||e.ChargeOwner!=p||e.ChargeToken!=pending.Token||Now>=e.ChargeUntil){Reject(p,pending.Reply,request,WorldCutFailure.Invalid);return;}
                 if(e.ChargeReleased)return;
                 e.ChargeReleased=true;e.PendingUntil=Now+2;return;

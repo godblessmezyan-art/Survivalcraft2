@@ -1,5 +1,17 @@
 # 测试结果
 
+## 2026-10-31 main 0.64.0：仅编译打包，用户亲自测试
+
+基线 `f6dbd71` / 0.63.0，初始工作区干净。用户明确“**不用测试，我亲自测试**”，本轮没有运行自动化套件、Test-Environment、GPU、游戏或多人测试，也没有借用0.63.0的177/198项结果宣称本版通过。常规规则/回归脚本保留；已有契约上限、解除行为、保存版本及契约键断言按新需求调整，未运行。
+
+仅Release编译和候选包组装：`Build-ManualTestCandidate.ps1 -GameDir D:/Games/SCNET-x25.01.17 -BaselinePackage <0.63.0包>`，FrameworkPathOverride指定本机net472引用，退出0、0警告0错误；日志 `artifacts/army-0.64-package.log`。脚本不调用Test或游戏，旧包资源原字节复用，只替换DLL/modinfo/署名；全量包脚本不改成默认跳过测试。无新增图像/模型文件；马和狼引用已安装游戏模板。早期候选脚本遇到Windows PowerShell编码及只在授权上游存在的资源，修正BOM与源资源规则后打包成功，未当作测试通过。
+
+最终候选包SHA256：`ED82DE16F998463C459A6EA711F507C84051807B2B346D509F599010A3A46085`；正式名与0.64.0版本副本保持同字节，0.63.0未覆盖。
+
+新增逻辑：每人七只、重复召唤猎犬和带鞍黑马（夜魇战马170%速度）、死亡蔓延回满己方存活军势、次位面快照收纳/安全现身、解除直接消失及待加载删除标记；手机Hold维持与房主缺失起始消息时补足蓄力后断界斩。只读核实原生EntityDataList/SaveEntities/publicLoadEntity，以及Mount/Steed/Locomotion和ProjectNet原生实体增删同步；特别避开Id=0的ProjectNet.LoadEntities跳过组件Load行为。没有执行实体往返、骑乘或伤害验证。
+
+0.63.0包与 `backup/abyss-0.63.0-before-army-upgrade` 保留。新版军势保存v2可读v1；旧版只保留v2原数据、不能操作其中次位面。联机各方须0.64.0；所有新增运行行为及Android7723均待用户验证。功能、限制及用户验收清单见[军势升级](ABYSS-ARMY-0.64.md)。
+
 ## 2026-10-31 main 0.63.0：双权柄与契约军势
 
 基线main `611d98a` / 0.62.0，初始干净；fetch重试后成功，ff-only确认最新。回退点 `backup/abyss-0.62.0-before-death-authority` 与旧0.62.0包保留。仅本地提交。功能/数值及待验步骤见[死亡权柄](ABYSS-DEATH-AUTHORITY.md)。

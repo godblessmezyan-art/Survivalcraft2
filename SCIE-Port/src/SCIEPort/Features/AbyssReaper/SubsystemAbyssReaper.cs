@@ -85,8 +85,11 @@ namespace SCIEPort.Features.AbyssReaper
                 ||Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true;
             var sampled=input.m_playerInput;
             var ray=sampled.Dig??sampled.Hit??sampled.Aim;
+            var touch=p.ComponentGui.ViewWidget?.TouchInput;
+            bool held=ray.HasValue||touch.HasValue&&touch.Value.InputType==TouchInputType.Hold;
             var interact=sampled.Interact;
             if(ray.HasValue)s.Ray=ray.Value;
+            else if(held)s.Ray=new Ray3(p.ComponentCreatureModel.EyePosition,p.ComponentCreatureModel.EyeRotation.GetForwardVector());
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
@@ -99,13 +102,12 @@ namespace SCIEPort.Features.AbyssReaper
                 if(aimed!=Guid.Empty && OpenPortalDialog(p,aimed)){s.InputGate.Accepted();return;}
             }
             float elapsed=0;
-            var touch=p.ComponentGui.ViewWidget?.TouchInput;
             if(touch.HasValue&&touch.Value.InputType==TouchInputType.Hold)elapsed=touch.Value.Duration;
             int skillPressed=s.Hud?.Poll(p.GuiWidget.Input)??0;
             if(skillPressed!=0)
             {
                 bool meleeBusy=s.NormalImpactPending || s.Combo.Phase(s.CombatTime)<1 || s.Combo.Charge(s.CombatTime)>0;
-                if(s.InputGate.CanRequest(ray.HasValue,meleeBusy,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
+                if(s.InputGate.CanRequest(held,meleeBusy,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
                 { if(skillPressed==1) { if(Death.Request(p,DeathAuthorityRules.Toggle,Vector3.UnitZ))s.InputGate.Accepted(); }
                   else if(skillPressed==5) { if(Death.IsDeath(p)){DialogsManager.ShowDialog(p.GuiWidget,new DeathArmyDialog(p,Death));s.InputGate.Accepted();}else if(PortalAction(p))s.InputGate.Accepted(); }
                   else if(Death.IsDeath(p)&&skillPressed!=4){if(Death.Request(p,skillPressed==2?DeathAuthorityRules.Empower:DeathAuthorityRules.Wave,Vector3.UnitZ))s.InputGate.Accepted();}
@@ -113,9 +115,9 @@ namespace SCIEPort.Features.AbyssReaper
                     catch(Exception error){Log.Warning("[SCIEPort:Abyss] Skill request failed: "+error.GetType().Name);p.ComponentGui.DisplaySmallMessage("技能释放失败",Color.Yellow,false,false);} } }
                 else WorldCut.Report(p,WorldCutFailure.Busy);
             }
-            if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
+            if(s.InputGate.RouteNormal(held,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
             {
-                UpdateMeleeInput(p,s,ray.HasValue,elapsed*attackFrequency);
+                UpdateMeleeInput(p,s,held,elapsed*attackFrequency);
             }
         }
         private void UpdateMeleeInput(ComponentPlayer p,State s,bool held,float elapsed)
@@ -271,7 +273,7 @@ namespace SCIEPort.Features.AbyssReaper
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
             if(s.Hud==null)s.Hud=new WorldCutHud(gui);
             string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);
-            if(hint==null)hint=s.Combo.Charge(s.CombatTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(s.CombatTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
+            if(hint==null)hint=Death.Empowered(p)?"夺魂赋刃 · 首击濒死，再击转化 · 重击暂禁用":s.Combo.Charge(s.CombatTime)>=1?"蓄力完成 · 松开断界斩":s.Combo.Charge(s.CombatTime)>0?"断界斩蓄力中":"轻触连斩 · 长按松开断界斩";
             s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Space.Remaining(p,VoidSpaceRules.Shatter),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death.Busy(p),WorldCut.PendingRequest(p),Death.Feedback(p)??Space.Feedback(p)??hint,
                 gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput,Death,p);
         }

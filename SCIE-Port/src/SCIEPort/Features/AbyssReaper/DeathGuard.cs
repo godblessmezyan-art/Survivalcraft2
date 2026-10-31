@@ -6,7 +6,10 @@ namespace SCIEPort.Features.AbyssReaper
     // Owns selector/path orders; does not append reflection-created components to native entities.
     internal sealed class DeathGuard
     {
-        internal ComponentCreature Creature;internal Guid Owner;internal bool Special;internal string OriginalName,Template;
+        internal ComponentCreature Creature;internal Guid Owner;internal ushort Key;internal bool Special;internal string OriginalName,Template;
+        internal bool Warhorse=>Special&&Template==DeathAuthorityRules.MountTemplate;
+        internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
+        private float mountBonus;private bool wasRidden;
         internal double SpawnTime,NextThink,NextAttack,StuckSince;internal ComponentCreature Target;
         private ComponentBehaviorSelector selector;private ComponentChaseBehavior chase;internal ComponentPathfinding Path;
         private bool disabled,autoDespawn;private CreatureCategory mask;private float retaliate,touch,nonplayer;
@@ -20,13 +23,23 @@ namespace SCIEPort.Features.AbyssReaper
             chase=c.Entity.FindComponent<ComponentChaseBehavior>(false);
             if(chase!=null){mask=chase.m_autoChaseMask;retaliate=chase.m_chaseWhenAttackedProbability;touch=chase.m_chaseOnTouchProbability;nonplayer=chase.m_chaseNonPlayerProbability;chase.m_autoChaseMask=0;chase.m_chaseWhenAttackedProbability=0;chase.m_chaseOnTouchProbability=0;chase.m_chaseNonPlayerProbability=0;chase.m_target=null;chase.IsActive=false;}
             if(c.ComponentSpawn!=null)c.ComponentSpawn.AutoDespawn=false;
-            c.DisplayName=special?"冥界猎犬":"契约 · "+OriginalName;return true;
+            c.DisplayName=special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;RefreshSpeed();return true;
         }
         internal void Suppress()
-        {foreach(var b in selector.m_behaviors)if(b.IsActive)b.IsActive=false;if(chase!=null){chase.m_target=null;chase.m_importanceLevel=0;}}
+        {
+            bool ridden=Ridden;if(ridden&&!wasRidden)Path.Stop();wasRidden=ridden;
+            foreach(var b in selector.m_behaviors)b.IsActive=ridden&&b is ComponentSteedBehavior;
+            if(chase!=null){chase.m_target=null;chase.m_importanceLevel=0;}RefreshSpeed();
+        }
+        private void RefreshSpeed()
+        {
+            var locomotion=Creature?.Entity.FindComponent<ComponentLocomotion>(false);if(locomotion==null)return;
+            locomotion.WalkSpeed-=mountBonus;mountBonus=Warhorse?Math.Max(0,locomotion.WalkSpeed)*.7f:0;locomotion.WalkSpeed+=mountBonus;
+        }
         internal void Restore()
         {
             if(Creature==null)return;Path.Stop();Creature.DisplayName=OriginalName;selector.IsDisableBehavior=disabled;
+            var locomotion=Creature.Entity.FindComponent<ComponentLocomotion>(false);if(locomotion!=null)locomotion.WalkSpeed-=mountBonus;mountBonus=0;
             if(Creature.ComponentSpawn!=null)Creature.ComponentSpawn.AutoDespawn=autoDespawn;
             if(chase!=null){chase.m_autoChaseMask=mask;chase.m_chaseWhenAttackedProbability=retaliate;chase.m_chaseOnTouchProbability=touch;chase.m_chaseNonPlayerProbability=nonplayer;chase.m_target=null;chase.m_importanceLevel=0;}
         }

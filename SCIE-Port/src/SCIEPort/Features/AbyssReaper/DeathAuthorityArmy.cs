@@ -10,30 +10,42 @@ namespace SCIEPort.Features.AbyssReaper
 {
     internal sealed partial class DeathAuthorityRuntime
     {
-        internal sealed class Friend{internal ushort Id;internal Guid Owner;internal string Name,Template;internal bool Special;internal double SpawnTime;internal uint Revision;}
+        internal sealed class Friend{internal ushort Id,EntityId;internal Guid Owner;internal string Name,Template;internal bool Special,Hidden,Discard,HealOnReturn,Warhorse,Pending;internal double SpawnTime;internal uint Revision;internal ValuesDictionary Snapshot;}
         private sealed class Threat{internal ComponentCreature Creature;internal double Until;}
         private readonly Dictionary<ushort,DeathGuard> guards=new Dictionary<ushort,DeathGuard>();
         private readonly Dictionary<ushort,Friend> clientFriends=new Dictionary<ushort,Friend>(),saved=new Dictionary<ushort,Friend>();
+        private readonly Dictionary<ushort,Friend> hidden=new Dictionary<ushort,Friend>();
+        private readonly List<Entity> discardedEntities=new List<Entity>();
+        private readonly Dictionary<ComponentLocomotion,float> clientMountBonuses=new Dictionary<ComponentLocomotion,float>();
         private readonly Dictionary<Guid,Threat> threats=new Dictionary<Guid,Threat>();
         private readonly Dictionary<ushort,uint> friendRevisions=new Dictionary<ushort,uint>();
         private readonly Dictionary<ushort,Friend> snapshotRows=new Dictionary<ushort,Friend>();private uint snapshotId,lastSnapshot;private int snapshotCount;
         private readonly List<ushort> retired=new List<ushort>();private ValuesDictionary loadFailure;
-        internal bool IsFriendly(ComponentCreature c)=>c!=null&&(Authority?guards.ContainsKey(c.Entity.EntityId)&&guards[c.Entity.EntityId].Creature==c:saved.ContainsKey(c.Entity.EntityId)||clientFriends.ContainsKey(c.Entity.EntityId));
-        internal int Count(Guid id){int n=0;if(Authority){foreach(var g in guards.Values)if(g.Owner==id)n++;foreach(var f in saved.Values)if(f.Owner==id)n++;}else foreach(var f in clientFriends.Values)if(f.Owner==id)n++;return n;}
+        internal bool IsFriendly(ComponentCreature c)
+        {if(c==null)return false;if(Authority)return guards.ContainsKey(c.Entity.EntityId)&&guards[c.Entity.EntityId].Creature==c;foreach(var f in clientFriends.Values)if(!f.Hidden&&!f.Pending&&f.EntityId==c.Entity.EntityId)return true;return false;}
+        private int ArmyCount{get{int n=guards.Count+hidden.Count;foreach(var f in saved.Values)if(!f.Discard)n++;return n;}}
+        internal int Count(Guid id){int n=0;if(Authority){foreach(var g in guards.Values)if(g.Owner==id)n++;foreach(var f in saved.Values)if(!f.Discard&&f.Owner==id)n++;foreach(var f in hidden.Values)if(f.Owner==id)n++;}else foreach(var f in clientFriends.Values)if(f.Owner==id)n++;return n;}
+        internal int HiddenCount(Guid id){int n=0;foreach(var f in (Authority?hidden:clientFriends).Values)if(f.Owner==id&&f.Hidden)n++;return n;}
         internal List<Friend> Friends(Guid owner)
         {
-            var list=new List<Friend>();if(Authority){foreach(var g in guards.Values)if(g.Owner==owner)list.Add(Row(g));foreach(var f in saved.Values)if(f.Owner==owner)list.Add(f);}else foreach(var f in clientFriends.Values)if(f.Owner==owner)list.Add(f);return list;
+            var list=new List<Friend>();if(Authority){foreach(var g in guards.Values)if(g.Owner==owner)list.Add(Row(g));foreach(var f in saved.Values)if(!f.Discard&&f.Owner==owner)list.Add(f);foreach(var f in hidden.Values)if(f.Owner==owner)list.Add(f);}else foreach(var f in clientFriends.Values)if(f.Owner==owner)list.Add(f);return list;
         }
-        private Friend Row(DeathGuard g)=>new Friend{Id=g.Creature.Entity.EntityId,Owner=g.Owner,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special};
-        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Owner=row.Owner,Sequence=snapshot,Flags=(byte)(row.Special?1:0),Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
-        private bool Adopt(ComponentCreature c,Guid owner,bool special)
+        private Friend Row(DeathGuard g)=>new Friend{Id=g.Key,EntityId=g.Creature.Entity.EntityId,Owner=g.Owner,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special,Warhorse=g.Warhorse};
+        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Caster=row.Hidden||row.Pending?(ushort)0:row.EntityId,Owner=row.Owner,Sequence=snapshot,Flags=(byte)((row.Special?1:0)|(row.Hidden?2:0)|(row.Pending?4:0)|(row.Warhorse?8:0)),Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
+        private ushort FreeKey()
         {
-            if(!Authority||Count(owner)>=6||guards.Count+saved.Count>=24||IsFriendly(c)||c is ComponentPlayer)return false;
-            var guard=new DeathGuard();if(!guard.Bind(c,owner,special))return false;guards.Add(c.Entity.EntityId,guard);FriendPacket(Row(guard));return true;
+            for(int i=1;i<=ushort.MaxValue;i++){ushort key=(ushort)i;if(hidden.ContainsKey(key))continue;bool used=false;foreach(var g in guards.Values)if(g.Key==key){used=true;break;}if(!used)foreach(var f in saved.Values)if(f.Id==key){used=true;break;}if(!used)return key;}return 0;
+        }
+        private bool Adopt(ComponentCreature c,Guid owner,bool special)
+            =>AdoptContract(c,owner,special,FreeKey());
+        private bool AdoptContract(ComponentCreature c,Guid owner,bool special,ushort key)
+        {
+            if(!Authority||key==0||c==null||!c.IsAddedToProject||c.ComponentHealth.Health<=0||Count(owner)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit||IsFriendly(c)||c is ComponentPlayer)return false;
+            var guard=new DeathGuard{Key=key};if(!guard.Bind(c,owner,special))return false;guards.Add(c.Entity.EntityId,guard);FriendPacket(Row(guard));return true;
         }
         private void SyncFriends(Client to)
         {
-            if(to==null)return;var start=new DeathAuthorityPackage{Kind=6,Target=(ushort)(guards.Count+saved.Count)};Send(start,to);foreach(var g in guards.Values)FriendPacket(Row(g),to,start.Revision);foreach(var f in saved.Values)FriendPacket(f,to,start.Revision);Send(new DeathAuthorityPackage{Kind=7,Sequence=start.Revision},to);
+            if(to==null)return;var start=new DeathAuthorityPackage{Kind=6,Target=(ushort)ArmyCount};Send(start,to);foreach(var g in guards.Values)FriendPacket(Row(g),to,start.Revision);foreach(var f in saved.Values)if(!f.Discard)FriendPacket(f,to,start.Revision);foreach(var f in hidden.Values)FriendPacket(f,to,start.Revision);Send(new DeathAuthorityPackage{Kind=7,Sequence=start.Revision},to);
             foreach(var w in waves)if(Now-w.Started<1.6)Send(new DeathAuthorityPackage{Kind=2,Caster=w.Owner.Entity.EntityId,Owner=w.Guid,Sequence=w.Sequence,Position=w.Center,A=(float)(Now-w.Started)},to);
         }
         private void ReceiveFriend(DeathAuthorityPackage q)
@@ -47,23 +59,23 @@ namespace SCIEPort.Features.AbyssReaper
                 clientFriends.Clear();foreach(var row in keep)clientFriends[row.Key]=row.Value;lastSnapshot=snapshotId;snapshotId=0;snapshotRows.Clear();return;
             }
             if(q.Target==0)return;
-            if(q.Kind==3&&q.Sequence!=0){if(q.Sequence==snapshotId&&q.Owner!=Guid.Empty&&snapshotRows.Count<24)snapshotRows[q.Target]=new Friend{Id=q.Target,Owner=q.Owner,Name=q.Name,Special=(q.Flags&1)!=0,Revision=q.Revision};return;}
+            if(q.Kind==3&&q.Sequence!=0){if(q.Sequence==snapshotId&&q.Owner!=Guid.Empty&&snapshotRows.Count<24)snapshotRows[q.Target]=ReadFriend(q);return;}
             uint last;friendRevisions.TryGetValue(q.Target,out last);if(!WorldCutRules.Newer(q.Revision,last)||!WorldCutRules.Newer(q.Revision,lastSnapshot))return;friendRevisions[q.Target]=q.Revision;
             if(q.Kind==4){clientFriends.Remove(q.Target);return;}if(q.Owner==Guid.Empty||q.Name.Length>64||clientFriends.Count>=24&&!clientFriends.ContainsKey(q.Target))return;
-            clientFriends[q.Target]=new Friend{Id=q.Target,Owner=q.Owner,Special=(q.Flags&1)!=0,Name=q.Name,Revision=q.Revision};
+            clientFriends[q.Target]=ReadFriend(q);
         }
-        private bool Summon(ComponentPlayer p,out string reason)
+        private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Revision=q.Revision};
+        private bool Summon(ComponentPlayer p,ushort kind,out string reason)
         {
-            reason="召唤名额已满（每人6只、世界24只）";if(Count(p.PlayerGuid)>=6||guards.Count+saved.Count>=24)return false;
-            foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid&&g.Special){reason="已有专属冥界猎犬";return false;}
-            foreach(var f in saved.Values)if(f.Owner==p.PlayerGuid&&f.Special){reason="专属猎犬正在恢复存档";return false;}
+            reason="召唤名额已满（每人七只、世界24只，含次位面）";if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)return false;
+            if(kind>1){reason="未知的召唤类型";return false;}
             Vector3 at;if(!FindFree(p.ComponentBody.Position,new Vector3(.9f,1.2f,.9f),out at)){reason="附近没有已加载的安全召唤位置";return false;}
             Entity entity=null;
             try
             {
-                entity=DatabaseManager.CreateEntity(terrain.Project,"Wolf_Gray",true);var c=entity.FindComponent<ComponentCreature>(true);if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳猎犬身体的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
+                entity=DatabaseManager.CreateEntity(terrain.Project,kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason="冥界猎犬已响应召唤";return true;
+                reason=kind==1?"夜魇战马已响应召唤 · 可骑乘 · 速度170%":"冥界猎犬已响应召唤";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }
@@ -88,14 +100,16 @@ namespace SCIEPort.Features.AbyssReaper
             }
             return false;
         }
-        private void Dismiss(ComponentPlayer p,ushort id)
+        private string Dismiss(ComponentPlayer p,ushort id)
         {
-            Friend pending;if(saved.TryGetValue(id,out pending)&&pending.Owner==p.PlayerGuid){saved.Remove(id);Send(new DeathAuthorityPackage{Kind=4,Target=id});return;}
-            DeathGuard g;if(!guards.TryGetValue(id,out g)||g.Owner!=p.PlayerGuid)return;
-            if(g.Special)terrain.Project.RemoveEntity(g.Creature.Entity,true);else g.Restore();guards.Remove(id);Send(new DeathAuthorityPackage{Kind=4,Target=id});
+            Friend row;if(hidden.TryGetValue(id,out row)&&row.Owner==p.PlayerGuid){hidden.Remove(id);Send(new DeathAuthorityPackage{Kind=4,Target=id});return "契约已解除，次位面生物已消失";}
+            foreach(var f in saved.Values)if(f.Id==id&&f.Owner==p.PlayerGuid&&!f.Discard){int count=0;foreach(var other in saved.Values)if(other.Discard)count++;if(count>=DeathAuthorityRules.DiscardLimit)return "待加载的解除记录已满，请先靠近原生物区域";f.Discard=true;Send(new DeathAuthorityPackage{Kind=4,Target=id});return "契约已解除，生物加载后将直接消失";}
+            DeathGuard g=null;foreach(var candidate in guards.Values)if(candidate.Key==id&&candidate.Owner==p.PlayerGuid){g=candidate;break;}if(g==null)return "未找到自己的契约生物";
+            if(Occupied(g.Creature))return "请先让乘客下马，再解除契约";
+            terrain.Project.RemoveEntity(g.Creature.Entity,true);guards.Remove(g.Creature.Entity.EntityId);Send(new DeathAuthorityPackage{Kind=4,Target=id});return "契约已解除，生物已消失";
         }
         private void Recall(ComponentPlayer p)
-        {foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid){g.Target=null;g.NextThink=0;Vector3 at;if(Vector3.DistanceSquared(g.Creature.ComponentBody.Position,p.ComponentBody.Position)>48*48&&FindFree(p.ComponentBody.Position,g.Creature.ComponentBody.BoxSize,out at))VoidBlinkBody(g.Creature.ComponentBody,at);}}
+        {foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid&&!Occupied(g.Creature)){g.Target=null;g.NextThink=0;Vector3 at;if(Vector3.DistanceSquared(g.Creature.ComponentBody.Position,p.ComponentBody.Position)>48*48&&FindFree(p.ComponentBody.Position,g.Creature.ComponentBody.BoxSize,out at))VoidBlinkBody(g.Creature.ComponentBody,at);}}
         private static void VoidBlinkBody(ComponentBody body,Vector3 at){body.Position=at;body.Velocity=Vector3.Zero;body.netPosition=new NetPosition(at);body.netVelocity=new NetVelocity(Vector3.Zero);body.SendPosition=at;body.SendVelocity=Vector3.Zero;}
         private ComponentPlayer OwnerPlayer(Guid id){foreach(var p in players.ComponentPlayers)if(p.PlayerGuid==id&&Actor(p,false))return p;return null;}
         private void UpdateGuards()
@@ -104,6 +118,7 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var pair in guards)
             {
                 var g=pair.Value;var c=g.Creature;if(!c.IsAddedToProject||c.ComponentHealth.Health<=0){retired.Add(pair.Key);continue;}g.Suppress();
+                if(g.Ridden||Occupied(c)){g.Target=null;continue;}
                 var owner=OwnerPlayer(g.Owner);if(owner==null){g.Target=null;if(g.Path.Destination.HasValue)g.Path.Stop();continue;}
                 if(g.Target!=null&&!Hostile(g.Target,owner))g.Target=null;
                 if(g.Path.IsStuck){if(g.StuckSince<=0)g.StuckSince=Now;}else g.StuckSince=0;
@@ -124,33 +139,44 @@ namespace SCIEPort.Features.AbyssReaper
                     ComponentMiner.AttackBody(g.Target.ComponentBody,c,g.Target.ComponentBody.BoundingBox.Center(),delta.LengthSquared()>.001f?Vector3.Normalize(delta):Vector3.UnitZ,power,true);
                 }
             }
-            foreach(var id in retired){guards.Remove(id);Send(new DeathAuthorityPackage{Kind=4,Target=id});}
+            foreach(var id in retired){var key=guards[id].Key;guards.Remove(id);Send(new DeathAuthorityPackage{Kind=4,Target=key});}
         }
         internal void EntityAdded(Entity entity)
         {
             if(!Authority)return;Friend f;if(!saved.TryGetValue(entity.EntityId,out f))return;var c=entity.FindComponent<ComponentCreature>(false);
             if(c==null||c.Entity.ValuesDictionary.DatabaseObject.Name!=f.Template||Math.Abs((c.ComponentSpawn?.SpawnTime??0)-f.SpawnTime)>.001)return;
-            saved.Remove(entity.EntityId);Adopt(c,f.Owner,f.Special);
+            if(f.Discard){if(discardedEntities.Count<DeathAuthorityRules.DiscardLimit)discardedEntities.Add(entity);return;}
+            saved.Remove(entity.EntityId);if(!AdoptContract(c,f.Owner,f.Special,f.Id)){saved[entity.EntityId]=f;return;}
+            if(f.HealOnReturn)Heal(c);
         }
         internal void Load(ValuesDictionary data)
         {
             if(data==null)return;
             try
             {
-                if(data.GetValue<int>("Version",0)!=1){loadFailure=data;return;}
+                int version=data.GetValue<int>("Version",0);if(version!=1&&version!=2){loadFailure=data;return;}
                 worldId=data.GetValue<Guid>("World",worldId);if(worldId==Guid.Empty)throw new InvalidOperationException();
-                int count=data.GetValue<int>("Count",0);if(count<0||count>24)throw new InvalidOperationException();
-                for(int i=0;i<count;i++){var row=data.GetValue<ValuesDictionary>("Ally"+i);int id=row.GetValue<int>("Id");var f=new Friend{Id=(ushort)id,Owner=row.GetValue<Guid>("Owner"),Template=row.GetValue<string>("Template"),SpawnTime=row.GetValue<double>("Spawn"),Special=row.GetValue<bool>("Special"),Name="待恢复 · "+row.GetValue<string>("Template")};if(id<1||id>ushort.MaxValue||f.Owner==Guid.Empty||f.Template.Length>96||!DeathAuthorityRules.Finite(f.SpawnTime)||saved.ContainsKey(f.Id)||Count(f.Owner)>=6)throw new InvalidOperationException();saved.Add(f.Id,f);}
+                int count=data.GetValue<int>("Count",0);if(count<0||count>DeathAuthorityRules.WorldLimit+DeathAuthorityRules.DiscardLimit)throw new InvalidOperationException();
+                var keys=new HashSet<ushort>();int discarded=0;
+                for(int i=0;i<count;i++)
+                {
+                    var row=data.GetValue<ValuesDictionary>("Ally"+i);int entity=row.GetValue<int>("Id"),key=row.GetValue<int>("Key",entity);
+                    var f=new Friend{Id=(ushort)key,EntityId=(ushort)entity,Owner=row.GetValue<Guid>("Owner"),Template=row.GetValue<string>("Template"),SpawnTime=row.GetValue<double>("Spawn"),Special=row.GetValue<bool>("Special"),Hidden=row.GetValue<bool>("Hidden",false),Discard=row.GetValue<bool>("Discard",false),HealOnReturn=row.GetValue<bool>("HealOnReturn",false),Snapshot=row.GetValue<ValuesDictionary>("Snapshot",null)};
+                    f.Pending=!f.Hidden;f.Warhorse=f.Special&&f.Template==DeathAuthorityRules.MountTemplate;f.Name=row.GetValue<string>("Name",f.Special?(f.Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+f.Template);
+                    if(key<1||key>ushort.MaxValue||entity<0||entity>ushort.MaxValue||!keys.Add(f.Id)||f.Owner==Guid.Empty||f.Template.Length>96||f.Name.Length>96||!DeathAuthorityRules.Finite(f.SpawnTime)||f.Hidden&&(f.Snapshot==null||f.Discard)||!f.Hidden&&entity==0)throw new InvalidOperationException();
+                    if(f.Discard){if(++discarded>DeathAuthorityRules.DiscardLimit)throw new InvalidOperationException();}else if(Count(f.Owner)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)throw new InvalidOperationException();
+                    if(f.Hidden)hidden.Add(f.Id,f);else saved.Add(f.EntityId,f);
+                }
             }
-            catch(Exception){saved.Clear();loadFailure=data;Log.Warning("[SCIEPort:Death] Contract data invalid; preserved without overwriting.");}
+            catch(Exception){saved.Clear();hidden.Clear();loadFailure=data;Log.Warning("[SCIEPort:Death] Contract data invalid; preserved without overwriting.");}
         }
         internal ValuesDictionary Save()
         {
-            if(loadFailure!=null)return loadFailure;var data=new ValuesDictionary();data.SetValue("Version",1);data.SetValue("World",worldId);int n=0;
+            if(loadFailure!=null)return loadFailure;var data=new ValuesDictionary();data.SetValue("Version",2);data.SetValue("World",worldId);int n=0;
             foreach(var g in guards.Values)if(g.Creature.IsAddedToProject&&g.Creature.ComponentHealth.Health>0)SaveRow(data,Row(g),n++);
-            foreach(var row in saved.Values)SaveRow(data,row,n++);data.SetValue("Count",n);return data;
+            foreach(var row in saved.Values)SaveRow(data,row,n++);foreach(var row in hidden.Values)SaveRow(data,row,n++);data.SetValue("Count",n);return data;
         }
-        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);data.SetValue("Ally"+index,row);}
+        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.EntityId);row.SetValue("Key",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);row.SetValue("Name",f.Name??"契约生物");row.SetValue("Hidden",f.Hidden);row.SetValue("Discard",f.Discard);row.SetValue("HealOnReturn",f.HealOnReturn);if(f.Snapshot!=null)row.SetValue("Snapshot",f.Snapshot);data.SetValue("Ally"+index,row);}
         internal void Tint(Game.ComponentModel model)
         {
             var c=model?.Entity.FindComponent<ComponentCreature>(false);if(IsFriendly(c))model.DiffuseColor=new Vector3(.35f,.23f,.48f);
