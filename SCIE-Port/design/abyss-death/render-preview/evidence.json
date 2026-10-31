@@ -1,0 +1,9 @@
+{
+  "kind": "Native x25.01.17 Engine/OpenGL synthetic scene; not gameplay/Android",
+  "gpu_checks": 198,
+  "cpu_hud_exports": 2,
+  "death_wave_checks": 60,
+  "assembly_sha256": "050CCF970187D78427553DD07B303BB9D4984388F52396D6242D016129355760",
+  "scene_sha256": "64DB66318B4766E264516086C0C58ABCFFD563AA68619D2FDD1FB6120EA06AC4",
+  "command": "Test-AbyssSpaceGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/death-gpu"
+}

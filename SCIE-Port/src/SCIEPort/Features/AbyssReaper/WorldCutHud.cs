@@ -20,7 +20,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             internal CanvasWidget Root;
             internal RectangleWidget Icon,Glow;
-            internal LabelWidget Cooldown;
+            internal LabelWidget Cooldown,Name;
             internal AbyssSkillHitTarget Hit;
         }
         private readonly ComponentGui gui;
@@ -28,6 +28,7 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly Button[] buttons=new Button[5];
         private readonly CanvasWidget[] roots=new CanvasWidget[5];
         private readonly LabelWidget status;
+        private readonly Subtexture[] voidIcons=new Subtexture[5],deathIcons=new Subtexture[5];
         private int capturedTouch=-1,capturedSlot;
         internal bool Visible => panel.IsVisible;
         internal WorldCutHud(ComponentGui owner)
@@ -44,15 +45,20 @@ namespace SCIEPort.Features.AbyssReaper
                 button.Root=new CanvasWidget { Size=new Vector2(size),IsHitTestVisible=false };
                 Vector2 uv=i==3?new Vector2(.5f):Vector2.Zero;
                 Subtexture texture=i<3?new Subtexture(ContentManager.Get<Texture2D>(icons[i]),Vector2.Zero,Vector2.One):new Subtexture(atlas,uv,uv+new Vector2(.5f));
+                voidIcons[i]=texture;
                 button.Icon=new RectangleWidget { Size=new Vector2(size),Subtexture=texture,FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
                 button.Glow=new RectangleWidget { Size=new Vector2(size),Subtexture=button.Icon.Subtexture,FillColor=Color.Transparent,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
                 button.Cooldown=new LabelWidget { Size=new Vector2(size),TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=i==3?.92f:.8f,DropShadow=true,Color=Color.White,IsHitTestVisible=false };
                 var label=new LabelWidget { Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.38f,DropShadow=true,Color=new Color(237,218,255),IsHitTestVisible=false };
+                button.Name=label;
                 button.Hit=new AbyssSkillHitTarget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
                 button.Root.Children.Add(button.Icon);button.Root.Children.Add(button.Glow);button.Root.Children.Add(button.Cooldown);button.Root.Children.Add(label);button.Root.Children.Add(button.Hit);
                 CanvasWidget.SetPosition(label,new Vector2(0,size*.71f));
                 roots[i]=button.Root;panel.Children.Add(button.Root);
             }
+            string[] deathAssets={"DeathSwitch","DeathEmpower","DeathWave",null,"DeathGuardian"};
+            for(int i=0;i<5;i++)deathIcons[i]=deathAssets[i]==null?voidIcons[i]:new Subtexture(ContentManager.Get<Texture2D>("Textures/Abyss"+deathAssets[i]),Vector2.Zero,Vector2.One);
+            voidIcons[0]=deathIcons[0];
             status=new LabelWidget { Size=new Vector2(232,24),FontScale=.42f,DropShadow=true,Color=new Color(221,190,244),IsHitTestVisible=false };
             panel.Children.Add(status);gui.ControlsContainerWidget.Children.Add(panel);
         }
@@ -78,15 +84,20 @@ namespace SCIEPort.Features.AbyssReaper
             for(int i=0;i<5;i++)if(buttons[i].Hit.IsEnabledGlobal&&buttons[i].Hit.HitTest(screen))return i+1;
             return 0;
         }
-        internal void Update(double remaining,double blinkRemaining,double shatterRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked)
+        internal void Update(double remaining,double blinkRemaining,double shatterRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked,DeathAuthorityRuntime death=null,ComponentPlayer actor=null)
         {
             if(blocked){panel.IsVisible=false;CancelInput();return;}
             if(!Artifacts.ArtifactSkillHud.ArrangeAbyss(gui,panel,status,roots)){CancelInput();return;}
             for(int i=0;i<5;i++)
             {
+                bool form=death!=null&&death.IsDeath(actor);
+                buttons[i].Icon.Subtexture=buttons[i].Glow.Subtexture=(form?deathIcons:voidIcons)[i];
+                buttons[i].Name.Text=i==0?(form?"切换虚空":"切换死亡"):i==1?(form?"夺魂赋刃":"无界折跃"):i==2?(form?"死亡蔓延":"万象破碎"):i==3?"虚夜湮灭":form?"冥界军势":"裂界星门";
                 double cooldown=i==0?remaining:i==1?blinkRemaining:i==2?shatterRemaining:i==3?horizonRemaining:0;
+                if(death!=null){if(i==0)cooldown=death.Remaining(actor,1);else if(form&&i!=3)cooldown=death.Remaining(actor,(byte)(i==1?2:i==2?3:4));}
                 bool ready=cooldown<=0;
                 buttons[i].Cooldown.Text=i==0&&pending?"…":ready?string.Empty:Math.Ceiling(cooldown).ToString("0");
+                if(i==1&&form&&death.Empowered(actor))buttons[i].Cooldown.Text="赋能\n"+Math.Ceiling(death.EmpowerRemaining(actor)).ToString("0");
                 buttons[i].Icon.FillColor=ready&&!busy?Color.White:new Color(120,103,142,225);
                 float pulse=.5f+.5f*MathUtils.Sin((float)Time.RealTime*2.2f);
                 buttons[i].Glow.FillColor=ready&&!busy?new Color(177,112,240)*(buttons[i].Hit.IsPressed?.28f:.035f+pulse*.055f):Color.Transparent;

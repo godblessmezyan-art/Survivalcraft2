@@ -190,6 +190,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(body==null || body.Entity==cast.Owner.Entity || !body.IsAddedToProject || body.Project!=cast.Owner.Project)return false;
             var creature=body.Entity.FindComponent<ComponentCreature>(false);
             if(creature==null || creature.ComponentHealth.Health<=0)return false;
+            if(body.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.IsFriendly(creature)==true)return false;
             bool player=body.Entity.FindComponent<ComponentPlayer>(false)!=null;
             bool hostile=creature.Category==CreatureCategory.LandPredator || creature.Category==CreatureCategory.WaterPredator;
             if(!VoidHorizonRules.TargetAllowed(player,hostile,allowPassive))return false;

@@ -1,0 +1,19 @@
+{
+  "baseline_sha256": "DCA7107F9232EAC82D47BAB14B3CD1A492256A0284D14EE4C396FB0EBBEF052B",
+  "package_sha256": "69510DBE2BB526A3E743BA6F27450B99F9041102B23BF9887AD6B4209BF361AB",
+  "dll_sha256": "050CCF970187D78427553DD07B303BB9D4984388F52396D6242D016129355760",
+  "bytes": 8299945,
+  "entries": 150,
+  "added": [
+    "Assets/Textures/AbyssDeathEmpower.png",
+    "Assets/Textures/AbyssDeathGuardian.png",
+    "Assets/Textures/AbyssDeathSwitch.png",
+    "Assets/Textures/AbyssDeathWave.png"
+  ],
+  "changed": [
+    "SCIEPort.dll",
+    "THIRD-PARTY-NOTICES.md",
+    "modinfo.json"
+  ],
+  "preserved": 143
+}

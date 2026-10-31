@@ -24,6 +24,7 @@ namespace SCIEPort.Features.AbyssReaper
         private VoidPortalLocalTravel portalTravel;
         private VoidBlinkRuntime blink;
         internal VoidSpaceRuntime Space => blink?.Space;
+        internal DeathAuthorityRuntime Death { get; private set; }
         internal VoidHorizonRuntime Horizon { get; private set; }
         SubsystemTime clock; SubsystemTerrain terrain; SubsystemBodies bodies; SubsystemPlayers players;
         bool allowPlayers,allowPassive,showRifts;
@@ -52,6 +53,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(Portals!=null)portalTravel=new VoidPortalLocalTravel(terrain,players,clock,Portals);
             WorldCut=new WorldCutRuntime(Project,players,clock,terrain,bodies,allowPlayers,allowPassive,showRifts,v.GetValue<bool>("WorldCutLowEffects",false),WorldCutRules.Damage(v.GetValue<float>("WorldCutInitialDamage",100f),100),WorldCutRules.Damage(v.GetValue<float>("WorldCutCloseDamage",40f),40));
             Gateways=new VoidPortalNetwork(this,players,terrain,clock);
+            Death=new DeathAuthorityRuntime(this,terrain,bodies,clock,players){Quality=VoidSkillRules.Quality(v.GetValue<int>("DeathEffectQuality",1))};Death.Load(v.GetValue<ValuesDictionary>("DeathAuthorityV1",null));
             if(portalTravel!=null){Gateways.Travel=portalTravel;portalTravel.Network=Gateways;}
         }
         /// <inheritdoc/>
@@ -59,7 +61,10 @@ namespace SCIEPort.Features.AbyssReaper
         {
             base.Save(values);
             if(CommonLib.WorkType!=WorkType.Client)values.SetValue("VoidPortalRecords", portalLoadFailure ?? Portals.Serialize());
+            if(CommonLib.WorkType!=WorkType.Client&&Death!=null)values.SetValue("DeathAuthorityV1",Death.Save());
         }
+        /// <inheritdoc/>
+        public override void OnEntityAdded(GameEntitySystem.Entity entity){base.OnEntityAdded(entity);Death?.EntityAdded(entity);}
         /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
         public void Capture(ComponentInput input) {
             var p=input.m_componentPlayer; if(p==null)return;
@@ -100,14 +105,15 @@ namespace SCIEPort.Features.AbyssReaper
             if(skillPressed!=0)
             {
                 bool meleeBusy=s.NormalImpactPending || s.Combo.Phase(s.CombatTime)<1 || s.Combo.Charge(s.CombatTime)>0;
-                if(s.InputGate.CanRequest(ray.HasValue,meleeBusy,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
-                { if(skillPressed==5) { if(PortalAction(p))s.InputGate.Accepted(); }
-                  else if(skillPressed==1) { if(WorldCut.Request(p))s.InputGate.Accepted(); }
+                if(s.InputGate.CanRequest(ray.HasValue,meleeBusy,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
+                { if(skillPressed==1) { if(Death.Request(p,DeathAuthorityRules.Toggle,Vector3.UnitZ))s.InputGate.Accepted(); }
+                  else if(skillPressed==5) { if(Death.IsDeath(p)){DialogsManager.ShowDialog(p.GuiWidget,new DeathArmyDialog(p,Death));s.InputGate.Accepted();}else if(PortalAction(p))s.InputGate.Accepted(); }
+                  else if(Death.IsDeath(p)&&skillPressed!=4){if(Death.Request(p,skillPressed==2?DeathAuthorityRules.Empower:DeathAuthorityRules.Wave,Vector3.UnitZ))s.InputGate.Accepted();}
                   else { try { string reason;bool accepted=skillPressed==2?blink.TryCast(p,out reason):skillPressed==3?Space.Request(p,VoidSpaceRules.Shatter,out reason):Horizon.TryCast(p,out reason);if(accepted)s.InputGate.Accepted();p.ComponentGui.DisplaySmallMessage(reason,Color.White,false,false); }
                     catch(Exception error){Log.Warning("[SCIEPort:Abyss] Skill request failed: "+error.GetType().Name);p.ComponentGui.DisplaySmallMessage("技能释放失败",Color.Yellow,false,false);} } }
                 else WorldCut.Report(p,WorldCutFailure.Busy);
             }
-            if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
+            if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true))
             {
                 UpdateMeleeInput(p,s,ray.HasValue,elapsed*attackFrequency);
             }
@@ -115,10 +121,12 @@ namespace SCIEPort.Features.AbyssReaper
         private void UpdateMeleeInput(ComponentPlayer p,State s,bool held,float elapsed)
         {
             s.Combo.Input(held,s.CombatTime,elapsed);
-            if(held&&!s.NormalImpactPending&&s.Combo.Phase(s.CombatTime)>=1)WorldCut.BeginCharge(p);
+            bool empowered=Death?.Empowered(p)==true;
+            if(empowered&&!held&&s.ChargeHeld&&s.Combo.Stage==3&&s.Combo.Phase(s.CombatTime)==0){s.Combo=new AbyssCombo();s.Combo.Input(true,s.CombatTime);s.Combo.Input(false,s.CombatTime);}
+            if(!empowered&&held&&!s.NormalImpactPending&&s.Combo.Phase(s.CombatTime)>=1)WorldCut.BeginCharge(p);
             if(!held&&s.ChargeHeld)
             {
-                bool heavy=s.Combo.Stage==3&&s.Combo.Phase(s.CombatTime)==0;
+                bool heavy=!empowered&&s.Combo.Stage==3&&s.Combo.Phase(s.CombatTime)==0;
                 WorldCut.EndCharge(p,heavy);
                 if(heavy)
                 {
@@ -129,7 +137,7 @@ namespace SCIEPort.Features.AbyssReaper
             s.ChargeHeld=held;
             if(s.Combo.Phase(s.CombatTime)==0){s.NormalImpactPending=true;s.SwingDirection=MeleeDirection(s.Ray.Direction,p.ComponentCreatureModel.EyeRotation.GetForwardVector());}
         }
-        internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true;
+        internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true||Death?.Busy(p)==true;
         internal bool PortalTransferLocked(ComponentPlayer p) => portalTravel?.InputLocked(p)==true;
         internal bool PortalBusy(ComponentPlayer p)
         {
@@ -180,7 +188,7 @@ namespace SCIEPort.Features.AbyssReaper
             retired.Clear(); double now=clock.GameTime;
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
                 if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
-                if(WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p))continue;
+                if(WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true)continue;
                 float t=s.Combo.Phase(s.CombatTime);
                 var pose=AbyssMeleeMotion.Sample(s.Combo.Stage,t,s.Combo.Charge(s.CombatTime));
                 Vector3 rotation=new Vector3(pose.Pitch,pose.Yaw,pose.Roll),offset=new Vector3(pose.X,pose.Y,pose.Z);
@@ -195,6 +203,7 @@ namespace SCIEPort.Features.AbyssReaper
             try { portalTravel?.Update(); } catch(Exception error) { Log.Warning("[SCIEPort:Abyss] Portal travel cancelled: "+error.GetType().Name); }
             blink?.Update();
             Horizon?.Update();
+            Death?.Update();
         }
         private void ApplyHeldSpeed(ComponentPlayer p,bool equipped)
         {
@@ -218,6 +227,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         void Strike(ComponentPlayer p,State s) {
             if(s.Combo.Stage==3)return; // Charged releases exclusively use WorldCutRuntime.
+            if(Death?.IsDeath(p)==true){Death.Request(p,DeathAuthorityRules.Strike,MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector()));return;}
             if(CommonLib.WorkType==WorkType.Client)return;
             if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)return; // No untrusted remote input path in V0.1.
             Vector3 origin=p.ComponentCreatureModel.EyePosition;
@@ -229,6 +239,7 @@ namespace SCIEPort.Features.AbyssReaper
             hit.Clear();int visited=0,rays=0;
             foreach(var body in bodies.Bodies){if(++visited>512)break;
                 if(body.Entity==p.Entity||!body.Entity.IsAddedToProject||hit.Contains(body.Entity))continue;
+                if(Death?.IsFriendly(body.Entity.FindComponent<ComponentCreature>(false))==true)continue;
                 var c=body.Entity.FindComponent<ComponentCreature>();if(c==null||c.ComponentHealth.Health<=0)continue;
                 bool player=c is ComponentPlayer;
                 bool hostile=c.Category==CreatureCategory.LandPredator||c.Category==CreatureCategory.WaterPredator;
@@ -261,13 +272,13 @@ namespace SCIEPort.Features.AbyssReaper
             if(s.Hud==null)s.Hud=new WorldCutHud(gui);
             string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);
             if(hint==null)hint=s.Combo.Charge(s.CombatTime)>=1?"蓄力完成 · 松开重斩":s.Combo.Charge(s.CombatTime)>0?"普攻蓄力中":"轻触连斩 · 长按蓄力";
-            s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Space.Remaining(p,VoidSpaceRules.Shatter),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p),WorldCut.PendingRequest(p),Space.Feedback(p)??hint,
-                gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput);
+            s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Space.Remaining(p,VoidSpaceRules.Shatter),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death.Busy(p),WorldCut.PendingRequest(p),Death.Feedback(p)??Space.Feedback(p)??hint,
+                gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput,Death,p);
         }
         /// <inheritdoc/>
         public void Draw(Camera camera,int order) {
             if(order==VoidHorizonRules.DrawOrder){Horizon?.Draw(camera);return;}
-            if(order==310){blink?.Draw(camera);return;}
+            if(order==310){blink?.Draw(camera);Death?.Draw(camera);return;}
             WorldCut?.Draw(camera);
             portalScene?.Draw(camera,Portals,clock.GameTime);
             if(!showRifts)return;
@@ -281,6 +292,6 @@ namespace SCIEPort.Features.AbyssReaper
         }
         void Remove(ComponentPlayer p,State s){s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);Horizon?.Cancel(p);}
         /// <inheritdoc/>
-        public override void Dispose(){foreach(var pair in walkBonuses)pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;walkBonuses.Clear();speedRetired.Clear();WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;Gateways?.Dispose();Gateways=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
+        public override void Dispose(){foreach(var pair in walkBonuses)pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;walkBonuses.Clear();speedRetired.Clear();WorldCut?.Dispose();foreach(var x in states)Remove(x.Key,x.Value);states.Clear();WorldCut=null;PortalOperations=null;portalTravel?.Dispose();portalTravel=null;Gateways?.Dispose();Gateways=null;blink?.Dispose();blink=null;Horizon?.Dispose();Horizon=null;Death?.Dispose();Death=null;portalScene?.Dispose();meleeScene.Dispose();renderer.Clear();base.Dispose();}
     }
 }

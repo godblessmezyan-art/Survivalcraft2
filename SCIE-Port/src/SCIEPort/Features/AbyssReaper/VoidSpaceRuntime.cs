@@ -97,7 +97,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal bool InputLocked(ComponentPlayer p) => p!=null&&(transfers.ContainsKey(p.PlayerGuid)||clientPlayer==p&&clientTransfer!=null&&!clientTransfer.Finished&&!clientTransfer.TimedOut);
         private bool Castable(ComponentPlayer p)
-            => Actor(p)&&clock.GameTimeDelta>0&&p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
+            => Actor(p)&&clock.GameTimeDelta>0&&p.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.IsDeath(p)!=true&&p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
                 &&p.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true
                 &&p.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.PortalTransferLocked(p)!=true
                 &&p.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.WorldCut?.Busy(p)!=true;

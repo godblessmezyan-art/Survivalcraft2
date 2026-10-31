@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-31 SCIE-Port 0.63.0：阿比斯双重权柄
+
+新增死亡形态、12秒两击契约、24格死亡领域和持久军势；新252协议仅新增功能，保留240–251与旧星门格式/952身份。新增已核实原生ModelShaderParameter预绘制Hook，原武器模型/动作保持。固定Windows x25.01.17/net472完整Release、177项实际组件隔离断言及198项GPU合成检查 **已确认**；Android7723、真实游戏/联机/触屏/复杂生物AI与长时性能 **待验证**，旧客户端混装死亡权柄 **不支持**。精确三程序集哈希与API、包SHA及限制见[移植测试记录](../SCIE-Port/docs/TEST-RESULTS.md)与[死亡权柄](../SCIE-Port/docs/ABYSS-DEATH-AUTHORITY.md)。Builder Assistant及81种蓝图材料范围保持。
+
 ## 2026-10-31 Builder Assistant v0.24.0：81种材料与地面支撑
 
 新增18种基础地形/装饰：泥土、草地、耕地、沙、砂砾、冰、雪、高草、三种花、两种枯灌木、落叶、地毯、南瓜灯、墓碑和石堆。增加falling/grass/soil/plant/snow/groundcover/gravestone/lantern/cairn，并启用carpet，精确DATA及实际运行类型核对。旧类型、schema1/2/3、10家具模板与施工预算不变，无新Hook/ID/网络包。

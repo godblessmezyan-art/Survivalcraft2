@@ -1,0 +1,26 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-10-31",
+  "assets": [
+    {
+      "name": "DeathSwitch",
+      "prompt": "Create one production-ready circular dark fantasy game ability icon for Survivalcraft mod Abyss Reaper. Subject: two interlocked crescent scythe blades around a split emblem, one violet spatial rift half and one pale bone death skull half, clear readable dual-authority transformation symbol. Centered composition, isolated circular forged gunmetal border, transparent outside circle, genuine alpha background. Black/purple void palette, cold ivory highlights distinguish death authority; strong silhouette readable at 72 pixels. Ornate but restrained, highly polished painted game inventory art. No letters, no text, no watermark, no grid, no extra icons, no colored square background. Output a single square PNG icon.",
+      "source": "exec-a0a3f206-ced8-47c6-8d7a-1e51eb83a48b.png"
+    },
+    {
+      "name": "DeathEmpower",
+      "prompt": "Create one production-ready circular dark fantasy game ability icon for Survivalcraft mod Abyss Reaper. Subject: a single large black obsidian scythe blade enveloped in black smoke, silver bone edge and restrained violet rim light, two tiny soul embers drawn toward the blade. Centered composition, isolated circular forged gunmetal border, transparent outside circle, genuine alpha background. Black/purple void palette, cold ivory highlights distinguish death authority; strong silhouette readable at 72 pixels. Ornate but restrained, highly polished painted game inventory art. No letters, no text, no watermark, no grid, no extra icons, no colored square background. Output a single square PNG icon.",
+      "source": "exec-593d26e8-b31f-4ac4-b463-0afacbf1af35.png"
+    },
+    {
+      "name": "DeathWave",
+      "prompt": "Create one production-ready circular dark fantasy game ability icon for Survivalcraft mod Abyss Reaper. Subject: a large broken circular death shockwave expanding outward from a small skeletal scythe planted at its center, black and pale spectral violet, readable concentric death domain. Centered composition, isolated circular forged gunmetal border, transparent outside circle, genuine alpha background. Black/purple void palette, cold ivory highlights distinguish death authority; strong silhouette readable at 72 pixels. Ornate but restrained, highly polished painted game inventory art. No letters, no text, no watermark, no grid, no extra icons, no colored square background. Output a single square PNG icon.",
+      "source": "exec-cf00e96e-3a06-4b47-a9d2-fce56fadd990.png"
+    },
+    {
+      "name": "DeathGuardian",
+      "prompt": "Create one production-ready circular dark fantasy game ability icon for Survivalcraft mod Abyss Reaper. Subject: one imposing spectral hound head with glowing pale violet eyes, black fur silhouette and angular bone crown, loyal underworld guardian, no gore. Centered composition, isolated circular forged gunmetal border, transparent outside circle, genuine alpha background. Black/purple void palette, cold ivory highlights distinguish death authority; strong silhouette readable at 72 pixels. Ornate but restrained, highly polished painted game inventory art. No letters, no text, no watermark, no grid, no extra icons, no colored square background. Output a single square PNG icon.",
+      "source": "exec-28b3c780-516e-4f0b-9744-62234396acb5.png"
+    }
+  ]
+}

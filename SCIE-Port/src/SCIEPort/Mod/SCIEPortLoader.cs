@@ -41,6 +41,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new VoidHorizonPackage());
                 PackageManager.RegisterPackage(new VoidPortalPackage());
                 PackageManager.RegisterPackage(new VoidSpacePackage());
+                PackageManager.RegisterPackage(new DeathAuthorityPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -54,6 +55,7 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("SubsystemUpdate", this);
             ModsManager.RegisterHook("GuiUpdate", this);
             ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
+            ModsManager.RegisterHook("ModelShaderParameter", this);
             ModsManager.RegisterHook("ChangeSkyColor", this);
             ModsManager.RegisterHook("ViewFogColor", this);
             ModsManager.RegisterHook("SaveSettings", this);
@@ -97,6 +99,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
         {
+            if(attacker?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.FriendlyDamage(target,attacker)==true){attackPower=0;return true;}
             if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
@@ -116,6 +119,9 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            var death=componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;
+            if(death?.FriendlyDamage(componentHealth.Entity.FindComponent<ComponentBody>(false),attacker)==true){Skip=true;return;}
+            death?.NoteAttack(componentHealth,attacker);
             if (DomainProtected(componentHealth)) { Skip=true; return; }
             if (componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ProtectFall(componentHealth,attacker,ignoreInvulnerability,cause)==true) { Skip=true; return; }
             if (SubsystemPoseidon.BlocksDrowning(componentHealth, attacker, cause)) { Skip = true; return; }
@@ -185,6 +191,13 @@ namespace SCIEPort.Mod
             FourSaintsArmorRenderer.Draw(componentModel, camera);
             AwakenedStormhammerVisuals.TouchAvatar(componentModel, camera);
             FourSaintsVisuals.TouchAvatar(componentModel, camera);
+        }
+
+        /// <inheritdoc />
+        public override void ModelShaderParameter(Engine.Graphics.Shader shader,Camera camera,System.Collections.Generic.List<SubsystemModelsRenderer.ModelData> modelsData,float? alphaThreshold)
+        {
+            // The target renderer copies DiffuseColor before DrawExtra, so apply tint before that copy.
+            foreach(var data in modelsData)data.ComponentModel?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Tint(data.ComponentModel);
         }
 
         /// <inheritdoc />

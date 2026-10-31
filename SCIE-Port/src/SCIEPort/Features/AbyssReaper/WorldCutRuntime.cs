@@ -115,6 +115,8 @@ namespace SCIEPort.Features.AbyssReaper
             && p.PlayerData.IsReadyForPlaying && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index
             && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.Busy(p)!=true
+            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Busy(p)!=true
+            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Empowered(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.PortalTransferLocked(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true;
         private void Reject(ComponentPlayer p,Client to,WorldCutPackage request,WorldCutFailure reason)

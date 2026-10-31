@@ -4,7 +4,7 @@
     "src/SCIEPort/Assets/Textures/AbyssReaper.png": "48BC6997AC4A985F08D7BD862B47980B2FF082C12B16DCFF6B592B1CED106888",
     "src/SCIEPort/Features/AbyssReaper/AbyssCombo.cs": "4833B31F8630EF44D3E2764EA5EEF3E8DCC064B16A75DA86933C44DF9B4FF256",
     "src/SCIEPort/Features/AbyssReaper/AbyssId.cs": "0F110A400B207455934873552D04F52241D8EF9515CA54885DACF5EFB6AB8070",
-    "src/SCIEPort/Features/AbyssReaper/AbyssReaperBlock.cs": "306E501ABEA596E426C63C3024C816D28645206985367329695EC42EF67E16AF"
+    "src/SCIEPort/Features/AbyssReaper/AbyssReaperBlock.cs": "A80A5190F582F525D20DB68863764BF1833B0E64761A90E28FAAE8CCDE6D9F05"
   },
   "csvFields": {
     "Class Name": "AbyssReaperBlock",
@@ -32,5 +32,6 @@
     "ShovelPower": "0",
     "QuarryPower": "0",
     "HackPower": "0"
-  }
+  },
+  "renderException": "0.63.0: per-draw empowered tint only; model/texture/ID/hold/combo frozen."
 }

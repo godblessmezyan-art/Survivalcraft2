@@ -58,6 +58,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(body.ParentBody==cast.Owner.ComponentBody || cast.Owner.ComponentBody.ParentBody==body)return false;
             var creature=body.Entity.FindComponent<ComponentCreature>(false);
             if(creature==null || creature.ComponentHealth.Health<=0)return false;
+            if(body.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.IsFriendly(creature)==true)return false;
             bool player=creature is ComponentPlayer;
             if(player||VoidSpaceDamage.IsPlayerCarrier(body))return false;
             center=body.BoundingBox.Center();half=(body.BoundingBox.Max-body.BoundingBox.Min)*.5f;

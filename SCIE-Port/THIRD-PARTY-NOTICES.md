@@ -254,3 +254,7 @@ AbyssReaper.dae/PNG及几何生成器、比例预览由本项目原创，未引�
 ## Poseidon V2 skill icons / 2026-10-30
 
 Original generated artwork authored for this project with the built-in OpenAI image_gen tool: TideShield, TidalWave and SeaDomain. No third-party character/model/reference image was provided. Full prompts, source PNGs, runtime RGBA256 resources and SHA-256 hashes are recorded in `docs/assets/poseidon-v2/icons.json`. The generation skill used was `C:/Users/85196/.codex/skills/.system/imagegen/SKILL.md`. Runtime resource names: `PoseidonTideShieldV2.png`, `PoseidonTidalWaveV2.png`, `PoseidonSeaDomainV2.png`. Processing consists solely of RGBA conversion and Lanczos downsampling; originals remain in docs for audit and redistribution with the project. Geometry and synthesized surf audio remain project original, not game assets.
+
+## Abyss Death Authority icons / 2026-10-31
+
+Four original icons generated separately with the built-in OpenAI image_gen tool: DeathSwitch, DeathEmpower, DeathWave and DeathGuardian. No external character, model or image reference supplied. Prompts, original PNGs, runtime 256x256 RGBA resources and SHA-256 provenance are retained in `design/abyss-death/`. Only downsampling/RGBA conversion was applied. Runtime names are `AbyssDeathSwitch.png`, `AbyssDeathEmpower.png`, `AbyssDeathWave.png`, `AbyssDeathGuardian.png`. The summoned hound references the installed game's `Wolf_Gray` template at runtime; no proprietary wolf model, texture, database or assembly is distributed in this mod.

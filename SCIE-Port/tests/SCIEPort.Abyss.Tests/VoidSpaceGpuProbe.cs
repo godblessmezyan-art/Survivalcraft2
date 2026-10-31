@@ -17,7 +17,7 @@ public static class VoidSpaceGpuBootstrap
 }
 public static class VoidSpaceGpuProbe
 {
-    static Assembly mod;static string output;static object rift,shatter,geometry,melee;static PrimitivesRenderer3D world;
+    static Assembly mod;static string output;static object rift,shatter,geometry,melee,death;static PrimitivesRenderer3D world;
     static RenderTarget2D target;static int checks;static readonly System.Text.StringBuilder coverage=new System.Text.StringBuilder("quality,aspect,fov,covered_percent\n");
     const BindingFlags F=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
     static void Check(bool ok,string name){checks++;if(!ok)throw new Exception(name);}
@@ -46,8 +46,9 @@ public static class VoidSpaceGpuProbe
         for(int i=0;i<7;i++){Box(batch,new Vector3(-13+i*4,-1.6f,36),new Vector3(.5f,5,.5f),new Color(100,75,56));Box(batch,new Vector3(-14+i*4,2,35),new Vector3(2.5f,3,2.5f),new Color(51,98,66));}
         float a=yaw*MathUtils.PI/180;Vector3 eye=new Vector3((float)Math.Sin(a)*15,2,15-(float)Math.Cos(a)*15),focus=new Vector3(0,1,15);
         Matrix view=Matrix.CreateLookAt(eye,lookAway?eye*2-focus:focus,Vector3.UnitY)*Matrix.CreatePerspectiveFieldOfView(fov*MathUtils.PI/180,aspect,.1f,256);
-        world.Flush(view);var scene=skill==0?melee:skill==3?shatter:rift;var renderer=Renderer(scene);renderer.Clear();
-        if(skill==0)scene.GetType().GetMethod("QueueGeometry",F).Invoke(scene,new object[]{new Vector3(0,1.72f,0),Vector3.UnitZ,meleeStage,time});
+        world.Flush(view);var scene=skill==6?death:skill==0?melee:skill==3?shatter:rift;var renderer=Renderer(scene);renderer.Clear();
+        if(skill==6)scene.GetType().GetMethod("QueueWave",F).Invoke(scene,new object[]{new Vector3(0,-1.5f,12),time,quality});
+        else if(skill==0)scene.GetType().GetMethod("QueueGeometry",F).Invoke(scene,new object[]{new Vector3(0,1.72f,0),Vector3.UnitZ,meleeStage,time});
         else if(skill==3)scene.GetType().GetMethod(foreground?"QueueForeground":"Queue",F).Invoke(scene,new object[]{geometry,new Vector3(0,1,15),Vector3.UnitZ,time,quality});
         else scene.GetType().GetMethod("Queue",F).Invoke(scene,new object[]{new Vector3(0,0,5),new Vector3(0,0,20),Vector3.UnitZ,skill,time,quality,123u});
         renderer.Flush(view);var pixels=new Color[960*540];target.GetData(pixels,0,new Rectangle(0,0,960,540));
@@ -73,7 +74,7 @@ public static class VoidSpaceGpuProbe
     }
     static void Execute()
     {
-        if(target!=null)return;rift=Scene("VoidRiftScene");shatter=Scene("VoidShatterScene");melee=Scene("AbyssMeleeScene");
+        if(target!=null)return;rift=Scene("VoidRiftScene");shatter=Scene("VoidShatterScene");melee=Scene("AbyssMeleeScene");death=Scene("DeathAuthorityScene");
         geometry=shatter.GetType().GetMethod("Create",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{123u});
         world=new PrimitivesRenderer3D();target=new RenderTarget2D(960,540,1,ColorFormat.Rgba8888,DepthFormat.Depth24Stencil8);
         try
@@ -106,6 +107,12 @@ public static class VoidSpaceGpuProbe
                 var exit=Frame(3,1.8f,q,0,p+"-exit",true,aspect,fov);Check(Difference(before,exit)==0,"wide foreground clears exactly at 1.8 seconds "+p);
             }
             Hud();
+            for(int q=0;q<3;q++)foreach(float yaw in new[]{0f,90f,180f,270f})
+            {
+                string p="death-q"+q+"-yaw"+yaw+"-";var before=Frame(6,1.6f,q,yaw,p+"before");
+                foreach(float t in new[]{.15f,.6f,1.25f,1.45f})Check(Difference(before,Frame(6,t,q,yaw,p+t.ToString("0.00",CultureInfo.InvariantCulture)))>40,"death wave has visible native GPU expansion/fade "+p+t);
+                Check(Difference(before,Frame(6,1.6f,q,yaw,p+"after"))==0,"death wave leaves no geometry at 1.6 seconds "+p);
+            }
             for(int stage=0;stage<3;stage++)
             {
                 string p="melee-stage"+stage+"-";var before=Frame(0,0,1,0,p+"before",false,960f/540,65,false,stage);
@@ -120,6 +127,6 @@ public static class VoidSpaceGpuProbe
             File.WriteAllText(Path.Combine(output,"result.txt"),(checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed. Synthetic geometry; NOT gameplay or Android.");
             Console.WriteLine((checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed: "+output);
         }
-        finally{Display.RenderTarget=null;target.Dispose();((IDisposable)rift).Dispose();((IDisposable)shatter).Dispose();((IDisposable)melee).Dispose();}
+        finally{Display.RenderTarget=null;target.Dispose();((IDisposable)rift).Dispose();((IDisposable)shatter).Dispose();((IDisposable)melee).Dispose();((IDisposable)death).Dispose();}
     }
 }

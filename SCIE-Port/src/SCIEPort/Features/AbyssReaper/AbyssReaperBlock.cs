@@ -32,6 +32,8 @@ namespace SCIEPort.Features.AbyssReaper
         public override void GenerateTerrainVertices(BlockGeometryGenerator g,TerrainGeometry t,int v,int x,int y,int z) { }
         /// <inheritdoc/>
         public override void DrawBlock(PrimitivesRenderer3D r,int v,Color c,float s,ref Matrix m,DrawBlockEnvironmentData e) {
+            bool empowered=e?.SubsystemTerrain?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.EmpoweredDraw(e)==true;
+            if(empowered)c=Color.MultiplyColorOnly(c,.22f);
             // The native block path has no material roughness/specular shader. A bounded directional
             // facet highlight changes with item orientation; it is not an environment reflection.
             for(int face=0;face<6;face++){
@@ -41,7 +43,7 @@ namespace SCIEPort.Features.AbyssReaper
             }
             foreach(int i in polished){var vertex=mesh.Vertices.Array[i];vertex.Color=faceGlints[vertex.Face];mesh.Vertices.Array[i]=vertex;}
             float pulse=.90f+.10f*MathUtils.Sin((float)(Time.RealTime%60)*1.8f);
-            Color glow=c*pulse;glow.A=c.A;
+            Color glow=(empowered?new Color(210,80,255):c)*pulse;glow.A=c.A;
             foreach(int i in energy){var vertex=mesh.Vertices.Array[i];vertex.Color=glow;mesh.Vertices.Array[i]=vertex;}
             BlocksManager.DrawMeshBlock(r,mesh,texture,c,s,ref m,e);
         }

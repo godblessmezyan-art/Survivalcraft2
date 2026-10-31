@@ -27,6 +27,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(body==null||body.Entity==owner.Entity||!body.IsAddedToProject||body.Project!=owner.Project||body.Entity.FindComponent<ComponentPlayer>(false)!=null||IsPlayerCarrier(body))return false;
             var creature=body.Entity.FindComponent<ComponentCreature>(false);if(creature==null||creature.ComponentHealth.Health<=0)return false;
+            if(body.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.IsFriendly(creature)==true)return false;
             var box=body.BoundingBox;Vector3 center=box.Center();
             if(!WorldCutDamage.Finite(center)||!WorldCutRules.Coordinates(center.X,center.Y,center.Z))return false;
             for(int i=0;i<5;i++)

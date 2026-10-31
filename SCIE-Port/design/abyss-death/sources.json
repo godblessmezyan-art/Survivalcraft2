@@ -1,0 +1,34 @@
+{
+  "tool": "built-in image_gen",
+  "processing": "RGBA and 256px Lanczos resize only; generated alpha preserved",
+  "assets": [
+    {
+      "name": "DeathSwitch",
+      "original": "design/abyss-death/originals/DeathSwitch.png",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssDeathSwitch.png",
+      "original_sha256": "7C775F8B51F0731A1445D825C19D0645CB5A8C924B3BD632FC9B65DEA3CE2B98",
+      "runtime_sha256": "20B46E05BDB12BABE25BF61FD6409E2952BE08B37DF53889CC06372DDD239B38"
+    },
+    {
+      "name": "DeathEmpower",
+      "original": "design/abyss-death/originals/DeathEmpower.png",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssDeathEmpower.png",
+      "original_sha256": "95C3C3A372E58470EF928D5FB4616373C7B8B0F6F84CB20A473596C4E0DF7890",
+      "runtime_sha256": "D762DBFDF6D6BF3228D2F0D7C01F2875FC8E68B20EA7A9A75541B93D90F249C2"
+    },
+    {
+      "name": "DeathWave",
+      "original": "design/abyss-death/originals/DeathWave.png",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssDeathWave.png",
+      "original_sha256": "FAA04D93D5B7A67C92F8C85B1A23F4F695BFDB222776E1D15439607D39738D1B",
+      "runtime_sha256": "43B375B6B7A96668F89F33C5C6487CAF32AC4BAE5FC0874BC7A308D94B2D7A70"
+    },
+    {
+      "name": "DeathGuardian",
+      "original": "design/abyss-death/originals/DeathGuardian.png",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssDeathGuardian.png",
+      "original_sha256": "98C7679E04771FBC12F59EE27BC0B916DB7D8563A5CB10F7586AC81874A5E029",
+      "runtime_sha256": "3A0367AE13CD144B9CF8CA54077BBB3070EAE18ED22F9A8D8523B4C8AAE4797F"
+    }
+  ]
+}

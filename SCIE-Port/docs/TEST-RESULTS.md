@@ -1,5 +1,23 @@
 # 测试结果
 
+## 2026-10-31 main 0.63.0：双权柄与契约军势
+
+基线main `611d98a` / 0.62.0，初始干净；fetch重试后成功，ff-only确认最新。回退点 `backup/abyss-0.62.0-before-death-authority` 与旧0.62.0包保留。仅本地提交。功能/数值及待验步骤见[死亡权柄](ABYSS-DEATH-AUTHORITY.md)。
+
+完整命令：`FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2`，PATH包含Python；`powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release`。最终退出0；日志 `artifacts/death-0.63.0-final-build.log`。独立net472 Release为0警告/0错误，完整包ABI/模型/纹理/数据库与全部原有规则检查通过。
+
+新增177项真实目标组件隔离断言：切换、12秒赋能、首击Health=1/Resilience、次击Health=1并接管AI、上限与满额不杀目标、原生寻路继续进攻到近战距离、AttackBody钩子记录敌人、玩家/友军伤害拒绝、换形/卸装保留、保存/重新绑定/延迟加载不丢契约、恢复野生行为与所有权限制；死亡领域260目标按128候选/帧分批且不重复结算；服务器连接Token/Nonce/重放校验、客户端无法直接伤害、迟到状态校时、重复/过期领域及快照中删除优先。网络为隔离队列与真实压缩流，非实际UDP/双机证明。
+
+既有原生回归通过：虚夜987 + 实际HP/128预算12、WorldCut890、空间26,033（含大量顶点有限性检查）、房主输入/星门13、共享星门598；其他神器、物品栏、载具及生态套件全部通过。未修改其他神器逻辑；只在公共伤害钩子加入契约友军保护。
+
+GPU命令：`Test-AbyssSpaceGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/death-gpu`，退出0。198项原生Engine/OpenGL像素检查 + 2项CPU HUD导出；其中60项为死亡领域三个质量、四个朝向、0.15/0.6/1.25/1.45秒及1.6秒零残留。原生GPU合成预览与DLL/Scene SHA见 `design/abyss-death/render-preview/`；**不是游戏截图或Android画面**。
+
+包回归：`Compare-AbyssSpacePackage.py artifacts/荒野探险家-0.62.0.netmod artifacts/荒野探险家-0.63.0.netmod --death-authority --report design/abyss-death/package-comparison.json`，仅新增4张image_gen运行图；仅DLL/modinfo/署名变更，143个旧条目字节不变（含武器模型/纹理、旧技能全部资源、XDB/CSV、其他神器）。最终包8,299,945 bytes / 150 entries，SHA256 `69510DBE2BB526A3E743BA6F27450B99F9041102B23BF9887AD6B4209BF361AB`；DLL SHA256 `050CCF970187D78427553DD07B303BB9D4984388F52396D6242D016129355760`。正式名与0.63.0副本一致；0.62.0回退包SHA `DCA7107F9232EAC82D47BAB14B3CD1A492256A0284D14EE4C396FB0EBBEF052B`。
+
+四张内置image_gen图原图/提示词/运行图/SHA均保留，目标Engine实际PNG解码256RGBA/角落透明及包内哈希校验通过。测试编写初期修复脚本未加载Xml.Linq，以及夹具错误地改变PlayerData而非真实PlayerGuid；未降低契约归属检查来迎合夹具。审计发现DrawExtra在实际模型绘制之后，改用已核实的ModelShaderParameter预绘制Hook；友军停止距离和未加载契约超时丢失亦在交付前修正。首次GPU调用早于完整构建生成DLL，失败后等待完成重跑198项通过，未将缺DLL当渲染失败或通过。
+
+**待验证**：未启动完整游戏、无Android设备/真实多人会话。实际Wolf_Gray创建、黑紫着色/赋刃亮度、复杂地形AI、触屏管理、断线/死亡/换世界与真实存档重开、队友观察、长时帧耗时需按文档验证。无新原创猎犬模型；引用原生狼体。死亡形态大招暂共用虚夜；水生/飞行/第三方Boss不能仅凭夹具声明兼容。
+
 ## 2026-10-31 main 0.62.0：69/3/36冷却与蓄力断界斩
 
 基准main`226fd0f` / 0.61.1，工作区干净、fetch+ff-only确认最新；回退分支`backup/abyss-0.61.1-before-heavy-rebalance`和旧包保留。本轮仅阿比斯，原AbyssCombo/模型/图标/数据库/星门保持。[实现和复现命令](ABYSS-COMBAT-0.62.md)。
