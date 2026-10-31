@@ -13,7 +13,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             internal ComponentPlayer Player;internal Guid Token;internal ushort Entity;internal uint Sent,Processed,Revision,LastWave,LastSwing;
             internal bool Death;internal double EmpowerUntil,EmpowerReady,WaveReady,SummonReady,ToggleReady,PendingUntil,NextRequest,NextStrike,LastStrike=-100,NextSync;
-            internal int Combo;internal string Feedback;internal double FeedbackUntil;
+            internal int Combo;internal string Feedback;internal double FeedbackUntil,NextManagementRequest;
         }
         internal sealed class WaveCast{internal ComponentPlayer Owner;internal Guid Guid;internal uint Sequence;internal Vector3 Center;internal double Started;internal bool Impacted,Visual;internal int Cursor;internal readonly DynamicArray<ComponentBody> Targets=new DynamicArray<ComponentBody>();internal readonly HashSet<Entity> Seen=new HashSet<Entity>();}
         private struct Pending{internal ComponentPlayer Player;internal Client Client;internal Guid Token;internal DeathAuthorityPackage Packet;}
@@ -37,6 +37,8 @@ namespace SCIEPort.Features.AbyssReaper
         internal DeathAuthorityRuntime(SubsystemAbyssReaper parent,SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,SubsystemPlayers players)
         {this.parent=parent;this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.players=players;}
         private bool Actor(ComponentPlayer p,bool held=true)=>p!=null&&p.Project==terrain.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying&&p.ComponentHealth.Health>0&&(!held||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0);
+        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest;
+        private bool CommandActor(ComponentPlayer p,byte action)=>Management(action)?Actor(p,false)&&(action==DeathAuthorityRules.Sync||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0):Actor(p);
         private State Get(ComponentPlayer p)
         {
             if(p==null)return null;State s;if(!states.TryGetValue(p.PlayerGuid,out s)){if(states.Count>=64)return null;states.Add(p.PlayerGuid,s=new State());}
@@ -54,17 +56,20 @@ namespace SCIEPort.Features.AbyssReaper
         private bool Locked(ComponentPlayer p)=>parent.WorldCut?.Busy(p)==true||parent.Space?.Busy(p)==true||parent.Horizon?.Busy(p)==true||parent.PortalTransferLocked(p)||p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true;
         internal bool Request(ComponentPlayer p,byte action,Vector3 direction,ushort target=0)
         {
-            if(disposed||!Actor(p)||!p.PlayerData.IsMainPlayer)return false;var s=Get(p);if(s==null)return false;
+            if(disposed||p==null||!p.PlayerData.IsMainPlayer)return false;
+            if(!CommandActor(p,action)){Message(p,Management(action)?"请保持持有终焉之镰，清醒且存活时管理军势":"当前角色状态不能使用死亡权柄");return false;}
+            var s=Get(p);if(s==null)return false;
             if(!Authority&&!worldKnown&&action!=DeathAuthorityRules.Sync){Message(p,"正在同步死亡权柄，请稍候");return false;}
             if(action!=DeathAuthorityRules.Sync&&(Locked(p)||Busy(p)&&action!=DeathAuthorityRules.Strike)){Message(p,"请先结束当前动作");return false;}
             if(unchecked(++s.Sent)==0)++s.Sent;
             var packet=new DeathAuthorityPackage{Kind=0,Action=action,Caster=p.Entity.EntityId,Sequence=s.Sent,Direction=direction,Target=target,Echo=action==6?Time.RealTime:0,World=worldId};
             if(!Authority&&action==6){if(syncEchoes.Count>=4)syncEchoes.RemoveAt(0);syncEchoes.Add(packet.Echo);}
-            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync)s.PendingUntil=Now+2;
-            if(Authority)Enqueue(p,null,packet);else if(CommonLib.Net?.Server!=null)CommonLib.Net.QueuePackage(packet);else{s.PendingUntil=0;Message(p,"尚未连接房主");return false;}return true;
+            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync){s.PendingUntil=Now+2;Message(p,Authority?"正在处理军势操作…":"已发送军势操作，等待房主响应…");}
+            if(Authority){if(!Enqueue(p,null,packet)){s.PendingUntil=0;Message(p,"操作队列已满，请稍后重试");return false;}}
+            else if(CommonLib.Net?.Server!=null)CommonLib.Net.QueuePackage(packet);else{s.PendingUntil=0;Message(p,"尚未连接房主");return false;}return true;
         }
-        internal void Enqueue(ComponentPlayer p,Client from,DeathAuthorityPackage packet)
-        {lock(queue)if(!disposed&&queue.Count<DeathAuthorityRules.QueueLimit)queue.Enqueue(new Pending{Player=p,Client=from,Token=from?.TokenId??Guid.Empty,Packet=packet.Copy()});}
+        internal bool Enqueue(ComponentPlayer p,Client from,DeathAuthorityPackage packet)
+        {lock(queue){if(disposed||queue.Count>=DeathAuthorityRules.QueueLimit)return false;queue.Enqueue(new Pending{Player=p,Client=from,Token=from?.TokenId??Guid.Empty,Packet=packet.Copy()});return true;}}
         private uint Revision(){if(unchecked(++revision)==0)++revision;return revision;}
         private void Send(DeathAuthorityPackage packet,Client to=null)
         {if(CommonLib.WorkType!=WorkType.Server)return;packet.To=to;packet.Revision=Revision();packet.Stamp=Now;packet.World=worldId;CommonLib.Net?.QueuePackage(packet);}
@@ -76,15 +81,18 @@ namespace SCIEPort.Features.AbyssReaper
         private void Process(Pending pending)
         {
             var p=pending.Player;var q=pending.Packet;
-            if(!Actor(p,q.Action!=DeathAuthorityRules.Sync)||q.Caster!=p.Entity.EntityId||q.Sequence==0)return;
+            if(p==null||q.Caster!=p.Entity.EntityId||q.Sequence==0)return;
             if(q.Action!=DeathAuthorityRules.Sync&&q.World!=worldId)return;
             if(pending.Client!=null&&(pending.Client.TokenId!=pending.Token||pending.Client.State<ClientState.ProjectLoaded||!ReferenceEquals(p.PlayerData.Client,pending.Client)||pending.Client.PlayerData?.ComponentPlayer!=p))return;
+            if(!CommandActor(p,q.Action)){StatePacket(p,"角色状态变化，请保持持有终焉之镰后重试");return;}
             var s=Get(p);if(s==null||!WorldCutRules.Newer(q.Sequence,s.Processed))return;s.Processed=q.Sequence;
             if(q.Action==DeathAuthorityRules.Sync){if(Now>=s.NextSync){s.NextSync=Now+1;StatePacket(p,null,q.Echo);SyncFriends(pending.Client);}return;}
             if(loadFailure!=null){StatePacket(p,"死亡契约存档版本不受支持，已保留原数据");return;}
-            if(clock.GameTimeDelta<=0||Locked(p)){StatePacket(p,"当前动作禁止死亡权柄");return;}
+            if(!Management(q.Action)&&clock.GameTimeDelta<=0||Locked(p)){StatePacket(p,"当前动作尚未结束，请稍后管理军势");return;}
             if(q.Action==DeathAuthorityRules.Strike){Strike(p,q.Direction);return;}
-            if(Now<s.NextRequest||BusyWave(p)){StatePacket(p,"操作过快或领域尚未结束");return;}s.NextRequest=Now+.15;
+            bool management=Management(q.Action);double requestTime=management?Time.RealTime:Now;
+            if(requestTime<(management?s.NextManagementRequest:s.NextRequest)||BusyWave(p)){StatePacket(p,"操作过快或领域尚未结束");return;}
+            if(management)s.NextManagementRequest=requestTime+.15;else s.NextRequest=Now+.15;
             switch(q.Action)
             {
                 case DeathAuthorityRules.Toggle:
@@ -98,7 +106,8 @@ namespace SCIEPort.Features.AbyssReaper
                     var cast=new WaveCast{Owner=p,Guid=p.PlayerGuid,Sequence=q.Sequence,Center=p.ComponentBody.Position,Started=Now};waves.Add(cast);s.WaveReady=Now+36;
                     Send(new DeathAuthorityPackage{Kind=2,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=q.Sequence,Position=cast.Center});StatePacket(p,"死亡领域 · 扩散完成湮灭敌人、回满军势");break;
                 case DeathAuthorityRules.Summon:
-                    if(!s.Death||Now<s.SummonReady){StatePacket(p,"专属召唤尚未就绪");return;}
+                    if(!s.Death){StatePacket(p,"请先切换死亡权柄");return;}
+                    if(Now<s.SummonReady){StatePacket(p,"召唤冷却中，还需"+Math.Ceiling(s.SummonReady-Now).ToString("0")+"秒");return;}
                     string reason;if(Summon(p,q.Target,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
                 case DeathAuthorityRules.Dismiss:StatePacket(p,Dismiss(p,q.Target));break;
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
