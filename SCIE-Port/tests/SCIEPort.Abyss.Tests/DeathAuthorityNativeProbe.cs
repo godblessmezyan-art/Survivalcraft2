@@ -54,7 +54,7 @@ public static class DeathAuthorityNativeProbe
             var c=f.Creature(11,new Vector3(8.5f,64,2));f.Clock.m_gameTime+=.2;f.Request(5,-Vector3.UnitZ);
             Check(c.ComponentHealth.Health>0&&Math.Abs(c.ComponentHealth.Health-.01f)<.0001f,"first real native hit leaves one resilience-scaled health point");
             f.Clock.m_gameTime+=.5;f.Request(5,-Vector3.UnitZ);
-            Check(c.ComponentHealth.Health==1&&(bool)Call(f.Death,"IsFriendly",c),"second hit converts and heals without applying the old normal damage");
+            Check(Math.Abs(c.ComponentHealth.Health-1f/Math.Max(1f,c.ComponentHealth.AttackResilience))<.0001f&&(bool)Call(f.Death,"IsFriendly",c),"second hit converts and preserves one resilience-scaled hit point without the old normal damage");
             Check(c.Entity.FindComponent<ComponentBehaviorSelector>(true).IsDisableBehavior&&!c.ComponentSpawn.AutoDespawn,"native selector is taken over and natural despawn is disabled");
             Check((bool)Call(f.Death,"FriendlyDamage",f.Player.ComponentBody,c)&&(bool)Call(f.Death,"FriendlyDamage",c.ComponentBody,f.Player),"summons cannot damage players and player area attacks cannot damage friendly summons");
             var s=Call(f.Death,"Get",f.Player);f.Clock.m_gameTime+=1.1;f.Request(1,-Vector3.UnitZ);

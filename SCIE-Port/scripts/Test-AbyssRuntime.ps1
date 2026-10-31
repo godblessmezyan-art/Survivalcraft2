@@ -67,7 +67,9 @@ Write-Host 'Abyss merged main: Four Saints action lock is checked before combo i
 
 $worldCut=$mod.GetType('SCIEPort.Features.AbyssReaper.WorldCutRuntime', $true)
 $ownerSafe=$worldCut.GetMethod('OwnerSafe',[Reflection.BindingFlags]'Instance,NonPublic')
-if ([AbyssIL]::Calls($ownerSafe) -notcontains 'IsActionLocked') { throw 'WorldCut server authority must enforce Four Saints action lock.' }
+$ownerFailure=$worldCut.GetMethod('OwnerFailure',[Reflection.BindingFlags]'Instance,NonPublic')
+if ([AbyssIL]::Calls($ownerSafe) -notcontains 'OwnerFailure') { throw 'WorldCut server authority must route ownership checks through OwnerFailure.' }
+if ([AbyssIL]::Calls($ownerFailure) -notcontains 'IsActionLocked') { throw 'WorldCut server authority must enforce Four Saints action lock.' }
 $skyCalls=[AbyssIL]::Calls($loader.GetMethod('ChangeSkyColor'))
 foreach($name in @('get_SkyBlend','GetStormBlend','GetSkyBlend')) { if($skyCalls -notcontains $name) { throw "Merged sky composer lacks $name." } }
 Write-Host 'WorldCut authority honors Four Saints lock; Abyss and existing artifact skies remain composed.'

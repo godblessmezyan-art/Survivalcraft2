@@ -2040,3 +2040,11 @@ Android 7723 联网/真机验证阶段。
 - New-AbyssReaperAssets.py、Test-AbyssGeometry.py及Preview-AbyssReaper.py均exit0。当前preview-icon/fp/third/back.png为软件图，第一人称读取CSV并通过2772/1280横屏FOV65/85静止刃片视锥检查，不代表真实相机/动画/触屏控件验证。
 - 产物荒野探险家.netmod及同字节荒野探险家-0.16.1.netmod：505858 bytes / 52 entries；SHA256 86D698A4AA7705382FEE0FA6D093A0E4F160646482C68197F01537FCDCA1DB16。DAE/PNG最新哈希及渲染材质边界见ABYSS-REAPER.md。
 - 952、原有神器、战斗数值与协议未变；普通客户端仍不结算战斗。未操作Windows游戏/Android设备；新包主刃方向、材质亮度、0.65秒蓄力松手与三连斩实际触发、不同相机/UI/光线、联机/性能继续待用户复测。
+
+## 2026-11-01 port0.67.0 骨龙正式包
+
+- 用户要求直接构建 netmod。基线8a500d0584024655ec55bef00bee6db972fd00bc（骨龙提交后）；未修改游戏源码、资产、ID、存档或协议；目标三程序集哈希与既有x25.01.17记录一致。
+- 环境：FrameworkPathOverride=D:\Dev\Tools\net472\build\.NETFramework\v4.7.2；PATH追加SDK 9.0.300、D:\Dev\Tools\MinGit\cmd（Resolve-AbyssId 需要 git）及 Python 3.12；DOTNET_ROLL_FORWARD=Major（测试项目含net8.0，本机仅9.0运行时）。实际命令：powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release，exit0；Test-Environment、Abyss/Death/WorldCut 原生探针与IL、模型导入、全部规则套件、22 CSV/55 行分类、23 XDB 与包检查均通过。日志 artifacts/build-0.67.0.log。
+- 为通过构建只同步了两个陈旧守卫，未改游戏行为：Test-AbyssRuntime.ps1 的 OwnerSafe 检查改为验证 OwnerSafe→OwnerFailure→IsActionLocked 调用链（1af697e 已把锁检查集中到 OwnerFailure）；DeathAuthorityNativeProbe.cs 的二次命中转化断言改为 1/AttackResilience（1af697e 已改为“保留1点生命”）。
+- 产物 artifacts/荒野探险家.netmod 及同字节副本 荒野探险家-0.67.0.netmod：8917815 bytes / 156 entries；Version/AssemblyVersion 0.67.0/0.67.0.0；SHA256 D458911793DABCCC22743C76C8BB2A51A09CBDC65A1479B365CB797D5F60B997。
+- 未启动游戏、未部署Android7723、未测联机。骨龙骑乘/飞行触屏、Android性能、主机/普通客户端同步仍待用户验收；不把离线检查当作真机通过。
