@@ -20,28 +20,10 @@
                                       ]
                   },
                   {
-                      "name":  "Jaw1",
-                      "parent":  1,
-                      "translation":  [
-                                          -0.5448873,
-                                          -0.0998004,
-                                          -0.2797104
-                                      ]
-                  },
-                  {
-                      "name":  "Jaw2",
+                      "name":  "Jaw",
                       "parent":  1,
                       "translation":  [
                                           0,
-                                          -0.0998004,
-                                          -0.2797104
-                                      ]
-                  },
-                  {
-                      "name":  "Jaw3",
-                      "parent":  1,
-                      "translation":  [
-                                          0.5448873,
                                           -0.0998004,
                                           -0.2797104
                                       ]
@@ -83,7 +65,7 @@
                                       ]
                   }
               ],
-    "meshes":  9,
+    "meshes":  7,
     "model_class":  "SCIEPort.Features.AbyssReaper.ComponentCerberusModel",
     "model_name":  "Models/AbyssCerberus",
     "texture":  "Textures/AbyssCerberus",

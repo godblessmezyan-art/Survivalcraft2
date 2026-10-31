@@ -1,5 +1,17 @@
 # 测试结果
 
+## 2026-11-01 main 0.65.1：三头犬不可见及同批模型绘制修复
+
+基线`8649582` / 0.65.0，开发前工作区干净；回退分支`backup/abyss-0.65.0-before-render-fix`和旧包保留。用户确认召唤有记录并显示成功但看不到三头犬，并补充多只猎犬只显示一头。只读审计固定目标：`Game.ModLoader.GetMaxInstancesCount()`返回7，本工程未覆盖；`SubsystemModelsRenderer.DrawInstancedModels`按实体设置`ModelShader.InstancesCount`，超过`Transforms.MaxWorldMatrices`会抛`Invalid instances count.`。旧DAE实际9骨，属于确定资源不兼容，且可打断同一批次后续模型绘制；猎犬症状是否完全由此造成仍待用户复测。
+
+修复为Body/Head/Jaw/Leg1–4共7骨，三副下颚共用同一X转轴，保留原形状和6,628三角形。软件三视图和动作GIF生成后字节未变，但它们不是游戏画面证据。模型加载时增加七骨骼保护，资源不匹配在创建阶段失败。新增`Read-CerberusRenderCompatibility.ps1`并接入模型资源变更打包：从实际Mod继承方法读原生容量，用固定Engine导入检查非空网格、骨骼索引及POSITION/NORMAL/TEXCOORD的32字节布局；对照旧包9/7失败、新资源7/7通过。报告`design/cerberus/render-compatibility.json`含目标游戏/Engine哈希；原有数据库静态合并记录`native-import.json`同步为7骨/7网格，模板GUID、BoxSize及无Mount保持。
+
+执行：设置`FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2`，直接调用`Build-ManualTestCandidate.ps1 -GameDir D:/Games/SCNET-x25.01.17 -BaselinePackage <0.65.0包> -AssetUpdates @('Assets/Models/AbyssCerberus.dae')`。最终日志`artifacts/cerberus-0.65.1-package.log`，Release退出0，**0警告0错误**。沿用用户亲自测试的要求，**未运行自动化行为套件、GPU、游戏、Android或联机会话**；原生资源/数据库解析及包完整性检查不替代它们。
+
+最终包8,578,863字节/153条目，SHA256 `5F094F42E7091BB46663F750448C8869DF666402623A3B20AEEA3B2657F275CD`；仅DAE/DLL/modinfo三条变化，其余150条逐字节保持，无新增/删除。源资源与包内资源一致，通用名和版本副本字节一致，旧0.65.0包SHA仍为`A851C43B9311B9D79244F6F90E8586C604BD4663A7C5465ED45E8A376BA29282`。差异见`design/cerberus/package-comparison-0.65.1.json`。
+
+无战斗规则、模板名/GUID、军势数量、召唤唯一性、249/250/252布局或契约v1/v2格式变更。已召唤和次位面实体仍引用同一路径，更新双方模组并重进世界后使用新模型。Android显示、同场多猎犬、保存重进、收回现身和真实联机 **待验证**，未声称实测通过。骑乘仍留第二阶段。
+
 ## 2026-10-31 main 0.65.0：刻尔柏洛斯第一阶段，编译/资源构建
 
 基线 `d412283` / 0.64.1。初始工作区干净，fetch结果origin/main没有新提交，本地面板修复保留；回退分支 `backup/abyss-0.64.1-before-cerberus` 和旧0.64.1包保留。唯一性采用每位主人一头，现世/隐藏/待加载共同占用；原猎犬和战马、每人七只/世界24只保持。详见[三头犬实现](ABYSS-CERBERUS.md)。

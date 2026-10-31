@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
     public sealed class ComponentCerberusModel:ComponentFourLeggedModel
     {
         private readonly PrimitivesRenderer3D soulFire=new PrimitivesRenderer3D();
-        private readonly int[] jaws=new int[3];
+        private int jaw;
         private readonly Vector3[] mouths=new Vector3[3];
         private double biteStarted=-100;
         private uint visualRevision;
@@ -22,7 +22,13 @@ namespace SCIEPort.Features.AbyssReaper
         public override void Load(ValuesDictionary values,IdToEntityMap map)
         {
             base.Load(values,map);
-            for(int i=0;i<3;i++){var jaw=Model.FindBone("Jaw"+(i+1));jaws[i]=jaw.Index;mouths[i]=BlockMesh.GetBoneAbsoluteTransform(jaw).Translation;}
+            // x25.01.17's default ModelShader has seven world matrices. Reject an
+            // incompatible asset during creation, before it can break world drawing.
+            if(Model.Bones.Count>7)throw new InvalidOperationException("Cerberus exceeds the native seven-bone model limit.");
+            var bone=Model.FindBone("Jaw");jaw=bone.Index;
+            Vector3 pivot=BlockMesh.GetBoneAbsoluteTransform(bone).Translation;
+            // Original mesh's three mouth centres share the same Y/Z bite pivot.
+            for(int i=0;i<3;i++)mouths[i]=pivot+Vector3.UnitX*((i-1)*.5448873f);
         }
         /// <inheritdoc/>
         public override void Update(float dt)
@@ -40,7 +46,7 @@ namespace SCIEPort.Features.AbyssReaper
                 open=time<CerberusRules.ImpactDelay?.08f+.48f*(float)(time/CerberusRules.ImpactDelay):.025f+.10f*MathUtils.Saturate((float)((time-CerberusRules.ImpactDelay)/.34));
             // All heads stay fixed relative to the body. Only their jaws share the bite phase.
             SetBoneTransform(m_headBone.Index,Matrix.Identity);
-            for(int i=0;i<jaws.Length;i++)SetBoneTransform(jaws[i],Matrix.CreateRotationX(-open));
+            SetBoneTransform(jaw,Matrix.CreateRotationX(-open));
         }
         /// <inheritdoc/>
         public override Vector3 CalculateEyePosition()=>m_componentCreature.ComponentBody.Position+Vector3.UnitY*2.23f+m_componentCreature.ComponentBody.Matrix.Forward*1.35f;

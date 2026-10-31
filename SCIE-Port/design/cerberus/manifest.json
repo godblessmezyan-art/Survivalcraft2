@@ -56,33 +56,17 @@
         0.9490175331327396
       ]
     },
-    "Jaw1": {
-      "parent": "Head",
-      "pivot": [
-        -0.544887347536755,
-        -0.099800399201597,
-        -0.27971043081807045
-      ]
-    },
-    "Jaw2": {
+    "Jaw": {
       "parent": "Head",
       "pivot": [
         0.0,
         -0.099800399201597,
         -0.27971043081807045
       ]
-    },
-    "Jaw3": {
-      "parent": "Head",
-      "pivot": [
-        0.544887347536755,
-        -0.099800399201597,
-        -0.27971043081807045
-      ]
     }
   },
   "triangles": 6628,
-  "meshes": 9,
+  "meshes": 7,
   "parts": [
     {
       "name": "Thorax",
@@ -311,42 +295,42 @@
     },
     {
       "name": "LowerJaw",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "SoulMouth",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw1",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
@@ -431,42 +415,42 @@
     },
     {
       "name": "LowerJaw",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "SoulMouth",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw2",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
@@ -551,42 +535,42 @@
     },
     {
       "name": "LowerJaw",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "SoulMouth",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 60
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
       "name": "LowerFang",
-      "bone": "Jaw3",
+      "bone": "Jaw",
       "triangles": 10
     },
     {
@@ -811,7 +795,7 @@
     }
   ],
   "assets": {
-    "src/SCIEPort/Assets/Models/AbyssCerberus.dae": "BD793642A032F891CEC28221F7EF5BC869F6AF869D6766DC332060C0E6A63734",
+    "src/SCIEPort/Assets/Models/AbyssCerberus.dae": "914BCAFD910630AAA04E4D10AEE1BE24E4B95120855E1FF41D46AC68404F0AAE",
     "src/SCIEPort/Assets/Textures/AbyssCerberus.png": "5C8FA360A92B129A8C3685AC1E739DA5C6D81C03FBDEBC95637B2E0A21EED3B0"
   }
 }

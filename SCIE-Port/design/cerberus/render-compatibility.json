@@ -1,0 +1,300 @@
+﻿{
+    "kind":  "Read-only native ModelData import and renderer ABI audit; not gameplay, GPU or Android testing",
+    "native_shader_limit":  7,
+    "limit_method":  "Game.ModLoader.GetMaxInstancesCount (inherited by SCIEPortLoader)",
+    "game_sha256":  "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "engine_sha256":  "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "model_sha256":  "914BCAFD910630AAA04E4D10AEE1BE24E4B95120855E1FF41D46AC68404F0AAE",
+    "current":  {
+                    "bone_count":  7,
+                    "mesh_count":  7,
+                    "triangles":  6628,
+                    "bones":  [
+                                  {
+                                      "name":  "Body",
+                                      "parent":  -1,
+                                      "translation":  [
+                                                          0,
+                                                          0.01497006,
+                                                          0.01185117
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Head",
+                                      "parent":  0,
+                                      "translation":  [
+                                                          0,
+                                                          1.646707,
+                                                          -0.849121
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Jaw",
+                                      "parent":  1,
+                                      "translation":  [
+                                                          0,
+                                                          -0.0998004,
+                                                          -0.2797104
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Leg1",
+                                      "parent":  0,
+                                      "translation":  [
+                                                          -0.5838079,
+                                                          1.177645,
+                                                          -0.7292451
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Leg2",
+                                      "parent":  0,
+                                      "translation":  [
+                                                          0.5838079,
+                                                          1.177645,
+                                                          -0.7292451
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Leg3",
+                                      "parent":  0,
+                                      "translation":  [
+                                                          -0.5448873,
+                                                          1.127745,
+                                                          0.9490175
+                                                      ]
+                                  },
+                                  {
+                                      "name":  "Leg4",
+                                      "parent":  0,
+                                      "translation":  [
+                                                          0.5448873,
+                                                          1.127745,
+                                                          0.9490175
+                                                      ]
+                                  }
+                              ],
+                    "meshes":  [
+                                   {
+                                       "name":  "Jaw",
+                                       "bone_index":  2,
+                                       "indices":  1620
+                                   },
+                                   {
+                                       "name":  "Head",
+                                       "bone_index":  1,
+                                       "indices":  6516
+                                   },
+                                   {
+                                       "name":  "Leg1",
+                                       "bone_index":  3,
+                                       "indices":  1758
+                                   },
+                                   {
+                                       "name":  "Leg2",
+                                       "bone_index":  4,
+                                       "indices":  1758
+                                   },
+                                   {
+                                       "name":  "Leg3",
+                                       "bone_index":  5,
+                                       "indices":  1758
+                                   },
+                                   {
+                                       "name":  "Leg4",
+                                       "bone_index":  6,
+                                       "indices":  1758
+                                   },
+                                   {
+                                       "name":  "Body",
+                                       "bone_index":  0,
+                                       "indices":  4716
+                                   }
+                               ],
+                    "buffers":  [
+                                    {
+                                        "stride":  32,
+                                        "vertex_bytes":  321696,
+                                        "index_bytes":  39768,
+                                        "elements":  [
+                                                         {
+                                                             "offset":  0,
+                                                             "semantic":  "POSITION",
+                                                             "format":  "Vector3"
+                                                         },
+                                                         {
+                                                             "offset":  12,
+                                                             "semantic":  "NORMAL",
+                                                             "format":  "Vector3"
+                                                         },
+                                                         {
+                                                             "offset":  24,
+                                                             "semantic":  "TEXCOORD",
+                                                             "format":  "Vector2"
+                                                         }
+                                                     ]
+                                    }
+                                ],
+                    "fits_native_shader":  true
+                },
+    "previous_0_65_0":  {
+                            "bone_count":  9,
+                            "mesh_count":  9,
+                            "triangles":  6628,
+                            "bones":  [
+                                          {
+                                              "name":  "Body",
+                                              "parent":  -1,
+                                              "translation":  [
+                                                                  0,
+                                                                  0.01497006,
+                                                                  0.01185117
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Head",
+                                              "parent":  0,
+                                              "translation":  [
+                                                                  0,
+                                                                  1.646707,
+                                                                  -0.849121
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Jaw1",
+                                              "parent":  1,
+                                              "translation":  [
+                                                                  -0.5448873,
+                                                                  -0.0998004,
+                                                                  -0.2797104
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Jaw2",
+                                              "parent":  1,
+                                              "translation":  [
+                                                                  0,
+                                                                  -0.0998004,
+                                                                  -0.2797104
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Jaw3",
+                                              "parent":  1,
+                                              "translation":  [
+                                                                  0.5448873,
+                                                                  -0.0998004,
+                                                                  -0.2797104
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Leg1",
+                                              "parent":  0,
+                                              "translation":  [
+                                                                  -0.5838079,
+                                                                  1.177645,
+                                                                  -0.7292451
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Leg2",
+                                              "parent":  0,
+                                              "translation":  [
+                                                                  0.5838079,
+                                                                  1.177645,
+                                                                  -0.7292451
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Leg3",
+                                              "parent":  0,
+                                              "translation":  [
+                                                                  -0.5448873,
+                                                                  1.127745,
+                                                                  0.9490175
+                                                              ]
+                                          },
+                                          {
+                                              "name":  "Leg4",
+                                              "parent":  0,
+                                              "translation":  [
+                                                                  0.5448873,
+                                                                  1.127745,
+                                                                  0.9490175
+                                                              ]
+                                          }
+                                      ],
+                            "meshes":  [
+                                           {
+                                               "name":  "Jaw1",
+                                               "bone_index":  2,
+                                               "indices":  540
+                                           },
+                                           {
+                                               "name":  "Jaw2",
+                                               "bone_index":  3,
+                                               "indices":  540
+                                           },
+                                           {
+                                               "name":  "Jaw3",
+                                               "bone_index":  4,
+                                               "indices":  540
+                                           },
+                                           {
+                                               "name":  "Head",
+                                               "bone_index":  1,
+                                               "indices":  6516
+                                           },
+                                           {
+                                               "name":  "Leg1",
+                                               "bone_index":  5,
+                                               "indices":  1758
+                                           },
+                                           {
+                                               "name":  "Leg2",
+                                               "bone_index":  6,
+                                               "indices":  1758
+                                           },
+                                           {
+                                               "name":  "Leg3",
+                                               "bone_index":  7,
+                                               "indices":  1758
+                                           },
+                                           {
+                                               "name":  "Leg4",
+                                               "bone_index":  8,
+                                               "indices":  1758
+                                           },
+                                           {
+                                               "name":  "Body",
+                                               "bone_index":  0,
+                                               "indices":  4716
+                                           }
+                                       ],
+                            "buffers":  [
+                                            {
+                                                "stride":  32,
+                                                "vertex_bytes":  298144,
+                                                "index_bytes":  39768,
+                                                "elements":  [
+                                                                 {
+                                                                     "offset":  0,
+                                                                     "semantic":  "POSITION",
+                                                                     "format":  "Vector3"
+                                                                 },
+                                                                 {
+                                                                     "offset":  12,
+                                                                     "semantic":  "NORMAL",
+                                                                     "format":  "Vector3"
+                                                                 },
+                                                                 {
+                                                                     "offset":  24,
+                                                                     "semantic":  "TEXCOORD",
+                                                                     "format":  "Vector2"
+                                                                 }
+                                                             ]
+                                            }
+                                        ],
+                            "fits_native_shader":  false
+                        }
+}

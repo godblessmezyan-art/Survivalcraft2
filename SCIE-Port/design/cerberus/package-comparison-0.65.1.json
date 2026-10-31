@@ -1,0 +1,16 @@
+{
+  "kind": "Package integrity only; no game or behavior tests",
+  "baseline_sha256": "A851C43B9311B9D79244F6F90E8586C604BD4663A7C5465ED45E8A376BA29282",
+  "package_sha256": "5F094F42E7091BB46663F750448C8869DF666402623A3B20AEEA3B2657F275CD",
+  "dll_sha256": "31D9717D17040B84C7661F9359DA80A46422401E322E7F3A189506B28D182CF3",
+  "bytes": 8578863,
+  "entries": 153,
+  "added": [],
+  "removed": [],
+  "changed": [
+    "Assets/Models/AbyssCerberus.dae",
+    "SCIEPort.dll",
+    "modinfo.json"
+  ],
+  "preserved": 150
+}

@@ -1,7 +1,8 @@
 """Original Cerberus anatomy, armor, UV texture and COLLADA skeleton. No game meshes.
 
-Nine rigid bones: one shared three-head assembly, three synchronized jaws and four
-walking legs. Software previews use the same triangles; they are NOT game footage.
+Seven rigid bones: one shared three-head assembly, one synchronized three-jaw bone
+and four walking legs. SCNET's default model shader supports seven bone matrices.
+Software previews use the same triangles; they are NOT game footage.
 """
 from pathlib import Path
 import math, json, hashlib, random
@@ -17,7 +18,7 @@ PALETTE = [(28,30,34),(58,63,70),(96,106,116),(157,170,180),
 BONES = {'Body':(None,(0,0,0)), 'Head':('Body',(0,1.65,-.85)),
          'Leg1':('Body',(-.60,1.18,-.73)), 'Leg2':('Body',(.60,1.18,-.73)),
          'Leg3':('Body',(-.56,1.13,.95)), 'Leg4':('Body',(.56,1.13,.95))}
-for i,x in enumerate((-.56,0,.56),1): BONES['Jaw'+str(i)]=('Head',(x,-.10,-.28))
+BONES['Jaw']=('Head',(0,-.10,-.28))
 MESHES={b:[] for b in BONES}; PARTS=[]
 def sub(a,b): return tuple(x-y for x,y in zip(a,b))
 def add(a,b): return tuple(x+y for x,y in zip(a,b))
@@ -102,11 +103,13 @@ for i,x in enumerate((-.56,0,.56),1):
         horn('EarHorn','Head',(x+side*.16,.39+lift,-.16),(x+side*.24,.74+lift+(i==2)*.06,.03),.105,1)
         horn('CheekFang','Head',(x+side*.18,.05+lift,-.58),(x+side*.18,-.17+lift,-.62),.047,3)
     box('CrownGroove','Head',(x,.47+lift,-.28),(.035,.025,.28),7,.05)
-    jaw='Jaw'+str(i)
-    box('LowerJaw','Jaw'+str(i),(0,-.045,-.28),(.34,.14,.63),1,.22)
-    box('SoulMouth',jaw,(0,.03,-.35),(.22,.025,.39),5,.04)
+    # Rotation around X leaves X unchanged: a shared pivot gives all three mouths
+    # the same bite as the old individual pivots, within the native seven-bone cap.
+    jaw='Jaw'
+    box('LowerJaw',jaw,(x,-.045,-.28),(.34,.14,.63),1,.22)
+    box('SoulMouth',jaw,(x,.03,-.35),(.22,.025,.39),5,.04)
     for side in (-1,1):
-        for k in range(3):horn('LowerFang',jaw,(side*.12,.015,-.15-k*.15),(side*.12,.12,-.18-k*.15),.033,3)
+        for k in range(3):horn('LowerFang',jaw,(x+side*.12,.015,-.15-k*.15),(x+side*.12,.12,-.18-k*.15),.033,3)
 
 for index in range(1,5):
     bone='Leg'+str(index);front=index<3
