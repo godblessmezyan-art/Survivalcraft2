@@ -4,7 +4,7 @@
     <EntityTemplate Name="SCIEPortBoneDragon_Saddled" Guid="d1a4db02-ea81-5a9b-9d6f-412bea048fb1" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
       <MemberComponentTemplate Name="Creature" Guid="401ba96f-b583-54a3-b7d6-3d4e76603a18">
         <Parameter Name="DisplayName" Guid="5c22c206-7c63-515f-9ca8-0817f9522834" Value="骨龙" Type="string" />
-        <Parameter Name="Description" Guid="fab2f095-5aef-564f-95c8-2f21b9ce8437" Value="死亡权柄唯一骨龙坐骑。生命444；近战37伤害/1秒，地速7、飞速16。" Type="string" />
+        <Parameter Name="Description" Guid="fab2f095-5aef-564f-95c8-2f21b9ce8437" Value="死亡权柄唯一骨龙坐骑。生命170；近战27伤害/1秒，地速7、飞速16。" Type="string" />
         <Parameter Name="ConstantSpawn" Guid="f4077413-7b47-56cf-b15c-b27f748446c2" Value="True" Type="bool" />
         <Parameter Name="KillVerbs" Guid="935a2ba5-6cf5-59e6-87ec-5eea2d3bcf6d" Value="mauled" Type="string" />
       </MemberComponentTemplate>
@@ -26,7 +26,7 @@
         <Parameter Name="Mass" Guid="f1533e27-8969-5c78-9af8-a2e066683dac" Value="1800" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Health" Guid="22990635-984d-5c44-ad20-32ac195cc96c">
-        <Parameter Name="AttackResilience" Guid="ac160a7e-cfd3-530d-b699-cf8e3614e791" Value="444" Type="float" />
+        <Parameter Name="AttackResilience" Guid="ac160a7e-cfd3-530d-b699-cf8e3614e791" Value="170" Type="float" />
         <Parameter Name="FireResilience" Guid="05e7087e-d079-5554-a1fb-47fd451da7f9" Value="40" Type="float" />
         <Parameter Name="FallResilience" Guid="fcb84f19-b315-535d-98a6-bdb652983f79" Value="12" Type="float" />
       </MemberComponentTemplate>
@@ -51,7 +51,7 @@
         <Parameter Name="IsOptional" Guid="f063f62d-7c94-54f5-91f6-99f7537f593d" Value="False" Type="bool" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Miner" Guid="1029e114-0c82-5bef-99a3-ea1154948e3e">
-        <Parameter Name="AttackPower" Guid="51c72646-9e8a-505f-881f-c34e1126625a" Value="37" Type="float" />
+        <Parameter Name="AttackPower" Guid="51c72646-9e8a-505f-881f-c34e1126625a" Value="27" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Spawn" Guid="c931aae7-d75d-53ae-9e8f-8798df59593d">
         <Parameter Name="AutoDespawn" Guid="4dd2020d-e9e3-51bd-8ce5-b8fc24b582a4" Value="False" Type="bool" />

@@ -4,7 +4,7 @@ namespace SCIEPort.Features.AbyssReaper
     // Contract-local values. Native wolves/horses and ordinary converted animals stay unchanged.
     internal static class DeathSummonStats
     {
-        internal const float HoundHealth=37,HoundDamage=17,HoundSpeed=5,HorseHealth=44,HorseSpeed=10,CerberusHealth=444,CerberusSpeed=7;
+        internal const float HoundHealth=25,HoundDamage=12,HoundSpeed=5,HorseHealth=30,HorseDamage=12,HorseSpeed=10,CerberusHealth=300,CerberusSpeed=7;
         internal static bool Profile(bool special,string template,out float health,out float speed)
         {
             health=speed=0;

@@ -2048,3 +2048,12 @@ Android 7723 联网/真机验证阶段。
 - 为通过构建只同步了两个陈旧守卫，未改游戏行为：Test-AbyssRuntime.ps1 的 OwnerSafe 检查改为验证 OwnerSafe→OwnerFailure→IsActionLocked 调用链（1af697e 已把锁检查集中到 OwnerFailure）；DeathAuthorityNativeProbe.cs 的二次命中转化断言改为 1/AttackResilience（1af697e 已改为“保留1点生命”）。
 - 产物 artifacts/荒野探险家.netmod 及同字节副本 荒野探险家-0.67.0.netmod：8917815 bytes / 156 entries；Version/AssemblyVersion 0.67.0/0.67.0.0；SHA256 D458911793DABCCC22743C76C8BB2A51A09CBDC65A1479B365CB797D5F60B997。
 - 未启动游戏、未部署Android7723、未测联机。骨龙骑乘/飞行触屏、Android性能、主机/普通客户端同步仍待用户验收；不把离线检查当作真机通过。
+
+## 2026-11-01 port0.68.0 冥界军势数值调整
+
+- 用户指定生命基准与单次伤害：冥界猎犬25/12、夜魇战马30/12、刻尔柏洛斯300/43、骨龙170/27。只改数值与文案，未改移速（猎犬5、战马10、刻尔柏洛斯7、骨龙地速7、飞速16）、攻击间隔、召唤唯一性、回血和存档规则；普通转化生物与野生模板不受影响。
+- 代码侧：DeathSummonStats 增补 HorseDamage 常量并把战马伤害从 `max(6, AttackPower)*2` 改为固定12；DeathAuthorityArmy 攻击路由显式区分骨龙/猎犬/战马，刻尔柏洛斯仍走 CerberusRules.Damage；召唤成功提示同步新数值。
+- 资源侧：AbyssBoneDragon.xdb、AbyssCerberus.xdb 的 Description、Health.AttackResilience、Miner.AttackPower 同步；New-BoneDragonTemplate.py、New-CerberusTemplate.py 与 Read-BoneDragonResources.ps1 的 170 守卫一并更新。
+- 环境与命令同 0.67.0 记录（FrameworkPathOverride + SDK 9.0.300 + MinGit + Python 3.12 + DOTNET_ROLL_FORWARD=Major）；powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release，exit0。Test-Environment、Abyss/Death/WorldCut 原生探针与IL、模型导入、全部规则套件（含 Death authority 178 项）、22 CSV/55 行分类、23 XDB 与包检查均通过。日志 artifacts/build-0.68.0.log。
+- 产物 artifacts/荒野探险家.netmod 及同字节副本 荒野探险家-0.68.0.netmod：8917823 bytes / 156 entries；modinfo Version 0.68.0、PackageName SCIEPort；SHA256 49A91C227D028CD8715F48A0091D1BB6A17C00DAC3197E32AD041CAF406352AF。
+- 未启动游戏、未部署Android7723、未测联机。新数值的实际手感、已有契约的生命百分比保留、主机与普通客户端同步仍待用户验收。

@@ -5,7 +5,7 @@
     "locomotion_class":  "SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion",
     "fly_speed":  16,
     "walk_speed":  7,
-    "health":  444,
+    "health":  170,
     "mount_offset":  "0,2.1,0.16",
     "native_shader_budget":  7,
     "kind":  "Read-only target Engine model import and database compilation; not game/device testing",

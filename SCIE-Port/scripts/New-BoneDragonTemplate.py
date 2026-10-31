@@ -8,14 +8,14 @@ doc=ET.Element('SCIEPortBoneDragon_Saddled')
 folder=ET.SubElement(doc,'Folder',Name='Entities',Guid='5fcdf35f-7001-442c-883e-e0502b15d291')
 entity=ET.SubElement(folder,'EntityTemplate',Name='SCIEPortBoneDragon_Saddled',Guid=guid('Entity'),InheritanceParent='4d02fd7e-3054-4121-b2a5-787db985df5f')
 groups={
- 'Creature':{'DisplayName':('骨龙','string'),'Description':('死亡权柄唯一骨龙坐骑。生命444；近战37伤害/1秒，地速7、飞速16。','string'),'ConstantSpawn':('True','bool'),'KillVerbs':('mauled','string')},
+ 'Creature':{'DisplayName':('骨龙','string'),'Description':('死亡权柄唯一骨龙坐骑。生命170；近战27伤害/1秒，地速7、飞速16。','string'),'ConstantSpawn':('True','bool'),'KillVerbs':('mauled','string')},
  'FourLeggedModel':{'Class':('SCIEPort.Features.AbyssReaper.ComponentBoneDragonModel','string'),'ModelName':('Models/AbyssBoneDragon','string'),'TextureOverride':('Textures/AbyssBoneDragon','string'),'BoundingSphereRadius':('6','float'),'WalkAnimationSpeed':('0.65','float'),'WalkFrontLegsAngle':('0.44','float'),'WalkHindLegsAngle':('0.48','float'),'WalkBobHeight':('0.035','float'),'CanCanter':('False','bool'),'CanTrot':('False','bool'),'UseCanterSound':('False','bool')},
  'Body':{'BoxSize':('2.1,2.7,5.8','Vector3'),'Mass':('1800','float')},
- 'Health':{'AttackResilience':('444','float'),'FireResilience':('40','float'),'FallResilience':('12','float')},
+ 'Health':{'AttackResilience':('170','float'),'FireResilience':('40','float'),'FallResilience':('12','float')},
  'Locomotion':{'Class':('SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion','string'),'FlySpeed':('16','float'),'WalkSpeed':('7','float'),'JumpSpeed':('7','float'),'TurnSpeed':('4','float'),'AccelerationFactor':('0.7','float')},
  'Mount':{'Class':('Game.ComponentMount','string'),'MountOffset':('0,2.1,0.16','Vector3'),'DismountOffset':('1.8,0.3,0.16','Vector3'),'LoadOrder':('0','int'),'IsOptional':('False','bool')},
  'SteedBehavior':{'Class':('Game.ComponentSteedBehavior','string'),'LoadOrder':('0','int'),'IsOptional':('False','bool')},
- 'Miner':{'AttackPower':('37','float')},
+ 'Miner':{'AttackPower':('27','float')},
  'Spawn':{'AutoDespawn':('False','bool')},
  'HerdBehavior':{'HerdName':('SCIEPortBoneDragon_Saddled','string'),'AutoNearbyCreaturesHelp':('False','bool')},
  'ChaseBehavior':{'AutoChaseMask':('0','Game.CreatureCategory'),'ChaseWhenAttackedProbability':('0','float'),'ChaseOnTouchProbability':('0','float'),'ChaseNonPlayerProbability':('0','float')},

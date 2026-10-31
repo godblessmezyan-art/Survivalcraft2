@@ -87,7 +87,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 entity=DatabaseManager.CreateEntity(terrain.Project,kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason=kind==BoneDragonRules.SummonKind?"骨龙已响应 · 生命444 · 可骑乘飞行 · 每人唯一":kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命444 · 三首噬魂37伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命44 · 移速10":"冥界猎犬已响应 · 生命37 · 伤害17 · 移速5";return true;
+                reason=kind==BoneDragonRules.SummonKind?"骨龙已响应 · 生命170 · 近战27伤害/1秒 · 可骑乘飞行 · 每人唯一":kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命300 · 三首噬魂43伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命30 · 伤害12 · 移速10":"冥界猎犬已响应 · 生命25 · 伤害12 · 移速5";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }
@@ -161,7 +161,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(close&&Now>=g.NextAttack&&hitBudget-->0&&GuardEnemy(g,g.Target,owner)&&VoidCombatSafety.ClearPath(terrain,c.ComponentCreatureModel.EyePosition,g.Target.ComponentBody.BoundingBox.Center(),6))
                 {
                     g.NextAttack=Now+(g.Dragon?BoneDragonRules.Cooldown:1);g.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;
-                    var miner=c.Entity.FindComponent<ComponentMiner>(false);float power=g.Dragon?BoneDragonRules.Damage:g.Hound?DeathSummonStats.HoundDamage:Math.Max(6,miner.AttackPower)*(g.Special?2:1);
+                    var miner=c.Entity.FindComponent<ComponentMiner>(false);float power=g.Dragon?BoneDragonRules.Damage:g.Hound?DeathSummonStats.HoundDamage:g.Warhorse?DeathSummonStats.HorseDamage:Math.Max(6,miner.AttackPower)*(g.Special?2:1);
                     Vector3 delta=g.Target.ComponentBody.Position-c.ComponentBody.Position;
                     ComponentMiner.AttackBody(g.Target.ComponentBody,c,g.Target.ComponentBody.BoundingBox.Center(),delta.LengthSquared()>.001f?Vector3.Normalize(delta):Vector3.UnitZ,power,true);
                 }
