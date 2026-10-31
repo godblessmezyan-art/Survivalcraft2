@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SCIEPortBoneDragon_Saddled>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortBoneDragon_Saddled" Guid="d1a4db02-ea81-5a9b-9d6f-412bea048fb1" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
+      <MemberComponentTemplate Name="Creature" Guid="401ba96f-b583-54a3-b7d6-3d4e76603a18">
+        <Parameter Name="DisplayName" Guid="5c22c206-7c63-515f-9ca8-0817f9522834" Value="骨龙" Type="string" />
+        <Parameter Name="Description" Guid="fab2f095-5aef-564f-95c8-2f21b9ce8437" Value="死亡权柄唯一骨龙坐骑。生命444；近战37伤害/1秒，地速7、飞速16。" Type="string" />
+        <Parameter Name="ConstantSpawn" Guid="f4077413-7b47-56cf-b15c-b27f748446c2" Value="True" Type="bool" />
+        <Parameter Name="KillVerbs" Guid="935a2ba5-6cf5-59e6-87ec-5eea2d3bcf6d" Value="mauled" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="ae710bc0-8f5f-599d-a456-69ed2fe1a707">
+        <Parameter Name="Class" Guid="5d2bc389-4123-52b7-be3d-2d1e119d1576" Value="SCIEPort.Features.AbyssReaper.ComponentBoneDragonModel" Type="string" />
+        <Parameter Name="ModelName" Guid="573d09b7-d91f-5bca-baf8-ad4fcbb06369" Value="Models/AbyssBoneDragon" Type="string" />
+        <Parameter Name="TextureOverride" Guid="b14df46b-71ad-525a-bd71-e366b196c7d7" Value="Textures/AbyssBoneDragon" Type="string" />
+        <Parameter Name="BoundingSphereRadius" Guid="fb4c8726-fcbd-5fa0-87c7-530a22dcfcef" Value="6" Type="float" />
+        <Parameter Name="WalkAnimationSpeed" Guid="5838d61d-1800-54e3-a81e-a5c1178aa37f" Value="0.65" Type="float" />
+        <Parameter Name="WalkFrontLegsAngle" Guid="9af56602-f25c-5575-9fea-d6a6387fda7b" Value="0.44" Type="float" />
+        <Parameter Name="WalkHindLegsAngle" Guid="45e9f4de-c12d-545e-8e86-9e5bad57b1be" Value="0.48" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="b2695424-66b8-55d3-8775-ac8fd485c38e" Value="0.035" Type="float" />
+        <Parameter Name="CanCanter" Guid="91167a90-1da2-50e1-971e-1f0ddb0c02d4" Value="False" Type="bool" />
+        <Parameter Name="CanTrot" Guid="2e47090c-12b9-57da-b1f2-4b4c34f96d37" Value="False" Type="bool" />
+        <Parameter Name="UseCanterSound" Guid="c790a674-2d36-5906-b62f-b7cd7eb5899b" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="0530d91f-54f3-583d-9012-cce692d7268a">
+        <Parameter Name="BoxSize" Guid="a02f78f0-64d2-5994-83e1-ef640ed9ea8d" Value="2.1,2.7,5.8" Type="Vector3" />
+        <Parameter Name="Mass" Guid="f1533e27-8969-5c78-9af8-a2e066683dac" Value="1800" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="22990635-984d-5c44-ad20-32ac195cc96c">
+        <Parameter Name="AttackResilience" Guid="ac160a7e-cfd3-530d-b699-cf8e3614e791" Value="444" Type="float" />
+        <Parameter Name="FireResilience" Guid="05e7087e-d079-5554-a1fb-47fd451da7f9" Value="40" Type="float" />
+        <Parameter Name="FallResilience" Guid="fcb84f19-b315-535d-98a6-bdb652983f79" Value="12" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="41e14b94-2230-5da1-923a-f80c6d580fe9">
+        <Parameter Name="Class" Guid="b0af35db-a241-5647-af8c-4e8c7d9307aa" Value="SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion" Type="string" />
+        <Parameter Name="FlySpeed" Guid="76c798f4-3621-5a99-8df0-084fc74fb06b" Value="16" Type="float" />
+        <Parameter Name="WalkSpeed" Guid="13037f9c-4027-52ee-a2c3-2e1a4bde1bbc" Value="7" Type="float" />
+        <Parameter Name="JumpSpeed" Guid="895af22e-5ba9-5c2d-8587-76dcfb630c80" Value="7" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="2a4a1209-3151-51b9-a3c0-865bb0585b76" Value="4" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="e87019f2-f4d0-5d52-a9f3-c86834d3d124" Value="0.7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="b93b018c-2f36-51a1-b543-478310e2f7e1">
+        <Parameter Name="Class" Guid="ce34d912-71ba-59fe-b7e4-278ca7774a06" Value="Game.ComponentMount" Type="string" />
+        <Parameter Name="MountOffset" Guid="3ce3b954-0f91-5409-8f2c-6e5e2104265f" Value="0,2.1,0.16" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="56aed625-ee97-59bb-927a-643f0f472973" Value="1.8,0.3,0.16" Type="Vector3" />
+        <Parameter Name="LoadOrder" Guid="ac5e7e15-795c-5fbf-a49d-2670c90f754b" Value="0" Type="int" />
+        <Parameter Name="IsOptional" Guid="8c95f02c-ade2-55aa-af8b-2f43f24a58b2" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="SteedBehavior" Guid="506f7dd7-adcf-5005-ad1e-0aea8ff26665">
+        <Parameter Name="Class" Guid="ca5e1d4a-aa54-5c20-b12d-04a0213d4eb1" Value="Game.ComponentSteedBehavior" Type="string" />
+        <Parameter Name="LoadOrder" Guid="e11cbecd-69ff-5c73-81aa-9c992ac0d58b" Value="0" Type="int" />
+        <Parameter Name="IsOptional" Guid="f063f62d-7c94-54f5-91f6-99f7537f593d" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Miner" Guid="1029e114-0c82-5bef-99a3-ea1154948e3e">
+        <Parameter Name="AttackPower" Guid="51c72646-9e8a-505f-881f-c34e1126625a" Value="37" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="c931aae7-d75d-53ae-9e8f-8798df59593d">
+        <Parameter Name="AutoDespawn" Guid="4dd2020d-e9e3-51bd-8ce5-b8fc24b582a4" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="da443e0b-212a-5e0f-af20-15136c428251">
+        <Parameter Name="HerdName" Guid="85a7a26b-42d4-53d3-939d-f461bd4817fd" Value="SCIEPortBoneDragon_Saddled" Type="string" />
+        <Parameter Name="AutoNearbyCreaturesHelp" Guid="1835dd2f-411c-5636-bbc5-19f8e2daba76" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ChaseBehavior" Guid="524297fc-8cca-5007-a3ca-2ba952c6f4cd">
+        <Parameter Name="AutoChaseMask" Guid="a063c994-4777-514f-8320-a46ae377b2ed" Value="0" Type="Game.CreatureCategory" />
+        <Parameter Name="ChaseWhenAttackedProbability" Guid="8107e4f9-8ae1-5dac-89e2-3a5a4e77d175" Value="0" Type="float" />
+        <Parameter Name="ChaseOnTouchProbability" Guid="fa7340a8-cb3c-521c-bfbb-76418a6672eb" Value="0" Type="float" />
+        <Parameter Name="ChaseNonPlayerProbability" Guid="b4e381c9-1712-547d-a395-1ac447c9ab2a" Value="0" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Loot" Guid="51a6df51-f6c8-57d6-b312-a85f19c5b68f">
+        <Parameter Name="LootDropped" Guid="765a1746-6b4d-5e67-99f4-fdd1432b2800" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="77ef5a32-39ae-5ed0-81b9-d46d759f9c82">
+        <Parameter Name="EggTypeIndex" Guid="4147627f-409b-5dd3-bdaa-dd36794c7498" Value="-1" Type="int" />
+        <Parameter Name="ShowEgg" Guid="8ce1db5b-7ed3-5210-a300-147526467366" Value="False" Type="bool" />
+      </ParameterSet>
+    </EntityTemplate>
+  </Folder>
+</SCIEPortBoneDragon_Saddled>

@@ -16,16 +16,16 @@ namespace SCIEPort.Features.AbyssReaper
         private double riderManualUntil,nextRiderInput;private ushort manualMount;
         private readonly Dictionary<ComponentHealth,float> riderFallBonuses=new Dictionary<ComponentHealth,float>();
         private static bool RiderOrder(ComponentPlayer p)
-        {var input=p.ComponentInput.m_playerInput;return Math.Abs(input.Move.X)>.05f||Math.Abs(input.Move.Z)>.05f||input.Jump||p.ComponentGui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget);}
+        {var input=p.ComponentInput.m_playerInput;return Math.Abs(input.Move.X)>.05f||Math.Abs(input.Move.Z)>.05f||input.Jump||(p.ComponentRider.Mount?.Entity.FindComponent<ComponentBoneDragonLocomotion>(false)?.VerticalInput??false)||p.ComponentGui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget);}
         private DeathGuard RiddenGuard(ComponentPlayer p)
         {
             var mount=p?.ComponentRider.Mount;if(mount==null)return null;DeathGuard g;
-            return guards.TryGetValue(mount.Entity.EntityId,out g)&&g.Creature.Entity==mount.Entity&&g.Owner==p.PlayerGuid&&(g.Cerberus||g.Warhorse)?g:null;
+            return guards.TryGetValue(mount.Entity.EntityId,out g)&&g.Creature.Entity==mount.Entity&&g.Owner==p.PlayerGuid&&(g.Cerberus||g.Warhorse||g.Dragon)?g:null;
         }
         internal Friend RiddenFriend(ComponentPlayer p)
         {
             if(Authority){var guard=RiddenGuard(p);return guard==null?null:Row(guard);}
-            var mount=p?.ComponentRider.Mount;if(mount!=null)foreach(var f in clientFriends.Values)if(!f.Hidden&&!f.Pending&&f.EntityId==mount.Entity.EntityId&&f.Owner==p.PlayerGuid&&(f.Cerberus||f.Warhorse))return f;
+            var mount=p?.ComponentRider.Mount;if(mount!=null)foreach(var f in clientFriends.Values)if(!f.Hidden&&!f.Pending&&f.EntityId==mount.Entity.EntityId&&f.Owner==p.PlayerGuid&&(f.Cerberus||f.Warhorse||f.Dragon))return f;
             return null;
         }
         private bool RidingActor(ComponentPlayer p)=>Actor(p,false)&&p.ComponentSleep.SleepFactor<=0&&RiddenFriend(p)!=null;
@@ -44,13 +44,13 @@ namespace SCIEPort.Features.AbyssReaper
             if(!g.Ridden||Now<g.NextPlan)return;g.NextPlan=Now+.25;
             var owner=OwnerPlayer(g.Owner);if(CommonLib.WorkType!=WorkType.Server||owner==null||owner.PlayerData.IsMainPlayer||owner.PlayerData.Client==null)return;
             bool move=g.AutoDriving&&g.Target!=null;Vector3 at=move?g.Target.ComponentBody.Position:Vector3.Zero;
-            float stop=g.Cerberus?2.6f:1.2f+(g.Creature.ComponentBody.BoxSize.X+(g.Target?.ComponentBody.BoxSize.X??0))*.5f;
+            float stop=g.Dragon?3.4f:g.Cerberus?2.6f:1.2f+(g.Creature.ComponentBody.BoxSize.X+(g.Target?.ComponentBody.BoxSize.X??0))*.5f;
             Send(new DeathAuthorityPackage{Kind=9,Caster=g.Creature.Entity.EntityId,Target=move?g.Target.Entity.EntityId:(ushort)0,Owner=g.Owner,Flags=(byte)(move?1:g.AutoDriving?2:0),Position=at,A=Math.Min(6,stop)},owner.PlayerData.Client);
         }
         private void ReceiveRidePlan(DeathAuthorityPackage q)
         {
             if(!hasClock||q.Flags>2||!WorldCutRules.Finite(q.A)||q.A<0||q.A>6||q.Flags==1&&(!WorldCutRules.Coordinates(q.Position.X,q.Position.Y,q.Position.Z)||q.Target==0))return;
-            Friend own=null;foreach(var f in clientFriends.Values)if(f.EntityId==q.Caster&&f.Owner==q.Owner&&f.RidingAuto&&!f.Hidden&&!f.Pending&&(f.Cerberus||f.Warhorse)){own=f;break;}if(own==null)return;
+            Friend own=null;foreach(var f in clientFriends.Values)if(f.EntityId==q.Caster&&f.Owner==q.Owner&&f.RidingAuto&&!f.Hidden&&!f.Pending&&(f.Cerberus||f.Warhorse||f.Dragon)){own=f;break;}if(own==null)return;
             RidePlan old;if(ridePlans.TryGetValue(q.Caster,out old)&&!WorldCutRules.Newer(q.Revision,old.Revision))return;
             double age=Math.Max(0,Math.Max(lastServerTime,Now+clockOffset)-q.Stamp);if(age>1)return;
             if(ridePlans.Count>=24&&!ridePlans.ContainsKey(q.Caster))return;
@@ -95,7 +95,7 @@ namespace SCIEPort.Features.AbyssReaper
                 }
                 if(!drive&&drivingPaths.Contains(path)){path.Stop();drivingPaths.Remove(path);}
                 var selector=mount.Entity.FindComponent<ComponentBehaviorSelector>(false);if(selector!=null){selector.IsDisableBehavior=true;foreach(var behavior in selector.m_behaviors)behavior.IsActive=!drive&&behavior is ComponentSteedBehavior;}
-                steed.IsActive=!drive;
+                steed.IsActive=!drive;var dragon=creature.ComponentLocomotion as ComponentBoneDragonLocomotion;if(dragon!=null)dragon.AutoDriving=drive;
                 if(!drive){var cerberus=steed as ComponentCerberusSteed;if(cerberus!=null)cerberus.FaceTarget=null;}
             }
             endedPaths.Clear();foreach(var path in drivingPaths)if(!pathsSeen.Contains(path)){path.Stop();endedPaths.Add(path);}foreach(var path in endedPaths)drivingPaths.Remove(path);
@@ -105,7 +105,7 @@ namespace SCIEPort.Features.AbyssReaper
         private void ClearRiderFall(){foreach(var pair in riderFallBonuses)pair.Key.FallResilience-=pair.Value;riderFallBonuses.Clear();}
         private void UpdateRiderFall()
         {
-            ClearRiderFall();foreach(var player in players.ComponentPlayers)if(player.IsAddedToProject&&player.ComponentRider.Mount?.Entity.FindComponent<ComponentCerberusModel>(false)!=null)
+            ClearRiderFall();foreach(var player in players.ComponentPlayers)if(player.IsAddedToProject&&(player.ComponentRider.Mount?.Entity.FindComponent<ComponentCerberusModel>(false)!=null||player.ComponentRider.Mount?.Entity.FindComponent<ComponentBoneDragonModel>(false)!=null))
             {var health=player.ComponentHealth;float extra=Math.Max(0,12-health.FallResilience);health.FallResilience+=extra;riderFallBonuses[health]=extra;}
         }
     }

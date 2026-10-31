@@ -73,7 +73,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(!exists)selected=armed=0;
             dismiss.Text=armed==selected&&selected!=0?"确认解除":"解除所选";dismiss.IsEnabled=selected!=0;
             double cooldown=runtime.Remaining(player,DeathAuthorityRules.Summon);summon.Text=cooldown>0?"召唤 · "+Math.Ceiling(cooldown).ToString("0")+"秒":"召唤";
-            if(kind.IsClicked)summonKind=(ushort)((summonKind+1)%3);kind.Text=summonKind==0?"召唤类型：冥界猎犬":summonKind==1?"召唤类型：夜魇战马 · 移速10":"召唤类型：地狱三头犬·刻尔柏洛斯（唯一）";
+            if(kind.IsClicked)summonKind=(ushort)((summonKind+1)%4);kind.Text=summonKind==0?"召唤类型：冥界猎犬":summonKind==1?"召唤类型：夜魇战马 · 移速10":summonKind==2?"召唤类型：地狱三头犬·刻尔柏洛斯（唯一）":"召唤类型：骨龙 · 可飞行（唯一）";
             if(summon.IsClicked)runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ,summonKind);
             if(recall.IsClicked)runtime.Request(player,DeathAuthorityRules.Recall,Vector3.UnitZ);
             if(stow.IsClicked)runtime.Request(player,DeathAuthorityRules.Stow,Vector3.UnitZ);

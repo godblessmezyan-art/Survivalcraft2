@@ -1,5 +1,19 @@
 # 测试结果
 
+## 2026-11-01 main 0.67.0：骨龙骑乘飞行候选
+
+基线`942b614` / 0.66.0，初始工作区干净，回退点`backup/abyss-0.66.0-before-bone-dragon`，旧包保留。用户确认生命444、伤害37、间隔1秒、地速7、飞速16；新增第四种召唤，唯一性按每位主人现世/次位面/待加载共同校验，继续占七只/世界24名额，继承0.66治疗/单只管理与世界存档。
+
+原创长吻双角龙颅、开放肋骨/脊尾、四足爪、双翼骨架和翼膜及鞍具，7骨/7网格/7674三角，512×256不透明原创UV；软件模型/振翅预览位于`design/bone-dragon/`，不是游戏画面。目标Engine.ModelData.Load和真实GameDatabase合并确认原生32字节顶点、7矩阵预算、正确Model/Locomotion类、贴图、MountOffset`0,2.1,0.16`、444/7/16和无生成蛋索引；`native-import.json`记录目标Game/Engine SHA。没有创建游戏实体或GPU设备。
+
+原生ComponentLocomotion.Update支持FlySpeed/FlyOrder并在该帧关闭重力；原生SCNET由实际骑手客户端驱动骑乘身体，主机仍处理近战和契约。自定义override生成世界向量飞行输入、悬停/受控下降、区域与高度边界，原生Pilot用于自动追击；起飞/降落经主机Action15鉴权，升降是骑手本地移动输入，未增加客户端伤害。252布局保持，Kind3 Flags128/C和Action15扩展既有语义，v2可选DragonFlight默认false，247/249/250/251/星门保持。文本控件复用查看锚点和避让，原生Clickable子控件提供按住；修正旧骑乘HUD传空Label导致空引用，骑乘时隐藏不可用阿比斯技能按钮。
+
+沿用用户亲自测试安排，未执行自动化行为套件、GPU、游戏、Android或多人会话。使用`Build-ManualTestCandidate.ps1 -GameDir D:/Games/SCNET-x25.01.17 -BaselinePackage <0.66.0包> -AssetUpdates @('Assets/Models/AbyssBoneDragon.dae','Assets/Textures/AbyssBoneDragon.png','Assets/Database/AbyssBoneDragon.xdb')`，编译与资源导入日志`artifacts/bone-dragon-0.67.0-package.log`。首次编译发现BevelledButton本身没有IsPressed，改读实际原生Clickable子控件；最终Release结果和包哈希见本节补充及`design/bone-dragon/package-comparison.json`。
+
+最终Release **0警告0错误**。包8,919,294字节/156条目，SHA256 `4652C3F2992A51FA15D37899D4C4C76BD0AE09D7AEEFE415EF045FB79774575D`；DLL SHA `6F686D8EC0388E185319F85E176A2423321B8326208B6F364F4BFC8129E55C51`。新增3项骨龙资源，只变更DLL/modinfo/署名，其余150项旧条目逐字节保持；原生物资产和模板不变，源/包内容及通用名/版本副本一致，新XDB参数GUID与其他资产不冲突，纹理512×256且完全不透明。此为包/资源完整性，不是运行行为验证。
+
+**待用户实测**：Android模型、上下马/骑姿/衣物、上升/下降/悬停/降落、区域边缘及高空、自动追击与手动优先、主机/普通客户端一次伤害/唯一性、隐藏与读档以及死亡/断线/退出清理。翼/尾端不独立参与躯干AABB碰撞，可能穿入墙边，未虚称复合碰撞。静态资源/编译不能代替Android/多人兼容验收，详见[骨龙说明](ABYSS-BONE-DRAGON.md)。
+
 ## 2026-11-01 main 0.66.0：三头犬骑乘、军势追击和恢复候选
 
 基线`1af697e` / 0.65.3，初始工作区干净，回退点`backup/abyss-0.65.3-before-cerberus-riding`，旧0.65.3包保留。用户确认骑乘自动模式应自动追击并攻击，手动操作优先。新增Mount/自定义原生Steed子类、背部座位与侧向下马坐标、人物/衣物宽背腿部变换、约4格跳跃校准及坐骑/骑手落地耐受。骑乘文字开关和军势面板底部开关共用每契约模式，默认关闭并保存。详情及实机边界见[骑乘说明](ABYSS-RIDING-0.66.md)。

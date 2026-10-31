@@ -281,7 +281,7 @@ namespace SCIEPort.Features.AbyssReaper
             string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);
             if(hint==null)hint=Death.Empowered(p)?"夺魂赋刃 · 首击濒死，再击转化 · 重击暂禁用":s.Combo.Charge(s.CombatTime)>=1?"蓄力完成 · 松开断界斩":s.Combo.Charge(s.CombatTime)>0?"断界斩蓄力中":"轻触连斩 · 长按松开断界斩";
             s.Hud.Update(WorldCut.Remaining(p),blink.Remaining(p),Space.Remaining(p,VoidSpaceRules.Shatter),Horizon.Remaining(p),WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death.Busy(p),WorldCut.PendingRequest(p),Death.Feedback(p)??Space.Feedback(p)??hint,
-                gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||!p.ComponentInput.AllowHandleInput,Death,p);
+                gui.ModalPanelWidget!=null||DialogsManager.HasDialogs(p.GuiWidget)||p.ComponentHealth.Health<=0||p.ComponentRider.Mount!=null||!p.ComponentInput.AllowHandleInput,Death,p);
         }
         /// <inheritdoc/>
         public void Draw(Camera camera,int order) {

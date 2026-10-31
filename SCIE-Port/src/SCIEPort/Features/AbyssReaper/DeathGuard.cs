@@ -10,6 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool Warhorse=>Special&&Template==DeathAuthorityRules.MountTemplate;
         internal bool Hound=>Special&&Template==DeathAuthorityRules.HoundTemplate;
         internal bool Cerberus=>Template==CerberusRules.Template;
+        internal bool Dragon=>Template==BoneDragonRules.Template;
         internal ComponentCreature BiteTarget;internal double BiteStarted=-100,BiteImpactAt;
         internal bool RidingAuto,Following;internal double PursuitUntil,ManualUntil,NextPlan;internal bool AutoDriving;
         internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
@@ -29,7 +30,7 @@ namespace SCIEPort.Features.AbyssReaper
             chase=c.Entity.FindComponent<ComponentChaseBehavior>(false);
             if(chase!=null){mask=chase.m_autoChaseMask;retaliate=chase.m_chaseWhenAttackedProbability;touch=chase.m_chaseOnTouchProbability;nonplayer=chase.m_chaseNonPlayerProbability;chase.m_autoChaseMask=0;chase.m_chaseWhenAttackedProbability=0;chase.m_chaseOnTouchProbability=0;chase.m_chaseNonPlayerProbability=0;chase.m_target=null;chase.IsActive=false;}
             if(c.ComponentSpawn!=null)c.ComponentSpawn.AutoDespawn=false;
-            c.DisplayName=Cerberus?CerberusRules.Name:special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;stats.Apply(c,special,Template);WorldHealthCeiling=c.ComponentHealth.Health;return true;
+            c.DisplayName=Dragon?BoneDragonRules.Name:Cerberus?CerberusRules.Name:special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;stats.Apply(c,special,Template);WorldHealthCeiling=c.ComponentHealth.Health;return true;
         }
         internal void Suppress()
         {

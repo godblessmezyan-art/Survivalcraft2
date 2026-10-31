@@ -1,0 +1,1138 @@
+{
+  "original": true,
+  "source": "scripts/New-BoneDragonAssets.py",
+  "game_meshes_used": false,
+  "bones": {
+    "Body": {
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "WingL": {
+      "parent": "Body",
+      "pivot": [
+        -0.48,
+        1.72,
+        -0.48
+      ]
+    },
+    "WingR": {
+      "parent": "Body",
+      "pivot": [
+        0.48,
+        1.72,
+        -0.48
+      ]
+    },
+    "Leg1": {
+      "parent": "Body",
+      "pivot": [
+        -0.65,
+        1.16,
+        -0.82
+      ]
+    },
+    "Leg2": {
+      "parent": "Body",
+      "pivot": [
+        0.65,
+        1.16,
+        -0.82
+      ]
+    },
+    "Leg3": {
+      "parent": "Body",
+      "pivot": [
+        -0.61,
+        1.14,
+        1.05
+      ]
+    },
+    "Leg4": {
+      "parent": "Body",
+      "pivot": [
+        0.61,
+        1.14,
+        1.05
+      ]
+    }
+  },
+  "meshes": 7,
+  "triangles": 7674,
+  "bounds": {
+    "min": [
+      -4.0415711081914125,
+      -0.004221307410471553,
+      -3.4
+    ],
+    "max": [
+      4.0415711081914125,
+      2.66,
+      3.84
+    ]
+  },
+  "parts": [
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Vertebra",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "DorsalSpine",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "OpenRib",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Sternum",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "ShoulderBlade",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "PelvicArch",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "ShoulderBlade",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "PelvicArch",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "NeckVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "NeckRidge",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "NeckVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "NeckRidge",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "NeckVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "NeckRidge",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonCranium",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "LongMuzzle",
+      "bone": "Body",
+      "triangles": 32
+    },
+    {
+      "name": "LowerJaw",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "LowerJaw",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "DeepEyeSocket",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "ColdSoulEye",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Eyebrow",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "SweptCrownHorn",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "CheekHorn",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DeepEyeSocket",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "ColdSoulEye",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Eyebrow",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "SweptCrownHorn",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "CheekHorn",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "DragonFang",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailVertebra",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "TailSpear",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "Humerus",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "KneeJoint",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "ShinBone",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "PairedShin",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "Humerus",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "KneeJoint",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "ShinBone",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "PairedShin",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "Femur",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "KneeJoint",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "ShinBone",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "PairedShin",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "Femur",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "KneeJoint",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "ShinBone",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "PairedShin",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg4",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg4",
+      "triangles": 10
+    },
+    {
+      "name": "Toe",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "ObsidianClaw",
+      "bone": "Leg4",
+      "triangles": 10
+    },
+    {
+      "name": "WingHumerus",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingRadius",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingL",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingL",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingL",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingL",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingL",
+      "triangles": 44
+    },
+    {
+      "name": "WingThumb",
+      "bone": "WingL",
+      "triangles": 10
+    },
+    {
+      "name": "WingHumerus",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingRadius",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingR",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingR",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingR",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "TornWingWeb",
+      "bone": "WingR",
+      "triangles": 11
+    },
+    {
+      "name": "WingFinger",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingFingerTip",
+      "bone": "WingR",
+      "triangles": 44
+    },
+    {
+      "name": "WingThumb",
+      "bone": "WingR",
+      "triangles": 10
+    },
+    {
+      "name": "SaddlePad",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SaddlePommel",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SaddlePommel",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HarnessRail",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "StirrupStrap",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "HarnessRail",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "StirrupStrap",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "SoulCore",
+      "bone": "Body",
+      "triangles": 60
+    }
+  ],
+  "assets": {
+    "src/SCIEPort/Assets/Models/AbyssBoneDragon.dae": "D020CD9BA62B407D9FC3D127FB11E23B15D29AB123745AF71DB884929FD048BF",
+    "src/SCIEPort/Assets/Textures/AbyssBoneDragon.png": "E5629FEE656ACD3F3DB5BD1A34B3A88B77943159FD96D7E7C840FCB6E879868A"
+  }
+}

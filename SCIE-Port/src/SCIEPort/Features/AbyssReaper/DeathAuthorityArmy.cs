@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
 {
     internal sealed partial class DeathAuthorityRuntime
     {
-        internal sealed class Friend{internal ushort Id,EntityId;internal Guid Owner;internal string Name,Template;internal bool Special,Hidden,Discard,HealOnReturn,Warhorse,Pending,Cerberus,HealthKnown,RidingAuto;internal double SpawnTime,RegenCarry,RegenStamp;internal float BiteCooldown,HealthFraction,HealthMaximum,PendingHeal;internal uint Revision;internal ValuesDictionary Snapshot;}
+        internal sealed class Friend{internal ushort Id,EntityId;internal Guid Owner;internal string Name,Template;internal bool Special,Hidden,Discard,HealOnReturn,Warhorse,Pending,Cerberus,Dragon,DragonFlight,HealthKnown,RidingAuto;internal double SpawnTime,RegenCarry,RegenStamp;internal float BiteCooldown,HealthFraction,HealthMaximum,PendingHeal;internal uint Revision;internal ValuesDictionary Snapshot;}
         private sealed class Threat{internal ComponentCreature Creature;internal double Until;}
         private readonly Dictionary<ushort,DeathGuard> guards=new Dictionary<ushort,DeathGuard>();
         private readonly Dictionary<ushort,Friend> clientFriends=new Dictionary<ushort,Friend>(),saved=new Dictionary<ushort,Friend>();
@@ -34,11 +34,11 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private Friend Row(DeathGuard g)
         {
-            var row=new Friend{Id=g.Key,EntityId=g.Creature.Entity.EntityId,Owner=g.Owner,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special,Warhorse=g.Warhorse,Cerberus=g.Cerberus,RidingAuto=g.RidingAuto,RegenCarry=g.RegenCarry,BiteCooldown=g.Cerberus?(float)Math.Max(0,Math.Min(CerberusRules.Cooldown,g.NextAttack-Now)):0};
+            var row=new Friend{Id=g.Key,EntityId=g.Creature.Entity.EntityId,Owner=g.Owner,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special,Warhorse=g.Warhorse,Cerberus=g.Cerberus,RidingAuto=g.RidingAuto,Dragon=g.Dragon,DragonFlight=(g.Creature.ComponentLocomotion as ComponentBoneDragonLocomotion)?.FlightEnabled==true,RegenCarry=g.RegenCarry,BiteCooldown=g.Cerberus?(float)Math.Max(0,Math.Min(CerberusRules.Cooldown,g.NextAttack-Now)):0};
             ReadLiveHealth(row,g.Creature);return row;
         }
         // A/B were unused for Kind3. Keep the 252 byte layout and use flag32 for health metadata.
-        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Caster=row.Hidden||row.Pending?(ushort)0:row.EntityId,Owner=row.Owner,Sequence=snapshot,Flags=(byte)((row.Special?1:0)|(row.Hidden?2:0)|(row.Pending?4:0)|(row.Warhorse?8:0)|(row.Cerberus?16:0)|(row.HealthKnown?32:0)|(row.RidingAuto?64:0)),A=row.HealthKnown?row.HealthFraction:0,B=row.HealthKnown?row.HealthMaximum:0,Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
+        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Caster=row.Hidden||row.Pending?(ushort)0:row.EntityId,Owner=row.Owner,Sequence=snapshot,Flags=(byte)((row.Special?1:0)|(row.Hidden?2:0)|(row.Pending?4:0)|(row.Warhorse?8:0)|(row.Cerberus?16:0)|(row.HealthKnown?32:0)|(row.RidingAuto?64:0)|(row.Dragon?128:0)),C=row.DragonFlight?1:0,A=row.HealthKnown?row.HealthFraction:0,B=row.HealthKnown?row.HealthMaximum:0,Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
         private ushort FreeKey()
         {
             for(int i=1;i<=ushort.MaxValue;i++){ushort key=(ushort)i;if(hidden.ContainsKey(key))continue;bool used=false;foreach(var g in guards.Values)if(g.Key==key){used=true;break;}if(!used)foreach(var f in saved.Values)if(f.Id==key){used=true;break;}if(!used)return key;}return 0;
@@ -48,7 +48,7 @@ namespace SCIEPort.Features.AbyssReaper
         private bool AdoptContract(ComponentCreature c,Guid owner,bool special,ushort key)
         {
             if(!Authority||key==0||c==null||!c.IsAddedToProject||c.ComponentHealth.Health<=0||Count(owner)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit||IsFriendly(c)||c is ComponentPlayer)return false;
-            if(c.Entity.ValuesDictionary.DatabaseObject.Name==CerberusRules.Template&&HasCerberus(owner))return false;
+            if(c.Entity.ValuesDictionary.DatabaseObject.Name==CerberusRules.Template&&HasCerberus(owner)||c.Entity.ValuesDictionary.DatabaseObject.Name==BoneDragonRules.Template&&HasDragon(owner))return false;
             var guard=new DeathGuard{Key=key};if(!guard.Bind(c,owner,special))return false;guards.Add(c.Entity.EntityId,guard);FriendPacket(Row(guard));return true;
         }
         private void SyncFriends(Client to)
@@ -59,7 +59,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private void ReceiveFriend(DeathAuthorityPackage q)
         {
-            if(q.Kind==3&&(q.Flags&32)!=0&&!ValidHealth(q.A,q.B))return;
+            if(q.Kind==3&&((q.Flags&32)!=0&&!ValidHealth(q.A,q.B)||(q.Flags&128)!=0&&(!WorldCutRules.Finite(q.C)||q.C<0||q.C>1)))return;
             if(q.Kind==6){if(q.Target>24||!WorldCutRules.Newer(q.Revision,lastSnapshot))return;snapshotRows.Clear();snapshotId=q.Revision;snapshotCount=q.Target;return;}
             if(q.Kind==7)
             {
@@ -74,19 +74,20 @@ namespace SCIEPort.Features.AbyssReaper
             if(q.Kind==4){clientFriends.Remove(q.Target);return;}if(q.Owner==Guid.Empty||q.Name.Length>64||clientFriends.Count>=24&&!clientFriends.ContainsKey(q.Target))return;
             clientFriends[q.Target]=ReadFriend(q);
         }
-        private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
+        private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,Dragon=(q.Flags&128)!=0,DragonFlight=(q.Flags&128)!=0&&q.C>.5f,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
         private bool Summon(ComponentPlayer p,ushort kind,out string reason)
         {
             reason="召唤名额已满（每人七只、世界24只，含次位面）";if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)return false;
-            if(kind>CerberusRules.SummonKind){reason="未知的召唤类型";return false;}
+            if(kind>BoneDragonRules.SummonKind){reason="未知的召唤类型";return false;}
             if(kind==CerberusRules.SummonKind&&HasCerberus(p.PlayerGuid)){reason="已契约刻尔柏洛斯（含次位面/待加载），每人仅一头";return false;}
+            if(kind==BoneDragonRules.SummonKind&&HasDragon(p.PlayerGuid)){reason="已契约骨龙（含次位面/待加载），每人仅一条";return false;}
             Vector3 at;if(!FindFree(p.ComponentBody.Position,new Vector3(.9f,1.2f,.9f),out at)){reason="附近没有已加载的安全召唤位置";return false;}
             Entity entity=null;
             try
             {
-                entity=DatabaseManager.CreateEntity(terrain.Project,kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
+                entity=DatabaseManager.CreateEntity(terrain.Project,kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason=kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命444 · 三首噬魂37伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命44 · 移速10":"冥界猎犬已响应 · 生命37 · 伤害17 · 移速5";return true;
+                reason=kind==BoneDragonRules.SummonKind?"骨龙已响应 · 生命444 · 可骑乘飞行 · 每人唯一":kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命444 · 三首噬魂37伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命44 · 移速10":"冥界猎犬已响应 · 生命37 · 伤害17 · 移速5";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }
@@ -154,13 +155,13 @@ namespace SCIEPort.Features.AbyssReaper
                 PublishRidePlan(g);
                 if(g.Cerberus){UpdateCerberusAttack(g,owner,ref hitBudget);continue;}
                 if(g.Target==null)continue;
-                float range=1.4f+(c.ComponentBody.BoxSize.X+g.Target.ComponentBody.BoxSize.X)*.5f;
+                float range=g.Dragon?BoneDragonRules.Range:1.4f+(c.ComponentBody.BoxSize.X+g.Target.ComponentBody.BoxSize.X)*.5f;
                 bool close=Vector3.DistanceSquared(c.ComponentBody.Position,g.Target.ComponentBody.Position)<range*range;
                 c.ComponentCreatureModel.AttackOrder=close;c.ComponentCreatureModel.LookAtOrder=g.Target.ComponentCreatureModel.EyePosition;
                 if(close&&Now>=g.NextAttack&&hitBudget-->0&&GuardEnemy(g,g.Target,owner)&&VoidCombatSafety.ClearPath(terrain,c.ComponentCreatureModel.EyePosition,g.Target.ComponentBody.BoundingBox.Center(),6))
                 {
-                    g.NextAttack=Now+1;g.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;
-                    var miner=c.Entity.FindComponent<ComponentMiner>(false);float power=g.Hound?DeathSummonStats.HoundDamage:Math.Max(6,miner.AttackPower)*(g.Special?2:1);
+                    g.NextAttack=Now+(g.Dragon?BoneDragonRules.Cooldown:1);g.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;
+                    var miner=c.Entity.FindComponent<ComponentMiner>(false);float power=g.Dragon?BoneDragonRules.Damage:g.Hound?DeathSummonStats.HoundDamage:Math.Max(6,miner.AttackPower)*(g.Special?2:1);
                     Vector3 delta=g.Target.ComponentBody.Position-c.ComponentBody.Position;
                     ComponentMiner.AttackBody(g.Target.ComponentBody,c,g.Target.ComponentBody.BoundingBox.Center(),delta.LengthSquared()>.001f?Vector3.Normalize(delta):Vector3.UnitZ,power,true);
                 }
@@ -174,6 +175,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(f.Discard){if(discardedEntities.Count<DeathAuthorityRules.DiscardLimit)discardedEntities.Add(entity);return;}
             saved.Remove(entity.EntityId);if(!AdoptContract(c,f.Owner,f.Special,f.Id)){saved[entity.EntityId]=f;return;}
             guards[entity.EntityId].RidingAuto=f.RidingAuto;guards[entity.EntityId].RegenCarry=f.RegenCarry;
+            (c.ComponentLocomotion as ComponentBoneDragonLocomotion)?.SetFlight(f.DragonFlight);
             if(f.Cerberus)guards[entity.EntityId].NextAttack=Now+f.BiteCooldown;
             if(f.PendingHeal>0)HealPoints(c,f.PendingHeal);FriendPacket(Row(guards[entity.EntityId]));
         }
@@ -189,9 +191,9 @@ namespace SCIEPort.Features.AbyssReaper
                 for(int i=0;i<count;i++)
                 {
                     var row=data.GetValue<ValuesDictionary>("Ally"+i);int entity=row.GetValue<int>("Id"),key=row.GetValue<int>("Key",entity);
-                    var f=new Friend{Id=(ushort)key,EntityId=(ushort)entity,Owner=row.GetValue<Guid>("Owner"),Template=row.GetValue<string>("Template"),SpawnTime=row.GetValue<double>("Spawn"),Special=row.GetValue<bool>("Special"),Hidden=row.GetValue<bool>("Hidden",false),Discard=row.GetValue<bool>("Discard",false),HealOnReturn=row.GetValue<bool>("HealOnReturn",false),RidingAuto=row.GetValue<bool>("RidingAuto",false),Snapshot=row.GetValue<ValuesDictionary>("Snapshot",null)};
-                    f.Pending=!f.Hidden;f.Warhorse=f.Special&&f.Template==DeathAuthorityRules.MountTemplate;f.Cerberus=f.Template==CerberusRules.Template;f.BiteCooldown=row.GetValue<float>("BiteCooldown",0);f.Name=row.GetValue<string>("Name",f.Cerberus?CerberusRules.Name:f.Special?(f.Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+f.Template);
-                    if(!WorldCutRules.Finite(f.BiteCooldown)||f.BiteCooldown<0||f.BiteCooldown>4||f.Cerberus&&!f.Discard&&HasCerberus(f.Owner))throw new InvalidOperationException();
+                    var f=new Friend{Id=(ushort)key,EntityId=(ushort)entity,Owner=row.GetValue<Guid>("Owner"),Template=row.GetValue<string>("Template"),SpawnTime=row.GetValue<double>("Spawn"),Special=row.GetValue<bool>("Special"),Hidden=row.GetValue<bool>("Hidden",false),Discard=row.GetValue<bool>("Discard",false),HealOnReturn=row.GetValue<bool>("HealOnReturn",false),RidingAuto=row.GetValue<bool>("RidingAuto",false),DragonFlight=row.GetValue<bool>("DragonFlight",false),Snapshot=row.GetValue<ValuesDictionary>("Snapshot",null)};
+                    f.Pending=!f.Hidden;f.Warhorse=f.Special&&f.Template==DeathAuthorityRules.MountTemplate;f.Cerberus=f.Template==CerberusRules.Template;f.Dragon=f.Template==BoneDragonRules.Template;f.BiteCooldown=row.GetValue<float>("BiteCooldown",0);f.Name=row.GetValue<string>("Name",f.Dragon?BoneDragonRules.Name:f.Cerberus?CerberusRules.Name:f.Special?(f.Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+f.Template);
+                    if(!WorldCutRules.Finite(f.BiteCooldown)||f.BiteCooldown<0||f.BiteCooldown>4||f.Cerberus&&!f.Discard&&HasCerberus(f.Owner)||f.Dragon&&!f.Discard&&HasDragon(f.Owner))throw new InvalidOperationException();
                     // Older v2 rows can contain up to four seconds of the old bite cooldown.
                     f.BiteCooldown=Math.Min((float)CerberusRules.Cooldown,f.BiteCooldown);ReadSavedHealth(f,row);ReadRecovery(f,row);
                     if(key<1||key>ushort.MaxValue||entity<0||entity>ushort.MaxValue||!keys.Add(f.Id)||f.Owner==Guid.Empty||f.Template.Length>96||f.Name.Length>96||!DeathAuthorityRules.Finite(f.SpawnTime)||f.Hidden&&(f.Snapshot==null||f.Discard)||!f.Hidden&&entity==0)throw new InvalidOperationException();
@@ -207,10 +209,10 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var g in guards.Values)if(g.Creature.IsAddedToProject&&g.Creature.ComponentHealth.Health>0)SaveRow(data,Row(g),n++);
             foreach(var row in saved.Values)SaveRow(data,row,n++);foreach(var row in hidden.Values)SaveRow(data,row,n++);data.SetValue("Count",n);return data;
         }
-        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.EntityId);row.SetValue("Key",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);row.SetValue("Name",f.Name??"契约生物");row.SetValue("Hidden",f.Hidden);row.SetValue("Discard",f.Discard);row.SetValue("HealOnReturn",f.HealOnReturn);row.SetValue("RidingAuto",f.RidingAuto);row.SetValue("RegenCarry",f.RegenCarry);row.SetValue("PendingHeal",f.PendingHeal);if(f.HealthKnown){row.SetValue("HealthFraction",f.HealthFraction);row.SetValue("HealthMaximum",f.HealthMaximum);}if(f.Cerberus)row.SetValue("BiteCooldown",f.BiteCooldown);if(f.Snapshot!=null)row.SetValue("Snapshot",f.Snapshot);data.SetValue("Ally"+index,row);}
+        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.EntityId);row.SetValue("Key",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);row.SetValue("Name",f.Name??"契约生物");row.SetValue("Hidden",f.Hidden);row.SetValue("Discard",f.Discard);row.SetValue("HealOnReturn",f.HealOnReturn);row.SetValue("RidingAuto",f.RidingAuto);row.SetValue("DragonFlight",f.DragonFlight);row.SetValue("RegenCarry",f.RegenCarry);row.SetValue("PendingHeal",f.PendingHeal);if(f.HealthKnown){row.SetValue("HealthFraction",f.HealthFraction);row.SetValue("HealthMaximum",f.HealthMaximum);}if(f.Cerberus)row.SetValue("BiteCooldown",f.BiteCooldown);if(f.Snapshot!=null)row.SetValue("Snapshot",f.Snapshot);data.SetValue("Ally"+index,row);}
         internal void Tint(Game.ComponentModel model)
         {
-            var c=model?.Entity.FindComponent<ComponentCreature>(false);if(IsFriendly(c)&&!(model is ComponentCerberusModel))model.DiffuseColor=new Vector3(.35f,.23f,.48f);
+            var c=model?.Entity.FindComponent<ComponentCreature>(false);if(IsFriendly(c)&&!(model is ComponentCerberusModel)&&!(model is ComponentBoneDragonModel))model.DiffuseColor=new Vector3(.35f,.23f,.48f);
         }
     }
 }

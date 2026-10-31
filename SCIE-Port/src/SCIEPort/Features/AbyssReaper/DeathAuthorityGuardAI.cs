@@ -43,7 +43,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private static bool MountApproach(ComponentPlayer player,DeathGuard guard)
         {
-            if(!(guard.Cerberus||guard.Warhorse)||player.PlayerGuid!=guard.Owner)return false;
+            if(!(guard.Cerberus||guard.Warhorse||guard.Dragon)||player.PlayerGuid!=guard.Owner)return false;
             Vector3 to=guard.Creature.ComponentBody.Position+Vector3.UnitY*1.9f-player.ComponentCreatureModel.EyePosition;
             return to.LengthSquared()<25&&to.LengthSquared()>.01f&&Vector3.Dot(Vector3.Normalize(to),player.ComponentCreatureModel.EyeRotation.GetForwardVector())>.65f;
         }
@@ -74,7 +74,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(!mounted&&YieldToPlayer(guard))return;
             if(guard.Target!=null)
             {
-                float stop=guard.Cerberus?2.6f:1.2f+(c.ComponentBody.BoxSize.X+guard.Target.ComponentBody.BoxSize.X)*.5f;
+                float stop=guard.Dragon?3.4f:guard.Cerberus?2.6f:1.2f+(c.ComponentBody.BoxSize.X+guard.Target.ComponentBody.BoxSize.X)*.5f;
                 if(Vector3.DistanceSquared(c.ComponentBody.Position,guard.Target.ComponentBody.Position)>stop*stop)GuardMoveTo(guard,guard.Target.ComponentBody.Position,1,stop,mounted?owner.ComponentBody:null);
                 else guard.Path.Stop();
             }

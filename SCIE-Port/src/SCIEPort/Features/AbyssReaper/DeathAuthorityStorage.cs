@@ -72,6 +72,7 @@ namespace SCIEPort.Features.AbyssReaper
                     adopted=AdoptContract(c,row.Owner,row.Special,row.Id);
                     if(!adopted){hidden[row.Id]=row;terrain.Project.RemoveEntity(entity,true);entity=null;waiting++;continue;}
                     guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
+                    (c.ComponentLocomotion as ComponentBoneDragonLocomotion)?.SetFlight(row.DragonFlight);
                     if(row.Cerberus)guards[c.Entity.EntityId].NextAttack=Now+row.BiteCooldown;
                     if(row.HealthKnown)SetGuardHealth(c,row.HealthFraction);
                     if(row.PendingHeal>0)HealPoints(c,row.PendingHeal);
@@ -116,7 +117,8 @@ namespace SCIEPort.Features.AbyssReaper
                     if(!DeathSummonStats.Profile(f.Special,entity.ValuesDictionary.DatabaseObject.Name,out health,out speed))return;
                     var locomotion=creature.ComponentLocomotion;clientSummonsSeen.Add(locomotion);
                     if(!clientSummonBonuses.ContainsKey(locomotion)){var bonus=new DeathSummonStats.Bonus();bonus.Apply(creature,f.Special,entity.ValuesDictionary.DatabaseObject.Name);clientSummonBonuses.Add(locomotion,bonus);}
-                    if(f.Warhorse||f.Cerberus)
+                    if(f.Dragon)(locomotion as ComponentBoneDragonLocomotion)?.SetFlight(f.DragonFlight);
+                    if(f.Warhorse||f.Cerberus||f.Dragon)
                     {
                         var steed=entity.FindComponent<ComponentSteedBehavior>(false);var rider=entity.FindComponent<ComponentMount>(false)?.Rider?.ComponentCreature as ComponentPlayer;
                         if(steed!=null)steed.IsActive=rider?.PlayerData.IsMainPlayer==true;

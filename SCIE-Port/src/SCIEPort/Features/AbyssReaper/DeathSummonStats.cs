@@ -8,6 +8,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal static bool Profile(bool special,string template,out float health,out float speed)
         {
             health=speed=0;
+            if(template==BoneDragonRules.Template){health=BoneDragonRules.Health;speed=BoneDragonRules.GroundSpeed;return true;}
             if(template==CerberusRules.Template){health=CerberusHealth;speed=CerberusSpeed;return true;}
             if(!special)return false;
             if(template==DeathAuthorityRules.HoundTemplate){health=HoundHealth;speed=HoundSpeed;return true;}
@@ -19,20 +20,21 @@ namespace SCIEPort.Features.AbyssReaper
         internal sealed class Bonus
         {
             private ComponentLocomotion locomotion;private ComponentHealth health;
-            private float speedDelta,healthDelta;
+            private float speedDelta,healthDelta,flyDelta;
             internal void Apply(ComponentCreature creature,bool special,string template)
             {
                 Release();float resilience,speed;if(!Profile(special,template,out resilience,out speed))return;
                 locomotion=creature.ComponentLocomotion;health=creature.ComponentHealth;
                 speedDelta=speed-locomotion.WalkSpeed;healthDelta=resilience-health.AttackResilience;
                 locomotion.WalkSpeed+=speedDelta;health.AttackResilience+=healthDelta;
+                if(template==BoneDragonRules.Template){flyDelta=BoneDragonRules.FlightSpeed-locomotion.FlySpeed;locomotion.FlySpeed+=flyDelta;}
                 // Health is a fraction; changing resilience preserves the current health percentage.
             }
             internal void Release()
             {
-                if(locomotion!=null)locomotion.WalkSpeed-=speedDelta;
+                if(locomotion!=null){locomotion.WalkSpeed-=speedDelta;locomotion.FlySpeed-=flyDelta;}
                 if(health!=null)health.AttackResilience-=healthDelta;
-                locomotion=null;health=null;speedDelta=healthDelta=0;
+                locomotion=null;health=null;speedDelta=healthDelta=flyDelta=0;
             }
         }
     }

@@ -1,0 +1,85 @@
+﻿{
+    "game_sha256":  "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "engine_sha256":  "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "triangles":  7674,
+    "locomotion_class":  "SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion",
+    "fly_speed":  16,
+    "walk_speed":  7,
+    "health":  444,
+    "mount_offset":  "0,2.1,0.16",
+    "native_shader_budget":  7,
+    "kind":  "Read-only target Engine model import and database compilation; not game/device testing",
+    "bones":  [
+                  {
+                      "name":  "Body",
+                      "parent":  -1,
+                      "translation":  [
+                                          0,
+                                          0,
+                                          0
+                                      ]
+                  },
+                  {
+                      "name":  "WingL",
+                      "parent":  0,
+                      "translation":  [
+                                          -0.48,
+                                          1.72,
+                                          -0.48
+                                      ]
+                  },
+                  {
+                      "name":  "WingR",
+                      "parent":  0,
+                      "translation":  [
+                                          0.48,
+                                          1.72,
+                                          -0.48
+                                      ]
+                  },
+                  {
+                      "name":  "Leg1",
+                      "parent":  0,
+                      "translation":  [
+                                          -0.65,
+                                          1.16,
+                                          -0.82
+                                      ]
+                  },
+                  {
+                      "name":  "Leg2",
+                      "parent":  0,
+                      "translation":  [
+                                          0.65,
+                                          1.16,
+                                          -0.82
+                                      ]
+                  },
+                  {
+                      "name":  "Leg3",
+                      "parent":  0,
+                      "translation":  [
+                                          -0.61,
+                                          1.14,
+                                          1.05
+                                      ]
+                  },
+                  {
+                      "name":  "Leg4",
+                      "parent":  0,
+                      "translation":  [
+                                          0.61,
+                                          1.14,
+                                          1.05
+                                      ]
+                  }
+              ],
+    "meshes":  7,
+    "model_class":  "SCIEPort.Features.AbyssReaper.ComponentBoneDragonModel",
+    "model_name":  "Models/AbyssBoneDragon",
+    "texture":  "Textures/AbyssBoneDragon",
+    "box":  "2.1,2.7,5.8",
+    "egg_index":  -1,
+    "rideable":  true,
+    "template_guid":  "d1a4db02-ea81-5a9b-9d6f-412bea048fb1"
+}

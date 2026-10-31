@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original bone dragon model (2026-11-01)
+
+`AbyssBoneDragon.dae` and `AbyssBoneDragon.png` are original project-authored skeleton anatomy, wing spars/web, claws, saddle and UV artwork. `scripts/New-BoneDragonAssets.py` reuses only this project's generic mesh/export routines and authors new dragon anatomy; no canine anatomy, game model, texture or third-party art was imported, traced or enlarged. `New-BoneDragonTemplate.py` supplies mod-owned overrides of the installed Rhino template's component defaults and sound references; no proprietary model, audio, database or assembly is redistributed. This original artwork may be distributed with this mod. Provenance and SHA-256 are retained in `design/bone-dragon/manifest.json`; software mesh previews and animation are explicitly not gameplay/Android evidence. No new skill icon was created.
+
 ## Original Abyss Space V2 skill badges (2026-10-31)
 
 Three transparent circular badges were generated with the built-in image_gen tool

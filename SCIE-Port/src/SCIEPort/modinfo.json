@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.66.0",
+  "Version": "0.67.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.66.0 刻尔柏洛斯支持骑乘与四格跳跃目标，自动追击可切换、手动优先；军势让路、追击逃敌。现世不自然回血，次位面每2秒回复1点，死亡蔓延治疗97点；面板支持单只召出/收回。Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.67.0 新增死亡权柄唯一召唤物骨龙，原创七骨模型，可骑乘飞行，起飞/升降/降落触屏控制。生命444、近战37/1秒、地速7/飞速16，复用军势单只管理、次位面回血与存档。Android与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

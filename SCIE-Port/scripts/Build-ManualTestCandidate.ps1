@@ -25,6 +25,10 @@ if(!$env:FrameworkPathOverride){throw 'Set FrameworkPathOverride to the net472 r
 $build=Join-Path $artifacts ('manual-'+$info.Version+'-build')
 & (Join-Path $env:DOTNET_ROOT 'dotnet.exe') build (Join-Path $project 'SCIEPort.csproj') -c Release "-p:SCNetGameDir=$GameDir" -o $build --nologo
 if($LASTEXITCODE -ne 0){throw 'Release compilation failed.'}
+if($updates.Contains('Assets/Models/AbyssBoneDragon.dae')){
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
+    if($LASTEXITCODE -ne 0){throw 'Bone dragon resources differ from the verified native renderer/database.'}
+}
 if($updates.Contains('Assets/Models/AbyssCerberus.dae')){
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-CerberusRenderCompatibility.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll') -BaselinePackage $baseline
     if($LASTEXITCODE -ne 0){throw 'Cerberus resource exceeds native renderer capabilities.'}

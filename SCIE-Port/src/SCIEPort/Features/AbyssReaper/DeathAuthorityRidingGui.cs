@@ -21,7 +21,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal void RidingPose(ComponentModel model,Camera camera)
         {
             var rider=model.Entity.FindComponent<ComponentRider>(false);var mount=rider?.Mount;
-            if(mount?.Entity.FindComponent<ComponentCerberusModel>(false)==null||model.Model==null)return;
+            if(mount==null||model.Model==null||mount.Entity.FindComponent<ComponentCerberusModel>(false)==null&&mount.Entity.FindComponent<ComponentBoneDragonModel>(false)==null)return;
             if(poseFrame!=Time.FrameIndex){poseFrame=Time.FrameIndex;posedModels.Clear();}
             if(posedModels.Add(model))
             {

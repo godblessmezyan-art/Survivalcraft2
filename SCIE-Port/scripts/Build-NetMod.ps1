@@ -321,6 +321,8 @@ foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? 
 # port build usable when that optional SDK is not installed locally.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Bone dragon native model/database resource import failed.' }
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
