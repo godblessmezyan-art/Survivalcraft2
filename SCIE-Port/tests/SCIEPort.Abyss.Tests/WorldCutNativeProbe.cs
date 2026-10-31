@@ -21,7 +21,7 @@ public static class WorldCutNativeProbe
         for(int i=0;i<80;i++)
         {
             var packet=(IPackage)Activator.CreateInstance(type);Check(packet.ID==247,"dedicated packet ID");
-            Put(packet,"Kind",(byte)(i%6));Put(packet,"Reason",(byte)(i%10));Put(packet,"Caster",(ushort)(i+100));Put(packet,"Sequence",i>=48?uint.MaxValue-(uint)i:(uint)(i+1));
+            Put(packet,"Kind",(byte)(i%9));Put(packet,"Reason",(byte)(i%10));Put(packet,"Caster",(ushort)(i+100));Put(packet,"Sequence",i>=48?uint.MaxValue-(uint)i:(uint)(i+1));
             Put(packet,"Origin",i>=48?new Vector3((i-48)*31249.5f,63.375f,-(i-48)*31249.5f):new Vector3(i*.5f,64,-i*.25f));Put(packet,"Direction",i>=48?new Vector3(.6f,0,.8f):Vector3.UnitZ);Put(packet,"Distance",i>=48?25-(i-48)*.3333333f:i*.5f);Put(packet,"Cooldown",10-i*.125f);
             var writer=new PackageStreamWriter();packet.WriteData(writer);byte[] bytes=writer.Data();
             minBytes=Math.Min(minBytes,bytes.Length);maxBytes=Math.Max(maxBytes,bytes.Length);

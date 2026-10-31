@@ -24,6 +24,11 @@ namespace SCIEPort.Features.AbyssReaper
             internal double LastAttempt=-100,Seen;
             internal string Feedback;
             internal double FeedbackUntil;
+            internal uint LocalCharge,ChargeSequence;
+            internal double NextChargePing,ChargeReady,ChargeUntil;
+            internal bool ChargeReleased;
+            internal ComponentPlayer ChargeOwner;
+            internal Client ChargeReply;internal Guid ChargeToken;
         }
         private struct Pending { internal ComponentPlayer Owner;internal Client Reply;internal Guid Token;internal WorldCutPackage Packet; }
         private readonly Project project;
@@ -50,7 +55,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal bool Busy(ComponentPlayer p)
         {
-            Peer e=Get(p,false);if(e!=null&&(e.PendingUntil>Now||e.ActiveUntil>Now))return true;
+            Peer e=Get(p,false);if(e!=null&&(e.PendingUntil>Now||e.ActiveUntil>Now||e.ChargeReleased))return true;
             // Ownership ends when cleanup has restored model orders, before a fresh normal input is allowed.
             foreach(var cast in casts)if(cast.OwnerGuid==p.PlayerGuid)return true;
             return false;
@@ -80,6 +85,28 @@ namespace SCIEPort.Features.AbyssReaper
             else { e.PendingUntil=0;Report(p,WorldCutFailure.Unavailable);return false; }
             return true;
         }
+        private void Command(ComponentPlayer p,byte kind,uint sequence)
+        {
+            var packet=new WorldCutPackage{Kind=kind,Caster=p.Entity.EntityId,Sequence=sequence};
+            if(Authority)Enqueue(p,null,packet);else CommonLib.Net?.QueuePackage(packet);
+        }
+        internal void BeginCharge(ComponentPlayer p)
+        {
+            if(disposed||!OwnerSafe(p)||Busy(p))return;
+            var e=Get(p);if(e==null)return;
+            if(e.LocalCharge!=0){if(Now>=e.NextChargePing){e.NextChargePing=Now+1;Command(p,WorldCutRules.ChargeBegin,e.LocalCharge);}return;}
+            if(unchecked(++e.Sent)==0)++e.Sent;e.LocalCharge=e.Sent;e.NextChargePing=Now+1;
+            Command(p,WorldCutRules.ChargeBegin,e.LocalCharge);
+        }
+        internal bool EndCharge(ComponentPlayer p,bool heavy)
+        {
+            var e=Get(p,false);if(e==null||e.LocalCharge==0)return false;
+            uint sequence=e.LocalCharge;e.LocalCharge=0;
+            if(heavy){e.PendingUntil=Now+2;e.Feedback="蓄力断界斩 · 主机确认中";e.FeedbackUntil=Now+2;}
+            Command(p,heavy?WorldCutRules.ChargeRelease:WorldCutRules.ChargeCancel,sequence);return heavy;
+        }
+        private static void ClearCharge(Peer e)
+        {e.ChargeSequence=0;e.ChargeReleased=false;e.ChargeOwner=null;e.ChargeReply=null;e.ChargeUntil=0;}
         internal void Enqueue(ComponentPlayer player,Client reply,WorldCutPackage packet)
         {
             lock(queue)if(!disposed&&queue.Count<WorldCutRules.MaxQueue)queue.Enqueue(new Pending { Owner=player,Reply=reply,Token=reply?.TokenId??Guid.Empty,Packet=packet.Snapshot() });
@@ -88,6 +115,7 @@ namespace SCIEPort.Features.AbyssReaper
             && p.PlayerData.IsReadyForPlaying && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index
             && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.Busy(p)!=true
+            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.PortalTransferLocked(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true;
         private void Reject(ComponentPlayer p,Client to,WorldCutPackage request,WorldCutFailure reason)
         {
@@ -101,14 +129,43 @@ namespace SCIEPort.Features.AbyssReaper
             if(pending.Reply!=null&&(pending.Token!=pending.Reply.TokenId||pending.Reply.State<ClientState.ProjectLoaded||!ReferenceEquals(p.PlayerData.Client,pending.Reply)||pending.Reply.PlayerData?.ComponentPlayer!=p))return;
             var e=Get(p);if(e==null){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
             e.Bind(request.Caster,pending.Reply?.TokenId??Guid.Empty);
+            if(e.ChargeOwner!=null&&(e.ChargeOwner!=p||e.ChargeToken!=pending.Token))ClearCharge(e);
+            if(request.Kind==WorldCutRules.ChargeBegin)
+            {
+                if(!OwnerSafe(p)||clock.GameTimeDelta<=0)return;
+                if(e.ChargeSequence==request.Sequence){if(!e.ChargeReleased)e.ChargeUntil=Now+WorldCutRules.ChargeLease;return;}
+                if(!e.NewRequest(request.Sequence))return;
+                if(casts.Exists(c=>c.OwnerGuid==p.PlayerGuid)||e.ActiveUntil>Now)return;
+                float frequency=1.1f*(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);
+                if(!WorldCutRules.Finite(frequency)||frequency<=0)return;
+                e.ChargeSequence=request.Sequence;e.ChargeOwner=p;e.ChargeReply=pending.Reply;e.ChargeToken=pending.Token;e.ChargeReleased=false;
+                e.ChargeReady=Now+WorldCutRules.ChargeTime/Math.Max(.1f,Math.Min(10,frequency));e.ChargeUntil=Now+WorldCutRules.ChargeLease;return;
+            }
+            if(request.Kind==WorldCutRules.ChargeCancel){if(WorldCutRules.Newer(request.Sequence,e.Processed))e.Processed=request.Sequence;if(e.ChargeSequence==request.Sequence)ClearCharge(e);return;}
+            if(request.Kind==WorldCutRules.ChargeRelease)
+            {
+                if(e.ChargeSequence!=request.Sequence&&!WorldCutRules.Newer(request.Sequence,e.Processed))return;
+                if(e.ChargeSequence!=request.Sequence||e.ChargeOwner!=p||e.ChargeToken!=pending.Token||Now>=e.ChargeUntil){Reject(p,pending.Reply,request,WorldCutFailure.Invalid);return;}
+                if(e.ChargeReleased)return;
+                e.ChargeReleased=true;e.PendingUntil=Now+2;return;
+            }
             if(request.Kind==4)
             {
                 if(WorldCutRules.Newer(request.Sequence,e.Processed))e.Processed=request.Sequence;
+                if(e.ChargeSequence==request.Sequence)ClearCharge(e);
                 CancelCasts(p.PlayerGuid,request.Sequence,true);return;
             }
+            if(request.Kind!=0)return;
             if(!e.NewRequest(request.Sequence))return;
+            if(e.ChargeReleased){Reject(p,pending.Reply,request,WorldCutFailure.Busy);return;}
+            ClearCharge(e);
+            StartCast(pending,false);
+        }
+        private void StartCast(Pending pending,bool charged)
+        {
+            var p=pending.Owner;var request=pending.Packet;var e=Get(p);
             if(!OwnerSafe(p)||clock.GameTimeDelta<=0){Reject(p,pending.Reply,request,WorldCutFailure.Unavailable);return;}
-            if(e.ReadyAt>Now){Reject(p,pending.Reply,request,WorldCutFailure.Cooldown);return;}
+            if(!charged&&e.ReadyAt>Now){Reject(p,pending.Reply,request,WorldCutFailure.Cooldown);return;}
             foreach(var existing in casts)if(existing.OwnerGuid==p.PlayerGuid){Reject(p,pending.Reply,request,WorldCutFailure.Busy);return;}
             if(casts.Count>=WorldCutRules.MaxCasts){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
             // The request contains no trusted client origin/direction. Use replicated server eyes only.
@@ -120,7 +177,10 @@ namespace SCIEPort.Features.AbyssReaper
             if(clearance!=WorldCutFailure.None){Reject(p,pending.Reply,request,clearance);return;}
             if(project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ReserveCut(p,request.Sequence)==false){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
             var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Sequence=request.Sequence,Origin=origin,Direction=direction,Right=right,Motion=new WorldCutMotion(Now),Connection=pending.Reply,ConnectionToken=pending.Token };
-            casts.Add(cast);e.Accept(Now);e.Feedback="断界斩 · 向后聚能";e.FeedbackUntil=Now+.8;
+            casts.Add(cast);
+            if(charged){e.PendingUntil=0;e.ActiveUntil=Now+WorldCutRules.Windup+WorldCutRules.Range/WorldCutRules.Speed+WorldCutRules.CloseEnd;}
+            else e.Accept(Now);
+            e.Feedback=charged?"蓄力重击 · 断界斩":"断界斩 · 向后聚能";e.FeedbackUntil=Now+.8;
             Publish(cast,1);
         }
         private void Publish(Cast cast,byte kind)
@@ -172,7 +232,9 @@ namespace SCIEPort.Features.AbyssReaper
                 if(CommonLib.Net!=null)CommonLib.Net.QueuePackage(new WorldCutPackage { Kind=4,Caster=p.Entity.EntityId,Sequence=e.Sent });
             }
             if(Authority && e.PendingUntil>0 && WorldCutRules.Newer(e.Sent,e.Processed))e.Processed=e.Sent;
-            e.PendingUntil=0;e.ActiveUntil=0;CancelCasts(p.PlayerGuid,0,Authority);
+            if(Authority&&e.LocalCharge!=0&&WorldCutRules.Newer(e.LocalCharge,e.Processed))e.Processed=e.LocalCharge;
+            if(!Authority&&e.LocalCharge!=0)Command(p,WorldCutRules.ChargeCancel,e.LocalCharge);
+            e.LocalCharge=0;ClearCharge(e);e.PendingUntil=0;e.ActiveUntil=0;CancelCasts(p.PlayerGuid,0,Authority);
         }
         private void CancelCasts(Guid owner,uint sequence,bool publish)
         {
@@ -188,6 +250,17 @@ namespace SCIEPort.Features.AbyssReaper
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
                 try { if(Authority)Accept(pending);else if(ReferenceEquals(pending.Reply,CommonLib.Net?.Server)&&pending.Token==(CommonLib.Net?.Server?.TokenId??Guid.Empty))Receive(pending.Packet); }
                 catch(Exception error) { if(pending.Owner!=null)Reject(pending.Owner,pending.Reply,pending.Packet,WorldCutFailure.Invalid);Log.Warning("[SCIEPort:WorldCut] Request rejected: "+error.GetType().Name); }
+            }
+            if(Authority)foreach(var pair in peers)
+            {
+                var e=pair.Value;if(e.ChargeOwner==null)continue;var p=e.ChargeOwner;
+                if(!OwnerSafe(p)||p.PlayerGuid!=pair.Key||Now>=e.ChargeUntil||e.ChargeReply!=null&&(e.ChargeReply.TokenId!=e.ChargeToken||e.ChargeReply.State<ClientState.ProjectLoaded||e.ChargeReply.PlayerData?.ComponentPlayer!=p)){ClearCharge(e);e.PendingUntil=0;continue;}
+                if(e.ChargeReleased&&Now>=e.ChargeReady)
+                {
+                    var pending=new Pending{Owner=p,Reply=e.ChargeReply,Token=e.ChargeToken,Packet=new WorldCutPackage{Kind=WorldCutRules.ChargeRelease,Caster=p.Entity.EntityId,Sequence=e.ChargeSequence}};
+                    ClearCharge(e);
+                    try{StartCast(pending,true);}catch(Exception){Reject(p,pending.Reply,pending.Packet,WorldCutFailure.Invalid);}
+                }
             }
             foreach(var p in players.ComponentPlayers)
             {

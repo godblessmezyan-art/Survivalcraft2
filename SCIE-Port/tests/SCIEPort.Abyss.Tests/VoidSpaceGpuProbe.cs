@@ -17,7 +17,7 @@ public static class VoidSpaceGpuBootstrap
 }
 public static class VoidSpaceGpuProbe
 {
-    static Assembly mod;static string output;static object rift,shatter,geometry;static PrimitivesRenderer3D world;
+    static Assembly mod;static string output;static object rift,shatter,geometry,melee;static PrimitivesRenderer3D world;
     static RenderTarget2D target;static int checks;static readonly System.Text.StringBuilder coverage=new System.Text.StringBuilder("quality,aspect,fov,covered_percent\n");
     const BindingFlags F=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
     static void Check(bool ok,string name){checks++;if(!ok)throw new Exception(name);}
@@ -36,7 +36,7 @@ public static class VoidSpaceGpuProbe
         b.QueueQuad(p,p+y,p+x+y,p+x,color);b.QueueQuad(p+x,p+x+y,p+x+y+z,p+x+z,Color.MultiplyColorOnly(color,.8f));
         b.QueueQuad(p+x+z,p+x+y+z,p+y+z,p+z,color);b.QueueQuad(p+z,p+y+z,p+y,p,Color.MultiplyColorOnly(color,.7f));b.QueueQuad(p+y,p+y+z,p+x+y+z,p+x+y,color);
     }
-    static Color[] Frame(byte skill,float time,int quality,float yaw,string name,bool foreground=true,float aspect=960f/540,float fov=65,bool lookAway=false)
+    static Color[] Frame(byte skill,float time,int quality,float yaw,string name,bool foreground=true,float aspect=960f/540,float fov=65,bool lookAway=false,int meleeStage=0)
     {
         Display.RenderTarget=target;Display.Viewport=new Viewport(0,0,960,540);Display.Clear(new Color(136,178,204),1,0);
         var batch=world.FlatBatch(0,DepthStencilState.Default,RasterizerState.CullNone,BlendState.Opaque);
@@ -46,8 +46,9 @@ public static class VoidSpaceGpuProbe
         for(int i=0;i<7;i++){Box(batch,new Vector3(-13+i*4,-1.6f,36),new Vector3(.5f,5,.5f),new Color(100,75,56));Box(batch,new Vector3(-14+i*4,2,35),new Vector3(2.5f,3,2.5f),new Color(51,98,66));}
         float a=yaw*MathUtils.PI/180;Vector3 eye=new Vector3((float)Math.Sin(a)*15,2,15-(float)Math.Cos(a)*15),focus=new Vector3(0,1,15);
         Matrix view=Matrix.CreateLookAt(eye,lookAway?eye*2-focus:focus,Vector3.UnitY)*Matrix.CreatePerspectiveFieldOfView(fov*MathUtils.PI/180,aspect,.1f,256);
-        world.Flush(view);var scene=skill==3?shatter:rift;var renderer=Renderer(scene);renderer.Clear();
-        if(skill==3)scene.GetType().GetMethod(foreground?"QueueForeground":"Queue",F).Invoke(scene,new object[]{geometry,new Vector3(0,1,15),Vector3.UnitZ,time,quality});
+        world.Flush(view);var scene=skill==0?melee:skill==3?shatter:rift;var renderer=Renderer(scene);renderer.Clear();
+        if(skill==0)scene.GetType().GetMethod("QueueGeometry",F).Invoke(scene,new object[]{new Vector3(0,1.72f,0),Vector3.UnitZ,meleeStage,time});
+        else if(skill==3)scene.GetType().GetMethod(foreground?"QueueForeground":"Queue",F).Invoke(scene,new object[]{geometry,new Vector3(0,1,15),Vector3.UnitZ,time,quality});
         else scene.GetType().GetMethod("Queue",F).Invoke(scene,new object[]{new Vector3(0,0,5),new Vector3(0,0,20),Vector3.UnitZ,skill,time,quality,123u});
         renderer.Flush(view);var pixels=new Color[960*540];target.GetData(pixels,0,new Rectangle(0,0,960,540));
         using(var file=File.Create(Path.Combine(output,name+".png")))RenderTarget2D.Save(target,file,ImageFileFormat.Png,false);renderer.Clear();return pixels;
@@ -72,7 +73,7 @@ public static class VoidSpaceGpuProbe
     }
     static void Execute()
     {
-        if(target!=null)return;rift=Scene("VoidRiftScene");shatter=Scene("VoidShatterScene");
+        if(target!=null)return;rift=Scene("VoidRiftScene");shatter=Scene("VoidShatterScene");melee=Scene("AbyssMeleeScene");
         geometry=shatter.GetType().GetMethod("Create",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{123u});
         world=new PrimitivesRenderer3D();target=new RenderTarget2D(960,540,1,ColorFormat.Rgba8888,DepthFormat.Depth24Stencil8);
         try
@@ -105,10 +106,20 @@ public static class VoidSpaceGpuProbe
                 var exit=Frame(3,1.8f,q,0,p+"-exit",true,aspect,fov);Check(Difference(before,exit)==0,"wide foreground clears exactly at 1.8 seconds "+p);
             }
             Hud();
+            for(int stage=0;stage<3;stage++)
+            {
+                string p="melee-stage"+stage+"-";var before=Frame(0,0,1,0,p+"before",false,960f/540,65,false,stage);
+                foreach(float t in new[]{.35f,.48f,.65f})
+                {
+                    var pixels=Frame(0,t,1,0,p+t.ToString("0.00",CultureInfo.InvariantCulture),false,960f/540,65,false,stage);
+                    Check(Difference(before,pixels)>2500,"normal slash has a large filled silhouette rather than a thin line "+p+t);
+                }
+                Check(Difference(before,Frame(0,.9f,1,0,p+"after",false,960f/540,65,false,stage))==0,"normal slash leaves no stale geometry "+p);
+            }
             File.WriteAllText(Path.Combine(output,"coverage.csv"),coverage.ToString());
             File.WriteAllText(Path.Combine(output,"result.txt"),(checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed. Synthetic geometry; NOT gameplay or Android.");
             Console.WriteLine((checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed: "+output);
         }
-        finally{Display.RenderTarget=null;target.Dispose();((IDisposable)rift).Dispose();((IDisposable)shatter).Dispose();}
+        finally{Display.RenderTarget=null;target.Dispose();((IDisposable)rift).Dispose();((IDisposable)shatter).Dispose();((IDisposable)melee).Dispose();}
     }
 }

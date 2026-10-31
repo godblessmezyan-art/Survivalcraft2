@@ -14,13 +14,15 @@ namespace SCIEPort.Features.AbyssReaper
         internal const float Step = .5f, MaxAdvance = 2f, Lifetime = 4f;
         internal const int MaxCasts = 2, MaxQueue = 32, RequestsPerFrame = 4, MaxPeers = 64;
         internal const int MaxBodies = 512, MaxBodyChecks = 4096, MaxRays = 256, MaxPhaseHits = 24;
+        internal const byte ChargeBegin=6,ChargeRelease=7,ChargeCancel=8;
+        internal const double ChargeTime=.65,ChargeLease=6;
         internal static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
         internal static bool Coordinates(float x,float y,float z) => Finite(x)&&Finite(y)&&Finite(z)&&Math.Abs(x)<1000000&&Math.Abs(z)<1000000&&y>=1&&y<=254;
         internal static float Damage(float value,float fallback) => Finite(value)?Math.Max(0,Math.Min(1000,value)):fallback;
         internal static bool Newer(uint value, uint previous) => value != 0 && unchecked((int)(value-previous)) > 0;
         internal static bool Authority(bool local, bool server) => local || server;
         internal static bool Dispatch(bool server,bool fromServer,bool ownsCaster,byte kind)
-            => server ? ownsCaster && (kind==0||kind==4) : fromServer && (kind==1||kind==2||kind==3||kind==5);
+            => server ? ownsCaster && (kind==0||kind==4||kind==ChargeBegin||kind==ChargeRelease||kind==ChargeCancel) : fromServer && (kind==1||kind==2||kind==3||kind==5);
         internal static bool Swept(float along,float side,float up,float halfAlong,float halfSide,float halfUp,float from,float to)
             => Finite(along) && Finite(side) && Finite(up) && from>=0 && to>=from && to<=Range
             && along+halfAlong>=from-.9f && along-halfAlong<=to && Math.Abs(side)<=HalfWidth+halfSide && Math.Abs(up)<=.8f+halfUp;

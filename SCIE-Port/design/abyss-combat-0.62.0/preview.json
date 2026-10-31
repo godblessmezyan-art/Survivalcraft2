@@ -1,0 +1,10 @@
+{
+  "evidence": "Target Engine/OpenGL synthetic scenery; NOT game world or Android",
+  "assembly_sha256": "51459725A08C972ED4D51AB9EF97CBCF7ED0FEB4063EF6EA695A46D79B44F896",
+  "minimum_tested_frontal_coverage_percent": 100.0,
+  "coverage_cases": 12,
+  "first_person": "Owner FppCamera foreground geometry",
+  "observer": "World-space geometry with DepthRead",
+  "normal_melee": "Actual enlarged AbyssMeleeScene.QueueGeometry, three original combo stages",
+  "heavy_rift": "Actual reused VoidRiftScene; flight and nominal damage verified by isolated native runtime fixtures"
+}

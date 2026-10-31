@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-10-31 SCIE-Port 0.62.0：阿比斯普攻与蓄力断界斩
+
+大招/二/三CD69/3/36；大普攻斩面、重击通过247原布局新增开始/释放/取消类型，主机核实后复用断界斩。249/250/251布局与星门v1保持，无新ID/Hook。固定Windows x25.01.17/net472与离线原生/GPU合成 **已确认**；Android/真实联机 **待验证**，普通客户端平A伤害原限制保持。详见[战斗更新](../SCIE-Port/docs/ABYSS-COMBAT-0.62.md)。Builder Assistant能力保持。
+
 ## 2026-10-31 SCIE-Port 0.61.1：三技能前方裂界扩大
 
 仅扩大万象破碎视觉及施法者FppCamera前景绘制，不改伤害、冷却、协议/存档、其他技能/神器。固定Windows x25.01.17/net472构建、原生回归及GPU合成覆盖/恢复 **已确认**；Android7723/真实多人/手机性能 **待验证**。绘制与几何近似限制见[范围扩大](../SCIE-Port/docs/ABYSS-WIDE-SHATTER.md)，Builder Assistant能力保持。

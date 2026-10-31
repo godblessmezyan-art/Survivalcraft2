@@ -295,7 +295,7 @@ namespace SCIEPort.Features.AbyssReaper
                 clockOffset=packet.Stamp+rtt*.5-Now;hasClock=true;return;
             }
             if(!hasClock){if(deferred.Count<16)deferred.Add(packet);return;}
-            if(packet.Skill<1||packet.Skill>3||packet.Sequence==0||!VoidSpaceRules.Finite(packet.Stamp)||!WorldCutRules.Finite(packet.Cooldown)||packet.Cooldown<0||packet.Cooldown>22.1f)return;
+            if(packet.Skill<1||packet.Skill>3||packet.Sequence==0||!VoidSpaceRules.Finite(packet.Stamp)||!WorldCutRules.Finite(packet.Cooldown)||packet.Cooldown<0||packet.Cooldown>VoidShatterRules.Cooldown+.1)return;
             var p=Find(packet.Caster);if(p==null)return;var peer=Get(p);if(peer==null)return;
             if(packet.Kind==9)
             {

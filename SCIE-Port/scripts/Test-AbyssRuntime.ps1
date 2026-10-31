@@ -58,8 +58,10 @@ if([AbyssIL]::Calls($loader.GetMethod('UpdateInput')) -contains 'Capture'){throw
 if([AbyssIL]::Calls($instance.GetType().GetMethod('Update')) -notcontains 'Capture'){throw 'Post-input update must consume complete touch/gamepad input'}
 $captureCalls=[AbyssIL]::Calls($instance.GetType().GetMethod('Capture'))
 $lockCheck=[Array]::IndexOf($captureCalls,'IsActionLocked')
-$comboInput=[Array]::IndexOf($captureCalls,'Input')
+$comboInput=[Array]::IndexOf($captureCalls,'UpdateMeleeInput')
 if($lockCheck -lt 0 -or $comboInput -le $lockCheck){throw 'Merged main must check Four Saints action lock before accepting Abyss combo input'}
+$meleeInput=$instance.GetType().GetMethod('UpdateMeleeInput',[Reflection.BindingFlags]'Instance,NonPublic')
+if([AbyssIL]::Calls($meleeInput) -notcontains 'Input'){throw 'The guarded melee adapter must drive the original combo state machine'}
 Write-Host "Abyss real IL: MouseHook precedes Widgets; compiled sample order $order between Input $nativeInput and Player $player; no early Capture. Passed."
 Write-Host 'Abyss merged main: Four Saints action lock is checked before combo input. Passed.'
 

@@ -1,0 +1,1 @@
+138 target Engine/OpenGL V2 checks and 2 CPU HUD exports passed. Synthetic geometry; NOT gameplay or Android.

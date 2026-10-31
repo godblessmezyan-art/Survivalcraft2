@@ -38,7 +38,7 @@ public static class VoidSpaceNativeProbe
         internal readonly Project Project=new Project();internal readonly Terrain Cells=new Terrain();
         internal readonly SubsystemBodies Bodies=new SubsystemBodies();internal readonly SubsystemPlayers Players=new SubsystemPlayers();
         internal readonly SubsystemTime Clock=new SubsystemTime();internal SubsystemTerrain Terrain;internal ComponentPlayer Player;
-        internal object Owner,Blink,Space,Safety;internal Client Client;
+        internal object Owner,Blink,Space,Safety,Cut;internal Client Client;
         internal Fixture(bool main,byte id)
         {
             Terrain=Bare<SubsystemTerrain>();Put(Terrain,"m_project",Project);Put(Terrain,"<Terrain>k__BackingField",Cells);
@@ -66,7 +66,12 @@ public static class VoidSpaceNativeProbe
             }
             c.ComponentBody.BoxSize=new Vector3(.6f,1.6f,.6f);c.ComponentBody.Position=position;c.ComponentBody.m_subsystemBodies=Bodies;Bodies.AddBody(c.ComponentBody);return c;
         }
-        public void Dispose(){((IDisposable)Blink).Dispose();Cells.Dispose();CommonLib.Net.Clients.Remove(Client.ID);}
+        internal void EnableCut()
+        {
+            var info=Bare<SubsystemGameInfo>();Put(info,"m_project",Project);Project.m_subsystems.Add(info);
+            Cut=New("WorldCutRuntime",Project,Players,Clock,Terrain,Bodies,false,false,false,true,100f,40f);Put(Owner,"<WorldCut>k__BackingField",Cut);
+        }
+        public void Dispose(){if(Cut!=null)((IDisposable)Cut).Dispose();((IDisposable)Blink).Dispose();Cells.Dispose();CommonLib.Net.Clients.Remove(Client.ID);}
     }
     static object Request(Fixture f,byte skill,uint sequence)
     {var p=Packet(0,skill,sequence);Put(p,"Caster",f.Player.Entity.EntityId);return p;}
@@ -148,7 +153,7 @@ public static class VoidSpaceNativeProbe
             for(int i=0;i<5;i++){f.Clock.m_gameTime+=.1;Call(f.Space,"Update");}
             Check(Math.Abs(f.Player.ComponentBody.Position.Z-23.5f)<.02,"local successful blink moves instantly");
             Check(recorder.Count(a.ComponentBody)==1&&recorder.Count(b.ComponentBody)==1&&recorder.Powers.All(p=>p==75),"twin rifts each cover their own endpoint at 75 power with shared per-cast dedup");
-            Check((double)Call(f.Space,"Remaining",f.Player,(byte)2)>7,"success starts authoritative eight-second cooldown");
+            Check((double)Call(f.Space,"Remaining",f.Player,(byte)2)>2&&(double)Call(f.Space,"Remaining",f.Player,(byte)2)<=3,"success starts authoritative three-second cooldown");
             Check(f.Player.ComponentBody.netPosition.Get(.1f)==f.Player.ComponentBody.Position,"native blink position interpolation is reset");
         }
         recorder.Bodies.Clear();recorder.Powers.Clear();
@@ -160,7 +165,7 @@ public static class VoidSpaceNativeProbe
             f.Clock.m_gameTime=11.35;Call(f.Space,"Update");Call(f.Space,"Update");
             Check(recorder.Count(near.ComponentBody)==1&&recorder.Powers.Single()==160&&recorder.Count(far.ComponentBody)==0,"shatter applies one native 160-power hit within ten-unit radius");
             f.Clock.m_gameTime=12;Call(f.Space,"Update");Check(((IList)Get(f.Space,"shatters")).Count==0,"1.8-second shatter visual is retired independently of cooldown");
-            Check((double)Call(f.Space,"Remaining",f.Player,(byte)3)==20,"shatter keeps a 22-second cooldown after visuals end");
+            Check((double)Call(f.Space,"Remaining",f.Player,(byte)3)==34,"shatter keeps a 36-second cooldown after visuals end");
         }
         recorder.Bodies.Clear();recorder.Powers.Clear();
         using(var f=new Fixture(true,2))
@@ -307,7 +312,7 @@ public static class VoidSpaceNativeProbe
         {
             ClientBegin(f,1);var p=Packet(2,3,4);Put(p,"Caster",f.Player.Entity.EntityId);Put(p,"Point",new Vector3(8,66,20));Put(p,"Origin",new Vector3(8,66,20));Put(p,"Started",7d);Put(p,"Stamp",10d);
             Call(f.Space,"Receive",p);Check(((IList)Get(f.Space,"shatters")).Count==0,"already expired observer cast cannot replay a fresh animation");
-            Put(p,"Started",10d);Call(f.Space,"Receive",p);Call(f.Space,"Receive",p);Check(((IList)Get(f.Space,"shatters")).Count==1,"observer receives one geometry cache per sequence");
+            Put(p,"Started",10d);Put(p,"Cooldown",36f);Call(f.Space,"Receive",p);Call(f.Space,"Receive",p);Check(((IList)Get(f.Space,"shatters")).Count==1&&(double)Call(f.Space,"Remaining",f.Player,(byte)3)==36,"observer accepts the new 36-second cooldown and caches one geometry per sequence");
             var end=Packet(10,3,4);Put(end,"Caster",f.Player.Entity.EntityId);Call(f.Space,"Receive",end);Call(f.Space,"Receive",p);
             Check(((IList)Get(f.Space,"shatters")).Count==0,"cancel tombstone rejects an out-of-order observer event");
             Put(p,"Sequence",3u);Call(f.Space,"Receive",p);Check(((IList)Get(f.Space,"shatters")).Count==0,"cancel tombstone also rejects older sequences");
@@ -348,6 +353,57 @@ public static class VoidSpaceNativeProbe
             Check(recorder.Count(victim.ComponentBody)==(cancelFirst?1:2)&&recorder.Count(other.ComponentBody)==0,"independent multi-caster damage/cancellation never affects a player");
         }
     }
+    static object CutPacket(Fixture f,byte kind,uint seq)
+    {var p=New("WorldCutPackage");Put(p,"Kind",kind);Put(p,"Caster",f.Player.Entity.EntityId);Put(p,"Sequence",seq);return p;}
+    static void HeavyCases(Recorder recorder)
+    {
+        CommonLib.WorkType=WorkType.Local;
+        using(var f=new Fixture(true,2))
+        {
+            f.EnableCut();f.Player.ComponentCreatureModel.m_eyeRotation=new Quaternion(0,1,0,0);var victim=f.Creature(new Vector3(9,64,12));var peer=Call(f.Cut,"Get",f.Player,true);Put(peer,"ReadyAt",20d);
+            var state=Activator.CreateInstance(f.Owner.GetType().GetNestedType("State",BindingFlags.NonPublic),true);Put(state,"CombatTime",10d);
+            Call(f.Owner,"UpdateMeleeInput",f.Player,state,true,0f);Call(f.Cut,"Update",.05f);
+            f.Clock.m_gameTime=10.8;Put(state,"CombatTime",10.8d);Call(f.Owner,"UpdateMeleeInput",f.Player,state,false,0f);Call(f.Cut,"Update",.05f);
+            Check(((IList)Get(f.Cut,"casts")).Count==1&&!(bool)Get(state,"NormalImpactPending"),"charged input starts exactly one authoritative cut, without an old melee impact");
+            Check((double)Get(peer,"ReadyAt")==20,"heavy works during skill-one cooldown and never spends/resets that cooldown");
+            for(int i=0;i<50;i++){f.Clock.m_gameTime+=.05;Call(f.Cut,"Update",.05f);Call(f.Space,"Update");}
+            var powers=recorder.Bodies.Select((body,i)=>new{body,power=recorder.Powers[i]}).Where(x=>x.body==victim.ComponentBody).Select(x=>x.power);
+            Check(powers.SequenceEqual(new[]{100f,60f}),"charged remote blade and lingering rift apply 100+60 once, without old 52/40 damage (actual "+string.Join(",",powers)+", casts="+((IList)Get(f.Cut,"casts")).Count+", rifts="+((IList)Get(f.Space,"effects")).Count+")");
+            Check(((IList)Get(f.Cut,"casts")).Count==0&&((IList)Get(f.Space,"effects")).Count==1,"heavy finishes its input/pose while a four-second world rift remains");
+            Call(f.Cut,"BeginCharge",f.Player);Call(f.Cut,"Update",.05f);Call(f.Cut,"EndCharge",f.Player,true);Call(f.Cut,"Update",.05f);
+            Check(((IList)Get(f.Cut,"casts")).Count==0,"host will not release a fresh heavy without its own charge dwell");
+            f.Clock.m_gameTime+=.7;Call(f.Cut,"Update",.05f);Check(((IList)Get(f.Cut,"casts")).Count==1,"another fully charged heavy is available without ten-second skill cooldown");
+        }
+        foreach(byte end in new byte[]{4,8})using(var f=new Fixture(true,2))
+        {
+            f.EnableCut();Call(f.Cut,"Enqueue",f.Player,null,CutPacket(f,6,1));Call(f.Cut,"Update",.05f);
+            Call(f.Cut,"Enqueue",f.Player,null,CutPacket(f,7,1));Call(f.Cut,"Update",.05f);Call(f.Cut,"Enqueue",f.Player,null,CutPacket(f,end,1));Call(f.Cut,"Update",.05f);
+            f.Clock.m_gameTime+=1;Call(f.Cut,"Update",.05f);Check(((IList)Get(f.Cut,"casts")).Count==0,"cancelled charge/release cannot create a delayed blade");
+        }
+        CommonLib.WorkType=WorkType.Server;
+        using(var f=new Fixture(false,2))
+        {
+            f.EnableCut();Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,7,1));Call(f.Cut,"Update",.05f);
+            Check(((IList)Get(f.Cut,"casts")).Count==0,"unpaired remote heavy release is rejected");
+            Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,6,2));Call(f.Cut,"Update",.05f);
+            Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,7,2));f.Clock.m_gameTime+=.8;Call(f.Cut,"Update",.05f);
+            Check(((IList)Get(f.Cut,"casts")).Count==1&&(double)Call(f.Cut,"Remaining",f.Player)==0,"ordinary client heavy is host-owned and independent of button cooldown");
+            Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,7,2));Call(f.Cut,"Update",.05f);Check(((IList)Get(f.Cut,"casts")).Count==1,"duplicate heavy release cannot spawn another blade");
+        }
+        using(var f=new Fixture(false,2))
+        {
+            f.EnableCut();Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,6,1));Call(f.Cut,"Update",.05f);
+            Call(f.Cut,"Enqueue",f.Player,f.Client,CutPacket(f,7,1));Put(f.Client,"<TokenId>k__BackingField",Guid.NewGuid());f.Clock.m_gameTime+=1;Call(f.Cut,"Update",.05f);
+            Check(((IList)Get(f.Cut,"casts")).Count==0,"old connection cannot release a saved heavy after reconnect");
+        }
+        CommonLib.WorkType=WorkType.Client;
+        using(var f=new Fixture(true,2))
+        {
+            f.EnableCut();Pending().Clear();Call(f.Cut,"BeginCharge",f.Player);Call(f.Cut,"EndCharge",f.Player,true);
+            Check(Pending().Count==2&&(byte)Get(Pending()[0],"Kind")==6&&(byte)Get(Pending()[1],"Kind")==7,"ordinary client submits start/release rather than calculating heavy damage");
+            Check(((IList)Get(f.Cut,"casts")).Count==0,"client has no local authoritative heavy cast");
+        }
+    }
     public static void Run(Assembly assembly)
     {
         mod=assembly;var oldWork=CommonLib.WorkType;var oldNet=CommonLib.Net;var oldHooks=ModsManager.ModHooks;var oldTerritories=SubsystemBedrockBlockBehavior.Territories;
@@ -357,7 +413,7 @@ public static class VoidSpaceNativeProbe
             CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();
             ModsManager.ModHooks=new Dictionary<string,ModsManager.ModHook>();var recorder=new Recorder();ModsManager.RegisterHook("AttackBody",recorder);
             SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};
-            WireAndGeometry();LandingCases();DamageCases(recorder);FallCases();NetworkCases();ClientCases(recorder);LifecycleCases(recorder);
+            WireAndGeometry();LandingCases();DamageCases(recorder);FallCases();NetworkCases();ClientCases(recorder);LifecycleCases(recorder);HeavyCases(recorder);
         }
         finally{CommonLib.WorkType=oldWork;CommonLib.Net=oldNet;ModsManager.ModHooks=oldHooks;SubsystemBedrockBlockBehavior.Territories=oldTerritories;BlocksManager.Blocks[0]=oldAir;BlocksManager.Blocks[3]=oldStone;}
         Console.WriteLine("Space V2 native geometry/packet/body-sweep/nominal-attack/landing/authority checks: "+checks+" passed (isolated fixtures; not live network or Android).");

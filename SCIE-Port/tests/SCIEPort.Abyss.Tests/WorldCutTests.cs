@@ -53,10 +53,10 @@ internal static class WorldCutTests
         Check(WorldCutRules.Damage(float.NaN,100)==100&&WorldCutRules.Damage(float.PositiveInfinity,40)==40,"nonfinite config safe defaults");
         Check(WorldCutRules.Damage(-5,100)==0&&WorldCutRules.Damage(10000,100)==1000,"configured damage bounded");
         Check(WorldCutRules.Newer(1,uint.MaxValue)&&!WorldCutRules.Newer(uint.MaxValue,1)&&!WorldCutRules.Newer(0,0),"sequence wrap and zero");
-        for(byte kind=0;kind<8;kind++)
+        for(byte kind=0;kind<10;kind++)
         {
             Check(!WorldCutRules.Dispatch(true,false,false,kind),"spoofed sender rejected");Check(!WorldCutRules.Dispatch(false,false,true,kind),"client events require server");
-            Check(WorldCutRules.Dispatch(true,false,true,kind)==(kind==0||kind==4),"server accepts only request/cancel");
+            Check(WorldCutRules.Dispatch(true,false,true,kind)==(kind==0||kind==4||kind==6||kind==7||kind==8),"server accepts authenticated skill and charged attack commands");
             Check(WorldCutRules.Dispatch(false,true,false,kind)==(kind==1||kind==2||kind==3||kind==5),"client accepts only server events");
         }
         Check(WorldCutRules.Authority(true,false)&&WorldCutRules.Authority(false,true)&&!WorldCutRules.Authority(false,false),"authority must be explicit");

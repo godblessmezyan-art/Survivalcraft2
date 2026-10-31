@@ -1,5 +1,21 @@
 # 测试结果
 
+## 2026-10-31 main 0.62.0：69/3/36冷却与蓄力断界斩
+
+基准main`226fd0f` / 0.61.1，工作区干净、fetch+ff-only确认最新；回退分支`backup/abyss-0.61.1-before-heavy-rebalance`和旧包保留。本轮仅阿比斯，原AbyssCombo/模型/图标/数据库/星门保持。[实现和复现命令](ABYSS-COMBAT-0.62.md)。
+
+完整Release命令 `Build-WithPinnedSdk.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release`退出0；日志`artifacts/heavy-rebalance-0.62.0-final-build.log`。先前静态IL回归因输入移到UpdateMeleeInput而找不到直接Input调用，已改为检查Capture先执行FourSaints锁、再调用适配器、适配器再调用原Combo.Input；目标程序集IL验证通过，未降低动作锁要求。
+
+26,032项原生夹具通过（含大量网格顶点有限性检查）：新的真实蓄力输入转接不留下旧近战Impact；100初击＋60残隙各一次，无旧52/40；正在按钮CD时仍可重击且不重置CD；再次完整蓄力可继续释放；主机独立等待蓄力时长；4/8取消、重复释放、无开始记录、旧Token重连均覆盖；普通客户端只发送6/7命令不自行造伤害。36秒观察者回执和3秒房主折跃CD通过。测试初期发现夹具Identity四元数朝-Z，已将目标朝向改为原生+Z旋转，未修改生产瞄准逻辑来迎合夹具。录制Hook停止AttackBody原生副作用，名义攻击记录不是实际HP/护甲或真实网络证明。
+
+原890项WorldCut原生协议/触控/资源、986虚夜协议/生命周期/免伤、12真实HP/600 NPC预算、597共享星门回归均通过；纯规则367 WorldCut/1401 HUD/994技能等通过。247真实80组压缩往返扩展覆盖0..8类型，字节布局不变，未知类型/伪造发件人拒绝；原249/250与v1不改。HorizonRuntime/Scene/Rules/249、250和Registry受保护文件哈希保持，只有VoidSkillRules实际大招CD按用户要求变更。
+
+最终DLL的**138项原生Engine/OpenGL合成GPU检查＋2次CPU HUD导出**通过，包括新增三段普攻在0.35/0.48/0.65相位超过2500个像素变化的实体刃面、0.9相位逐像素恢复；保留三技能宽裂界、观察者遮挡、转头不粘屏、1.8秒恢复等检查。已查看[普攻/残隙图](../design/abyss-combat-0.62.0/combat-stages.png)。这是原生GPU原创合成场景，非GameWidget运行、非游戏/Android实拍；重击飞行/伤害由原生运行夹具证明，不用残隙截图冒充整个飞行实测。
+
+包和版本副本一致，**7,748,568字节，146项**，Version0.62.0；SHA-256 `DCA7107F9232EAC82D47BAB14B3CD1A492256A0284D14EE4C396FB0EBBEF052B`，DLL `51459725A08C972ED4D51AB9EF97CBCF7ED0FEB4063EF6EA695A46D79B44F896`。GPU测试DLL与包内一致；相对0.61.1只DLL/modinfo变化，其他144项逐字节保持。旧0.61.1包SHA仍`428A6B8BFA8A3CB137DB887BF5D4DC9E93F9E10CD069664EC05A7CF4FDE0114C`。源码/文档本地main提交，不自动推送或发布。
+
+**待验证**：Android7723实际载入、触屏长按/拖动、普攻斩痕/重击飞行、手机帧率，真实单机/房主/普通客户端、延迟/丢包/乱序/多人连续重击、取消/换武器/死亡/断线清理。各方须0.62.0；普通客户端平A伤害仍为原未支持状态，本轮优化其本地特效，重击才新增主机伤害路径。大招共享给队友的领域功能未在本轮实现。
+
 ## 2026-10-31 main 0.61.1：万象破碎前方裂界扩大
 
 基准`83e43fa` / 0.61.0，开发前工作区干净、fetch+ff-only确认最新；已建`backup/abyss-0.61.0-before-wide-shatter`，旧版本包保留。仅生产文件VoidShatterScene与版本信息变化；战斗Runtime/Damage/Rules/Package未改。完整实现与复现命令见[ABYSS-WIDE-SHATTER.md](ABYSS-WIDE-SHATTER.md)。

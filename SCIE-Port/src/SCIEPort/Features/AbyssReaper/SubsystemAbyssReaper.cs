@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
     /// <summary>Local/server-owned melee; no terrain writes or client damage packets.</summary>
     public sealed class SubsystemAbyssReaper : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
-        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public Vector3 SwingDirection; public WorldCutHud Hud; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending; public double RiftUntil,CombatTime,LastSample; }
+        sealed class State { public AbyssCombo Combo=new AbyssCombo(); public Ray3 Ray; public Vector3 SwingDirection; public WorldCutHud Hud; public WorldCutInputGate InputGate=new WorldCutInputGate(); public bool NormalImpactPending,ChargeHeld; public double CombatTime,LastSample; }
         readonly Dictionary<ComponentPlayer,State> states=new Dictionary<ComponentPlayer,State>();
         readonly Dictionary<ComponentPlayer,float> walkBonuses=new Dictionary<ComponentPlayer,float>();
         readonly List<ComponentPlayer> speedRetired=new List<ComponentPlayer>();
@@ -85,7 +85,7 @@ namespace SCIEPort.Features.AbyssReaper
             // Clear native melee/dig even on a blocked frame; never attack or mine via vanilla fallback.
             input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;
             input.m_playerInput.Interact=null;
-            if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);Horizon.Cancel(p);return;}
+            if(blocked){s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.ChargeHeld=false;s.Hud?.CancelInput();s.InputGate.Reset();WorldCut.Cancel(p);blink.Cancel(p);Horizon.Cancel(p);return;}
             if(Horizon.Busy(p)){VoidHorizonRuntime.LockInput(p);s.Hud?.CancelInput();return;}
             // Native phone Tap emits Interact AND Hit. Aimed portal interaction wins over melee.
             if(WantsPortalInteraction(sampled,s.NormalImpactPending||s.Combo.Phase(s.CombatTime)<1,WorldCut.Busy(p)||blink.Busy(p)))
@@ -109,9 +109,25 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(s.InputGate.RouteNormal(ray.HasValue,WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)))
             {
-                s.Combo.Input(ray.HasValue,s.CombatTime,elapsed*attackFrequency);
-                if(s.Combo.Phase(s.CombatTime)==0){s.NormalImpactPending=true;s.SwingDirection=MeleeDirection(s.Ray.Direction,p.ComponentCreatureModel.EyeRotation.GetForwardVector());}
+                UpdateMeleeInput(p,s,ray.HasValue,elapsed*attackFrequency);
             }
+        }
+        private void UpdateMeleeInput(ComponentPlayer p,State s,bool held,float elapsed)
+        {
+            s.Combo.Input(held,s.CombatTime,elapsed);
+            if(held&&!s.NormalImpactPending&&s.Combo.Phase(s.CombatTime)>=1)WorldCut.BeginCharge(p);
+            if(!held&&s.ChargeHeld)
+            {
+                bool heavy=s.Combo.Stage==3&&s.Combo.Phase(s.CombatTime)==0;
+                WorldCut.EndCharge(p,heavy);
+                if(heavy)
+                {
+                    // The authoritative cut owns this release; never also apply the old 52 melee hit.
+                    s.Combo=new AbyssCombo();s.NormalImpactPending=false;s.ChargeHeld=false;s.InputGate.Accepted();return;
+                }
+            }
+            s.ChargeHeld=held;
+            if(s.Combo.Phase(s.CombatTime)==0){s.NormalImpactPending=true;s.SwingDirection=MeleeDirection(s.Ray.Direction,p.ComponentCreatureModel.EyeRotation.GetForwardVector());}
         }
         internal bool OtherSkillBusy(ComponentPlayer p) => WorldCut?.Busy(p)==true || blink?.Busy(p)==true;
         internal bool PortalTransferLocked(ComponentPlayer p) => portalTravel?.InputLocked(p)==true;
@@ -172,7 +188,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(fp!=null){fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
                 p.ComponentCreatureModel.InHandItemRotationOrder=rotation;
                 p.ComponentCreatureModel.InHandItemOffsetOrder=offset*.35f;
-                if(s.Combo.Impact(s.CombatTime)){s.NormalImpactPending=false;if(s.Combo.Stage>=2)s.RiftUntil=now+.22;Strike(p,s);}
+                if(s.Combo.Impact(s.CombatTime)){s.NormalImpactPending=false;Strike(p,s);}
             }
             foreach(var p in retired){Remove(p,states[p]);states.Remove(p);}
             WorldCut.Update(dt);
@@ -201,6 +217,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index)ApplyHeldSpeed(p,true);
         }
         void Strike(ComponentPlayer p,State s) {
+            if(s.Combo.Stage==3)return; // Charged releases exclusively use WorldCutRuntime.
             if(CommonLib.WorkType==WorkType.Client)return;
             if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)return; // No untrusted remote input path in V0.1.
             Vector3 origin=p.ComponentCreatureModel.EyePosition;
@@ -261,11 +278,6 @@ namespace SCIEPort.Features.AbyssReaper
                 meleeScene.Queue(player,pair.Value.Combo.Stage,pair.Value.Combo.Phase(pair.Value.CombatTime));
             }
             meleeScene.Flush(camera);
-            var batch=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
-            foreach(var pair in states){var p=pair.Key;var s=pair.Value;if(s.RiftUntil<=clock.GameTime)continue;
-                Vector3 c=p.ComponentCreatureModel.EyePosition+p.ComponentCreatureModel.EyeRotation.GetForwardVector()*1.8f;
-                for(int i=0;i<5;i++){Vector3 a=c+new Vector3((i%2==0?-.08f:.07f),.65f-i*.25f,0);Vector3 b=c+new Vector3((i%2==0?.07f:-.08f),.40f-i*.25f,0);batch.QueueLine(a,b,new Color(159,100,207));}}
-            renderer.Flush(camera.ViewProjectionMatrix);
         }
         void Remove(ComponentPlayer p,State s){s.Hud?.Dispose();s.Hud=null;s.InputGate.Reset();WorldCut?.Cancel(p);blink?.Cancel(p);Horizon?.Cancel(p);}
         /// <inheritdoc/>

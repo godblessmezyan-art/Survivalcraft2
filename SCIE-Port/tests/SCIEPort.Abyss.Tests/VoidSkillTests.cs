@@ -43,7 +43,7 @@ internal static class VoidSkillTests
             Check(Math.Abs(prior-.12f)<.001f,"front reaches near clip at full-domain deadline");
         }
         Check(VoidHorizonVisualRules.Collapse(3.7)==0&&VoidHorizonVisualRules.Collapse(3.92)==1&&VoidHorizonVisualRules.Burst(3.92)==0&&VoidHorizonVisualRules.Burst(4.2)==1,"collapse completes before expanding final shockwave");
-        Check(VoidSkillRules.FinalImpact==4.2&&VoidSkillRules.HorizonCooldown==180&&VoidSkillRules.HorizonRadius==128&&VoidSkillRules.HorizonHeight==256&&VoidHorizonRules.SettlementBudget==128,"combat contract unchanged by presentation");
+        Check(VoidSkillRules.FinalImpact==4.2&&VoidSkillRules.HorizonCooldown==69&&VoidSkillRules.BlinkCooldown==3&&VoidSkillRules.HorizonRadius==128&&VoidSkillRules.HorizonHeight==256&&VoidHorizonRules.SettlementBudget==128,"updated cooldowns keep ultimate duration, range and budget");
         var invalid=new HorizonTimeline<int>(0);Check(!invalid.TakeFinal(double.PositiveInfinity),"invalid clock cannot settle");
         var hitch=new HorizonTimeline<int>(0);Check(hitch.TakeFinal(18)&&!hitch.TakeFinal(19),"hitch still executes once");
         var cancel=new HorizonTimeline<int>(0);cancel.Cancel();Check(!cancel.TakeFinal(20)&&!cancel.AddFinalTarget(1,2),"cancel suppresses all impacts");
