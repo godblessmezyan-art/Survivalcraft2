@@ -3,6 +3,10 @@ $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $repo=Split-Path $root
 $manifest=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'tests/SCIEPort.Abyss.Tests/protected-weapon.json')|ConvertFrom-Json
+# Runtime compatibility regression: Android/Mono may lack List<T>.Exists in this API surface.
+$worldCutRuntime=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Features/AbyssReaper/WorldCutRuntime.cs')
+if($worldCutRuntime -match '\bcasts\.Exists\s*\('){throw 'WorldCut charge path must not call List<T>.Exists on target runtime.'}
+if($worldCutRuntime -notmatch 'foreach\s*\(var cast in casts\)if\(cast\.OwnerGuid==p\.PlayerGuid\)return false;'){throw 'WorldCut charge guard must reject an already-active cast.'}
 foreach($property in $manifest.files.PSObject.Properties){
  if((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root $property.Name)).Hash -ne $property.Value){throw ('Existing weapon asset/combo/ID changed: '+$property.Name)}
 }
