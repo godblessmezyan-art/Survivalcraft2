@@ -60,6 +60,7 @@ $KnownVanillaParents = @{
     '85023bf8-1c90-4dd1-9442-e6c13691d078' = 'Project (ProjectTemplate)'
     '49a9845c-3810-4092-ba53-df213d10d563' = 'Wolf (EntityTemplate)'
     '8e62c6e4-a544-4c09-a3fb-59fd37d5b998' = 'Alpaca (EntityTemplate)'
+    '4d02fd7e-3054-4121-b2a5-787db985df5f' = 'Rhino (EntityTemplate, Cerberus metadata only)'
 }
 
 if (-not (Test-Path -LiteralPath $DatabaseDir -PathType Container)) {

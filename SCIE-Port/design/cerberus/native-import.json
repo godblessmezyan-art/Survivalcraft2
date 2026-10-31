@@ -1,0 +1,94 @@
+﻿{
+    "kind":  "Read-only target Engine model import and database compilation; not game/device testing",
+    "bones":  [
+                  {
+                      "name":  "Body",
+                      "parent":  -1,
+                      "translation":  [
+                                          0,
+                                          0.01497006,
+                                          0.01185117
+                                      ]
+                  },
+                  {
+                      "name":  "Head",
+                      "parent":  0,
+                      "translation":  [
+                                          0,
+                                          1.646707,
+                                          -0.849121
+                                      ]
+                  },
+                  {
+                      "name":  "Jaw1",
+                      "parent":  1,
+                      "translation":  [
+                                          -0.5448873,
+                                          -0.0998004,
+                                          -0.2797104
+                                      ]
+                  },
+                  {
+                      "name":  "Jaw2",
+                      "parent":  1,
+                      "translation":  [
+                                          0,
+                                          -0.0998004,
+                                          -0.2797104
+                                      ]
+                  },
+                  {
+                      "name":  "Jaw3",
+                      "parent":  1,
+                      "translation":  [
+                                          0.5448873,
+                                          -0.0998004,
+                                          -0.2797104
+                                      ]
+                  },
+                  {
+                      "name":  "Leg1",
+                      "parent":  0,
+                      "translation":  [
+                                          -0.5838079,
+                                          1.177645,
+                                          -0.7292451
+                                      ]
+                  },
+                  {
+                      "name":  "Leg2",
+                      "parent":  0,
+                      "translation":  [
+                                          0.5838079,
+                                          1.177645,
+                                          -0.7292451
+                                      ]
+                  },
+                  {
+                      "name":  "Leg3",
+                      "parent":  0,
+                      "translation":  [
+                                          -0.5448873,
+                                          1.127745,
+                                          0.9490175
+                                      ]
+                  },
+                  {
+                      "name":  "Leg4",
+                      "parent":  0,
+                      "translation":  [
+                                          0.5448873,
+                                          1.127745,
+                                          0.9490175
+                                      ]
+                  }
+              ],
+    "meshes":  9,
+    "model_class":  "SCIEPort.Features.AbyssReaper.ComponentCerberusModel",
+    "model_name":  "Models/AbyssCerberus",
+    "texture":  "Textures/AbyssCerberus",
+    "box":  "1.8,2.5,3.6",
+    "egg_index":  -1,
+    "rideable":  false,
+    "template_guid":  "fdd33315-6052-5782-916d-aebf2852eecd"
+}

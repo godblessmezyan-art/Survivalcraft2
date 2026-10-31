@@ -1,5 +1,7 @@
 # 阿比斯军势升级 / 0.64.0
 
+> 0.65.0新增第三种召唤「地狱三头犬·刻尔柏洛斯」，每位主人唯一；旧军势功能与七只上限保持，见[三头犬说明](ABYSS-CERBERUS.md)。骑乘为下一阶段，本版仅原战马可骑。
+
 ## 0.64.1：军势面板与无响应修复
 
 用户安卓截图确认旧版背景右/下边界与内部按钮失配，下方次位面按钮溢出；同时报告召唤、收纳等无反应。只读反编译固定目标的Widget.Measure/Arrange、CanvasWidget和DialogsManager发现：Widget.Arrange不会把ActualSize除以LayoutTransform缩放，而Canvas仍按固定坐标布置子控件。旧版只缩放面板会使边界与内部尺寸失配，不能继续沿用此布局。

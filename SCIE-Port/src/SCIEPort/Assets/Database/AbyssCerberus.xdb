@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SCIEPortCerberus>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortCerberus" Guid="fdd33315-6052-5782-916d-aebf2852eecd" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
+      <MemberComponentTemplate Name="Creature" Guid="a94fbdb8-a7a6-5ad4-a63c-763f9e809e01">
+        <Parameter Name="DisplayName" Guid="1e0b070b-9fe4-5fff-ae2c-573bb7007062" Value="地狱三头犬·刻尔柏洛斯" Type="string" />
+        <Parameter Name="Description" Guid="406adb1e-fd32-5d6b-ad87-5508c53aabbe" Value="死亡权柄唯一契约兽。三首噬魂：单目标35伤害、3格、4秒。骑乘待第二阶段。" Type="string" />
+        <Parameter Name="ConstantSpawn" Guid="d60c5032-64d9-528c-aef9-2aae6271a4c6" Value="True" Type="bool" />
+        <Parameter Name="KillVerbs" Guid="f3fffc69-2fe9-56a3-a758-068fddd80129" Value="mauled" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="07a5d9b1-320b-5ce7-a991-08f253a9cf2f">
+        <Parameter Name="Class" Guid="7b3e28da-1646-555c-a7c8-33555d7730a9" Value="SCIEPort.Features.AbyssReaper.ComponentCerberusModel" Type="string" />
+        <Parameter Name="ModelName" Guid="3d884c3b-43be-5baa-aa58-ae7454d86875" Value="Models/AbyssCerberus" Type="string" />
+        <Parameter Name="TextureOverride" Guid="ae311dc8-e202-5685-8882-e84f8b1052e5" Value="Textures/AbyssCerberus" Type="string" />
+        <Parameter Name="BoundingSphereRadius" Guid="8993d813-3c82-543b-b2f8-4160b808a92c" Value="3.5" Type="float" />
+        <Parameter Name="WalkAnimationSpeed" Guid="ef433cc0-9c57-5e0b-aab7-6a03172ec120" Value="0.65" Type="float" />
+        <Parameter Name="WalkFrontLegsAngle" Guid="5bc343b3-8a63-55a7-8583-dda2d621c392" Value="0.44" Type="float" />
+        <Parameter Name="WalkHindLegsAngle" Guid="669685d7-c087-5e4f-a1cf-4d16a2f6b87c" Value="0.48" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="eacc2c00-8581-5fd8-b34a-6a70b5c91ded" Value="0.035" Type="float" />
+        <Parameter Name="CanCanter" Guid="6ed8fb8a-de97-5197-a9d2-d6b054da8106" Value="False" Type="bool" />
+        <Parameter Name="CanTrot" Guid="1ccd5781-58bc-5682-b399-413010c31757" Value="False" Type="bool" />
+        <Parameter Name="UseCanterSound" Guid="fc19edda-ef76-59cd-aa5d-6f1d12fc8772" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="da318b63-762a-50ee-8238-974ba38d29bc">
+        <Parameter Name="BoxSize" Guid="b9200b4b-f7e8-5972-9aee-986f438caf84" Value="1.8,2.5,3.6" Type="Vector3" />
+        <Parameter Name="Mass" Guid="6c75099b-4878-5d48-8acc-64374f8ffa27" Value="1800" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="10ce8fd3-10c1-5df5-b38a-996595fba223">
+        <Parameter Name="AttackResilience" Guid="1b739869-c916-5518-822f-313aee145ad3" Value="300" Type="float" />
+        <Parameter Name="FireResilience" Guid="d5fbd969-a8cc-5d33-a728-cfebac9581e8" Value="40" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="27412f93-40ec-5872-9cd4-3691808a2896">
+        <Parameter Name="WalkSpeed" Guid="b749f546-92c8-5449-9bba-bfb371064c62" Value="5.8" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="e86a5611-2fcf-55ed-a852-0f5b71df35f8" Value="4" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="d11d155f-0db5-53eb-af72-d9cea77f0fbf" Value="0.7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Miner" Guid="6177e311-a72a-5286-8c46-1aa3fb5b4f68">
+        <Parameter Name="AttackPower" Guid="cad0e2c1-2bb9-53bf-a46d-db250dbe378a" Value="35" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="6896b987-9908-5f16-a300-4359c2c095b8">
+        <Parameter Name="AutoDespawn" Guid="9eb70440-756a-5e22-9a56-5503d6f7599f" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="434c778d-c5b7-57b1-8c0f-197728bf7e86">
+        <Parameter Name="HerdName" Guid="c2f045fb-0e3c-59a3-9129-e20313922292" Value="SCIEPortCerberus" Type="string" />
+        <Parameter Name="AutoNearbyCreaturesHelp" Guid="31457526-0afc-5182-83cd-7389f92c7011" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ChaseBehavior" Guid="c6e7ede2-79ca-5842-9b62-70fe495d1ccd">
+        <Parameter Name="AutoChaseMask" Guid="f3a0fd5c-447f-524d-97c3-cfe4dda6e6f2" Value="0" Type="Game.CreatureCategory" />
+        <Parameter Name="ChaseWhenAttackedProbability" Guid="51cb7bbe-263a-5a41-8ae5-590338f1e3fa" Value="0" Type="float" />
+        <Parameter Name="ChaseOnTouchProbability" Guid="e3e65b99-31f0-5ee6-bda2-5b23b15693af" Value="0" Type="float" />
+        <Parameter Name="ChaseNonPlayerProbability" Guid="ac4431f8-1f03-50a2-a120-0a46da094e68" Value="0" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="CreatureSounds" Guid="0698be96-3ee9-5464-8ef0-2f75ec41877a">
+        <Parameter Name="AttackSound" Guid="e56b6c05-8b97-5b18-ad62-fb2bbd2e8290" Value="Audio/Creatures/WolfBark" Type="string" />
+        <Parameter Name="IdleSound" Guid="38ebfa49-e9de-5669-8f73-21cbfd0ebded" Value="Audio/Creatures/WolfGrowl" Type="string" />
+        <Parameter Name="PainSound" Guid="44f33375-e466-5d01-bade-91607e2a540c" Value="Audio/Creatures/WolfBark" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Loot" Guid="3ec57170-1dca-58bd-b3f4-97fa64e17ccd">
+        <Parameter Name="LootDropped" Guid="9fa2cb34-6dec-5c5c-a476-c7851e97d79b" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="896e2f2c-c85d-5ec0-bb73-873839480f27">
+        <Parameter Name="EggTypeIndex" Guid="27e43987-d24d-588a-94f1-8b4508aad9fb" Value="-1" Type="int" />
+        <Parameter Name="ShowEgg" Guid="69a72e70-3994-58c5-870e-afa4784b1222" Value="False" Type="bool" />
+      </ParameterSet>
+    </EntityTemplate>
+  </Folder>
+</SCIEPortCerberus>

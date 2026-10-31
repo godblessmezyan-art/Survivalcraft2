@@ -125,6 +125,7 @@ namespace SCIEPort.Features.AbyssReaper
                 double rtt=Time.RealTime-q.Echo;if(DeathAuthorityRules.Finite(rtt)&&rtt>=0&&rtt<8&&q.World!=Guid.Empty){worldId=q.World;worldKnown=true;hasClock=true;clockOffset=q.Stamp+rtt*.5-Now;syncEchoes.Remove(q.Echo);}
             }
             if(!worldKnown||q.World!=worldId)return;
+            if(q.Kind==8){ReceiveBite(q);return;}
             if(q.Kind==3||q.Kind==4||q.Kind==6||q.Kind==7){ReceiveFriend(q);return;}
             ComponentPlayer p=null;foreach(var candidate in players.ComponentPlayers)if(candidate.Entity.EntityId==q.Caster&&candidate.PlayerGuid==q.Owner){p=candidate;break;}if(p==null)return;
             var s=Get(p);if(s==null)return;

@@ -1,0 +1,3 @@
+# Preserve generated asset bytes used by the Cerberus provenance and package manifests.
+SCIE-Port/src/SCIEPort/Assets/Models/AbyssCerberus.dae -text
+SCIE-Port/src/SCIEPort/Assets/Database/AbyssCerberus.xdb -text

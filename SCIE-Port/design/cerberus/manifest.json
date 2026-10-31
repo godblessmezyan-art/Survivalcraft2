@@ -1,0 +1,817 @@
+{
+  "original": true,
+  "source": "scripts/New-CerberusAssets.py",
+  "game_meshes_used": false,
+  "bounds": [
+    1.8,
+    2.5,
+    3.6
+  ],
+  "bones": {
+    "Body": {
+      "parent": null,
+      "pivot": [
+        0.0,
+        0.014970059880239642,
+        0.011851174413048502
+      ]
+    },
+    "Head": {
+      "parent": "Body",
+      "pivot": [
+        0.0,
+        1.646706586826347,
+        -0.8491209506977144
+      ]
+    },
+    "Leg1": {
+      "parent": "Body",
+      "pivot": [
+        -0.5838078723608089,
+        1.1776447105788421,
+        -0.7292450517756841
+      ]
+    },
+    "Leg2": {
+      "parent": "Body",
+      "pivot": [
+        0.5838078723608089,
+        1.1776447105788421,
+        -0.7292450517756841
+      ]
+    },
+    "Leg3": {
+      "parent": "Body",
+      "pivot": [
+        -0.544887347536755,
+        1.1277445109780437,
+        0.9490175331327396
+      ]
+    },
+    "Leg4": {
+      "parent": "Body",
+      "pivot": [
+        0.544887347536755,
+        1.1277445109780437,
+        0.9490175331327396
+      ]
+    },
+    "Jaw1": {
+      "parent": "Head",
+      "pivot": [
+        -0.544887347536755,
+        -0.099800399201597,
+        -0.27971043081807045
+      ]
+    },
+    "Jaw2": {
+      "parent": "Head",
+      "pivot": [
+        0.0,
+        -0.099800399201597,
+        -0.27971043081807045
+      ]
+    },
+    "Jaw3": {
+      "parent": "Head",
+      "pivot": [
+        0.544887347536755,
+        -0.099800399201597,
+        -0.27971043081807045
+      ]
+    }
+  },
+  "triangles": 6628,
+  "meshes": 9,
+  "parts": [
+    {
+      "name": "Thorax",
+      "bone": "Body",
+      "triangles": 140
+    },
+    {
+      "name": "Breastbone",
+      "bone": "Body",
+      "triangles": 12
+    },
+    {
+      "name": "ShoulderCuirass",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HaunchPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "ShoulderCuirass",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "FlankRib",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HaunchPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "BackSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "BackSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "BackSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "BackSpur",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SpinalPlate",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleFissure",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "ArmoredTail",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Neck1",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Skull1",
+      "bone": "Head",
+      "triangles": 56
+    },
+    {
+      "name": "ForeheadShield1",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Muzzle1",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Nose1",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CrownGroove",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "LowerJaw",
+      "bone": "Jaw1",
+      "triangles": 60
+    },
+    {
+      "name": "SoulMouth",
+      "bone": "Jaw1",
+      "triangles": 60
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw1",
+      "triangles": 10
+    },
+    {
+      "name": "Neck2",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Skull2",
+      "bone": "Head",
+      "triangles": 56
+    },
+    {
+      "name": "ForeheadShield2",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Muzzle2",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Nose2",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CrownGroove",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "LowerJaw",
+      "bone": "Jaw2",
+      "triangles": 60
+    },
+    {
+      "name": "SoulMouth",
+      "bone": "Jaw2",
+      "triangles": 60
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw2",
+      "triangles": 10
+    },
+    {
+      "name": "Neck3",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Skull3",
+      "bone": "Head",
+      "triangles": 56
+    },
+    {
+      "name": "ForeheadShield3",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Muzzle3",
+      "bone": "Head",
+      "triangles": 44
+    },
+    {
+      "name": "Nose3",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekArmor",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "SoulEye",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "EarHorn",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CheekFang",
+      "bone": "Head",
+      "triangles": 10
+    },
+    {
+      "name": "CrownGroove",
+      "bone": "Head",
+      "triangles": 60
+    },
+    {
+      "name": "LowerJaw",
+      "bone": "Jaw3",
+      "triangles": 60
+    },
+    {
+      "name": "SoulMouth",
+      "bone": "Jaw3",
+      "triangles": 60
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "LowerFang",
+      "bone": "Jaw3",
+      "triangles": 10
+    },
+    {
+      "name": "MuscularUpper",
+      "bone": "Leg1",
+      "triangles": 136
+    },
+    {
+      "name": "KneeArmor",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "Shin",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "HeavyPaw",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg1",
+      "triangles": 10
+    },
+    {
+      "name": "MuscularUpper",
+      "bone": "Leg2",
+      "triangles": 136
+    },
+    {
+      "name": "KneeArmor",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "Shin",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "HeavyPaw",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg2",
+      "triangles": 10
+    },
+    {
+      "name": "MuscularUpper",
+      "bone": "Leg3",
+      "triangles": 136
+    },
+    {
+      "name": "KneeArmor",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "Shin",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "HeavyPaw",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg3",
+      "triangles": 10
+    },
+    {
+      "name": "MuscularUpper",
+      "bone": "Leg4",
+      "triangles": 136
+    },
+    {
+      "name": "KneeArmor",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "Shin",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "HeavyPaw",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg4",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg4",
+      "triangles": 10
+    },
+    {
+      "name": "ToeArmor",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "Claw",
+      "bone": "Leg4",
+      "triangles": 10
+    }
+  ],
+  "assets": {
+    "src/SCIEPort/Assets/Models/AbyssCerberus.dae": "BD793642A032F891CEC28221F7EF5BC869F6AF869D6766DC332060C0E6A63734",
+    "src/SCIEPort/Assets/Textures/AbyssCerberus.png": "5C8FA360A92B129A8C3685AC1E739DA5C6D81C03FBDEBC95637B2E0A21EED3B0"
+  }
+}

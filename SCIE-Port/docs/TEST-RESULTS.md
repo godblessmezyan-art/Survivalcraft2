@@ -1,5 +1,19 @@
 # 测试结果
 
+## 2026-10-31 main 0.65.0：刻尔柏洛斯第一阶段，编译/资源构建
+
+基线 `d412283` / 0.64.1。初始工作区干净，fetch结果origin/main没有新提交，本地面板修复保留；回退分支 `backup/abyss-0.64.1-before-cerberus` 和旧0.64.1包保留。唯一性采用每位主人一头，现世/隐藏/待加载共同占用；原猎犬和战马、每人七只/世界24只保持。详见[三头犬实现](ABYSS-CERBERUS.md)。
+
+用户此前要求亲自测试，本轮**未运行自动化行为测试、原生战斗夹具、GPU、完整游戏或联机会话**。只进行了原创资产生成、只读ABI/模型/数据库解析和Release编译/包完整性检查；0.63及其他旧测试数字不能继承到本版。
+
+资源构建：`New-CerberusAssets.py` 生成原创DAE/UV，9骨/9网格/6,628三角形、长3.6宽1.8高2.5格；`New-CerberusTemplate.py` 生成独立模板，仅引用原生Rhino组件参数结构。固定目标Engine.ModelData.Load实际导入9骨/9网格和正确节点平移，记录 `design/cerberus/native-import.json`；原生ModsManager.CombineDataBase + XmlDatabaseSerializer静态解析确认新模型类/路径、1.8×2.5×3.6碰撞体、EggTypeIndex=-1、无Mount。发现原CreatureEggData是ParameterSet，已按真实类型生成，避免误当无Class组件。模型/贴图未读取、复制或放大原生狼/犀牛资源；声音仅引用已安装WolfBark/WolfGrowl路径。软件预览和动作GIF不是游戏证据。
+
+编译/打包：设置FrameworkPathOverride为本机net472引用目录后，直接运行 `Build-ManualTestCandidate.ps1 -GameDir D:/Games/SCNET-x25.01.17 -BaselinePackage <0.64.1包> -AssetUpdates @('Assets/Models/AbyssCerberus.dae','Assets/Textures/AbyssCerberus.png','Assets/Database/AbyssCerberus.xdb')`。退出0，Release **0警告0错误**；日志 `artifacts/cerberus-0.65.0-package.log`。该脚本只允许显式列出的新/改资源，保留其余基线资源；不调用Test脚本。早期编译发现目标Matrix无Backward，改为-Forward后最终编译通过。
+
+包内容只新增上述3个资源，修改DLL/modinfo/署名，其余147条旧条目逐字节保持。最终153条目；SHA256 `A851C43B9311B9D79244F6F90E8586C604BD4663A7C5465ED45E8A376BA29282`，正式名与版本副本一致。完整大小、DLL/资源SHA及差异见 `design/cerberus/package-comparison.json` / `manifest.json`。
+
+35基础伤害/3格/4秒的主机一次结算、关闭原军势每秒攻击/×2倍率、关闭模型自带冲撞命中、唯一性/收纳后不能再召、保存冷却防重载绕过等均为**代码实现，运行待验证**。252保持布局并新增演出Kind8/Flags16；v1/v2契约读取保持，v2可选BiteCooldown，249/250及其他神器不改。新实体模板要求同房统一0.65.0；含新实体的世界降级须恢复世界备份。骑乘按需求留第二阶段，当前不支持。
+
 ## 2026-10-31 main 0.64.1：军势菜单溢出及无响应修复，仅编译打包
 
 基线 `07af4ff` / 0.64.0，工作区干净。用户安卓截图确认旧面板背景与子控件边界失配、两个底部按钮溢出，并报告管理操作无反应。只读反编译Widget/CanvasWidget/Dialog/DialogsManager等实际目标类型，确认LayoutTransform缩放未对ActualSize做反向补偿，故改用MeasureOverride按父可用区域统一重排尺寸/坐标/字体，Identity变换并裁剪在面板内。

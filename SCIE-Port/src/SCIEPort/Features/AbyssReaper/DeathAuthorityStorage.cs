@@ -69,6 +69,7 @@ namespace SCIEPort.Features.AbyssReaper
                     terrain.Project.AddEntity(entity);hidden.Remove(row.Id);
                     adopted=AdoptContract(c,row.Owner,row.Special,row.Id);
                     if(!adopted){hidden[row.Id]=row;terrain.Project.RemoveEntity(entity,true);entity=null;waiting++;continue;}
+                    if(row.Cerberus)guards[c.Entity.EntityId].NextAttack=Now+row.BiteCooldown;
                     if(row.HealOnReturn)Heal(c);done++;
                 }
                 catch(Exception e)

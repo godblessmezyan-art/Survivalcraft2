@@ -1,0 +1,19 @@
+{
+  "kind": "Package assembly integrity only; no game or behavioral tests",
+  "baseline_sha256": "961BFFD403EF71427AE70598CBF7A4653BC1A45BE5E3D19AD454DEB068633329",
+  "package_sha256": "A851C43B9311B9D79244F6F90E8586C604BD4663A7C5465ED45E8A376BA29282",
+  "dll_sha256": "9825368B37805F1542675716F2A1CD45DA607873B7678D3AE3BA044D16BD367E",
+  "bytes": 8580447,
+  "entries": 153,
+  "added": [
+    "Assets/Database/AbyssCerberus.xdb",
+    "Assets/Models/AbyssCerberus.dae",
+    "Assets/Textures/AbyssCerberus.png"
+  ],
+  "changed": [
+    "SCIEPort.dll",
+    "THIRD-PARTY-NOTICES.md",
+    "modinfo.json"
+  ],
+  "preserved": 147
+}

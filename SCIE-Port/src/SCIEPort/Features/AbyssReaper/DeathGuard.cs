@@ -8,6 +8,8 @@ namespace SCIEPort.Features.AbyssReaper
     {
         internal ComponentCreature Creature;internal Guid Owner;internal ushort Key;internal bool Special;internal string OriginalName,Template;
         internal bool Warhorse=>Special&&Template==DeathAuthorityRules.MountTemplate;
+        internal bool Cerberus=>Template==CerberusRules.Template;
+        internal ComponentCreature BiteTarget;internal double BiteStarted=-100,BiteImpactAt;
         internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
         private float mountBonus;private bool wasRidden;
         internal double SpawnTime,NextThink,NextAttack,StuckSince;internal ComponentCreature Target;
@@ -23,7 +25,7 @@ namespace SCIEPort.Features.AbyssReaper
             chase=c.Entity.FindComponent<ComponentChaseBehavior>(false);
             if(chase!=null){mask=chase.m_autoChaseMask;retaliate=chase.m_chaseWhenAttackedProbability;touch=chase.m_chaseOnTouchProbability;nonplayer=chase.m_chaseNonPlayerProbability;chase.m_autoChaseMask=0;chase.m_chaseWhenAttackedProbability=0;chase.m_chaseOnTouchProbability=0;chase.m_chaseNonPlayerProbability=0;chase.m_target=null;chase.IsActive=false;}
             if(c.ComponentSpawn!=null)c.ComponentSpawn.AutoDespawn=false;
-            c.DisplayName=special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;RefreshSpeed();return true;
+            c.DisplayName=Cerberus?CerberusRules.Name:special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;RefreshSpeed();return true;
         }
         internal void Suppress()
         {

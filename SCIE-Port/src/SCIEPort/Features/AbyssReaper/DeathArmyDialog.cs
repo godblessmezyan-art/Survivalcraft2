@@ -49,7 +49,7 @@ namespace SCIEPort.Features.AbyssReaper
             bool exists=false;for(int i=0;i<rows.Length;i++){rows[i].IsEnabled=i<list.Count;rows[i].Text=i<list.Count?(selected==list[i].Id?"● ":"")+(list[i].Hidden?"[次位面] ":list[i].Pending?"[待加载] ":"")+list[i].Name:"— 空位 —";if(i<list.Count&&list[i].Id==selected)exists=true;if(rows[i].IsClicked&&i<list.Count){selected=list[i].Id;armed=0;exists=true;}}if(!exists)selected=armed=0;
             dismiss.Text=armed==selected&&selected!=0?"确认解除":"解除所选";dismiss.IsEnabled=selected!=0;
             double cooldown=runtime.Remaining(player,DeathAuthorityRules.Summon);summon.Text=cooldown>0?"召唤 · "+Math.Ceiling(cooldown).ToString("0")+"秒":"召唤";
-            if(kind.IsClicked)summonKind=(ushort)(summonKind==0?1:0);kind.Text=summonKind==0?"召唤类型：冥界猎犬":"召唤类型：夜魇战马 · 速度170%";
+            if(kind.IsClicked)summonKind=(ushort)((summonKind+1)%3);kind.Text=summonKind==0?"召唤类型：冥界猎犬":summonKind==1?"召唤类型：夜魇战马 · 速度170%":"召唤类型：地狱三头犬·刻尔柏洛斯（唯一）";
             if(summon.IsClicked)runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ,summonKind);
             if(recall.IsClicked)runtime.Request(player,DeathAuthorityRules.Recall,Vector3.UnitZ);
             if(stow.IsClicked)runtime.Request(player,DeathAuthorityRules.Stow,Vector3.UnitZ);
