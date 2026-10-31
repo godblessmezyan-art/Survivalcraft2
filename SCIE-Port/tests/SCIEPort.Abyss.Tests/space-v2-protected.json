@@ -1,0 +1,18 @@
+{
+  "baseline": "ac2abd6 / 0.60.0",
+  "files": {
+    "src/SCIEPort/Features/AbyssReaper/VoidHorizonScene.cs": "AD12A70F073B322BB74BA25AE415E3F54CAB5FD446318BF327EAA55C2C680384",
+    "src/SCIEPort/Features/AbyssReaper/VoidHorizonRuntime.cs": "4622D783D066A5F2EB0C2EF3CF2F85790F146A5B5A403A4C9AFA3EE093BCCB1C",
+    "src/SCIEPort/Features/AbyssReaper/VoidHorizonRules.cs": "85AE66EC6DEACF9CFE2BA07BB9239099BD92CAB8DFAE1B33CDE185729D2FD2FE",
+    "src/SCIEPort/Features/AbyssReaper/VoidHorizonPackage.cs": "D2DC48C2043882AE19411BD55B70D66C6F0EB376D33A0B0A37FBD8C5DFBE3AF2",
+    "src/SCIEPort/Features/AbyssReaper/VoidPortalPackage.cs": "DA9A10A0B0436BEB2DB6084DC922CC9582EF433E46E8EEFE9819363BCF066D71",
+    "src/SCIEPort/Features/AbyssReaper/VoidPortalRegistry.cs": "282970F826E73FB31878318C22B6ECD02B52AF0389624371AEC7C0FB48B8ECEC"
+  },
+  "horizon": {
+    "duration": 4.2,
+    "cooldown": 180,
+    "radius": 128,
+    "height": 256,
+    "budget": 128
+  }
+}

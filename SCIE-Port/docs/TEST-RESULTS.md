@@ -1,5 +1,34 @@
 # 测试结果
 
+## 2026-10-31 main 0.61.0：阿比斯空间权柄 V2
+
+基准本地main `ac2abd6` / 0.60.0，开发前fetch+ff-only确认远程`9ff150a`无新提交；工作区原先干净。回退分支`backup/abyss-0.60.0-before-space-v2`和0.60.0版本包保留。范围为前三技能、专属五按钮HUD和三张imagegen图标；未推送/发布。完整设计、修改文件与验收清单见 [ABYSS-SPACE-V2.md](ABYSS-SPACE-V2.md)。
+
+最终命令：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-WithPinnedSdk.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-AbyssSpaceGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/space-v2-gpu
+python SCIE-Port/scripts/Render-AbyssSpacePreview.py SCIE-Port/artifacts/space-v2-gpu --assembly SCIE-Port/artifacts/build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-VoidHorizonGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/space-v2-horizon-regression
+python SCIE-Port/scripts/Compare-AbyssSpacePackage.py SCIE-Port/artifacts/荒野探险家-0.60.0.netmod SCIE-Port/artifacts/荒野探险家-0.61.0.netmod --report SCIE-Port/artifacts/space-v2-package-report.json
+```
+
+本机使用固定SDK包装器、Python工具目录加入PATH；构建日志`artifacts/space-v2-0.61.0-final-build.log`。整个Release流水线退出码0，包含原Test-Environment ABI、数据库、授权资源、分类/槽位背景、其他神器、四圣兽、车辆和原回归；新Test-AbyssSpaceV2已接入源资源/编译后夹具/包内三处检查。五技能HUD纯布局1401项覆盖40组左右手/视口（包括640×360），圆形原生命中仍通过原890项WorldCut夹具。
+
+新原生隔离夹具 **26,018项通过**（大量为每个网格顶点有限性检查，数量不代表同等数量独立场景）。实际调用目标Terrain/Body碰撞、空间查询、PackageStream压缩、AttackBody Hook与运行状态：平视/向上/向下/空中18格、脚部障碍/天花板/墙前余量/加载与领地截停、无空间失败CD0、双门75共享账本、100初击+60残隙各一次且没有40、4秒后不再命中、1.35秒160结算/10格半径/墙体视线、死亡/保护区/未加载目标排除。280个NPC分帧完成且每帧≤128候选；两名施法者同序号独立伤害/取消，不伤玩家及承载体。首次落地仅清Y冲量、原生跌落原因仅保护一次、火/攻击不免疫、4秒上限通过。取消、死亡、换武器、Entity移除、Dispose清理通过。
+
+服务端和拥有者客户端两半状态机离线执行：Prepare前不移动/CD0，Ready/Commit等Ack，Ack后原生Position/NetPosition一致并开启8秒CD；重复Ack和Finish幂等，不重建伤害/延长CD/拉回正常移动；重复Reject按主机Stamp计算剩余CD。目标不由客户端传入坐标决定；路径新增墙、旧Token请求、2秒超时回退、迟到成功、超时后立即重试、客户端死亡均覆盖。观察者事件要求主机校时，过期/重复/取消及更旧序号不会重播；客户端呈现不进入AttackBody。此处NetNode是无socket的包队列，**不是实际网络通信**，记录Hook在名义攻击力处阻止副作用，**没有以它证明实际HP/护甲结算**。
+
+原986项虚夜协议/生命周期/免伤、12项真实原生HP与600 NPC/权威/预算、890项断界斩原协议/资源/触控、13项房主输入/星门、597项共享星门协议/权限/快照/传送回归均通过。6个受保护文件SHA-256与0.60.0一致：领域Scene/Runtime/Rules/249包、250包与Registry；VoidSkillRules仅改技能枚举及旧Blink别名，所有Horizon常量/视觉函数/音效时序保持。真实旧247/249/250读写继续通过，v1存档不变；新增251先遍历原生+本模组IPackage排除冲突，真实20组压缩往返通过、测试载荷<128字节。旧版混装新251技能不支持，同房须0.61.0。
+
+最终DLL原生Engine/OpenGL合成场景 **78项GPU像素检查 + 2次CPU布局导出** 通过：三档12/20/28裂片开裂/分离/收缩/冲击波、双裂隙与断界残痕、侧/后视角、1.8/3/4秒像素完全恢复。原虚夜GPU45项距离侵蚀/水面/建筑/收缩爆炸/结束恢复回归亦通过。已查看 [关键阶段](../design/abyss-space-v2/previews/native-key-stages.png) 与 [左右手HUD](../design/abyss-space-v2/previews/hud-schematic.png)；前者为原生GPU上的原创合成地形，后者为真实Place函数坐标+示意控件的CPU图，均明确标注**非游戏、非Android**。没有声称裂片含真实场景截图，几何近似限制见设计文档。
+
+三张内置image_gen生成图分别保留原始图/完整提示词/哈希，仅做透明RGBA与256尺寸转换；原生Image.Load解码、透明角、HUD资源路径及包内字节校验通过。包/版本副本字节一致：**7,746,828字节，146项**，Version=0.61.0；SHA-256 `D1AA2FBC42B5C6C91AA70C6F031B09A7E76E5B893CDCC735E6AC01C154C6C376`。DLL SHA-256 `73FE449BFD43F57996146C733B8DDF0F43DC26AA8B64A9A298B6B3ECCB02A5D4`，GPU测试和包内DLL一致。对比0.60.0：新增仅3张图标；变更仅DLL/modinfo/署名；140项旧条目逐字节保持，包括全部旧模型、音频、贴图、CSV和数据库。0.60.0回退包SHA仍为 `164BA73E8A1806B3CA7B71DD3941789DF9BDE8C4D5D9F4C58C531B7FF9D39F31`。
+
+**待验证**：Android7723实际加载/触屏、画面震撼程度和侧面观感、手机帧率与密集实体服务器耗时、实际HP/护甲与其他Mod Hook、真实单机/房主/普通客户端、原生移动旧包竞争、延迟/丢包/乱序/重连和输入恢复。离线规则、无socket夹具、CPU图和合成GPU不能替代这些验收。无游戏方块、实体或存档写入以制造视觉。只进行本地main提交，未推送或发布。
+
 ## 2026-10-31 main 0.60.0：真实场景深度侵蚀与坍缩爆发
 
 开发前本地与fetch后的origin/main均为9ff150a/0.59.1，工作区干净；建立本地回退分支`backup/abyss-0.59.1-before-distance-erosion`。只改阿比斯大招视觉、对应纯规则、测试及文档，不更改其它神器、星门、伤害/免伤参数或协议。完整方案和逐项真机验收见 [VOID-HORIZON.md](VOID-HORIZON.md)。

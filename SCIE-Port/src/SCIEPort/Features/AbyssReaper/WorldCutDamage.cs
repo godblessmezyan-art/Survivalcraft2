@@ -11,17 +11,14 @@ namespace SCIEPort.Features.AbyssReaper
     {
         private readonly SubsystemTerrain terrain;
         private readonly SubsystemBodies bodies;
-        private readonly SubsystemGameInfo info;
-        private readonly bool players,passive;
-        private readonly float sweepPower,closePower;
-        private readonly List<ComponentBody> candidates=new List<ComponentBody>(WorldCutRules.MaxBodies);
+        private readonly float sweepPower;
+        private readonly DynamicArray<ComponentBody> candidates=new DynamicArray<ComponentBody>();
         private int rays,checks;
         internal WorldCutDamage(SubsystemTerrain t,SubsystemBodies b,SubsystemGameInfo i,bool allowPlayers,bool allowPassive,float sweep,float close)
-        { terrain=t;bodies=b;info=i;players=allowPlayers;passive=allowPassive;sweepPower=sweep;closePower=close; }
+        { terrain=t;bodies=b;sweepPower=sweep; }
         internal void BeginFrame(bool active)
         {
-            rays=0;checks=0;candidates.Clear();if(!active)return;
-            foreach(var body in bodies.Bodies) { if(candidates.Count>=WorldCutRules.MaxBodies)break;candidates.Add(body); }
+            rays=0;checks=0;candidates.Clear();
         }
         internal bool Loaded(Vector3 p)
         {
@@ -31,8 +28,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private bool Protected(Vector3 p)
         {
-            Territoriy territory;
-            return SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(Terrain.ToCell(p.X),Terrain.ToCell(p.Z),out territory);
+            return !VoidPortalSafety.Unprotected(Terrain.ToCell(p.X),Terrain.ToCell(p.Z));
         }
         internal WorldCutFailure Step(Vector3 origin,Vector3 direction,Vector3 right,float from,float to,out float safe)
         {
@@ -63,8 +59,7 @@ namespace SCIEPort.Features.AbyssReaper
             var creature=body.Entity.FindComponent<ComponentCreature>(false);
             if(creature==null || creature.ComponentHealth.Health<=0)return false;
             bool player=creature is ComponentPlayer;
-            bool predator=creature.Category==CreatureCategory.LandPredator||creature.Category==CreatureCategory.WaterPredator;
-            if(player?(!players||!info.WorldSettings.IsFriendlyFireEnabled):(!predator&&!passive))return false;
+            if(player||VoidSpaceDamage.IsPlayerCarrier(body))return false;
             center=body.BoundingBox.Center();half=(body.BoundingBox.Max-body.BoundingBox.Min)*.5f;
             if(!Loaded(center)||!Finite(half)||Protected(center))return false;
             for(int x=0;x<2;x++)for(int z=0;z<2;z++)
@@ -78,8 +73,10 @@ namespace SCIEPort.Features.AbyssReaper
         {
             // Even a forged presentation event can never enter client-side damage.
             if(CommonLib.WorkType!=WorkType.Local && CommonLib.WorkType!=WorkType.Server)return false;
-            if(cast.VisualOnly)return false;
+            if(cast.VisualOnly||closing)return false; // No legacy closing damage in V2.
             Vector3 at=cast.Origin+cast.Direction*(closing?to:from);
+            Vector3 end=cast.Origin+cast.Direction*to,min=Vector3.Min(at,end)-new Vector3(7),max=Vector3.Max(at,end)+new Vector3(7);
+            candidates.Clear();bodies.FindBodiesInArea(min.XZ,max.XZ,candidates);
             bool hit=false;
             foreach(var body in candidates)
             {
@@ -94,7 +91,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(closing?!WorldCutRules.Collapse(along-to,side,delta.Y,ha,hs,half.Y):!WorldCutRules.Swept(along,side,delta.Y,ha,hs,half.Y,from,to))continue;
                 if(!Eligible(cast,body,out center,out half)||!ClearSight(at,center)||!cast.Hits.Add(body.Entity,closing))continue;
                 // Capture dedup before calling external hooks: exceptions cannot cause retry damage.
-                ComponentMiner.AttackBody(body,cast.Owner,center,cast.Direction,closing?closePower:sweepPower,false);
+                ComponentMiner.AttackBody(body,cast.Owner,center,cast.Direction,sweepPower,false);
                 hit=true;
             }
             return hit;

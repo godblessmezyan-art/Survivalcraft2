@@ -1,0 +1,18 @@
+{
+  "baseline_sha256": "164BA73E8A1806B3CA7B71DD3941789DF9BDE8C4D5D9F4C58C531B7FF9D39F31",
+  "package_sha256": "D1AA2FBC42B5C6C91AA70C6F031B09A7E76E5B893CDCC735E6AC01C154C6C376",
+  "dll_sha256": "73FE449BFD43F57996146C733B8DDF0F43DC26AA8B64A9A298B6B3ECCB02A5D4",
+  "bytes": 7746828,
+  "entries": 146,
+  "added": [
+    "Assets/Textures/AbyssBlinkV2.png",
+    "Assets/Textures/AbyssShatterV2.png",
+    "Assets/Textures/AbyssWorldCutV2.png"
+  ],
+  "changed": [
+    "SCIEPort.dll",
+    "THIRD-PARTY-NOTICES.md",
+    "modinfo.json"
+  ],
+  "preserved": 140
+}

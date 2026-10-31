@@ -40,6 +40,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new WorldCutPackage());
                 PackageManager.RegisterPackage(new VoidHorizonPackage());
                 PackageManager.RegisterPackage(new VoidPortalPackage());
+                PackageManager.RegisterPackage(new VoidSpacePackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -116,6 +117,7 @@ namespace SCIEPort.Mod
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
             if (DomainProtected(componentHealth)) { Skip=true; return; }
+            if (componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ProtectFall(componentHealth,attacker,ignoreInvulnerability,cause)==true) { Skip=true; return; }
             if (SubsystemPoseidon.BlocksDrowning(componentHealth, attacker, cause)) { Skip = true; return; }
             Skip = componentHealth?.Project.FindSubsystem<SubsystemFourSaints>(false)?.HandleInjury(componentHealth, amount, attacker, ignoreInvulnerability, cause) == true;
         }

@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.23.0
 
+2026-10-31：SCIE-Port 0.61.0仅改阿比斯技能/HUD/图标及新增独立251协议；本清单63种材料、族标签、DATA、家具模板和施工限额保持，不得将神器ID952或技能几何写入蓝图。此为能力无变更记录。
+
 本文件只列出建筑材料、DATA 和家具能力；生成格式统一见 [蓝图生成规范](BLUEPRINT-SPEC.md)，可复制提示词见 [AI 提示模板](AI-BLUEPRINT-PROMPT.md)。
 
 支持 63 种原版方块，10 种结构块家具模板。schema 1/2/3 均可导入，新生成和新保存统一使用 schema 3。v0.23.0 不新增材料或 DATA；机器可读的 [逐类型能力矩阵](blueprint-block-capabilities.json) 由代码生成，列出精确 allowedData 和限额。

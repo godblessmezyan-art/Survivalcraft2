@@ -73,6 +73,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Abyss A3 geometry/runtime asset integrity fail
 & (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-AbyssReaper.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-AbyssHud.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-AbyssSpaceV2.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Abyss.Tests/SCIEPort.Abyss.Tests.csproj') -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
@@ -328,6 +329,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests f
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input/domain regression' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'WorldCut native regression failed' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssSpaceV2.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Abyss Space V2 native authority/landing/damage regression failed' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-AbyssHost.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss host targeting/input/portal regression failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidPrototype.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -2361,6 +2364,7 @@ Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }
 & (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-AbyssHud.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-AbyssSpaceV2.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir -Package $package
 
 Write-Host "Package: $package"

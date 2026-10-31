@@ -1,5 +1,16 @@
 # Third-party notices
 
+## Original Abyss Space V2 skill badges (2026-10-31)
+
+Three transparent circular badges were generated with the built-in image_gen tool
+for this project: `AbyssWorldCutV2.png`, `AbyssBlinkV2.png`, `AbyssShatterV2.png`.
+Full prompts, unmodified generated originals and original/runtime SHA-256 records
+are preserved under `design/abyss-space-v2/`. Runtime copies only convert RGBA and
+resize to 256×256; no third-party artwork, sampled game textures or source video
+is included. These original assets may be included and redistributed with the Mod.
+The project-authored runtime fracture meshes use native primitive rendering;
+synthetic GPU fixtures/HUD diagrams are QA evidence and are not packaged.
+
 ## Original Poseidon trident V1 (2026-10-28)
 
 `scripts/New-PoseidonAssets.py` authors new low-poly trident geometry, an opaque

@@ -24,6 +24,27 @@ namespace SCIEPort.Features.Artifacts
         {
             return ArrangeCore(gui,root,null,Vector2.Zero,buttons);
         }
+        internal static bool ArrangeAbyss(ComponentGui gui,CanvasWidget root,LabelWidget status,CanvasWidget[] buttons)
+        {
+            if(buttons==null||buttons.Length!=5)return false;
+            var controls=gui.ControlsContainerWidget;root.Size=controls.ActualSize;
+            var obstacles=new List<ArtifactSkillLayout.Rect>();
+            foreach(Widget widget in controls.AllChildren)
+            {
+                if(widget==root||widget.IsChildWidgetOf(root)||!widget.IsVisibleGlobal||!widget.IsHitTestVisible)continue;
+                if(!(widget is ButtonWidget)&&!(widget is ClickableWidget)&&!(widget is TouchInputWidget)&&!(widget is MoveRoseWidget)&&!(widget is InventorySlotWidget))continue;
+                if(obstacles.Count>=254){root.IsVisible=false;return false;}obstacles.Add(Bounds(controls,widget));
+            }
+            obstacles.Add(Bounds(controls,gui.ShortInventoryWidget));obstacles.Add(Bounds(controls,gui.MoveWidget));
+            ArtifactSkillLayout.Rect[] places;
+            bool safe=AbyssReaper.AbyssSpaceHudLayout.Place(root.Size.X,root.Size.Y,Bounds(controls,gui.LookWidget),obstacles,SettingsManager.LeftHandedLayout,out places);
+            root.IsVisible=safe;if(!safe)return false;
+            for(int i=0;i<5;i++)CanvasWidget.SetPosition(buttons[i],new Vector2(places[i].X,places[i].Y));
+            var hint=new ArtifactSkillLayout.Rect{X=Math.Max(8,Math.Min(root.Size.X-status.Size.X-8,places[0].X)),Y=places[3].Y-status.Size.Y-4,W=status.Size.X,H=status.Size.Y};
+            status.IsVisible=hint.Y>=8&&!hint.Overlaps(Bounds(controls,gui.LookWidget));
+            foreach(var obstacle in obstacles)if(hint.Overlaps(obstacle))status.IsVisible=false;
+            CanvasWidget.SetPosition(status,new Vector2(hint.X,hint.Y));return true;
+        }
         internal static bool ArrangeWithStatus(ComponentGui gui,CanvasWidget root,LabelWidget status,params CanvasWidget[] buttons)
         {
             return ArrangeCore(gui,root,status,status.Size,buttons);

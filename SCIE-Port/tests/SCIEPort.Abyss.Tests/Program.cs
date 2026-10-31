@@ -17,6 +17,7 @@ tap.Input(true,3.03);tap.Input(false,3.08);Check(tap.Stage==0);Check(tap.Impact(
 // Clamp a delayed input hint to game-time origin instead of invalidating a negative press time.
 var delayed=new AbyssCombo();delayed.Input(true,.3,.5f);Check(delayed.Charge(.4)>0);delayed.Input(false,.7);Check(delayed.Stage==3);
 ArtifactLayoutTests.Run();
+AbyssSpaceHudTests.Run();
 WorldCutTests.Run();
 PortalTests.Run();
 PortalTravelTests.Run();

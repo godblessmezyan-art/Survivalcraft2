@@ -25,7 +25,8 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private readonly ComponentGui gui;
         private readonly CanvasWidget panel;
-        private readonly Button[] buttons=new Button[4];
+        private readonly Button[] buttons=new Button[5];
+        private readonly CanvasWidget[] roots=new CanvasWidget[5];
         private readonly LabelWidget status;
         private int capturedTouch=-1,capturedSlot;
         internal bool Visible => panel.IsVisible;
@@ -34,21 +35,23 @@ namespace SCIEPort.Features.AbyssReaper
             gui=owner;
             panel=new CanvasWidget { Name="SCIEPort.Abyss.LookSkills",HorizontalAlignment=WidgetAlignment.Near,VerticalAlignment=WidgetAlignment.Near,IsHitTestVisible=false,IsVisible=false };
             Texture2D atlas=ContentManager.Get<Texture2D>("Textures/AbyssSkillsV1");
-            string[] names={"星门","断界斩","瞬狩","终焉坍缩"};
-            for(int i=0;i<4;i++)
+            string[] names={"断界斩","无界折跃","万象破碎","虚夜湮灭","裂界星门"};
+            string[] icons={"Textures/AbyssWorldCutV2","Textures/AbyssBlinkV2","Textures/AbyssShatterV2"};
+            for(int i=0;i<5;i++)
             {
-                float size=i==3?WorldCutHudLayout.Ultimate:WorldCutHudLayout.Slot;
+                float size=i==3?88:i==4?64:72;
                 var button=new Button();buttons[i]=button;
                 button.Root=new CanvasWidget { Size=new Vector2(size),IsHitTestVisible=false };
-                Vector2 uv=new Vector2((i%2)*.5f,(i/2)*.5f);
-                button.Icon=new RectangleWidget { Size=new Vector2(size),Subtexture=new Subtexture(atlas,uv,uv+new Vector2(.5f)),FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
+                Vector2 uv=i==3?new Vector2(.5f):Vector2.Zero;
+                Subtexture texture=i<3?new Subtexture(ContentManager.Get<Texture2D>(icons[i]),Vector2.Zero,Vector2.One):new Subtexture(atlas,uv,uv+new Vector2(.5f));
+                button.Icon=new RectangleWidget { Size=new Vector2(size),Subtexture=texture,FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
                 button.Glow=new RectangleWidget { Size=new Vector2(size),Subtexture=button.Icon.Subtexture,FillColor=Color.Transparent,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false };
                 button.Cooldown=new LabelWidget { Size=new Vector2(size),TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=i==3?.92f:.8f,DropShadow=true,Color=Color.White,IsHitTestVisible=false };
                 var label=new LabelWidget { Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.38f,DropShadow=true,Color=new Color(237,218,255),IsHitTestVisible=false };
                 button.Hit=new AbyssSkillHitTarget { HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,IsHitTestVisible=true };
                 button.Root.Children.Add(button.Icon);button.Root.Children.Add(button.Glow);button.Root.Children.Add(button.Cooldown);button.Root.Children.Add(label);button.Root.Children.Add(button.Hit);
                 CanvasWidget.SetPosition(label,new Vector2(0,size*.71f));
-                panel.Children.Add(button.Root);
+                roots[i]=button.Root;panel.Children.Add(button.Root);
             }
             status=new LabelWidget { Size=new Vector2(232,24),FontScale=.42f,DropShadow=true,Color=new Color(221,190,244),IsHitTestVisible=false };
             panel.Children.Add(status);gui.ControlsContainerWidget.Children.Add(panel);
@@ -72,18 +75,18 @@ namespace SCIEPort.Features.AbyssReaper
         internal void CancelInput(){capturedTouch=-1;capturedSlot=0;}
         private int At(Vector2 screen)
         {
-            for(int i=0;i<4;i++)if(buttons[i].Hit.IsEnabledGlobal&&buttons[i].Hit.HitTest(screen))return i+1;
+            for(int i=0;i<5;i++)if(buttons[i].Hit.IsEnabledGlobal&&buttons[i].Hit.HitTest(screen))return i+1;
             return 0;
         }
-        internal void Update(double remaining,double blinkRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked)
+        internal void Update(double remaining,double blinkRemaining,double shatterRemaining,double horizonRemaining,bool busy,bool pending,string feedback,bool blocked)
         {
             if(blocked){panel.IsVisible=false;CancelInput();return;}
-            if(!Artifacts.ArtifactSkillHud.ArrangeWithStatus(gui,panel,status,buttons[0].Root,buttons[1].Root,buttons[2].Root,buttons[3].Root)){CancelInput();return;}
-            for(int i=0;i<4;i++)
+            if(!Artifacts.ArtifactSkillHud.ArrangeAbyss(gui,panel,status,roots)){CancelInput();return;}
+            for(int i=0;i<5;i++)
             {
-                double cooldown=i==1?remaining:i==2?blinkRemaining:i==3?horizonRemaining:0;
+                double cooldown=i==0?remaining:i==1?blinkRemaining:i==2?shatterRemaining:i==3?horizonRemaining:0;
                 bool ready=cooldown<=0;
-                buttons[i].Cooldown.Text=i==1&&pending?"…":ready?string.Empty:Math.Ceiling(cooldown).ToString("0");
+                buttons[i].Cooldown.Text=i==0&&pending?"…":ready?string.Empty:Math.Ceiling(cooldown).ToString("0");
                 buttons[i].Icon.FillColor=ready&&!busy?Color.White:new Color(120,103,142,225);
                 float pulse=.5f+.5f*MathUtils.Sin((float)Time.RealTime*2.2f);
                 buttons[i].Glow.FillColor=ready&&!busy?new Color(177,112,240)*(buttons[i].Hit.IsPressed?.28f:.035f+pulse*.055f):Color.Transparent;

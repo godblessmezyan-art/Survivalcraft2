@@ -1,0 +1,6 @@
+{
+  "gpu": "Native Engine/OpenGL synthetic geometry; NOT gameplay/Android",
+  "hud": "CPU layout from real compiled Place method; schematic controls, not native UI",
+  "assembly_sha256": "73FE449BFD43F57996146C733B8DDF0F43DC26AA8B64A9A298B6B3ECCB02A5D4",
+  "art": "Existing imagegen PNGs, resized only for schematic"
+}

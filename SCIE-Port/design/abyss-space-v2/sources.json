@@ -1,0 +1,40 @@
+{
+  "tool": "built-in image_gen",
+  "prompt_file": "prompts.json",
+  "processing": "RGBA conversion and 256x256 Lanczos resize only; generated transparency preserved",
+  "assets": [
+    {
+      "name": "WorldCutV2",
+      "original": "design/abyss-space-v2/originals/WorldCutV2.png",
+      "original_sha256": "EDD5F5C4B88892F6243FFB1425F6A2482D4306ED01DBB6DA027411560EE2209F",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssWorldCutV2.png",
+      "runtime_sha256": "360360169883C0EED8CADCF56812F10956A1E9F74D4A536FD8B1D35757FF98DB",
+      "original_size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "name": "BlinkV2",
+      "original": "design/abyss-space-v2/originals/BlinkV2.png",
+      "original_sha256": "8C5985ABDF84F1400F54AA40AC81B5D0DBEF804885D7A03D2C8BA75DC9B9D225",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssBlinkV2.png",
+      "runtime_sha256": "36E9EE5C2A46DB8CC8201FC7AC847427E186BE0E078FB03908F8EF65B8AEC50C",
+      "original_size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "name": "ShatterV2",
+      "original": "design/abyss-space-v2/originals/ShatterV2.png",
+      "original_sha256": "85418AB4D94ACAB49453D27A60981CEA2A8B367FB968A1C9D0BFBB3C91F16B54",
+      "runtime": "src/SCIEPort/Assets/Textures/AbyssShatterV2.png",
+      "runtime_sha256": "D5D272B236A7C9FDEDA9F716F7A42D2FEF60C47F8D40A0C8B258A9F5A885200E",
+      "original_size": [
+        1254,
+        1254
+      ]
+    }
+  ]
+}

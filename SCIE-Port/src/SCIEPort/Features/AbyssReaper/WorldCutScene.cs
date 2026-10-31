@@ -16,7 +16,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(!visible || casts.Count==0)return;triangles=0;lines=0;
             var core=renderer.FlatBatch(-2,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Opaque);
-            var edges=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);
+            var edges=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.NonPremultiplied);
             foreach(var cast in casts)
             {
                 if(cast.Motion.Phase==WorldCutPhase.Finished)continue;

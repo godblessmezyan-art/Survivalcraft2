@@ -16,6 +16,7 @@ namespace SCIEPort.Features.AbyssReaper
             internal Vector3 Origin,Direction,Right;
             internal WorldCutMotion Motion;
             internal bool VisualOnly;
+            internal Client Connection;internal Guid ConnectionToken;
             internal readonly WorldCutHitLedger<Entity> Hits=new WorldCutHitLedger<Entity>();
         }
         private sealed class Peer : WorldCutSession
@@ -24,7 +25,7 @@ namespace SCIEPort.Features.AbyssReaper
             internal string Feedback;
             internal double FeedbackUntil;
         }
-        private struct Pending { internal ComponentPlayer Owner;internal Client Reply;internal WorldCutPackage Packet; }
+        private struct Pending { internal ComponentPlayer Owner;internal Client Reply;internal Guid Token;internal WorldCutPackage Packet; }
         private readonly Project project;
         private readonly SubsystemPlayers players;
         private readonly SubsystemTime clock;
@@ -81,11 +82,12 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal void Enqueue(ComponentPlayer player,Client reply,WorldCutPackage packet)
         {
-            lock(queue)if(!disposed&&queue.Count<WorldCutRules.MaxQueue)queue.Enqueue(new Pending { Owner=player,Reply=reply,Packet=packet.Snapshot() });
+            lock(queue)if(!disposed&&queue.Count<WorldCutRules.MaxQueue)queue.Enqueue(new Pending { Owner=player,Reply=reply,Token=reply?.TokenId??Guid.Empty,Packet=packet.Snapshot() });
         }
         private bool OwnerSafe(ComponentPlayer p) => p!=null && p.Project==project && p.Entity.IsAddedToProject && p.ComponentHealth.Health>0
             && p.PlayerData.IsReadyForPlaying && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index
             && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
+            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.Busy(p)!=true
             && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true;
         private void Reject(ComponentPlayer p,Client to,WorldCutPackage request,WorldCutFailure reason)
         {
@@ -96,6 +98,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             var p=pending.Owner;var request=pending.Packet;
             if(!Authority || p==null || p.Project!=project || !p.Entity.IsAddedToProject || p.Entity.EntityId!=request.Caster)return;
+            if(pending.Reply!=null&&(pending.Token!=pending.Reply.TokenId||pending.Reply.State<ClientState.ProjectLoaded||!ReferenceEquals(p.PlayerData.Client,pending.Reply)||pending.Reply.PlayerData?.ComponentPlayer!=p))return;
             var e=Get(p);if(e==null){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
             e.Bind(request.Caster,pending.Reply?.TokenId??Guid.Empty);
             if(request.Kind==4)
@@ -115,7 +118,8 @@ namespace SCIEPort.Features.AbyssReaper
             Vector3 origin=p.ComponentCreatureModel.EyePosition-Vector3.UnitY*.25f;
             float safe;var clearance=damage.Step(origin,direction,right,0,.05f,out safe);
             if(clearance!=WorldCutFailure.None){Reject(p,pending.Reply,request,clearance);return;}
-            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Sequence=request.Sequence,Origin=origin,Direction=direction,Right=right,Motion=new WorldCutMotion(Now) };
+            if(project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ReserveCut(p,request.Sequence)==false){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
+            var cast=new Cast { Owner=p,OwnerGuid=p.PlayerGuid,Sequence=request.Sequence,Origin=origin,Direction=direction,Right=right,Motion=new WorldCutMotion(Now),Connection=pending.Reply,ConnectionToken=pending.Token };
             casts.Add(cast);e.Accept(Now);e.Feedback="断界斩 · 向后聚能";e.FeedbackUntil=Now+.8;
             Publish(cast,1);
         }
@@ -182,7 +186,7 @@ namespace SCIEPort.Features.AbyssReaper
             for(int i=0;i<WorldCutRules.RequestsPerFrame;i++)
             {
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
-                try { if(Authority)Accept(pending);else Receive(pending.Packet); }
+                try { if(Authority)Accept(pending);else if(ReferenceEquals(pending.Reply,CommonLib.Net?.Server)&&pending.Token==(CommonLib.Net?.Server?.TokenId??Guid.Empty))Receive(pending.Packet); }
                 catch(Exception error) { if(pending.Owner!=null)Reject(pending.Owner,pending.Reply,pending.Packet,WorldCutFailure.Invalid);Log.Warning("[SCIEPort:WorldCut] Request rejected: "+error.GetType().Name); }
             }
             foreach(var p in players.ComponentPlayers)
@@ -195,10 +199,10 @@ namespace SCIEPort.Features.AbyssReaper
                 var cast=casts[i];
                 try
                 {
-                    if(!OwnerSafe(cast.Owner)||Now-cast.Motion.Started>=WorldCutRules.Lifetime)
+                    if(!OwnerSafe(cast.Owner)||cast.Owner.PlayerGuid!=cast.OwnerGuid||cast.Connection!=null&&(cast.Connection.TokenId!=cast.ConnectionToken||cast.Connection.State<ClientState.ProjectLoaded||cast.Connection.PlayerData?.ComponentPlayer!=cast.Owner)||Now-cast.Motion.Started>=WorldCutRules.Lifetime)
                     { if(Now-cast.Motion.Started>=WorldCutRules.Lifetime)Report(cast.Owner,WorldCutFailure.Capacity);Finish(cast,true);casts.RemoveAt(i);continue; }
-                    // A skipped frame must not discard the closing damage edge before expiry.
-                    if(cast.Motion.TakeCloseImpact(Now) && !cast.VisualOnly)damage.Apply(cast,cast.Motion.Distance,cast.Motion.Distance,true);
+                    // V2 residual damage belongs to its own four-second world-space rift job.
+                    // The legacy 40-power closing impact is deliberately never dispatched.
                     if(cast.Motion.Expired(Now)){Finish(cast,false);casts.RemoveAt(i);continue;}
                     Animate(cast);
                     cast.Motion.BeginFlight(Now);
@@ -211,14 +215,17 @@ namespace SCIEPort.Features.AbyssReaper
                             var collision=cast.VisualOnly?WorldCutFailure.None:damage.Step(cast.Origin,cast.Direction,cast.Right,from,to,out safe);
                             if(collision==WorldCutFailure.Capacity)break; // No budget => no unchecked advance or damage.
                             if(collision==WorldCutFailure.Protected||collision==WorldCutFailure.Unloaded){Report(cast.Owner,collision);Finish(cast,true);break;}
-                            bool hit=!cast.VisualOnly && damage.Apply(cast,from,safe,false);
+                            if(!cast.VisualOnly)damage.Apply(cast,from,safe,false);
                             cast.Motion.Move(safe);
-                            if(!cast.VisualOnly && (hit||collision==WorldCutFailure.Wall||safe>=WorldCutRules.Range))
-                            { cast.Motion.Close(Now,safe);Publish(cast,3);break; }
+                            if(!cast.VisualOnly && (collision==WorldCutFailure.Wall||safe>=WorldCutRules.Range))
+                            {
+                                cast.Motion.Close(Now,safe);
+                                project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.AddCutRift(cast.Owner,cast.Sequence,cast.Origin,cast.Direction,safe);
+                                Publish(cast,3);break;
+                            }
                             if(cast.VisualOnly && safe>=WorldCutRules.Range){cast.Motion.Close(Now,safe);break;}
                         }
                     }
-                    if(cast.Motion.TakeCloseImpact(Now) && !cast.VisualOnly)damage.Apply(cast,cast.Motion.Distance,cast.Motion.Distance,true);
                 }
                 catch(Exception error) { Finish(cast,true);Report(cast.Owner,WorldCutFailure.Invalid);Log.Warning("[SCIEPort:WorldCut] Cast cancelled: "+error.GetType().Name); }
                 if(cast.Motion.Phase==WorldCutPhase.Finished){cast.Hits.Clear();casts.RemoveAt(i);}
@@ -239,6 +246,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private void Finish(Cast cast,bool cancel)
         {
+            project?.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ReleaseCut(cast.Owner,cast.Sequence);
             if(cancel&&cast.Motion.Phase!=WorldCutPhase.Finished)Publish(cast,5);
             Peer entry;if(peers.TryGetValue(cast.OwnerGuid,out entry)&&entry.MatchesEntity(cast.Owner.Entity.EntityId))entry.ActiveUntil=0;
             cast.Motion.Cancel();cast.Hits.Clear();cast.Owner.ComponentCreatureModel.InHandItemRotationOrder=Vector3.Zero;cast.Owner.ComponentCreatureModel.InHandItemOffsetOrder=Vector3.Zero;

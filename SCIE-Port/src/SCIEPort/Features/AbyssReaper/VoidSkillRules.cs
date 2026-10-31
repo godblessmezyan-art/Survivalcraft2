@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 namespace SCIEPort.Features.AbyssReaper
 {
-    internal enum VoidSkill { Portal=1, WorldCut=2, Blink=3, Horizon=4 }
+    internal enum VoidSkill { WorldCut=1, Blink=2, Shatter=3, Horizon=4, Portal=5 }
     internal enum HorizonPhase { Awakening, SkyRift, Descent, Domain, Collapse, Finished }
     // Pure rules: never touch player, terrain, graphics or network state.
     internal static class VoidSkillRules
     {
-        internal const float BlinkRange=18f, BlinkRadius=4f, BlinkPower=70f;
+        internal const float BlinkRange=18f, BlinkRadius=2.2f, BlinkPower=75f;
         internal const float HorizonRadius=128f, HorizonHeight=256f;
-        internal const double BlinkCooldown=15, HorizonCooldown=180, HorizonDuration=4.2;
+        internal const double BlinkCooldown=8, HorizonCooldown=180, HorizonDuration=4.2;
         internal const double ExpansionStart=.7, HorizonAdvance=2, DomainStart=3.1, CollapseStart=3.7, BurstStart=3.92, FinalImpact=HorizonDuration;
         internal static int Quality(int value) => Math.Max(0,Math.Min(2,value));
         internal static int VfxSegments(int quality,int low,int medium,int high) => Quality(quality)==0?low:Quality(quality)==1?medium:high;
