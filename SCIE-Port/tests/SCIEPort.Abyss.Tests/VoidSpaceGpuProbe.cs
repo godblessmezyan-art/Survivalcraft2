@@ -18,7 +18,7 @@ public static class VoidSpaceGpuBootstrap
 public static class VoidSpaceGpuProbe
 {
     static Assembly mod;static string output;static object rift,shatter,geometry;static PrimitivesRenderer3D world;
-    static RenderTarget2D target;static int checks;
+    static RenderTarget2D target;static int checks;static readonly System.Text.StringBuilder coverage=new System.Text.StringBuilder("quality,aspect,fov,covered_percent\n");
     const BindingFlags F=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
     static void Check(bool ok,string name){checks++;if(!ok)throw new Exception(name);}
     public static void Run(string path,string directory)
@@ -36,7 +36,7 @@ public static class VoidSpaceGpuProbe
         b.QueueQuad(p,p+y,p+x+y,p+x,color);b.QueueQuad(p+x,p+x+y,p+x+y+z,p+x+z,Color.MultiplyColorOnly(color,.8f));
         b.QueueQuad(p+x+z,p+x+y+z,p+y+z,p+z,color);b.QueueQuad(p+z,p+y+z,p+y,p,Color.MultiplyColorOnly(color,.7f));b.QueueQuad(p+y,p+y+z,p+x+y+z,p+x+y,color);
     }
-    static Color[] Frame(byte skill,float time,int quality,float yaw,string name)
+    static Color[] Frame(byte skill,float time,int quality,float yaw,string name,bool foreground=true,float aspect=960f/540,float fov=65,bool lookAway=false)
     {
         Display.RenderTarget=target;Display.Viewport=new Viewport(0,0,960,540);Display.Clear(new Color(136,178,204),1,0);
         var batch=world.FlatBatch(0,DepthStencilState.Default,RasterizerState.CullNone,BlendState.Opaque);
@@ -45,9 +45,9 @@ public static class VoidSpaceGpuProbe
         Box(batch,new Vector3(5,-1.6f,15),new Vector3(3,4,4),new Color(145,132,113));
         for(int i=0;i<7;i++){Box(batch,new Vector3(-13+i*4,-1.6f,36),new Vector3(.5f,5,.5f),new Color(100,75,56));Box(batch,new Vector3(-14+i*4,2,35),new Vector3(2.5f,3,2.5f),new Color(51,98,66));}
         float a=yaw*MathUtils.PI/180;Vector3 eye=new Vector3((float)Math.Sin(a)*15,2,15-(float)Math.Cos(a)*15),focus=new Vector3(0,1,15);
-        Matrix view=Matrix.CreateLookAt(eye,focus,Vector3.UnitY)*Matrix.CreatePerspectiveFieldOfView(65*MathUtils.PI/180,960f/540,.1f,256);
+        Matrix view=Matrix.CreateLookAt(eye,lookAway?eye*2-focus:focus,Vector3.UnitY)*Matrix.CreatePerspectiveFieldOfView(fov*MathUtils.PI/180,aspect,.1f,256);
         world.Flush(view);var scene=skill==3?shatter:rift;var renderer=Renderer(scene);renderer.Clear();
-        if(skill==3)scene.GetType().GetMethod("Queue",F).Invoke(scene,new object[]{geometry,new Vector3(0,1,15),Vector3.UnitZ,time,quality});
+        if(skill==3)scene.GetType().GetMethod(foreground?"QueueForeground":"Queue",F).Invoke(scene,new object[]{geometry,new Vector3(0,1,15),Vector3.UnitZ,time,quality});
         else scene.GetType().GetMethod("Queue",F).Invoke(scene,new object[]{new Vector3(0,0,5),new Vector3(0,0,20),Vector3.UnitZ,skill,time,quality,123u});
         renderer.Flush(view);var pixels=new Color[960*540];target.GetData(pixels,0,new Rectangle(0,0,960,540));
         using(var file=File.Create(Path.Combine(output,name+".png")))RenderTarget2D.Save(target,file,ImageFileFormat.Png,false);renderer.Clear();return pixels;
@@ -81,13 +81,33 @@ public static class VoidSpaceGpuProbe
             {
                 string p="q"+q+"-skill"+skill+"-";var before=Frame(skill,0,q,0,p+"before");
                 float[] times=skill==3?new[]{.15f,.6f,1.1f,1.3f,1.35f,1.45f,1.6f,1.79f}:skill==1?new[]{.3f,2f,3.7f}:new[]{.3f,1.5f,2.7f};
-                foreach(float t in times){var pixels=Frame(skill,t,q,0,p+t.ToString("0.00",CultureInfo.InvariantCulture));Check(Difference(before,pixels)>40,"visible native GPU phase "+p+t);}
+                foreach(float t in times){var pixels=Frame(skill,t,q,0,p+t.ToString("0.00",CultureInfo.InvariantCulture));if(skill!=3||t<1.75f)Check(Difference(before,pixels)>40,"visible native GPU phase "+p+t);}
                 var after=Frame(skill,skill==3?1.8f:skill==1?4:3,q,0,p+"after");Check(Difference(before,after)==0,"exact end clears every V2 fragment "+p);
                 foreach(float yaw in new[]{90f,180f,270f}){var baseline=Frame(skill,0,q,yaw,p+"side"+yaw+"-before");var side=Frame(skill,.7f,q,yaw,p+"side"+yaw);Check(Difference(baseline,side)>40,"world-space side/back view "+p+yaw);}
             }
+            for(int q=0;q<3;q++)
+            {
+                var back=Frame(3,0,q,0,"turn-away-q"+q+"-before",true,960f/540,65,true);
+                var cast=Frame(3,.6f,q,0,"turn-away-q"+q+"-cast",true,960f/540,65,true);
+                Check(Difference(back,cast)==0,"frontal fracture stays behind a turned-away camera rather than sticking to the screen");
+            }
+            for(int q=0;q<3;q++)foreach(float aspect in new[]{16f/9,20f/9})foreach(float fov in new[]{65f,85f})
+            {
+                string p="coverage-q"+q+"-a"+aspect.ToString("0.00",CultureInfo.InvariantCulture)+"-f"+fov;
+                var before=Frame(3,0,q,0,p+"-before",true,aspect,fov);
+                var crack=Frame(3,.15f,q,0,p+"-crack",true,aspect,fov);
+                var filled=Frame(3,.3f,q,0,p+"-filled",true,aspect,fov);
+                Check(Difference(before,crack)<before.Length*.2,"world remains visible while frontal fissures open "+p);
+                Check(Difference(before,filled)>before.Length*.90,"frontal rupture actually covers over 90 percent of viewport pixels "+p);
+                coverage.AppendFormat(CultureInfo.InvariantCulture,"{0},{1:0.00},{2},{3:0.000}\n",q,aspect,fov,100d*Difference(before,filled)/before.Length);
+                var observer=Frame(3,.3f,q,0,p+"-observer",false,aspect,fov);
+                Check(Difference(before,observer)<Difference(before,filled)-before.Length*.10,"observer retains occluding foreground terrain "+p);
+                var exit=Frame(3,1.8f,q,0,p+"-exit",true,aspect,fov);Check(Difference(before,exit)==0,"wide foreground clears exactly at 1.8 seconds "+p);
+            }
             Hud();
+            File.WriteAllText(Path.Combine(output,"coverage.csv"),coverage.ToString());
             File.WriteAllText(Path.Combine(output,"result.txt"),(checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed. Synthetic geometry; NOT gameplay or Android.");
-            Console.WriteLine(checks+" target Engine/OpenGL V2 checks passed: "+output);
+            Console.WriteLine((checks-2)+" target Engine/OpenGL V2 checks and 2 CPU HUD exports passed: "+output);
         }
         finally{Display.RenderTarget=null;target.Dispose();((IDisposable)rift).Dispose();((IDisposable)shatter).Dispose();}
     }

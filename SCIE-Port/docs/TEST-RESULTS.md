@@ -1,5 +1,19 @@
 # 测试结果
 
+## 2026-10-31 main 0.61.1：万象破碎前方裂界扩大
+
+基准`83e43fa` / 0.61.0，开发前工作区干净、fetch+ff-only确认最新；已建`backup/abyss-0.61.0-before-wide-shatter`，旧版本包保留。仅生产文件VoidShatterScene与版本信息变化；战斗Runtime/Damage/Rules/Package未改。完整实现与复现命令见[ABYSS-WIDE-SHATTER.md](ABYSS-WIDE-SHATTER.md)。
+
+`Build-WithPinnedSdk.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release`完整退出码0，日志`artifacts/wide-shatter-0.61.1-build.log`；包括Test-Environment、数据库、其他神器/四圣兽/载具与资源打包检查。五技能HUD1401、原986虚夜协议/生命周期/免伤、12原生HP/600 NPC、890断界斩协议/资源/触控、26,018空间技能原生夹具、597共享星门回归通过。新旧247/249/250/251、星门v1及受保护源码SHA保持；没有客户端伤害或新协议。
+
+最终包DLL另跑`Test-AbyssSpaceGpu.ps1`：**126项目标Engine/OpenGL GPU检查 + 2次CPU HUD导出通过**。低/中/高12/20/28片、16:9/20:9投影与垂直FOV65°/85°的12组前景覆盖率在0.3秒均为100%（960×540离屏像素对比）；0.15秒仍保留80%以上原场景。旁观者路径保留受地形遮挡的近景；正/侧/背面可见，固定位置转头背向裂面时没有粘屏；各档1.8秒与原场景逐像素一致。几何预算仍<1300，没有增加片数、粒子或每帧大数组。首次net472编译0警告0错误，最终Release与目标FppCamera类型检查通过。
+
+已查看并保存[新旧范围与阶段图](../design/abyss-wide-shatter-0.61.1/wide-shatter-stages.png)，含原0.61.0真实GPU旧帧；图上标注合成场景/非游戏/非Android。直接调用同一前景/旁观绘制入口验证GPU状态，不是运行中的GameWidget/FppCamera或真实世界验收。仍为放大的黑紫三维几何，未实现真实场景像素切片。
+
+正式包与版本副本字节一致，**7,747,054字节，146项**，Version=0.61.1；包SHA-256 `428A6B8BFA8A3CB137DB887BF5D4DC9E93F9E10CD069664EC05A7CF4FDE0114C`，DLL SHA-256 `3C831E96FC7EBD23BD63870E7E28F40E910EBBCD00878CC0306655BB3A743A6B`。GPU使用的DLL与包内DLL一致。`Compare-AbyssSpacePackage.py --visual-only`确认相对0.61.0只变DLL/modinfo，其余144条目逐字节保持，无增删；全部图标、模型、音频、数据库和CSV保持。回退0.61.0包SHA仍为`D1AA2FBC42B5C6C91AA70C6F031B09A7E76E5B893CDCC735E6AC01C154C6C376`。
+
+**待验证**：Android7723实际画面、第一/第三人称切换、近墙及空中朝向、手机真实宽屏/FOV设置、真实单人/房主/普通客户端和多人同时施放、取消/换武器/断线恢复、手机填充率/帧率。视觉范围扩大，攻击仍为瞄准15格、半径10格、160名义攻击、1.35秒一次、CD22秒、总长1.8秒；不得将视觉覆盖100%解释为全视野致死或真机场景实拍。只本地main提交，未推送/发布。
+
 ## 2026-10-31 main 0.61.0：阿比斯空间权柄 V2
 
 基准本地main `ac2abd6` / 0.60.0，开发前fetch+ff-only确认远程`9ff150a`无新提交；工作区原先干净。回退分支`backup/abyss-0.60.0-before-space-v2`和0.60.0版本包保留。范围为前三技能、专属五按钮HUD和三张imagegen图标；未推送/发布。完整设计、修改文件与验收清单见 [ABYSS-SPACE-V2.md](ABYSS-SPACE-V2.md)。

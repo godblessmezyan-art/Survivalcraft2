@@ -1,4 +1,4 @@
-"""Optional 0.60.0 -> 0.61.0 package regression; requires the user's retained baseline netmod."""
+"""Optional package regression; default V2 upgrade, or --visual-only for the 0.61.1 shatter patch."""
 import argparse
 import hashlib
 import json
@@ -15,16 +15,18 @@ def main():
     p.add_argument('baseline', type=Path)
     p.add_argument('candidate', type=Path)
     p.add_argument('--report', type=Path)
+    p.add_argument('--visual-only', action='store_true')
     args = p.parse_args()
     with ZipFile(args.baseline) as old, ZipFile(args.candidate) as new:
         before, after = set(old.namelist()), set(new.namelist())
         added = after-before
         changed = {name for name in before & after if sha(old.read(name)) != sha(new.read(name))}
-        expected = {'Assets/Textures/Abyss'+name+'V2.png' for name in ['WorldCut', 'Blink', 'Shatter']}
+        expected = set() if args.visual_only else {'Assets/Textures/Abyss'+name+'V2.png' for name in ['WorldCut', 'Blink', 'Shatter']}
         assert added == expected and not before-after, ('unexpected entries', added, before-after)
-        assert changed == {'SCIEPort.dll', 'modinfo.json', 'THIRD-PARTY-NOTICES.md'}, ('unexpected changes', changed)
-        assert json.loads(old.read('modinfo.json'))['Version'] == '0.60.0'
-        assert json.loads(new.read('modinfo.json'))['Version'] == '0.61.0'
+        expected_changed = {'SCIEPort.dll', 'modinfo.json'} if args.visual_only else {'SCIEPort.dll', 'modinfo.json', 'THIRD-PARTY-NOTICES.md'}
+        assert changed == expected_changed, ('unexpected changes', changed)
+        assert json.loads(old.read('modinfo.json'))['Version'] == ('0.61.0' if args.visual_only else '0.60.0')
+        assert json.loads(new.read('modinfo.json'))['Version'] == ('0.61.1' if args.visual_only else '0.61.0')
         root = Path(__file__).resolve().parents[1]
         assert new.read('THIRD-PARTY-NOTICES.md') == (root/'THIRD-PARTY-NOTICES.md').read_bytes()
         assert new.read('SCIEPort.dll') == (root/'artifacts/build/SCIEPort.dll').read_bytes()

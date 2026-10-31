@@ -1,0 +1,8 @@
+{
+  "evidence": "Target Engine/OpenGL synthetic scenery; NOT game world or Android",
+  "assembly_sha256": "3C831E96FC7EBD23BD63870E7E28F40E910EBBCD00878CC0306655BB3A743A6B",
+  "minimum_tested_frontal_coverage_percent": 100.0,
+  "coverage_cases": 12,
+  "first_person": "Owner FppCamera foreground geometry",
+  "observer": "World-space geometry with DepthRead"
+}

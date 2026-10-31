@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.61.0",
+  "Version": "0.61.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.61.0 阿比斯空间权柄：断界斩四秒裂隙、全方向无界折跃、万象破碎与右四左一触屏布局；主机权威及独立251同步。保留0.60.0虚夜大招、共享永久星门和存档。Android7723与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.61.1 万象破碎裂界扩大：施法者第一人称前方大面积开裂、厚片碎裂和扩张爆炸；保留1.8秒演出、原伤害与联机、虚夜大招和共享星门。Android7723与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

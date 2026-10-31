@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-10-31 SCIE-Port 0.61.1：万象破碎前方裂界扩大
+
+仅三技能Scene/版本变化，无新Hook、包字段/ID或存档格式。核实目标原生Game.FppCamera，施法者第一人称以None深度状态绘制扩大裂面，旁观/第三人称保持DepthRead；仍为世界固定几何近似。0.61.0全部数值、251权威、249/250及v1存档保持。固定x25.01.17/net472 Release、原生回归与126项GPU合成检查 **已确认**；Android7723实际第一/第三人称、FOV/触屏、真实多人/手机性能 **待验证**。视觉一致建议所有人0.61.1，旧包0.61.0和源码回退分支保留。详见[范围扩大](ABYSS-WIDE-SHATTER.md)。
+
 ## 2026-10-31 SCIE-Port 0.61.0：阿比斯空间权柄三技能
 
 固定x25.01.17/net472，新增独立251包（遍历原生/模组IPackage与255槽注册表确认空闲），主机裁定折跃/破碎/残留裂隙，普通客户端双向确认、原生插值重置、时钟/种子驱动观察者；既有247/249/250字段及v1星门存档保持。新增OnCreatureInjure中专门的折跃跌落分支，使用现有Hook注册，未新增Hook名称；原虚夜保护分支优先保持。原生Position/NetPosition/CollisionVelocityChange、身体/自定义方块碰撞与空间查询API已核对。新特效DrawOrder310，仅用原生DepthRead/NonPremultiplied几何近似，不声称切割真实场景像素。
