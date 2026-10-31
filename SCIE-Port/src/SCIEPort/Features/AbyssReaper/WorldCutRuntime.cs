@@ -142,7 +142,9 @@ namespace SCIEPort.Features.AbyssReaper
         private bool ArmCharge(Pending pending,Peer e)
         {
             var p=pending.Owner;if(!OwnerSafe(p)||clock.GameTimeDelta<=0||!e.NewRequest(pending.Packet.Sequence))return false;
-            if(casts.Exists(c=>c.OwnerGuid==p.PlayerGuid)||e.ActiveUntil>Now)return false;
+            // Avoid List<T>.Exists: the target Android/Mono runtime can fail to resolve it.
+            if(e.ActiveUntil>Now)return false;
+            foreach(var cast in casts)if(cast.OwnerGuid==p.PlayerGuid)return false;
             float frequency=1.1f*(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);
             if(!WorldCutRules.Finite(frequency)||frequency<=0)return false;
             e.ChargeSequence=pending.Packet.Sequence;e.ChargeOwner=p;e.ChargeReply=pending.Reply;e.ChargeToken=pending.Token;e.ChargeReleased=false;
