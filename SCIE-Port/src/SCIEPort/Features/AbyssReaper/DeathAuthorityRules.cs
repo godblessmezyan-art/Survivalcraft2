@@ -9,7 +9,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal const byte Toggle=1,Empower=2,Wave=3,Summon=4,Strike=5,Sync=6,Dismiss=7,Recall=8,Stow=9,Manifest=10;
         internal const string HoundTemplate="Wolf_Gray",MountTemplate="Horse_Black_Saddled";
         internal static bool Finite(double v)=>!double.IsNaN(v)&&!double.IsInfinity(v);
-        internal static float LastLife(float resilience)=>1f/Math.Max(1,Math.Min(1000000,WorldCutRules.Finite(resilience)?resilience:100));
+        internal static float LastLife(float resilience)=>1f/Math.Max(1,WorldCutRules.Finite(resilience)?resilience:100);
         internal static bool Owned(Guid owner,Guid actor)=>owner!=Guid.Empty&&owner==actor;
     }
 }

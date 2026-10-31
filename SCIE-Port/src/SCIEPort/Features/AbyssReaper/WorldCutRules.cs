@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace SCIEPort.Features.AbyssReaper
 {
     internal enum WorldCutPhase { Windup, Flying, Closing, Finished }
-    internal enum WorldCutFailure : byte { None, Cooldown, Busy, Unavailable, Protected, Unloaded, Capacity, Timeout, Invalid, Wall }
+    internal enum WorldCutFailure : byte { None, Cooldown, Busy, Unavailable, Protected, Unloaded, Capacity, Timeout, Invalid, Wall, ChargeLost, Empowered, Aim, Execution }
 
     // Independent of Engine, widgets, particles and network transport.
     internal static class WorldCutRules

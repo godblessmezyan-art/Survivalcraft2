@@ -55,7 +55,14 @@ namespace SCIEPort.Features.AbyssReaper
                     Mark mark;if(marks.TryGetValue(c,out mark)&&mark.Owner==p.PlayerGuid&&Now<mark.Until)
                     {
                         if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit){Message(p,"召唤名额已满（七只），请在军势面板释放契约");continue;}
-                        if(Adopt(c,p.PlayerGuid,false)){c.ComponentHealth.Health=1;CommonLib.Net?.QueuePackage(new ComponentHealthPackage(c.ComponentHealth));marks.Remove(c);Message(p,"灵魂契约成立 · 生命已恢复");}
+                        if(Adopt(c,p.PlayerGuid,false))
+                        {
+                            // Use the post-bind resilience: native Health=1 means full health,
+                            // whereas one hit point is the reciprocal of AttackResilience.
+                            c.ComponentHealth.Health=DeathAuthorityRules.LastLife(c.ComponentHealth.AttackResilience);
+                            CommonLib.Net?.QueuePackage(new ComponentHealthPackage(c.ComponentHealth));
+                            FriendPacket(Row(guards[c.Entity.EntityId]));marks.Remove(c);Message(p,"灵魂契约成立 · 保留1点生命");
+                        }
                     }
                     else
                     {

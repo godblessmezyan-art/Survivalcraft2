@@ -11,7 +11,7 @@ groups={
  'Creature':{'DisplayName':('地狱三头犬·刻尔柏洛斯','string'),'Description':('死亡权柄唯一契约兽。三首噬魂：单目标37伤害、3格、1秒。骑乘待第二阶段。','string'),'ConstantSpawn':('True','bool'),'KillVerbs':('mauled','string')},
  'FourLeggedModel':{'Class':('SCIEPort.Features.AbyssReaper.ComponentCerberusModel','string'),'ModelName':('Models/AbyssCerberus','string'),'TextureOverride':('Textures/AbyssCerberus','string'),'BoundingSphereRadius':('3.5','float'),'WalkAnimationSpeed':('0.65','float'),'WalkFrontLegsAngle':('0.44','float'),'WalkHindLegsAngle':('0.48','float'),'WalkBobHeight':('0.035','float'),'CanCanter':('False','bool'),'CanTrot':('False','bool'),'UseCanterSound':('False','bool')},
  'Body':{'BoxSize':('1.8,2.5,3.6','Vector3'),'Mass':('1800','float')},
- 'Health':{'AttackResilience':('300','float'),'FireResilience':('40','float')},
+ 'Health':{'AttackResilience':('444','float'),'FireResilience':('40','float')},
  'Locomotion':{'WalkSpeed':('7','float'),'TurnSpeed':('4','float'),'AccelerationFactor':('0.7','float')},
  'Miner':{'AttackPower':('37','float')},
  'Spawn':{'AutoDespawn':('False','bool')},

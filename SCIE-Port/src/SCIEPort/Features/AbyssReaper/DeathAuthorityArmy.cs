@@ -86,7 +86,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 entity=DatabaseManager.CreateEntity(terrain.Project,kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason=kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 三首噬魂37伤害/3格/1秒":kind==1?"夜魇战马已响应召唤 · 生命37 · 移速10":"冥界猎犬已响应 · 生命37 · 伤害17 · 移速5";return true;
+                reason=kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命444 · 三首噬魂37伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命44 · 移速10":"冥界猎犬已响应 · 生命37 · 伤害17 · 移速5";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }

@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.65.2",
+  "Version": "0.65.3",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.65.2 强化刻尔柏洛斯为37伤害/1秒/移速7，冥界猎犬生命37/伤害17/移速5，夜魇战马生命37/移速10。冥界军势面板显示主机同步的当前生命值，保留原有契约和次位面存档。Android7723及真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.65.3 夜魇战马生命基准44，刻尔柏洛斯生命基准444；夺魂赋刃转化成功后保留1点生命。断界斩补充具体失败提示和异常日志，修正近垂直视角朝向。保留军势生命面板及契约存档。Android7723及真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -100,11 +100,21 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal bool EndCharge(ComponentPlayer p,bool heavy)
         {
+            if(disposed)return false;
             var e=Get(p,false);
+            if(heavy)
+            {
+                var reason=OwnerFailure(p);
+                if(reason!=WorldCutFailure.None)
+                {
+                    if(e!=null&&e.LocalCharge!=0){uint cancelled=e.LocalCharge;e.LocalCharge=0;Command(p,WorldCutRules.ChargeCancel,cancelled);}
+                    Report(p,reason);return false;
+                }
+            }
             // A phone can first report Hold after the press began. Still route its heavy release
             // through the host's own charging clock, even if no begin was sampled locally.
             if(heavy&&(e==null||e.LocalCharge==0)){BeginCharge(p);e=Get(p,false);}
-            if(e==null||e.LocalCharge==0){if(heavy)Report(p,WorldCutFailure.Unavailable);return false;}
+            if(e==null||e.LocalCharge==0){if(heavy)Report(p,e==null?WorldCutFailure.Capacity:Busy(p)?WorldCutFailure.Busy:WorldCutFailure.ChargeLost);return false;}
             uint sequence=e.LocalCharge;e.LocalCharge=0;
             if(heavy){e.PendingUntil=Now+2;e.Feedback="蓄力断界斩 · 主机确认中";e.FeedbackUntil=Now+2;}
             Command(p,heavy?WorldCutRules.ChargeRelease:WorldCutRules.ChargeCancel,sequence);return heavy;
@@ -115,14 +125,15 @@ namespace SCIEPort.Features.AbyssReaper
         {
             lock(queue)if(!disposed&&queue.Count<WorldCutRules.MaxQueue)queue.Enqueue(new Pending { Owner=player,Reply=reply,Token=reply?.TokenId??Guid.Empty,Packet=packet.Snapshot() });
         }
-        private bool OwnerSafe(ComponentPlayer p) => p!=null && p.Project==project && p.Entity.IsAddedToProject && p.ComponentHealth.Health>0
-            && p.PlayerData.IsReadyForPlaying && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index
-            && project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true
-            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.Busy(p)!=true
-            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Busy(p)!=true
-            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Empowered(p)!=true
-            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.PortalTransferLocked(p)!=true
-            && project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Busy(p)!=true;
+        private bool OwnerSafe(ComponentPlayer p)=>OwnerFailure(p)==WorldCutFailure.None;
+        private WorldCutFailure OwnerFailure(ComponentPlayer p)
+        {
+            if(p==null||p.Project!=project||!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||!p.PlayerData.IsReadyForPlaying||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index)return WorldCutFailure.Unavailable;
+            var abyss=project.FindSubsystem<SubsystemAbyssReaper>(false);
+            if(abyss?.Death?.Empowered(p)==true)return WorldCutFailure.Empowered;
+            if(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true||abyss?.Space?.Busy(p)==true||abyss?.Death?.Busy(p)==true||abyss?.PortalTransferLocked(p)==true||abyss?.Horizon?.Busy(p)==true)return WorldCutFailure.Busy;
+            return WorldCutFailure.None;
+        }
         private void Reject(ComponentPlayer p,Client to,WorldCutPackage request,WorldCutFailure reason)
         {
             var e=Get(p);if(e!=null)e.PendingUntil=0;Report(p,reason);
@@ -154,8 +165,8 @@ namespace SCIEPort.Features.AbyssReaper
             if(request.Kind==WorldCutRules.ChargeCancel){if(WorldCutRules.Newer(request.Sequence,e.Processed))e.Processed=request.Sequence;if(e.ChargeSequence==request.Sequence)ClearCharge(e);return;}
             if(request.Kind==WorldCutRules.ChargeRelease)
             {
-                if(e.ChargeSequence!=request.Sequence&&!ArmCharge(pending,e))return;
-                if(e.ChargeSequence!=request.Sequence||e.ChargeOwner!=p||e.ChargeToken!=pending.Token||Now>=e.ChargeUntil){Reject(p,pending.Reply,request,WorldCutFailure.Invalid);return;}
+                if(e.ChargeSequence!=request.Sequence&&!ArmCharge(pending,e)){var reason=OwnerFailure(p);Reject(p,pending.Reply,request,reason==WorldCutFailure.None?WorldCutFailure.ChargeLost:reason);return;}
+                if(e.ChargeSequence!=request.Sequence||e.ChargeOwner!=p||e.ChargeToken!=pending.Token||Now>=e.ChargeUntil){Reject(p,pending.Reply,request,WorldCutFailure.ChargeLost);return;}
                 if(e.ChargeReleased)return;
                 e.ChargeReleased=true;e.PendingUntil=Now+2;return;
             }
@@ -174,13 +185,17 @@ namespace SCIEPort.Features.AbyssReaper
         private void StartCast(Pending pending,bool charged)
         {
             var p=pending.Owner;var request=pending.Packet;var e=Get(p);
-            if(!OwnerSafe(p)||clock.GameTimeDelta<=0){Reject(p,pending.Reply,request,WorldCutFailure.Unavailable);return;}
+            var unavailable=OwnerFailure(p);if(unavailable!=WorldCutFailure.None||clock.GameTimeDelta<=0){Reject(p,pending.Reply,request,unavailable==WorldCutFailure.None?WorldCutFailure.Unavailable:unavailable);return;}
             if(!charged&&e.ReadyAt>Now){Reject(p,pending.Reply,request,WorldCutFailure.Cooldown);return;}
             foreach(var existing in casts)if(existing.OwnerGuid==p.PlayerGuid){Reject(p,pending.Reply,request,WorldCutFailure.Busy);return;}
             if(casts.Count>=WorldCutRules.MaxCasts){Reject(p,pending.Reply,request,WorldCutFailure.Capacity);return;}
             // The request contains no trusted client origin/direction. Use replicated server eyes only.
             Vector3 direction=p.ComponentCreatureModel.EyeRotation.GetForwardVector();direction.Y=0;
-            if(!WorldCutDamage.Finite(direction)||direction.LengthSquared()<.01f){Reject(p,pending.Reply,request,WorldCutFailure.Invalid);return;}
+            if(!WorldCutDamage.Finite(direction)){Reject(p,pending.Reply,request,WorldCutFailure.Aim);return;}
+            // A horizontal cut still has a world heading when looking nearly straight up/down.
+            // Read the replicated body heading; never accept a client-supplied direction.
+            if(direction.LengthSquared()<.01f){direction=p.ComponentBody.Matrix.Forward;direction.Y=0;}
+            if(!WorldCutDamage.Finite(direction)||direction.LengthSquared()<.01f){Reject(p,pending.Reply,request,WorldCutFailure.Aim);return;}
             direction=Vector3.Normalize(direction);Vector3 right=Vector3.Cross(direction,Vector3.UnitY);
             Vector3 origin=p.ComponentCreatureModel.EyePosition-Vector3.UnitY*.25f;
             float safe;var clearance=damage.Step(origin,direction,right,0,.05f,out safe);
@@ -259,7 +274,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
                 try { if(Authority)Accept(pending);else if(ReferenceEquals(pending.Reply,CommonLib.Net?.Server)&&pending.Token==(CommonLib.Net?.Server?.TokenId??Guid.Empty))Receive(pending.Packet); }
-                catch(Exception error) { if(pending.Owner!=null)Reject(pending.Owner,pending.Reply,pending.Packet,WorldCutFailure.Invalid);Log.Warning("[SCIEPort:WorldCut] Request rejected: "+error.GetType().Name); }
+                catch(Exception error) { if(pending.Owner!=null)Reject(pending.Owner,pending.Reply,pending.Packet,WorldCutFailure.Execution);Log.Warning("[SCIEPort:WorldCut] Request rejected: "+error); }
             }
             if(Authority)foreach(var pair in peers)
             {
@@ -269,7 +284,7 @@ namespace SCIEPort.Features.AbyssReaper
                 {
                     var pending=new Pending{Owner=p,Reply=e.ChargeReply,Token=e.ChargeToken,Packet=new WorldCutPackage{Kind=WorldCutRules.ChargeRelease,Caster=p.Entity.EntityId,Sequence=e.ChargeSequence}};
                     ClearCharge(e);
-                    try{StartCast(pending,true);}catch(Exception){Reject(p,pending.Reply,pending.Packet,WorldCutFailure.Invalid);}
+                    try{StartCast(pending,true);}catch(Exception error){Reject(p,pending.Reply,pending.Packet,WorldCutFailure.Execution);Log.Warning("[SCIEPort:WorldCut] Heavy cast failed: "+error);}
                 }
             }
             foreach(var p in players.ComponentPlayers)
@@ -359,7 +374,13 @@ namespace SCIEPort.Features.AbyssReaper
                 case WorldCutFailure.Capacity:return "技能预算已满，请稍后再试";
                 case WorldCutFailure.Timeout:return "主机响应超时，释放已取消";
                 case WorldCutFailure.Wall:return "空间不足：弯月被墙体阻挡";
-                default:return "当前无法释放断界斩";
+                case WorldCutFailure.Unavailable:return "角色未就绪或未持有镰刀，请恢复操作后重试";
+                case WorldCutFailure.ChargeLost:return "重击蓄力已失效，请松开后重新长按";
+                case WorldCutFailure.Empowered:return "夺魂赋刃期间只能普攻，结束后可重击";
+                case WorldCutFailure.Aim:return "断界斩朝向无效，请调整视角后重试";
+                case WorldCutFailure.Execution:return "断界斩执行异常，已记录游戏日志";
+                case WorldCutFailure.Invalid:return "断界斩请求校验失败，请重新蓄力";
+                default:return "断界斩请求未被接受，请重新蓄力";
             }
         }
     }

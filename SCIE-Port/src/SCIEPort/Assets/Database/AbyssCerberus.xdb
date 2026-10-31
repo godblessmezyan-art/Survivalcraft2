@@ -26,7 +26,7 @@
         <Parameter Name="Mass" Guid="6c75099b-4878-5d48-8acc-64374f8ffa27" Value="1800" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Health" Guid="10ce8fd3-10c1-5df5-b38a-996595fba223">
-        <Parameter Name="AttackResilience" Guid="1b739869-c916-5518-822f-313aee145ad3" Value="300" Type="float" />
+        <Parameter Name="AttackResilience" Guid="1b739869-c916-5518-822f-313aee145ad3" Value="444" Type="float" />
         <Parameter Name="FireResilience" Guid="d5fbd969-a8cc-5d33-a728-cfebac9581e8" Value="40" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Locomotion" Guid="27412f93-40ec-5872-9cd4-3691808a2896">
