@@ -3,6 +3,7 @@ using SCIEPort.Features.AbyssReaper;
 using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
+using SCIEPort.Features.Excalibur;
 using SCIEPort.Features.Inventory;
 using Engine;
 using Game.NetWork;
@@ -42,6 +43,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new VoidPortalPackage());
                 PackageManager.RegisterPackage(new VoidSpacePackage());
                 PackageManager.RegisterPackage(new DeathAuthorityPackage());
+                PackageManager.RegisterPackage(new ExcaliburPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -82,6 +84,8 @@ namespace SCIEPort.Mod
                 return;
             }
             int contents = Terrain.ExtractContents(miner.ActiveBlockValue);
+            if(contents==ExcaliburBlock.Index&&player?.Project.FindSubsystem<SubsystemExcalibur>(false)?.Busy(player)==true)
+            {attackPower=0;playerProbability=0;creatureProbability=0;hitted=true;return;}
             if (contents == StormhammerBlock.Index || contents == StormhammerAwakenedBlock.Index)
             {
                 attackPower = MathUtils.Max(attackPower, contents == StormhammerAwakenedBlock.Index ? 40f : 12f);
@@ -93,6 +97,7 @@ namespace SCIEPort.Mod
             if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
             else if (contents == PoseidonBlock.Index) frequency *= PoseidonRules.AttackSpeedFactor;
             else if (contents == AbyssReaperBlock.Index) frequency *= 1.1f;
+            else if (contents == ExcaliburBlock.Index) frequency *= player?.Project.FindSubsystem<SubsystemExcalibur>(false)?.Frequency(player)??1.1f;
             if (frequency > 1f) miner.m_lastHitTime -= .66 * (1.0 - 1.0 / frequency);
         }
 
@@ -102,6 +107,7 @@ namespace SCIEPort.Mod
             if(attacker?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.FriendlyDamage(target,attacker)==true){attackPower=0;return true;}
             if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
+            if(isMeleeAttack&&SubsystemExcalibur.Equipped(attackingPlayer)&&attackingPlayer.Project.FindSubsystem<SubsystemExcalibur>(false)?.Busy(attackingPlayer)==true){attackPower=0;return false;}
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (fourSaints != null && fourSaints.IsActionLocked(attackingPlayer)) { attackPower = 0f; return false; }
             if (isMeleeAttack && attacker is ComponentPlayer && SubsystemGungnir.Equipped((ComponentPlayer)attacker)) { attackPower = 0; return false; }
@@ -180,6 +186,7 @@ namespace SCIEPort.Mod
             StormhammerSkillHud.Update(componentGui);
             GungnirHud.Update(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemPoseidon>(false)?.TickGui(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemExcalibur>(false)?.TickGui(componentGui);
             FourSaintsHud.Update(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false)?.RefreshLocalHealthBar(componentGui.m_componentPlayer);

@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-01",
+  "branch": "main",
+  "baseline": "ab5e0274473902ef0b11f6f5303fa4c743e41cab",
+  "version": "0.69.0",
+  "target": "SCNET Net_x25.01.17 Windows / net472 / API1.42 / SC2.4.10.6",
+  "targetSha256": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  },
+  "checks": {
+    "rules": 591,
+    "targetNative": 443,
+    "targetGpu": 69,
+    "fullBuildAndPackage": "passed",
+    "rootEnvironment": "passed",
+    "portEnvironment": "passed"
+  },
+  "package": {
+    "filename": "荒野探险家-0.69.0.netmod",
+    "bytes": 9681602,
+    "sha256": "31BF7AD1F4B91930DF2123D718BA4142E1A4813B2D56CEEDE0CBBCE86425D036"
+  },
+  "existingAssetComparison": {
+    "baselineVersion": "0.68.0",
+    "byteIdentical": 151,
+    "onlyLineEndings": [
+      "Assets/Database/AbyssBoneDragon.xdb",
+      "Assets/Models/AbyssBoneDragon.dae"
+    ],
+    "contentChanges": []
+  },
+  "runtimeEvidence": "Isolated native AttackBody recorder, no live worlds/network sessions; actual shipped scene rendered using target Engine/OpenGL. Synthetic, not gameplay.",
+  "android7723": "待验证",
+  "liveMultiplayer": "待验证",
+  "previewHashes": {
+    "charge-gpu.png": "77EB92452E4A1A2A31E41B77D4A9AA26FA83C37324F303474BC00A9ABAA6DED2",
+    "release-gpu.png": "538C50CA482891081915229C3EC018CABB0CC600C19521A0C42624B46CEEBB0B"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "tool": "built-in image_gen",
+  "source": "icons-original.png",
+  "sourceSha256": "06732DDF5F1EA8A468B2EE2317A579321A2AF85A3EE451699D97E129C1241ED0",
+  "prompt": "icons-prompt.txt",
+  "processing": "3 equal crops, Lanczos resize, antialiased circular alpha only",
+  "icons": {
+    "ExcaliburLake": {
+      "asset": "src/SCIEPort/Assets/Textures/ExcaliburLake.png",
+      "sha256": "574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C"
+    },
+    "ExcaliburBlessing": {
+      "asset": "src/SCIEPort/Assets/Textures/ExcaliburBlessing.png",
+      "sha256": "3207C9A8240E0C7DFC44DA5916FC05FF928F03F623C87AA27525230B8B91AF4C"
+    },
+    "ExcaliburRelease": {
+      "asset": "src/SCIEPort/Assets/Textures/ExcaliburRelease.png",
+      "sha256": "AEA717859E63D50A8FBB60DDDD439819C572901F152242C548F50A143977FBE4"
+    }
+  }
+}

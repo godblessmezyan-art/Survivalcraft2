@@ -1,5 +1,21 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.69.0：圣剑·Excalibur
+
+main基线`ab5e027`新增非放置物品953/DATA0、独立CSV/XDB子系统和253协议；真实目标原生260个Block常量、全部本Mod身份和39类原生包ID已复核。沿用现有ModLoader/net472/API1.42/SC2.4.10.6、GuiUpdate/OnMinerHit/AttackBody与原生更新/绘制接口，无新增Hook；240–252及旧存档布局保持。新增资源包路径为Assets/Models/Excalibur.dae、Textures/Excalibur*.png、Audio/Excalibur/*.wav和Blocks/Database注册，modinfo字段集合及内部SCIEPort身份保持。
+
+| 项目 | 状态 | 证据与限制 |
+|---|---|---|
+| 固定Windows x25.01.17 ABI/Release | 已确认 | 本机D:/Games/SCNET-x25.01.17三程序集哈希与本文件既有登记一致，环境检查和net472真实引用构建通过。 |
+| 模型与资源 | 已确认 | Engine.Media.ModelData.Load实际导入1骨/88网格/1040三角，原图/图标/模型/音效哈希与原生PNG检查通过。 |
+| 规则、强度和逻辑触屏布局 | 已确认 | 591项离线断言，包含宽/高/射程、去重预算、序号、姿态、十组左右手/分辨率布局；不是触屏实测。 |
+| Local/Server伤害、Client禁伤害/协议 | 已确认 | 443项目标程序集隔离检查，原生AttackBody记录Hook截停，非完整战斗或真实网络验收。 |
+| 目标Engine/OpenGL演出合成 | 已确认 | 实际ExcaliburScene的69项图形/阶段/遮挡/侧后视角/20:9/预算检查，不是游戏或Android画面。 |
+| Android7723/完整游戏/实际多人/手机性能 | 待验证 | 未操作手机或打开游戏世界，4秒演出、持握和主机/普通客户端同步需新建世界验收。 |
+| 旧版本混装953/253 | 不支持 | 同房各方统一0.69.0；外部Mod编号冲突另查。 |
+
+完整构建、GPU合成结果与包SHA见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)；技能数值/安全边界见[圣剑说明](../SCIE-Port/docs/EXCALIBUR.md)。Builder Assistant材料/DATA/族与蓝图写入能力不变，953不得纳入蓝图。
+
 ## 2026-11-01 SCIE-Port 0.67.0：唯一骨龙骑乘飞行
 
 新增原创7骨龙模型、唯一契约和原生FlyOrder坐骑控制。固定目标资源/数据库导入与Release **已确认**；Android模型/骑姿/飞行/多人和保存恢复 **待验证**，未启动游戏。252保持字节布局，既有Kind3 Flags128/C和Action15扩展语义，v2可选DragonFlight，旧记录有缺省值；247/249/250/251和星门保持，无Builder Assistant/蓝图变化。各方需0.67.0，旧版缺新模板，混装 **不支持**。详见[使用、证据与视觉限制](../SCIE-Port/docs/ABYSS-BONE-DRAGON.md)。

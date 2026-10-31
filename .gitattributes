@@ -1,3 +1,7 @@
 # Preserve generated asset bytes used by the Cerberus provenance and package manifests.
 SCIE-Port/src/SCIEPort/Assets/Models/AbyssCerberus.dae -text
 SCIE-Port/src/SCIEPort/Assets/Database/AbyssCerberus.xdb -text
+# Preserve the new sword model's provenance hash on Windows checkouts.
+SCIE-Port/src/SCIEPort/Assets/Models/Excalibur.dae -text whitespace=cr-at-eol
+# The frozen V2 source manifest hashes LF bytes; core.autocrlf must not alter them.
+SCIE-Port/src/SCIEPort/Features/AbyssReaper/VoidPortalPackage.cs text eol=lf

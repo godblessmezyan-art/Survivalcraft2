@@ -1,0 +1,12 @@
+{
+  "origin": "Original code-native model and synthesized sound; no third-party assets",
+  "bones": 1,
+  "meshes": 88,
+  "triangles": 1040,
+  "files": {
+    "src/SCIEPort/Assets/Models/Excalibur.dae": "92E5B091614E60BE38EC9A512E8A1B1B17A5BF8033D8BD98523CE1BFBCBB619C",
+    "src/SCIEPort/Assets/Textures/Excalibur.png": "ED2D3D84C3C555B7FD36C76CC7BC07C7FDF26A2FC3BD2DF9D3AE96266AA9D4A8",
+    "src/SCIEPort/Assets/Audio/Excalibur/Charge.wav": "B008FA9A9D73592F716BE4E82E9E0C327FD97BA6F33E8DD0B0A556EA732BFA13",
+    "src/SCIEPort/Assets/Audio/Excalibur/Release.wav": "8EF0B4629E79E3AC3B1D47D8B93E72BEF7DB120ABE90410B4A7C46AD05D83001"
+  }
+}

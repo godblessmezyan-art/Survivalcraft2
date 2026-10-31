@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SCIEPort/Features/Excalibur/ExcaliburRules.cs" Link="ExcaliburRules.cs"/>
+    <Compile Include="../../src/SCIEPort/Features/Artifacts/ArtifactSkillLayout.cs" Link="ArtifactSkillLayout.cs"/>
+    <Compile Include="../../src/SCIEPort/Features/Stormhammer/LightningRules.cs" Link="LightningRules.cs"/>
+    <Compile Remove="ExcaliburNativeProbe.cs"/>
+    <Compile Remove="ExcaliburGpuProbe.cs"/>
+  </ItemGroup>
+</Project>

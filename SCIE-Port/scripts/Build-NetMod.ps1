@@ -22,6 +22,9 @@ $package = Join-Path $artifacts '荒野探险家.netmod'
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Excalibur.Tests') -c Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Excalibur rule/balance/touch-layout tests failed.' }
 
 # --- .netmod 品牌与打包契约（自 v0.36.0 起，每次打包强制校验）-----------------
 # 游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）。
@@ -319,11 +322,15 @@ foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? 
 # Invoke the installed SDK's MSBuild directly. This net472 project does not need
 # the repository-wide SDK pinned by global.json, and direct invocation keeps the
 # port build usable when that optional SDK is not installed locally.
-& $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
+# Forward slash avoids Windows PowerShell 5 quoting a trailing backslash before
+# the closing quote and accidentally absorbing the following MSBuild arguments.
+& $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build/" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Bone dragon native model/database resource import failed.' }
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
@@ -2372,6 +2379,7 @@ if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $ve
 & (Join-Path $PSScriptRoot 'Test-AbyssSpaceV2.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-DeathAuthority.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir -Package $package
 
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"

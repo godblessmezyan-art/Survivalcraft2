@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortExcalibur>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortExcalibur" Guid="62d3e1c8-c990-43ba-a953-2ce198411176" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="d5560e74-9b86-4996-b3fe-48ccbabeb8ba" Value="SCIEPort.Features.Excalibur.SubsystemExcalibur" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortExcalibur" Guid="e91ee80e-bea3-4cac-b82a-91f9952ca538" InheritanceParent="62d3e1c8-c990-43ba-a953-2ce198411176"/>
+  </ProjectTemplate>
+</SCIEPortExcalibur>

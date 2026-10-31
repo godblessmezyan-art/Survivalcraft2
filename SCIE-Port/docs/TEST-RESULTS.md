@@ -1,5 +1,38 @@
 # 测试结果
 
+## 2026-11-01 main 0.69.0：圣剑·Excalibur
+
+从远端main `ab5e0274473902ef0b11f6f5303fa4c743e41cab`切换至本地main直接开发；未合并port分支。先只读核对现有真雷神之锤：近战40+25、雷霆万钧110/CD8、万劫天诛220+4×18/CD55、12秒雷神与雷电×2。圣剑普通近战24，一技能18/CD10，加护额外攻速×1.15/8秒/CD35，大招55/25/CD65、35格/宽8格，保留用户技能数值；两项名义技能伤害/冷却均低于锤对应技能20%。阿瓦隆珍贵程度为圣剑十倍，圣剑不提供雷神增幅或防御能力。
+
+固定目标为本机`D:/Games/SCNET-x25.01.17`，三程序集SHA-256与根兼容矩阵既有登记一致。独立953/DATA0、独立XDB子系统和253协议；未改240–252、旧存档布局、其它神器数值或Builder Assistant。新增1骨/88网格/1040三角原创剑体、银白刃/金护手/深蓝握柄/双面金铭文、两段原创合成音效、内置image_gen图标原图/完整提示词/运行资源/哈希。4秒解放包含双臂和剑体抬起、光芒汇聚、巨型光剑、下挥与三层金白洪流。
+
+实际执行（Windows PowerShell，用户目录SDK9.0.300；本机仅有9.0运行时，Major仅用于现有net8离线套件，不改变Mod的net472目标）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Excalibur.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -Package SCIE-Port/artifacts/荒野探险家-0.69.0.netmod
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-ExcaliburGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/excalibur-gpu
+```
+
+根/移植环境和ABI检查通过；完整Release及全部构建守卫通过（最终无警告/错误）。构建脚本已永久接入圣剑规则、原生资产/协议/伤害与包哈希校验。修正Windows PowerShell5在含空格输出目录末尾反斜杠吞并后续MSBuild参数的问题；`.gitattributes`固定新模型字节和既有冻结VoidPortalPackage的LF字节，未更改该协议源码或降低冻结哈希检查。授权上游本机另一工作区干净快照`4864d956793b6e670413019f1f6b1cc5c8bb0970`经忽略的upstream目录联接只读使用，没有加入Git或修改上游。
+
+| 检查 | 结果与证据边界 |
+|---|---|
+| 新圣剑规则/强度/触屏逻辑布局 | 591项通过：精确范围/核心边缘/非有限值、去重/64命中上限、序号、姿态和十组逻辑分辨率/左右手及无安全位置隐藏；不是手机操作。 |
+| 新圣剑目标程序集隔离 | 443项通过：全部原生/本Mod ID、真实压缩序列化及<=64字节有效载荷、坏快照、32项队列/Dispose、Local/Server原生AttackBody与Client禁入、墙体/不改地形、重复/异常不重试、冷却/8秒加护/移速归还、双臂姿态清理及切换其它神器不覆盖其姿态。伤害由记录Hook截停，不代表实际扣血/同步。 |
+| 新圣剑实际场景GPU合成 | 69项通过：真实目标Engine/OpenGL调用ExcaliburScene；三档质量/预算，举剑/光剑/洪流/尾段、侧后视角、20:9、前景深度遮挡、4秒清理。合成棋盘场景，无游戏世界/玩家动画实拍。 |
+| 既有回归 | 完整脚本保留并通过所有原有套件，包括雷锤671、波塞冬3397、神器主题757、直升机8119、原生断界890、虚夜988/湮灭12、空间26034、星门604、死亡权柄179及数据库/XDB/品牌/类名/禁带二进制/包内容守卫。 |
+| 旧资源比对 | 对本机已留存0.68.0包：151个已有Assets条目逐字节相同；骨龙DAE/XDB仅换行差异；0项内容变化。仅新增9个Excalibur资源条目，既有神器资产原样保留。 |
+
+最终包`artifacts/荒野探险家.netmod`与`artifacts/荒野探险家-0.69.0.netmod`字节一致：**9,681,602字节**，SHA-256 **31BF7AD1F4B91930DF2123D718BA4142E1A4813B2D56CEEDE0CBBCE86425D036**。最终打包DLL为0.69.0/net472；模型、图标、音效、CSV/XDB、内部SCIEPort身份、包内资源哈希与禁止游戏DLL/PDB守卫通过。日志`artifacts/excalibur-release.log`；机器可读证据与两张明确标记的合成图位于[资源验证记录](assets/excalibur/validation.json)。
+
+Windows完整游戏、Android7723、真实主机+普通客户端、手机多指/不同分辨率、第一/第三人称握持动作、4秒演出观感和性能全部**待验证**；本轮没有启动游戏世界或操作手机。同房统一0.69.0，旧版混装新953/253**不支持**。首次使用可丢弃新世界/备份，详见[圣剑使用与验收](EXCALIBUR.md)。代码、测试、资源和文档仅提交本地main，由用户自行推送。
+
 ## 2026-11-01 main 0.67.0：骨龙骑乘飞行候选
 
 基线`942b614` / 0.66.0，初始工作区干净，回退点`backup/abyss-0.66.0-before-bone-dragon`，旧包保留。用户确认生命444、伤害37、间隔1秒、地速7、飞速16；新增第四种召唤，唯一性按每位主人现世/次位面/待加载共同校验，继续占七只/世界24名额，继承0.66治疗/单只管理与世界存档。

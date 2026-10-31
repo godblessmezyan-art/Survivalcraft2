@@ -8,7 +8,7 @@ namespace SCIEPort.Features.Inventory
         internal const string Artifacts = "SCIEPort.Artifacts", Vehicles = "SCIEPort.Vehicles", Saints = "SCIEPort.Saints";
         internal static readonly string[] Categories = { Artifacts, Vehicles, Saints, "SCIEPort.Plants", "SCIEPort.Food", "SCIEPort.Materials", "SCIEPort.Industry", "SCIEPort.Building", "SCIEPort.Creatures", "SCIEPort.Misc" };
         internal static readonly string[] Labels = { "神器", "载具", "圣兽套装", "生态植物", "食材", "工业材料", "工业部件", "建筑装置", "生物生成", "移植杂项" };
-        internal enum Theme { None, Mjolnir, FalseHammer, Gungnir, Poseidon, OmniscientEye, DevouringEye, AbyssReaper, Qinglong, Xuanwu, Baihu, Zhuque, Artifact }
+        internal enum Theme { None, Mjolnir, FalseHammer, Gungnir, Poseidon, OmniscientEye, DevouringEye, AbyssReaper, Qinglong, Xuanwu, Baihu, Zhuque, Artifact, Excalibur }
         internal struct Rgba
         {
             internal byte R,G,B,A;
@@ -29,6 +29,7 @@ namespace SCIEPort.Features.Inventory
                 case 950:return Theme.DevouringEye;
                 case 951:return Theme.Poseidon;
                 case 952:return Theme.AbyssReaper;
+                case 953:return Theme.Excalibur;
                 default:return category==Artifacts ? Theme.Artifact : Theme.None;
             }
         }
@@ -45,6 +46,7 @@ namespace SCIEPort.Features.Inventory
                 case Theme.OmniscientEye:return Pair(12,24,64,205,9,16,25,15,185,132,60,225,46,54,40,25,pulse);
                 case Theme.DevouringEye:return Pair(28,16,48,205,15,9,24,15,156,113,68,225,38,24,52,25,pulse);
                 case Theme.AbyssReaper:return Pair(36,18,65,205,16,9,27,15,166,125,216,225,34,32,30,25,pulse);
+                case Theme.Excalibur:return Pair(16,30,78,205,14,16,24,15,220,172,66,225,30,32,46,25,pulse);
                 case Theme.Qinglong:return Pair(12,52,37,205,9,23,16,15,84,178,127,225,35,40,27,25,pulse);
                 case Theme.Xuanwu:return Pair(13,31,63,205,8,18,29,15,98,171,211,225,34,36,30,25,pulse);
                 case Theme.Baihu:return Pair(47,46,43,205,17,17,16,15,202,187,143,225,31,34,38,25,pulse);
