@@ -35,10 +35,10 @@ namespace SCIEPort.Features.AbyssReaper
         internal int Quality=1;
         internal bool Authority=>CommonLib.WorkType==WorkType.Local||CommonLib.WorkType==WorkType.Server;
         internal DeathAuthorityRuntime(SubsystemAbyssReaper parent,SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,SubsystemPlayers players)
-        {this.parent=parent;this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.players=players;}
+        {this.parent=parent;this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.players=players;recoveryWorlds.Add(this);}
         private bool Actor(ComponentPlayer p,bool held=true)=>p!=null&&p.Project==terrain.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying&&p.ComponentHealth.Health>0&&(!held||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0);
-        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest;
-        private bool CommandActor(ComponentPlayer p,byte action)=>Management(action)?Actor(p,false)&&(action==DeathAuthorityRules.Sync||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0):Actor(p);
+        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest||action==DeathAuthorityRules.ManifestOne||action==DeathAuthorityRules.StowOne;
+        private bool CommandActor(ComponentPlayer p,byte action)=>(action==DeathAuthorityRules.RidingMode||action==DeathAuthorityRules.RiderInput)?RidingActor(p):Management(action)?Actor(p,false)&&(action==DeathAuthorityRules.Sync||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0):Actor(p);
         private State Get(ComponentPlayer p)
         {
             if(p==null)return null;State s;if(!states.TryGetValue(p.PlayerGuid,out s)){if(states.Count>=64)return null;states.Add(p.PlayerGuid,s=new State());}
@@ -60,7 +60,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(!CommandActor(p,action)){Message(p,Management(action)?"请保持持有终焉之镰，清醒且存活时管理军势":"当前角色状态不能使用死亡权柄");return false;}
             var s=Get(p);if(s==null)return false;
             if(!Authority&&!worldKnown&&action!=DeathAuthorityRules.Sync){Message(p,"正在同步死亡权柄，请稍候");return false;}
-            if(action!=DeathAuthorityRules.Sync&&(Locked(p)||Busy(p)&&action!=DeathAuthorityRules.Strike)){Message(p,"请先结束当前动作");return false;}
+            if(action!=DeathAuthorityRules.Sync&&action!=DeathAuthorityRules.RidingMode&&(Locked(p)||Busy(p)&&action!=DeathAuthorityRules.Strike)){Message(p,"请先结束当前动作");return false;}
             if(unchecked(++s.Sent)==0)++s.Sent;
             var packet=new DeathAuthorityPackage{Kind=0,Action=action,Caster=p.Entity.EntityId,Sequence=s.Sent,Direction=direction,Target=target,Echo=action==6?Time.RealTime:0,World=worldId};
             if(!Authority&&action==6){if(syncEchoes.Count>=4)syncEchoes.RemoveAt(0);syncEchoes.Add(packet.Echo);}
@@ -88,6 +88,10 @@ namespace SCIEPort.Features.AbyssReaper
             var s=Get(p);if(s==null||!WorldCutRules.Newer(q.Sequence,s.Processed))return;s.Processed=q.Sequence;
             if(q.Action==DeathAuthorityRules.Sync){if(Now>=s.NextSync){s.NextSync=Now+1;StatePacket(p,null,q.Echo);SyncFriends(pending.Client);}return;}
             if(loadFailure!=null){StatePacket(p,"死亡契约存档版本不受支持，已保留原数据");return;}
+            if(q.Action==DeathAuthorityRules.RiderInput)
+            {var g=RiddenGuard(p);if(g!=null&&g.Key==q.Target&&g.RidingAuto)ManualRide(p,g);return;}
+            if(q.Action==DeathAuthorityRules.RidingMode)
+            {if(Time.RealTime<s.NextManagementRequest){StatePacket(p,"骑乘切换过快，请稍后");return;}s.NextManagementRequest=Time.RealTime+.25;ToggleRiding(p,q.Target);return;}
             if(!Management(q.Action)&&clock.GameTimeDelta<=0||Locked(p)){StatePacket(p,"当前动作尚未结束，请稍后管理军势");return;}
             if(q.Action==DeathAuthorityRules.Strike){Strike(p,q.Direction);return;}
             bool management=Management(q.Action);double requestTime=management?Time.RealTime:Now;
@@ -104,7 +108,7 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Wave:
                     if(!s.Death||Now<s.WaveReady||waves.Count>=4){StatePacket(p,"死亡蔓延冷却中或容量已满");return;}
                     var cast=new WaveCast{Owner=p,Guid=p.PlayerGuid,Sequence=q.Sequence,Center=p.ComponentBody.Position,Started=Now};waves.Add(cast);s.WaveReady=Now+36;
-                    Send(new DeathAuthorityPackage{Kind=2,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=q.Sequence,Position=cast.Center});StatePacket(p,"死亡领域 · 扩散完成湮灭敌人、回满军势");break;
+                    Send(new DeathAuthorityPackage{Kind=2,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=q.Sequence,Position=cast.Center});StatePacket(p,"死亡领域 · 扩散完成湮灭敌人、军势恢复97点生命");break;
                 case DeathAuthorityRules.Summon:
                     if(!s.Death){StatePacket(p,"请先切换死亡权柄");return;}
                     if(Now<s.SummonReady){StatePacket(p,"召唤冷却中，还需"+Math.Ceiling(s.SummonReady-Now).ToString("0")+"秒");return;}
@@ -113,6 +117,8 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
                 case DeathAuthorityRules.Stow:StatePacket(p,StowArmy(p));break;
                 case DeathAuthorityRules.Manifest:StatePacket(p,ManifestArmy(p));break;
+                case DeathAuthorityRules.ManifestOne:StatePacket(p,q.Target==0?"请先选择一只次位面生物":ManifestArmy(p,q.Target));break;
+                case DeathAuthorityRules.StowOne:StatePacket(p,q.Target==0?"请先选择一只现世生物":StowArmy(p,q.Target));break;
                 default:StatePacket(p,"无效的死亡权柄操作");break;
             }
         }
@@ -126,6 +132,7 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(!worldKnown||q.World!=worldId)return;
             if(q.Kind==8){ReceiveBite(q);return;}
+            if(q.Kind==9){ReceiveRidePlan(q);return;}
             if(q.Kind==3||q.Kind==4||q.Kind==6||q.Kind==7){ReceiveFriend(q);return;}
             ComponentPlayer p=null;foreach(var candidate in players.ComponentPlayers)if(candidate.Entity.EntityId==q.Caster&&candidate.PlayerGuid==q.Owner){p=candidate;break;}if(p==null)return;
             var s=Get(p);if(s==null)return;
@@ -146,7 +153,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(disposed)return;
             if(!Authority)
             {
-                var token=CommonLib.Net?.Server?.TokenId??Guid.Empty;if(token!=serverToken){serverToken=token;ClearClientSummons();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();snapshotId=lastSnapshot=0;hasClock=worldKnown=false;syncEchoes.Clear();lastServerTime=0;deferredWaves.Clear();waves.Clear();scene.Clear();foreach(var s in states.Values){s.Revision=0;s.EmpowerUntil=0;s.PendingUntil=0;s.NextSync=0;}}
+                var token=CommonLib.Net?.Server?.TokenId??Guid.Empty;if(token!=serverToken){serverToken=token;ClearClientSummons();ClearRiding();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();snapshotId=lastSnapshot=0;hasClock=worldKnown=false;syncEchoes.Clear();lastServerTime=0;deferredWaves.Clear();waves.Clear();scene.Clear();foreach(var s in states.Values){s.Revision=0;s.EmpowerUntil=0;s.PendingUntil=0;s.NextSync=0;}}
                 if(hasClock)lastServerTime=Math.Max(lastServerTime,Now+clockOffset);
                 foreach(var p in players.ComponentPlayers)if(p.PlayerData.IsMainPlayer&&Actor(p,false)){var s=Get(p);if(Now>=s.NextSync){s.NextSync=Now+2;Request(p,DeathAuthorityRules.Sync,Vector3.UnitZ);}break;}
             }
@@ -154,14 +161,15 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority&&hasClock&&deferredWaves.Count>0){var waiting=deferredWaves.ToArray();deferredWaves.Clear();foreach(var packet in waiting)Receive(packet);}
             foreach(var s in states.Values){if(s.PendingUntil>0&&Now>=s.PendingUntil){s.PendingUntil=0;Message(s.Player,"房主响应超时，请重试");}if(!Actor(s.Player)||!s.Death){if(s.EmpowerUntil>0)ClearMarks(s.Player.PlayerGuid);s.EmpowerUntil=0;}}
             retiredMarks.Clear();foreach(var item in marks)if(!item.Key.IsAddedToProject||item.Key.ComponentHealth.Health<=0||Now>=item.Value.Until)retiredMarks.Add(item.Key);foreach(var c in retiredMarks)marks.Remove(c);
-            if(Authority){UpdateDiscarded();UpdateGuards();UpdateWaves();UpdateArmyHealth();}
-            else{UpdateClientSummons();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
+            if(Authority){UpdateDiscarded();UpdateGuards();UpdateWaves();UpdateStoredRecovery();UpdateArmyHealth();}
+            else{UpdateClientSummons();UpdateClientRiding();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
+            UpdateFriendlyYield();UpdateRiderFall();
             if(Now>=nextDrawBind){nextDrawBind=Now+.5;drawOwners.Clear();foreach(var p in players.ComponentPlayers){var fp=p.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)drawOwners[fp.m_drawBlockEnvironmentData]=p;var human=p.Entity.FindComponent<ComponentHumanModel>(false);if(human!=null)drawOwners[human.m_drawBlockEnvironmentData]=p;}}
             scene.Update(Now);
         }
         internal bool EmpoweredDraw(DrawBlockEnvironmentData e){ComponentPlayer p;return e!=null&&drawOwners.TryGetValue(e,out p)&&Empowered(p);}
         private void ClearMarks(Guid id){retiredMarks.Clear();foreach(var pair in marks)if(pair.Value.Owner==id)retiredMarks.Add(pair.Key);foreach(var c in retiredMarks)marks.Remove(c);}
         internal void Draw(Camera camera)=>scene.Draw(camera,waves,Now,Quality);
-        public void Dispose(){if(disposed)return;disposed=true;ClearClientSummons();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
+        public void Dispose(){if(disposed)return;disposed=true;recoveryWorlds.Remove(this);ClearClientSummons();ClearRiding();ClearSoftMass();posedModels.Clear();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
     }
 }

@@ -59,8 +59,7 @@ namespace SCIEPort.Features.AbyssReaper
                         {
                             // Use the post-bind resilience: native Health=1 means full health,
                             // whereas one hit point is the reciprocal of AttackResilience.
-                            c.ComponentHealth.Health=DeathAuthorityRules.LastLife(c.ComponentHealth.AttackResilience);
-                            CommonLib.Net?.QueuePackage(new ComponentHealthPackage(c.ComponentHealth));
+                            SetGuardHealth(c,DeathAuthorityRules.LastLife(c.ComponentHealth.AttackResilience));
                             FriendPacket(Row(guards[c.Entity.EntityId]));marks.Remove(c);Message(p,"灵魂契约成立 · 保留1点生命");
                         }
                     }

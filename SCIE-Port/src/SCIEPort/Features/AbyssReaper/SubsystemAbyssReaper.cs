@@ -68,6 +68,11 @@ namespace SCIEPort.Features.AbyssReaper
         /// <summary>Consumes only world attack rays for this held item; native UI is processed first.</summary>
         public void Capture(ComponentInput input) {
             var p=input.m_componentPlayer; if(p==null)return;
+            if(Death?.RidingUiInput(p)==true)
+            {
+                State prior;if(states.TryGetValue(p,out prior)){prior.Combo=new AbyssCombo();prior.ChargeHeld=prior.NormalImpactPending=false;prior.InputGate.Reset();WorldCut.Cancel(p);}
+                input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;input.m_playerInput.Interact=null;return;
+            }
             if(portalTravel?.InputLocked(p)==true||Space?.InputLocked(p)==true){VoidHorizonRuntime.LockInput(p);return;}
             State s;bool active=Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
             if(!active){
@@ -270,6 +275,7 @@ namespace SCIEPort.Features.AbyssReaper
             => input.Interact.HasValue&&!meleeBusy&&!skillBusy;
         /// <summary>Updates the touch HUD and skill cooldown feedback.</summary>
         public void TickGui(ComponentGui gui) {
+            Death?.UpdateRidingGui(gui);
             State s;var p=gui?.m_componentPlayer;if(p==null||!states.TryGetValue(p,out s))return;
             if(s.Hud==null)s.Hud=new WorldCutHud(gui);
             string hint=Horizon.Feedback(p)??WorldCut.Feedback(p);

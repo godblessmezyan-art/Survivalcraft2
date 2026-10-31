@@ -4,7 +4,7 @@
     <EntityTemplate Name="SCIEPortCerberus" Guid="fdd33315-6052-5782-916d-aebf2852eecd" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
       <MemberComponentTemplate Name="Creature" Guid="a94fbdb8-a7a6-5ad4-a63c-763f9e809e01">
         <Parameter Name="DisplayName" Guid="1e0b070b-9fe4-5fff-ae2c-573bb7007062" Value="地狱三头犬·刻尔柏洛斯" Type="string" />
-        <Parameter Name="Description" Guid="406adb1e-fd32-5d6b-ad87-5508c53aabbe" Value="死亡权柄唯一契约兽。三首噬魂：单目标37伤害、3格、1秒。骑乘待第二阶段。" Type="string" />
+        <Parameter Name="Description" Guid="406adb1e-fd32-5d6b-ad87-5508c53aabbe" Value="死亡权柄唯一契约坐骑。三首噬魂37伤害/1秒；四格跳跃，可切换骑乘自动追击。" Type="string" />
         <Parameter Name="ConstantSpawn" Guid="d60c5032-64d9-528c-aef9-2aae6271a4c6" Value="True" Type="bool" />
         <Parameter Name="KillVerbs" Guid="f3fffc69-2fe9-56a3-a758-068fddd80129" Value="mauled" Type="string" />
       </MemberComponentTemplate>
@@ -28,11 +28,25 @@
       <MemberComponentTemplate Name="Health" Guid="10ce8fd3-10c1-5df5-b38a-996595fba223">
         <Parameter Name="AttackResilience" Guid="1b739869-c916-5518-822f-313aee145ad3" Value="444" Type="float" />
         <Parameter Name="FireResilience" Guid="d5fbd969-a8cc-5d33-a728-cfebac9581e8" Value="40" Type="float" />
+        <Parameter Name="FallResilience" Guid="aafadf28-8dea-5f7a-847c-ec6f33613d04" Value="12" Type="float" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Locomotion" Guid="27412f93-40ec-5872-9cd4-3691808a2896">
         <Parameter Name="WalkSpeed" Guid="b749f546-92c8-5449-9bba-bfb371064c62" Value="7" Type="float" />
+        <Parameter Name="JumpSpeed" Guid="dadd09f6-e95f-5816-a925-4862e20963af" Value="10" Type="float" />
         <Parameter Name="TurnSpeed" Guid="e86a5611-2fcf-55ed-a852-0f5b71df35f8" Value="4" Type="float" />
         <Parameter Name="AccelerationFactor" Guid="d11d155f-0db5-53eb-af72-d9cea77f0fbf" Value="0.7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Mount" Guid="8f32ed33-bfda-52c9-992c-d8da08761b6f">
+        <Parameter Name="Class" Guid="e45e906f-6e31-5b6e-8e9c-0d7afdd1b3c1" Value="Game.ComponentMount" Type="string" />
+        <Parameter Name="MountOffset" Guid="0041eb97-665d-5520-9344-b8d35d1509ba" Value="0,2.08,0.5" Type="Vector3" />
+        <Parameter Name="DismountOffset" Guid="3f403625-dd7b-5a75-9ead-cbe2a22af642" Value="1.8,0.3,0" Type="Vector3" />
+        <Parameter Name="LoadOrder" Guid="b8d24131-83c1-5f4f-ad64-60e5ff058bff" Value="0" Type="int" />
+        <Parameter Name="IsOptional" Guid="114538b8-c14a-54b7-bf90-38e95d88aae2" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="SteedBehavior" Guid="68260b27-703a-5842-b54d-1c5b24917de6">
+        <Parameter Name="Class" Guid="536fd089-3006-5867-9931-c2613b9d809b" Value="SCIEPort.Features.AbyssReaper.ComponentCerberusSteed" Type="string" />
+        <Parameter Name="LoadOrder" Guid="effab1f2-7a20-5738-b879-7e1dff3e4e9a" Value="0" Type="int" />
+        <Parameter Name="IsOptional" Guid="dd9c63f3-8d27-5889-8fa5-3ea14f1724d2" Value="False" Type="bool" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Miner" Guid="6177e311-a72a-5286-8c46-1aa3fb5b4f68">
         <Parameter Name="AttackPower" Guid="cad0e2c1-2bb9-53bf-a46d-db250dbe378a" Value="37" Type="float" />

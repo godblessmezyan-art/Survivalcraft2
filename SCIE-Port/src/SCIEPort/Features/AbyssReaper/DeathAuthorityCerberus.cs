@@ -25,20 +25,21 @@ namespace SCIEPort.Features.AbyssReaper
             if(g.BiteTarget!=null&&Now>=g.BiteImpactAt)
             {
                 var target=g.BiteTarget;g.BiteTarget=null; // Consume before dispatch, including hook failures.
-                if(Now-g.BiteStarted<1.25&&hitBudget>0&&Hostile(target,owner)&&BiteReach(c,target)
+                if(Now-g.BiteStarted<1.25&&hitBudget>0&&GuardEnemy(g,target,owner)&&BiteReach(c,target)
                     &&VoidCombatSafety.ClearPath(terrain,c.ComponentCreatureModel.EyePosition,BitePoint(c,target),6))
                 {
-                    hitBudget--;Vector3 delta=target.ComponentBody.BoundingBox.Center()-c.ComponentBody.BoundingBox.Center();
+                    hitBudget--;g.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;Vector3 delta=target.ComponentBody.BoundingBox.Center()-c.ComponentBody.BoundingBox.Center();
                     // One native armor/health dispatch. Never one call per head, never special * 2.
                     ComponentMiner.AttackBody(target.ComponentBody,c,BitePoint(c,target),delta.LengthSquared()>.001f?Vector3.Normalize(delta):c.ComponentBody.Matrix.Forward,CerberusRules.Damage,true);
                 }
             }
-            if(g.BiteTarget!=null||g.Target==null||!Hostile(g.Target,owner)||!BiteReach(c,g.Target))return;
+            if(g.BiteTarget!=null||g.Target==null||!GuardEnemy(g,g.Target,owner)||!BiteReach(c,g.Target))return;
             var direction=g.Target.ComponentBody.Position-c.ComponentBody.Position;
             if(direction.XZ.LengthSquared()>.001f)
             {
+                if(!g.Ridden||g.AutoDriving){var steed=c.Entity.FindComponent<ComponentCerberusSteed>(false);if(steed!=null){steed.FaceTarget=g.Target.ComponentBody.Position;steed.FaceUntil=Now+.3;}}
                 float angle=Vector2.Angle(c.ComponentBody.Matrix.Forward.XZ,direction.XZ);
-                c.ComponentLocomotion.TurnOrder=new Vector2(MathUtils.Clamp(angle,-1,1),0);
+                if(!g.Ridden||g.AutoDriving)c.ComponentLocomotion.TurnOrder=new Vector2(MathUtils.Clamp(angle,-1,1),0);
                 if(Math.Abs(angle)>1.1f)return;
             }
             if(Now<g.NextAttack||!VoidCombatSafety.ClearPath(terrain,c.ComponentCreatureModel.EyePosition,BitePoint(c,g.Target),6))return;

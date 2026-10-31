@@ -1,0 +1,19 @@
+﻿{
+    "kind":  "Native database/model and interface metadata only; not game/device testing",
+    "game_sha256":  "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "bone_count":  7,
+    "mesh_count":  7,
+    "mount_class":  "Game.ComponentMount",
+    "mount_offset":  "0,2.08,0.5",
+    "dismount_offset":  "1.8,0.3,0",
+    "steed_class":  "SCIEPort.Features.AbyssReaper.ComponentCerberusSteed",
+    "native_steed_base":  true,
+    "update_interface":  [
+                             "Game.ComponentSteedBehavior.get_UpdateOrder",
+                             "SCIEPort.Features.AbyssReaper.ComponentCerberusSteed.Update"
+                         ],
+    "jump_speed_template":  10,
+    "fall_resilience":  12,
+    "resilience":  444,
+    "template_guid":  "fdd33315-6052-5782-916d-aebf2852eecd"
+}

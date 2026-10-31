@@ -22,7 +22,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 row.HealthFraction=data.GetValue<float>("HealthFraction",-1);row.HealthMaximum=data.GetValue<float>("HealthMaximum",0);
                 row.HealthKnown=ValidHealth(row.HealthFraction,row.HealthMaximum);
-                if(!row.HealthKnown&&row.Hidden&&row.Snapshot!=null)
+                if((!row.HealthKnown||row.HealOnReturn)&&row.Hidden&&row.Snapshot!=null)
                 {
                     var snapshot=new EntityDataList(terrain.Project.GameDatabase,row.Snapshot,false);
                     if(snapshot.EntitiesData.Count==1&&snapshot.EntitiesData[0].ValuesDictionary.DatabaseObject.Name==row.Template)
@@ -33,7 +33,6 @@ namespace SCIEPort.Features.AbyssReaper
                     }
                 }
                 float maximum,speed;if(row.HealthKnown&&DeathSummonStats.Profile(row.Special,row.Template,out maximum,out speed))row.HealthMaximum=maximum;
-                if(row.HealthKnown&&row.HealOnReturn)row.HealthFraction=1;
             }
             catch(Exception){row.HealthKnown=false;}
         }

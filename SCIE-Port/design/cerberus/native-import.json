@@ -71,6 +71,6 @@
     "texture":  "Textures/AbyssCerberus",
     "box":  "1.8,2.5,3.6",
     "egg_index":  -1,
-    "rideable":  false,
+    "rideable":  true,
     "template_guid":  "fdd33315-6052-5782-916d-aebf2852eecd"
 }

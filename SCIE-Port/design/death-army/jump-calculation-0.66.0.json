@@ -1,0 +1,39 @@
+{
+  "kind": "CPU arithmetic illustration only; not executed game physics or Android evidence",
+  "gravity": 10,
+  "air_drag_y": 0.25,
+  "target_blocks": 4,
+  "clearance_margin": 0.05,
+  "samples": [
+    {
+      "assumed_fps": 10,
+      "step": 0.1,
+      "resolved_jump_speed": 10.26519775390625,
+      "computed_ascent": 4.050142065404503
+    },
+    {
+      "assumed_fps": 20,
+      "step": 0.05,
+      "resolved_jump_speed": 9.976806640625,
+      "computed_ascent": 4.05019934786825
+    },
+    {
+      "assumed_fps": 30,
+      "step": 0.03333333333333333,
+      "resolved_jump_speed": 9.87884521484375,
+      "computed_ascent": 4.050293435747721
+    },
+    {
+      "assumed_fps": 60,
+      "step": 0.016666666666666666,
+      "resolved_jump_speed": 9.78363037109375,
+      "computed_ascent": 4.0505753454542175
+    },
+    {
+      "assumed_fps": 120,
+      "step": 0.008333333333333333,
+      "resolved_jump_speed": 9.735107421875,
+      "computed_ascent": 4.050012174900136
+    }
+  ]
+}

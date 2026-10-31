@@ -168,6 +168,7 @@ namespace SCIEPort.Mod
             // owning chunk has finished generating. Spawning from inside chunk generation is not
             // a supported x25.01.17 path and could stall a fresh world on the loading screen.
             CreatureWorldSpawn.Update();
+            DeathAuthorityRuntime.AfterNativeUpdates();
         }
 
         /// <inheritdoc />
@@ -197,7 +198,11 @@ namespace SCIEPort.Mod
         public override void ModelShaderParameter(Engine.Graphics.Shader shader,Camera camera,System.Collections.Generic.List<SubsystemModelsRenderer.ModelData> modelsData,float? alphaThreshold)
         {
             // The target renderer copies DiffuseColor before DrawExtra, so apply tint before that copy.
-            foreach(var data in modelsData)data.ComponentModel?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.Tint(data.ComponentModel);
+            foreach(var data in modelsData)
+            {
+                var death=data.ComponentModel?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;
+                death?.Tint(data.ComponentModel);death?.RidingPose(data.ComponentModel,camera);
+            }
         }
 
         /// <inheritdoc />

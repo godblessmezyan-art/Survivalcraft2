@@ -12,20 +12,21 @@ namespace SCIEPort.Features.AbyssReaper
     {
         // Stored creatures have no live entity, renderer, AI or physics in the world.
         private static bool Occupied(ComponentCreature c)=>c.ComponentBody.ParentBody!=null||c.ComponentBody.ChildBodies.Count>0||c.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
-        private static void Heal(ComponentCreature c)
-        {
-            if(c==null||!c.IsAddedToProject||c.ComponentHealth.Health<=0)return;
-            c.ComponentHealth.Health=1;CommonLib.Net?.QueuePackage(new ComponentHealthPackage(c.ComponentHealth));
-        }
         private void HealArmy(Guid owner)
         {
-            foreach(var g in guards.Values)if(g.Owner==owner)Heal(g.Creature);
-            foreach(var f in hidden.Values)if(f.Owner==owner){f.HealOnReturn=true;if(f.HealthKnown)f.HealthFraction=1;FriendPacket(f);}
-            foreach(var f in saved.Values)if(!f.Discard&&f.Owner==owner){f.HealOnReturn=true;if(f.HealthKnown)f.HealthFraction=1;FriendPacket(f);}
+            foreach(var g in guards.Values)if(g.Owner==owner)HealPoints(g.Creature,DeathAuthorityRules.WaveHeal);
+            foreach(var row in hidden.Values)if(row.Owner==owner){StoredHeal(row,DeathAuthorityRules.WaveHeal);FriendPacket(row);}
+            foreach(var row in saved.Values)if(!row.Discard&&row.Owner==owner)
+            {
+                row.PendingHeal=Math.Min(1000000000,row.PendingHeal+DeathAuthorityRules.WaveHeal);
+                if(row.HealthKnown&&row.HealthFraction>0)row.HealthFraction=Math.Min(1,row.HealthFraction+DeathAuthorityRules.WaveHeal/row.HealthMaximum);
+                FriendPacket(row);
+            }
         }
-        private string StowArmy(ComponentPlayer p)
+        private string StowArmy(ComponentPlayer p,ushort only=0)
         {
-            int done=0,skipped=0;var active=new List<DeathGuard>();foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid)active.Add(g);
+            int done=0,skipped=0;var active=new List<DeathGuard>();foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid&&(only==0||g.Key==only))active.Add(g);
+            if(only!=0&&active.Count==0)return "未找到可收回的所选生物";
             foreach(var g in active)
             {
                 var c=g.Creature;if(!c.IsAddedToProject||c.ComponentHealth.Health<=0||Occupied(c)){skipped++;continue;}
@@ -33,7 +34,7 @@ namespace SCIEPort.Features.AbyssReaper
                 try
                 {
                     var snapshot=terrain.Project.SaveEntities(new[]{c.Entity});if(snapshot.EntitiesData.Count!=1){skipped++;continue;}
-                    row=Row(g);row.Snapshot=new ValuesDictionary();snapshot.Save(row.Snapshot);row.Hidden=true;row.EntityId=0;
+                    row=Row(g);row.Snapshot=new ValuesDictionary();snapshot.Save(row.Snapshot);row.Hidden=true;row.EntityId=0;row.RegenStamp=Now;
                     terrain.Project.RemoveEntity(c.Entity,false);
                     if(c.IsAddedToProject){skipped++;continue;}
                     guards.Remove(c.Entity.EntityId);hidden.Add(row.Id,row);done++;stored=true;FriendPacket(row);c.Entity.Dispose();
@@ -48,9 +49,10 @@ namespace SCIEPort.Features.AbyssReaper
             }
             return "已收回次位面："+done+"只"+(skipped>0?"；"+skipped+"只未收回（乘客或状态不允许）":"，契约与生命保留");
         }
-        private string ManifestArmy(ComponentPlayer p)
+        private string ManifestArmy(ComponentPlayer p,ushort only=0)
         {
-            int done=0,waiting=0;var rows=new List<Friend>();foreach(var row in hidden.Values)if(row.Owner==p.PlayerGuid)rows.Add(row);
+            int done=0,waiting=0;var rows=new List<Friend>();foreach(var row in hidden.Values)if(row.Owner==p.PlayerGuid&&(only==0||row.Id==only))rows.Add(row);
+            if(only!=0&&rows.Count==0)return "所选生物不在次位面";
             foreach(var row in rows)
             {
                 Entity entity=null;bool adopted=false;
@@ -69,8 +71,11 @@ namespace SCIEPort.Features.AbyssReaper
                     terrain.Project.AddEntity(entity);hidden.Remove(row.Id);
                     adopted=AdoptContract(c,row.Owner,row.Special,row.Id);
                     if(!adopted){hidden[row.Id]=row;terrain.Project.RemoveEntity(entity,true);entity=null;waiting++;continue;}
+                    guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
                     if(row.Cerberus)guards[c.Entity.EntityId].NextAttack=Now+row.BiteCooldown;
-                    if(row.HealOnReturn)Heal(c);done++;
+                    if(row.HealthKnown)SetGuardHealth(c,row.HealthFraction);
+                    if(row.PendingHeal>0)HealPoints(c,row.PendingHeal);
+                    FriendPacket(Row(guards[c.Entity.EntityId]));done++;
                 }
                 catch(Exception e)
                 {
@@ -101,15 +106,17 @@ namespace SCIEPort.Features.AbyssReaper
         private void UpdateClientSummons()
         {
             clientSummonsSeen.Clear();
-            foreach(var f in clientFriends.Values)if((f.Special||f.Cerberus)&&!f.Hidden&&!f.Pending)
+            foreach(var f in clientFriends.Values)if(!f.Hidden&&!f.Pending)
                 terrain.Project.FindEntityById(f.EntityId,entity=>
                 {
                     if(!entity.IsAddedToProject)return;
                     var creature=entity.FindComponent<ComponentCreature>(false);float health,speed;
-                    if(creature==null||!DeathSummonStats.Profile(f.Special,entity.ValuesDictionary.DatabaseObject.Name,out health,out speed))return;
+                    if(creature==null)return;
+                    var selector=entity.FindComponent<ComponentBehaviorSelector>(false);if(selector!=null){selector.IsDisableBehavior=true;foreach(var behavior in selector.m_behaviors)behavior.IsActive=false;}
+                    if(!DeathSummonStats.Profile(f.Special,entity.ValuesDictionary.DatabaseObject.Name,out health,out speed))return;
                     var locomotion=creature.ComponentLocomotion;clientSummonsSeen.Add(locomotion);
                     if(!clientSummonBonuses.ContainsKey(locomotion)){var bonus=new DeathSummonStats.Bonus();bonus.Apply(creature,f.Special,entity.ValuesDictionary.DatabaseObject.Name);clientSummonBonuses.Add(locomotion,bonus);}
-                    if(f.Warhorse)
+                    if(f.Warhorse||f.Cerberus)
                     {
                         var steed=entity.FindComponent<ComponentSteedBehavior>(false);var rider=entity.FindComponent<ComponentMount>(false)?.Rider?.ComponentCreature as ComponentPlayer;
                         if(steed!=null)steed.IsActive=rider?.PlayerData.IsMainPlayer==true;
