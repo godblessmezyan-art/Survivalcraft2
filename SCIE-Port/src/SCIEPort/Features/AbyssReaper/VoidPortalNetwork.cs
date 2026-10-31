@@ -13,7 +13,7 @@ namespace SCIEPort.Features.AbyssReaper
         private sealed class Peer
         {
             internal ComponentPlayer Player;internal Client Client;internal uint Processed,SentRevision;
-            internal double NextCommand;internal ushort Entity;internal Guid Token;
+            internal double NextCommand,NextSync;internal ushort Entity;internal Guid Token;
         }
         private struct Pending{internal ComponentPlayer Player;internal Client Client;internal Guid Token;internal VoidPortalPackage Packet;}
         private readonly SubsystemAbyssReaper owner;
@@ -73,6 +73,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal void Request(ComponentPlayer p,byte command,Guid source,Guid target,string name)
         {
             if(disposed||p==null)return;
+            if(!Authority&&CommonLib.Net?.Server==null){Feedback="未连接主机，请重新连接后重试";return;}
             if(unchecked(++sent)==0)++sent;
             var packet=new VoidPortalPackage{Kind=0,Command=command,Caster=p.Entity.EntityId,Sequence=sent,Portal=source,Target=target,Text=name??"",Direction=p.ComponentCreatureModel.EyeRotation.GetForwardVector()};
             if(command==Choose){ChoiceSequence=sent;choiceSource=source;choiceTarget=target;choicePlayer=p;serverToken=CommonLib.Net?.Server?.TokenId??Guid.Empty;}
@@ -98,7 +99,7 @@ namespace SCIEPort.Features.AbyssReaper
             {if(peers.Count>=64)return null;peer=new Peer();peers.Add(p.PlayerGuid,peer);}
             Guid token=client?.TokenId??Guid.Empty;
             if(peer.Player!=p||peer.Entity!=p.Entity.EntityId||peer.Token!=token)
-            {peer.Processed=0;peer.SentRevision=0;peer.NextCommand=0;}
+            {peer.Processed=0;peer.SentRevision=0;peer.NextCommand=peer.NextSync=0;}
             peer.Player=p;peer.Entity=p.Entity.EntityId;peer.Token=token;peer.Client=client;return peer;
         }
         private void Process(Pending pending)
@@ -110,17 +111,24 @@ namespace SCIEPort.Features.AbyssReaper
             {Travel?.Signal(p,packet);return;}
             var peer=Bind(p,pending.Client);if(peer==null||!WorldCutRules.Newer(packet.Sequence,peer.Processed))return;
             peer.Processed=packet.Sequence;
-            if(packet.Command>Choose||clock.GameTime<peer.NextCommand)return;
+            if(packet.Command>Choose)return;
+            // Opening/refreshing the list must not consume the mutation cooldown.
+            if(packet.Command==Sync)
+            {
+                if(clock.GameTime<peer.NextSync){Message(p,"刷新过于频繁，请稍后重试");return;}
+                peer.NextSync=clock.GameTime+.25;Snapshot(p,peer);return;
+            }
+            if(clock.GameTime<peer.NextCommand){Message(p,"操作过于频繁，请稍后重试");return;}
             peer.NextCommand=clock.GameTime+.15;
-            if(packet.Command==Sync){Snapshot(p,peer);return;}
             if(owner.Portals==null){Message(p,"星门存档不可用，原始记录已保留");return;}
             if(!Access(p)){Message(p,"请持有终焉之镰或靠近任意星门");return;}
             if(owner.PortalBusy(p)){Message(p,"请先结束当前攻击或技能");return;}
             if(packet.Command==Create)
             {
+                if(!VoidPortalRegistry.ValidName(packet.Text)){Message(p,"星门名称无效：请输入1至32个有效字符");return;}
                 if(owner.Portals.Count>=owner.Portals.Limit){Message(p,"永久星门数量已满（"+owner.Portals.Count+"/"+owner.Portals.Limit+"），请先删除不需要的星门");return;}
-                Guid id;if(!CreateAimed(p,packet.Direction,packet.Text,out id)){Message(p,"建立失败：请瞄准6格内有3格宽地面、4格高净空的位置");return;}
-                Changed();Send(p,new VoidPortalPackage{Kind=Reply,Portal=id,Text="永久星门已建立并记录"});
+                Guid id;if(!CreateAimed(p,packet.Direction,packet.Text,out id)){Message(p,"建立失败：需3格宽实心地面、4格高净空；请避开领地、生物和已有星门后重试");return;}
+                Changed();Send(p,new VoidPortalPackage{Kind=Reply,Portal=id,Text="永久星门已建立并记录，关闭面板即可查看；可选择另一座门作为目的地"});
             }
             else if(packet.Command==Rename||packet.Command==Delete)
             {
@@ -150,12 +158,17 @@ namespace SCIEPort.Features.AbyssReaper
             id=Guid.Empty;if(!VoidPortalRegistry.ValidName(name)||!WorldCutDamage.Finite(direction)||direction.LengthSquared()<.9f||direction.LengthSquared()>1.1f)return false;
             Vector3 eye=p.ComponentCreatureModel.EyePosition;direction=Vector3.Normalize(direction);
             var hit=terrain.Raycast(eye,eye+direction*6,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable);
-            if(!hit.HasValue||hit.Value.CellFace.Face!=4)return false;
+            // The modal list freezes world aiming. Level/sky views use a bounded search in front
+            // of the player; an explicitly aimed ground site still has to pass its own checks.
+            if(!hit.HasValue||hit.Value.CellFace.Face!=4)return CreateEntrance(p,direction,name,out id);
             var f=hit.Value.CellFace;return owner.PortalOperations.TryCreate(p,f.X,f.Y+1,f.Z,Math.Abs(direction.Z)>=Math.Abs(direction.X),name,out id);
         }
         private bool CreateEntrance(ComponentPlayer p,out Guid id)
+            => CreateEntrance(p,p.ComponentCreatureModel.EyeRotation.GetForwardVector(),"星门 "+(owner.Portals.Count+1),out id);
+        private bool CreateEntrance(ComponentPlayer p,Vector3 direction,string name,out Guid id)
         {
-            id=Guid.Empty;Vector3 forward=p.ComponentCreatureModel.EyeRotation.GetForwardVector();forward.Y=0;
+            id=Guid.Empty;Vector3 forward=direction;forward.Y=0;
+            if(WorldCutDamage.Finite(forward)&&forward.LengthSquared()<.01f){forward=p.ComponentBody.Rotation.GetForwardVector();forward.Y=0;}
             if(!WorldCutDamage.Finite(forward)||forward.LengthSquared()<.01f)return false;forward=Vector3.Normalize(forward);
             Vector3 right=Vector3.Cross(forward,Vector3.UnitY);
             for(int i=0;i<6;i++)
@@ -165,7 +178,7 @@ namespace SCIEPort.Features.AbyssReaper
                 var hit=terrain.Raycast(at+Vector3.UnitY*2,at-Vector3.UnitY*4,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable);
                 if(!hit.HasValue||hit.Value.CellFace.Face!=4)continue;
                 var f=hit.Value.CellFace;
-                if(owner.PortalOperations.TryCreate(p,f.X,f.Y+1,f.Z,Math.Abs(forward.Z)>=Math.Abs(forward.X),"星门 "+(owner.Portals.Count+1),out id))return true;
+                if(owner.PortalOperations.TryCreate(p,f.X,f.Y+1,f.Z,Math.Abs(forward.Z)>=Math.Abs(forward.X),name,out id))return true;
             }
             return false;
         }
@@ -209,7 +222,11 @@ namespace SCIEPort.Features.AbyssReaper
                 }
                 else if(packet.Kind==EndRows)
                 {
-                    if(staging.Count==expected){owner.AcceptPortalSnapshot(staging);received=stagingRevision;Feedback="共享星门已同步";}
+                    if(staging.Count==expected)
+                    {
+                        owner.AcceptPortalSnapshot(staging);received=stagingRevision;
+                        if(string.IsNullOrEmpty(Feedback)||Feedback=="正在读取共享星门…")Feedback="共享星门已同步";
+                    }
                     staging=null;
                 }
             }

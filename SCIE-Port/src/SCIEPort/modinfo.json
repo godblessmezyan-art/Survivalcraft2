@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.59.0",
+  "Version": "0.59.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.59.0 虚夜湮灭：先进入空旷领域、生成黑洞，再从黑洞扩张；4.2秒覆盖完成立即退场并湮灭128格已加载范围的非玩家生物。施法期间免伤、排除玩家，保留共享永久星门。Android实机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.59.1 修复永久星门新建无响应：列表同步不再吞掉建门请求，平视可自动在身前安全空地建立永久门，面板明确显示结果。保留4.2秒虚夜湮灭、施法免伤和共享星门存档。Android实机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

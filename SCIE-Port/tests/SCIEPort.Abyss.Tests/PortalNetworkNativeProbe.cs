@@ -64,6 +64,56 @@ public static class PortalNetworkNativeProbe
         player.PlayerData.PlayerGUID=client.GUID;players.m_playersData.Add(player.PlayerData);players.m_componentPlayers.Add(player);CommonLib.Net.Clients[id]=client;return client;
     }
     static List<IPackage> Pending(){return (List<IPackage>)Get(CommonLib.Net,"PendingPackages");}
+    static int Count(Fixture f){return (int)f.Registry.GetType().GetProperty("Count",Flags).GetValue(f.Registry,null);}
+    static string Feedback(Fixture f)
+    {
+        if(f.Player.PlayerData.IsMainPlayer)return (string)f.Net.GetType().GetProperty("Feedback",Flags).GetValue(f.Net,null);
+        string result="";foreach(var packet in Pending())if(packet.GetType()==f.PacketType&&(byte)Get(packet,"Kind")==4)result=(string)Get(packet,"Text");return result;
+    }
+    static void Creation(Assembly mod,WorkType mode,bool main)
+    {
+        CommonLib.WorkType=mode;
+        using(var f=new Fixture(mod,main))
+        {
+            uint sequence=0;
+            Action<byte,string> request=(command,text)=>
+            {
+                if(main){Call(f.Net,"Request",f.Player,command,Guid.Empty,Guid.Empty,text);return;}
+                var packet=Packet(f.PacketType,command,f.Player,++sequence,Guid.Empty,Guid.Empty,text);
+                Put(packet,"Direction",f.Player.ComponentCreatureModel.EyeRotation.GetForwardVector());Call(f.Net,"Enqueue",f.Player,f.Client,packet);
+            };
+            // The real dialog sends Sync on open, then Create with a level eye direction.
+            request(0,"");request(1,"身前星门");
+            Call(f.Net,"Update");
+            Check(Count(f)==1,"open-list Sync does not swallow immediate level-view creation: "+mode);
+            object[] gate={(Guid)f.Net.GetType().GetProperty("LastCreated",Flags).GetValue(f.Net,null),null};
+            if(main)
+            {
+                Check((bool)f.Registry.GetType().GetMethod("TryGet",Flags).Invoke(f.Registry,gate),"local success returns actual new gate identity");
+                Check((string)Get(gate[1],"Name")=="身前星门"&&Feedback(f).Contains("已建立"),"requested name and visible success survive automatic placement");
+            }
+            request(1,"快速重试");Call(f.Net,"Update");
+            Check(Count(f)==1&&Feedback(f).Contains("频繁"),"throttled click returns explicit feedback instead of processing forever");
+            f.Clock.m_gameTime+=1;
+            request(1,"");Call(f.Net,"Update");
+            Check(Count(f)==1&&Feedback(f).Contains("名称"),"invalid create name is reported without modifying registry");
+            f.Clock.m_gameTime+=1;
+            request(0,"");request(0,"");Call(f.Net,"Update");
+            Check(Feedback(f).Contains("刷新过于频繁"),"snapshot refresh retains its own bounded rate limit");
+            object[] second={(Guid)Guid.NewGuid(),null};
+            var aimed=Vector3.Normalize(new Vector3(2,-1.5f,4));object[] args={f.Player,aimed,"瞄准门",Guid.Empty};
+            Check((bool)f.Net.GetType().GetMethod("CreateAimed",Flags).Invoke(f.Net,args)&&Count(f)==2,"explicit ground aim still creates at the requested site");
+            second[0]=args[3];f.Registry.GetType().GetMethod("TryGet",Flags).Invoke(f.Registry,second);
+            Check((float)Get(second[1],"X")==10.5f&&(float)Get(second[1],"Z")==9.5f,"ground aim does not silently relocate the chosen site");
+            object[] duplicate={f.Player,aimed,"重复",Guid.Empty};
+            Check(!(bool)f.Net.GetType().GetMethod("CreateAimed",Flags).Invoke(f.Net,duplicate)&&Count(f)==2,"repeated aimed creation cannot overlap an existing permanent gate");
+            f.Clock.m_gameTime+=1;
+            for(int x=0;x<16;x++)for(int z=0;z<16;z++)for(int y=64;y<69;y++)f.Cells.SetCellValueFast(x,y,z,3);
+            request(1,"无空地");Call(f.Net,"Update");
+            Check(Count(f)==2&&Feedback(f).Contains("建立失败"),"no safe space gives actionable failure and no partial gate");
+            Check(f.Cells.GetCellValue(8,63,9)==3,"creation does not edit native floor");
+        }
+    }
     public static void Run(Assembly mod)
     {
         var work=CommonLib.WorkType;var node=CommonLib.Net;var territories=SubsystemBedrockBlockBehavior.Territories;
@@ -90,6 +140,7 @@ public static class PortalNetworkNativeProbe
             var invalidUtf8=new PackageStreamWriter();((IPackage)empty).WriteData(invalidUtf8);invalidUtf8.BaseStream.Position-=2;invalidUtf8.Write((ushort)2);invalidUtf8.Write(new byte[]{255,255});
             rejected=false;try{((IPackage)New(packetType)).ReadData(new PackageStreamReader(invalidUtf8.Data()));}catch(System.Text.DecoderFallbackException){rejected=true;}
             Check(rejected,"invalid UTF8 rejected");
+            Creation(mod,WorkType.Local,true);Creation(mod,WorkType.Server,true);Creation(mod,WorkType.Server,false);
             CommonLib.WorkType=WorkType.Server;
             using(var server=new Fixture(mod,false))
             {
@@ -124,6 +175,9 @@ public static class PortalNetworkNativeProbe
                     }
                     Call(client.Net,"Update");object replica=Get(client.Owner,"<Portals>k__BackingField");
                     Check((int)replica.GetType().GetProperty("Count",Flags).GetValue(replica,null)==3,"client receives all shared permanent gates");
+                    var created=Packet(packetType,0,client.Player,0,a,Guid.Empty,"永久星门已建立并记录");Put(created,"Kind",(byte)4);Call(client.Net,"Receive",created);
+                    foreach(var row in snapshot)if((byte)Get(row,"Kind")>=1&&(byte)Get(row,"Kind")<=3)Call(client.Net,"Receive",row);
+                    Check(Feedback(client).Contains("已建立"),"automatic shared-list snapshot does not erase the create result");
                     // The authenticated packet handler rejects peers pretending to be the host.
                     var malicious=New(packetType);Put(malicious,"Kind",(byte)1);((IPackage)malicious).From=server.Client;
                     CommonLib.Net.Server=client.Client;int before=((ICollection)Get(client.Net,"queue")).Count;
