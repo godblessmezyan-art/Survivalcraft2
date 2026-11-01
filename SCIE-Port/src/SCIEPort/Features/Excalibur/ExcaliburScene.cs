@@ -23,11 +23,10 @@ namespace SCIEPort.Features.Excalibur
             {
                 if(!runtime.Fresh(s)||!SubsystemExcalibur.Equipped(s.Player))continue;
                 if(Vector3.DistanceSquared(view.ViewPosition,s.Player.ComponentBody.Position)>96*96)continue;
-                if(runtime.Enchanted(s.Player))Enchant(s.Player.ComponentCreatureModel.EyePosition,s.Player.ComponentCreatureModel.EyeRotation.GetForwardVector(),(float)(runtime.Now%60));
                 if(s.ImpactUntil>runtime.Now){float f=(float)(s.ImpactUntil-runtime.Now)*4;Ring(s.ImpactPosition,Vector3.UnitX,Vector3.UnitY,.3f+.5f*(1-f),.05f,Ivory*f);}
-                var c=s.Active;if(c==null)continue;float age=(float)(runtime.Now-c.Start);
-                if(age<0||age>ExcaliburRules.Length(c.Skill))continue;
-                if(c.Skill==2)Ultimate(c,age);else if(c.Skill==3)Avalon(c,age);
+                var c=s.Active;
+                if(c!=null){float age=(float)(runtime.Now-c.Start);if(age>=0&&age<=ExcaliburRules.Length(c.Skill)){if(c.Skill==2)Ultimate(c,age);else if(c.Skill==3)Avalon(c,age);}}
+                if(s.Beam!=null&&(c==null||c.Skill!=2||c.Id!=s.Beam.Id))Ultimate(s.Beam,(float)(runtime.Now-s.Beam.Start));
             }
             renderer.Flush(view.ViewProjectionMatrix);
         }
@@ -48,11 +47,11 @@ namespace SCIEPort.Features.Excalibur
         {side=Vector3.Cross(d,Vector3.UnitY);side=side.LengthSquared()<.001f?Vector3.UnitX:Vector3.Normalize(side);up=Vector3.Normalize(Vector3.Cross(side,d));}
         private void Ultimate(SubsystemExcalibur.Cast c,float age)
         {
-            age=ExcaliburRules.ReleaseTimeline(age);
+            if(age<0||age>=ExcaliburRules.BeamEnd)return;
             Vector3 side,up;Basis(c.Direction,out side,out up);
-            var basePoint=c.Player.ComponentBody.Position;var focus=c.Origin+c.Direction*.75f;
-            float charge=MathUtils.Saturate(age/2.8f),fade=MathUtils.Saturate((4-age)/.45f);
-            if(age<2.8f)
+            var basePoint=c.Origin-Vector3.UnitY*1.4f;var focus=c.Origin+c.Direction*.75f;
+            float charge=MathUtils.Saturate(age/ExcaliburRules.Release),fade=ExcaliburRules.BeamOpacity(age);
+            if(age<ExcaliburRules.Release)
             {
                 // Three counter-rotating lake seals and spirals pulling motes into the raised blade.
                 for(int layer=0;layer<3;layer++)
@@ -67,25 +66,34 @@ namespace SCIEPort.Features.Excalibur
                     }
                 }
                 // A complete giant sword silhouette, including the gold crossguard and blue-gold grip.
-                float grow=MathUtils.Saturate((age-.85f)/1.05f);var foot=focus+Vector3.UnitY*.3f;var tip=foot+Vector3.UnitY*(2+8*grow);
-                var shoulder=foot+Vector3.UnitY*1.2f;var neck=tip-Vector3.UnitY*(.7f+grow*.6f);
+                float grow=MathUtils.Saturate((age-.25f)/.6f),swing=ExcaliburRules.Swing(age),angle=swing*1.95f;
+                var axis=up*MathUtils.Cos(angle)+c.Direction*MathUtils.Sin(angle);var foot=focus+up*.3f;
+                var tip=foot+axis*(2+8*grow);var shoulder=foot+axis*1.2f;var neck=tip-axis*(.7f+grow*.6f);
                 Quad(gold,shoulder-side*.95f,neck-side*.50f,tip,shoulder,Gold*grow);
                 Quad(gold,shoulder,tip,neck+side*.50f,shoulder+side*.95f,Gold*grow);
                 Beam(shoulder,tip,.38f,Ivory*grow);Beam(shoulder-side*1.8f,shoulder+side*1.8f,.30f,Gold*grow);
                 Beam(shoulder-side*.93f,neck-side*.5f,.10f,Ivory*grow);Beam(shoulder+side*.93f,neck+side*.5f,.10f,Ivory*grow);
                 Beam(foot,shoulder,.20f,new Color(110,155,255,150)*grow);
+                if(swing>0)
+                {
+                    // A real downward arc and several trailing blade tips precede the impact.
+                    for(int k=0;k<10;k++)
+                    {float a=Math.Max(0,angle-.65f)+k*Math.Min(.65f,angle)/10,b=Math.Max(0,angle-.65f)+(k+1)*Math.Min(.65f,angle)/10;
+                        var p=foot+(up*MathUtils.Cos(a)+c.Direction*MathUtils.Sin(a))*(2+8*grow);var q=foot+(up*MathUtils.Cos(b)+c.Direction*MathUtils.Sin(b))*(2+8*grow);
+                        Beam(p,q,.22f,Gold*(grow*(k+1)/10f));}
+                }
                 for(int i=0;i<5;i++)Ring(focus+Vector3.UnitY*(i*.65f),side,c.Direction,.5f+grow*.7f,.02f,Gold*(charge*.3f));
                 // Stable radial rays build to one crescendo; no random strobe.
-                if(age>2.1f)for(int i=0;i<12;i++)
-                {float a=i*(2*MathUtils.PI)/12;var v=side*MathUtils.Cos(a)+up*MathUtils.Sin(a);Beam(focus+v*.2f,focus+v*(1+charge*3),.04f,Gold*((age-2.1f)/.7f));}
+                if(age>.9f)for(int i=0;i<12;i++)
+                {float a=i*(2*MathUtils.PI)/12;var v=side*MathUtils.Cos(a)+up*MathUtils.Sin(a);Beam(focus+v*.2f,focus+v*(1+charge*3),.04f,Gold*MathUtils.Saturate((age-.9f)/.7f));}
                 return;
             }
-            float burst=MathUtils.Saturate((age-2.8f)/.12f),length=35*burst;
+            float length=35;
             // 3D tapered shell + white core + rotating ribbons; full range persists through the release tail.
             for(int layer=0;layer<3;layer++)
             {
                 float radius=layer==0?4:layer==1?2.4f:1.05f;
-                Color color=(layer==2?Ivory:layer==1?new Color(255,219,122,210):new Color(255,173,28,175))*fade;
+                Color color=Color.MultiplyColorOnly(layer==2?Ivory:layer==1?new Color(255,219,122,210):new Color(255,173,28,175),fade);
                 for(int z=0;z<10;z++)for(int i=0;i<segments;i++)
                 {
                     float t=z/10f,u=(z+1)/10f,a=i*(2*MathUtils.PI)/segments,b=(i+1)*(2*MathUtils.PI)/segments;
@@ -101,15 +109,8 @@ namespace SCIEPort.Features.Excalibur
                     Beam(c.Origin+c.Direction*(length*t)+(side*MathUtils.Cos(a)+up*MathUtils.Sin(a))*3.3f,c.Origin+c.Direction*(length*u)+(side*MathUtils.Cos(b)+up*MathUtils.Sin(b))*3.3f,.055f,Ivory*fade);}
             }
             for(int i=0;i<5;i++){float t=(age*1.9f+i*.2f)%1;Ring(c.Origin+c.Direction*(length*t),side,up,4.1f,.06f,Gold*(fade*(1-t)));}
-            Ring(basePoint+Vector3.UnitY*.12f,Vector3.UnitX,Vector3.UnitZ,2+(age-2.8f)*9,.07f,Gold*fade);
-        }
-        private void Enchant(Vector3 origin,Vector3 direction,float age)
-        {
-            Vector3 side,up;Basis(direction,out side,out up);var hilt=origin+direction*.55f-side*.3f-Vector3.UnitY*.45f;
-            var tip=hilt+Vector3.UnitY*1.1f+direction*.15f;
-            Beam(hilt,tip,.14f,Gold*.55f);
-            for(int i=0;i<12;i++)
-            {float t=(i/12f+age*.7f)%1,a=i*2.39996f+age*3;var p=Vector3.Lerp(hilt,tip,t)+(side*MathUtils.Cos(a)+direction*MathUtils.Sin(a))*.12f;Beam(p,p+Vector3.UnitY*.06f,.022f,Ivory*(1-t));}
+            float impact=MathUtils.Saturate((age-ExcaliburRules.Release)/.7f);
+            if(impact<1)Ring(basePoint+Vector3.UnitY*.12f,Vector3.UnitX,Vector3.UnitZ,2+impact*8,.13f,Gold*(1-impact));
         }
         private void Avalon(SubsystemExcalibur.Cast c,float age)
         {

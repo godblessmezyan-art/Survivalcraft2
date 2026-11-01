@@ -25,8 +25,9 @@ public static class ExcaliburNativeProbe
     sealed class Recorder:ModLoader
     {
         internal readonly List<float> Powers=new List<float>();internal bool Fail;
+        internal readonly List<ComponentBody> Targets=new List<ComponentBody>();
         public override bool AttackBody(ComponentBody b,ComponentCreature a,Vector3 point,Vector3 dir,ref float power,bool melee)
-        {Powers.Add(power);if(Fail)throw new Exception("injected external damage-hook failure");power=0;return true;}
+        {Targets.Add(b);Powers.Add(power);if(Fail)throw new Exception("injected external damage-hook failure");power=0;return true;}
     }
     sealed class InjuryRecorder:ModLoader
     {
@@ -51,16 +52,16 @@ public static class ExcaliburNativeProbe
         var packet=(IPackage)Activator.CreateInstance(packetType);
         foreach(uint seq in new[]{1u,127u,128u,uint.MaxValue})
         {
-            var values=new Dictionary<string,object>{{"Kind",(byte)1},{"Skill",(byte)3},{"Caster",(ushort)65534},{"Sequence",seq},{"CastId",uint.MaxValue},{"Origin",new Vector3(1,65,-30)},{"Direction",Vector3.UnitZ},{"Cooldowns",new Vector3(10,35,65)},{"Age",2.9f},{"Blessing",8f}};
+            var values=new Dictionary<string,object>{{"Kind",(byte)1},{"Skill",(byte)3},{"Caster",(ushort)65534},{"Sequence",seq},{"CastId",uint.MaxValue},{"Origin",new Vector3(1,65,-30)},{"Direction",Vector3.UnitZ},{"Cooldowns",new Vector3(15,35,75)},{"Age",2.9f},{"Blessing",8f},{"Regen",75f},{"BeamId",uint.MaxValue},{"BeamAge",3f},{"BeamOrigin",new Vector3(1,65,-30)},{"BeamDirection",Vector3.UnitZ}};
             foreach(var pair in values)Put(packet,pair.Key,pair.Value);
             using(var writer=new PackageStreamWriter())
             {
-                packet.WriteData(writer);Check(writer.BaseStream.Length<=64,"bounded compressed native payload");
+                packet.WriteData(writer);Check(writer.BaseStream.Length<=128,"bounded compressed native payload");
                 using(var reader=new PackageStreamReader(writer.Data())){var copy=(IPackage)Activator.CreateInstance(packetType);copy.ReadData(reader);foreach(var pair in values)Check(Get(copy,pair.Key).Equals(pair.Value),"native compressed roundtrip "+pair.Key);Check(reader.BaseStream.Position==reader.BaseStream.Length,"all fields consumed");}
             }
         }
         var valid=rt.GetMethod("Valid",BindingFlags.Static|BindingFlags.NonPublic);Check((bool)valid.Invoke(null,new object[]{packet}),"full snapshot accepted");
-        foreach(var pair in new Dictionary<string,object>{{"Age",float.NaN},{"Blessing",8.01f},{"Cooldowns",new Vector3(25,35,90.1f)},{"Direction",Vector3.Zero},{"Skill",(byte)4}})
+        foreach(var pair in new Dictionary<string,object>{{"Age",float.NaN},{"Blessing",8.01f},{"Cooldowns",new Vector3(15,35,75.1f)},{"Direction",Vector3.Zero},{"Skill",(byte)4},{"Regen",75.1f},{"BeamDirection",Vector3.Zero},{"BeamAge",float.NaN}})
         {var old=Get(packet,pair.Key);Put(packet,pair.Key,pair.Value);Check(!(bool)valid.Invoke(null,new object[]{packet}),"invalid snapshot "+pair.Key);Put(packet,pair.Key,old);}
         Put(packet,"Kind",(byte)3);Check(!(bool)valid.Invoke(null,new object[]{packet}),"impact event cannot impersonate a sanctuary cast");
         Put(packet,"Skill",(byte)0);Put(packet,"CastId",0u);Put(packet,"Age",0f);Check((bool)valid.Invoke(null,new object[]{packet}),"swing confirmation event shape");
@@ -82,14 +83,26 @@ public static class ExcaliburNativeProbe
             var owner=AbyssHostNativeProbe.Player(project,bodies,953);owner.ComponentLocomotion=new ComponentLocomotion();owner.ComponentLocomotion.WalkSpeed=5;
             var recorder=new Recorder();ModsManager.RegisterHook("AttackBody",recorder);
             var core=Npc(project,bodies,new Vector3(8.5f,65,12));var edge=Npc(project,bodies,new Vector3(12,65,12));var miss=Npc(project,bodies,new Vector3(13,65,12));
-            var cast=Cast(rt,owner,2);Call(runtime,"Strike",cast);Check(recorder.Powers.Count==2&&recorder.Powers.Contains(55)&&recorder.Powers.Contains(25),"Local one core55 and edge25, width outsider untouched");
+            var cast=Cast(rt,owner,2);Call(runtime,"Strike",cast);Check(recorder.Powers.Count==2&&recorder.Powers.Contains(90),"Local one core90 and edge90, width outsider untouched");
             Call(runtime,"Strike",cast);Check(recorder.Powers.Count==2,"same cast cannot hit twice");
             CommonLib.WorkType=WorkType.Client;Call(runtime,"Strike",Cast(rt,owner,2));Check(recorder.Powers.Count==2,"ordinary Client damage forbidden");
-            CommonLib.WorkType=WorkType.Server;Call(runtime,"Strike",Cast(rt,owner,2));Check(recorder.Powers.Count==4&&recorder.Powers.Contains(55),"Server second-skill beam 55");
+            CommonLib.WorkType=WorkType.Server;Call(runtime,"Strike",Cast(rt,owner,2));Check(recorder.Powers.Count==4&&recorder.Powers.Contains(90),"Server second-skill impact 90");
             // Place opaque wall cells across both rays; terrain must remain exactly as the fixture set it.
             for(int x=8;x<=12;x++)cells.SetCellValueFast(x,65,9,3);
             Call(runtime,"Strike",Cast(rt,owner,2));Check(recorder.Powers.Count==4,"wall blocks holy flood damage");Check(cells.GetCellValue(8,65,9)==3,"no terrain mutation");
             for(int x=8;x<=12;x++)cells.SetCellValueFast(x,65,9,0);
+            var sustain=Cast(rt,owner,2);Put(sustain,"Id",77u);var beamState=Call(runtime,"Get",owner);Put(beamState,"Beam",sustain);
+            int pulseStart=recorder.Powers.Count;clock.m_gameTime=2.74;Call(runtime,"AdvanceBeam",beamState);Check(recorder.Powers.Count==pulseStart,"no DOT before one second after slam");
+            clock.m_gameTime=2.75;Call(runtime,"AdvanceBeam",beamState);Call(runtime,"AdvanceBeam",beamState);
+            Check(recorder.Powers.Count==pulseStart+2&&recorder.Powers[recorder.Powers.Count-1]==45,"exactly one 45-power pulse per target per second");
+            edge.Position=new Vector3(14,65,12);miss.Position=new Vector3(8.5f,65,14);clock.m_gameTime=3.75;Call(runtime,"AdvanceBeam",beamState);
+            Check(recorder.Powers.Count==pulseStart+4&&recorder.Targets[recorder.Targets.Count-1]!=edge&&recorder.Targets.Contains(miss),"leaving enemies stop ticking; new path entrants join the next pulse");
+            clock.m_gameTime=6.85;Call(runtime,"AdvanceBeam",beamState);Check(recorder.Powers.Count==pulseStart+6,"stalled frames skip missed pulses rather than bursting retroactive damage");
+            clock.m_gameTime=7.76;Call(runtime,"AdvanceBeam",beamState);Check(recorder.Powers.Count==pulseStart+8&&Get(beamState,"Beam")==null,"final sixth pulse consumes beam and clears it");
+            Call(runtime,"AdvanceBeam",beamState);Check(recorder.Powers.Count==pulseStart+8,"expired beam never retries");
+            Put(beamState,"Beam",Cast(rt,owner,2));Put(beamState,"LastSnapshot",2.75d);clock.m_gameTime=2.75;CommonLib.WorkType=WorkType.Client;Call(runtime,"AdvanceBeam",beamState);
+            Check(recorder.Powers.Count==pulseStart+8,"ordinary Client cannot apply lingering damage");CommonLib.WorkType=WorkType.Local;
+            Put(beamState,"Beam",null);edge.Position=new Vector3(12,65,12);miss.Position=new Vector3(13,65,12);clock.m_gameTime=0;
             bodies.RemoveBody(edge);bodies.RemoveBody(miss);recorder.Fail=true;cast=Cast(rt,owner,2);
             try{Call(runtime,"Strike",cast);}catch(TargetInvocationException){}
             int count=recorder.Powers.Count;recorder.Fail=false;Call(runtime,"Strike",cast);Check(recorder.Powers.Count==count,"external hook exception cannot retry target damage");
@@ -102,7 +115,7 @@ public static class ExcaliburNativeProbe
             Call(runtime,"ApplySpeed",state,false);Check(owner.ComponentLocomotion.WalkSpeed==5,"exact speed restoration");
             var clear=rt.GetMethod("ClearCast",BindingFlags.Static|BindingFlags.NonPublic);clear.Invoke(null,new[]{state});Put(request,"Sequence",2u);Call(runtime,"Accept",owner,request);Check(Get(state,"Active")==null,"cooldown blocks fresh sequence");
             Check(owner.ComponentCreatureModel.AimHandAngleOrder==0&&owner.ComponentCreatureModel.InHandItemOffsetOrder==Vector3.Zero,"native arms and item orders restored on cancellation");
-            Put(request,"Skill",(byte)1);Put(request,"Sequence",3u);Call(runtime,"Accept",owner,request);Check((double)Get(state,"BlessingEnd")==8&&((double[])Get(state,"Ready"))[0]==25,"enchantment duration8 cooldown25");
+            Put(request,"Skill",(byte)1);Put(request,"Sequence",3u);Call(runtime,"Accept",owner,request);Check((double)Get(state,"BlessingEnd")==8&&((double[])Get(state,"Ready"))[0]==15,"enchantment duration8 cooldown15");
             clear.Invoke(null,new[]{state});
             core.Position=new Vector3(8.5f,65,8.0f);core.Entity.FindComponent<ComponentHealth>(true).AttackResilience=100;
             object[] targetArgs={owner,Vector3.UnitZ,Vector3.Zero};
@@ -123,6 +136,13 @@ public static class ExcaliburNativeProbe
             clock.m_gameTime=0;
             var fp=new ComponentFirstPersonModel();fp.m_entity=owner.Entity;((List<Component>)Get(owner.Entity,"m_components")).Add(fp);
             Check((bool)Call(runtime,"EnchantedDraw",fp.m_drawBlockEnvironmentData)&&!(bool)Call(runtime,"EnchantedDraw",new DrawBlockEnvironmentData()),"gold blade emission bound to actual held-model owner, not inventory");
+            var poseCast=Cast(rt,owner,2);rt.GetMethod("Pose",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{poseCast,.8f});
+            var readyMatrix=Matrix.CreateFromYawPitchRoll(fp.ItemRotationOrder.Y,fp.ItemRotationOrder.X-12*MathUtils.PI/180,fp.ItemRotationOrder.Z-8*MathUtils.PI/180);
+            var raised=Vector3.TransformNormal(Vector3.UnitY,readyMatrix);
+            Check(raised.Y>.95f&&Math.Abs(raised.Z)<.12f&&-.48f+fp.ItemOffsetOrder.Y*2>.3f,"native CSV pitch + doubled FPP offset gives an upright overhead blade, not a forward thrust");
+            rt.GetMethod("Pose",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,new object[]{poseCast,1.75f});
+            var cutMatrix=Matrix.CreateFromYawPitchRoll(fp.ItemRotationOrder.Y,fp.ItemRotationOrder.X-12*MathUtils.PI/180,fp.ItemRotationOrder.Z-8*MathUtils.PI/180);
+            var cut=Vector3.TransformNormal(Vector3.UnitY,cutMatrix);Check(cut.Y<-.4f&&cut.Z<-.7f,"first-person blade crosses horizontal and points down-forward at impact");
             var injury=new InjuryRecorder();ModsManager.RegisterHook("OnCreatureInjure",injury);
             Call(runtime,"PrepareMelee",core,owner,24f,true);Call(runtime,"PrepareMelee",core,owner,24f,true);
             Check(((ICollection)Get(runtime,"addons")).Count==1,"one pending add-on for repeated hook");
@@ -135,7 +155,7 @@ public static class ExcaliburNativeProbe
             Check(injury.Count==1,"blocked or zero-health-loss physical hit does not proc");
             Call(runtime,"PrepareMelee",core,owner,55f,false);Check(((ICollection)Get(runtime,"addons")).Count==0,"holy beam cannot recursively proc enchantment");
             CommonLib.WorkType=WorkType.Client;Call(runtime,"PrepareMelee",core,owner,24f,true);Check(((ICollection)Get(runtime,"addons")).Count==0,"Client never schedules holy damage");CommonLib.WorkType=WorkType.Local;
-            var avalon=Cast(rt,owner,3);Put(avalon,"Start",2d);Put(avalon,"HealMaximum",1f);Put(state,"Active",avalon);owner.ComponentHealth.Health=.5f;
+            var avalon=Cast(rt,owner,3);Put(avalon,"Start",2d);Put(state,"Active",avalon);owner.ComponentHealth.Health=.5f;
             clock.m_gameTime=2.59;Check(!(bool)Call(runtime,"Protects",owner.ComponentHealth),"Avalon windup remains vulnerable");
             clock.m_gameTime=2.6;Check((bool)Call(runtime,"Protects",owner.ComponentHealth)&&!owner.ComponentHealth.IsInvulnerable,"Avalon shields via scoped hook without mutating global invulnerability");
             project.m_subsystems.Add((Subsystem)runtime);
@@ -143,12 +163,38 @@ public static class ExcaliburNativeProbe
             Check((bool)injuryArgs[5],"actual loader blocks direct injury, including ignoreInvulnerability, during sanctuary");
             object[] attackArgs={owner.ComponentBody,owner,owner.ComponentBody.Position,Vector3.UnitZ,55f,false};
             Check((bool)Call(loader,"AttackBody",attackArgs)&&(float)attackArgs[4]==0,"actual loader blocks native attack before armor/impulse");
-            clock.m_gameTime=5.6;Check(!(bool)Call(runtime,"Protects",owner.ComponentHealth),"three-second invulnerability expires");Call(runtime,"HealAvalon",avalon,3.6f);
-            Check(Math.Abs(owner.ComponentHealth.Health-.62f)<.0001f,"Avalon returns 12 percent normalized maximum health");
-            clock.m_gameTime=6;Call(runtime,"HealAvalon",avalon,4.2f);Check(Math.Abs(owner.ComponentHealth.Health-.62f)<.0001f,"repeated/catch-up healing does not exceed budget");
-            owner.ComponentHealth.Health=.98f;Put(avalon,"Healed",0f);clock.m_gameTime=7;Call(runtime,"HealAvalon",avalon,3.6f);Check(owner.ComponentHealth.Health==1,"healing clamps to current equipment maximum");
+            clock.m_gameTime=5.6;Check(!(bool)Call(runtime,"Protects",owner.ComponentHealth),"three-second invulnerability expires");
+            clock.m_gameTime=2;((double[])Get(state,"Ready"))[2]=77;Call(runtime,"StartAvalon",state);
+            Check(Math.Abs(owner.ComponentHealth.Health-.7f)<.0001f,"instant 20 percent maximum health on accepted Avalon");
+            Check((double)Get(state,"RegenUntil")==77&&(double)Get(state,"NextRegen")==3,"regeneration ends exactly at 75-second cooldown");
+            clock.m_gameTime=2.99;Call(runtime,"TickRegeneration",state);Check(Math.Abs(owner.ComponentHealth.Health-.7f)<.0001f,"no regeneration before one second");
+            clock.m_gameTime=3;Call(runtime,"TickRegeneration",state);Call(runtime,"TickRegeneration",state);Check(Math.Abs(owner.ComponentHealth.Health-.8f)<.0001f,"one native health point once per second, no duplicate frame");
+            clock.m_gameTime=5;Call(runtime,"TickRegeneration",state);Check(owner.ComponentHealth.Health==1,"lag catch-up healing capped to maximum");
+            owner.ComponentHealth.Health=.5f;Call(runtime,"TickRegeneration",state);Check(owner.ComponentHealth.Health==.5f,"full-health pulses were consumed, not banked");
+            ((ComponentInventory)owner.ComponentMiner.Inventory).m_slots[0]=new ComponentInventoryBase.Slot{Value=952,Count=1};
+            clock.m_gameTime=6;Call(runtime,"TickRegeneration",state);Check(Math.Abs(owner.ComponentHealth.Health-.6f)<.0001f,"regeneration survives switching weapons until cooldown ends");
+            ((ComponentInventory)owner.ComponentMiner.Inventory).m_slots[0]=new ComponentInventoryBase.Slot{Value=953,Count=1};
+            clock.m_gameTime=77;Call(runtime,"TickRegeneration",state);Check((double)Get(state,"RegenUntil")==0,"final pulse ends buff at cooldown boundary");
+            owner.ComponentHealth.Health=.5f;clock.m_gameTime=78;Call(runtime,"TickRegeneration",state);Check(owner.ComponentHealth.Health==.5f,"no healing beyond cooldown");
+            Put(state,"RegenUntil",100d);Put(state,"NextRegen",79d);owner.ComponentHealth.Health=0;Call(runtime,"TickRegeneration",state);Check((double)Get(state,"RegenUntil")==0,"death clears regeneration and never revives");owner.ComponentHealth.Health=1;
             CommonLib.WorkType=WorkType.Client;Put(state,"LastSnapshot",0d);clock.m_gameTime=3;
-            Check(!(bool)Call(runtime,"Protects",owner.ComponentHealth),"stale Client lease cannot keep immunity");CommonLib.WorkType=WorkType.Local;
+            Check(!(bool)Call(runtime,"Protects",owner.ComponentHealth),"stale Client lease cannot keep immunity");
+            var players=new SubsystemPlayers();players.m_componentPlayers.Add(owner);Put(runtime,"players",players);
+            var snapshot=Activator.CreateInstance(packetType);Put(snapshot,"Kind",(byte)1);Put(snapshot,"Caster",owner.Entity.EntityId);Put(snapshot,"Sequence",1u);
+            Put(snapshot,"Cooldowns",new Vector3(0,30,70));Put(snapshot,"Regen",70f);Put(snapshot,"BeamId",77u);Put(snapshot,"BeamAge",4f);Put(snapshot,"BeamOrigin",owner.ComponentCreatureModel.EyePosition);Put(snapshot,"BeamDirection",Vector3.UnitZ);
+            Call(runtime,"Receive",snapshot);
+            Check(Get(state,"Active")==null&&Get(state,"Beam")!=null,"late Client snapshot restores lingering beam after attack animation has ended");
+            Check((double)Get(state,"RegenUntil")==73&&(double)Get(Get(state,"Beam"),"Start")==-1,"Client receives separate regeneration and beam clocks");
+            var sameCast=Cast(rt,owner,2);Put(sameCast,"Id",77u);Put(state,"Active",sameCast);
+            Check((int)Call(runtime,"ActiveCount")==1,"Client separate snapshot objects for one cast consume one global slot");
+            Put(sameCast,"Id",78u);Check((int)Call(runtime,"ActiveCount")==2,"independent animation and lingering beam consume two global slots");clear.Invoke(null,new[]{state});
+            float clientHealth=owner.ComponentHealth.Health;Put(state,"NextRegen",3d);Call(runtime,"TickRegeneration",state);Check(owner.ComponentHealth.Health==clientHealth,"Client regeneration snapshot never writes health");
+            clock.m_gameTime=4;Call(runtime,"Receive",snapshot);Check((double)Get(state,"LastSnapshot")==3,"duplicate snapshot cannot renew Client lease");
+            Put(snapshot,"Kind",(byte)3);Put(snapshot,"Sequence",2u);Put(snapshot,"Age",1f);Call(runtime,"Receive",snapshot);
+            Check(Get(state,"Active")==null&&Get(state,"Beam")!=null,"holy melee confirmation preserves independent lingering beam");
+            Put(snapshot,"Kind",(byte)1);Put(snapshot,"Age",0f);Put(snapshot,"Sequence",3u);Put(snapshot,"BeamId",0u);Put(snapshot,"BeamAge",0f);Put(snapshot,"Regen",0f);Call(runtime,"Receive",snapshot);
+            Check(Get(state,"Beam")==null&&(double)Get(state,"RegenUntil")==0,"authoritative empty snapshot clears Client sustain effects");
+            CommonLib.WorkType=WorkType.Local;
             ((ComponentInventory)owner.ComponentMiner.Inventory).m_slots[0]=new ComponentInventoryBase.Slot{Value=952,Count=1};
             owner.ComponentCreatureModel.InHandItemOffsetOrder=new Vector3(.1f,.2f,.3f);
             clear.Invoke(null,new[]{state});Check(Get(state,"Active")==null,"cast/pose cleanup");

@@ -20,13 +20,14 @@ namespace SCIEPort.Features.Excalibur
             internal double LastMelee=-100,LastAddon=-100,ImpactUntil;
             internal Vector3 ImpactPosition;
             internal float WalkDelta;
-            internal Cast Active;
+            internal double RegenUntil,NextRegen;
+            internal Cast Active,Beam;
         }
         internal sealed class Cast
         {
             internal ComponentPlayer Player;internal byte Skill;internal uint Id;
             internal Vector3 Origin,Direction;internal double Start;internal bool Settled,Released;
-            internal float Healed,HealMaximum;internal double NextHeal;
+            internal int DamagePhase=-1,LastTick;
             internal readonly ExcaliburRules.HitLedger<Entity> Hits=new ExcaliburRules.HitLedger<Entity>();
         }
         private sealed class Pending{internal ComponentPlayer Player;internal ExcaliburPackage Packet;}
@@ -76,27 +77,30 @@ namespace SCIEPort.Features.Excalibur
         }
         internal void Enqueue(ComponentPlayer p,ExcaliburPackage packet)
         {lock(pending){if(!disposed&&pending.Count<32)pending.Enqueue(new Pending{Player=p,Packet=packet});}}
-        private int ActiveCount(){int n=0;foreach(var s in states.Values)if(s.Active!=null)n++;return n;}
+        private int ActiveCount(){int n=0;foreach(var s in states.Values){if(s.Active!=null)n++;if(s.Beam!=null&&!(s.Active?.Skill==2&&s.Active.Id==s.Beam.Id))n++;}return n;}
         internal void Accept(ComponentPlayer p,ExcaliburPackage packet)
         {
             if(packet.Kind==2){AcceptMelee(p,packet);return;}
             if(packet.Kind!=0)return;
             if(!Authority||!Actor(p)||!ExcaliburRules.Skill(packet.Skill)||!Finite(packet.Direction))return;
             State s=Get(p);if(!ExcaliburRules.Newer(packet.Sequence,s.Accepted))return;s.Accepted=packet.Sequence;
-            if(s.Active!=null||Now<s.Ready[packet.Skill-1]||ActiveCount()>=ExcaliburRules.MaxCasts)return;
+            if(s.Active!=null||Now<s.Ready[packet.Skill-1]||ActiveCount()-(packet.Skill==3&&s.Beam!=null?1:0)>=ExcaliburRules.MaxCasts)return;
             float length=packet.Direction.Length();if(length<.95f||length>1.05f)return;
             var direction=Vector3.Normalize(packet.Direction);var origin=p.ComponentCreatureModel.EyePosition;
             if(!Loaded(origin)||Protected(origin))return;
             // Lock the release origin/direction at server acceptance: clients cannot teleport the beam.
             s.Ready[packet.Skill-1]=Now+ExcaliburRules.Cooldown(packet.Skill);
             if(packet.Skill==1)s.BlessingEnd=Now+ExcaliburRules.EnchantDuration;
-            s.Active=new Cast{Player=p,Id=++s.NextCast,Skill=packet.Skill,Origin=origin,Direction=direction,Start=Now,HealMaximum=MaximumHealth(p)};
+            s.Active=new Cast{Player=p,Id=++s.NextCast,Skill=packet.Skill,Origin=origin,Direction=direction,Start=Now};
+            if(packet.Skill==2)p.ComponentMiner.PokingPhase=0;
+            if(packet.Skill==3){s.Beam=null;StartAvalon(s);}
             Present(s,s.Active);Publish(s);
         }
         /// <inheritdoc/>
         public void Update(float dt)
         {
             if(clock.GameTimeDelta<=0)return;
+            foreach(var state in states.Values)TickRegeneration(state);
             for(int budget=0;budget<16;budget++)
             {Pending item;lock(pending){if(pending.Count==0)break;item=pending.Dequeue();}if(item.Player!=null)Accept(item.Player,item.Packet);else if(!Authority)Receive(item.Packet);}
             foreach(var p in players.ComponentPlayers)
@@ -115,14 +119,15 @@ namespace SCIEPort.Features.Excalibur
                         // ComponentPlayer (0), so the cast cannot also mine or start a native swing.
                         var input=p.ComponentInput;
                         if(input!=null){input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;input.m_playerInput.Interact=null;}
+                        if(c.Skill==2)p.ComponentMiner.PokingPhase=0;
                         Pose(c,age);
                         if(age>=ExcaliburRules.Impact(c.Skill)&&!c.Released){c.Released=true;Release(c);}
-                        if(age>=ExcaliburRules.Impact(c.Skill)&&!c.Settled){c.Settled=true;if(c.Skill==2)Strike(c);}
-                        if(c.Skill==3)HealAvalon(c,age);
+                        if(age>=ExcaliburRules.Impact(c.Skill)&&!c.Settled){c.Settled=true;if(c.Skill==2){s.Beam=c;Strike(c);Publish(s);}}
                     }
-                    catch(Exception error){Log.Warning("[SCIEPort:Excalibur] Cast stopped: "+error);ClearCast(s);}
+                    catch(Exception error){Log.Warning("[SCIEPort:Excalibur] Cast stopped: "+error);if(ReferenceEquals(s.Beam,c))s.Beam=null;ClearCast(s);}
                     if(age>=ExcaliburRules.Length(c.Skill)||age<0)ClearCast(s);
                 }
+                AdvanceBeam(s);
                 CaptureEnchantedInput(p,s);
                 if(Authority&&Now>=s.NextSnapshot){Publish(s);s.NextSnapshot=Now+.4;}
             }
@@ -141,8 +146,12 @@ namespace SCIEPort.Features.Excalibur
                 rotation=new Vector3(-.25f,.5f,-.35f)*guard;offset=new Vector3(-.2f,.16f,.1f)*guard;
             }
             var fp=c.Player.Entity.FindComponent<ComponentFirstPersonModel>(false);
-            if(fp!=null){fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
-            float timeline=ExcaliburRules.ReleaseTimeline(age),raise=MathUtils.Saturate(timeline/.65f),swing=MathUtils.Saturate((timeline-2.65f)/.35f);
+            if(fp!=null)
+            {
+                if(c.Skill==2){float z;ExcaliburRules.FirstPersonPose(age,out pitch,out yaw,out lift,out z);float fpRaise=ExcaliburRules.Smooth(age/.6f)*(1-ExcaliburRules.Smooth((age-1.85f)/.6f));fp.ItemRotationOrder=new Vector3(pitch,yaw,.14f*fpRaise);fp.ItemOffsetOrder=new Vector3(-.1f*fpRaise,lift,z);}
+                else{fp.ItemRotationOrder=rotation;fp.ItemOffsetOrder=offset;}
+            }
+            float raise=ExcaliburRules.Smooth(age/.6f),swing=ExcaliburRules.Swing(age);
             c.Player.ComponentCreatureModel.AimHandAngleOrder=c.Skill==3?1.1f*MathUtils.Saturate(age/.6f):2.55f*raise*(1-swing)+.5f*swing;
             c.Player.ComponentCreatureModel.InHandItemRotationOrder=rotation;c.Player.ComponentCreatureModel.InHandItemOffsetOrder=offset*.4f;
         }
@@ -163,7 +172,7 @@ namespace SCIEPort.Features.Excalibur
             var move=s.Player.ComponentLocomotion;move.WalkSpeed-=s.WalkDelta;s.WalkDelta=0;
             if(active&&ExcaliburRules.Finite(move.WalkSpeed)){s.WalkDelta=move.WalkSpeed*.2f;move.WalkSpeed+=s.WalkDelta;}
         }
-        private void Restore(State s){ApplySpeed(s,false);ClearCast(s);}
+        private void Restore(State s){ApplySpeed(s,false);ClearCast(s);s.Beam=null;s.RegenUntil=0;s.NextRegen=0;}
         private void Present(State s,Cast c)
         {
             if(s.LastVisual==c.Id)return;s.LastVisual=c.Id;
@@ -172,7 +181,6 @@ namespace SCIEPort.Features.Excalibur
         private void Release(Cast c)
         {
             if(c.Skill!=2)return;
-            c.Player.ComponentMiner.Poke(true);
             Project.FindSubsystem<SubsystemAudio>(false)?.PlaySound("Audio/Excalibur/Release",1f,-.08f,c.Origin,40,false);
         }
         private static bool Related(ComponentBody a,ComponentBody b)=>a==b||a.ParentBody==b||b.ParentBody==a||a.ChildBodies.Contains(b)||b.ChildBodies.Contains(a);
@@ -186,9 +194,11 @@ namespace SCIEPort.Features.Excalibur
             for(int i=0;i<=steps;i++){var p=Vector3.Lerp(a,b,i/(float)Math.Max(1,steps));if(!Loaded(p)||Protected(p))return false;}
             return !terrain.Raycast(a,b,false,true,(v,d)=>BlocksManager.Blocks[Terrain.ExtractContents(v)].IsCollidable).HasValue;
         }
-        private void Strike(Cast c)
+        private void Strike(Cast c)=>StrikePhase(c,0,ExcaliburRules.ImpactPower);
+        private void StrikePhase(Cast c,int phase,float damage)
         {
             if(!Authority||c.Skill!=2||!Actor(c.Player)||!Loaded(c.Origin)||Protected(c.Origin))return;
+            if(phase<c.DamagePhase)return;if(phase!=c.DamagePhase){c.DamagePhase=phase;c.Hits.Clear();}
             float range=35;Vector3 side=Vector3.Cross(c.Direction,Vector3.UnitY);if(side.LengthSquared()<.001f)side=Vector3.UnitX;else side=Vector3.Normalize(side);
             Vector3 up=Vector3.Normalize(Vector3.Cross(side,c.Direction));
             Vector3 end=c.Origin+c.Direction*range,min=Vector3.Min(c.Origin,end)-new Vector3(6),max=Vector3.Max(c.Origin,end)+new Vector3(6);
@@ -201,20 +211,23 @@ namespace SCIEPort.Features.Excalibur
                 var center=b.BoundingBox.Center();if(!Loaded(center)||Protected(center))continue;
                 var delta=center-c.Origin;float power=ExcaliburRules.Power(c.Skill,Vector3.Dot(delta,c.Direction),Vector3.Dot(delta,side),Vector3.Dot(delta,up));
                 if(power<=0||!Sight(c.Origin,center)||!c.Hits.Add(b.Entity))continue;
-                ComponentMiner.AttackBody(b,c.Player,center,c.Direction,power,false);
+                ComponentMiner.AttackBody(b,c.Player,center,c.Direction,damage,false);
             }
         }
         private void Publish(State s,byte kind=1,Vector3? impact=null,bool proc=false)
         {
-            if(CommonLib.WorkType!=WorkType.Server)return;var c=s.Active;
+            if(CommonLib.WorkType!=WorkType.Server)return;var c=kind==3?null:s.Active;var beam=s.Beam;
             CommonLib.Net.QueuePackage(new ExcaliburPackage{Kind=kind,Caster=s.Player.Entity.EntityId,Sequence=++s.Revision,CastId=c?.Id??0,Skill=c?.Skill??0,
                 Origin=impact??c?.Origin??Vector3.Zero,Direction=c?.Direction??Vector3.Zero,Age=kind==3?(proc?1:0):c==null?0:(float)Math.Max(0,Now-c.Start),
-                Cooldowns=new Vector3((float)Math.Max(0,s.Ready[0]-Now),(float)Math.Max(0,s.Ready[1]-Now),(float)Math.Max(0,s.Ready[2]-Now)),Blessing=(float)Math.Max(0,s.BlessingEnd-Now)});
+                Cooldowns=new Vector3((float)Math.Max(0,s.Ready[0]-Now),(float)Math.Max(0,s.Ready[1]-Now),(float)Math.Max(0,s.Ready[2]-Now)),Blessing=(float)Math.Max(0,s.BlessingEnd-Now),Regen=(float)Math.Max(0,s.RegenUntil-Now),
+                BeamId=beam?.Id??0,BeamAge=beam==null?0:(float)Math.Max(0,Now-beam.Start),BeamOrigin=beam?.Origin??Vector3.Zero,BeamDirection=beam?.Direction??Vector3.Zero});
         }
         internal static bool Finite(Vector3 p)=>ExcaliburRules.Finite(p.X)&&ExcaliburRules.Finite(p.Y)&&ExcaliburRules.Finite(p.Z);
         internal static bool Valid(ExcaliburPackage p)=>(p.Kind==1||p.Kind==3)&&Finite(p.Origin)&&Finite(p.Direction)&&Finite(p.Cooldowns)&&ExcaliburRules.Finite(p.Age)&&ExcaliburRules.Finite(p.Blessing)
             &&(p.Kind!=3||(p.Skill==0&&p.CastId==0&&(p.Age==0||p.Age==1)))
-            &&p.Blessing>=0&&p.Blessing<=8&&p.Cooldowns.X>=0&&p.Cooldowns.X<=25&&p.Cooldowns.Y>=0&&p.Cooldowns.Y<=35&&p.Cooldowns.Z>=0&&p.Cooldowns.Z<=90
+            &&p.Blessing>=0&&p.Blessing<=8&&p.Cooldowns.X>=0&&p.Cooldowns.X<=15&&p.Cooldowns.Y>=0&&p.Cooldowns.Y<=35&&p.Cooldowns.Z>=0&&p.Cooldowns.Z<=75
+            &&ExcaliburRules.Finite(p.Regen)&&p.Regen>=0&&p.Regen<=75&&Finite(p.BeamOrigin)&&Finite(p.BeamDirection)&&ExcaliburRules.Finite(p.BeamAge)
+            &&(p.BeamId==0?p.BeamAge==0:p.BeamAge>=ExcaliburRules.Release&&p.BeamAge<=ExcaliburRules.BeamEnd+.25f&&p.BeamDirection.LengthSquared()>.98f&&p.BeamDirection.LengthSquared()<1.02f)
             &&(p.Skill==0?p.CastId==0:ExcaliburRules.Skill(p.Skill)&&p.CastId!=0&&p.Age>=0&&p.Age<=ExcaliburRules.Length(p.Skill)&&p.Direction.LengthSquared()>.98f&&p.Direction.LengthSquared()<1.02f);
         internal void Receive(ExcaliburPackage packet)
         {
@@ -223,11 +236,19 @@ namespace SCIEPort.Features.Excalibur
             {
                 var s=Get(p);if(!ExcaliburRules.Newer(packet.Sequence,s.Received))return;s.Received=packet.Sequence;s.LastSnapshot=Now;
                 s.Ready[0]=Now+packet.Cooldowns.X;s.Ready[1]=Now+packet.Cooldowns.Y;s.Ready[2]=Now+packet.Cooldowns.Z;s.BlessingEnd=Now+packet.Blessing;
+                s.RegenUntil=packet.Regen>0?Now+packet.Regen:0;
+                if(packet.BeamId==0)s.Beam=null;
+                else{s.Beam=new Cast{Player=p,Skill=2,Id=packet.BeamId,Origin=packet.BeamOrigin,Direction=packet.BeamDirection,Start=Now-packet.BeamAge,Settled=true,Released=true};}
                 if(packet.Kind==3){s.ImpactPosition=packet.Origin;s.ImpactUntil=Now+.25;if(packet.Age==0&&Enchanted(p)&&!Busy(p))p.ComponentMiner.Poke(true);return;}
                 if(packet.Skill==0){ClearCast(s);return;}
                 if(s.Active==null||s.Active.Id!=packet.CastId)
                 {
-                    if(ActiveCount()>=ExcaliburRules.MaxCasts)return;
+                    // A snapshot uses separate objects for the same sword swing and beam.
+                    // Count the replacement by cast identity, including its shared beam slot.
+                    int count=ActiveCount();
+                    if(s.Active!=null&&!(s.Active.Skill==2&&s.Beam?.Id==s.Active.Id))count--;
+                    if(packet.Skill==2&&s.Beam?.Id==packet.CastId)count--;
+                    if(count>=ExcaliburRules.MaxCasts)return;
                     ClearCast(s);s.Active=new Cast{Player=p,Skill=packet.Skill,Id=packet.CastId,Origin=packet.Origin,Direction=packet.Direction,Settled=true,Released=packet.Age>=ExcaliburRules.Impact(packet.Skill)};Present(s,s.Active);
                 }
                 s.Active.Start=Now-packet.Age;return;

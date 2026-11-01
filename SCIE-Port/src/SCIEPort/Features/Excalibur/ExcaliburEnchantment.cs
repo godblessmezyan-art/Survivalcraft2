@@ -33,16 +33,6 @@ namespace SCIEPort.Features.Excalibur
             return s.Active!=null&&s.Active.Skill==3&&ExcaliburRules.Sanctuary((float)(Now-s.Active.Start));
         }
         private static float MaximumHealth(ComponentPlayer p)=>FourSaintsRules.MaximumHealth(SubsystemFourSaints.Equipment(p));
-        private void HealAvalon(Cast c,float age)
-        {
-            if(!Authority||!Actor(c.Player)||Now<c.NextHeal)return;c.NextHeal=Now+.25;
-            float progress=ExcaliburRules.HealProgress(age),delta=Math.Max(0,progress-c.Healed);c.Healed=progress;
-            if(delta<=0||c.Player.ComponentHealth.Health<=0)return;
-            var health=c.Player.ComponentHealth;float max=MaximumHealth(c.Player),before=health.Health;
-            if(before>=max)return;
-            health.Health=Math.Min(max,before+delta*Math.Min(max,c.HealMaximum));
-            if(CommonLib.WorkType==WorkType.Server&&health.Health>before)CommonLib.Net.QueuePackage(new ComponentHealthPackage(health));
-        }
         private void CaptureEnchantedInput(ComponentPlayer p,State s)
         {
             if(!Enchanted(p)||Busy(p)||p.ComponentInput==null||(!p.PlayerData.IsMainPlayer&&CommonLib.WorkType!=WorkType.Local))return;

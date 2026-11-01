@@ -21,12 +21,15 @@ namespace SCIEPort.Features.Excalibur
         internal uint Sequence,CastId;
         internal Vector3 Origin,Direction,Cooldowns;
         internal float Age,Blessing;
+        internal float Regen,BeamAge;
+        internal uint BeamId;
+        internal Vector3 BeamOrigin,BeamDirection;
         /// <inheritdoc/>
         public void WriteData(PackageStreamWriter w)
-        {w.Write(Kind);w.Write(Skill);w.Write(Caster);w.Write(Sequence);w.Write(CastId);w.Write(Origin);w.Write(Direction);w.Write(Cooldowns);w.Write(Age);w.Write(Blessing);}
+        {w.Write(Kind);w.Write(Skill);w.Write(Caster);w.Write(Sequence);w.Write(CastId);w.Write(Origin);w.Write(Direction);w.Write(Cooldowns);w.Write(Age);w.Write(Blessing);w.Write(Regen);w.Write(BeamId);w.Write(BeamAge);w.Write(BeamOrigin);w.Write(BeamDirection);}
         /// <inheritdoc/>
         public void ReadData(PackageStreamReader r)
-        {Kind=r.ReadByte();Skill=r.ReadByte();Caster=r.ReadUInt16();Sequence=r.ReadUInt32();CastId=r.ReadUInt32();Origin=r.ReadVector3();Direction=r.ReadVector3();Cooldowns=r.ReadVector3();Age=r.ReadSingle();Blessing=r.ReadSingle();}
+        {Kind=r.ReadByte();Skill=r.ReadByte();Caster=r.ReadUInt16();Sequence=r.ReadUInt32();CastId=r.ReadUInt32();Origin=r.ReadVector3();Direction=r.ReadVector3();Cooldowns=r.ReadVector3();Age=r.ReadSingle();Blessing=r.ReadSingle();Regen=r.ReadSingle();BeamId=r.ReadUInt32();BeamAge=r.ReadSingle();BeamOrigin=r.ReadVector3();BeamDirection=r.ReadVector3();}
         /// <inheritdoc/>
         public void Handle(ProjectNet project,NetNode node,bool isServer)
         {

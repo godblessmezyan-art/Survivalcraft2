@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original Excalibur V3 animation and blade glow (2026-11-01)
+
+The model-local enchantment ribbons, continuous downward sword arc and fading holy beam are project-authored runtime geometry and animation code. V3 keeps all existing Excalibur models, textures, audio and generated skill badges unchanged; it adds no external artwork. Native Engine GPU previews in `docs/assets/excalibur-v3/` are synthetic QA fixtures, not game or Android footage, and are not packaged. No game assembly, extracted source, Fate artwork or recording is distributed.
+
 ## Original Avalon sanctuary icon and effects (2026-11-01)
 
 The new `ExcaliburAvalon.png` badge was generated using the built-in image_gen tool. Its unmodified original, complete prompt, processing recipe and SHA-256 are preserved in `docs/assets/excalibur-v2/`. Only resizing and circular alpha processing are applied. Skill 1's existing `ExcaliburLake.png` is unchanged, and skill 2 reuses the previous holy-release icon. The scabbard fragments, dome lattice, projected island and apple-blossom geometry are original code-authored effects, not copied Fate art, models or screenshots; they are distributable with this Mod. The legendary healing-island reference is documented in `docs/EXCALIBUR-V2.md`. Synthetic previews are QA evidence, not Android footage or package resources.

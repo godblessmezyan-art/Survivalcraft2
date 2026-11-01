@@ -30,6 +30,24 @@ namespace SCIEPort.Features.Excalibur
         {
             bool glow=e?.SubsystemTerrain?.Project.FindSubsystem<SubsystemExcalibur>(false)?.EnchantedDraw(e)==true;
             BlocksManager.DrawMeshBlock(r,glow?enchanted:mesh,texture,c,size,ref m,e);
+            if(glow)QueueGlow(r,m,size,(float)(Time.RealTime%60),e?.ViewProjectionMatrix);
         }
+        // Same local blade coordinates, size, matrix and optional projection as DrawMeshBlock.
+        // This works for FPP, third person, either hand, and all camera yaw/pitch angles.
+        internal static void QueueGlow(PrimitivesRenderer3D renderer,Matrix matrix,float size,float time,Matrix? projection=null)
+        {
+            if(projection.HasValue)matrix*=projection.Value;matrix=Matrix.CreateScale(size)*matrix;
+            var batch=renderer.FlatBatch(2,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Additive);
+            for(int strand=0;strand<4;strand++)for(int i=0;i<12;i++)
+            {
+                float y=.2f+i*1.4f/12,z=.2f+(i+1)*1.4f/12;
+                float a=y*12-time*3+strand*MathUtils.PI*.5f,b=z*12-time*3+strand*MathUtils.PI*.5f;
+                Vector3 p=new Vector3(MathUtils.Cos(a)*.065f,y,MathUtils.Sin(a)*.055f),q=new Vector3(MathUtils.Cos(b)*.065f,z,MathUtils.Sin(b)*.055f);
+                var width=new Vector3(.012f,0,.006f);float fade=MathUtils.Sin((y-.2f)/1.4f*MathUtils.PI);
+                batch.QueueQuad(GlowPoint(p-width,matrix),GlowPoint(q-width,matrix),GlowPoint(q+width,matrix),GlowPoint(p+width,matrix),new Color(255,207,74,150)*(.45f+.55f*fade));
+            }
+        }
+        private static Vector3 GlowPoint(Vector3 p,Matrix m)
+        {var v=Vector4.Transform(new Vector4(p,1),m);return new Vector3(v.X,v.Y,v.Z)/v.W;}
     }
 }

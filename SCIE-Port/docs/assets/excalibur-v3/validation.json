@@ -1,0 +1,61 @@
+{
+  "date": "2026-11-01",
+  "branch": "main",
+  "baseline": "62e4bc0",
+  "version": "0.71.0",
+  "target": "SCNET Net_x25.01.17 Windows / net472 / API1.42 / SC2.4.10.6",
+  "targetSha256": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  },
+  "checks": {
+    "rules": 806,
+    "targetNative": 518,
+    "targetGpu": 1307,
+    "fullBuildAndPackage": "passed",
+    "rootEnvironment": "passed",
+    "portEnvironment": "passed"
+  },
+  "package": {
+    "filename": "荒野探险家-0.71.0.netmod",
+    "bytes": 9862780,
+    "sha256": "92503E534D2E70F5162006FA1C07739F656859EAE72D25492CE8420F8FDFA0DA",
+    "dllSha256": "8250CB004771559CEE50CF2992FEB357FD115EA6CED5334E4CE4131C0097E608"
+  },
+  "existingAssetComparison": {
+    "baselineVersion": "0.70.0",
+    "byteIdentical": 162,
+    "intentionalChanges": [
+      "Assets/Blocks/Excalibur.csv"
+    ],
+    "newAssets": []
+  },
+  "unchangedSkill1Sha256": "574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C",
+  "unchangedModelSha256": "92E5B091614E60BE38EC9A512E8A1B1B17A5BF8033D8BD98523CE1BFBCBB619C",
+  "network": {
+    "id": 253,
+    "tailFields": [
+      "Regen",
+      "BeamId",
+      "BeamAge",
+      "BeamOrigin",
+      "BeamDirection"
+    ],
+    "compressedPayloadUpperBound": 128,
+    "mixedVersions": "不支持"
+  },
+  "runtimeEvidence": "Native component/protocol/health fixtures and recorded damage hooks; GPU uses real imported sword model/palette, native CSV transform and production poses/glow/scene. No live game world or real network session.",
+  "android7723": "待验证",
+  "liveSingleplayer": "待验证",
+  "liveHost": "待验证",
+  "liveClient": "待验证",
+  "previewHashes": {
+    "fpp-raised.png": "1D6EC3284307593A11EFBFA3B5AE75F0410E1A0A5DE7DF4690C05047A0E7BDAB",
+    "fpp-slash.png": "939E5A7CA0AA3C5AF81C6A83434B70226A5058B48DD382446A93BAD95C232A6A",
+    "fpp-enchanted.png": "CCEC5115EE3E66BCEEEF0A3746F3422084D47C745BA543A8626018A603E608E3",
+    "giant-downstroke.png": "BD94A37F5B6CE2C7FCDC7CDA2B3F64831E117787C5B9007C6367514F1F72631A",
+    "beam-fading.png": "AE10FA0E955DBA44109D7C34D4C5EC8E167A0DD248634350476A2FECF1850D6E",
+    "beam-tail.png": "C12FE1D85A02401C8ACBB52CF878BE179736B35AB5CEFD4996615E942B53D7A7"
+  }
+}

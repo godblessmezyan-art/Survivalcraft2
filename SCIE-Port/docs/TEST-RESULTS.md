@@ -1,5 +1,36 @@
 # 测试结果
 
+## 2026-11-01 main 0.71.0：圣剑下劈、余光与附魔偏左修复
+
+本地main基线`62e4bc0`（0.70.0），工作区起始干净。附魔金光改绑实际剑刃局部矩阵；第一人称独立举剑/下劈曲线适配固定目标的CSV旋转和双重ItemOffset，巨型光剑连续下斩。二技能1.75秒落下90点、2.45秒收势、余光6秒每秒45点，最后2秒平滑淡出/CD35；一技能CD15。阿瓦隆接受时瞬回20%最大生命，之后每秒1点至75秒CD结束，保留3秒个人庇护；回血点数沿用原生Health0.1/点的现有显示口径。换武器保留周期回血，死亡/断开/世界退出清除。具体规则与取消范围见[圣剑V3](EXCALIBUR-V3.md)。
+
+实际执行（Windows PowerShell；用户SDK9.0.300、Python、net472引用；Major仅运行现有net8离线套件，不改变Mod目标）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-ExcaliburGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/excalibur-v3-gpu
+```
+
+根环境、构建自动运行的移植环境/ABI、所有既有回归、Release及包内容校验通过，退出码均0。构建记录在`artifacts/excalibur-v3-release.log`，图形记录在`artifacts/excalibur-v3-gpu/stdout.txt`。仍为固定x25.01.17三程序集，SHA与本工程既有登记一致，完整指纹保存在[机器可读记录](assets/excalibur-v3/validation.json)。无新Hook、加载器类型或TargetFramework变化，没有复制/提交游戏程序集或反编译来源。
+
+| 验证 | 结果与边界 |
+|---|---|
+| 圣剑规则/布局 | **806项通过**：15/35/75冷却、90/45伤害、6秒余光/2秒单调平滑淡出、连续下劈、20%瞬回/固定每秒回血、旧附魔范围/序号/去重与十组逻辑分辨率/左右手安全布局。 |
+| 目标原生组件/网络 | **518项通过**：253新尾部字段的原生压缩读写/非法值/队列/身份，原生AttackBody落下90及边缘同值；每秒只一次、重复身体/多帧去重、离开/进入路径、长帧跳过与最终脉冲清理、Client禁伤害。新增瞬回/固定回血/满血不储存/重复更新/换装/75秒到期/死亡不复活；Client回血禁写、余光晚到快照/独立时钟、同一动画/余光不重复占全局名额、重复包不续租、近战确认保留余光及空快照清理。既有墙体、3格Miner.Hit、15圣光、庇护与默认持有属性检查保留。 |
+| 目标Engine/OpenGL合成 | **1307项通过**：直接导入真实Excalibur模型/贴图与CSV，用生产Pose输出合成第一人称举过头顶→下劈；三种朝向/两种缩放下，附魔流光全部顶点逆变换后均在剑刃局部范围内。三档世界演出/下斩/6秒余光与淡出、遮挡/侧后方/20:9及预算检查保留。不是游戏/Android画面，也不是实机双臂验收。 |
+| 原有套件与资源 | 原有套件均通过：库存规则758、原生库存166项；雷锤/波塞冬/阿比斯/军势/载具/品牌/数据库与禁带二进制守卫保留。原模型1骨/88网格/1040三角、全部既有生图来源/PNG/PCM与包内哈希通过。 |
+| 对0.70.0包比较 | **162个既有Assets逐字节相同**，唯一变化为Excalibur.csv技能说明，无新增资产。原一技能图标SHA仍为574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C。其它神器资源保持。 |
+
+伤害通过实际原生入口调用，Hook记录后截停；生命恢复使用隔离真实组件。它们证明规则/调用/权限，不替代真实游戏战斗和网络传输。253原字段后新增Regen、BeamId/Age/Origin/Direction，保守压缩载荷上限128字节；同房须全为0.71.0，旧版混装不支持。240–252、953/DATA0、XDB GUID和旧存档身份保持。
+
+最终`artifacts/荒野探险家.netmod`与`artifacts/荒野探险家-0.71.0.netmod`字节一致，**9,862,780字节**，SHA-256 **92503E534D2E70F5162006FA1C07739F656859EAE72D25492CE8420F8FDFA0DA**。包内DLL与通过测试的Release DLL相同，内部版本0.71.0.0/net472；内部SCIEPort品牌身份及第三方许可记录守卫通过。
+
+Android7723、完整单机、真实主机/普通客户端、实际持剑/双臂/金光位置、触屏多指与不同分辨率、持续伤害/生命同步、取消/死亡/重进及手机性能均**待验证**。没有启动游戏世界或操作手机；首次安装用备份和可丢弃新世界。无地形写入、材料/族/DATA/蓝图能力变化，相关清单已同步。只提交本地main，不推送或上传产物。
+
 ## 2026-11-01 main 0.70.0：圣剑附魔、快速解放与阿瓦隆
 
 基线为本地main `881fbaa`（0.69.0），工作区开始时干净，按用户要求原地开发并仅提交本地main。一技能图标保留，库存改暖金/象牙金；湖光附魔8秒/CD25、近战2→3格、成功近战后独立15点圣光；二技能接原三技能，动作时间线4→2.2秒、1.54秒释放、原35格/宽8格/55与25伤害、CD35；大招为0.6秒展开后3秒个人庇护、12%最大生命恢复、4.2秒演出/CD90，施法禁攻。完整阿瓦隆比圣剑珍贵十倍，此技能为短暂投影，不添加独立阿瓦隆物品。设计/限制见[圣剑V2](EXCALIBUR-V2.md)。

@@ -40,7 +40,8 @@ namespace SCIEPort.Features.Excalibur
                 float remaining=(float)Math.Max(0,state.Ready[i]-m_runtime.Now);
                 bool enchant=i==0&&m_runtime.Enchanted(p),sanctuary=i==2&&state.Active?.Skill==3&&m_runtime.Fresh(state);
                 bool active=enchant||sanctuary;
-                v.Labels[i].Text=enchant?"附魔 "+Math.Ceiling(state.BlessingEnd-m_runtime.Now).ToString("0"):sanctuary?"理想乡":remaining>0?Math.Ceiling(remaining).ToString("0"):string.Empty;
+                bool regen=i==2&&state.RegenUntil>m_runtime.Now&&m_runtime.Fresh(state);
+                v.Labels[i].Text=enchant?"附魔 "+Math.Ceiling(state.BlessingEnd-m_runtime.Now).ToString("0"):sanctuary?"理想乡":regen?"恢复 "+Math.Ceiling(state.RegenUntil-m_runtime.Now).ToString("0"):remaining>0?Math.Ceiling(remaining).ToString("0"):string.Empty;
                 v.Icons[i].FillColor=remaining>0&&!active?new Color(120,144,168,220):Color.White;
 
                 v.Clicks[i].IsEnabled=remaining<=0&&!m_runtime.Busy(p)&&p.PlayerData.IsReadyForPlaying;

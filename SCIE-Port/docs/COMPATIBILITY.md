@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-01 SCIE-Port 0.71.0：圣剑动作与持续效果
+
+基于main `62e4bc0`，固定Windows x25.01.17/net472/API1.42/SC2.4.10.6。第一人称姿态适配实际CSV旋转与双重ItemOffset；附魔流光随DrawMeshBlock相同模型矩阵、缩放与投影。953/DATA0、模板GUID、图标/模型/纹理/音效及原有Hook保持，无新加载器ABI。Release、包检查、规则、目标原生组件隔离和Engine GPU合成 **已确认**，其范围与断言数详见[测试记录](TEST-RESULTS.md)。Android7723/完整游戏/真实联机/触屏/性能 **待验证**。
+
+253尾部追加Regen与独立BeamId/Age/Origin/Direction，压缩载荷守卫≤128字节。主机负责落下90及每秒45×6秒、瞬回20%与每秒1点至75秒CD结束，普通客户端仅请求/呈现与原生生命同步。240–252、存档/物品身份/内部品牌与包结构保持。与0.70及旧版混装 **不支持**；同房须全部0.71.0。无地形写入或新增蓝图能力。详见[圣剑V3](EXCALIBUR-V3.md)与[根矩阵](../../docs/COMPATIBILITY.md)。
+
 ## 2026-11-01 SCIE-Port 0.67.0：唯一骨龙、骑乘飞行
 
 新增独立原创7骨/7网格/7674三角骨龙与专属模板`SCIEPortBoneDragon_Saddled`（GUID`d1a4db02-ea81-5a9b-9d6f-412bea048fb1`），继承已安装Rhino组件参数，不分发游戏资源；原生Mount/Steed与自定义原生Locomotion子类，原生FlyOrder飞行，不借用创造模式。目标Engine/数据库只读导入、32字节顶点格式、444生命/地速7/飞速16及Release **已确认**；Android显示/人物衣物融合/飞行操控/碰撞/存档/房主与普通客户端 **待验证**，按用户安排未启动游戏或行为测试。
