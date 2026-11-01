@@ -6,6 +6,7 @@ namespace SCIEPort.Features.Gungnir
     internal static class GungnirHudLayout
     {
         internal const float BlessingSize = 72f;
+        internal const float FatalismSize = 72f;
         internal const float JudgmentSize = 88f;
         internal const float NativeGap = 10f;
         internal const float DiagonalX = 60f;
@@ -21,7 +22,7 @@ namespace SCIEPort.Features.Gungnir
 
         internal struct Result
         {
-            internal Rect Blessing, Judgment;
+            internal Rect Blessing, Fatalism, Judgment;
             internal bool Mirrored, UsedFallback;
         }
 
@@ -33,8 +34,8 @@ namespace SCIEPort.Features.Gungnir
             float blessingX;
             if (validLook && !mirrored)
             {
-                // Leave enough room for the upper-right 88-unit Judgment badge without entering Look.
-                blessingX = look.X - NativeGap - JudgmentSize - DiagonalX;
+                // Leave enough room for the two upper-right badges so the arc never enters Look.
+                blessingX = look.X - NativeGap - JudgmentSize - DiagonalX * 2f;
             }
             else if (validLook)
             {
@@ -42,7 +43,7 @@ namespace SCIEPort.Features.Gungnir
             }
             else
             {
-                blessingX = width - BlessingSize - 24f - JudgmentSize - NativeGap;
+                blessingX = width - BlessingSize - 24f - JudgmentSize - DiagonalX * 2f;
             }
 
             var result = new Result
@@ -51,29 +52,36 @@ namespace SCIEPort.Features.Gungnir
                 UsedFallback = !validLook,
                 Blessing = new Rect { X = blessingX, Y = blessingY, Width = BlessingSize, Height = BlessingSize }
             };
-            result.Judgment = new Rect
+            result.Fatalism = new Rect
             {
                 X = result.Blessing.X + DiagonalX,
                 Y = result.Blessing.Y - DiagonalY,
+                Width = FatalismSize,
+                Height = FatalismSize
+            };
+            result.Judgment = new Rect
+            {
+                X = result.Blessing.X + DiagonalX * 2f,
+                Y = result.Blessing.Y - DiagonalY * 2f,
                 Width = JudgmentSize,
                 Height = JudgmentSize
             };
 
-            float minX = Math.Min(result.Blessing.X, result.Judgment.X);
-            float maxX = Math.Max(result.Blessing.Right, result.Judgment.Right);
-            float minY = Math.Min(result.Blessing.Y, result.Judgment.Y);
-            float maxY = Math.Max(result.Blessing.Bottom, result.Judgment.Bottom);
+            float minX = Math.Min(result.Blessing.X, Math.Min(result.Fatalism.X, result.Judgment.X));
+            float maxX = Math.Max(result.Blessing.Right, Math.Max(result.Fatalism.Right, result.Judgment.Right));
+            float minY = Math.Min(result.Blessing.Y, Math.Min(result.Fatalism.Y, result.Judgment.Y));
+            float maxY = Math.Max(result.Blessing.Bottom, Math.Max(result.Fatalism.Bottom, result.Judgment.Bottom));
             float dx = minX < 8f ? 8f - minX : maxX > width - 8f ? width - 8f - maxX : 0f;
             float dy = minY < 8f ? 8f - minY : maxY > height - 8f ? height - 8f - maxY : 0f;
-            result.Blessing.X += dx; result.Judgment.X += dx;
-            result.Blessing.Y += dy; result.Judgment.Y += dy;
+            result.Blessing.X += dx; result.Fatalism.X += dx; result.Judgment.X += dx;
+            result.Blessing.Y += dy; result.Fatalism.Y += dy; result.Judgment.Y += dy;
 
             // The native hotbar is authoritative. If a narrow/split viewport causes contact,
-            // lift the pair as one unit so their diagonal relationship remains unchanged.
-            if (hotbar.IsValid && (result.Blessing.Intersects(hotbar) || result.Judgment.Intersects(hotbar)))
+            // lift the arc as one unit so the diagonal relationship remains unchanged.
+            if (hotbar.IsValid && (result.Blessing.Intersects(hotbar) || result.Fatalism.Intersects(hotbar) || result.Judgment.Intersects(hotbar)))
             {
-                float lift = Math.Max(result.Blessing.Bottom, result.Judgment.Bottom) - hotbar.Y + NativeGap;
-                result.Blessing.Y -= lift; result.Judgment.Y -= lift;
+                float lift = Math.Max(result.Blessing.Bottom, Math.Max(result.Fatalism.Bottom, result.Judgment.Bottom)) - hotbar.Y + NativeGap;
+                result.Blessing.Y -= lift; result.Fatalism.Y -= lift; result.Judgment.Y -= lift;
                 result.UsedFallback = true;
             }
             return result;

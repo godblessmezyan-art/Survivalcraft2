@@ -87,6 +87,8 @@ namespace SCIEPort.Features.Gungnir
                 float remaining = (float)(state.BuffEnd - now);
                 if (state.Equipped && remaining > 0f) DrawBlessing(state, foot, (float)(now - state.BuffVisualStart), remaining);
                 if (state.Phase != 0) DrawThrownSpear(state);
+                float fatalismAge = (float)(now - state.FatalismStart);
+                if (fatalismAge >= 0f && fatalismAge < GungnirRules.FatalismEnd) DrawFatalism(state, foot, fatalismAge);
                 float judgmentAge = (float)(now - state.CastStart);
                 if (judgmentAge >= 0f && judgmentAge < GungnirSkyRules.Lifetime && Vector3.DistanceSquared(state.Target, camera.ViewPosition) < 22500f)
                     DrawJudgment(state.Target, judgmentAge);
@@ -102,6 +104,86 @@ namespace SCIEPort.Features.Gungnir
             m_renderer.Flush(camera.ViewProjectionMatrix);
         }
 
+
+        /// <summary>
+        /// Fate Severance: a Norse mandate seal under the caster, thin fate threads on nearby
+        /// marked enemies (only those the client can actually see) and a single shatter beat.
+        /// Nothing here creates damage, and no particle is spawned for an off-screen target.
+        /// </summary>
+        private void DrawFatalism(SubsystemGungnir.State state, Vector3 foot, float age)
+        {
+            float alpha = GungnirRules.FatalismAlpha(age);
+            if (alpha <= 0.003f) return;
+            float reveal = MathUtils.Saturate(age / GungnirRules.FatalismMark);
+            float radius = 1.1f + 3.6f * EaseOut(reveal);
+            Color platinum = new Color(247, 242, 214) * alpha;
+            Color gold = Gold(alpha);
+            Ring(foot, radius, 0.055f, platinum);
+            Ring(foot, radius * 0.74f, 0.022f, gold * 0.75f);
+            Seal(foot, radius * 0.92f, age * 1.7f, alpha * 0.9f, 8, reveal);
+            int spokes = m_quality == 0 ? 8 : 16;
+            for (int i = 0; i < spokes; i++)
+            {
+                float angle = age * 0.9f + i * TwoPi / spokes;
+                Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
+                Beam(foot + radial * radius * 0.52f + Vector3.UnitY * 0.02f,
+                     foot + radial * radius * 1.1f + Vector3.UnitY * 0.02f, 0.012f, platinum * 0.62f);
+            }
+            // Marks exist only on visible hosts; far targets still take their single hit.
+            bool marks = GungnirRules.FatalismMarks(age);
+            bool shattered = GungnirRules.FatalismShattered(age);
+            if (!marks) return;
+            float shatter = shattered ? MathUtils.Saturate(1f - (age - GungnirRules.FatalismImpact) / 0.2f) : 0f;
+            int drawn = 0, budget = m_quality == 0 ? 6 : m_quality == 1 ? 10 : 16;
+            foreach (ComponentBody body in m_runtime.NearbyHostiles(state.Player))
+            {
+                if (drawn >= budget) break;
+                if (body == null || !body.Entity.IsAddedToProject) continue;
+                Vector3 center = body.BoundingBox.Center();
+                if (Vector3.DistanceSquared(center, m_camera.ViewPosition) > 3600f) continue;
+                float markAlpha = marks && !shattered ? alpha : shatter * alpha;
+                if (markAlpha <= 0.01f) continue;
+                drawn++;
+                DrawFatalismMark(body, center, markAlpha, shatter);
+            }
+        }
+
+        private void DrawFatalismMark(ComponentBody body, Vector3 center, float alpha, float shatter)
+        {
+            Color platinum = new Color(250, 246, 222) * alpha;
+            Color gold = Gold(alpha * 0.84f);
+            Vector3 top = center + Vector3.UnitY * ((body.BoundingBox.Max.Y - body.BoundingBox.Min.Y) * 0.5f + 0.42f);
+            float size = 0.16f;
+            // A small cross rune above the head, with a halo ring.
+            Beam(top - Vector3.UnitX * size, top + Vector3.UnitX * size, 0.018f, platinum);
+            Beam(top - Vector3.UnitZ * size, top + Vector3.UnitZ * size, 0.018f, platinum);
+            Beam(top - Vector3.UnitY * size * 0.8f, top + Vector3.UnitY * size * 0.8f, 0.018f, gold);
+            OrientedRing(top + Vector3.UnitY * 0.05f, Vector3.UnitY, size * 1.5f, 0.012f, platinum * 0.8f, m_segments / 2);
+            if (shatter <= 0f)
+            {
+                // Thin fate threads: three vertical filaments hugging the body silhouette.
+                Vector3 foot = center - Vector3.UnitY * ((body.BoundingBox.Max.Y - body.BoundingBox.Min.Y) * 0.5f);
+                for (int i = 0; i < 3; i++)
+                {
+                    float angle = i * TwoPi / 3f + (float)m_camera.ViewPosition.X * 0.013f;
+                    Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle)) * 0.28f;
+                    Beam(foot + radial, top + radial * 0.5f, 0.008f, platinum * 0.55f);
+                }
+                return;
+            }
+            // Shatter beat: a brief platinum cross flash and eight short shards.
+            float spread = (1f - shatter) * 1.35f;
+            Beam(top - Vector3.UnitX * spread, top + Vector3.UnitX * spread, 0.05f * shatter, platinum);
+            Beam(top - Vector3.UnitY * spread, top + Vector3.UnitY * spread, 0.05f * shatter, platinum);
+            int shards = m_quality == 0 ? 4 : 8;
+            for (int i = 0; i < shards; i++)
+            {
+                float angle = i * TwoPi / shards + 0.4f;
+                Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
+                Vector3 from = top + radial * spread * 0.35f;
+                Beam(from, from + radial * spread * 0.8f + Vector3.UnitY * (0.25f * shatter), 0.02f * shatter, gold);
+            }
+        }
         private void DrawBlessing(SubsystemGungnir.State state, Vector3 foot, float age, float remaining)
         {
             float endFade = MathUtils.Saturate(remaining / 2f);

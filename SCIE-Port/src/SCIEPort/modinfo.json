@@ -1,8 +1,8 @@
-{
+﻿{
   "Name": "荒野探险家",
-  "Version": "0.68.0",
+  "Version": "0.69.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.68.0 调整冥界军势生命与单次伤害：冥界猎犬25/12、夜魇战马30/12、刻尔柏洛斯300/43、骨龙170/27；移速、攻击间隔、骑乘飞行与唯一性规则保持。Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.69.0 合入神器扩充：妙尔尼尔新增雷霆王域（24秒/7秒/8格/每跳17并修复不结算）、昆古尼尔新增神王敕令·命运裁断（39秒/每目标10~100随机）；雷神之锤大招期间技能冷却缩短并每秒对周围8格生物造成7点雷域伤害；昆古尼尔卢恩神佑6秒/9秒、永恒裁决341→170.5衰减；两把神器均为三技能HUD。保留阿比斯虚夜领域与冥界军势调整、星门存档修复及既有内容。Android7723实机与联机待验收，双方请用同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

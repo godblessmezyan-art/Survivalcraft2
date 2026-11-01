@@ -1,4 +1,20 @@
-# 测试结果
+﻿# 测试结果
+
+## 2026-11-01 main 0.69.0：合入神器第三技能分支
+
+用户要求把 `codex/triple-skill-artifacts` 合入 main 并解决冲突。分支基于 0.56.x，main 已到 0.68.0，落后 23 / 领先 5。
+
+冲突 4 个文件：
+
+- `SCIEPort.csproj`、`modinfo.json`：两边各自递增版本号，合并后统一 **0.69.0**，Description 合并两条线。
+- `GungnirHud.cs`：main 已改用共享排布器 `Artifacts.ArtifactSkillHud.Arrange`，分支保留旧的自绘布局。取 main 的排布器，并把三颗按钮一起传入。
+- `StormhammerSkillHud.cs`：main 改为原生锚定 + `ArrangeWithStatus` + `Status` 容器 + `ArtifactSkillHitTarget`，分支用固定角落布局。取 main 的结构，新增 `Dominion` 按钮（72 单位）并把第三个按钮交给同一个排布器；不再手写 `SetPosition`。
+
+另有一处**与合并无关的既有问题**：`tests/SCIEPort.Abyss.Tests/space-v2-protected.json` 里 `VoidPortalPackage.cs` 的哈希是 LF 版本的字节哈希，而 Windows 上 `core.autocrlf=true` 检出的工作文件是 CRLF，`Test-AbyssSpaceV2.ps1` 因此失败。本次把该文件的本地工作副本规范为 LF 后通过（内容与 `origin/main` 完全一致，git 看不到内容变更），**未修改守护清单**。根因是这类"按字节哈希守护"的文件没有在 `.gitattributes` 里标 `-text`，建议后续单独修。
+
+验证（离线）：合并后 Release 构建 exit 0，Gungnir 389 / Stormhammer 751 / Poseidon 3397 / Inventory 739 项规则与布局检查全部通过，21 XDB、22 CSV 与包内容校验通过。包 `荒野探险家-0.69.0.netmod`：9,425,745 字节，SHA-256 `9364258FD487F8463564C1688D87118A45CA8137A382E98DA732E12A19AB199D`。
+
+Android 7723 与真实联机未运行；阿比斯与两把神器的大招/领域同时生效时的结算顺序需要实机确认。
 
 ## 2026-11-01 main 0.67.0：骨龙骑乘飞行候选
 
@@ -321,6 +337,76 @@ powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-With
 最终产物 `荒野探险家.netmod` / `荒野探险家-0.56.0.netmod` 字节一致，7,347,453字节、143项，SHA-256 `CDE6C07E4463994E5DCB8175DEDB0A819F7F580C26D1D66E84A63763FBF6A9AE`。包内Version=0.56.0，包内DLL等于已验证DLL。日志保存于忽略目录 `SCIE-Port/artifacts/void-horizon-0.56.0-build.log`，预览与覆盖报告在 `SCIE-Port/artifacts/void-domain-preview/`。
 
 Windows固定x25.01.17编译、原生API与上述离线检查 **已确认**。单机/本地主机/普通客户端的真实游戏运行、Android7723兼容性、所有画质和其他模组组合 **待验证**；未运行游戏或手机。请按领域文档的可丢弃世界验收步骤验证，不能把离线测试或网格预览当成真机兼容证明。遵循最新规范，仅提交本地main，不执行git push。
+
+## 2026-10-30 main 0.56.4：合并上游阿比斯虚夜领域
+
+用户要求拉取最新代码并打包。`git fetch` 后 `origin/main` 前进到 `8742b6b`（阿比斯虚夜领域重做：展开新空间、远方巨型黑洞、连续撕裂面，大招期间免伤、范围伤害与牵引排除全部玩家、主机裁定客户端施法同步），本地三技能分支落后 3、领先 4，执行 `git merge origin/main`。
+
+- 仅两个文件冲突，且都是版本元数据：`SCIEPort.csproj` 与 `modinfo.json` 的 Version（两边都写了 0.56.0 系列）。解决方式：合并后统一为 **0.56.4**，AssemblyVersion/FileVersion 同步，`Description` 合并两条线的说明。
+- 代码、脚本与测试全部自动合并，`Build-NetMod.ps1` 的昆古尼尔/妙尔尼尔守卫与阿比斯守卫共存；全库无冲突标记残留。
+
+验证（离线）：合并后 Release 构建 exit 0；Gungnir **389**、Stormhammer **751**、Poseidon **3397** 项规则/布局检查全部通过；21 XDB、22 CSV/55 行与包内容校验通过。最终包 `荒野探险家-0.56.4.netmod` / `荒野探险家.netmod` 字节一致：7,856,134 字节、143 项，SHA-256 `FC419AA21036F6B52CD0CF9D9AC5283B914657350A10598F5A0831B1CAF5B260`；包内 Version=0.56.4、程序集 0.56.4.0，`SCIEPort.dll` SHA-256 `38152BDA850043FD2A983E4A7CDB757104E6549F5A765D554777112407DBE87A`。
+
+Android 7723 与真实联机仍未运行；阿比斯的虚夜领域与两把神器的第三技能是否互相干扰（尤其大招免伤与领域伤害的叠加顺序）需要实机确认。
+
+## 2026-10-30 main 0.56.3：永恒裁决恢复距离衰减
+
+用户要求"我要衰减"。0.56.2 曾把永恒裁决改成半径内固定 341，现在恢复线性衰减，但以 341 为基准：
+
+- `JudgmentPower=341`、`JudgmentRadius=7`、`JudgmentEdgeFactor=0.5`，公式 `341 * (1 - 0.5 * d / 7)`：中心 341、半径中点 255.75、边缘 170.5，7 格外仍为 0。
+- 边缘保留 50% 的强度比例，与最初 300→150 的形状一致，只是整体抬高了基准。
+
+验证（离线）：Gungnir 规则 386 → **389** 项，新增中心/中点/边缘三点断言、单调递减、球外为 0 与三个常量断言。Release 构建 exit 0。
+
+最终包 `荒野探险家-0.56.3.netmod` / `荒野探险家.netmod` 字节一致：7,849,404 字节、143 项，SHA-256 `864DDE9E9D748E705E20A785F29B149BA4004945A496EF7B20A04BA344605FF1`；包内 Version=0.56.3、程序集 0.56.3.0，包内 `SCIEPort.dll` SHA-256 `5BA6991093F6DBCD8CE79F546D12D3245E3F2350F6CB7C14193BFF05855C575E`；相对 0.56.2 只有 `SCIEPort.dll` 与 `modinfo.json` 变化。
+
+Android 7723 与真实联机未运行；341→170.5 的实际手感待验证。
+
+## 2026-10-30 main 0.56.2：昆古尼尔数值调整
+
+用户要求：一技能冷却 6 秒、持续 9 秒；二技能伤害改为 10~100 随机；大招伤害 341。
+
+- 卢恩神佑：`BlessingCooldown` 8→6，新增 `BlessingDuration=9` 并由子系统与 HUD 共用（原先硬编码 15）。
+- 神王敕令：`FatalismPower=79` 换成 `FatalismPowerMin/Max=10/100` 与 `FatalismRoll(roll)`（越界自动夹紧），权威端用 `System.Random.Next(0,91)` 为每个目标单独掷点。
+- 永恒裁决：`JudgmentDamage` 取消 300→150 线性衰减，改为半径 7 格内固定 `JudgmentPower=341`，半径外仍为 0。
+
+验证（离线）：Gungnir 规则 381 → **386** 项，覆盖 6 秒冷却、9 秒持续、掷点上下界与夹紧、341 平伤与球外 0 伤害；构建守卫同步改为校验新常量。Release 构建 exit 0。
+
+最终包 `荒野探险家-0.56.2.netmod` / `荒野探险家.netmod` 字节一致：7,849,362 字节、143 项，SHA-256 `AC756DE109235D1EDDAA0693A73E3351130C2EB0BDC86AAE044CFC966AF9D350`；包内 Version=0.56.2、程序集 0.56.2.0，包内 `SCIEPort.dll` SHA-256 `0F75A9FC7B886EBB33C1AB26ECB9E921117D8AD2B2DBB34CFB6EA4C761C27FFA`；相对 0.56.1 只有 `SCIEPort.dll` 与 `modinfo.json` 变化。
+
+Android 7723 与真实联机未运行，随机伤害的实际手感与客户端数字表现待验证。
+
+## 2026-10-30 main 0.56.1：雷神之锤大招冷却缩减与雷域，修复王域不结算
+
+用户要求：大招期间所有技能 CD 减少、一技能降到 5 秒；一定范围内所有生物每秒 7 点持续伤害，大招结束消失；修复二技能没有伤害的 bug，持续伤害改为 17 点雷电伤害。
+
+- **不结算伤害的根因**：`TickDomain` 直接在 `SubsystemBodies.Bodies` 的活动集合上边遍历边 `AttackBody`。被打死的生物会在迭代过程中从集合里移除，`foreach` 随即抛 "Collection was modified"，异常把整个 tick 打断，所以领域看起来完全不掉血。现改为先把候选快照进 `m_domainTargets`，再逐个结算；同一跳内仍按实体去重。
+- 雷霆王域每跳 12 → **17** 点雷电攻击威力（水中等其它倍率不参与）。
+- 雷神降世窗口（12 秒）新增：所有技能冷却按 **0.625** 缩短（雷霆万钧 8→5 秒、雷霆王域 24→15 秒，大招 55 秒不变），开启时把正在转的王域冷却压到 15 秒内并同步客户端；窗口内每秒对身边 8 格内所有生物造成 **7 点**雷域攻击威力，最多 12 跳，结束帧先补齐剩余跳数再关闭，关闭后不留状态。包 243 新增 `UltimatePulse=17` 事件用于客户端每跳的雷环脉冲。
+
+验证（离线）：`Stormhammer.Tests` 671 → **751** 项，新增 17 点每跳、7 点/8 格/12 跳雷域、0.625 冷却换算（8→5、24→15）、多帧率 tick 上限、`ThunderGodTicksDue(12)==12` 收尾补齐。Release 构建 exit 0，环境/ABI、21 XDB、22 CSV 与包内容校验通过。
+
+最终包 `荒野探险家-0.56.1.netmod` / `荒野探险家.netmod` 字节一致：7,849,326 字节、143 项，SHA-256 `4CA83372F2EEC0432CB804CF005EA51786529A402B91577601852D4C288D2789`；包内 Version=0.56.1、程序集 0.56.1.0，包内 `SCIEPort.dll` SHA-256 `334647B33DC6E1C14BCEEFEE8E0291658447860A93A904335D33E7C07F447304`，与构建输出一致；相对 0.56.0 只有 `SCIEPort.dll` 与 `modinfo.json` 变化。
+
+未在 Android 7723 或真实多人世界运行；雷域的实际观感、冷却数字在客户端 HUD 的刷新与联机表现均待验证。
+
+## 2026-10-30 main 0.56.0：妙尔尼尔与昆古尼尔第三技能
+
+按用户要求为两件神器各新增第二个主动技能，双双升级为三技能 HUD，并保留原有技能、被动、伤害、冷却、模型与包编号。
+
+- 昆古尼尔 **神王敕令·命运裁断**：命令 5（1~4 不变），固定 79 点、39 秒冷却；0.15 s 冻结目标名单、0.45 s 统一结算、0.9 s 结束；只打已加载的 `LandPredator`/`WaterPredator`，排除玩家/自身/中立与驯养动物/死亡实体；不读距离、不做视线、不建投射物、不加载区块；每实体一次，重复包与多帧不二次扣血；不吃卢恩神佑倍率。包 244 只在尾部追加 `FatalismCooldown`，`Kind=4` 承载起手/结算事件。
+- 妙尔尼尔 **雷霆王域**：技能枚举追加 `Dominion=3`（1/2 不变），冷却 24 s、持续 7 s、半径 8 格、每跳 12 点、共 7 跳；中心每跳跟随施法者；跳数由整秒推导，帧率不影响总跳数；雷神降世只改演出不加伤；7 秒/死亡/换武器/离开世界/Dispose 全部收敛，客户端另有超时兜底。
+- HUD：昆古尼尔 768×256 三格图集 + 显式命令映射 `[1,5,2]`；妙尔尼尔启用第 4 格 image_gen 图标 + 三按钮。构建脚本同步把"必须两技能"改为"必须三技能"、四格图集全非空、并把雷霆王域从"已移除技能"黑名单移除。
+
+验证（离线，未启动游戏或 Android 设备）。构建命令：
+
+```text
+SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:\SCNET\SCNETx25.01.17' -Configuration Release
+```
+
+构建 exit 0：环境/ABI、net472 Release、全部既有回归（含 Gungnir 381 项、Stormhammer 728 项）、21 XDB、22 CSV/55 行与包内容校验通过；日志 `SCIE-Port/artifacts/artifact-0.56.0-build.log`。最终包 `荒野探险家-0.56.0.netmod` / `荒野探险家.netmod` 字节一致：7,849,011 字节、143 项，SHA-256 `5A59C8E7B7F324D0F6A9E180F25DD5F48F5E9879F4D6BE7F23F702B465FEAB64`；包内 Version=0.56.0、程序集 0.56.0.0，包内 `SCIEPort.dll` SHA-256 `3CF46D6256908A26F9333467A796251728597AE3E2E75267BD57F1F7E38BF27A`，与构建输出一致。逐项比对 0.55.5：只有 `SCIEPort.dll`、`modinfo.json`、`GungnirSkills.png`（512×256→768×256）与 `StormhammerAwakenedSkills.png`（第 4 格合成）变化，其余 139 项字节不变。
+
+未在 Android 7723 或真实多人世界运行，三按钮触控、领域跟随手感、命运裁断远端演出与断线清理均标记**待验证**。
 
 ## 2026-10-30 main 0.55.5：神器默认属性规范与两件神器补齐
 

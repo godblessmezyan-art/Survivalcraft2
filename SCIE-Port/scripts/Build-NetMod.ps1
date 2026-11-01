@@ -452,7 +452,7 @@ if (-not $awakenedSource.Contains('ApplyEquipmentModifiers()') -or -not $awakene
 }
 $gungnirRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\GungnirRules.cs')
 $gungnirBehaviorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Gungnir\SubsystemGungnir.cs')
-foreach ($gungnirRule in @('BlessingCooldown = 8f', 'JudgmentCooldown = 50f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
+foreach ($gungnirRule in @('BlessingCooldown = 6f', 'BlessingDuration = 9f', 'JudgmentCooldown = 50f', 'JudgmentPower = 341f', 'FatalismPowerMin = 10f', 'HolyDamageDelay = 0.4f', 'ShouldConsumeAim')) {
     if (-not $gungnirRulesSource.Contains($gungnirRule)) { throw "Gungnir V5.2 control/balance rule missing: $gungnirRule" }
 }
 foreach ($gungnirBehaviorRule in @('public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state) => false;', 'UpdateThrowInput(p, s)', 'ComponentAimingSights.ShowAimingSights', 'GungnirRules.ThrowLease', 'ComponentHealthPackage(position, velocity, color, text)', 'new Color(255, 205, 92, 255)')) {
@@ -2289,7 +2289,7 @@ try {
         try {
             if ($bitmap.Width -ne $textureCheck.Width -or $bitmap.Height -ne $textureCheck.Height) { throw "$($textureCheck.Name) dimensions changed." }
             if ($textureCheck.Name -eq 'StormhammerAwakenedSkills.png') {
-                for ($slot = 0; $slot -lt 3; $slot++) {
+                for ($slot = 0; $slot -lt 4; $slot++) {
                     $opaque = 0
                     for ($y = 0; $y -lt 512; $y += 8) { for ($x = $slot * 512; $x -lt ($slot + 1) * 512; $x += 8) { if ($bitmap.GetPixel($x,$y).A -gt 32) { $opaque++ } } }
                     if ($opaque -lt 500) { throw "Awakened skill icon slot $slot is empty or unreadable." }
@@ -2304,14 +2304,14 @@ try {
         throw 'Skywrath V3.2 CSV identity, non-aimable skill-button mode, or durability changed.'
     }
     $awakenedSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillHud.cs')
-    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 2) {
-        throw 'Skywrath V3.2 HUD must instantiate exactly two active skills.'
+    if (([regex]::Matches($awakenedSource, 'new SkillButton\(')).Count -ne 3) {
+        throw 'Skywrath V3.3 HUD must instantiate exactly three active skills.'
     }
     $awakenedBehavior = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\SubsystemAwakenedStormhammerBlockBehavior.cs')
     foreach ($requiredCombatRule in @('PhysicalMeleePower = 40f','LightningMeleePower = 25f','RetaliationPower = 5f','JudgmentCooldown = 8f','UltimateCooldown = 55f')) {
         if (-not $awakenedBehavior.Contains($requiredCombatRule)) { throw "Skywrath V3.2 combat rule missing: $requiredCombatRule" }
     }
-    foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛','雷霆王域')) {
+    foreach ($removedSkill in @('ThunderLance','ThunderDomain','雷狱天矛')) {
         if ($awakenedBehavior.Contains($removedSkill) -or $awakenedSource.Contains($removedSkill)) { throw "Removed Skywrath skill remains active: $removedSkill" }
     }
     $skillPackageSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Stormhammer\StormhammerSkillPackage.cs')

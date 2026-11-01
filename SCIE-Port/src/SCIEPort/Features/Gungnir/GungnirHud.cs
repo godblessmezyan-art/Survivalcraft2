@@ -9,6 +9,9 @@ namespace SCIEPort.Features.Gungnir
     /// <summary>Touch-first HUD anchored to the target build's real native Look control.</summary>
     internal static class GungnirHud
     {
+        /// <summary>Atlas cells: 0 Rune Blessing, 1 Fate Severance, 2 Eternal Judgment.</summary>
+        private const int IconCount = 3;
+
         private sealed class SkillButton
         {
             internal CanvasWidget Visual;
@@ -26,7 +29,7 @@ namespace SCIEPort.Features.Gungnir
         private sealed class Hud
         {
             internal CanvasWidget Root;
-            internal readonly SkillButton[] Skills = new SkillButton[2];
+            internal readonly SkillButton[] Skills = new SkillButton[3];
             internal Vector2 LastLookMin = new Vector2(float.MinValue);
             internal Vector2 LastLookMax = new Vector2(float.MinValue);
             internal Vector2 LastHotbarMin = new Vector2(float.MinValue);
@@ -67,12 +70,15 @@ namespace SCIEPort.Features.Gungnir
             if(!hud.Root.IsVisible)return;
             SubsystemGungnir.State state = runtime.Get(player);
             double now = runtime.Now;
-            SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), 15f, (float)(now - state.BuffVisualStart));
-            SetState(hud.Skills[1], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));
+            SetState(hud.Skills[0], (float)(state.BuffReady - now), (float)(state.BuffEnd - now), GungnirRules.BlessingDuration, (float)(now - state.BuffVisualStart));
+            float fatalismAge = (float)(now - state.FatalismStart);
+            SetState(hud.Skills[1], (float)(state.FatalismReady - now), (float)(GungnirRules.FatalismEnd - fatalismAge), GungnirRules.FatalismEnd, fatalismAge);
+            SetState(hud.Skills[2], (float)(state.JudgmentReady - now), 0f, 0f, (float)(now - state.CastStart));
             for (int i = 0; i < hud.Skills.Length; i++)
             {
+                // Explicit mapping, never index+1: Rune Blessing=1, Fate Severance=5, Eternal Judgment=2.
                 if (hud.Skills[i].Clickable.IsClicked)
-                    runtime.Request(player, (byte)(i + 1), player.GameWidget.ActiveCamera.ViewDirection);
+                    runtime.Request(player, GungnirRules.HudCommand(i), player.GameWidget.ActiveCamera.ViewDirection);
             }
         }
 
@@ -96,7 +102,7 @@ namespace SCIEPort.Features.Gungnir
 
         private static void Layout(ComponentGui gui, Hud hud)
         {
-            Artifacts.ArtifactSkillHud.Arrange(gui,hud.Root,hud.Skills[0].Visual,hud.Skills[1].Visual);
+            Artifacts.ArtifactSkillHud.Arrange(gui,hud.Root,hud.Skills[0].Visual,hud.Skills[1].Visual,hud.Skills[2].Visual);
         }
 
         private static void AvoidNativeControls(ComponentGui gui, Hud hud, Vector2 viewport, ref GungnirHudLayout.Result placement)
@@ -157,9 +163,11 @@ namespace SCIEPort.Features.Gungnir
                 }
             };
             hud.Skills[0] = CreateButton(atlas, 0, GungnirHudLayout.BlessingSize, new Color(111, 226, 214), false);
-            hud.Skills[1] = CreateButton(atlas, 1, GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
+            hud.Skills[1] = CreateButton(atlas, 1, GungnirHudLayout.FatalismSize, new Color(238, 216, 158), false);
+            hud.Skills[2] = CreateButton(atlas, 2, GungnirHudLayout.JudgmentSize, new Color(245, 226, 178), true);
             hud.Root.Children.Add(hud.Skills[0].Visual);
             hud.Root.Children.Add(hud.Skills[1].Visual);
+            hud.Root.Children.Add(hud.Skills[2].Visual);
             gui.ControlsContainerWidget.Children.Add(hud.Root);
             return hud;
         }
@@ -171,7 +179,7 @@ namespace SCIEPort.Features.Gungnir
             skill.Icon = new RectangleWidget
             {
                 Size = new Vector2(size),
-                Subtexture = new Subtexture(atlas, new Vector2(icon * 0.5f, 0f), new Vector2((icon + 1) * 0.5f, 1f)),
+                Subtexture = new Subtexture(atlas, new Vector2(icon * (1f / IconCount), 0f), new Vector2((icon + 1) * (1f / IconCount), 1f)),
                 FillColor = Color.White,
                 OutlineColor = Color.Transparent,
                 OutlineThickness = 0f,
