@@ -1,0 +1,10 @@
+{
+  "tool": "built-in image_gen",
+  "source": "avalon-original.png",
+  "sourceSha256": "67D4D362250BBC17D8BFE1FCB669EBFE28B72FD785A0556F87659A32981301F1",
+  "prompt": "avalon-prompt.txt",
+  "asset": "src/SCIEPort/Assets/Textures/ExcaliburAvalon.png",
+  "sha256": "45A96BF5CE5343ADF57852CBD309C65427E062DD7AE497BC9FD03E27C021CC3F",
+  "processing": "RGBA Lanczos resize + circular alpha only",
+  "unchangedSkill1Sha256": "574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C"
+}

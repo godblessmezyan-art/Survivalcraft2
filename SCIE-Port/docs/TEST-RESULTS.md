@@ -1,5 +1,39 @@
 # 测试结果
 
+## 2026-11-01 main 0.70.0：圣剑附魔、快速解放与阿瓦隆
+
+基线为本地main `881fbaa`（0.69.0），工作区开始时干净，按用户要求原地开发并仅提交本地main。一技能图标保留，库存改暖金/象牙金；湖光附魔8秒/CD25、近战2→3格、成功近战后独立15点圣光；二技能接原三技能，动作时间线4→2.2秒、1.54秒释放、原35格/宽8格/55与25伤害、CD35；大招为0.6秒展开后3秒个人庇护、12%最大生命恢复、4.2秒演出/CD90，施法禁攻。完整阿瓦隆比圣剑珍贵十倍，此技能为短暂投影，不添加独立阿瓦隆物品。设计/限制见[圣剑V2](EXCALIBUR-V2.md)。
+
+仍针对`D:/Games/SCNET-x25.01.17`固定哈希三程序集，net472/API1.42/SC2.4.10.6；原生身体近战最终2格门限、SubsystemBodies.Raycast、ComponentMiner.Hit/m_lastHitTime、Injure、ComponentHealthPackage与FirstPerson/HumanModel的DrawBlockEnvironmentData均回到实际程序集核验。`Injure`的Hook先于ignoreInvulnerability，原生Heal上限1不适合四圣兽，因此恢复采用既有四圣兽已验证的Health属性/生命包方式，按1/1.5/2上限和独立累计预算处理。没有复制/提交反编译的游戏代码或二进制；本机取证输出仅在忽略的artifacts内。
+
+实际执行（与0.69.0相同的用户安装SDK9.0.300、Python与net472引用路径；Major只用于运行已有net8离线测试，Mod目标框架不变）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Excalibur.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -Package SCIE-Port/artifacts/荒野探险家-0.70.0.netmod
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-ExcaliburGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/excalibur-v2-gpu
+```
+
+根环境检查、构建脚本自动执行的移植环境/ABI、全部既有回归、Release和包守卫均通过，0警告/0错误。记录日志为`artifacts/excalibur-v2-release.log`。原模型实际1骨/88网格/1040三角、原三枚图标、两段音效仍通过目标Engine解码/来源哈希校验；新增Avalon图标有内置image_gen原图、完整提示词、仅缩放/圆形alpha的运行资源和SHA。模型文件未改，新增暂态金色发光BlockMesh只绑定当前持有者的原生绘制上下文，库存不会借用他人的附魔状态。
+
+| 验证 | 结果与边界 |
+|---|---|
+| 圣剑规则/布局 | 605项通过：新冷却、附魔/基础15伤害/3格、二技能范围与压缩关键帧、3秒庇护边界/12%累计恢复、序号、去重和十组逻辑分辨率/左右手安全布局。 |
+| 目标原生组件/网络 | 471项通过：既有真实序列化/ID/队列/Dispose/墙体/Client禁伤害；新增3格射线→实际Miner.Hit→AttackBody记录、主机去重/攻速和确认包；实际伤害下降后15/resilience独立Injure记录、无伤不追加、非近战不递归、客户端不排伤害；庇护的实际Loader AttackBody/OnCreatureInjure拦截、无永久IsInvulnerable修改、3秒到期、12%预算/重复更新/上限、过期客户端租约、模型上下文绑定。 |
+| 真实Engine/OpenGL合成 | 117项通过：旧解放按0.55比例压缩，三档阶段/预算、侧后方/20:9/深度遮挡/结束；新阿瓦隆展开/庇护/淡出、附魔金光、遮挡与结束清理。只渲染实际特效代码的合成棋盘场景，无游戏世界、角色动画实拍或手机设备。 |
+| 原有套件 | 全部保留并通过；库存主题758项、目标库存API166项、真实56类/23CSV与24XDB注册检查；雷锤/波塞冬/阿比斯/军势/载具/品牌/包内容和禁带二进制守卫通过。 |
+| 包资源差异 | 对0.69.0包：161个已有Assets条目字节相同，唯一已有资源变化是Excalibur.csv描述；只新增ExcaliburAvalon.png。原一技能图标SHA为574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C，保持不变；原模型/贴图及其它神器资产保持。 |
+
+伤害夹具用Hook记录后截停，原生Hit使用配置好的隔离组件以避开音频/世界副作用；这是调用、权限和计量证据，不表示真实战斗扣血或联网同步已测试。253字段布局与≤64字节上限保持，Kind2/3和Blessing/Age语义扩展，240–252/旧存档/953身份与XDB GUID不变。同房必须统一0.70.0，旧版混装不支持。
+
+最终包`artifacts/荒野探险家.netmod`与版本副本`artifacts/荒野探险家-0.70.0.netmod`字节一致，**9,861,099字节**，SHA-256 **8FB2C96C7085B0D12ED34E0FA9B0B09EA2BF9EC853D0595CF5EFE0948F5185F1**。DLL内部版本0.70.0/net472，模型/图标/PCM/CSV/XDB与包内哈希、内部品牌身份和禁止专有DLL/PDB守卫通过。[机器可读验证记录](assets/excalibur-v2/validation.json)保留目标指纹和资源差异。
+
+Android7723/完整游戏/真实主机与普通客户端、库存金色观感、持剑/双臂/附魔视觉、长按/多指/不同分辨率、3格命中及15附伤、阿瓦隆恢复/免伤与取消、长时手机性能全部**待验证**。首次使用可丢弃新世界和备份，没有使用玩家主存档。本轮无地形写入或Builder Assistant材料/DATA/族/蓝图能力变化，相关清单同步说明953仍不能用于建筑蓝图。
+
 ## 2026-11-01 main 0.69.0：圣剑·Excalibur
 
 从远端main `ab5e0274473902ef0b11f6f5303fa4c743e41cab`切换至本地main直接开发；未合并port分支。先只读核对现有真雷神之锤：近战40+25、雷霆万钧110/CD8、万劫天诛220+4×18/CD55、12秒雷神与雷电×2。圣剑普通近战24，一技能18/CD10，加护额外攻速×1.15/8秒/CD35，大招55/25/CD65、35格/宽8格，保留用户技能数值；两项名义技能伤害/冷却均低于锤对应技能20%。阿瓦隆珍贵程度为圣剑十倍，圣剑不提供雷神增幅或防御能力。

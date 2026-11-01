@@ -46,7 +46,7 @@ namespace SCIEPort.Features.Inventory
                 case Theme.OmniscientEye:return Pair(12,24,64,205,9,16,25,15,185,132,60,225,46,54,40,25,pulse);
                 case Theme.DevouringEye:return Pair(28,16,48,205,15,9,24,15,156,113,68,225,38,24,52,25,pulse);
                 case Theme.AbyssReaper:return Pair(36,18,65,205,16,9,27,15,166,125,216,225,34,32,30,25,pulse);
-                case Theme.Excalibur:return Pair(16,30,78,205,14,16,24,15,220,172,66,225,30,32,46,25,pulse);
+                case Theme.Excalibur:return Pair(167,126,48,210,20,22,12,15,247,220,139,235,8,20,32,20,pulse);
                 case Theme.Qinglong:return Pair(12,52,37,205,9,23,16,15,84,178,127,225,35,40,27,25,pulse);
                 case Theme.Xuanwu:return Pair(13,31,63,205,8,18,29,15,98,171,211,225,34,36,30,25,pulse);
                 case Theme.Baihu:return Pair(47,46,43,205,17,17,16,15,202,187,143,225,31,34,38,25,pulse);

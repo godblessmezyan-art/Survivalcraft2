@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original Avalon sanctuary icon and effects (2026-11-01)
+
+The new `ExcaliburAvalon.png` badge was generated using the built-in image_gen tool. Its unmodified original, complete prompt, processing recipe and SHA-256 are preserved in `docs/assets/excalibur-v2/`. Only resizing and circular alpha processing are applied. Skill 1's existing `ExcaliburLake.png` is unchanged, and skill 2 reuses the previous holy-release icon. The scabbard fragments, dome lattice, projected island and apple-blossom geometry are original code-authored effects, not copied Fate art, models or screenshots; they are distributable with this Mod. The legendary healing-island reference is documented in `docs/EXCALIBUR-V2.md`. Synthetic previews are QA evidence, not Android footage or package resources.
+
 ## Original Excalibur assets (2026-11-01)
 
 `Excalibur.dae`, palette, both-face geometric inscriptions and synthesized PCM charge/release audio are original project-authored assets, distributable with this Mod. The three skill badges come from the built-in image_gen tool; the unmodified original, full prompt and SHA-256 provenance are retained in `docs/assets/excalibur/`. Processing only crops/resizes and applies circular alpha. `New-ExcaliburAssets.py` reuses the project's geometry serializer, never another weapon's geometry or assets. The visual direction references the requested legendary holy-sword release; no Fate model, screenshot, logo, recording or third-party art is copied or redistributed. Preview/GPU fixtures are synthetic evidence and are not runtime package assets.

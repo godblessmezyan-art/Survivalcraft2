@@ -31,8 +31,8 @@ namespace SCIEPort.Features.Excalibur
         public void Handle(ProjectNet project,NetNode node,bool isServer)
         {
             var runtime=project.FindSubsystem<SubsystemExcalibur>(false);if(runtime==null)return;
-            if(isServer){var p=From?.PlayerData?.ComponentPlayer;if(Kind==0&&p!=null&&p.Entity.EntityId==Caster)runtime.Enqueue(p,this);}
-            else if(From==node.Server&&Kind==1)runtime.Enqueue(null,this);
+            if(isServer){var p=From?.PlayerData?.ComponentPlayer;if((Kind==0||Kind==2)&&p!=null&&p.Entity.EntityId==Caster)runtime.Enqueue(p,this);}
+            else if(From==node.Server&&(Kind==1||Kind==3))runtime.Enqueue(null,this);
         }
     }
 }

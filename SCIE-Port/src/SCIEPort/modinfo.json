@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.69.0",
+  "Version": "0.70.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.69.0 新增原创圣剑·Excalibur，湖光剑气、王者加护、四秒黄金圣光解放；服务端一次伤害、独立模型铭文与触屏HUD。保留既有神器。Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.70.0 圣剑黄金主题：湖光附魔8秒、近战3格与15圣光附伤；誓约胜利之剑动作压缩至2.2秒；遥远的理想乡3秒庇护与12%恢复。主机权威，无地形修改。Android与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

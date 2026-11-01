@@ -38,8 +38,9 @@ namespace SCIEPort.Features.Excalibur
             for(int i=0;i<3;i++)
             {
                 float remaining=(float)Math.Max(0,state.Ready[i]-m_runtime.Now);
-                bool active=i==1&&state.BlessingEnd>m_runtime.Now&&m_runtime.Fresh(state);
-                v.Labels[i].Text=active?"加护 "+Math.Ceiling(state.BlessingEnd-m_runtime.Now).ToString("0"):remaining>0?Math.Ceiling(remaining).ToString("0"):string.Empty;
+                bool enchant=i==0&&m_runtime.Enchanted(p),sanctuary=i==2&&state.Active?.Skill==3&&m_runtime.Fresh(state);
+                bool active=enchant||sanctuary;
+                v.Labels[i].Text=enchant?"附魔 "+Math.Ceiling(state.BlessingEnd-m_runtime.Now).ToString("0"):sanctuary?"理想乡":remaining>0?Math.Ceiling(remaining).ToString("0"):string.Empty;
                 v.Icons[i].FillColor=remaining>0&&!active?new Color(120,144,168,220):Color.White;
 
                 v.Clicks[i].IsEnabled=remaining<=0&&!m_runtime.Busy(p)&&p.PlayerData.IsReadyForPlaying;
@@ -49,13 +50,13 @@ namespace SCIEPort.Features.Excalibur
         private View Create(ComponentGui gui,ComponentPlayer p)
         {
             var v=new View{Player=p,Root=new CanvasWidget{Name="SCIEPort.Excalibur.LookSkills",IsHitTestVisible=false,HorizontalAlignment=WidgetAlignment.Near,VerticalAlignment=WidgetAlignment.Near}};
-            string[] assets={"ExcaliburLake","ExcaliburBlessing","ExcaliburRelease"},names={"湖光剑气","王者加护","誓约胜利"};
+            string[] assets={"ExcaliburLake","ExcaliburRelease","ExcaliburAvalon"},names={"湖光附魔","誓约胜利","遥远理想乡"};
             for(int i=0;i<3;i++)
             {
                 float size=i==2?88:72;var badge=new CanvasWidget{Size=new Vector2(size),IsHitTestVisible=false};
                 var icon=new RectangleWidget{Size=new Vector2(size),Subtexture=new Subtexture(ContentManager.Get<Texture2D>("Textures/"+assets[i]),Vector2.Zero,Vector2.One),FillColor=Color.White,OutlineThickness=0,OutlineColor=Color.Transparent,IsHitTestVisible=false};
                 var label=new LabelWidget{Size=new Vector2(size),TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=i==2?.65f:.62f,DropShadow=true,Color=Color.White,IsHitTestVisible=false};
-                var name=new LabelWidget{Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.35f,DropShadow=true,Color=new Color(213,243,249),IsHitTestVisible=false};
+                var name=new LabelWidget{Size=new Vector2(size,16),Text=names[i],TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,FontScale=.35f,DropShadow=true,Color=new Color(255,239,190),IsHitTestVisible=false};
                 var click=new ExcaliburSkillHitTarget{HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch,SoundName="Audio/UI/ButtonClick"};
                 badge.Children.Add(icon);badge.Children.Add(label);badge.Children.Add(name);CanvasWidget.SetPosition(name,new Vector2(0,size*.75f));badge.Children.Add(click);
                 v.Badges[i]=badge;v.Clicks[i]=click;v.Labels[i]=label;v.Icons[i]=icon;v.Names[i]=name;v.Root.Children.Add(badge);

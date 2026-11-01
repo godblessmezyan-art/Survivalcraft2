@@ -3,9 +3,15 @@ $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot
 foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
 $modelManifest=Get-Content (Join-Path $root 'docs/assets/excalibur/model.json') -Raw -Encoding UTF8|ConvertFrom-Json
 $icons=Get-Content (Join-Path $root 'docs/assets/excalibur/icons.json') -Raw -Encoding UTF8|ConvertFrom-Json
+$avalon=Get-Content (Join-Path $root 'docs/assets/excalibur-v2/avalon.json') -Raw -Encoding UTF8|ConvertFrom-Json
 $required=@{}
 foreach($p in $modelManifest.files.PSObject.Properties){$required[$p.Name]=$p.Value}
 foreach($p in $icons.icons.PSObject.Properties){$required[$p.Value.asset]=$p.Value.sha256}
+$required[$avalon.asset]=$avalon.sha256
+if((Get-FileHash -LiteralPath (Join-Path $root ('docs/assets/excalibur-v2/'+$avalon.source))).Hash -ne $avalon.sourceSha256){throw 'Avalon imagegen original changed'}
+if((Get-FileHash -LiteralPath (Join-Path $root 'src/SCIEPort/Assets/Textures/ExcaliburLake.png')).Hash -ne $avalon.unchangedSkill1Sha256){throw 'Requested unchanged skill 1 icon drifted'}
+$s=[IO.File]::OpenRead((Join-Path $root $avalon.asset));try{$im=[Engine.Media.Image]::Load($s)}finally{$s.Dispose()}
+if($im.Width -ne 256 -or $im.Height -ne 256 -or $im.GetPixel(0,0).A -ne 0 -or $im.GetPixel(128,128).A -lt 230){throw 'Avalon native icon alpha/dimensions'}
 foreach($path in $required.Keys){if((Get-FileHash -LiteralPath (Join-Path $root $path)).Hash -ne $required[$path]){throw "Excalibur asset hash drift: $path"}}
 if((Get-FileHash -LiteralPath (Join-Path $root ('docs/assets/excalibur/'+$icons.source))).Hash -ne $icons.sourceSha256){throw 'Imagegen original changed'}
 $stream=[IO.File]::OpenRead((Join-Path $root 'src/SCIEPort/Assets/Models/Excalibur.dae'))

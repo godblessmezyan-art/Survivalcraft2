@@ -10,10 +10,10 @@ namespace SCIEPort.Features.Excalibur
     {
         private readonly SubsystemExcalibur runtime;
         private readonly PrimitivesRenderer3D renderer=new PrimitivesRenderer3D();
-        private readonly FlatBatch3D gold,white;
+        private readonly FlatBatch3D gold,white,veil;
         private int triangles,limit,segments;private Vector3 eye;
         internal ExcaliburScene(SubsystemExcalibur r)
-        {runtime=r;gold=renderer.FlatBatch(0,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Additive);white=renderer.FlatBatch(1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Additive);}
+        {runtime=r;gold=renderer.FlatBatch(0,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Additive);white=renderer.FlatBatch(1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.Additive);veil=renderer.FlatBatch(-1,DepthStencilState.DepthRead,RasterizerState.CullNone,BlendState.AlphaBlend);}
         private static readonly Color Gold=new Color(255,170,34,170),Ivory=new Color(255,249,216,235);
         internal void Draw(Camera view)
         {
@@ -23,15 +23,11 @@ namespace SCIEPort.Features.Excalibur
             {
                 if(!runtime.Fresh(s)||!SubsystemExcalibur.Equipped(s.Player))continue;
                 if(Vector3.DistanceSquared(view.ViewPosition,s.Player.ComponentBody.Position)>96*96)continue;
-                if(s.BlessingEnd>runtime.Now)
-                {
-                    float t=(float)(runtime.Now%60);var center=s.Player.ComponentBody.Position+Vector3.UnitY*.15f;
-                    Ring(center,Vector3.UnitX,Vector3.UnitZ,.7f,.025f,Gold*.6f);
-                    for(int i=0;i<8;i++){float a=i*MathUtils.PI/4+t*.5f;var p=center+new Vector3(MathUtils.Cos(a),1.4f,MathUtils.Sin(a))*.6f;Beam(p,p+Vector3.UnitY*.20f,.016f,Ivory*.5f);}
-                }
+                if(runtime.Enchanted(s.Player))Enchant(s.Player.ComponentCreatureModel.EyePosition,s.Player.ComponentCreatureModel.EyeRotation.GetForwardVector(),(float)(runtime.Now%60));
+                if(s.ImpactUntil>runtime.Now){float f=(float)(s.ImpactUntil-runtime.Now)*4;Ring(s.ImpactPosition,Vector3.UnitX,Vector3.UnitY,.3f+.5f*(1-f),.05f,Ivory*f);}
                 var c=s.Active;if(c==null)continue;float age=(float)(runtime.Now-c.Start);
                 if(age<0||age>ExcaliburRules.Length(c.Skill))continue;
-                if(c.Skill==3)Ultimate(c,age);else if(c.Skill==1)Lake(c,age);
+                if(c.Skill==2)Ultimate(c,age);else if(c.Skill==3)Avalon(c,age);
             }
             renderer.Flush(view.ViewProjectionMatrix);
         }
@@ -50,24 +46,13 @@ namespace SCIEPort.Features.Excalibur
         }
         private static void Basis(Vector3 d,out Vector3 side,out Vector3 up)
         {side=Vector3.Cross(d,Vector3.UnitY);side=side.LengthSquared()<.001f?Vector3.UnitX:Vector3.Normalize(side);up=Vector3.Normalize(Vector3.Cross(side,d));}
-        private void Lake(SubsystemExcalibur.Cast c,float age)
-        {
-            Vector3 side,up;Basis(c.Direction,out side,out up);float t=MathUtils.Saturate((age-.15f)/.6f),fade=1-t;
-            Vector3 front=c.Origin+c.Direction*(16*t);
-            for(int band=0;band<3;band++)for(int i=0;i<segments;i++)
-            {
-                float a=-1.2f+i*2.4f/segments,b=-1.2f+(i+1)*2.4f/segments,r=1.3f-band*.1f;
-                var p=front+side*(MathUtils.Sin(a)*r)+up*(MathUtils.Cos(a)*r-.5f);
-                var q=front+side*(MathUtils.Sin(b)*r)+up*(MathUtils.Cos(b)*r-.5f);
-                Beam(p,q,.065f,new Color(164,221,255,230)*fade);Beam(p-c.Direction*.12f,q-c.Direction*.12f,.16f,Gold*(fade*.6f));
-            }
-        }
         private void Ultimate(SubsystemExcalibur.Cast c,float age)
         {
+            age=ExcaliburRules.ReleaseTimeline(age);
             Vector3 side,up;Basis(c.Direction,out side,out up);
             var basePoint=c.Player.ComponentBody.Position;var focus=c.Origin+c.Direction*.75f;
-            float charge=MathUtils.Saturate(age/ExcaliburRules.Release),fade=MathUtils.Saturate((4-age)/.45f);
-            if(age<ExcaliburRules.Release)
+            float charge=MathUtils.Saturate(age/2.8f),fade=MathUtils.Saturate((4-age)/.45f);
+            if(age<2.8f)
             {
                 // Three counter-rotating lake seals and spirals pulling motes into the raised blade.
                 for(int layer=0;layer<3;layer++)
@@ -95,7 +80,7 @@ namespace SCIEPort.Features.Excalibur
                 {float a=i*(2*MathUtils.PI)/12;var v=side*MathUtils.Cos(a)+up*MathUtils.Sin(a);Beam(focus+v*.2f,focus+v*(1+charge*3),.04f,Gold*((age-2.1f)/.7f));}
                 return;
             }
-            float burst=MathUtils.Saturate((age-ExcaliburRules.Release)/.12f),length=35*burst;
+            float burst=MathUtils.Saturate((age-2.8f)/.12f),length=35*burst;
             // 3D tapered shell + white core + rotating ribbons; full range persists through the release tail.
             for(int layer=0;layer<3;layer++)
             {
@@ -118,6 +103,60 @@ namespace SCIEPort.Features.Excalibur
             for(int i=0;i<5;i++){float t=(age*1.9f+i*.2f)%1;Ring(c.Origin+c.Direction*(length*t),side,up,4.1f,.06f,Gold*(fade*(1-t)));}
             Ring(basePoint+Vector3.UnitY*.12f,Vector3.UnitX,Vector3.UnitZ,2+(age-2.8f)*9,.07f,Gold*fade);
         }
-        internal void Dispose(){gold.Clear();white.Clear();}
+        private void Enchant(Vector3 origin,Vector3 direction,float age)
+        {
+            Vector3 side,up;Basis(direction,out side,out up);var hilt=origin+direction*.55f-side*.3f-Vector3.UnitY*.45f;
+            var tip=hilt+Vector3.UnitY*1.1f+direction*.15f;
+            Beam(hilt,tip,.14f,Gold*.55f);
+            for(int i=0;i<12;i++)
+            {float t=(i/12f+age*.7f)%1,a=i*2.39996f+age*3;var p=Vector3.Lerp(hilt,tip,t)+(side*MathUtils.Cos(a)+direction*MathUtils.Sin(a))*.12f;Beam(p,p+Vector3.UnitY*.06f,.022f,Ivory*(1-t));}
+        }
+        private void Avalon(SubsystemExcalibur.Cast c,float age)
+        {
+            if(age<0||age>=ExcaliburRules.AvalonDuration)return;
+            var o=c.Player.ComponentBody.Position;float grow=MathUtils.Saturate(age/.6f),fade=grow*MathUtils.Saturate((4.2f-age)/.6f);
+            float radius=5.5f*grow;var center=o+Vector3.UnitY*.08f;
+            // A projected island of light, never actual ground or a second world/teleport.
+            for(int i=0;i<segments;i++)
+            {
+                float a=i*2*MathUtils.PI/segments,b=(i+1)*2*MathUtils.PI/segments;
+                var x=new Vector3(MathUtils.Cos(a),0,MathUtils.Sin(a));var y=new Vector3(MathUtils.Cos(b),0,MathUtils.Sin(b));
+                Quad(veil,center,center+x*radius,center+y*radius,center,new Color(36,32,21,36)*fade);
+            }
+            for(int band=0;band<4;band++)Ring(center+Vector3.UnitY*(band*.025f),Vector3.UnitX,Vector3.UnitZ,radius*(1-band*.12f),.035f,Gold*(fade*.65f));
+            // Layered meridians and pearl-gold lattices outline the protective sanctuary dome.
+            for(int j=0;j<12;j++)
+            {
+                float a=j*2*MathUtils.PI/12;var radial=new Vector3(MathUtils.Cos(a),0,MathUtils.Sin(a));
+                for(int k=0;k<8;k++)
+                {
+                    float t=k*MathUtils.PI/16,u=(k+1)*MathUtils.PI/16;
+                    var p=center+radial*(radius*MathUtils.Cos(t))+Vector3.UnitY*(radius*MathUtils.Sin(t));
+                    var q=center+radial*(radius*MathUtils.Cos(u))+Vector3.UnitY*(radius*MathUtils.Sin(u));
+                    Beam(p,q,.035f,Ivory*(fade*.55f));
+                }
+            }
+            for(int ring=1;ring<5;ring++)
+            {float t=ring*MathUtils.PI/10;Ring(center+Vector3.UnitY*(radius*MathUtils.Sin(t)),Vector3.UnitX,Vector3.UnitZ,radius*MathUtils.Cos(t),.025f,Gold*(fade*.5f));}
+            // Eight floating sheath fragments and an ivory apple-blossom floor motif.
+            for(int j=0;j<8;j++)
+            {
+                float a=j*2*MathUtils.PI/8+age*.22f;var radial=new Vector3(MathUtils.Cos(a),0,MathUtils.Sin(a));
+                var tangent=new Vector3(-radial.Z,0,radial.X);var p=o+radial*(2.5f*grow)+Vector3.UnitY*(1.0f+.14f*MathUtils.Sin(age*2+j));
+                Quad(gold,p-tangent*.13f,p+tangent*.13f,p+tangent*.10f+Vector3.UnitY*1.6f,p-tangent*.10f+Vector3.UnitY*1.6f,Gold*(fade*.8f));
+                Beam(p,p+Vector3.UnitY*1.6f,.04f,Ivory*fade);
+                Beam(p-tangent*.2f+Vector3.UnitY*1.5f,p+tangent*.2f+Vector3.UnitY*1.5f,.035f,Ivory*fade);
+                Quad(gold,p-tangent*.1f+Vector3.UnitY*1.6f,p+Vector3.UnitY*1.9f,p+tangent*.1f+Vector3.UnitY*1.6f,p-tangent*.1f+Vector3.UnitY*1.6f,Gold*fade);
+                var flower=center+radial*(3.8f*grow);
+                for(int petal=0;petal<5;petal++)
+                {
+                    float t=petal*2*MathUtils.PI/5+age*.05f;var v=new Vector3(MathUtils.Cos(t),0,MathUtils.Sin(t));var w=new Vector3(-v.Z,0,v.X);
+                    Quad(veil,flower,flower+v*.5f+w*.2f,flower+v*.8f,flower+v*.5f-w*.2f,new Color(140,136,120,140)*fade);
+                }
+            }
+            for(int j=0;j<24;j++)
+            {float t=(j/24f+age*.18f)%1,a=j*2.39996f;var p=o+new Vector3(MathUtils.Cos(a)*4*grow,t*4.8f,MathUtils.Sin(a)*4*grow);Beam(p,p+Vector3.UnitY*.12f,.025f,Ivory*(fade*(1-t)));}
+        }
+        internal void Dispose(){gold.Clear();white.Clear();veil.Clear();}
     }
 }

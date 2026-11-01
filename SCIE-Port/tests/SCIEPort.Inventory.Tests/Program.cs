@@ -24,7 +24,7 @@ internal static class Program
         foreach(int id in new[]{942,943,948,949,950,951,952,953})
             Check(PortInventoryRules.Select(id,-1,PortInventoryRules.Artifacts)!=PortInventoryRules.Theme.Artifact,"current artifacts require authored themes");
         Check(PortInventoryRules.Select(952,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.AbyssReaper,"Abyss uses its own violet metal theme");
-        Check(PortInventoryRules.Select(953,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Excalibur,"Excalibur owns a royal-blue/gold theme");
+        Check(PortInventoryRules.Select(953,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Excalibur,"Excalibur owns a holy golden/ivory theme");
         Check(PortInventoryRules.Select(970,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Artifact,"future artifact fallback");
         Check(PortInventoryRules.Select(943,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.FalseHammer,"fake hammer gets its own subdued skin, not the true hammer skin");
         Check(PortInventoryRules.Select(1,-1,"Terrain")==PortInventoryRules.Theme.None,"ordinary item stays native");
@@ -47,6 +47,8 @@ internal static class Program
         }
         var g=PortInventoryRules.Colors(PortInventoryRules.Theme.Gungnir,0);
         Check(g.Center.R==34 && g.Center.G==37 && g.Center.B==45 && g.Border.R==197 && g.Border.G==153 && g.Border.B==81,"Gungnir original obsidian/antique gold preserved");
+        var holy=PortInventoryRules.Colors(PortInventoryRules.Theme.Excalibur,0);
+        Check(holy.Center.R>=160&&holy.Center.G>=120&&holy.Center.B<holy.Center.G&&holy.Border.R>holy.Border.G&&holy.Border.G>holy.Border.B,"Excalibur sacred warm-gold background");
         var m=PortInventoryRules.Colors(PortInventoryRules.Theme.Mjolnir,1);
         Check(m.Center.R==86 && m.Center.G==64 && m.Center.B==168 && m.Border.B==255,"Mjolnir blue-violet preserved");
         Console.WriteLine("Inventory category/skin rules: "+s_checks+" assertions passed (not live UI).");

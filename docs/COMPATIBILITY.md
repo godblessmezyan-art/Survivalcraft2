@@ -1,5 +1,20 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.70.0：圣剑附魔与阿瓦隆
+
+基于main `881fbaa`；953/DATA0/模型/CSV分类/XDB GUID和net472/API1.42/SC2.4.10.6保持。改圣剑主题为暖金；原一技能图标字节保留，二技能复用原解放图标，新增ExcaliburAvalon.png和生成来源。复用现有更新/绘制及OnMinerHit、AttackBody、OnCreatureInjure、AttackPowerParameter，不新增Hook。253保持字段布局，Blessing改为附魔剩余、增加Kind2近战请求及Kind3确认语义；240–252和旧存档保持，modinfo字段集合与包结构不变。
+
+| 项目 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows x25.01.17 ABI/Release | 已确认 | 三程序集哈希匹配既有登记；原生2格玩家命中门限、Miner.Hit/身体射线、Injure/生命包、模型绘制上下文接口重新核验；net472真实引用编译。 |
+| 神器规则与触屏逻辑布局 | 已确认 | 605项离线检查：冷却、2.2秒压缩、35格/8格判定、3秒庇护/12%预算、逻辑分辨率/左右手避让，非手机操作。 |
+| 原生组件隔离 | 已确认 | 471项：真实3格选取→Miner.Hit→AttackBody调用、主机附伤、Client禁伤害、序号/攻速/墙体、庇护Hook/恢复上限与模型上下文绑定；伤害记录Hook截停。 |
+| 目标Engine/OpenGL合成 | 已确认 | 117项真实特效阶段、三档预算、遮挡、侧/后视角与20:9检查；不是游戏/Android截图。 |
+| Android7723/实际游戏/多人/触屏与性能 | 待验证 | 没有打开游戏世界或操作手机；安装、近战/附伤、庇护/恢复及取消、画面、多人同步需实机验收。 |
+| 与0.69.0等旧版混装 | 不支持 | 同房统一0.70.0；253技能语义改变，旧客户端不能把新增语义当作旧祝福/大招。 |
+
+精确命令、包指纹和范围见[移植测试记录](../SCIE-Port/docs/TEST-RESULTS.md)、[圣剑V2](../SCIE-Port/docs/EXCALIBUR-V2.md)。原模型实际导入1骨/88网格/1040三角；没有新ID或Builder Assistant蓝图能力变化。
+
 ## 2026-11-01 SCIE-Port 0.69.0：圣剑·Excalibur
 
 main基线`ab5e027`新增非放置物品953/DATA0、独立CSV/XDB子系统和253协议；真实目标原生260个Block常量、全部本Mod身份和39类原生包ID已复核。沿用现有ModLoader/net472/API1.42/SC2.4.10.6、GuiUpdate/OnMinerHit/AttackBody与原生更新/绘制接口，无新增Hook；240–252及旧存档布局保持。新增资源包路径为Assets/Models/Excalibur.dae、Textures/Excalibur*.png、Audio/Excalibur/*.wav和Blocks/Database注册，modinfo字段集合及内部SCIEPort身份保持。

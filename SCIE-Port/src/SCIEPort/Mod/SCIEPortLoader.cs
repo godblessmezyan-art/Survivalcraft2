@@ -106,6 +106,7 @@ namespace SCIEPort.Mod
         {
             if(attacker?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.FriendlyDamage(target,attacker)==true){attackPower=0;return true;}
             if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
+            if (AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
             if(isMeleeAttack&&SubsystemExcalibur.Equipped(attackingPlayer)&&attackingPlayer.Project.FindSubsystem<SubsystemExcalibur>(false)?.Busy(attackingPlayer)==true){attackPower=0;return false;}
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
@@ -118,6 +119,7 @@ namespace SCIEPort.Mod
             {
                 SubsystemAwakenedStormhammerBlockBehavior behavior = attacker.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
                 behavior?.PrepareAwakenedMelee(target, attacker, hitPoint, ref attackPower, isMeleeAttack);
+                attacker.Project.FindSubsystem<SubsystemExcalibur>(false)?.PrepareMelee(target,attackingPlayer,attackPower,isMeleeAttack);
             }
             return false;
         }
@@ -129,6 +131,7 @@ namespace SCIEPort.Mod
             if(death?.FriendlyDamage(componentHealth.Entity.FindComponent<ComponentBody>(false),attacker)==true){Skip=true;return;}
             death?.NoteAttack(componentHealth,attacker);
             if (DomainProtected(componentHealth)) { Skip=true; return; }
+            if (AvalonProtected(componentHealth)) { Skip=true; return; }
             if (componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Space?.ProtectFall(componentHealth,attacker,ignoreInvulnerability,cause)==true) { Skip=true; return; }
             if (SubsystemPoseidon.BlocksDrowning(componentHealth, attacker, cause)) { Skip = true; return; }
             Skip = componentHealth?.Project.FindSubsystem<SubsystemFourSaints>(false)?.HandleInjury(componentHealth, amount, attacker, ignoreInvulnerability, cause) == true;
@@ -137,10 +140,13 @@ namespace SCIEPort.Mod
         private static bool DomainProtected(ComponentHealth health)
             => health?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Horizon?.Protects(health)==true;
 
+        private static bool AvalonProtected(ComponentHealth health)
+            => health?.Project.FindSubsystem<SubsystemExcalibur>(false)?.Protects(health)==true;
+
         /// <inheritdoc />
         public override void AttackPowerParameter(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float impulseFactor, ref float stunTimeFactor, ref bool recalculate)
         {
-            if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false)))
+            if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))||AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false)))
             { impulseFactor=0; stunTimeFactor=0; recalculate=false; }
         }
 

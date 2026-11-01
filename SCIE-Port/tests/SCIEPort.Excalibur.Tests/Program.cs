@@ -8,26 +8,29 @@ static class Program
     static int checks;static void Check(bool ok,string label){if(!ok)throw new Exception(label);checks++;}
     static void Main()
     {
-        Check(ExcaliburRules.Cooldown(1)==10&&ExcaliburRules.Cooldown(2)==35&&ExcaliburRules.Cooldown(3)==65,"cooldowns");
-        Check(ExcaliburRules.Power(1,10,0,0)==18,"lake power");
-        Check(ExcaliburRules.Power(3,35,0,0)==55&&ExcaliburRules.Power(3,35,4,0)==25,"core and edge");
+        Check(ExcaliburRules.Cooldown(1)==25&&ExcaliburRules.Cooldown(2)==35&&ExcaliburRules.Cooldown(3)==90,"v2 cooldowns");
+        Check(ExcaliburRules.Power(1,1,0,0)==0&&ExcaliburRules.Power(3,1,0,0)==0,"enchantment and Avalon never deal beam damage");
+        Check(ExcaliburRules.Power(2,35,0,0)==55&&ExcaliburRules.Power(2,35,4,0)==25,"second-skill core and edge unchanged");
         foreach(float a in new[]{0,1,16,34.999f,35f})foreach(float b in new[]{-4,-1.5f,0,1.5f,4})
-            Check(ExcaliburRules.Power(3,a,b,0)==(Math.Abs(b)<=1.5f?55:25),"inclusive geometry");
+            Check(ExcaliburRules.Power(2,a,b,0)==(Math.Abs(b)<=1.5f?55:25),"inclusive geometry");
         foreach(float bad in new[]{float.NaN,float.NegativeInfinity,float.PositiveInfinity})
-        {Check(ExcaliburRules.Power(3,bad,0,0)==0,"bad forward");Check(ExcaliburRules.Power(3,1,bad,0)==0,"bad side");Check(ExcaliburRules.Power(3,1,0,bad)==0,"bad height");}
+        {Check(ExcaliburRules.Power(2,bad,0,0)==0,"bad forward");Check(ExcaliburRules.Power(2,1,bad,0)==0,"bad side");Check(ExcaliburRules.Power(2,1,0,bad)==0,"bad height");Check(!ExcaliburRules.Sanctuary(bad)&&ExcaliburRules.HealProgress(bad)==0,"invalid sanctuary clock");}
         foreach(var v in new[]{new[]{35.001f,0f,0f},new[]{-0.001f,0f,0f},new[]{10f,4.001f,0f},new[]{10f,0f,4.001f}})
-            Check(ExcaliburRules.Power(3,v[0],v[1],v[2])==0,"hard range/width/height");
-        Check(ExcaliburRules.Power(1,16.001f,0,0)==0&&ExcaliburRules.Power(2,1,0,0)==0,"short wave and nondamaging blessing");
-        Check(18/10f<LightningRules.JudgmentDamage(0)/8*.2f,"lake throughput below one fifth of Mjolnir judgment");
-        Check(55/65f<(LightningRules.TribulationDamage(0)+4*LightningRules.AftershockDamage)/55*.2f,"ultimate core throughput below one fifth");
-        Check(Math.Abs(ExcaliburRules.AttackFrequency(true)-1.265f)<.0001f&&ExcaliburRules.AttackFrequency(false)==1.1f,"multiplicative blessing and passive");
-        Check(ExcaliburRules.Release==2.8f&&ExcaliburRules.Duration==4,"visual/impact time");
+            Check(ExcaliburRules.Power(2,v[0],v[1],v[2])==0,"hard range/width/height");
+        Check(24+ExcaliburRules.AddonPower<(40+25)*.65f,"enchanted melee lower than Mjolnir");
+        Check(55/35f<LightningRules.JudgmentDamage(0)/8*.15f,"beam throughput below 15 percent of Mjolnir judgment");
+        Check(ExcaliburRules.AttackFrequency(true)==1.1f&&ExcaliburRules.AttackFrequency(false)==1.1f,"default attack speed unchanged; old blessing removed");
+        Check(ExcaliburRules.MeleeReach==2+1&&ExcaliburRules.EnchantDuration==8&&ExcaliburRules.AddonPower==15,"enchant reach, duration, flat add-on");
+        Check(Math.Abs(ExcaliburRules.Release-1.54f)<.0001f&&ExcaliburRules.Duration==2.2f,"compressed visual/impact time");
+        Check(Math.Abs(ExcaliburRules.ReleaseTimeline(ExcaliburRules.Release)-2.8f)<.0001f,"same original release keyframe");
+        Check(!ExcaliburRules.Sanctuary(.599f)&&ExcaliburRules.Sanctuary(.6f)&&ExcaliburRules.Sanctuary(3.599f)&&!ExcaliburRules.Sanctuary(3.6f),"three-second sanctuary boundaries");
+        Check(ExcaliburRules.HealProgress(.6f)==0&&Math.Abs(ExcaliburRules.HealProgress(2.1f)-.06f)<.0001f&&ExcaliburRules.HealProgress(4.2f)==.12f,"healing capped at 12 percent");
         var ledger=new ExcaliburRules.HitLedger<int>();
         for(int i=0;i<64;i++){Check(ledger.Add(i),"distinct target");for(int repeat=0;repeat<4;repeat++)Check(!ledger.Add(i),"duplicate frame/body/replay");}
         Check(!ledger.Add(65)&&ledger.Count==64,"hard target budget");
         Check(new ExcaliburRules.HitLedger<int>().Add(0),"new cast can hit same target");
         Check(ExcaliburRules.Newer(1,uint.MaxValue)&&!ExcaliburRules.Newer(5,5)&&!ExcaliburRules.Newer(3,4),"sequence wrap/duplicate/reorder");
-        for(float t=0;t<=4;t+=.05f){float p,y,l;ExcaliburRules.Pose(t,out p,out y,out l);Check(ExcaliburRules.Finite(p)&&Math.Abs(p)<1.2f&&Math.Abs(y)<.3f&&Math.Abs(l)<.5f,"bounded raise/swing pose");}
+        for(float t=0;t<=2.2f;t+=.025f){float p,y,l;ExcaliburRules.Pose(t,out p,out y,out l);Check(ExcaliburRules.Finite(p)&&Math.Abs(p)<1.2f&&Math.Abs(y)<.3f&&Math.Abs(l)<.5f,"bounded raise/swing pose");}
         foreach(var size in new[]{new[]{1280f,720f},new[]{1600f,720f},new[]{1024f,768f},new[]{960f,540f},new[]{800f,480f}})
         foreach(bool left in new[]{false,true})
         {

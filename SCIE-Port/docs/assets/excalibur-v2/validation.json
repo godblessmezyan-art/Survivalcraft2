@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-01",
+  "branch": "main",
+  "baseline": "881fbaa",
+  "version": "0.70.0",
+  "target": "SCNET Net_x25.01.17 Windows / net472 / API1.42 / SC2.4.10.6",
+  "targetSha256": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  },
+  "checks": {
+    "rules": 605,
+    "targetNative": 471,
+    "targetGpu": 117,
+    "fullBuildAndPackage": "passed",
+    "rootEnvironment": "passed",
+    "portEnvironment": "passed"
+  },
+  "package": {
+    "filename": "荒野探险家-0.70.0.netmod",
+    "bytes": 9861099,
+    "sha256": "8FB2C96C7085B0D12ED34E0FA9B0B09EA2BF9EC853D0595CF5EFE0948F5185F1"
+  },
+  "existingAssetComparison": {
+    "baselineVersion": "0.69.0",
+    "byteIdentical": 161,
+    "intentionalChanges": [
+      "Assets/Blocks/Excalibur.csv"
+    ],
+    "newAssets": [
+      "Assets/Textures/ExcaliburAvalon.png"
+    ]
+  },
+  "unchangedSkill1Sha256": "574F10D61CE946982EF14C1D53500E81ACB8935A327A6EDBCD84D27C41CDC56C",
+  "runtimeEvidence": "Native protocol, raycast -> Miner.Hit -> AttackBody recorder, direct injury recorder, scoped protection hooks and health-budget properties; no live world or real network session. Target Engine/OpenGL renders actual scene geometry.",
+  "android7723": "待验证",
+  "liveMultiplayer": "待验证",
+  "previewHashes": {
+    "avalon-gpu.png": "2FB887D3AA0FDC4D0D07C4FDB959A9072EDDCA469C9777138C1A05628F584031",
+    "enchant-gpu.png": "92E687D7264875BED8D972E176893812536390516C0B382FC3CDD39BD13C4058",
+    "release-gpu.png": "538C50CA482891081915229C3EC018CABB0CC600C19521A0C42624B46CEEBB0B"
+  }
+}
