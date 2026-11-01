@@ -16,6 +16,7 @@ namespace SCIEPort.Features.OmniscientEye
         {
             if (Terrain.ExtractContents(miner.ActiveBlockValue) != OmniscientEyeBlock.Index) return false;
             ComponentPlayer player = miner.ComponentPlayer;
+            if (!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,OmniscientEyeBlock.Index)) return true;
             if (player?.GameWidget == null) return true;
             View(player.ComponentGui).OpenRequested = true;
             return true;

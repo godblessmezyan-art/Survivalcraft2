@@ -21,7 +21,7 @@ internal static class Program
             Check(PortInventoryRules.IsSaint(203,index)==(index>=200 && index<=203),"clothing DATA isolation");
             Check(!PortInventoryRules.IsSaint(204,index),"not another block");
         }
-        foreach(int id in new[]{942,943,948,949,950,951,952,953})
+        foreach(int id in new[]{942,943,948,949,950,951,952,953,955})
             Check(PortInventoryRules.Select(id,-1,PortInventoryRules.Artifacts)!=PortInventoryRules.Theme.Artifact,"current artifacts require authored themes");
         Check(PortInventoryRules.Select(952,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.AbyssReaper,"Abyss uses its own violet metal theme");
         Check(PortInventoryRules.Select(953,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Excalibur,"Excalibur owns a holy golden/ivory theme");

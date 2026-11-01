@@ -1,5 +1,35 @@
 # 测试结果
 
+## 2026-11-01 main 0.74.0：神器图谱与真名解放
+
+基于e879928，初始工作区干净。新增书籍神器955/DATA0、254协议和世界权限子系统，统一限制八种既有神器。每玩家/世界分别永久解锁，无消耗、无需持续携带；旧世界无进度默认封印，物品可存取/陈列。图谱自体默认持有+20%步速、+10%近战攻速、紫蓝/古金专属主题；补齐全知/吞噬之眼相同默认属性，锁定时无神器加成。详见[规则与使用](ARTIFACT-CODEX.md)。
+
+实际命令（用户SDK9.0.300、Python与net472引用；Major只运行既有net8套件，不改Mod目标）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-SuspensionGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/codex-gpu
+```
+
+根环境、构建内移植环境/固定三程序集SHA、全部旧回归、Release和最终包内容校验通过，退出码0。日志为artifacts/codex-release.log、artifacts/codex-gpu/stdout.txt；完整目标/包/预览指纹见[机器记录](assets/codex/validation.json)。Mod保持net472/API1.42/SC2.4.10.6，新增OnMinerDig签名及原生Dig调用门限已回到实际程序集核验，无游戏程序集/反编译源/手机资源入包。
+
+| 验证 | 结果与边界 |
+|---|---|
+| 图谱原生专项 | **426项通过**：955/254对原生与全部Mod身份避冲突，真实数据库合并注册；新/旧世界默认封印、八项逐个解放、另一个玩家不继承、未持书/伪GUID/非法目录拒绝、客户端不能授予、请求Mask不能解放其它条目。原生输入组装后抑制攻击/挖掘/瞄准，实际Loader OnMinerHit/OnMinerDig拦截；原生ValuesDictionary保存XML→解析→恢复、非法记录拒绝、书本移速不累积/切换归还/死亡保留进度、实用之眼死亡归还增量；Server授予及状态包、Client晚到接收/错误身份/未知位/重放拒绝、真实压缩序列化≤40字节、独立书模预算与退出清理。隔离组件，不是游戏或真实网络。 |
+| 目录/主题 | 构建自动扫描神器CSV，除图谱自体外全部须登记真名目录；库存规则**775**、目标原生库存**170**项通过，58行/25CSV。所有旧神器独立主题保持，图谱使用新Codex主题。 |
+| 真实Engine GPU | **66项通过**：生产DrawItem入口渲染原始神器和新书籍模型，验证颜色/旋转/背面/遮挡/20:9/多件绘制；书本立体封皮、页层、金角/锁扣/书签合成预览已查看。没有运行图谱Dialog的实机画面/触屏，相关验收待验证。 |
+| 旧战斗与存储 | 全部构建套件保留并通过；圣剑规则806/原生521、陈列器原生649、其它神器/军势/载具/品牌/数据库与禁带二进制守卫通过。旧战斗夹具显式初始化为已解放，新专项另测未解放路径，没有删除旧断言。 |
+| 冻结源码保护 | 阿比斯保护脚本仅剥离固定字面量Codex权限谓词并统一文本编码/换行，再匹配原始冻结SHA；时间线/领域/传送算法的旧基线保持，超出权限改动仍拒绝。 |
+| 包资产差异 | 对0.73.0，**163个旧Assets逐字节相同**；仅全知/吞噬之眼两份CSV追加默认属性说明，新增ArtifactCodex.csv/ArtifactCodex.xdb。全部旧模型/图标/音频保持，书模由原创代码和1像素白纹理构造，无新增外部美术或技能图标。 |
+
+最终主包和版本副本字节一致，**10,382,870字节**，SHA-256 **1748F3D4380215BC7BE6FC4E262E44438C762E692884AE251F132D3C9868B9E4**。包内DLL与最终Release/GPU测试DLL相同；新注册、资料、原生目标与预览哈希在机器记录中保留。所有端统一0.74.0，旧版混装不支持。
+
+Android7723、完整单机/真实主机/普通客户端/晚加入、图谱实际触屏/滚动/不同分辨率、第一/第三人称持书、实际存档退出重进与性能均待验证；没有启动游戏或使用主存档。首测使用可丢弃新世界与备份。新代码不发放/删除神器、不批量写地形，955不能用于Builder Assistant蓝图；材料/族/DATA/施工限制保持并已更新清单。只提交本地main，不推送。
+
 ## 2026-11-01 main 0.73.0：合并远端更新并重新打包
 
 本地9b0f6a2与远端main 903afcd合并；仅csproj/modinfo版本和说明冲突，统一0.73.0，保留双方功能。通过本机代理fetch并合并，无push。

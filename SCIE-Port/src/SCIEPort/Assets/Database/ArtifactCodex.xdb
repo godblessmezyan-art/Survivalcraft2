@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortArtifactCodex>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortArtifactCodex" Guid="d659b803-bd70-5593-a18e-cb8f350c6a15" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="14b17f67-4bfc-5f2c-92bd-e153468f322e" Value="SCIEPort.Features.Codex.SubsystemArtifactCodex" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortArtifactCodex" Guid="2dce7d4c-21a3-5b8e-a040-7cf4a1a36c78" InheritanceParent="d659b803-bd70-5593-a18e-cb8f350c6a15"/>
+  </ProjectTemplate>
+</SCIEPortArtifactCodex>

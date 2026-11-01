@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-01 SCIE-Port 0.74.0：神器图谱
+
+新增955/DATA0、254包与SCIEPortArtifactCodex子系统，原生ValuesDictionary保存各玩家真名进度；缺省封印，其余八种神器按玩家解锁，图谱自体始终可用。目标net472/API1.42/SC2.4.10.6保持，旧ID/GUID/240–253布局不改；新增OnMinerDig签名已回到固定目标程序集与实际Dig调用点验证。实现及验证边界见[神器图谱](ARTIFACT-CODEX.md)和[测试记录](TEST-RESULTS.md)。Android7723/实际游戏/真实多人/触屏/性能待验证，旧版混装不支持，所有端统一0.74.0。
+
 ## 2026-11-01 SCIE-Port 0.72.0：悬浮陈列器
 
 基于main `73a87f3`，新增954/DATA0和独立SCIEPortSuspendedItem实体/子系统，SlotsCount1的ComponentChest子类，SCIEPort.Building。固定Windows x25.01.17/net472/API1.42/SC2.4.10.6保持。实际原生数据库合并/实体创建、存档XML/库存同步、转移/拆除与Engine真实物品绘制隔离 **已确认**；Android7723/完整游戏/真实主机/普通客户端/晚加入/触屏/手机性能 **待验证**。命令、Release/包检查及指纹见[测试记录](TEST-RESULTS.md)。

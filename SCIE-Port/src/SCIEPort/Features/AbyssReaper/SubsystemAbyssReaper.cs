@@ -74,7 +74,7 @@ namespace SCIEPort.Features.AbyssReaper
                 input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;input.m_playerInput.Interact=null;return;
             }
             if(portalTravel?.InputLocked(p)==true||Space?.InputLocked(p)==true){VoidHorizonRuntime.LockInput(p);return;}
-            State s;bool active=Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
+            State s;bool active=(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index);
             if(!active){
                 if(Gateways!=null&&Gateways.Actor(p)&&input.m_playerInput.Interact.HasValue&&p.ComponentGui.ModalPanelWidget==null&&!DialogsManager.HasDialogs(p.GuiWidget))
                 {
@@ -194,7 +194,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(player.GameWidget!=null&&(CommonLib.WorkType==WorkType.Local||player.PlayerData.IsMainPlayer))Capture(player.ComponentInput);
             retired.Clear(); double now=clock.GameTime;
             foreach(var pair in states){var p=pair.Key;var s=pair.Value;
-                if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){retired.Add(p);continue;}
+                if(!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))){retired.Add(p);continue;}
                 if(WorldCut.Busy(p)||Horizon.Busy(p)||blink.Busy(p)||Death?.Busy(p)==true)continue;
                 float t=s.Combo.Phase(s.CombatTime);
                 var pose=AbyssMeleeMotion.Sample(s.Combo.Stage,t,s.Combo.Charge(s.CombatTime));
@@ -217,7 +217,7 @@ namespace SCIEPort.Features.AbyssReaper
             float owned;if(walkBonuses.TryGetValue(p,out owned))p.ComponentLocomotion.WalkSpeed-=owned;
             walkBonuses.Remove(p);
             float baseline=p.ComponentLocomotion.WalkSpeed;
-            if(equipped && walkBonuses.Count<64 && p.IsAddedToProject && p.ComponentHealth.Health>0 && WorldCutRules.Finite(baseline))
+            if(equipped && SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index) && walkBonuses.Count<64 && p.IsAddedToProject && p.ComponentHealth.Health>0 && WorldCutRules.Finite(baseline))
             {
                 float delta=Math.Max(0,baseline)*.2f;
                 walkBonuses[p]=delta;p.ComponentLocomotion.WalkSpeed+=delta;
@@ -230,9 +230,10 @@ namespace SCIEPort.Features.AbyssReaper
                 if(!pair.Key.IsAddedToProject || pair.Key.ComponentHealth.Health<=0 || Terrain.ExtractContents(pair.Key.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index) speedRetired.Add(pair.Key);
             foreach(var p in speedRetired)ApplyHeldSpeed(p,false);
             foreach(var p in players.ComponentPlayers)
-                if(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index)ApplyHeldSpeed(p,true);
+                if((Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index)))ApplyHeldSpeed(p,true);
         }
         void Strike(ComponentPlayer p,State s) {
+            if(!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))return;
             if(s.Combo.Stage==3)return; // Charged releases exclusively use WorldCutRuntime.
             if(Death?.IsDeath(p)==true){Death.Request(p,DeathAuthorityRules.Strike,MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector()));return;}
             if(CommonLib.WorkType==WorkType.Client)return;

@@ -83,7 +83,7 @@ namespace SCIEPort.Features.Gungnir
             m_info = Project.FindSubsystem<SubsystemGameInfo>(true);
             m_scene = new GungnirScene(this, m_terrain);
         }
-        internal static bool Equipped(ComponentPlayer p) => p != null && p.IsAddedToProject && p.ComponentHealth.Health > 0 && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue) == GungnirBlock.Index;
+        internal static bool Equipped(ComponentPlayer p) => p != null && p.IsAddedToProject && p.ComponentHealth.Health > 0 && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue) == GungnirBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,GungnirBlock.Index);
         internal State Get(ComponentPlayer p)
         {
             State s;

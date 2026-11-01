@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.74.0：神器图谱与真名权限
+
+基于main e879928，新增非放置955/DATA0、254协议和SCIEPortArtifactCodex世界子系统。固定Windows x25.01.17/net472/API1.42/SC2.4.10.6保持；新CSV/XDB按原布局打包，既有240–253字段、物品ID和模板GUID不改。新增Hook为实际目标已核验的`OnMinerDig(ComponentMiner,TerrainRaycastResult,ref float,out bool)`，用于阻止封印武器达到挖掘门限；复用OnMinerHit/AttackBody与原生更新、绘制和UI。955和254须各方统一0.74.0，旧版混装不支持。
+
+进度以PlayerGuid分别保存于世界子系统TrueNames；旧世界无字段默认封印八种神器，图谱自体可用。持书请求认证绑定玩家/序号/条目，主机授予/保存，客户端仅接收Server状态。允许正常存取、交易、陈列；不丢弃或替换旧物品。原生ABI/Release、权限/存档与GPU证据见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。Android7723、完整游戏、实际主机/客户端/晚加入/触屏及性能待验证，不能沿用Windows隔离结论。
+
 ## 2026-11-01 SCIE-Port 0.73.0：合并远端神器更新
 
 合并本地main `9b0f6a2`与远端main `903afcd`，保留953圣剑、954陈列器及远端雷神之锤/昆古尼尔第三技能和平衡调整。解决csproj/modinfo版本与描述冲突，统一0.73.0；net472/API1.42/SC2.4.10.6、内部SCIEPort身份和既有物品/存档GUID保持。244尾部增加FatalismCooldown，243增加第三技能相关语义，详见SCIE-Port/docs/ARTIFACT-THIRD-SKILLS.md；同房须统一0.73.0，旧版混装不支持。Android7723/完整游戏/真实联机待验证；本次Release与包检查结果见SCIE-Port/docs/TEST-RESULTS.md。

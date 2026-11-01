@@ -59,14 +59,14 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private bool Actor(ComponentPlayer p,bool held=true)
         {
-            if(p==null||p.Project!=terrain.Project||!p.IsAddedToProject||p.PlayerGuid==Guid.Empty||!p.PlayerData.IsReadyForPlaying||p.ComponentHealth.Health<=0)return false;
+            if(p==null||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)||p.Project!=terrain.Project||!p.IsAddedToProject||p.PlayerGuid==Guid.Empty||!p.PlayerData.IsReadyForPlaying||p.ComponentHealth.Health<=0)return false;
             if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)
             {
                 if(CommonLib.Net==null)return false;
                 Client connection=p.PlayerData.Client;
                 if(connection==null||connection.State<ClientState.ProjectLoaded||connection.PlayerData?.ComponentPlayer!=p)return false;
             }
-            return !held||(p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true);
+            return !held||(p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0&&(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))&&p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true);
         }
         private Peer Get(ComponentPlayer p)
         {

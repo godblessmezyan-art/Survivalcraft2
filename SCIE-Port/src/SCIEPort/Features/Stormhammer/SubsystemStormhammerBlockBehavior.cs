@@ -31,6 +31,7 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public override bool OnAim(Ray3 aim, ComponentMiner miner, AimState state)
         {
+            if (!SCIEPort.Features.Codex.SubsystemArtifactCodex.MayHold(miner.ComponentPlayer)) { m_chargeStart.Remove(miner); m_lastChargePulse.Remove(miner); return true; }
             if (state == AimState.Cancelled)
             {
                 m_chargeStart.Remove(miner);

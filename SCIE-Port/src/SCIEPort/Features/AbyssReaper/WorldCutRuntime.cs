@@ -128,7 +128,7 @@ namespace SCIEPort.Features.AbyssReaper
         private bool OwnerSafe(ComponentPlayer p)=>OwnerFailure(p)==WorldCutFailure.None;
         private WorldCutFailure OwnerFailure(ComponentPlayer p)
         {
-            if(p==null||p.Project!=project||!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||!p.PlayerData.IsReadyForPlaying||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index)return WorldCutFailure.Unavailable;
+            if(p==null||p.Project!=project||!p.Entity.IsAddedToProject||p.ComponentHealth.Health<=0||!p.PlayerData.IsReadyForPlaying||(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index)))return WorldCutFailure.Unavailable;
             var abyss=project.FindSubsystem<SubsystemAbyssReaper>(false);
             if(abyss?.Death?.Empowered(p)==true)return WorldCutFailure.Empowered;
             if(project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)==true||abyss?.Space?.Busy(p)==true||abyss?.Death?.Busy(p)==true||abyss?.PortalTransferLocked(p)==true||abyss?.Horizon?.Busy(p)==true)return WorldCutFailure.Busy;

@@ -47,6 +47,7 @@ namespace SCIEPort.Features.DevouringEye
         {
             if (Terrain.ExtractContents(miner.ActiveBlockValue) != DevouringEyeBlock.Index) return false;
             ComponentPlayer player = miner.ComponentPlayer;
+            if (!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,DevouringEyeBlock.Index)) return true;
             if (player?.GameWidget == null || m_dialogs.ContainsKey(player)) return true;
             try
             {
@@ -86,6 +87,7 @@ namespace SCIEPort.Features.DevouringEye
         internal void Authority(ComponentPlayer player)
         {
             if (!player.Entity.IsAddedToProject || player.ComponentHealth.Health <= 0f) throw new InvalidOperationException("玩家已死亡或离开，取消回收。");
+            if (!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,DevouringEyeBlock.Index)) throw new InvalidOperationException("尚未解放真名。");
             if (CommonLib.WorkType == WorkType.Client) throw new InvalidOperationException("普通客户端仅可识别；请由房主本地执行回收。");
             if (!RecoveryRules.AllowExecutor(CommonLib.WorkType==WorkType.Client,player.PlayerData.IsMainPlayer,CommonLib.WorkType==WorkType.Server,player.PlayerData.ServerManager||player.PlayerData.ServerMaster))
                 throw new InvalidOperationException("V1 仅允许单机主玩家或服务器本地管理员执行。");

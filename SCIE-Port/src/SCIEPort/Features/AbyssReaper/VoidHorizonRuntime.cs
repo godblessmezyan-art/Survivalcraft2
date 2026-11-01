@@ -74,7 +74,7 @@ namespace SCIEPort.Features.AbyssReaper
             => p!=null && p.Project==terrain.Project && p.IsAddedToProject && p.PlayerGuid!=Guid.Empty
                 && p.PlayerData.IsReadyForPlaying && p.ComponentHealth.Health>0 && p.ComponentSleep.SleepFactor<=0
                 && p.ComponentRider.Mount==null && p.ComponentBody.ParentBody==null && p.ComponentBody.ChildBodies.Count==0
-                && Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index;
+                && (Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index));
         private bool OwnerValid(Cast cast)
             => Actor(cast.Owner) && cast.Owner.PlayerGuid==cast.OwnerGuid
                 && (cast.Connection==null || (cast.Connection.PlayerData?.ComponentPlayer==cast.Owner && cast.Connection.State>=ClientState.ProjectLoaded));

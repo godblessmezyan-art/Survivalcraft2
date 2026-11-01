@@ -39,6 +39,9 @@ public static class AbyssHostNativeProbe
         var data=Bare<PlayerData>();data.m_stateMachine=new StateMachine();data.m_stateMachine.m_currentState=new StateMachine.State{Name="Playing"};
         Put(data,"m_isMainPlayer",true);data.ComponentPlayer=player;player.PlayerData=data;
         Put(e,"m_components",new List<Component>{player,player.ComponentHealth,player.ComponentBody,player.ComponentMiner});
+        var mod=Array.Find(AppDomain.CurrentDomain.GetAssemblies(),a=>a.GetName().Name=="SCIEPort");
+        var codexType=mod==null?null:mod.GetType("SCIEPort.Features.Codex.SubsystemArtifactCodex");
+        if(codexType!=null){var codex=p.FindSubsystem(codexType,null,false);if(codex==null){codex=(Subsystem)Activator.CreateInstance(codexType);Put(codex,"m_project",p);p.m_subsystems.Add(codex);}((Dictionary<Guid,uint>)codexType.GetField("Records",Flags).GetValue(codex))[player.PlayerGuid]=255;}
         return player;
     }
     sealed class AttackRecorder:ModLoader

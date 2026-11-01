@@ -70,6 +70,10 @@ public static class VoidHorizonNativeProbe
         var data=Bare<PlayerData>();data.m_stateMachine=new StateMachine();data.m_stateMachine.m_currentState=new StateMachine.State{Name="Playing"};
         Put(data,"m_isMainPlayer",true);data.ComponentPlayer=player;player.PlayerData=data;
         ((List<Component>)Get(entity,"m_components")).AddRange(new Component[]{player,player.ComponentHealth,player.ComponentBody,player.ComponentMiner});
+        // Existing combat scenarios explicitly use already-unsealed artifacts.
+        var loadedMod=Array.Find(AppDomain.CurrentDomain.GetAssemblies(),a=>a.GetName().Name=="SCIEPort");
+        var codexType=loadedMod==null?null:loadedMod.GetType("SCIEPort.Features.Codex.SubsystemArtifactCodex");
+        if(codexType!=null){var codex=project.FindSubsystem(codexType,null,false);if(codex==null){codex=(Subsystem)Activator.CreateInstance(codexType);Put(codex,"m_project",project);project.m_subsystems.Add(codex);}((Dictionary<Guid,uint>)codexType.GetField("Records",BindingFlags.Instance|BindingFlags.Public|BindingFlags.NonPublic).GetValue(codex))[player.PlayerGuid]=255;}
         return player;
     }
     private static void Fixture(Assembly mod,Type packetType)

@@ -258,7 +258,7 @@ namespace SCIEPort.Features.Stormhammer
         {
             if (CommonLib.WorkType == WorkType.Client || !isMeleeAttack || target == null || attacker == null) return;
             ComponentPlayer player = attacker.Entity.FindComponent<ComponentPlayer>(false);
-            if (player == null || !player.IsAddedToProject) return;
+            if (player == null || !player.IsAddedToProject || !SCIEPort.Features.Codex.SubsystemArtifactCodex.MayHold(player)) return;
             int contents = Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue);
             float power;
             string cause;
@@ -971,13 +971,13 @@ namespace SCIEPort.Features.Stormhammer
             foreach (long key in remove) m_meleeDedup.Remove(key);
         }
 
-        internal static bool IsEquipped(ComponentPlayer player) => player != null && player.IsAddedToProject && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == StormhammerAwakenedBlock.Index;
+        internal static bool IsEquipped(ComponentPlayer player) => player != null && player.IsAddedToProject && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == StormhammerAwakenedBlock.Index && SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,StormhammerAwakenedBlock.Index);
         /// <summary>Both hammer forms carry the artifact default +20% ground movement.</summary>
         internal static bool HoldsHammer(ComponentPlayer player)
         {
             if (player == null || !player.IsAddedToProject || player.ComponentHealth.Health <= 0f) return false;
             int contents = Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue);
-            return contents == StormhammerAwakenedBlock.Index || contents == StormhammerBlock.Index;
+            return (contents == StormhammerAwakenedBlock.Index || contents == StormhammerBlock.Index) && SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,contents);
         }
         private static bool IsValidSkill(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment || skill == StormhammerSkill.MyriadTribulation || skill == StormhammerSkill.Dominion;
         /// <summary>Authority cooldown for one skill, shortened while the Thunder God window is open.</summary>

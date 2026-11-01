@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-01",
+  "baseline": "e879928",
+  "branch": "main",
+  "version": "0.74.0",
+  "target": "SCNET Net_x25.01.17 / net472 / API1.42 / SC2.4.10.6",
+  "targetSha256": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  },
+  "bookId": 955,
+  "packageId": 254,
+  "restrictedItems": [
+    942,
+    943,
+    948,
+    949,
+    950,
+    951,
+    952,
+    953
+  ],
+  "unlock": "Per-player PlayerGuid, per-world, permanent, no consumption, no continued carrying requirement",
+  "checks": {
+    "codexNative": 426,
+    "targetGpu": 66,
+    "inventoryRules": 775,
+    "nativeInventory": 170,
+    "excaliburNative": 521,
+    "releaseAndPackage": "passed",
+    "rootEnvironment": "passed"
+  },
+  "package": {
+    "filename": "荒野探险家-0.74.0.netmod",
+    "bytes": 10382870,
+    "sha256": "1748F3D4380215BC7BE6FC4E262E44438C762E692884AE251F132D3C9868B9E4",
+    "dllSha256": "0BBE74D1CE99DF2D2C8D1B7BDE1C4F20633B870CED7D1CB719A48C7DD4CE66F9"
+  },
+  "existingAssets": {
+    "baselineVersion": "0.73.0",
+    "unchanged": 163,
+    "changed": [
+      "Assets/Blocks/DevouringEye.csv",
+      "Assets/Blocks/OmniscientEye.csv"
+    ],
+    "added": [
+      "Assets/Blocks/ArtifactCodex.csv",
+      "Assets/Database/ArtifactCodex.xdb"
+    ]
+  },
+  "evidence": "Exact-target isolated components, real native progress XML roundtrip and packet serialization/Server grant/Client receive. Actual book Block.DrawBlock in synthetic target Engine world. No in-game dialog, world, real networking or phone test.",
+  "android7723": "待验证",
+  "liveSingleplayer": "待验证",
+  "liveHost": "待验证",
+  "liveClient": "待验证",
+  "dialogTouchAndResolution": "待验证",
+  "previewSha256": {
+    "book.png": "BAD946346605B0D6C23860EF39FEB777950248F15C6948D2D1A51EFA2C12756E",
+    "book-rotated.png": "2B3800AADF4A8F49395A83410067CCAF26D390E5CBE3E6A2F4D5669F41FABA75"
+  }
+}

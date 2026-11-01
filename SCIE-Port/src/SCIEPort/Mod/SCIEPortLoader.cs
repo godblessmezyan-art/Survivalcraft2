@@ -4,6 +4,7 @@ using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
 using SCIEPort.Features.Excalibur;
+using SCIEPort.Features.Codex;
 using SCIEPort.Features.Suspension;
 using SCIEPort.Features.Inventory;
 using Engine;
@@ -45,12 +46,14 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new VoidSpacePackage());
                 PackageManager.RegisterPackage(new DeathAuthorityPackage());
                 PackageManager.RegisterPackage(new ExcaliburPackage());
+                PackageManager.RegisterPackage(new CodexPackage());
                 s_networkPackageRegistered = true;
             }
 
             ModsManager.RegisterHook("BlocksInitalized", this);
             ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
+            ModsManager.RegisterHook("OnMinerDig", this);
             ModsManager.RegisterHook("AttackBody", this);
             ModsManager.RegisterHook("AttackPowerParameter", this);
             ModsManager.RegisterHook("OnCreatureInjure", this);
@@ -78,6 +81,7 @@ namespace SCIEPort.Mod
         {
             hitted = false;
             ComponentPlayer player = miner?.ComponentPlayer;
+            if(player!=null&&!SubsystemArtifactCodex.MayHold(player)){attackPower=0;playerProbability=0;creatureProbability=0;hitted=true;return;}
             SubsystemFourSaints fourSaints = player?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (fourSaints != null && fourSaints.IsActionLocked(player))
             {
@@ -95,12 +99,17 @@ namespace SCIEPort.Mod
             }
             float frequency = fourSaints != null ? fourSaints.AttackFrequency(player) : (contents == StormhammerAwakenedBlock.Index ? StormhammerEquipmentRules.AttackSpeedFactor : 1f);
             // Artifact default attack speed: the plain hammer and the trident each add their own 10%.
-            if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
+            if (contents == ArtifactCodexBlock.Index || contents == OmniscientEyeBlock.Index || contents == DevouringEyeBlock.Index) frequency *= 1.1f;
+            else if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
             else if (contents == PoseidonBlock.Index) frequency *= PoseidonRules.AttackSpeedFactor;
             else if (contents == AbyssReaperBlock.Index) frequency *= 1.1f;
             else if (contents == ExcaliburBlock.Index) frequency *= player?.Project.FindSubsystem<SubsystemExcalibur>(false)?.Frequency(player)??1.1f;
             if (frequency > 1f) miner.m_lastHitTime -= .66 * (1.0 - 1.0 / frequency);
         }
+
+        /// <inheritdoc />
+        public override void OnMinerDig(ComponentMiner miner,TerrainRaycastResult hit,ref float progress,out bool digged)
+        {digged=false;if(miner?.ComponentPlayer!=null&&!SubsystemArtifactCodex.MayHold(miner.ComponentPlayer))progress=-1;}
 
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
@@ -109,6 +118,7 @@ namespace SCIEPort.Mod
             if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             if (AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             ComponentPlayer attackingPlayer = attacker?.Entity.FindComponent<ComponentPlayer>(false);
+            if(attackingPlayer!=null&&!SubsystemArtifactCodex.MayHold(attackingPlayer)){attackPower=0;return true;}
             if(isMeleeAttack&&SubsystemExcalibur.Equipped(attackingPlayer)&&attackingPlayer.Project.FindSubsystem<SubsystemExcalibur>(false)?.Busy(attackingPlayer)==true){attackPower=0;return false;}
             SubsystemFourSaints fourSaints = attackingPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (fourSaints != null && fourSaints.IsActionLocked(attackingPlayer)) { attackPower = 0f; return false; }

@@ -59,7 +59,7 @@ namespace SCIEPort.Features.Poseidon
             m_terrain=Project.FindSubsystem<SubsystemTerrain>(true);m_bodies=Project.FindSubsystem<SubsystemBodies>(true);m_info=Project.FindSubsystem<SubsystemGameInfo>(true);
             m_scene=new PoseidonScene(this);m_hud=new PoseidonHud(this);
         }
-        internal static bool Equipped(ComponentPlayer p)=>p!=null&&p.IsAddedToProject&&p.ComponentHealth.Health>0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==PoseidonBlock.Index;
+        internal static bool Equipped(ComponentPlayer p)=>p!=null&&p.IsAddedToProject&&p.ComponentHealth.Health>0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==PoseidonBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,PoseidonBlock.Index);
         private static bool Actor(ComponentPlayer p)=>Equipped(p)&&p.PlayerData.IsReadyForPlaying&&p.ComponentSleep.SleepFactor<=0&&p.ComponentBody.ParentBody==null&&p.ComponentRider.Mount==null&&!p.ComponentLocomotion.IsCreativeFlyEnabled;
         internal State Get(ComponentPlayer p)
         {

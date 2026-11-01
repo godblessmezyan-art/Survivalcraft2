@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;DefaultIconViewOffset;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;IsCollidable;IsPlaceable;IsGatherable;IsAimable;MaxStacking;DefaultMeleePower;DefaultMeleeHitProbability;Durability;DefaultDescription
+ArtifactCodexBlock;神器图谱;SCIEPort.Artifacts;SCIEPortArtifactCodex;955;0;1.7;1,1,-1;0.8;0.18,-0.3,-0.65;18,-10,-12;0.75;FALSE;FALSE;TRUE;FALSE;1;1;1;-1;记录神器真名的古老图谱。使用打开图谱，选择神器并点击解放真名后才可使用其攻击、技能与持有能力。每位玩家独立解放，随当前世界保存；无需持续携带。图谱持有移速+20%、近战攻速+10%。

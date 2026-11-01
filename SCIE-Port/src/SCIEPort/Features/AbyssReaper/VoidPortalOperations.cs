@@ -12,7 +12,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal VoidPortalOperations(SubsystemAbyssReaper runtime,SubsystemTerrain terrain) { this.runtime=runtime;this.terrain=terrain; }
         private bool Actor(ComponentPlayer player)
         {
-            return CommonLib.WorkType!=WorkType.Client && player!=null && player.IsAddedToProject && player.Project==runtime.Project
+            return CommonLib.WorkType!=WorkType.Client && player!=null && SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,952) && player.IsAddedToProject && player.Project==runtime.Project
                 && player.PlayerGuid!=Guid.Empty && player.ComponentHealth.Health>0 && player.PlayerData.IsReadyForPlaying
                 && player.ComponentSleep.SleepFactor<=0 && player.ComponentRider.Mount==null
                 && runtime.Portals!=null;

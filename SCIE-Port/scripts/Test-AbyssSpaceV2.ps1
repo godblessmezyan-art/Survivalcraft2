@@ -1,8 +1,24 @@
-param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
+﻿param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot
 $protected=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'tests/SCIEPort.Abyss.Tests/space-v2-protected.json') | ConvertFrom-Json
-foreach($file in $protected.files.PSObject.Properties){if((Get-FileHash -LiteralPath (Join-Path $root $file.Name)).Hash -ne $file.Value){throw ('V2 changed protected horizon/portal implementation: '+$file.Name)}}
+foreach($file in $protected.files.PSObject.Properties){
+ $path=Join-Path $root $file.Name
+ if((Get-FileHash -LiteralPath $path).Hash -eq $file.Value){continue}
+ # The user explicitly requires the Codex gate on all artifacts. Strip only these
+ # literal permission predicates; the original frozen implementation hash must still match.
+ $text=[IO.File]::ReadAllText($path)
+ $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index')
+ $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index')
+ $text=$text.Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)&&','').Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,952) && ','')
+ $text=$text.Replace("`r`n","`n");$matched=$false
+ foreach($candidate in @($text,$text.Replace("`n","`r`n"))){foreach($bom in @($false,$true)){
+  $encoding=[Text.UTF8Encoding]::new($bom);$bytes=$encoding.GetPreamble()+$encoding.GetBytes($candidate);$sha=[Security.Cryptography.SHA256]::Create()
+  try{$hash=[BitConverter]::ToString($sha.ComputeHash([byte[]]$bytes)).Replace('-','')}finally{$sha.Dispose()}
+  if($hash -eq $file.Value){$matched=$true}
+ }}
+ if(!$matched){throw ('V2 changed protected implementation beyond Codex permissions: '+$file.Name)}
+}
 $sources=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'design/abyss-space-v2/sources.json') | ConvertFrom-Json
 foreach($entry in $sources.assets){foreach($key in @('original','runtime')){if((Get-FileHash -LiteralPath (Join-Path $root $entry.$key)).Hash -ne $entry.($key+'_sha256')){throw 'V2 generated art hash mismatch'}}}
 foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
@@ -12,7 +28,7 @@ if($Package){
  $archive=[IO.Compression.ZipFile]::OpenRead($Package)
  try{foreach($entry in $sources.assets){$name=$entry.runtime.Substring('src/SCIEPort/'.Length);$file=$archive.GetEntry($name);if(!$file){throw 'V2 icon missing from package'};$stream=$file.Open();$sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','')}finally{$stream.Dispose();$sha.Dispose()};if($hash -ne $entry.runtime_sha256){throw 'V2 packaged art hash mismatch'}}}finally{$archive.Dispose()}
 }
-Write-Host 'Space V2: protected 4.2s horizon/portal sources unchanged; three native PNG imagegen assets and provenance hashes verified.'
+Write-Host 'Space V2: protected horizon/portal algorithms unchanged except explicit Codex gates; three native PNG imagegen assets and provenance hashes verified.'
 if(!$AssemblyPath){return}
 $mod=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes($AssemblyPath))
 $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider

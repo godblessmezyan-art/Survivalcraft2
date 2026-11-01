@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original Artifact Codex book (2026-11-01)
+
+`ArtifactCodexBlock` authors its own leather covers, layered ivory pages, gilt corners, clasp, bookmark and raised cover sigils directly as native mesh geometry with one white texture pixel. The book model and parchment-style dialog are original project code, with no imported book art, game UI asset, external model or new skill icon. Existing item previews reuse the installed Mod's own models and descriptions. Synthetic QA previews are not game/Android footage and are not packaged.
+
 ## Original suspended-item storage block (2026-11-01)
 
 The small crystal/ring marker for `SuspendedItemBlock` is project-authored code geometry and a single white pixel; no third-party model or icon was created or copied. Filled displays draw the existing item's own model/materials, with no derivative copies or changes to artifact assets. The feature references the installed SCNET chest/inventory/widget/database ABI; it does not redistribute native UI, game textures, database files, assemblies or extracted source. Synthetic GPU evidence under `docs/assets/suspension/` is QA documentation, not game or Android footage, and is not packaged. Native cube/flat-item QA uses an original test palette.

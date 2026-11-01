@@ -42,7 +42,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal void Enqueue(ComponentPlayer player,Client client,VoidPortalPackage packet)
         {lock(queue)if(!disposed&&queue.Count<256)queue.Enqueue(new Pending{Player=player,Client=client,Token=client?.TokenId??packet.From?.TokenId??Guid.Empty,Packet=packet.Copy()});}
         internal bool Actor(ComponentPlayer p)
-            => p!=null&&p.Project==owner.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying
+            => p!=null&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)&&p.Project==owner.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying
                 &&p.ComponentHealth.Health>0&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null
                 &&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0
                 &&p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.IsActionLocked(p)!=true;
@@ -50,7 +50,7 @@ namespace SCIEPort.Features.AbyssReaper
         private bool Access(ComponentPlayer p)
         {
             if(!Actor(p)||owner.Portals==null)return false;
-            if(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index)return true;
+            if((Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index)))return true;
             foreach(var gate in owner.Portals.Records)if(Near(p,gate.Id))return true;
             return false;
         }
@@ -144,7 +144,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(source==Guid.Empty)
                 {
                     if(owner.Portals.Count>=owner.Portals.Limit){Message(p,"星门数量已满，请使用已有星门或删除一座后再开门");return;}
-                    if(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index){Message(p,"随处开门需要持有终焉之镰");return;}
+                    if((Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))){Message(p,"随处开门需要持有终焉之镰");return;}
                     if(!CreateEntrance(p,out source)){Message(p,"附近没有可建立永久星门的空地，请换个位置");return;}
                     Changed();
                 }

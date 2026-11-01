@@ -53,7 +53,7 @@ namespace SCIEPort.Features.Excalibur
             terrain=Project.FindSubsystem<SubsystemTerrain>(true);bodies=Project.FindSubsystem<SubsystemBodies>(true);info=Project.FindSubsystem<SubsystemGameInfo>(true);
             hud=new ExcaliburHud(this);scene=new ExcaliburScene(this);
         }
-        internal static bool Equipped(ComponentPlayer p)=>p!=null&&p.IsAddedToProject&&p.ComponentHealth.Health>0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==ExcaliburBlock.Index;
+        internal static bool Equipped(ComponentPlayer p)=>p!=null&&p.IsAddedToProject&&p.ComponentHealth.Health>0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==ExcaliburBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,ExcaliburBlock.Index);
         private bool Actor(ComponentPlayer p)=>Equipped(p)&&p.PlayerData.IsReadyForPlaying&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null
             &&p.ComponentGui?.ModalPanelWidget==null
             &&Project.FindSubsystem<SubsystemFourSaints>(false)?.IsActionLocked(p)!=true;

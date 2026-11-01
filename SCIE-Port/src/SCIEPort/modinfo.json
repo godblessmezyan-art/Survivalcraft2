@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.73.0",
+  "Version": "0.74.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.73.0 合并雷神之锤、昆古尼尔第三技能与平衡调整，保留圣剑、阿瓦隆与悬浮陈列器。Android与真实联机待验证，各端须同版。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.74.0 新增神器图谱：书籍3D模型、神器资料与解放真名。每位玩家在当前世界分别解锁，未解锁禁止攻击、技能和持有加成；主机验证并保存进度。Android与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

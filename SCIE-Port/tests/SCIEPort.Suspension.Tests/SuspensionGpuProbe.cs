@@ -99,7 +99,7 @@ public static class SuspensionGpuProbe
         }
         Prepare("Excalibur.ExcaliburBlock", 953); Prepare("Gungnir.GungnirBlock", 948); Prepare("Poseidon.PoseidonBlock", 951);
         Prepare("Stormhammer.StormhammerAwakenedBlock", 942); Prepare("OmniscientEye.OmniscientEyeBlock", 949);
-        Prepare("DevouringEye.DevouringEyeBlock", 950); Prepare("AbyssReaper.AbyssReaperBlock", 952); Prepare("Suspension.SuspendedItemBlock", 954);
+        Prepare("DevouringEye.DevouringEyeBlock", 950); Prepare("AbyssReaper.AbyssReaperBlock", 952); Prepare("Suspension.SuspendedItemBlock", 954); Prepare("Codex.ArtifactCodexBlock", 955);
         terrain = new Terrain(); for (int x = -16; x <= 16; x += 16) for (int z = -16; z <= 16; z += 16) terrain.AllocateChunk(x, z).State = TerrainChunkState.Valid;
         var st = (SubsystemTerrain)FormatterServices.GetUninitializedObject(typeof(SubsystemTerrain)); Put(st, "<Terrain>k__BackingField", terrain);
         terrain.SetCellValueFast(0, 1, 0, Terrain.MakeBlockValue(954, 15, 0));
@@ -108,7 +108,7 @@ public static class SuspensionGpuProbe
         var env = (DrawBlockEnvironmentData)runtime.GetType().GetField("environment", F).GetValue(runtime); env.SubsystemTerrain = null;
         target = new RenderTarget2D(960, 540, 1, ColorFormat.Rgba8888, DepthFormat.Depth24Stencil8);
         var blank = Frame(new int[0], 0, "empty-room");
-        foreach (int id in new[] { 3, flatId, 942, 948, 949, 950, 951, 952, 953, 954 })
+        foreach (int id in new[] { 3, flatId, 942, 948, 949, 950, 951, 952, 953, 954, 955 })
         {
             var a = Frame(new[] { id }, 0, "item-" + id); var b = Frame(new[] { id }, 7.5f, "item-" + id + "-rotated");
             Check(Diff(a, blank) > (id == 954 ? 50 : 200), "real item model visibly present " + id);
