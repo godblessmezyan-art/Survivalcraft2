@@ -27,6 +27,7 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly DynamicArray<ComponentBody> candidates=new DynamicArray<ComponentBody>();
         private readonly HashSet<Entity> swingHits=new HashSet<Entity>();
         private readonly DeathAuthorityScene scene=new DeathAuthorityScene();
+        private readonly System.Random summonRandom=new System.Random();
         private readonly Dictionary<DrawBlockEnvironmentData,ComponentPlayer> drawOwners=new Dictionary<DrawBlockEnvironmentData,ComponentPlayer>();
         private uint revision;private bool disposed;private double nextDrawBind;private Guid serverToken;
         private bool hasClock;private double clockOffset,lastServerTime;private readonly List<DeathAuthorityPackage> deferredWaves=new List<DeathAuthorityPackage>();
@@ -112,7 +113,8 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Summon:
                     if(!s.Death){StatePacket(p,"请先切换死亡权柄");return;}
                     if(Now<s.SummonReady){StatePacket(p,"召唤冷却中，还需"+Math.Ceiling(s.SummonReady-Now).ToString("0")+"秒");return;}
-                    string reason;if(Summon(p,q.Target,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
+                    // Target is a contract key for other commands, never a summon selection.
+                    string reason;bool consumeCooldown;Summon(p,out reason,out consumeCooldown);if(consumeCooldown)s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
                 case DeathAuthorityRules.Dismiss:StatePacket(p,Dismiss(p,q.Target));break;
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
                 case DeathAuthorityRules.Stow:StatePacket(p,StowArmy(p));break;

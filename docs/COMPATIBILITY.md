@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.75.0：阿比斯随机召唤
+
+基于main a4909d3。既有252请求包布局/ID、加载器入口、Hook签名、所有物品ID/模板GUID、存档版本与内部SCIEPort身份保持。只有Summon操作的Target从原类型选择改为忽略，种类由主机/本地权威在通过身份/世界/序号/冷却及容量/基本落点校验后单次抽取；其它操作的Target仍为契约键。各方统一0.75.0，旧版混装不支持。骨龙/三头犬各限一只，抽中已有唯一契约不补抽且消耗30秒冷却，旧契约与次位面记录保持。
+
+继续使用固定Windows x25.01.17/net472/API1.42/SC2.4.10.6；概率映射、原生隔离权限/冷却回归与Release/包证据见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。这些检查不代表Android7723或实际单机/主机/普通客户端同步；手机触屏、多分辨率和实际游戏仍待验证。
+
 ## 2026-11-01 SCIE-Port 0.74.0：神器图谱与真名权限
 
 基于main e879928，新增非放置955/DATA0、254协议和SCIEPortArtifactCodex世界子系统。固定Windows x25.01.17/net472/API1.42/SC2.4.10.6保持；新CSV/XDB按原布局打包，既有240–253字段、物品ID和模板GUID不改。新增Hook为实际目标已核验的`OnMinerDig(ComponentMiner,TerrainRaycastResult,ref float,out bool)`，用于阻止封印武器达到挖掘门限；复用OnMinerHit/AttackBody与原生更新、绘制和UI。955和254须各方统一0.74.0，旧版混装不支持。

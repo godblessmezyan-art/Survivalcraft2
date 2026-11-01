@@ -75,19 +75,20 @@ namespace SCIEPort.Features.AbyssReaper
             clientFriends[q.Target]=ReadFriend(q);
         }
         private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,Dragon=(q.Flags&128)!=0,DragonFlight=(q.Flags&128)!=0&&q.C>.5f,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
-        private bool Summon(ComponentPlayer p,ushort kind,out string reason)
+        private bool Summon(ComponentPlayer p,out string reason,out bool consumeCooldown)
         {
+            consumeCooldown=false;reason="召唤由房主处理";if(!Authority)return false;
             reason="召唤名额已满（每人七只、世界24只，含次位面）";if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)return false;
-            if(kind>BoneDragonRules.SummonKind){reason="未知的召唤类型";return false;}
-            if(kind==CerberusRules.SummonKind&&HasCerberus(p.PlayerGuid)){reason="已契约刻尔柏洛斯（含次位面/待加载），每人仅一头";return false;}
-            if(kind==BoneDragonRules.SummonKind&&HasDragon(p.PlayerGuid)){reason="已契约骨龙（含次位面/待加载），每人仅一条";return false;}
             Vector3 at;if(!FindFree(p.ComponentBody.Position,new Vector3(.9f,1.2f,.9f),out at)){reason="附近没有已加载的安全召唤位置";return false;}
+            ushort kind=DeathAuthorityRules.DrawSummonKind(summonRandom.Next(DeathAuthorityRules.SummonRollCount));
+            if(kind==CerberusRules.SummonKind&&HasCerberus(p.PlayerGuid)){consumeCooldown=true;reason="抽中地狱三头犬，但已拥有唯一契约（含次位面/待加载）；不补抽，冷却30秒";return false;}
+            if(kind==BoneDragonRules.SummonKind&&HasDragon(p.PlayerGuid)){consumeCooldown=true;reason="抽中骨龙，但已拥有唯一契约（含次位面/待加载）；不补抽，冷却30秒";return false;}
             Entity entity=null;
             try
             {
                 entity=DatabaseManager.CreateEntity(terrain.Project,kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason=kind==BoneDragonRules.SummonKind?"骨龙已响应 · 生命170 · 近战27伤害/1秒 · 可骑乘飞行 · 每人唯一":kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命300 · 三首噬魂43伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命30 · 伤害12 · 移速10":"冥界猎犬已响应 · 生命25 · 伤害12 · 移速5";return true;
+                consumeCooldown=true;reason=kind==BoneDragonRules.SummonKind?"骨龙已响应 · 生命170 · 近战27伤害/1秒 · 可骑乘飞行 · 每人唯一":kind==CerberusRules.SummonKind?"刻尔柏洛斯已响应 · 生命300 · 三首噬魂43伤害/1秒":kind==1?"夜魇战马已响应召唤 · 生命30 · 伤害12 · 移速10":"冥界猎犬已响应 · 生命25 · 伤害12 · 移速5";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }

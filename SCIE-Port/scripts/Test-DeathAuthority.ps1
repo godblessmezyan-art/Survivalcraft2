@@ -1,5 +1,10 @@
-param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
+﻿param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot
+$dialog=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Features/AbyssReaper/DeathArmyDialog.cs')
+$runtime=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Features/AbyssReaper/DeathAuthorityRuntime.cs')
+if($dialog -match 'summonKind|kind\.IsClicked|召唤类型' -or $runtime -match 'Summon\(p,q\.Target') { throw 'Summon must not expose or accept a chosen creature kind.' }
+if(!$dialog.Contains('Text=DeathAuthorityRules.SummonOdds') -or !$dialog.Contains('随机召唤') -or !$dialog.Contains('runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ);')) { throw 'Random summon odds/request UI contract missing.' }
+Write-Host 'Death authority: random summon odds label, touch button and selection removal verified (source guard; device pending).'
 $sources=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'design/abyss-death/sources.json')|ConvertFrom-Json
 foreach($a in $sources.assets){foreach($key in @('original','runtime')){if((Get-FileHash -LiteralPath (Join-Path $root $a.$key)).Hash -ne $a.($key+'_sha256')){throw 'Death imagegen provenance mismatch'}}}
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}

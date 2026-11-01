@@ -11,6 +11,18 @@ namespace SCIEPort.Features.AbyssReaper
         internal const float PursuitRange=64,FollowStart=9,FollowStop=5.5f,CerberusJumpSpeed=10,CerberusJumpHeight=4;
         internal const double PursuitLease=20,RiderPriority=.85;
         internal const string HoundTemplate="Wolf_Gray",MountTemplate="Horse_Black_Saddled";
+        internal const int HoundChance=50,HorseChance=25,BoneDragonChance=15,CerberusChance=10;
+        internal const int SummonRollCount=HoundChance+HorseChance+BoneDragonChance+CerberusChance;
+        internal static string SummonOdds=>"随机召唤：猎犬"+HoundChance+"% · 战马"+HorseChance+"%\n骨龙"+BoneDragonChance+"% · 地狱三头犬"+CerberusChance+"%（各一只，重复不补抽）";
+        // One uniformly distributed server roll; never reroll an existing unique contract.
+        internal static ushort DrawSummonKind(int roll)
+        {
+            if(roll<0||roll>=SummonRollCount)throw new ArgumentOutOfRangeException(nameof(roll));
+            if(roll<HoundChance)return 0;
+            if(roll<HoundChance+HorseChance)return 1;
+            if(roll<HoundChance+HorseChance+BoneDragonChance)return BoneDragonRules.SummonKind;
+            return CerberusRules.SummonKind;
+        }
         internal static bool Finite(double v)=>!double.IsNaN(v)&&!double.IsInfinity(v);
         internal static float LastLife(float resilience)=>1f/Math.Max(1,WorldCutRules.Finite(resilience)?resilience:100);
         internal static bool Owned(Guid owner,Guid actor)=>owner!=Guid.Empty&&owner==actor;

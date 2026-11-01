@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-01",
+  "version": "0.75.0",
+  "baseline": "a4909d3",
+  "package": "荒野探险家-0.75.0.netmod",
+  "bytes": 10383199,
+  "sha256": "F8AD5EBB4C6CFCD533CDCC256D7E3417C973F5ABD10FA49006AAA056E6B4223A",
+  "dll_sha256": "5D78910B479378AB17CDCD723551C0680C80FBC0F59A4F177C21BCE0BD4B6F0C",
+  "release_build_and_package_validation": "passed",
+  "death_authority_native_checks": 377,
+  "weights": {
+    "hound": 50,
+    "horse": 25,
+    "bone_dragon": 15,
+    "cerberus": 10
+  },
+  "comparison_to_0.74.0": {
+    "same_entry_names": true,
+    "unchanged_asset_entries": 167,
+    "changed_entries": [
+      "SCIEPort.dll",
+      "modinfo.json"
+    ]
+  },
+  "device_and_live_network": "待验证",
+  "ui_check": "source guard only; existing layout scaling reused; touch/multi-resolution pending",
+  "target_assemblies": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  }
+}

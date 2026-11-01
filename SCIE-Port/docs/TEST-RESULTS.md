@@ -1,5 +1,37 @@
 # 测试结果
 
+## 2026-11-01 main 0.75.0：阿比斯按概率随机召唤
+
+基于`a4909d3`，初始main工作区干净。取消军势选种按钮，改为显示概率与“随机召唤”；主机/本地权威按猎犬50%、战马25%、骨龙15%、地狱三头犬10%单次抽取，忽略Summon请求的Target/Flags选种信息。骨龙/三头犬保持各一只；抽中已拥有唯一契约不补抽、不替换，消耗原有30秒冷却。容量/基本落点拒绝发生在抽取前。旧契约、骑乘/飞行、次位面管理、其它神器与默认属性/主题保持，详见[规则](ABYSS-SUMMON-PROBABILITIES.md)。
+
+实际命令（SDK9.0.300与net472引用；Major仅用于已有测试运行时）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PYTHONUTF8='1'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 --output (Join-Path (Get-Location) 'SCIE-Port/artifacts/build') --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+```
+
+根依赖/ABI检查、专项、完整Release与包校验均退出码0。固定三程序集SHA匹配既有Windows x25.01.17；保持net472/API1.42/SC2.4.10.6，没有新增Hook/包ID/字段/物品/模板或存档迁移。编译日志`artifacts/abyss-summon-compile.log`，完整日志`artifacts/abyss-summon-release.log`（均为忽略的本机构建记录）。
+
+| 检查 | 实际结果与限制 |
+|---|---|
+| 军势原生专项 | **377项通过**，包含既有死亡战斗/契约/保存/认证检查及本次随机召唤。穷举0–99四种权重精确为50/25/15/10，非法抽签值拒绝；不是可能偶然通过的统计抽样。 |
+| 本地/Server隔离请求 | 实际目标组件验证死亡权柄/持有条件、主机忽略伪类型、每请求一次抽取；已有隐藏/待加载唯一契约不替换、不补抽并正确进入30秒CD；冷却中/重放/跨世界/旧连接不抽取；七只/世界24只及无安全地面预检不扣CD。 |
+| Client隔离权限 | 客户端只能排队请求；直接调用召唤不抽签、不生成、不扣CD。既有主机状态/快照与真实压缩包往返检查继续通过。不是实际局域网/公网会话。 |
+| UI与图标 | 源码守卫确认选种入口移除、只读概率绑定和无类型请求；复用原面板缩放与触屏按钮。四张死亡技能图标来源/目标Engine解码/alpha/包内SHA通过。没有进行本次面板GPU、Android触屏、多分辨率或不遮挡控件的实机验收。 |
+| 完整旧回归 | Build-NetMod全部既有套件/保护通过：圣剑806规则/521原生、图谱426原生、陈列器650原生、库存775规则/170原生，以及其它神器/军势/载具/品牌/数据库/禁带二进制与阿比斯冻结源码守卫。 |
+| 包内容 | 正式名和版本副本字节一致；与0.74.0包条目名完全一致，**167份Assets逐字节保持**，仅SCIEPort.dll与modinfo.json改变。DLL与Release输出字节一致，未加入专有程序集/PDB。 |
+| Android7723/真实单机/主机/普通客户端/触屏/多分辨率/晚加入 | **待验证**。没有运行游戏世界、手机或真实多人会话；原生隔离组件不能替代真实召唤/模型显示、操作和同步验收。 |
+
+包：`荒野探险家-0.75.0.netmod`，10,383,199字节，SHA-256 `F8AD5EBB4C6CFCD533CDCC256D7E3417C973F5ABD10FA49006AAA056E6B4223A`。精确程序集、DLL和包指纹见[机器记录](assets/abyss-summon/validation.json)。各端统一0.75.0，旧版选种语义混装不支持。本次只提交本地main，不推送。
+
+
 ## 2026-11-01 main 0.74.0：神器图谱与真名解放
 
 基于e879928，初始工作区干净。新增书籍神器955/DATA0、254协议和世界权限子系统，统一限制八种既有神器。每玩家/世界分别永久解锁，无消耗、无需持续携带；旧世界无进度默认封印，物品可存取/陈列。图谱自体默认持有+20%步速、+10%近战攻速、紫蓝/古金专属主题；补齐全知/吞噬之眼相同默认属性，锁定时无神器加成。详见[规则与使用](ARTIFACT-CODEX.md)。

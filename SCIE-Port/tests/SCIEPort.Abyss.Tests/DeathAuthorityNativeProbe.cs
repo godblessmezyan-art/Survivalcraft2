@@ -90,6 +90,88 @@ public static class DeathAuthorityNativeProbe
         }
     }
     static object Packet(Fixture f,byte action,uint sequence){var q=New("DeathAuthorityPackage");Put(q,"Action",action);Put(q,"Caster",f.Player.Entity.EntityId);Put(q,"Sequence",sequence);Put(q,"World",Get(f.Death,"worldId"));Put(q,"Direction",-Vector3.UnitZ);return q;}
+    sealed class SummonRandom:System.Random
+    {
+        internal int Calls;readonly int roll;
+        internal SummonRandom(int roll){this.roll=roll;}
+        public override int Next(int maxValue){Check(maxValue==100,"summon uses exactly one uniform 100-outcome draw");Calls++;return roll;}
+    }
+    static object StoredContract(Fixture f,ushort key,Guid owner,int kind,bool pending)
+    {
+        var row=New("DeathAuthorityRuntime+Friend");Put(row,"Id",key);Put(row,"Owner",owner);Put(row,"Name",kind==3?"骨龙":"地狱三头犬");
+        Put(row,"Template",kind==3?"SCIEPortBoneDragon_Saddled":"SCIEPortCerberus");Put(row,"Hidden",!pending);Put(row,"Pending",pending);Put(row,"RegenStamp",f.Clock.GameTime);
+        ((IDictionary)Get(f.Death,pending?"saved":"hidden")).Add(key,row);return row;
+    }
+    static void Summoning()
+    {
+        var rules=mod.GetType("SCIEPort.Features.AbyssReaper.DeathAuthorityRules",true);var draw=rules.GetMethod("DrawSummonKind",BindingFlags.Static|BindingFlags.NonPublic);
+        int[] counts=new int[4];for(int roll=0;roll<100;roll++)
+        {
+            int kind=(ushort)draw.Invoke(null,new object[]{roll});counts[kind]++;
+            Check(kind==(roll<50?0:roll<75?1:roll<90?3:2),"every roll boundary maps to the specified creature");
+        }
+        Check(counts.SequenceEqual(new[]{50,25,10,15}),"exact weights: hound50 horse25 cerberus10 dragon15; no statistical tolerance");
+        foreach(int roll in new[]{-1,100,int.MinValue,int.MaxValue})
+        {
+            bool rejected=false;try{draw.Invoke(null,new object[]{roll});}catch(TargetInvocationException e){rejected=e.InnerException is ArgumentOutOfRangeException;}
+            Check(rejected,"out-of-range rolls fail rather than biasing a creature");
+        }
+        foreach(var mode in new[]{WorkType.Local,WorkType.Server})foreach(bool pending in new[]{false,true})foreach(int kind in new[]{2,3})
+        {
+            CommonLib.WorkType=mode;
+            using(var f=new Fixture(mode==WorkType.Local))
+            {
+                var rng=new SummonRandom(kind==2?90:75);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var contract=StoredContract(f,400,f.Player.PlayerGuid,kind,pending);
+                var q=Packet(f,4,1);Put(q,"Target",ushort.MaxValue);Put(q,"Flags",byte.MaxValue);
+                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
+                Check(rng.Calls==1,"accepted local/ordinary-client request draws once on authority, ignoring forged selection fields");
+                Check(((string)Call(f.Death,"Feedback",f.Player)).Contains(kind==3?"抽中骨龙":"抽中地狱三头犬"),"outcome is the server roll even when Target requests another kind");
+                Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==1&&ReferenceEquals(((IDictionary)Get(f.Death,pending?"saved":"hidden"))[(ushort)400],contract),"duplicate unique draw preserves stored/pending contract and does not create a replacement");
+                Check(Math.Abs((double)Call(f.Death,"Remaining",f.Player,(byte)4)-30)<.001,"duplicate unique draw consumes the original thirty-second cooldown without rerolling");
+                var state=Call(f.Death,"Get",f.Player);Put(state,"NextManagementRequest",-1d);var blocked=Packet(f,4,2);
+                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,blocked);Call(f.Death,"Update");Check(rng.Calls==1,"cooldown rejects a new request before drawing");
+                f.Clock.m_gameTime+=30.01;Put(state,"NextManagementRequest",-1d);
+                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==1,"replayed request cannot draw after cooldown expires");
+                q=Packet(f,4,3);Put(q,"World",Guid.NewGuid());Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==1,"cross-world request cannot advance the random draw");
+                q=Packet(f,4,4);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==2,"one new accepted request after cooldown performs one new draw");
+            }
+        }
+        CommonLib.WorkType=WorkType.Local;
+        using(var f=new Fixture())
+        {
+            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);f.Request(4,Vector3.UnitZ);
+            Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"void authority cannot summon or consume a random draw");
+            Put(Call(f.Death,"Get",f.Player),"Death",true);f.Player.ComponentMiner.Inventory.RemoveSlotItems(0,1);
+            Check(!(bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)0)&&rng.Calls==0,"unequipped artifact cannot request a random summon");
+        }
+        foreach(bool worldFull in new[]{false,true})using(var f=new Fixture())
+        {
+            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);
+            for(ushort key=1;key<=(worldFull?24:7);key++)StoredContract(f,key,worldFull?Guid.NewGuid():f.Player.PlayerGuid,2,false);
+            f.Request(4,Vector3.UnitZ);Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"owner/world capacity rejects before rolling or spending cooldown");
+        }
+        using(var f=new Fixture())
+        {
+            var rng=new SummonRandom(75);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var cells=(Terrain)Get(f.Base,"Cells");
+            for(int x=-32;x<80;x++)for(int z=-32;z<80;z++)cells.SetCellValueFast(x,63,z,0);
+            f.Request(4,Vector3.UnitZ);Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"unsafe summon location rejects without rolling or consuming cooldown");
+        }
+        CommonLib.WorkType=WorkType.Server;
+        using(var f=new Fixture(false))
+        {
+            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var q=Packet(f,4,1);
+            Call(f.Death,"Enqueue",f.Player,f.Client,q);Put(f.Client,"<TokenId>k__BackingField",Guid.NewGuid());Call(f.Death,"Update");Check(rng.Calls==0,"queued obsolete connection cannot draw");
+        }
+        CommonLib.WorkType=WorkType.Client;
+        using(var f=new Fixture())
+        {
+            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);object[] args={f.Player,"",false};
+            Check(!(bool)Call(f.Death,"Summon",args)&&rng.Calls==0&&!(bool)args[2],"direct client summon cannot draw, create or consume cooldown");
+            CommonLib.Net.Server=f.Client;Put(f.Death,"serverToken",f.Client.TokenId);Put(f.Death,"worldKnown",true);
+            Check((bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)0)&&rng.Calls==0,"client only sends a request and never chooses a local result");
+            CommonLib.Net.Server=null;
+        }
+    }
     sealed class AttackRecorder:ModLoader
     {
         internal readonly List<ComponentBody> Targets=new List<ComponentBody>();
@@ -177,7 +259,7 @@ public static class DeathAuthorityNativeProbe
         try
         {
             CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();ModsManager.ModHooks=new Dictionary<string,ModsManager.ModHook>();SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
-            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();
+            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();Summoning();
         }
         finally{CommonLib.WorkType=work;CommonLib.Net=net;ModsManager.ModHooks=hooks;SubsystemBedrockBlockBehavior.Territories=territory;BlocksManager.Blocks[0]=air;BlocksManager.Blocks[3]=stone;}
         Console.WriteLine("Death authority native health/conversion/army/ownership/persistence/authentication checks: "+checks+" passed (isolated; not live network/Android).");
