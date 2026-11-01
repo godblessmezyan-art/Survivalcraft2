@@ -32,7 +32,7 @@ namespace SCIEPort.Features.Codex
         internal void ReadRecords(ValuesDictionary values)
         {
             if(values==null)return;
-            foreach(var pair in values){Guid guid;uint mask;if(Records.Count>=4096)break;if(Guid.TryParse(pair.Key,out guid)&&guid!=Guid.Empty&&uint.TryParse(Convert.ToString(pair.Value,System.Globalization.CultureInfo.InvariantCulture),out mask))Records[guid]=mask&255;}
+            foreach(var pair in values){Guid guid;uint mask;if(Records.Count>=4096)break;if(SCIEPort.Compatibility.LegacyGuid.TryParse(pair.Key,out guid)&&guid!=Guid.Empty&&uint.TryParse(Convert.ToString(pair.Value,System.Globalization.CultureInfo.InvariantCulture),out mask))Records[guid]=mask&255;}
         }
         /// <inheritdoc/>
         public override void Save(ValuesDictionary values)

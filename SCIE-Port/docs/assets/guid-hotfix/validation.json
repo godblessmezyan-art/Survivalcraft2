@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-01",
+  "version": "0.75.1",
+  "baseline": "67a09a6",
+  "reported_failure": {
+    "method": "System.Guid.TryParse(string,System.Guid&)",
+    "caller": "SCIEPort.Features.Codex.SubsystemArtifactCodex.Load",
+    "reported_mod_mvid": "867e656d-6479-49fa-bb44-ae2fb7ed7d60",
+    "matches_local_0.75.0_dll": true,
+    "android_apk_and_bcl_hashes": "not provided"
+  },
+  "package": "荒野探险家-0.75.1.netmod",
+  "bytes": 10383327,
+  "sha256": "8C4D4205910740FE66E02CD0399778BDBBB8598CCE67C9F3FB37E1D79104CAE4",
+  "dll_sha256": "53D3A555C1BAC7AD32E857B468B19A5AB926D3BA9DB2EFCACA3EE54A1701A7AB",
+  "checks": {
+    "root_environment": "passed",
+    "release_and_package": "passed",
+    "guid_parser_and_il": 27,
+    "compiled_methods_scanned": 2943,
+    "call_sites_scanned": 23112,
+    "direct_Guid_Parse_TryParse_calls": 0,
+    "shim_call_sites": 5,
+    "codex_native": 429,
+    "death_authority_native": 377
+  },
+  "comparison_to_0.75.0": {
+    "same_entry_names": true,
+    "unchanged_asset_entries": 167,
+    "changed_entries": [
+      "SCIEPort.dll",
+      "modinfo.json"
+    ]
+  },
+  "android_hotfix_retest": "待验证",
+  "live_world_and_network": "待验证",
+  "target_assemblies": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  }
+}

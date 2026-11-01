@@ -9,7 +9,7 @@ if(!$PackageOnly){
 $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider;$options=New-Object System.CodeDom.Compiler.CompilerParameters;$options.GenerateInMemory=$true
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $f))}
 foreach($f in @('System.dll','System.Core.dll','System.Xml.dll','System.Xml.Linq.dll')){[void]$options.ReferencedAssemblies.Add($f)}
-$sources=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/AbyssHostNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.DevouringEye.Tests/NativeApiProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/CodexNativeProbe.cs'))
+$sources=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/AbyssHostNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.DevouringEye.Tests/NativeApiProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/CodexNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/GuidCompatibilityProbe.cs'))
 $compiled=$compiler.CompileAssemblyFromFile($options,$sources);if($compiled.Errors.HasErrors){throw (($compiled.Errors|ForEach-Object ToString)-join "`n")}
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.Xml.Linq
@@ -18,6 +18,7 @@ $stream=[IO.MemoryStream]::new($bytes);$zip=[IO.Compression.ZipArchive]::new($st
 try{
  $reader=[IO.StreamReader]::new($zip.GetEntry('Assets/Database.xml').Open());try{$xml=[System.Xml.Linq.XElement]::Parse($reader.ReadToEnd())}finally{$reader.Dispose()}
  foreach($xdb in Get-ChildItem (Join-Path $root 'src/SCIEPort/Assets/Database') -Filter *.xdb){$source=$xdb.OpenRead();try{[ModsManager]::CombineDataBase($xml,$source)}finally{$source.Dispose()}}
+ $compiled.CompiledAssembly.GetType('GuidCompatibilityProbe').GetMethod('Run').Invoke($null,@($mod))
  $probe=$compiled.CompiledAssembly.GetType('CodexNativeProbe');$probe.GetMethod('Run').Invoke($null,@($mod,$xml))
 }catch{Write-Host $_.Exception.ToString();throw}finally{$zip.Dispose();$stream.Dispose()}
 }

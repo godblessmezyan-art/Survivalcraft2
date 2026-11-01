@@ -8,6 +8,8 @@ foreach($file in $protected.files.PSObject.Properties){
  # The user explicitly requires the Codex gate on all artifacts. Strip only these
  # literal permission predicates; the original frozen implementation hash must still match.
  $text=[IO.File]::ReadAllText($path)
+ # Android MissingMethodException hotfix: normalize only the GUID parser call target.
+ if($file.Name -eq 'src/SCIEPort/Features/AbyssReaper/VoidPortalRegistry.cs'){$text=$text.Replace('SCIEPort.Compatibility.LegacyGuid.TryParse(','Guid.TryParse(')}
  $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index')
  $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index')
  $text=$text.Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)&&','').Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,952) && ','')
@@ -17,7 +19,7 @@ foreach($file in $protected.files.PSObject.Properties){
   try{$hash=[BitConverter]::ToString($sha.ComputeHash([byte[]]$bytes)).Replace('-','')}finally{$sha.Dispose()}
   if($hash -eq $file.Value){$matched=$true}
  }}
- if(!$matched){throw ('V2 changed protected implementation beyond Codex permissions: '+$file.Name)}
+ if(!$matched){throw ('V2 changed protected implementation beyond Codex permissions / GUID runtime shim: '+$file.Name)}
 }
 $sources=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'design/abyss-space-v2/sources.json') | ConvertFrom-Json
 foreach($entry in $sources.assets){foreach($key in @('original','runtime')){if((Get-FileHash -LiteralPath (Join-Path $root $entry.$key)).Hash -ne $entry.($key+'_sha256')){throw 'V2 generated art hash mismatch'}}}
@@ -28,7 +30,7 @@ if($Package){
  $archive=[IO.Compression.ZipFile]::OpenRead($Package)
  try{foreach($entry in $sources.assets){$name=$entry.runtime.Substring('src/SCIEPort/'.Length);$file=$archive.GetEntry($name);if(!$file){throw 'V2 icon missing from package'};$stream=$file.Open();$sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($stream)).Replace('-','')}finally{$stream.Dispose();$sha.Dispose()};if($hash -ne $entry.runtime_sha256){throw 'V2 packaged art hash mismatch'}}}finally{$archive.Dispose()}
 }
-Write-Host 'Space V2: protected horizon/portal algorithms unchanged except explicit Codex gates; three native PNG imagegen assets and provenance hashes verified.'
+Write-Host 'Space V2: protected horizon/portal algorithms unchanged except explicit Codex gates / GUID runtime shim; three native PNG imagegen assets and provenance hashes verified.'
 if(!$AssemblyPath){return}
 $mod=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes($AssemblyPath))
 $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider

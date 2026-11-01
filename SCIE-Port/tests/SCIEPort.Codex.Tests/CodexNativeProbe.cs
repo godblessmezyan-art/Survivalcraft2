@@ -47,6 +47,13 @@ public static class CodexNativeProbe
             var save=new ValuesDictionary();Call(runtime,"Save",save);var saveXml=new XElement("Values");save.Save(saveXml);var reloaded=new ValuesDictionary();reloaded.ApplyOverrides(XElement.Parse(saveXml.ToString()));
             var fresh=Activator.CreateInstance(type);Call(fresh,"ReadRecords",reloaded.GetValue<ValuesDictionary>("TrueNames"));Check(((Dictionary<Guid,uint>)Get(fresh,"Records"))[p.PlayerGuid]==255,"native ValuesDictionary XML save/load preserves all true names");
             var malformed=new ValuesDictionary();malformed.SetValue("not-guid","255");malformed.SetValue(Guid.NewGuid().ToString("N"),"-1");Call(fresh,"ReadRecords",malformed);Check(((Dictionary<Guid,uint>)Get(fresh,"Records")).Count==1,"malformed progress never grants access");
+            var loaded=Activator.CreateInstance(type);Put(loaded,"m_project",project);Call(loaded,"Load",values);
+            Check(((Dictionary<Guid,uint>)Get(loaded,"Records")).Count==0,"real subsystem Load accepts an old world without TrueNames");
+            values.SetValue("TrueNames",reloaded.GetValue<ValuesDictionary>("TrueNames"));Call(loaded,"Load",values);
+            Check(((Dictionary<Guid,uint>)Get(loaded,"Records"))[p.PlayerGuid]==255,"real subsystem Load restores existing true names without changing save format");
+            var mixed=new ValuesDictionary();var valid=Guid.NewGuid();mixed.SetValue("invalid-id","255");mixed.SetValue(Guid.Empty.ToString("N"),"255");mixed.SetValue(valid.ToString("D"),"128");
+            values.SetValue("TrueNames",mixed);var mixedLoad=Activator.CreateInstance(type);Put(mixedLoad,"m_project",project);Call(mixedLoad,"Load",values);
+            var mixedRecords=(Dictionary<Guid,uint>)Get(mixedLoad,"Records");Check(mixedRecords.Count==1&&mixedRecords[valid]==128,"mixed malformed save skips invalid/empty IDs and preserves the following valid player");
             inv.m_slots[0].Value=955;for(int i=0;i<20;i++)Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==6,"book movement bonus no accumulation");inv.m_slots[0].Value=3;Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==5,"book movement bonus fully restored on switch");
             p.ComponentHealth.Health=0;Check(records[p.PlayerGuid]==255,"death does not erase world progress");p.ComponentHealth.Health=1;
             inv.m_slots[0].Value=949;Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==6,"unsealed utility eye receives default movement bonus");

@@ -1,5 +1,17 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.75.1：Android缺失Guid.TryParse热修复
+
+用户提供的7723 Android日志在2026-11-01 21:02:23报告`System.MissingMethodException: bool System.Guid.TryParse(string,System.Guid&)`，调用方为图谱Load。异常中的Mod MVID `867e656d-6479-49fa-bb44-ae2fb7ed7d60`与本地0.75.0包DLL一致；因此0.75.0在该用户运行时加载世界 **不支持**。没有取得该APK/手机BCL的程序集哈希，不能将Windows接口可用推定为Android可用；此前Windows隔离结论保留其原有范围。
+
+0.75.1保持net472/API1.42/SC2.4.10.6与全部ID/GUID、Hook、协议和存档布局，图谱1处及星门4处GUID读取统一转到`Guid(string)`构造器与格式异常处理。无效标识继续拒绝，已有真名/星门文本不迁移、不重新授权。冻结星门源码守卫仅还原固定解析器调用目标后匹配原SHA，不更新冻结基线，也不放行算法变化；整DLL调用扫描禁止直接引用Guid.Parse/TryParse系列。详见[修复说明](../SCIE-Port/docs/ANDROID-GUID-LOAD-HOTFIX.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows x25.01.17 ABI、存档隔离与Release/包检查 | 已确认 | 三程序集SHA沿用固定记录；图谱实际Load、旧/新存档、格式及调用扫描通过，详细命令/包指纹见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。 |
+| 用户7723 Android的0.75.0加载 | 不支持 | 用户日志/截图及匹配MVID证实缺失API导致加载中断；不是存档数据格式报错。 |
+| 0.75.1 Android新/旧世界、星门恢复及真实单机/主机/客户端 | 待验证 | 已移除已知缺失接口引用；没有在手机或完整游戏复测，不把Windows构建通过等同Android兼容。 |
+
 ## 2026-11-01 SCIE-Port 0.75.0：阿比斯随机召唤
 
 基于main a4909d3。既有252请求包布局/ID、加载器入口、Hook签名、所有物品ID/模板GUID、存档版本与内部SCIEPort身份保持。只有Summon操作的Target从原类型选择改为忽略，种类由主机/本地权威在通过身份/世界/序号/冷却及容量/基本落点校验后单次抽取；其它操作的Target仍为契约键。各方统一0.75.0，旧版混装不支持。骨龙/三头犬各限一只，抽中已有唯一契约不补抽且消耗30秒冷却，旧契约与次位面记录保持。

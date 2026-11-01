@@ -1,5 +1,38 @@
 # 测试结果
 
+## 2026-11-01 main 0.75.1：Android世界加载MissingMethod热修复
+
+基于干净main `67a09a6`。用户日志/截图证实图谱Load引用`System.Guid.TryParse(string,System.Guid&)`导致无法进入世界。日志Mod MVID `867e656d-6479-49fa-bb44-ae2fb7ed7d60`与从0.75.0版本包提取DLL的ManifestModule.ModuleVersionId一致；不是仅按显示版本推断。该用户Android运行时没有此接口，先前Windows验证未覆盖这一差异。未取得APK/BCL哈希，不推定与固定Windows程序集相同。
+
+新增LegacyGuid兼容解析，图谱1处/星门4处统一使用Guid(string)构造器，格式/溢出/参数错误返回false，不吞其它加载故障。已有GUID文本、存档字段/真名掩码/星门链接、全部ID/协议与阿比斯随机召唤保持；不重置解锁。故障与安装说明见[Android热修复](ANDROID-GUID-LOAD-HOTFIX.md)。
+
+实际命令（SDK9.0.300，Mod目标仍net472；Major用于已有测试运行时）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PYTHONUTF8='1'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 --output (Join-Path (Get-Location) 'SCIE-Port/artifacts/build') --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+```
+
+以上命令全部退出码0。根依赖/ABI与固定三程序集SHA匹配；编译日志`artifacts/guid-hotfix-compile.log`、完整日志`artifacts/guid-hotfix-release.log`。Mod保持net472/API1.42/SC2.4.10.6，无加载器/Hook/网络包或存档布局变化。
+
+| 检查 | 实际结果及限制 |
+|---|---|
+| GUID解析和编译DLL调用 | **27项通过**：N/D/B/P/X、大小写/空白、空Target、null/空/非法/溢出/超长串处理；扫描**2,943个编译方法、23,112个调用点**，没有直接System.Guid Parse/TryParse系列调用，5处调用指向兼容解析器，解析器实际绑定Guid(string)。桌面检查，不是Android BCL仿真。 |
+| 图谱原生 | **429项通过**：原权限/输入/存档/认证/独立加成回归保持，新增实际Subsystem.Load读取无TrueNames旧世界、已解锁世界、非法/空玩家记录混合有效记录，保留有效玩家掩码。没有通过放开全部神器来绕过故障。 |
+| 星门/冻结保护 | 既有星门格式/往返/损坏拒绝/XML安全与权限检查通过。源码保护仅将指定文件中固定LegacyGuid调用目标还原后匹配原冻结SHA；原基线未更新，布局/算法超出此适配仍阻止构建。 |
+| 完整回归/打包 | Build-NetMod全部套件通过，包含军势377、圣剑521原生、陈列器650原生、库存775规则/170原生及其它神器/载具/品牌/数据库/资产来源/禁带二进制守卫。 |
+| 包内容对比 | 正式包与版本副本相同；对0.75.0所有条目名保持、**167份Assets逐字节相同**，仅SCIEPort.dll和modinfo.json变化。包内DLL与本次Release输出相同。 |
+| Android7723/实际游戏/主机/普通客户端 | **待验证**：用户只提供了0.75.0失败证据；没有在手机运行修复包、进入世界或真实联机，不能将Windows隔离通过标为Android兼容。日志另有目录访问拒绝，本次未声称修复操作系统存储权限。 |
+
+包：`荒野探险家-0.75.1.netmod`，10,383,327字节，SHA-256 `8C4D4205910740FE66E02CD0399778BDBBB8598CCE67C9F3FB37E1D79104CAE4`。目标程序集/DLL/包指纹及原故障身份见[机器记录](assets/guid-hotfix/validation.json)。本次提交本地main，不推送；手机先替换旧包、完整重启，在可丢弃世界/备份上复测。
+
+
 ## 2026-11-01 main 0.75.0：阿比斯按概率随机召唤
 
 基于`a4909d3`，初始main工作区干净。取消军势选种按钮，改为显示概率与“随机召唤”；主机/本地权威按猎犬50%、战马25%、骨龙15%、地狱三头犬10%单次抽取，忽略Summon请求的Target/Flags选种信息。骨龙/三头犬保持各一只；抽中已拥有唯一契约不补抽、不替换，消耗原有30秒冷却。容量/基本落点拒绝发生在抽取前。旧契约、骑乘/飞行、次位面管理、其它神器与默认属性/主题保持，详见[规则](ABYSS-SUMMON-PROBABILITIES.md)。

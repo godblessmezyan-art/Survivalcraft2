@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.75.0",
+  "Version": "0.75.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.75.0 阿比斯军势改为主机随机召唤：猎犬50%、战马25%、骨龙15%、地狱三头犬10%，取消类型选择。保留唯一契约与30秒冷却，抽中已有唯一契约不补抽。保留神器图谱及全部既有功能。Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.75.1 修复部分Android运行时缺少Guid.TryParse导致世界加载失败：图谱及星门存档改用兼容解析，保留已有解锁与星门数据。保留阿比斯50/25/15/10随机召唤及全部既有功能。Android修复效果与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",
