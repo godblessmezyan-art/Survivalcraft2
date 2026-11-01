@@ -1,5 +1,39 @@
 # 测试结果
 
+## 2026-11-01 main 0.75.2：UInt32及其余BCL TryParse补修
+
+基于干净main `b30c574`。用户在上一修复后再次截图反馈`Method not found: bool System.UInt32.TryParse(string,uint&)`。该调用仍位于0.75.1图谱ReadRecords，上一轮只禁Guid系列不足。新截图未包含堆栈/MVID，未获取手机APK/BCL哈希；因此不将其身份表述为已精确匹配0.75.1，但源码/旧包确实含此缺失引用。
+
+权限掩码改为独立十进制整数读取，完全避开UInt32.Parse/TryParse；0至uint.MaxValue有效、溢出/非数字/非零负数拒绝，原`mask & 255`语义和写入格式保持。其它15处BCL TryParse统一改用兼容适配：设置8布尔/2枚举、星门1整数/4浮点。GUID兼容保留；无新ID/Hook/协议/存档迁移，模型/技能/召唤概率及默认属性/主题保持。详见[解析修复与安装](ANDROID-GUID-LOAD-HOTFIX.md)。
+
+实际命令（SDK9.0.300，目标仍net472；Major用于既有测试运行时）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PYTHONUTF8='1'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 --output (Join-Path (Get-Location) 'SCIE-Port/artifacts/build') --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+```
+
+以上环境/新DLL专项/完整Release及包检查均退出码0，三固定Windows程序集SHA匹配，目标net472/API1.42/SC2.4.10.6保持。日志`artifacts/parse-hotfix-compile.log`、`artifacts/parse-hotfix-release.log`。
+
+| 检查 | 实际结果及限制 |
+|---|---|
+| 独立整数与解析/设置 | **1,347项通过**：0–255所有权限组合、uint范围/溢出/符号/空白/非法文本，固定种子1,000个有效整数与桌面原解析对照；布尔、严格整数/浮点及枚举格式对照，实际SCIEPortLoader.LoadSettings对8个布尔/2个品质应用合法值，非法输入保留原设置，结束恢复静态值。 |
+| 图谱实际加载与旧回归 | **436项通过**：原权限/认证/存档/输入/加成回归保持，新增实际Subsystem.Load读取0/128/255/uint.MaxValue及非法/溢出掩码，不通过放开全部神器或重置进度绕过故障。 |
+| 整DLL调用检查 | **27项GUID/审计通过**；检查**2,949个方法、23,127个调用点**，Mod没有直接System命名空间TryParse/TryParseExact或Guid/UInt32 Parse调用。适配器Int32.Parse/Single.Parse/Enum.Parse不在禁用范围；本检查不是完整手机BCL可用性证明。 |
+| 负对照 | 从真实0.75.1版本包提取旧DLL至忽略目录`artifacts/parse-negative/SCIEPort.dll`，运行同一Test-Codex命令（替换AssemblyPath），按预期非零退出，首先拒绝`System.Enum.TryParse in SCIEPort.Mod.SCIEPortLoader.LoadSettings`。外层确认确实拒绝旧引用后退出0；日志`artifacts/parse-hotfix-negative.log`。 |
+| 完整回归 | Build-NetMod全部旧套件/资源/数据库/禁带二进制检查通过，包含军势377、圣剑521原生、陈列器650原生、库存775规则/170原生；星门格式/XML安全及原冻结SHA保持，只规范化指定解析调用目标，不放开算法修改。 |
+| 包差异 | 正式包与版本副本字节相同；与0.75.1条目名一致、**167份Assets逐字节相同**，仅SCIEPort.dll与modinfo.json变化，DLL匹配Release输出。 |
+| Android/完整游戏/真实主机与客户端 | **待验证**：本次没有在手机或完整世界复测，桌面新旧存档/设置隔离及调用扫描不能替代Android实际接口、加载和同步验证。 |
+
+包：`荒野探险家-0.75.2.netmod`，10,383,790字节，SHA-256 `B1F2072D3EBB7C4EBD58F1624FEF16BB40B7AD58E42203D9446F7BDEB973FC3D`。精确目标/DLL/包指纹见[机器记录](assets/parse-hotfix/validation.json)。只提交本地main，不推送；替换旧包后完全重启，先在可丢弃世界/备份上复测。
+
+
 ## 2026-11-01 main 0.75.1：Android世界加载MissingMethod热修复
 
 基于干净main `67a09a6`。用户日志/截图证实图谱Load引用`System.Guid.TryParse(string,System.Guid&)`导致无法进入世界。日志Mod MVID `867e656d-6479-49fa-bb44-ae2fb7ed7d60`与从0.75.0版本包提取DLL的ManifestModule.ModuleVersionId一致；不是仅按显示版本推断。该用户Android运行时没有此接口，先前Windows验证未覆盖这一差异。未取得APK/BCL哈希，不推定与固定Windows程序集相同。

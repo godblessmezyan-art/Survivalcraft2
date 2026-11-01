@@ -1,5 +1,19 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-01 SCIE-Port 0.75.2：UInt32与其余TryParse补修
+
+用户在上一轮修复后提供新截图：`Method not found: bool System.UInt32.TryParse(string,uint&)`，仍无法进入世界。源码中该调用唯一位于图谱ReadRecords；0.75.1确实仍有直接引用，GUID专项不足以覆盖该手机BCL差异。截图未提供新MVID/完整堆栈或APK/BCL哈希，不能单凭截图证明手机装入的精确DLL身份；修复依据截图所缺接口与实际源码/上一包IL共同确定。
+
+0.75.2的权限掩码使用独立十进制整数解析，不依赖UInt32.Parse/TryParse；无效、溢出数据仍拒绝，有效值保留原`mask & 255`语义。Mod内另外15个系统TryParse调用统一转入兼容适配：星门1处整数/4处浮点，设置8处布尔/2处枚举。数字/枚举适配使用已有Parse重载及格式/溢出错误处理，布尔直接比较文本；未声称手机所有BCL成员已验证。既有GUID适配保持，整DLL检查禁止全部System命名空间TryParse/TryParseExact及Guid/UInt32 Parse引用。真实0.75.1 DLL作为负对照，被新检查按预期拒绝。
+
+保持固定Windows x25.01.17/net472/API1.42/SC2.4.10.6，以及所有ID/GUID/Hook/协议/存档格式。星门冻结守卫只还原固定解析调用目标后匹配原SHA，不改基线或算法。详见[修复说明](ANDROID-GUID-LOAD-HOTFIX.md)与[测试记录](TEST-RESULTS.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows ABI、解析/实际图谱Load/设置隔离、Release与包 | 已确认 | 根环境及固定三程序集SHA匹配；1,347项解析/设置、436项图谱、27项GUID/调用审计与完整回归，具体指纹见测试记录。 |
+| 用户截图中缺UInt32.TryParse的环境运行0.75.1 | 不支持 | 0.75.1仍含该直接引用；用户截图显示接口缺失，APK/精确DLL身份未知。 |
+| 0.75.2 Android7723新/旧世界、星门、设置及真实主机/客户端 | 待验证 | 已移除全部Mod直接BCL TryParse调用，未在手机或完整游戏复测；仍不能以Windows通过替代Android兼容证据。 |
+
 ## 2026-11-01 SCIE-Port 0.75.1：Android缺失Guid.TryParse热修复
 
 用户提供的7723 Android日志在2026-11-01 21:02:23报告`System.MissingMethodException: bool System.Guid.TryParse(string,System.Guid&)`，调用方为图谱Load。异常中的Mod MVID `867e656d-6479-49fa-bb44-ae2fb7ed7d60`与本地0.75.0包DLL一致；因此0.75.0在该用户运行时加载世界 **不支持**。没有取得该APK/手机BCL的程序集哈希，不能将Windows接口可用推定为Android可用；此前Windows隔离结论保留其原有范围。

@@ -150,7 +150,7 @@ namespace SCIEPort.Features.AbyssReaper
                     XElement root=XElement.Load(reader,LoadOptions.None);
                     if(root.Name.ToString()!="voidPortals" || Attribute(root,"version")!="1")return false;
                     Guid world;int limit;
-                    if(!SCIEPort.Compatibility.LegacyGuid.TryParse(Attribute(root,"world"),out world)||world==Guid.Empty || !int.TryParse(Attribute(root,"limit"),NumberStyles.None,CultureInfo.InvariantCulture,out limit)||limit<1||limit>HardLimit)return false;
+                    if(!SCIEPort.Compatibility.LegacyGuid.TryParse(Attribute(root,"world"),out world)||world==Guid.Empty || !SCIEPort.Compatibility.LegacyParsing.TryInt32(Attribute(root,"limit"),NumberStyles.None,CultureInfo.InvariantCulture,out limit)||limit<1||limit>HardLimit)return false;
                     var temp=new VoidPortalRegistry(world,limit);var targets=new Dictionary<Guid,Guid>();var active=new Dictionary<Guid,bool>();
                     foreach(XNode node in root.Nodes())
                     {
@@ -164,8 +164,8 @@ namespace SCIEPort.Features.AbyssReaper
                         if(element.Name.ToString()!="portal" || !element.IsEmpty)return false;
                         Guid id,owner,target;float x,y,z,facing;string name=Attribute(element,"name"),enabled=Attribute(element,"active");
                         if(!SCIEPort.Compatibility.LegacyGuid.TryParse(Attribute(element,"id"),out id)||!SCIEPort.Compatibility.LegacyGuid.TryParse(Attribute(element,"owner"),out owner)||!SCIEPort.Compatibility.LegacyGuid.TryParse(Attribute(element,"target"),out target)
-                            || !float.TryParse(Attribute(element,"x"),NumberStyles.Float,CultureInfo.InvariantCulture,out x)||!float.TryParse(Attribute(element,"y"),NumberStyles.Float,CultureInfo.InvariantCulture,out y)
-                            || !float.TryParse(Attribute(element,"z"),NumberStyles.Float,CultureInfo.InvariantCulture,out z)||!float.TryParse(Attribute(element,"facing"),NumberStyles.Float,CultureInfo.InvariantCulture,out facing)
+                            || !SCIEPort.Compatibility.LegacyParsing.TrySingle(Attribute(element,"x"),NumberStyles.Float,CultureInfo.InvariantCulture,out x)||!SCIEPort.Compatibility.LegacyParsing.TrySingle(Attribute(element,"y"),NumberStyles.Float,CultureInfo.InvariantCulture,out y)
+                            || !SCIEPort.Compatibility.LegacyParsing.TrySingle(Attribute(element,"z"),NumberStyles.Float,CultureInfo.InvariantCulture,out z)||!SCIEPort.Compatibility.LegacyParsing.TrySingle(Attribute(element,"facing"),NumberStyles.Float,CultureInfo.InvariantCulture,out facing)
                             || (enabled!="0"&&enabled!="1") || !temp.TryAdd(id,owner,name,x,y,z,facing))return false;
                         targets.Add(id,target);active.Add(id,enabled=="1");
                     }

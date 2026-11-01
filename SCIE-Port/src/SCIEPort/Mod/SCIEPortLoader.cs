@@ -317,27 +317,27 @@ namespace SCIEPort.Mod
         {
             StormhammerEffectQuality quality;
             XAttribute qualityAttribute = element.Attribute("SCIEPortStormhammerVfxQuality");
-            if (qualityAttribute != null && System.Enum.TryParse(qualityAttribute.Value, true, out quality)) StormhammerOptions.Quality = quality;
+            if (qualityAttribute != null && SCIEPort.Compatibility.LegacyParsing.TryEnum(qualityAttribute.Value, true, out quality)) StormhammerOptions.Quality = quality;
             bool value;
             XAttribute armorPreview = element.Attribute("SCIEPortFourSaintsArmorV3Preview");
-            if (armorPreview != null && bool.TryParse(armorPreview.Value, out value)) FourSaintsArmorRenderer.PreviewEnabled = value;
+            if (armorPreview != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(armorPreview.Value, out value)) FourSaintsArmorRenderer.PreviewEnabled = value;
             XAttribute armorDiagnostics = element.Attribute("SCIEPortFourSaintsArmorDiagnostics");
-            if (armorDiagnostics != null && bool.TryParse(armorDiagnostics.Value, out value)) FourSaintsArmorRenderer.Diagnostics = value;
+            if (armorDiagnostics != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(armorDiagnostics.Value, out value)) FourSaintsArmorRenderer.Diagnostics = value;
             XAttribute crownPreview = element.Attribute("SCIEPortQinglongCrownV3Preview");
-            if (crownPreview != null && bool.TryParse(crownPreview.Value, out value)) QinglongCrownRenderer.PreviewEnabled = value;
+            if (crownPreview != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(crownPreview.Value, out value)) QinglongCrownRenderer.PreviewEnabled = value;
             XAttribute crownDiagnostics = element.Attribute("SCIEPortQinglongCrownDiagnostics");
-            if (crownDiagnostics != null && bool.TryParse(crownDiagnostics.Value, out value)) QinglongCrownRenderer.Diagnostics = value;
+            if (crownDiagnostics != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(crownDiagnostics.Value, out value)) QinglongCrownRenderer.Diagnostics = value;
             XAttribute flashes = element.Attribute("SCIEPortReducedLightningFlashes");
-            if (flashes != null && bool.TryParse(flashes.Value, out value)) StormhammerOptions.ReducedFlashes = value;
+            if (flashes != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(flashes.Value, out value)) StormhammerOptions.ReducedFlashes = value;
             XAttribute shake = element.Attribute("SCIEPortStormhammerCameraShake");
-            if (shake != null && bool.TryParse(shake.Value, out value)) StormhammerOptions.CameraShake = value;
+            if (shake != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(shake.Value, out value)) StormhammerOptions.CameraShake = value;
             XAttribute diagnostics = element.Attribute("SCIEPortStormhammerDiagnostics");
-            if (diagnostics != null && bool.TryParse(diagnostics.Value, out value)) StormhammerOptions.Diagnostics = value;
+            if (diagnostics != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(diagnostics.Value, out value)) StormhammerOptions.Diagnostics = value;
             XAttribute fortressDiagnostics = element.Attribute("SCIEPortFortressDiagnostics");
-            if (fortressDiagnostics != null && bool.TryParse(fortressDiagnostics.Value, out value)) FortressOptions.Diagnostics = value;
+            if (fortressDiagnostics != null && SCIEPort.Compatibility.LegacyParsing.TryBoolean(fortressDiagnostics.Value, out value)) FortressOptions.Diagnostics = value;
             FortressQuality fortressQuality;
             XAttribute fortressQualityAttribute = element.Attribute("SCIEPortFortressQuality");
-            if (fortressQualityAttribute != null && System.Enum.TryParse(fortressQualityAttribute.Value, true, out fortressQuality)) FortressOptions.Quality = fortressQuality;
+            if (fortressQualityAttribute != null && SCIEPort.Compatibility.LegacyParsing.TryEnum(fortressQualityAttribute.Value, true, out fortressQuality)) FortressOptions.Quality = fortressQuality;
         }
 
         /// <inheritdoc />

@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.75.1",
+  "Version": "0.75.2",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.75.1 修复部分Android运行时缺少Guid.TryParse导致世界加载失败：图谱及星门存档改用兼容解析，保留已有解锁与星门数据。保留阿比斯50/25/15/10随机召唤及全部既有功能。Android修复效果与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.75.2 继续修复Android加载：图谱权限掩码改用独立整数解析，统一替换星门及设置的系统TryParse调用并加入整DLL检查。保留存档、真名、星门和阿比斯随机召唤。手机修复效果与实际联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

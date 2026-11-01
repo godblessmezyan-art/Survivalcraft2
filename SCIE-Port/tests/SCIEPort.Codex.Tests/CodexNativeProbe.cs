@@ -54,6 +54,12 @@ public static class CodexNativeProbe
             var mixed=new ValuesDictionary();var valid=Guid.NewGuid();mixed.SetValue("invalid-id","255");mixed.SetValue(Guid.Empty.ToString("N"),"255");mixed.SetValue(valid.ToString("D"),"128");
             values.SetValue("TrueNames",mixed);var mixedLoad=Activator.CreateInstance(type);Put(mixedLoad,"m_project",project);Call(mixedLoad,"Load",values);
             var mixedRecords=(Dictionary<Guid,uint>)Get(mixedLoad,"Records");Check(mixedRecords.Count==1&&mixedRecords[valid]==128,"mixed malformed save skips invalid/empty IDs and preserves the following valid player");
+            foreach(string maskText in new[]{"0","128","255","4294967295","-1","4294967296","not-number"})
+            {
+                var data=new ValuesDictionary();data.SetValue(valid.ToString("N"),maskText);values.SetValue("TrueNames",data);var loadMask=Activator.CreateInstance(type);Put(loadMask,"m_project",project);Call(loadMask,"Load",values);
+                var loadedRecords=(Dictionary<Guid,uint>)Get(loadMask,"Records");uint expected;bool ok=uint.TryParse(maskText,out expected);
+                Check(ok?loadedRecords.Count==1&&loadedRecords[valid]==(expected&255):loadedRecords.Count==0,"actual world Load preserves/filters permission mask: "+maskText);
+            }
             inv.m_slots[0].Value=955;for(int i=0;i<20;i++)Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==6,"book movement bonus no accumulation");inv.m_slots[0].Value=3;Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==5,"book movement bonus fully restored on switch");
             p.ComponentHealth.Health=0;Check(records[p.PlayerGuid]==255,"death does not erase world progress");p.ComponentHealth.Health=1;
             inv.m_slots[0].Value=949;Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==6,"unsealed utility eye receives default movement bonus");

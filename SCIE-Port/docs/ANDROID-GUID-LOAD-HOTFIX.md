@@ -1,4 +1,17 @@
-# Android世界加载失败：GUID解析 / 0.75.1
+# Android世界加载失败：解析接口 / 0.75.2
+
+## 0.75.2：后续UInt32缺失与扩大检查
+
+用户随后截图报告`System.UInt32.TryParse(string,uint&)`缺失。上一包保留了图谱ReadRecords的该引用，原GUID专项没有覆盖它；没有新堆栈/MVID/APK哈希，不能仅按截图断言手机DLL版本。
+
+权限掩码改为独立十进制读取：支持0至4294967295、普通整数空白/符号及前导零，检测溢出并拒绝非数字/负数（负零保持为0）。有效值继续按255截取八个权限位，写入格式保持；无效值不授予权限。读取不调用UInt32.Parse或TryParse。
+
+另15处直接系统TryParse一并替换：星门整数/浮点沿用NumberStyles.None/Float与InvariantCulture，Parse的格式/溢出错误返回false，既有坐标有限值检查保持；设置布尔使用文本匹配，枚举使用Enum.Parse，非法值保留原设置。GUID适配不变，星门冻结原始SHA不变。整Mod DLL调用审计扩大到全部System命名空间TryParse/TryParseExact，亦禁用Guid/UInt32 Parse，旧0.75.1成品已作为负对照验证新检查确实拒绝旧引用。新增桌面测试覆盖权限全部八位组合、范围/溢出、随机有效整数、星门数值与实际LoadSettings设置应用/非法值保留；这些不是Android BCL仿真。
+
+请备份世界，将NetMods中的旧「荒野探险家」包替换为0.75.2，只保留一份，完整退出游戏后重启；同房各端统一更新。先在可丢弃世界/备份上验证新建、旧存档/真名、星门及设置恢复。手机实际进入世界仍待复测，以下0.75.1内容保留为故障历史。
+
+
+## 0.75.1故障与修复历史
 
 用户在2026-11-01反馈0.75.0无法进入世界。截图/日志显示图谱子系统Load抛出`MissingMethodException: bool System.Guid.TryParse(string,System.Guid&)`；Mod MVID `867e656d-6479-49fa-bb44-ae2fb7ed7d60`与本地0.75.0包一致。Windows有该方法，用户的Android运行时没有；即使TrueNames为空，也可能在JIT解析该调用时失败。旧Windows构建/隔离测试无法发现手机缺少此接口。
 

@@ -22,6 +22,11 @@ public static class GuidCompatibilityProbe
         {
             object[] args={text,expected};Check(!(bool)parse.Invoke(null,args)&&(Guid)args[1]==Guid.Empty,"invalid identifier fails closed with an empty out value");
         }
+        Audit(mod);
+    }
+    public static void Audit(Assembly mod)
+    {
+        var type=mod.GetType("SCIEPort.Compatibility.LegacyGuid",true);
         var opcodes=new Dictionary<ushort,OpCode>();foreach(var f in typeof(OpCodes).GetFields(BindingFlags.Public|BindingFlags.Static)){var op=(OpCode)f.GetValue(null);opcodes[(ushort)op.Value]=op;}
         int methods=0,calls=0,shimCalls=0;bool constructor=false;
         const BindingFlags flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.DeclaredOnly;
@@ -47,7 +52,8 @@ public static class GuidCompatibilityProbe
                     {
                         var info=method as MethodInfo;
                         var target=method.Module.ResolveMethod(BitConverter.ToInt32(bytes,i),owner.GetGenericArguments(),info!=null&&info.IsGenericMethod?info.GetGenericArguments():null);calls++;
-                        if(target.DeclaringType==typeof(Guid)&&(target.Name=="TryParse"||target.Name=="TryParseExact"||target.Name=="Parse"||target.Name=="ParseExact"))throw new Exception("Unsupported Guid parsing reference in "+owner.FullName+"."+method.Name);
+                        string ns=target.DeclaringType==null?null:target.DeclaringType.Namespace;
+                        if(ns!=null&&(ns=="System"||ns.StartsWith("System.",StringComparison.Ordinal))&&(target.Name=="TryParse"||target.Name=="TryParseExact")||target.DeclaringType==typeof(Guid)&&(target.Name=="Parse"||target.Name=="ParseExact")||target.DeclaringType==typeof(uint)&&target.Name=="Parse")throw new Exception("Unsupported parsing reference "+target.DeclaringType.FullName+"."+target.Name+" in "+owner.FullName+"."+method.Name);
                         if(target.DeclaringType==type&&target.Name=="TryParse")shimCalls++;
                         if(owner==type&&target.DeclaringType==typeof(Guid)&&target.IsConstructor&&target.GetParameters().Length==1&&target.GetParameters()[0].ParameterType==typeof(string))constructor=true;
                     }
@@ -56,6 +62,6 @@ public static class GuidCompatibilityProbe
             }
         }
         Check(methods>0&&calls>0,"entire compiled mod inspected");Check(shimCalls==5,"codex and all four portal identifier reads use the shim");Check(constructor,"shim binds to Guid(string), not the missing API");
-        Console.WriteLine("GUID runtime compatibility: "+checks+" checks passed; "+methods+" compiled methods / "+calls+" call sites scanned, no Guid Parse/TryParse references. Android retest pending.");
+        Console.WriteLine("Runtime parsing compatibility: "+checks+" GUID/audit checks passed; "+methods+" compiled methods / "+calls+" call sites scanned, no BCL TryParse or Guid/UInt32 Parse references. Android retest pending.");
     }
 }

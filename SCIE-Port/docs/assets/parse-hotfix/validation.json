@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-01",
+  "version": "0.75.2",
+  "baseline": "b30c574",
+  "reported_failure": {
+    "method": "System.UInt32.TryParse(string,uint&)",
+    "evidence": "user screenshot after 0.75.1 fix",
+    "new_mvid_and_apk_bcl_hashes": "not provided",
+    "only_source_call_site": "SubsystemArtifactCodex.ReadRecords"
+  },
+  "package": "荒野探险家-0.75.2.netmod",
+  "bytes": 10383790,
+  "sha256": "B1F2072D3EBB7C4EBD58F1624FEF16BB40B7AD58E42203D9446F7BDEB973FC3D",
+  "dll_sha256": "E30E7E8F9EAFA1BEF431BCD1144BB6A37D2551F04480CF674D31BA3263DF3770",
+  "checks": {
+    "root_environment": "passed",
+    "release_and_package": "passed",
+    "guid_and_il": 27,
+    "compiled_methods_scanned": 2949,
+    "call_sites_scanned": 23127,
+    "direct_BCL_TryParse_calls": 0,
+    "direct_Guid_UInt32_Parse_calls": 0,
+    "decimal_boolean_portal_enum_actual_settings": 1347,
+    "codex_native": 436,
+    "negative_control_actual_0.75.1_dll": "rejected as expected at System.Enum.TryParse"
+  },
+  "comparison_to_0.75.1": {
+    "same_entry_names": true,
+    "unchanged_asset_entries": 167,
+    "changed_entries": [
+      "SCIEPort.dll",
+      "modinfo.json"
+    ]
+  },
+  "android_and_live_game": "待验证",
+  "target_assemblies": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  }
+}
