@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.72.0",
+  "Version": "0.73.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.72.0 新增悬浮陈列器：支持大多数物品，单件真实存储，放入后隐藏标记，以原物品模型悬浮旋转。原生存档、触屏存取与SCNET同步，拆除归还内容；既有神器保持。Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.73.0 合并雷神之锤、昆古尼尔第三技能与平衡调整，保留圣剑、阿瓦隆与悬浮陈列器。Android与真实联机待验证，各端须同版。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

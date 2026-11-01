@@ -1,0 +1,17 @@
+{
+  "note": "Third active skill icons for 0.56.0. Gungnir cell 2 is drawn by scripts/Extend-ArtifactSkillAtlases.py; Mjolnir cell 3 is composited from an ImageGen source cropped to a circular badge.",
+  "stormhammerDominion": {
+    "prompt": "Ornate circular game skill icon, mobile RPG artifact ability badge. Dark violet-black storm backdrop inside a thick engraved dark-iron medallion rim with aged gold bevel and rivets. Center: a stylised storm crown sigil of three sharp lightning prongs rising from a thin circular domain ring on the ground, bright cyan-white lightning core with branching forked arcs and a deep indigo halo. Polished metal, precise symmetrical composition, subtle crackle texture, high contrast, no text, no letters, no numbers, centered, square, clean edges, game UI icon quality.",
+    "source": "docs/images/Ornate_circular_game_skill_ico_2026-10-30T04-10-27.png",
+    "sourceSha256": "A8D98E700E86283B95FE9B3ABA8B330301ED29C212E54065F17D452690D298F0",
+    "atlas": "src/SCIEPort/Assets/Textures/StormhammerAwakenedSkills.png",
+    "atlasSha256": "D6CF7F3B7400D298B038DB1E0FFF3C0EE41A7CEE3D6CFFEE3D61E3FBC7AD2082",
+    "cell": 3
+  },
+  "gungnirFatalism": {
+    "generator": "scripts/Extend-ArtifactSkillAtlases.py",
+    "atlas": "src/SCIEPort/Assets/Textures/GungnirSkills.png",
+    "atlasSha256": "290FB34F8B966D0E219FAD1089EE6B47481825C06BC507C1584F04BB04A854A7",
+    "cell": 2
+  }
+}

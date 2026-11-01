@@ -1,5 +1,6 @@
 using System;
 using SCIEPort.Features.Gungnir;
+using Targeting_Rules = SCIEPort.Features.Targeting.CreatureTargetRules;
 
 internal static class Program
 {
@@ -34,14 +35,20 @@ internal static class Program
             Check(Math.Abs(hits - (blessed ? 200 : 150)) <= 1, "Authority attack gate changed under command flood");
         }
         Check(GungnirRules.SpeedFactor(false) == 1.5f && GungnirRules.SpeedFactor(true) == 2, "Buff stacking regressed");
-        Check(GungnirRules.BlessingCooldown == 8f, "Rune Blessing cooldown must be 8 seconds");
+        Check(GungnirRules.BlessingCooldown == 6f, "Rune Blessing cooldown must be 6 seconds");
+        Check(GungnirRules.BlessingDuration == 9f, "Rune Blessing must last 9 seconds");
         Check(GungnirRules.JudgmentCooldown == 50f, "Eternal Judgment cooldown must be 50 seconds");
         Check(GungnirRules.HolyDamageDelay == 0.4f, "holy follow-up must remain visually separated from the native hit");
         Check(!GungnirRules.ShouldConsumeAim(true) && GungnirRules.ShouldConsumeAim(false), "hold must not trigger x25.01.17 aim cancellation");
         float last = float.MaxValue;
         for (int i = 0; i <= 70; i++)
-        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(power <= last && power >= 150 && power <= 300, "Falloff discontinuity"); last = power; }
+        { float power = GungnirRules.JudgmentDamage(i / 10f); Check(power <= last && power >= 170.5f - 0.001f && power <= 341f + 0.001f, "Judgment falloff must descend from 341 to 170.5"); last = power; }
         Check(GungnirRules.JudgmentDamage(7.001f) == 0 && GungnirRules.JudgmentDamage(float.NaN) == 0 && GungnirRules.JudgmentDamage(float.PositiveInfinity) == 0, "Invalid radius must never damage");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(0f) - 341f) < 0.001f, "Judgment centre power must stay 341");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(3.5f) - 255.75f) < 0.001f, "Judgment mid-radius power must be half-way down");
+        Check(Math.Abs(GungnirRules.JudgmentDamage(7f) - 170.5f) < 0.001f, "Judgment rim power must stay 170.5");
+        Check(GungnirRules.JudgmentPower == 341f && GungnirRules.JudgmentRadius == 7f && GungnirRules.JudgmentEdgeFactor == 0.5f,
+            "judgment falloff constants changed");
         foreach (var sample in new[]
         {
             (Width: 1280f, Height: 720f, Scale: 1f),
@@ -123,6 +130,92 @@ internal static class Program
             Check(GungnirSkyRules.AfterImageCount(quality) == quality, "Afterimage budget changed");
             Check(GungnirSkyRules.EmberCount(quality) >= 3, "Every quality level must keep landing embers");
         }
+        // ---- 0.56.0 Fate Severance (神王敕令·命运裁断) ----
+        Check(GungnirRules.Fatalism == 5, "Fate Severance must be command 5 so 1-4 keep their wire meaning");
+        Check(GungnirRules.FatalismPowerMin == 10f && GungnirRules.FatalismPowerMax == 100f, "Fate Severance must roll inside 10..100");
+        Check(Math.Abs(GungnirRules.FatalismRoll(0) - 10f) < 0.001f && Math.Abs(GungnirRules.FatalismRoll(90) - 100f) < 0.001f,
+            "Fate Severance roll bounds changed");
+        Check(Math.Abs(GungnirRules.FatalismRoll(-5) - 10f) < 0.001f && Math.Abs(GungnirRules.FatalismRoll(400) - 100f) < 0.001f,
+            "out-of-range rolls must clamp inside 10..100");
+        bool inRange = true;
+        for (int roll = 0; roll <= 90; roll++)
+        {
+            float power = GungnirRules.FatalismRoll(roll);
+            if (power < 10f || power > 100f) inRange = false;
+        }
+        Check(inRange, "every Fate Severance roll must stay inside 10..100");
+        Check(GungnirRules.FatalismCooldown == 39f, "Fate Severance cooldown must be exactly 39 seconds");
+        Check(GungnirRules.HudCommand(0) == GungnirRules.Blessing && GungnirRules.HudCommand(1) == GungnirRules.Fatalism
+            && GungnirRules.HudCommand(2) == GungnirRules.Judgment && GungnirRules.HudCommand(3) == 0,
+            "HUD must map [1,5,2] explicitly instead of index+1");
+        Check(GungnirRules.IsSkillCommand(1) && GungnirRules.IsSkillCommand(5) && GungnirRules.IsSkillCommand(2)
+            && !GungnirRules.IsSkillCommand(3) && !GungnirRules.IsSkillCommand(4), "skill command domain changed");
+        Check(GungnirRules.FatalismMark == 0.15f && GungnirRules.FatalismImpact == 0.45f && GungnirRules.FatalismEnd == 0.9f,
+            "Fate Severance presentation timeline must stay 0.15 / 0.45 / 0.90");
+        Check(GungnirRules.FatalismAlpha(-0.01f) == 0f && GungnirRules.FatalismAlpha(0.9f) == 0f && GungnirRules.FatalismAlpha(0.45f) > 0f,
+            "Fate Severance effect must be closed at both ends");
+        Check(!GungnirRules.FatalismMarks(0.1f) && GungnirRules.FatalismMarks(0.2f) && GungnirRules.FatalismShattered(0.5f)
+            && !GungnirRules.FatalismShattered(0.7f), "mark and shatter windows changed");
+        Check(GungnirRules.FatalismCooldown > GungnirRules.BlessingCooldown && GungnirRules.FatalismCooldown < GungnirRules.JudgmentCooldown,
+            "Fate Severance cooldown must sit between the blessing and the ultimate");
+
+        // Thirty hostiles must each be struck once, no matter the distance or occlusion:
+        // the shared rule only reads category/state, never a position or a line of sight.
+        var entities = new System.Collections.Generic.List<int>();
+        for (int i = 0; i < 30; i++) entities.Add(i);
+        var fatalismHits = new System.Collections.Generic.HashSet<int>();
+        int acceptedHits = 0;
+        foreach (int id in entities)
+        {
+            Check(Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, false, false, false, true, false), "every hostile must pass regardless of distance");
+            if (fatalismHits.Add(id)) acceptedHits++;
+            if (fatalismHits.Add(id)) acceptedHits++;
+        }
+        Check(fatalismHits.Count == 30 && acceptedHits == 30, "thirty hostiles must be struck exactly once each, never twice");
+
+        // Friend, player, neutral animal and dead entity exclusions.
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, false, false, true, true, false), "dead entities must never be struck");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, false, false, false, false, false), "unloaded entities must never be struck");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.LandOther, false, false, false, true, false), "neutral land animals must never be struck");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.WaterOther, false, false, false, true, false), "neutral water animals must never be struck");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.Bird, false, false, false, true, false), "birds must never be struck");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, true, false, false, true, false), "players are excluded without friendly fire");
+        Check(Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, true, false, false, true, true), "friendly fire must keep the native switch");
+        Check(!Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, false, true, false, true, true), "the caster is never a target");
+        Check(Targeting_Rules.AcceptsTarget(Targeting_Rules.LandPredator, false, false, false, true, false)
+            && Targeting_Rules.AcceptsTarget(Targeting_Rules.WaterPredator, false, false, false, true, false), "both predator categories are hostile");
+
+        // 39 s gate: a second request inside the window is rejected, the next one after it passes.
+        double ready = 0.0;
+        int fatalismCasts = 0;
+        foreach (double attempt in new[] { 0.0, 0.2, 5.0, 38.99, 39.0 })
+            if (attempt >= ready) { fatalismCasts++; ready = attempt + GungnirRules.FatalismCooldown; }
+        Check(fatalismCasts == 2, "Fate Severance must reject every recast inside its 39 s window");
+
+        // Three-button HUD: the arc must stay clear of Look and the hotbar at every tested scale.
+        foreach (var sample in new[]
+        {
+            (Width: 1280f, Height: 720f, Scale: 1f),
+            (Width: 1920f, Height: 1080f, Scale: 1f),
+            (Width: 1024f, Height: 576f, Scale: 1.25f),
+            (Width: 1280f, Height: 720f, Scale: 1.5f)
+        })
+        {
+            var look = new GungnirHudLayout.Rect { X = sample.Width - 160f, Y = sample.Height - 160f, Width = 160f, Height = 160f };
+            var hotbar = new GungnirHudLayout.Rect { X = sample.Width * .5f - 280f, Y = sample.Height - 72f, Width = 560f, Height = 72f };
+            var layout = GungnirHudLayout.Place(sample.Width, sample.Height, look, hotbar, false);
+            Check(!layout.Blessing.Intersects(look) && !layout.Fatalism.Intersects(look) && !layout.Judgment.Intersects(look), "three buttons must not cover Look");
+            Check(!layout.Blessing.Intersects(hotbar) && !layout.Fatalism.Intersects(hotbar) && !layout.Judgment.Intersects(hotbar), "three buttons must not cover the hotbar");
+            Check(!layout.Blessing.Intersects(layout.Fatalism) && !layout.Fatalism.Intersects(layout.Judgment) && !layout.Blessing.Intersects(layout.Judgment), "skill buttons must not overlap");
+            Check(Math.Abs(layout.Fatalism.Width - 72f) < .01f && Math.Abs(layout.Judgment.Width - 88f) < .01f, "HUD button sizes changed");
+            Check(layout.Fatalism.X > layout.Blessing.X && layout.Fatalism.Y < layout.Blessing.Y, "Fate Severance must sit between the two existing badges");
+            Check(layout.Blessing.X >= 8f && layout.Judgment.Right <= sample.Width - 8f, "three buttons must stay inside the safe area");
+        }
+        var mirroredLook = new GungnirHudLayout.Rect { X = 0, Y = 560, Width = 160, Height = 160 };
+        var mirrored = GungnirHudLayout.Place(1280, 720, mirroredLook, default(GungnirHudLayout.Rect), true);
+        Check(mirrored.Mirrored && !mirrored.Blessing.Intersects(mirroredLook) && !mirrored.Fatalism.Intersects(mirroredLook)
+            && !mirrored.Judgment.Intersects(mirroredLook), "left-handed three-button layout must mirror safely");
+
         Console.WriteLine("Gungnir: " + s_tests + " checks passed (pure rules only; game/network/device unverified).");
     }
 }

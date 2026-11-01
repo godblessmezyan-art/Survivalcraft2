@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.24.0
 
+2026-11-01 SCIE-Port 0.73.0合并远端雷锤/昆古尼尔技能更新，保留953/954；这些物品与带库存陈列器仍不能写入Builder Assistant蓝图。81材料、10家具模板、族/DATA/schema及施工限制保持。
+
 更新于2026-10-31。支持 **81种**原版材料、10种结构块家具模板；本轮新增18种地形和装饰材料。格式见[统一规范](BLUEPRINT-SPEC.md)，精确合法DATA见[代码生成矩阵](blueprint-block-capabilities.json)，提示词见[AI生成提示](AI-BLUEPRINT-PROMPT.md)。schema1/2/3继续可读，新输出使用schema3。
 
 Windows固定哈希x25.01.17的ABI及隔离规则验证与Android7723实机分开记录；真实游戏、手机行为和联机同步均待验证。SCIE-Port是独立工程，神器/载具及其ID不能用于蓝图。

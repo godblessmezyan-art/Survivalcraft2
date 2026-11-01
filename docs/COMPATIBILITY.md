@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.73.0：合并远端神器更新
+
+合并本地main `9b0f6a2`与远端main `903afcd`，保留953圣剑、954陈列器及远端雷神之锤/昆古尼尔第三技能和平衡调整。解决csproj/modinfo版本与描述冲突，统一0.73.0；net472/API1.42/SC2.4.10.6、内部SCIEPort身份和既有物品/存档GUID保持。244尾部增加FatalismCooldown，243增加第三技能相关语义，详见SCIE-Port/docs/ARTIFACT-THIRD-SKILLS.md；同房须统一0.73.0，旧版混装不支持。Android7723/完整游戏/真实联机待验证；本次Release与包检查结果见SCIE-Port/docs/TEST-RESULTS.md。
+
 ## 2026-11-01 SCIE-Port 0.72.0：悬浮陈列器
 
 main基线`73a87f3`，新增954/DATA0、独立SCIEPortSuspendedItem实体/子系统、SlotsCount1的ComponentChest子类，归SCIEPort.Building。只读核对固定目标的SubsystemChestBlockBehavior/SubsystemBlockEntities、原生实体保存/恢复、ComponentInventoryBase与转移/库存/实体包、ChestWidget布局与DrawMeshBlock上下文；延用既有GuiUpdate/IDrawable，不新增Hook或包ID，240–253字段和原神器保持。新CSV/XDB按原布局打包，内部SCIEPort/net472/API1.42/SC2.4.10.6不改。

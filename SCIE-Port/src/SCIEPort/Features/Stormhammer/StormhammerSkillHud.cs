@@ -52,6 +52,7 @@ namespace SCIEPort.Features.Stormhammer
             public CanvasWidget Root;
             public CanvasWidget Status;
             public SkillButton Judgment;
+            public SkillButton Dominion;
             public SkillButton Ultimate;
             public LabelWidget ThunderGodLabel;
             public RectangleWidget ThunderGodBar;
@@ -71,10 +72,11 @@ namespace SCIEPort.Features.Stormhammer
             bool equipped = SubsystemAwakenedStormhammerBlockBehavior.IsEquipped(player);
             state.Root.IsVisible = equipped && gui.ControlsContainerWidget.IsVisible;
             if (!equipped) return;
-            if(!Artifacts.ArtifactSkillHud.ArrangeWithStatus(gui,state.Root,state.Status,state.Judgment,state.Ultimate))return;
+            if(!Artifacts.ArtifactSkillHud.ArrangeWithStatus(gui,state.Root,state.Status,state.Judgment,state.Dominion,state.Ultimate))return;
             SubsystemAwakenedStormhammerBlockBehavior behavior = player.Project.FindSubsystem<SubsystemAwakenedStormhammerBlockBehavior>(false);
             if (behavior == null) { state.Root.IsVisible = false; return; }
             state.Judgment.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.ThunderousJudgment));
+            state.Dominion.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.Dominion));
             state.Ultimate.SetState(behavior.GetCooldownRemaining(player, StormhammerSkill.MyriadTribulation));
             float thunderGod = behavior.GetThunderGodRemaining(player);
             bool active = thunderGod > 0f;
@@ -86,6 +88,7 @@ namespace SCIEPort.Features.Stormhammer
                 state.ThunderGodBar.Size = new Vector2(196f * MathUtils.Saturate(thunderGod / 12f), 4f);
             }
             if (state.Judgment.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.ThunderousJudgment);
+            if (state.Dominion.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.Dominion);
             if (state.Ultimate.Clickable.IsClicked) behavior.RequestSkill(player, StormhammerSkill.MyriadTribulation);
         }
 
@@ -97,6 +100,7 @@ namespace SCIEPort.Features.Stormhammer
                 Root = new CanvasWidget { Name = "SCIEPort.SkywrathV3Skills", Size = new Vector2(220f, 250f), HorizontalAlignment = WidgetAlignment.Near, VerticalAlignment = WidgetAlignment.Near, IsHitTestVisible=false, IsVisible = false },
                 Status = new CanvasWidget { Size = new Vector2(196f,24f), IsHitTestVisible=false },
                 Judgment = new SkillButton(atlas, 1, 72f),
+                Dominion = new SkillButton(atlas, 3, 72f),
                 Ultimate = new SkillButton(atlas, 2, 88f)
             };
             state.ThunderGodLabel = new LabelWidget
@@ -118,6 +122,7 @@ namespace SCIEPort.Features.Stormhammer
                 IsVisible = false, IsHitTestVisible=false
             };
             state.Root.Children.Add(state.Judgment);
+            state.Root.Children.Add(state.Dominion);
             state.Root.Children.Add(state.Ultimate);
             state.Status.Children.Add(state.ThunderGodLabel);
             state.Status.Children.Add(state.ThunderGodBar);

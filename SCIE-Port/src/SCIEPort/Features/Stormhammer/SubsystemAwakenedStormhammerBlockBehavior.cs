@@ -68,6 +68,8 @@ namespace SCIEPort.Features.Stormhammer
             public ComponentPlayer Player;
             public ushort EntityId;
             public double EndTime;
+            public double StartTime;
+            public int Ticks;
             public bool JudgmentBoostUsed;
         }
 
@@ -76,6 +78,18 @@ namespace SCIEPort.Features.Stormhammer
             public ComponentPlayer Player;
             public uint CastId;
             public double ApplyAt;
+        }
+
+        /// <summary>雷霆王域: one domain per caster, following the caster and paying one tick per second.</summary>
+        private sealed class DomainState
+        {
+            public ComponentPlayer Caster;
+            public ushort EntityId;
+            public uint CastId;
+            public double StartTime;
+            public int Ticks;
+            public double NextRing;
+            public double NextArc;
         }
 
         private sealed class UltimateState
@@ -92,11 +106,13 @@ namespace SCIEPort.Features.Stormhammer
 
         private readonly Dictionary<ushort, double[]> m_cooldowns = new Dictionary<ushort, double[]>();
         private readonly Dictionary<ushort, ThunderGodState> m_thunderGod = new Dictionary<ushort, ThunderGodState>();
+        private readonly Dictionary<ushort, DomainState> m_domains = new Dictionary<ushort, DomainState>();
         private readonly Dictionary<ushort, ushort> m_sequences = new Dictionary<ushort, ushort>();
         private readonly Dictionary<ComponentHealth, AvatarState> m_avatars = new Dictionary<ComponentHealth, AvatarState>();
         private readonly Dictionary<ushort, EquipmentState> m_equipment = new Dictionary<ushort, EquipmentState>();
         private readonly List<PendingLightning> m_pendingLightning = new List<PendingLightning>();
         private readonly List<PendingJudgment> m_pendingJudgment = new List<PendingJudgment>();
+        private readonly List<ComponentBody> m_domainTargets = new List<ComponentBody>();
         private readonly Dictionary<long, double> m_meleeDedup = new Dictionary<long, double>();
         private SubsystemBodies m_bodies;
         private SubsystemTime m_time;
@@ -138,6 +154,7 @@ namespace SCIEPort.Features.Stormhammer
             MjolnirDisplay.ResetAll();
             m_scene?.Clear();
             m_thunderGod.Clear();
+            m_domains.Clear();
             m_pendingJudgment.Clear();
             ClearEquipmentModifiers();
             AwakenedStormhammerVisuals.Reset(Project);
@@ -208,7 +225,7 @@ namespace SCIEPort.Features.Stormhammer
             if (sequence != 0) m_sequences[player.Entity.EntityId] = sequence;
             if (skill == StormhammerSkill.MyriadTribulation && m_ultimate != null) return;
 
-            float cooldown = Cooldown(skill);
+            float cooldown = Cooldown(player, skill);
             uint castId = m_nextCastId++;
             SetCooldown(player.Entity.EntityId, skill, cooldown);
             Publish(Event(player, castId, skill, StormhammerSkillEvent.Accepted, Vector3.Zero, Vector3.Zero, cooldown));
@@ -219,6 +236,10 @@ namespace SCIEPort.Features.Stormhammer
                 m_pendingJudgment.Add(new PendingJudgment { Player = player, CastId = castId, ApplyAt = m_time.GameTime + 0.42 });
                 player.ComponentMiner.DamageActiveTool(1);
             }
+            else if (skill == StormhammerSkill.Dominion)
+            {
+                StartDomain(player, castId);
+            }
             else
             {
                 StartUltimate(player, castId, SafeDirection(direction, player.ComponentBody.Matrix.Forward));
@@ -228,6 +249,7 @@ namespace SCIEPort.Features.Stormhammer
         internal void ApplyNetworkEvent(StormhammerSkillPackage package)
         {
             if (package.Event == StormhammerSkillEvent.Accepted) SetCooldown(package.CasterId, package.Skill, package.Value);
+            ApplyDomainEvent(package);
             AwakenedStormhammerVisuals.Apply(Project, package, m_scene, m_time.GameTime);
         }
 
@@ -289,11 +311,13 @@ namespace SCIEPort.Features.Stormhammer
             MjolnirDisplay.Update(Project, now);
             ApplyEquipmentModifiers();
             UpdateAvatarSubscriptions();
+            UpdateDomainVisuals(now);
             if (CommonLib.WorkType == WorkType.Client) return;
             UpdateThunderGod(now);
             ApplyPendingLightning(now);
             UpdatePendingJudgment(now);
             UpdateUltimate(now);
+            UpdateDomains(now);
             ExpireDedup(now);
         }
 
@@ -310,11 +334,16 @@ namespace SCIEPort.Features.Stormhammer
                 Player = player,
                 EntityId = id,
                 EndTime = m_time.GameTime + ThunderGodDuration,
+                StartTime = m_time.GameTime,
+                Ticks = 0,
                 JudgmentBoostUsed = false
             };
 
             // Refresh only the judgment cooldown; the ultimate keeps its own 55 s.
             SetCooldown(id, StormhammerSkill.ThunderousJudgment, 0f);
+            // Cap the realm cooldown for the whole window so the ultimate really shortens
+            // every skill instead of only the judgment.
+            CapCooldown(id, StormhammerSkill.Dominion, StormhammerDomainRules.ThunderGodDomainCooldown);
             Publish(Event(player, castId, StormhammerSkill.ThunderousJudgment, StormhammerSkillEvent.Accepted, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, 0f));
             Publish(Event(player, castId, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.ThunderGodStart, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, ThunderGodDuration));
             Diagnostic("thunder god start cast=" + castId + " until=" + (m_time.GameTime + ThunderGodDuration).ToString("0.00"));
@@ -330,7 +359,14 @@ namespace SCIEPort.Features.Stormhammer
                 bool invalid = state.Player == null || !state.Player.IsAddedToProject
                     || state.Player.ComponentHealth == null || state.Player.ComponentHealth.Health <= 0f
                     || !IsEquipped(state.Player);
-                if (!invalid && now < state.EndTime) continue;
+                if (!invalid && now < state.EndTime)
+                {
+                    TickThunderGod(state, now);
+                    continue;
+                }
+                // Flush the remaining cycles before closing the window so a long frame gap can
+                // never swallow grind ticks; a dead caster never keeps dealing damage.
+                if (!invalid) TickThunderGod(state, now);
                 (expired ?? (expired = new List<ushort>())).Add(pair.Key);
                 if (state.Player != null && state.Player.IsAddedToProject)
                 {
@@ -342,6 +378,37 @@ namespace SCIEPort.Features.Stormhammer
 
             if (expired == null) return;
             foreach (ushort id in expired) m_thunderGod.Remove(id);
+        }
+
+        /// <summary>
+        /// One 7-power grind per whole second for everything around the caster. Frame rate only
+        /// decides when the frame lands, never how many cycles run: the count is capped at twelve
+        /// and the field is gone the moment the window closes.
+        /// </summary>
+        private void TickThunderGod(ThunderGodState state, double now)
+        {
+            ComponentPlayer caster = state.Player;
+            if (caster == null || caster.ComponentHealth == null || caster.ComponentHealth.Health <= 0f) return;
+            double elapsed = now - state.StartTime;
+            int due = StormhammerDomainRules.ThunderGodTicksDue(elapsed);
+            if (due <= state.Ticks) return;
+            while (state.Ticks < due && state.Ticks < StormhammerDomainRules.ThunderGodTickCount)
+            {
+                state.Ticks++;
+                Vector3 center = caster.ComponentBody.BoundingBox.Center();
+                CollectCreatures(center, StormhammerDomainRules.ThunderGodRadius, caster, m_domainTargets);
+                int struck = 0;
+                for (int i = 0; i < m_domainTargets.Count; i++)
+                {
+                    ComponentBody body = m_domainTargets[i];
+                    if (body == null || !body.Entity.IsAddedToProject) continue;
+                    DealAttackPower(caster.ComponentMiner.ComponentCreature, body, StormhammerDomainRules.ThunderGodTickPower, "雷神降世·雷域", false, 1f);
+                    struck++;
+                }
+                Publish(Event(caster, 0u, StormhammerSkill.MyriadTribulation, StormhammerSkillEvent.UltimatePulse,
+                    center, Vector3.UnitY, StormhammerDomainRules.ThunderGodRadius, (byte)state.Ticks));
+                Diagnostic("thunder god pulse tick=" + state.Ticks + " hits=" + struck);
+            }
         }
 
         /// <summary>
@@ -633,6 +700,212 @@ namespace SCIEPort.Features.Stormhammer
             if (health != null) DiagnosticDamage(source, attacker.Entity.EntityId, target.Entity.EntityId, basePower, multiplier, before, health.Health);
         }
 
+        /// <summary>雷霆王域: bound to the caster, 7 s, one tick per whole second, never multiplied.</summary>
+        private void StartDomain(ComponentPlayer player, uint castId)
+        {
+            ushort id = player.Entity.EntityId;
+            m_domains[id] = new DomainState { Caster = player, EntityId = id, CastId = castId, StartTime = m_time.GameTime };
+            Vector3 center = player.ComponentBody.BoundingBox.Center();
+            Publish(Event(player, castId, StormhammerSkill.Dominion, StormhammerSkillEvent.DomainStart, center, Vector3.UnitY, StormhammerDomainRules.Duration, (byte)StormhammerDomainRules.TickCount));
+            PublishRune(center, 0.8f, StormhammerDomainRules.Radius, 0.55);
+            Diagnostic("domain start cast=" + castId);
+        }
+
+        private void UpdateDomains(double now)
+        {
+            if (m_domains.Count == 0) return;
+            List<ushort> ended = null;
+            foreach (KeyValuePair<ushort, DomainState> pair in m_domains)
+            {
+                DomainState state = pair.Value;
+                ComponentPlayer caster = state.Caster;
+                bool alive = caster != null && caster.IsAddedToProject && caster.ComponentHealth != null && caster.ComponentHealth.Health > 0f;
+                double elapsed = now - state.StartTime;
+                if (StormhammerDomainRules.ShouldEnd(elapsed, alive, alive && IsEquipped(caster)))
+                {
+                    if (caster != null && caster.IsAddedToProject)
+                        Publish(Event(caster, state.CastId, StormhammerSkill.Dominion, StormhammerSkillEvent.DomainEnd, caster.ComponentBody.BoundingBox.Center(), Vector3.Zero));
+                    (ended ?? (ended = new List<ushort>())).Add(pair.Key);
+                    continue;
+                }
+                int due = StormhammerDomainRules.TicksDue(elapsed);
+                while (state.Ticks < due && state.Ticks < StormhammerDomainRules.TickCount)
+                {
+                    state.Ticks++;
+                    TickDomain(caster, state, state.Ticks);
+                }
+            }
+            if (ended == null) return;
+            foreach (ushort id in ended) m_domains.Remove(id);
+        }
+
+        /// <summary>
+        /// One damage cycle. The centre is sampled from the living caster, so the field follows
+        /// the player; every struck body is deduplicated inside the cycle and the power is a
+        /// fixed 12 with no Thunder God multiplier.
+        /// </summary>
+        private void TickDomain(ComponentPlayer caster, DomainState state, int tick)
+        {
+            Vector3 center = caster.ComponentBody.BoundingBox.Center();
+            // Snapshot first: damaging a creature can despawn it, and mutating the live body
+            // collection mid-iteration used to abort every tick, which read as "no damage".
+            CollectHostiles(center, StormhammerDomainRules.Radius, caster, m_domainTargets);
+            HashSet<ComponentBody> struck = new HashSet<ComponentBody>();
+            int published = 0;
+            for (int i = 0; i < m_domainTargets.Count; i++)
+            {
+                ComponentBody body = m_domainTargets[i];
+                if (body == null || !body.Entity.IsAddedToProject) continue;
+                if (!struck.Add(body)) continue;
+                DealAttackPower(caster.ComponentMiner.ComponentCreature, body, StormhammerDomainRules.TickPower, "雷霆王域", false, 1f);
+                if (published < 12)
+                {
+                    published++;
+                    Publish(Event(caster, state.CastId, StormhammerSkill.Dominion, StormhammerSkillEvent.DomainTick,
+                        body.BoundingBox.Center(), Vector3.UnitY, StormhammerDomainRules.Radius, (byte)tick, body.Entity.EntityId));
+                }
+            }
+            Diagnostic("domain tick cast=" + state.CastId + " tick=" + tick + " hits=" + struck.Count);
+        }
+
+        /// <summary>Runs for every peer: the ring and its three rotating arcs follow the caster locally.</summary>
+        private void UpdateDomainVisuals(double now)
+        {
+            if (m_domains.Count == 0) return;
+            List<ushort> expired = null;
+            foreach (KeyValuePair<ushort, DomainState> pair in m_domains)
+            {
+                DomainState state = pair.Value;
+                ComponentPlayer caster = state.Caster;
+                if (caster == null || !caster.IsAddedToProject || caster.ComponentHealth == null || caster.ComponentHealth.Health <= 0f) continue;
+                double elapsed = now - state.StartTime;
+                // Defence in depth: a client that missed the end event still drops the visual state.
+                if (elapsed >= StormhammerDomainRules.Duration) { expired = expired ?? new List<ushort>(); expired.Add(pair.Key); continue; }
+                if (!StormhammerDomainRules.Active(elapsed)) continue;
+                float radius = StormhammerDomainRules.DrawnRadius(elapsed);
+                if (radius <= 0.4f) continue;
+                Vector3 center = caster.ComponentBody.BoundingBox.Center();
+                bool platinum = IsThunderGodActive(caster);
+                Color core = platinum ? new Color(255, 248, 224) : new Color(232, 248, 255);
+                Color halo = platinum ? new Color(255, 228, 158, 200) : new Color(86, 172, 255, 190);
+                if (now >= state.NextRing)
+                {
+                    state.NextRing = now + 0.55;
+                    m_scene.SpawnRune(center, MathUtils.Max(0.6f, radius * 0.93f), radius, now, 0.52, halo);
+                }
+                if (now >= state.NextArc)
+                {
+                    state.NextArc = now + 0.14;
+                    int arcs = StormhammerOptions.Quality == StormhammerEffectQuality.Low ? 1 : 3;
+                    for (int i = 0; i < arcs; i++)
+                    {
+                        float angle = (float)(now * 1.1) + i * 6.283185f / arcs;
+                        Vector3 radial = new Vector3(MathUtils.Cos(angle), 0f, MathUtils.Sin(angle));
+                        Vector3 start = center + radial * (radius * 0.45f) + Vector3.UnitY * 0.10f;
+                        Vector3 end = center + radial * (radius + 0.25f) + Vector3.UnitY * 0.04f;
+                        uint seed = LightningRules.Mix(state.CastId, (uint)(i * 7919 + (int)(now * 60)));
+                        m_scene.Spawn(LightningBoltKind.Radial, start, end, seed, now, 0.15, 0.05f, 0.17f, core, halo, 1, 0.8f, false);
+                    }
+                }
+            }
+            if (expired == null) return;
+            foreach (ushort id in expired) m_domains.Remove(id);
+        }
+
+        /// <summary>Short arc on one struck target, shared by the authority and remote clients.</summary>
+        private void DomainTickArc(Vector3 position)
+        {
+            if (m_scene == null) return;
+            double now = m_time.GameTime;
+            m_scene.Spawn(LightningBoltKind.Near, position + Vector3.UnitY * 3.4f, position,
+                LightningRules.Mix((uint)(now * 60.0), (uint)(position.X * 13f + position.Z * 7f)), now, 0.18,
+                0.045f, 0.13f, new Color(238, 250, 255), new Color(94, 178, 255, 190), 1, 0.5f, true);
+        }
+
+        private void PublishRune(Vector3 center, float startRadius, float endRadius, double life)
+        {
+            if (m_scene == null) return;
+            m_scene.SpawnRune(center, startRadius, endRadius, m_time.GameTime, life, new Color(120, 200, 255, 200));
+        }
+
+        /// <summary>
+        /// Hostile-only variant used by automatic area effects: neutral animals, livestock and
+        /// tamed creatures are never struck, matching the shared targeting rule.
+        /// </summary>
+        private void CollectHostiles(Vector3 center, float radius, ComponentPlayer caster, List<ComponentBody> result)
+        {
+            result.Clear();
+            float radiusSquared = radius * radius;
+            foreach (ComponentBody body in m_bodies.Bodies)
+            {
+                if (body == caster.ComponentBody || !body.Entity.IsAddedToProject) continue;
+                if (Vector3.DistanceSquared(center, body.BoundingBox.Center()) > radiusSquared) continue;
+                ComponentCreature creature = body.Entity.FindComponent<ComponentCreature>(false);
+                if (creature == null || creature.ComponentHealth == null || creature.ComponentHealth.Health <= 0f) continue;
+                if (!SCIEPort.Features.Targeting.CreatureTargetRules.IsHostile((int)creature.Category, body.Player != null,
+                    false, false, m_gameInfo.WorldSettings.IsFriendlyFireEnabled)) continue;
+                result.Add(body);
+            }
+        }
+
+        /// <summary>The Thunder God grind hits every living creature, not only predators.</summary>
+        private void CollectCreatures(Vector3 center, float radius, ComponentPlayer caster, List<ComponentBody> result)
+        {
+            result.Clear();
+            float radiusSquared = radius * radius;
+            foreach (ComponentBody body in m_bodies.Bodies)
+            {
+                if (body == caster.ComponentBody || !body.Entity.IsAddedToProject) continue;
+                if (Vector3.DistanceSquared(center, body.BoundingBox.Center()) > radiusSquared) continue;
+                if (Related(caster.ComponentBody, body)) continue;
+                ComponentCreature creature = body.Entity.FindComponent<ComponentCreature>(false);
+                if (creature == null || creature.ComponentHealth == null || creature.ComponentHealth.Health <= 0f) continue;
+                if (body.Player != null && !m_gameInfo.WorldSettings.IsFriendlyFireEnabled) continue;
+                result.Add(body);
+            }
+        }
+
+        private static bool Related(ComponentBody a, ComponentBody b)
+            => a != null && b != null && (a.ParentBody == b || b.ParentBody == a || a.ChildBodies.Contains(b) || b.ChildBodies.Contains(a));
+
+        /// <summary>
+        /// Client-side domain lifecycle. The start event rebuilds the local visual state from the
+        /// caster entity, so a late or remote viewer still sees the ring follow the caster.
+        /// </summary>
+        private void ApplyDomainEvent(StormhammerSkillPackage package)
+        {
+            if (package.Event == StormhammerSkillEvent.DomainStart)
+            {
+                ComponentPlayer caster = FindPlayer(package.CasterId);
+                if (caster == null) return;
+                m_domains[package.CasterId] = new DomainState
+                {
+                    Caster = caster,
+                    EntityId = package.CasterId,
+                    CastId = package.CastId,
+                    StartTime = m_time.GameTime
+                };
+                PublishRune(package.Position, 0.8f, StormhammerDomainRules.Radius, 0.55);
+                return;
+            }
+            if (package.Event == StormhammerSkillEvent.DomainEnd)
+            {
+                m_domains.Remove(package.CasterId);
+                return;
+            }
+            if (package.Event == StormhammerSkillEvent.DomainTick && package.TargetId != 0)
+            {
+                DomainTickArc(package.Position);
+            }
+        }
+
+        private ComponentPlayer FindPlayer(ushort id)
+        {
+            foreach (ComponentPlayer player in m_players.ComponentPlayers)
+                if (player.Entity.EntityId == id) return player;
+            return null;
+        }
+
         private IEnumerable<ComponentBody> ValidTargets(Vector3 center, float radius, ComponentPlayer caster)
         {
             float radiusSquared = radius * radius;
@@ -663,12 +936,28 @@ namespace SCIEPort.Features.Stormhammer
         private StormhammerSkillPackage Event(ComponentPlayer caster, uint castId, StormhammerSkill skill, StormhammerSkillEvent kind, Vector3 position, Vector3 direction, float value = 0f, byte step = 0, ushort targetId = 0)
             => StormhammerSkillPackage.CreateEvent(caster.Entity.EntityId, castId, m_time.GameTime, skill, kind, position, direction, value, step, targetId);
 
+        /// <summary>Clamps a live cooldown down to the reduced value; never lengthens it.</summary>
+        private void CapCooldown(ushort casterId, StormhammerSkill skill, float cap)
+        {
+            double[] values;
+            if (!m_cooldowns.TryGetValue(casterId, out values)) return;
+            double limit = m_time.GameTime + cap;
+            if (values[(int)skill] <= limit) return;
+            values[(int)skill] = limit;
+            foreach (ComponentPlayer player in m_players.ComponentPlayers)
+            {
+                if (player.Entity.EntityId != casterId) continue;
+                Publish(Event(player, 0u, skill, StormhammerSkillEvent.Accepted, player.ComponentBody.BoundingBox.Center(), Vector3.UnitY, cap));
+                break;
+            }
+        }
+
         private void SetCooldown(ushort casterId, StormhammerSkill skill, float duration)
         {
             double[] values;
             if (!m_cooldowns.TryGetValue(casterId, out values))
             {
-                values = new double[3];
+                values = new double[4];
                 m_cooldowns.Add(casterId, values);
             }
             values[(int)skill] = m_time.GameTime + duration;
@@ -690,8 +979,15 @@ namespace SCIEPort.Features.Stormhammer
             int contents = Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue);
             return contents == StormhammerAwakenedBlock.Index || contents == StormhammerBlock.Index;
         }
-        private static bool IsValidSkill(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment || skill == StormhammerSkill.MyriadTribulation;
-        private static float Cooldown(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment ? JudgmentCooldown : UltimateCooldown;
+        private static bool IsValidSkill(StormhammerSkill skill) => skill == StormhammerSkill.ThunderousJudgment || skill == StormhammerSkill.MyriadTribulation || skill == StormhammerSkill.Dominion;
+        /// <summary>Authority cooldown for one skill, shortened while the Thunder God window is open.</summary>
+        private float Cooldown(ComponentPlayer player, StormhammerSkill skill)
+        {
+            if (skill == StormhammerSkill.MyriadTribulation) return UltimateCooldown;
+            bool buffed = player != null && IsThunderGodActive(player);
+            float baseCooldown = skill == StormhammerSkill.ThunderousJudgment ? JudgmentCooldown : StormhammerDomainRules.Cooldown;
+            return StormhammerDomainRules.ReducedCooldown(baseCooldown, buffed);
+        }
         private static bool IsNewer(ushort value, ushort previous) => value != previous && (ushort)(value - previous) < 32768;
 
         private static Vector3 SafeDirection(Vector3 value, Vector3 fallback)

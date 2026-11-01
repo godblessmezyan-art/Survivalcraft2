@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\Stormhammer\LightningRules.cs" Link="LightningRules.cs" />
     <Compile Include="..\..\src\SCIEPort\Features\Stormhammer\StormhammerEquipmentRules.cs" Link="StormhammerEquipmentRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\Stormhammer\StormhammerDomainRules.cs" Link="StormhammerDomainRules.cs" />
   </ItemGroup>
 </Project>

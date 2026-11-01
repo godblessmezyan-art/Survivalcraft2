@@ -1,9 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirRules.cs" Link="GungnirRules.cs" />
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirHudLayout.cs" Link="GungnirHudLayout.cs" />
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirVisualRules.cs" Link="GungnirVisualRules.cs" />
     <Compile Include="../../src/SCIEPort/Features/Gungnir/GungnirSkyRules.cs" Link="GungnirSkyRules.cs" />
+    <Compile Include="../../src/SCIEPort/Features/Targeting/CreatureTargetRules.cs" Link="CreatureTargetRules.cs" />
   </ItemGroup>
 </Project>

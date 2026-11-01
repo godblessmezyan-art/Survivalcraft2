@@ -6,6 +6,7 @@ using Game.NetWork;
 using Game.NetWork.Packages;
 using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.FourSaints;
+using SCIEPort.Features.Targeting;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Gungnir
@@ -19,6 +20,10 @@ namespace SCIEPort.Features.Gungnir
             internal uint Sequence, Sent, Revision, Received;
             internal double BuffEnd, BuffReady, BuffVisualStart = -100, JudgmentReady, NextMelee, LastSnapshot, NextSnapshot, ChargeStart = -1;
             internal double CastStart = -100, FlightStart, AimStart = -1;
+            /// <summary>Fate Severance: authority cooldown and the shared 0.9 s presentation clock.</summary>
+            internal double FatalismReady, FatalismStart = -100;
+            internal float FatalismHits;
+            internal uint FatalismCast;
             internal float WalkDelta, JumpDelta, BaseWalk, Distance;
             internal bool Equipped, Impact, AimHeld;
             internal byte Phase;
@@ -33,6 +38,18 @@ namespace SCIEPort.Features.Gungnir
             internal double ApplyAt;
             internal float Power;
         }
+        /// <summary>
+        /// Fate Severance resolves on one authoritative beat. The target list is frozen at the
+        /// mark beat, so late movement, duplicate packets or extra frames can never add damage.
+        /// </summary>
+        private sealed class PendingFatalism
+        {
+            internal ComponentPlayer Caster;
+            internal uint CastId;
+            internal double MarkAt, ApplyAt;
+            internal bool Marked;
+            internal readonly List<ComponentBody> Targets = new List<ComponentBody>();
+        }
         internal readonly Dictionary<ushort, State> States = new Dictionary<ushort, State>();
         private SubsystemTime m_time;
         private SubsystemBodies m_bodies;
@@ -43,6 +60,10 @@ namespace SCIEPort.Features.Gungnir
         private readonly List<ushort> m_remove = new List<ushort>();
         private readonly DynamicArray<ComponentBody> m_targets = new DynamicArray<ComponentBody>();
         private readonly List<PendingHolyDamage> m_pendingHolyDamage = new List<PendingHolyDamage>();
+        private readonly List<PendingFatalism> m_pendingFatalism = new List<PendingFatalism>();
+        private readonly List<ComponentBody> m_fatalismScratch = new List<ComponentBody>();
+        private uint m_nextFatalismCast = 1;
+        private readonly System.Random m_random = new System.Random();
         internal double Now => m_time.GameTime;
         private bool Authority => CommonLib.WorkType != WorkType.Client;
         /// <inheritdoc />
@@ -83,7 +104,7 @@ namespace SCIEPort.Features.Gungnir
         }
         internal void Accept(ComponentPlayer p, GungnirPackage packet)
         {
-            if (!Authority || !Equipped(p) || packet.Command < 1 || packet.Command > 4 || !Finite(packet.Direction)) return;
+            if (!Authority || !Equipped(p) || packet.Command < 1 || packet.Command > 5 || !Finite(packet.Direction)) return;
             State s = Get(p);
             bool nativeThrow = packet.Command == GungnirRules.Throw && packet.Kind == 255;
             if (!nativeThrow)
@@ -117,7 +138,7 @@ namespace SCIEPort.Features.Gungnir
             if (packet.Command == GungnirRules.Blessing)
             {
                 if (Now < s.BuffReady) return;
-                s.BuffVisualStart = Now; s.BuffEnd = Now + 15; s.BuffReady = Now + GungnirRules.BlessingCooldown;
+                s.BuffVisualStart = Now; s.BuffEnd = Now + GungnirRules.BlessingDuration; s.BuffReady = Now + GungnirRules.BlessingCooldown;
                 Sound("Invoke", p.ComponentBody.Position);
             }
             else if (packet.Command == GungnirRules.Judgment)
@@ -129,6 +150,20 @@ namespace SCIEPort.Features.Gungnir
                 s.Target = hit.Value.HitPoint() + Vector3.UnitY * 0.04f;
                 s.CastStart = Now; s.Impact = false; s.JudgmentReady = Now + GungnirRules.JudgmentCooldown;
                 Sound("Invoke", s.Target);
+            }
+            else if (packet.Command == GungnirRules.Fatalism)
+            {
+                if (Now < s.FatalismReady) return;
+                s.FatalismReady = Now + GungnirRules.FatalismCooldown;
+                s.FatalismStart = Now; s.FatalismHits = 0f; s.FatalismCast = m_nextFatalismCast++;
+                // Announce the edict immediately: windup and marks play on every client, the
+                // single damage beat is scheduled on the authoritative clock below.
+                Publish(new GungnirPackage { Kind = GungnirRules.KindFatalism, Command = GungnirRules.Fatalism, Phase = 1,
+                    Caster = p.Entity.EntityId, Sequence = ++s.Revision, Position = p.ComponentBody.Position,
+                    Blessing = 0f, FatalismCooldown = GungnirRules.FatalismCooldown });
+                m_pendingFatalism.Add(new PendingFatalism { Caster = p, CastId = s.FatalismCast,
+                    MarkAt = Now + GungnirRules.FatalismMark, ApplyAt = Now + GungnirRules.FatalismImpact });
+                Sound("Invoke", p.ComponentBody.Position);
             }
             else if (packet.Command == GungnirRules.Throw)
             {
@@ -302,6 +337,7 @@ namespace SCIEPort.Features.Gungnir
             foreach (ushort id in m_remove) { ApplyModifiers(States[id], false); GungnirSkyVisuals.RemoveCaster(Project, id); States.Remove(id); }
             GungnirSkyVisuals.Update(Project, Now);
             ApplyPendingHolyDamage();
+            UpdatePendingFatalism(Now);
             MjolnirDisplay.Update(Project, Now);
             m_scene.Update(dt);
         }
@@ -324,6 +360,73 @@ namespace SCIEPort.Features.Gungnir
                 if (health == null || health.Health <= 0f) continue;
                 health.Injure(pending.Power / MathUtils.Max(health.AttackResilience, 0.001f), pending.Attacker, false, "永恒之枪·神圣贯穿");
                 ShowHolyHitValue(pending.Target, pending.Power);
+            }
+        }
+
+        /// <summary>
+        /// Frozen target list for one edict. Only living, loaded predators pass the shared
+        /// hostility rule; the caster, other players (unless friendly fire is on), livestock,
+        /// tamed animals and ambient wildlife are never included.
+        /// </summary>
+        internal void CollectHostiles(ComponentPlayer caster, List<ComponentBody> result)
+        {
+            result.Clear();
+            foreach (ComponentBody body in m_bodies.Bodies)
+            {
+                if (body == caster.ComponentBody || !body.Entity.IsAddedToProject) continue;
+                ComponentCreature creature = body.Entity.FindComponent<ComponentCreature>(false);
+                if (creature == null) continue;
+                ComponentHealth health = creature.ComponentHealth;
+                if (health == null || health.Health <= 0f) continue;
+                if (!CreatureTargetRules.AcceptsTarget((int)creature.Category, body.Player != null, false, false,
+                    Loaded(body.Position), m_info.WorldSettings.IsFriendlyFireEnabled)) continue;
+                result.Add(body);
+            }
+        }
+
+        /// <summary>Read-only scratch view used by the client scene to draw marks on visible hosts.</summary>
+        internal List<ComponentBody> NearbyHostiles(ComponentPlayer caster)
+        {
+            CollectHostiles(caster, m_fatalismScratch);
+            return m_fatalismScratch;
+        }
+
+        private void UpdatePendingFatalism(double now)
+        {
+            for (int i = m_pendingFatalism.Count - 1; i >= 0; i--)
+            {
+                PendingFatalism pending = m_pendingFatalism[i];
+                ComponentPlayer caster = pending.Caster;
+                if (caster == null || !caster.IsAddedToProject || caster.ComponentHealth == null
+                    || caster.ComponentHealth.Health <= 0f || !Equipped(caster))
+                {
+                    m_pendingFatalism.RemoveAt(i);
+                    continue;
+                }
+                if (!pending.Marked && now >= pending.MarkAt)
+                {
+                    pending.Marked = true;
+                    CollectHostiles(caster, pending.Targets);
+                }
+                if (now < pending.ApplyAt) continue;
+                m_pendingFatalism.RemoveAt(i);
+                int hits = 0;
+                for (int t = 0; t < pending.Targets.Count; t++)
+                {
+                    ComponentBody target = pending.Targets[t];
+                    if (target == null || !target.Entity.IsAddedToProject) continue;
+                    ComponentHealth health = target.Entity.FindComponent<ComponentHealth>(false);
+                    if (health == null || health.Health <= 0f) continue;
+                    // Rune Blessing never multiplies the edict: the power is fixed at 79.
+                    Damage(caster, target, GungnirRules.FatalismRoll(m_random.Next(0, 91)), Vector3.UnitY);
+                    hits++;
+                }
+                State state = Get(caster);
+                state.FatalismHits = hits;
+                Publish(new GungnirPackage { Kind = GungnirRules.KindFatalism, Command = GungnirRules.Fatalism, Phase = 2,
+                    Caster = caster.Entity.EntityId, Sequence = ++state.Revision, Position = caster.ComponentBody.Position,
+                    Blessing = hits, FatalismCooldown = (float)Math.Max(0, state.FatalismReady - now) });
+                Sound("Impact", caster.ComponentBody.Position);
             }
         }
 
@@ -416,11 +519,21 @@ namespace SCIEPort.Features.Gungnir
         private void Snapshot(State s)
         {
             Publish(new GungnirPackage { Kind = 1, Caster = s.Player.Entity.EntityId, Sequence = ++s.Revision, Equipped = s.Equipped, Phase = s.Phase, Position = s.Position, Direction = s.Direction, Target = s.Target,
-                Blessing = (float)Math.Max(0, s.BuffEnd - Now), BlessingCooldown = (float)Math.Max(0, s.BuffReady - Now), JudgmentCooldown = (float)Math.Max(0, s.JudgmentReady - Now), JudgmentAge = (float)(Now - s.CastStart) });
+                Blessing = (float)Math.Max(0, s.BuffEnd - Now), BlessingCooldown = (float)Math.Max(0, s.BuffReady - Now), JudgmentCooldown = (float)Math.Max(0, s.JudgmentReady - Now), JudgmentAge = (float)(Now - s.CastStart), FatalismCooldown = (float)Math.Max(0, s.FatalismReady - Now) });
         }
         private void Publish(GungnirPackage p) { if (p.Kind == 2) m_scene.Stab(p.Position, p.Direction); if (CommonLib.WorkType == WorkType.Server) CommonLib.Net.QueuePackage(p); }
         internal void Receive(GungnirPackage p)
         {
+            if (p.Kind == GungnirRules.KindFatalism)
+            {
+                ComponentPlayer casterPlayer = null;
+                foreach (var item in m_players.ComponentPlayers) if (item.Entity.EntityId == p.Caster) { casterPlayer = item; break; }
+                if (casterPlayer == null) return;
+                State cast = Get(casterPlayer);
+                if (p.Phase == 1) { cast.FatalismStart = Now; cast.FatalismHits = 0f; }
+                else { cast.FatalismHits = p.Blessing; cast.FatalismReady = Now + p.FatalismCooldown; }
+                return;
+            }
             if (p.Kind == 2)
             {
                 m_scene.Stab(p.Position, p.Direction);
@@ -444,6 +557,7 @@ namespace SCIEPort.Features.Gungnir
             }
             if (p.Blessing > 0f && s.BuffEnd <= Now) s.BuffVisualStart = Now;
             s.BuffEnd = Now + p.Blessing; s.BuffReady = Now + p.BlessingCooldown; s.JudgmentReady = Now + p.JudgmentCooldown; s.CastStart = Now - p.JudgmentAge;
+            s.FatalismReady = Now + p.FatalismCooldown;
         }
         private void Sound(string name, Vector3 p)
         {
@@ -468,7 +582,7 @@ namespace SCIEPort.Features.Gungnir
         public override void Dispose()
         {
             foreach (var s in States.Values) ApplyModifiers(s, false);
-            m_pendingHolyDamage.Clear(); States.Clear(); GungnirSkyVisuals.Reset(Project); GungnirHud.Clear(); base.Dispose();
+            m_pendingHolyDamage.Clear(); m_pendingFatalism.Clear(); States.Clear(); GungnirSkyVisuals.Reset(Project); GungnirHud.Clear(); base.Dispose();
         }
     }
 }

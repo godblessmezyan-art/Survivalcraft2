@@ -28,9 +28,14 @@ Add-Type -AssemblyName System.Drawing
 $skills = New-Object Drawing.Bitmap((Join-Path $project 'Assets/Textures/GungnirSkills.png'))
 $runes = New-Object Drawing.Bitmap((Join-Path $project 'Assets/Textures/GungnirRunes.png'))
 try {
-    if ($skills.Width -ne 512 -or $skills.Height -ne 256) { throw 'Gungnir skill atlas must remain 512x256.' }
+    if ($skills.Width -ne 768 -or $skills.Height -ne 256) { throw 'Gungnir skill atlas must remain three 256-unit cells (768x256).' }
+    foreach ($slot in 0, 1, 2) {
+        $opaque = 0
+        for ($y = 8; $y -lt 256; $y += 6) { for ($x = $slot * 256 + 8; $x -lt ($slot + 1) * 256; $x += 6) { if ($skills.GetPixel($x, $y).A -gt 32) { $opaque++ } } }
+        if ($opaque -lt 400) { throw "Gungnir skill icon slot $slot is empty or unreadable." }
+    }
     if ($runes.Width -ne 1024 -or $runes.Height -ne 256) { throw 'Gungnir rune atlas must be 8 cells in a 1024x256 strip.' }
-    if ($skills.GetPixel(0, 0).A -ne 0 -or $skills.GetPixel(255, 0).A -ne 0 -or $skills.GetPixel(511, 255).A -ne 0) { throw 'Gungnir skill atlas lost its transparent background.' }
+    if ($skills.GetPixel(0, 0).A -ne 0 -or $skills.GetPixel(255, 0).A -ne 0 -or $skills.GetPixel(767, 255).A -ne 0) { throw 'Gungnir skill atlas lost its transparent background.' }
     $signatures = New-Object 'System.Collections.Generic.HashSet[string]'
     for ($slot = 0; $slot -lt 8; $slot++) {
         $bits = New-Object Text.StringBuilder
