@@ -4,6 +4,7 @@ using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
 using SCIEPort.Features.Excalibur;
+using SCIEPort.Features.Suspension;
 using SCIEPort.Features.Inventory;
 using Engine;
 using Game.NetWork;
@@ -186,6 +187,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void GuiUpdate(ComponentGui componentGui)
         {
+            SubsystemSuspendedItem.AdaptGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
             FourSaintsClothingPreview.Update(componentGui);

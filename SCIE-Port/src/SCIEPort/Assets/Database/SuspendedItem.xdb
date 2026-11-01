@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortSuspendedItem>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortSuspendedItem" Guid="59840f47-beba-5ecb-8f4b-cdd0045d9f2a">
+      <MemberComponentTemplate Name="Chest" Guid="1be19cf6-c272-5c56-8b5a-0bd63655060b" InheritanceParent="7312ec8c-10c7-4133-85b4-4a35bd44c956">
+        <Parameter Name="Class" Guid="6c9bf087-01ce-5595-9419-518974333016" Value="SCIEPort.Features.Suspension.ComponentSuspendedItem" Type="string"/>
+        <Parameter Name="SlotsCount" Guid="be089e44-84ee-5174-8d05-511b4d20fc81" Value="1" Type="int"/>
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="BlockEntity" Guid="9bf5813d-f7aa-5b39-a150-5bf92b235b13" InheritanceParent="09a85cba-d94e-41b8-9497-f20ed942c17e"/>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortSuspendedItem" Guid="16af809f-1e35-5894-b56b-d502bb48b142" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="3f559bd9-5501-524f-9769-eb7d51ba1900" Value="SCIEPort.Features.Suspension.SubsystemSuspendedItem" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortSuspendedItem" Guid="2968441c-f738-5bd2-a04c-876228b61f41" InheritanceParent="16af809f-1e35-5894-b56b-d502bb48b142"/>
+  </ProjectTemplate>
+</SCIEPortSuspendedItem>

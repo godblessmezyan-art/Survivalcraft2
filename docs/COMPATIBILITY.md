@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-11-01 SCIE-Port 0.72.0：悬浮陈列器
+
+main基线`73a87f3`，新增954/DATA0、独立SCIEPortSuspendedItem实体/子系统、SlotsCount1的ComponentChest子类，归SCIEPort.Building。只读核对固定目标的SubsystemChestBlockBehavior/SubsystemBlockEntities、原生实体保存/恢复、ComponentInventoryBase与转移/库存/实体包、ChestWidget布局与DrawMeshBlock上下文；延用既有GuiUpdate/IDrawable，不新增Hook或包ID，240–253字段和原神器保持。新CSV/XDB按原布局打包，内部SCIEPort/net472/API1.42/SC2.4.10.6不改。
+
+| 项目 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows x25.01.17 ABI与原生组件 | 已确认 | 三程序集SHA匹配既有登记；真实原生DB合并/实体创建、DATA保存XML往返、库存转移、Client禁结算与服务端拆除去重通过隔离验证。 |
+| 固定目标Release与.netmod内容 | 已确认 | Release构建、全部既有回归、649项新原生检查、原生分类与新增CSV/XDB/DLL包内字节校验通过；包指纹见测试记录。 |
+| 目标Engine物品绘制 | 已确认 | 生产DrawItem、真实神器模型/纹理的合成场景，含旋转/背面/遮挡/20:9与原生方块/平面物品；非游戏或手机实拍。 |
+| Android7723/完整单机/主机/普通客户端/晚加入/触屏与性能 | 待验证 | 尚未打开游戏世界或手机；原生隔离与合成GPU不能替代实际同步、操作和性能验收。 |
+| 与旧版混装/旧版加载含新装置存档 | 不支持 | 新954和实体类型须各方统一0.72.0；降级前取回内容、拆除并备份。 |
+
+精确命令、Release/包检查与指纹见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)及[使用/限制](../SCIE-Port/docs/SUSPENDED-ITEMS.md)。954虽可手动放置，仍不是Builder Assistant支持材料，不新增蓝图能力。
+
 ## 2026-11-01 SCIE-Port 0.71.0：圣剑下劈、持续伤害与附魔定位
 
 基于main `62e4bc0`。953/DATA0、全部图标/模型/纹理/音效、模板GUID、内部SCIEPort身份及net472/API1.42/SC2.4.10.6保持。按固定目标重新核验第一人称CSV旋转/双重ItemOffset和DrawMeshBlock矩阵/投影；金光改随剑刃局部矩阵，下劈/余光与回血由现有主线程子系统处理，无新Hook或加载器入口。

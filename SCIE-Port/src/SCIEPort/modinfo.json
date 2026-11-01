@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.71.0",
+  "Version": "0.72.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.71.0 圣剑连续下劈、第一人称头顶举剑与随剑金光；90点劈落、光柱6秒/每秒45点并在末2秒淡出。阿瓦隆瞬回20%最大生命并每秒1点至75秒CD结束；一技能CD15秒。主机权威，Android与真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。0.72.0 新增悬浮陈列器：支持大多数物品，单件真实存储，放入后隐藏标记，以原物品模型悬浮旋转。原生存档、触屏存取与SCNET同步，拆除归还内容；既有神器保持。Android与真实联机待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

@@ -331,6 +331,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Bone dragon native model/database resource imp
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
@@ -2380,6 +2382,8 @@ if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $ve
 & (Join-Path $PSScriptRoot 'Test-DeathAuthority.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir -Package $package
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
+if ($LASTEXITCODE -ne 0) { throw 'Suspended item final package validation failed.' }
 
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"

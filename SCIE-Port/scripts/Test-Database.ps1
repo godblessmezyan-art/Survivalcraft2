@@ -48,6 +48,8 @@ $VanillaFolders = @{
 # them here means any NEW or unknown parent is flagged instead of silently failing
 # at in-game load time. Friendly names are for diagnostics only.
 $KnownVanillaParents = @{
+    '7312ec8c-10c7-4133-85b4-4a35bd44c956' = 'Chest (ComponentTemplate)'
+    '09a85cba-d94e-41b8-9497-f20ed942c17e' = 'BlockEntity (ComponentTemplate)'
     '472b36f3-6ee6-442a-900f-b4caba94be39' = 'Boat (ComponentTemplate)'
     'cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4' = 'SimpleModel (ComponentTemplate)'
     '65268743-4076-4ee3-aefe-f02a54d16b36' = 'Spawn (ComponentTemplate)'

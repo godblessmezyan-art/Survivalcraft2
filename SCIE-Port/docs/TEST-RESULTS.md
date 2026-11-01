@@ -1,5 +1,36 @@
 # 测试结果
 
+## 2026-11-01 main 0.72.0：悬浮陈列器
+
+基于本地main `73a87f3`，开始时工作区干净。新增954/DATA0、独立SCIEPortSuspendedItem实体/子系统、SlotsCount1的ComponentChest子类。放入真实物品后隐藏空槽标记，复用原物品模型/材质和图标居中，悬浮旋转；无底座、碰撞、阴影或光衰减。原生触屏面板/库存转移/实体持久化和SCNET包负责存取同步。全局16个最近可见装置/48格范围，原神器资产、数值和自定义协议保持。使用和边界见[悬浮陈列器](SUSPENDED-ITEMS.md)。
+
+实际执行（用户SDK9.0.300、Python和net472引用；Major仅运行既有net8套件，Mod目标不变）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-SuspensionGpu.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/suspension-gpu
+```
+
+根环境、构建内移植环境/ABI、Release和完整包校验均通过，退出码0。精确目标仍为Windows Net_x25.01.17/net472/API1.42/SC2.4.10.6；三程序集SHA与既有登记一致。记录在`artifacts/suspension-release.log`、`artifacts/suspension-gpu/stdout.txt`，指纹及预览SHA见[机器可读记录](assets/suspension/validation.json)。
+
+| 验证 | 结果与边界 |
+|---|---|
+| 新功能原生组件 | **649项通过**：954对原生/全部Mod方块身份避冲突；实际完整原生数据库合并后创建自定义实体、原生单格库存注册/坐标/owner；真实InventorySlotWidget转移、整组只入1/余39、已满拒绝、负移除拒绝、DATA/损耗原样取回；原生EntityDataList保存XML→解析→加载、原生库存包实际压缩往返/客户端Handle；Client不结算/不掉落，Server重复拆除只返还1件/注销实体和库存/后续存档无残留，重复玩家放置不重复创建；非碰撞选择框、72三角标记、浮动无漂移与计时循环连续。全部为隔离组件，无游戏世界。 |
+| 原生触屏UI绑定 | 原生Content.scpak只读解码确认ChestWidget首标题与ChestGrid/InventoryGrid命名；复用原生面板/背包/拖放，只改本装置单格/标题。不同分辨率、多指、左右手及不遮挡原控件尚未操作手机，待验证。 |
+| 生产物品绘制/目标Engine GPU | **61项通过**：使用生产DrawItem与原生导入的真实神器模型/材质/CSV居中，7种神器和空标记、原生立方材料/平面物品绘制、颜色可见/旋转/背面/20:9、前景墙遮挡、16次混合绘制及UI上下文隔离。原生立方/平面项目使用原创测试色板；截图为合成场景，不是游戏/Android。 |
+| 既有回归 | 全部构建套件保留并通过；库存规则758、原生库存168（57实际物品行/24CSV）、圣剑规则806/原生519、其它神器/军势/载具/数据库/品牌/禁带二进制守卫通过。圣剑原生计数比0.71多1仅因全Mod方块ID审计新增954。 |
+| 包资源比较 | **0.71.0的163个Assets条目全部逐字节相同**，仅新增Blocks/SuspendedItem.csv和Database/SuspendedItem.xdb。没有新外部美术/技能图标，没有复制游戏UI/数据库/纹理/DLL。 |
+
+构建前核验新增Chest父GUID7312ec8c-10c7-4133-85b4-4a35bd44c956和BlockEntity父GUID09a85cba-d94e-41b8-9497-f20ed942c17e，并加入数据库白名单；真实原生合并后的类/槽数/坐标与创建结果已核验。只复用GuiUpdate、IDrawable和原生容器/实体ABI，无新Hook/自定义包ID或240–253布局变更。所有端须统一0.72.0，旧版混装不支持；降级前取回内容、拆除装置并备份。
+
+最终`artifacts/荒野探险家.netmod`与`artifacts/荒野探险家-0.72.0.netmod`字节一致，**9,867,246字节**，SHA-256 **9A2DEC60F7B9357ADE884AC8C4123755859B3928486F25411758ADC41A28AD5D**。包内DLL与通过GPU检查的最终Release DLL相同，内部版本0.72.0.0/net472；新增CSV/XDB与工作区原件逐字节一致。
+
+Android7723、完整单机、真实主机/普通客户端/晚加入、实际安装/交互/触屏/选择范围、所有外部Mod物品、存读档与大量陈列手机性能全部**待验证**。未打开游戏或玩家存档；首测使用可丢弃新世界和备份。新代码无地形写入/伤害调用；954带库存实体，不能由Builder Assistant蓝图生成。蓝图材料/族/DATA/施工限制保持并已更新清单。本轮只本地提交main，不推送。
+
 ## 2026-11-01 main 0.71.0：圣剑下劈、余光与附魔偏左修复
 
 本地main基线`62e4bc0`（0.70.0），工作区起始干净。附魔金光改绑实际剑刃局部矩阵；第一人称独立举剑/下劈曲线适配固定目标的CSV旋转和双重ItemOffset，巨型光剑连续下斩。二技能1.75秒落下90点、2.45秒收势、余光6秒每秒45点，最后2秒平滑淡出/CD35；一技能CD15。阿瓦隆接受时瞬回20%最大生命，之后每秒1点至75秒CD结束，保留3秒个人庇护；回血点数沿用原生Health0.1/点的现有显示口径。换武器保留周期回血，死亡/断开/世界退出清除。具体规则与取消范围见[圣剑V3](EXCALIBUR-V3.md)。

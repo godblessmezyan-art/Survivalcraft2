@@ -17,7 +17,7 @@
 | 食材 | SCIEPort.Food | 可食用果实、玉米棒、黄豆等 |
 | 工业材料 | SCIEPort.Materials | 亚麻纤维、测试合金 |
 | 工业部件 | SCIEPort.Industry | 齿轮、车轮、模具、活塞、钢瓶 |
-| 建筑装置 | SCIEPort.Building | 竹材、铁轨、便携堡垒及其内部构件 |
+| 建筑装置 | SCIEPort.Building | 竹材、铁轨、便携堡垒及其内部构件、悬浮陈列器954 |
 | 生物生成 | SCIEPort.Creatures | 狐狸、兔子、鸡生成器 |
 
 内部隐藏构件仍保持 `DefaultCreativeData=-1`，不会因为改 Tab 暴露到创造栏。

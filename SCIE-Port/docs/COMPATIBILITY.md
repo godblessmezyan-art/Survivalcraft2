@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-01 SCIE-Port 0.72.0：悬浮陈列器
+
+基于main `73a87f3`，新增954/DATA0和独立SCIEPortSuspendedItem实体/子系统，SlotsCount1的ComponentChest子类，SCIEPort.Building。固定Windows x25.01.17/net472/API1.42/SC2.4.10.6保持。实际原生数据库合并/实体创建、存档XML/库存同步、转移/拆除与Engine真实物品绘制隔离 **已确认**；Android7723/完整游戏/真实主机/普通客户端/晚加入/触屏/手机性能 **待验证**。命令、Release/包检查及指纹见[测试记录](TEST-RESULTS.md)。
+
+新增CSV/XDB按原包布局加载；原生Chest与BlockEntity父GUID已重新取证并加入校验白名单。复用GuiUpdate和IDrawable，无新Hook/自定义包ID/240–253变动；原神器资产和数值保持。与旧版混装/降级读取新实体 **不支持**，同房统一0.72.0；降级前取回内容、拆除装置和备份。954为带库存方块实体，不能加入Builder Assistant蓝图，详见[使用与限制](SUSPENDED-ITEMS.md)。
+
 ## 2026-11-01 SCIE-Port 0.71.0：圣剑动作与持续效果
 
 基于main `62e4bc0`，固定Windows x25.01.17/net472/API1.42/SC2.4.10.6。第一人称姿态适配实际CSV旋转与双重ItemOffset；附魔流光随DrawMeshBlock相同模型矩阵、缩放与投影。953/DATA0、模板GUID、图标/模型/纹理/音效及原有Hook保持，无新加载器ABI。Release、包检查、规则、目标原生组件隔离和Engine GPU合成 **已确认**，其范围与断言数详见[测试记录](TEST-RESULTS.md)。Android7723/完整游戏/真实联机/触屏/性能 **待验证**。

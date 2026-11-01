@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original suspended-item storage block (2026-11-01)
+
+The small crystal/ring marker for `SuspendedItemBlock` is project-authored code geometry and a single white pixel; no third-party model or icon was created or copied. Filled displays draw the existing item's own model/materials, with no derivative copies or changes to artifact assets. The feature references the installed SCNET chest/inventory/widget/database ABI; it does not redistribute native UI, game textures, database files, assemblies or extracted source. Synthetic GPU evidence under `docs/assets/suspension/` is QA documentation, not game or Android footage, and is not packaged. Native cube/flat-item QA uses an original test palette.
+
 ## Original Excalibur V3 animation and blade glow (2026-11-01)
 
 The model-local enchantment ribbons, continuous downward sword arc and fading holy beam are project-authored runtime geometry and animation code. V3 keeps all existing Excalibur models, textures, audio and generated skill badges unchanged; it adds no external artwork. Native Engine GPU previews in `docs/assets/excalibur-v3/` are synthetic QA fixtures, not game or Android footage, and are not packaged. No game assembly, extracted source, Fate artwork or recording is distributed.

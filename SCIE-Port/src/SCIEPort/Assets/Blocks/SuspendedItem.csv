@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;IsCollidable;IsPlaceable;IsPlacementTransparent;IsTransparent;LightAttenuation;DefaultShadowStrength;DefaultIsInteractive;IsGatherable;MaxStacking;DefaultDropContent;DefaultDescription
+SuspendedItemBlock;悬浮陈列器;SCIEPort.Building;SCIEPortSuspendedItem;954;0;1;FALSE;TRUE;FALSE;TRUE;0;0;TRUE;TRUE;40;954;放在希望物品悬浮的位置，交互打开单件槽位。支持大多数材料、工具、食物与神器；放入后隐藏标记，仅物品本体缓慢旋转浮动。保留物品DATA与损耗，拆除归还内容。无碰撞，不遮光，无神器加成或技能。

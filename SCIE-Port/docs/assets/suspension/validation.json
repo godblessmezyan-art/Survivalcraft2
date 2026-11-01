@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-01",
+  "branch": "main",
+  "baseline": "73a87f3",
+  "version": "0.72.0",
+  "target": "SCNET Net_x25.01.17 Windows / net472 / API1.42 / SC2.4.10.6",
+  "targetSha256": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  },
+  "block": {
+    "id": 954,
+    "creativeData": 0,
+    "category": "SCIEPort.Building",
+    "entity": "SCIEPortSuspendedItem",
+    "slots": 1,
+    "capacity": 1,
+    "collision": false,
+    "lightAttenuation": 0,
+    "shadow": 0,
+    "emptyMarkerTriangles": 72,
+    "maxDrawn": 16,
+    "drawDistance": 48
+  },
+  "checks": {
+    "native": 649,
+    "gpu": 61,
+    "rootEnvironment": "passed",
+    "portEnvironment": "passed",
+    "releaseAndPackage": "passed",
+    "inventoryRules": 758,
+    "nativeInventory": 168,
+    "excaliburRules": 806,
+    "excaliburNative": 519
+  },
+  "package": {
+    "filename": "荒野探险家-0.72.0.netmod",
+    "bytes": 9867246,
+    "sha256": "9A2DEC60F7B9357ADE884AC8C4123755859B3928486F25411758ADC41A28AD5D",
+    "dllSha256": "23D0E2747A404097711E54ED87917C833BB769A8C641903D2C4335DC8865E28D"
+  },
+  "existingAssetComparison": {
+    "baseline": "0.71.0",
+    "byteIdentical": 163,
+    "changed": [],
+    "added": [
+      "Assets/Blocks/SuspendedItem.csv",
+      "Assets/Database/SuspendedItem.xdb"
+    ]
+  },
+  "network": "Native ComponentInventoryPackage/BlockEditPackage/EntityPackage and native entity XML persistence; no new ID or modifications to 240-253.",
+  "evidence": "Actual native DB merge, placement/create, item transfer, XML save/reload, client inventory packet handling, server once-only drops and real model DrawItem GPU scenes. Native cube/flat tests use an original test palette. No game world or phone opened.",
+  "android7723": "待验证",
+  "liveSingleplayer": "待验证",
+  "liveHost": "待验证",
+  "liveClient": "待验证",
+  "lateJoinMultiplayer": "待验证",
+  "previewHashes": {
+    "excalibur.png": "A535756C6A947A75EBC8963CA865E18505288A354B6CCC2D3F2424ADE50F3A1D",
+    "mjolnir.png": "C09BF3B53BE49018DB1E6CC226E8EAE05ACB0C2E49B145F1A40C11605286EDB5",
+    "abyss.png": "03DB1865234CF77C640A9AE6BD07FA177F4023CA364E11860149CDE74694FCD5",
+    "empty-marker.png": "B06EAB7F5D9CBBA9569BFCC38F552F38450B69EED03D593BF2740A0866EA7B2A",
+    "excalibur-rear.png": "48165A1A02C0C4801BEC5E1F1BA7B4718996FD7B8AAC0A781B0AA978336A5A2E"
+  }
+}
