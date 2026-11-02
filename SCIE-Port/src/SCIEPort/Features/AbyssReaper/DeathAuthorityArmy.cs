@@ -80,6 +80,7 @@ namespace SCIEPort.Features.AbyssReaper
         private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Mode=(DeathGuardMode)(int)q.D,Knight=(q.Flags&128)==0&&q.C>=2,Charging=(q.Flags&128)==0&&q.C==3,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,Dragon=(q.Flags&128)!=0,DragonFlight=(q.Flags&128)!=0&&q.C>.5f,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
         private bool Summon(ComponentPlayer p,ushort kind,out string reason)
         {
+            reason="召唤失败";if(kind==DeathSummonRules.Failure)return false;
             reason="召唤数量已满";if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)return false;
             if(kind>NightmareKnightRules.SummonKind){reason="未知的召唤类型";return false;}
             if(kind==CerberusRules.SummonKind&&HasCerberus(p.PlayerGuid)){reason="已契约刻尔柏洛斯";return false;}
@@ -92,7 +93,7 @@ namespace SCIEPort.Features.AbyssReaper
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
                 reason=kind==NightmareKnightRules.SummonKind?"夜魇骑士已召唤":kind==BoneDragonRules.SummonKind?"骨龙已召唤":kind==CerberusRules.SummonKind?"刻尔柏洛斯已召唤":kind==1?"夜魇战马已召唤":"冥界猎犬已召唤";return true;
             }
-            catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
+            catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);else entity?.Dispose();Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败";return false;}
         }
         private bool FindFree(Vector3 center,Vector3 size,out Vector3 at)
         {

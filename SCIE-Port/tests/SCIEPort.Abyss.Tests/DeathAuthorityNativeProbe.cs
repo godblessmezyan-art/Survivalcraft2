@@ -271,7 +271,7 @@ public static partial class DeathAuthorityNativeProbe
         try
         {
             CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();ModsManager.ModHooks=new Dictionary<string,ModsManager.ModHook>();SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
-            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();ModesAndCliffs();ModePersistenceAndNetwork();KnightRulesAndCombat();KnightNetworkAndStorage();
+            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();ModesAndCliffs();ModePersistenceAndNetwork();KnightRulesAndCombat();KnightNetworkAndStorage();RandomSummonRulesAndCooldown();RandomSummonNetwork();
         }
         finally{CommonLib.WorkType=work;CommonLib.Net=net;ModsManager.ModHooks=hooks;SubsystemBedrockBlockBehavior.Territories=territory;BlocksManager.Blocks[0]=air;BlocksManager.Blocks[3]=stone;}
         Console.WriteLine("Death authority native health/conversion/army/ownership/persistence/authentication checks: "+checks+" passed (isolated; not live network/Android).");
