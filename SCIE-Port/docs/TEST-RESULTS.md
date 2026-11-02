@@ -1,5 +1,15 @@
 ﻿# 测试结果
 
+## 2026-11-02 main 0.70.1：军势面板精简与探索规范
+
+基线 `b3afc0e` / 0.70.0。根及 SCIE-Port 的 AGENTS.md 写入用户原话「不要那么多的提示性文字，让玩家自己探索」。军势面板移除常驻模式讲解、类型数值、唯一/飞行说明和“点按切换”；仅保留简短名称、当前状态、必要操作回执及解除确认。召唤按钮固定为“召唤”，冷却时禁用。原源码未含“随机召唤/随即召唤”字样，此次统一常态和冷却态名称；精简召唤成功、模式切换、收回/召出回执及模组描述。按钮几何、生命列、战斗和契约规则保持。
+
+实际执行：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`、`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1`、`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`。工作目录仓库根，目标默认 `E:/SCNET/SCNETx25.01.17`，三个程序集哈希同 [0.70说明](ABYSS-ARMY-MODES.md)。环境/ABI及完整构建均exit 0，net472 Release 0警告0错误；原有全套构建检查通过，含军势原生219、Gungnir389、Poseidon3397、Inventory739、Stormhammer751、21 XDB/22 CSV与包内容守卫。本次为可逆文案改动，没有新增重复实现的字符串测试。
+
+最终 `荒野探险家.netmod` 和 `荒野探险家-0.70.1.netmod` 字节一致，9,426,145字节/156条目，SHA-256 `F2534FE5A766D4E0B7DE8923BB1BE515848B327A83ABADE4E7A39DCE2B847E48`。内嵌DLL与Release输出一致；与0.70.0包逐条比较仅DLL及modinfo变化，其余154条目相同。日志：忽略的 `artifacts/army-panel-0.70.1-environment-root.log`、`artifacts/army-panel-0.70.1-environment-port.log`、`artifacts/army-panel-0.70.1-build.log`、`artifacts/army-panel-0.70.1-package-report.json`。
+
+协议、Hook、包ID/布局、v1/v2契约、模板及星门保持0.70.0；无地形写入或蓝图能力变化，已更新根能力清单。Android7723不同分辨率触屏、冷却禁用与反馈、真实单人/房主/普通客户端 **待验证**，本次未运行游戏或真实联机。仅提交本地main，不推送。
+
 ## 2026-11-02 main 0.70.0：军势行动模式与高处让路修复
 
 基线 `903afcd` / 0.69.0，本次仅本地 main 提交。取消未骑乘召唤物靠近玩家时的向外让路目标，改为停步及水平刹车；每只契约增加护卫/自由行动/攻击模式，设置覆盖现世/次位面/待加载，旧 v1/v2 默认护卫。自由漫游检查完整身体支撑和沿途空气，不跟随/自动归队/自动攻击；攻击模式纳入中立生物并保留玩家、友军、玩家承载体与领地排除。界面在军势列表下新增模式按钮，坐标/字号与面板一起缩放。详细规则见 [使用说明](ABYSS-ARMY-MODES.md)。

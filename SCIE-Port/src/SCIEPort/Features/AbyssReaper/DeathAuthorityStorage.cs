@@ -47,7 +47,7 @@ namespace SCIEPort.Features.AbyssReaper
                     Log.Warning("[SCIEPort:Death] Stow callback failed: "+e.GetType().Name);
                 }
             }
-            return "已收回次位面："+done+"只"+(skipped>0?"；"+skipped+"只未收回（乘客或状态不允许）":"，契约与生命保留");
+            return "已收回"+done+"只"+(skipped>0?"，"+skipped+"只未收回":"");
         }
         private string ManifestArmy(ComponentPlayer p,ushort only=0)
         {
@@ -89,7 +89,7 @@ namespace SCIEPort.Features.AbyssReaper
                     Log.Warning("[SCIEPort:Death] Manifest failed: "+e.GetType().Name);waiting++;
                 }
             }
-            return "已召回现世："+done+"只"+(waiting>0?"；"+waiting+"只继续留在次位面（空地不足或状态不允许）":"");
+            return "已召出"+done+"只"+(waiting>0?"，"+waiting+"只未召出":"");
         }
         private void UpdateDiscarded()
         {

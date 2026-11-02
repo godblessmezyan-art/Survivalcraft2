@@ -18,19 +18,19 @@ namespace SCIEPort.Features.AbyssReaper
         {
             this.player=player;this.runtime=runtime;Children.Add(panel);
             background=new RectangleWidget{Size=panel.Size,FillColor=new Color(15,8,24,245),OutlineColor=new Color(110,65,150),OutlineThickness=2,IsHitTestVisible=false};panel.Children.Add(background);
-            Place(new LabelWidget{Text="冥界军势 · 最多七只",FontScale=.7f,IsHitTestVisible=false},16,12,380,30,.7f);
-            kind=Button("召唤类型：冥界猎犬",16,50,508,36);
+            Place(new LabelWidget{Text="冥界军势",FontScale=.7f,IsHitTestVisible=false},16,12,380,30,.7f);
+            kind=Button("冥界猎犬",16,50,508,36);
             for(int i=0;i<rows.Length;i++)
             {
                 rows[i]=Button("空位",16,96+i*39,326,35);
                 health[i]=new LabelWidget{FontScale=.44f,TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,IsHitTestVisible=false};
                 Place(health[i],350,96+i*39,174,35,.44f);
             }
-            behaviorMode=Button("选择契约后设置行动模式",16,375,508,40);
-            hint=new LabelWidget{Text="解除契约后生物直接消失",FontScale=.48f,WordWrap=true,IsHitTestVisible=false};Place(hint,16,420,508,38,.48f);
+            behaviorMode=Button("行动模式",16,375,508,40);
+            hint=new LabelWidget{Text="",FontScale=.48f,WordWrap=true,IsHitTestVisible=false,IsVisible=false};Place(hint,16,420,508,38,.48f);
             summon=Button("召唤",16,468,152,44);recall=Button("召回友军",192,468,152,44);dismiss=Button("解除所选",368,468,152,44);close=Button("关闭",414,12,108,34);
-            stow=Button("全部收回次位面",16,524,244,44);manifest=Button("全部召回现世",280,524,244,44);
-            ridingMode=Button("骑乘后设置追击",16,580,244,40);selectedAction=Button("请先选择契约",280,580,244,40);
+            stow=Button("全部收回",16,524,244,44);manifest=Button("全部召出",280,524,244,44);
+            ridingMode=Button("骑乘追击",16,580,244,40);selectedAction=Button("单只操作",280,580,244,40);
             runtime.Request(player,DeathAuthorityRules.Sync,Vector3.UnitZ);
         }
         private void Place(Widget widget,float x,float y,float w,float h,float font)
@@ -73,23 +73,23 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(!exists)selected=armed=0;
             dismiss.Text=armed==selected&&selected!=0?"确认解除":"解除所选";dismiss.IsEnabled=selected!=0;
-            double cooldown=runtime.Remaining(player,DeathAuthorityRules.Summon);summon.Text=cooldown>0?"召唤 · "+Math.Ceiling(cooldown).ToString("0")+"秒":"召唤";
-            if(kind.IsClicked)summonKind=(ushort)((summonKind+1)%4);kind.Text=summonKind==0?"召唤类型：冥界猎犬":summonKind==1?"召唤类型：夜魇战马 · 移速10":summonKind==2?"召唤类型：地狱三头犬·刻尔柏洛斯（唯一）":"召唤类型：骨龙 · 可飞行（唯一）";
+            summon.Text="召唤";summon.IsEnabled=runtime.Remaining(player,DeathAuthorityRules.Summon)<=0;
+            if(kind.IsClicked)summonKind=(ushort)((summonKind+1)%4);kind.Text=summonKind==0?"冥界猎犬":summonKind==1?"夜魇战马":summonKind==2?"刻尔柏洛斯":"骨龙";
             if(summon.IsClicked)runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ,summonKind);
             if(recall.IsClicked)runtime.Request(player,DeathAuthorityRules.Recall,Vector3.UnitZ);
             if(stow.IsClicked)runtime.Request(player,DeathAuthorityRules.Stow,Vector3.UnitZ);
             if(manifest.IsClicked)runtime.Request(player,DeathAuthorityRules.Manifest,Vector3.UnitZ);
             var mount=runtime.RiddenFriend(player);ridingMode.IsEnabled=mount!=null;
-            ridingMode.Text=mount==null?"骑乘后设置追击":"骑乘追击："+(mount.RidingAuto?"开启":"关闭");
+            ridingMode.Text=mount==null?"骑乘追击":"骑乘追击："+(mount.RidingAuto?"开启":"关闭");
             if(ridingMode.IsClicked&&mount!=null)runtime.Request(player,DeathAuthorityRules.RidingMode,Vector3.UnitZ,mount.Id);
             var chosen=list.Find(row=>row.Id==selected);selectedAction.IsEnabled=chosen!=null&&!chosen.Pending;
             behaviorMode.IsEnabled=chosen!=null;
-            behaviorMode.Text=chosen==null?"选择契约后设置行动模式":"所选模式："+DeathAuthorityRuntime.ModeText(chosen.Mode)+"（点按切换）";
+            behaviorMode.Text=chosen==null?"行动模式":"模式："+DeathAuthorityRuntime.ModeText(chosen.Mode);
             if(behaviorMode.IsClicked&&chosen!=null)runtime.Request(player,(byte)(DeathAuthorityRules.GuardMode+((int)chosen.Mode+1)%3),Vector3.UnitZ,chosen.Id);
-            selectedAction.Text=chosen==null?"请先选择契约":chosen.Pending?"所选生物待加载":chosen.Hidden?"召出所选 · 单只":"收回所选 · 单只";
+            selectedAction.Text=chosen==null?"单只操作":chosen.Pending?"待加载":chosen.Hidden?"召出所选":"收回所选";
             if(selectedAction.IsClicked&&chosen!=null&&!chosen.Pending)runtime.Request(player,chosen.Hidden?DeathAuthorityRules.ManifestOne:DeathAuthorityRules.StowOne,Vector3.UnitZ,chosen.Id);
             if(dismiss.IsClicked){if(armed==selected){if(runtime.Request(player,DeathAuthorityRules.Dismiss,Vector3.UnitZ,selected))selected=armed=0;}else armed=selected;}
-            hint.Text=runtime.Feedback(player)??(armed!=0?"再次点击确认解除：生物将直接消失":chosen?.Mode==DeathGuardMode.Free?"自由行动：安全地面漫游，不跟随、不自动攻击":chosen?.Mode==DeathGuardMode.Attack?"攻击：主动攻击非玩家生物；保护契约友军及玩家坐骑":"护卫跟随主人；靠近玩家停步，不再强制让路");
+            hint.Text=armed!=0?"解除后生物将消失":runtime.Feedback(player)??"";hint.IsVisible=hint.Text.Length>0;
             if(close.IsClicked||Input.Back||Input.Cancel||!runtime.IsDeath(player)||player.ComponentHealth.Health<=0||Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue)!=952){Input.Clear();DialogsManager.HideDialog(this);}
         }
     }

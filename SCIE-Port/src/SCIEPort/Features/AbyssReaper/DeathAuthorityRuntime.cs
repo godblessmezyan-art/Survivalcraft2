@@ -64,7 +64,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(unchecked(++s.Sent)==0)++s.Sent;
             var packet=new DeathAuthorityPackage{Kind=0,Action=action,Caster=p.Entity.EntityId,Sequence=s.Sent,Direction=direction,Target=target,Echo=action==6?Time.RealTime:0,World=worldId};
             if(!Authority&&action==6){if(syncEchoes.Count>=4)syncEchoes.RemoveAt(0);syncEchoes.Add(packet.Echo);}
-            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync){s.PendingUntil=Now+2;Message(p,Authority?"正在处理军势操作…":"已发送军势操作，等待房主响应…");}
+            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync){s.PendingUntil=Now+2;if(!Authority)Message(p,"同步中");}
             if(Authority){if(!Enqueue(p,null,packet)){s.PendingUntil=0;Message(p,"操作队列已满，请稍后重试");return false;}}
             else if(CommonLib.Net?.Server!=null)CommonLib.Net.QueuePackage(packet);else{s.PendingUntil=0;Message(p,"尚未连接房主");return false;}return true;
         }

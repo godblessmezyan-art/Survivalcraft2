@@ -17,14 +17,14 @@ namespace SCIEPort.Features.AbyssReaper
                 guard.RoamCenter=guard.Creature.ComponentBody.Position;guard.Path.Stop();
                 guard.Creature.ComponentCreatureModel.AttackOrder=false;guard.Creature.ComponentLocomotion.WalkOrder=null;
                 if(mode==DeathGuardMode.Free)guard.RidingAuto=false;
-                FriendPacket(Row(guard));PublishRidePlan(guard);return "所选生物："+ModeText(mode)+(mode==DeathGuardMode.Free?" · 不跟随、不主动攻击":"");
+                FriendPacket(Row(guard));PublishRidePlan(guard);return ModeText(mode);
             }
             Friend row=null;
             foreach(var candidate in hidden.Values)if(candidate.Id==key&&candidate.Owner==player.PlayerGuid){row=candidate;break;}
             if(row==null)foreach(var candidate in saved.Values)if(candidate.Id==key&&!candidate.Discard&&candidate.Owner==player.PlayerGuid){row=candidate;break;}
             if(row==null)return "未找到自己的契约生物";
             row.Mode=mode;if(mode==DeathGuardMode.Free)row.RidingAuto=false;FriendPacket(row);
-            return "所选生物："+ModeText(mode)+" · 现身后生效";
+            return ModeText(mode);
         }
         // Flat, fully supported short routes only. No native detour search or blind ground probes.
         private bool SafeRoamRoute(ComponentBody body,Vector3 destination)
