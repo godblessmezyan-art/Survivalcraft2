@@ -1,0 +1,17 @@
+{
+  "bytes": 9596602,
+  "entries": 159,
+  "sha256": "CE5C084EA3D3336681F6F5EF77FF0FCE50B237AC9B4947A705D2F8F4B2BEDEAD",
+  "dll_sha256": "3241016A8FD6A03D610958482EB59FF4FF2916A64DF288703528F78B7B32E788",
+  "added": [
+    "Assets/Database/AbyssNightmareKnight.xdb",
+    "Assets/Models/AbyssNightmareKnight.dae",
+    "Assets/Textures/AbyssNightmareKnight.png"
+  ],
+  "removed": [],
+  "changed": [
+    "modinfo.json",
+    "SCIEPort.dll",
+    "THIRD-PARTY-NOTICES.md"
+  ]
+}

@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SCIEPortNightmareKnight>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortNightmareKnight" Guid="740568e9-bb43-529c-9495-bc4da4e2ca98" InheritanceParent="4d02fd7e-3054-4121-b2a5-787db985df5f">
+      <MemberComponentTemplate Name="Creature" Guid="b7a24f62-84d0-5c61-a408-c5bc3ecff604">
+        <Parameter Name="DisplayName" Guid="616605cf-2611-5c14-98c6-db19c01dc556" Value="夜魇骑士" Type="string" />
+        <Parameter Name="Description" Guid="32f1d52e-b26c-5e70-855a-f2508c5ba885" Value="冥界军势骑兵。" Type="string" />
+        <Parameter Name="ConstantSpawn" Guid="4db633cb-51c2-5a61-be72-337dbcd22448" Value="True" Type="bool" />
+        <Parameter Name="KillVerbs" Guid="0babfc3c-f0d8-5942-baf1-f44e6e27bad9" Value="slashed" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="269f7311-8d04-5773-9295-bd0114243393">
+        <Parameter Name="Class" Guid="bb357f42-d8cc-5fea-a60b-45d93273eb73" Value="SCIEPort.Features.AbyssReaper.ComponentNightmareKnightModel" Type="string" />
+        <Parameter Name="ModelName" Guid="336c9de7-939a-58bb-a180-4d9ba4bbeddf" Value="Models/AbyssNightmareKnight" Type="string" />
+        <Parameter Name="TextureOverride" Guid="143289ab-aec1-59ff-bd24-79911d5b5dc7" Value="Textures/AbyssNightmareKnight" Type="string" />
+        <Parameter Name="BoundingSphereRadius" Guid="e4698366-3984-583e-a476-74979cc8d110" Value="4" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="a97b901a-edd1-5778-a6e0-06b444dc7dd6">
+        <Parameter Name="BoxSize" Guid="864cf5ed-e5f7-5358-acde-dcb2ee8fa5b9" Value="1.8,3.65,3.8" Type="Vector3" />
+        <Parameter Name="Mass" Guid="91d9c9d9-5242-5cd5-a59c-b978061649dc" Value="600" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="16883477-3002-5edb-8fb2-bd6878f5ab6c">
+        <Parameter Name="AttackResilience" Guid="4277494d-d82d-5bae-91d0-3ef0061440d0" Value="70" Type="float" />
+        <Parameter Name="FireResilience" Guid="c8904b80-b450-5623-a20b-3b1a8440d8a5" Value="40" Type="float" />
+        <Parameter Name="FallResilience" Guid="98837fc0-18e5-55a1-b6f0-fc3caf6ea4b2" Value="6" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="113a3af1-d790-5098-a2ed-12c668b706c6">
+        <Parameter Name="WalkSpeed" Guid="66bf8fa5-aa5a-55db-ab2b-3de47fb0a4fb" Value="8" Type="float" />
+        <Parameter Name="FlySpeed" Guid="1a96d940-f8cd-55b5-830a-4d9964bab165" Value="0" Type="float" />
+        <Parameter Name="JumpSpeed" Guid="b62f93be-5c4d-5436-877e-266521db4d4c" Value="7" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="db000fc1-7af7-5ac6-b4a9-eb6adad2284a" Value="4" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="88b78961-f04e-51c2-a167-8156e29898f2" Value="0.7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Miner" Guid="4f02dce8-5781-502b-bdd4-f0a091e8cd1d">
+        <Parameter Name="AttackPower" Guid="f4cd48ee-f598-5f11-950d-6df57955d46a" Value="15" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="ec43bdd6-8103-5ce4-b7d9-af2499eab8b3">
+        <Parameter Name="AutoDespawn" Guid="0a8e9652-99d6-54c6-9cd7-e51cba411db5" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="97277498-d0d8-5a38-81c9-0f32ee139ee2">
+        <Parameter Name="HerdName" Guid="21b4db3d-f755-5194-95a7-84d026a706f6" Value="SCIEPortNightmareKnight" Type="string" />
+        <Parameter Name="AutoNearbyCreaturesHelp" Guid="dd68b200-ac1c-5860-8005-f03c02f5ca7b" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ChaseBehavior" Guid="114c826b-1f69-58b6-b0c8-5b545a7c76c9">
+        <Parameter Name="AutoChaseMask" Guid="44dcb939-904c-5f09-8d8f-4e3272c42b21" Value="0" Type="Game.CreatureCategory" />
+        <Parameter Name="ChaseWhenAttackedProbability" Guid="9e444f8d-c182-5329-ad47-32d12128b2f2" Value="0" Type="float" />
+        <Parameter Name="ChaseOnTouchProbability" Guid="e3e4b20c-e6fd-5c19-ade7-b4055e3f456f" Value="0" Type="float" />
+        <Parameter Name="ChaseNonPlayerProbability" Guid="fb00245a-ec86-555f-9cd9-2dbdb5f09cdf" Value="0" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="CreatureSounds" Guid="229e032f-79ed-5a7f-ba20-d805b3de56a8">
+        <Parameter Name="IdleSound" Guid="1bd65c22-c99e-542e-8a0f-8eb0032b7c9d" Value="Audio/Creatures/Horse" Type="string" />
+        <Parameter Name="PainSound" Guid="367c67fe-c7b0-5f19-a1ec-3efddeaf6cb1" Value="Audio/Creatures/Horse" Type="string" />
+        <Parameter Name="AttackSound" Guid="123d2867-d228-5d9d-8f1e-34f0bcd3e829" Value="Audio/Creatures/Horse" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Loot" Guid="53f01912-b33d-5f7e-ae35-5a88e2b494ac">
+        <Parameter Name="LootDropped" Guid="1a52812f-089e-5525-967b-078273ed89f5" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="04339977-b8b8-502d-b8fd-8fd7fc916789">
+        <Parameter Name="EggTypeIndex" Guid="a5f91751-63de-584a-9512-f5ca838160ce" Value="-1" Type="int" />
+        <Parameter Name="ShowEgg" Guid="8dca584d-14f8-5097-9a0d-4e1dfde9974d" Value="False" Type="bool" />
+      </ParameterSet>
+    </EntityTemplate>
+  </Folder>
+</SCIEPortNightmareKnight>

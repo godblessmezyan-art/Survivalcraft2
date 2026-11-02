@@ -11,8 +11,11 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool Hound=>Special&&Template==DeathAuthorityRules.HoundTemplate;
         internal bool Cerberus=>Template==CerberusRules.Template;
         internal bool Dragon=>Template==BoneDragonRules.Template;
+        internal bool Knight=>Template==NightmareKnightRules.Template;
+        internal bool Charging;internal ComponentCreature SwordTarget;internal double SwordStarted=-100,SwordImpactAt;
         internal ComponentCreature BiteTarget;internal double BiteStarted=-100,BiteImpactAt;
         internal bool RidingAuto,Following;internal double PursuitUntil,ManualUntil,NextPlan;internal bool AutoDriving;
+        internal DeathGuardMode Mode;internal Vector3 RoamCenter;internal double NextRoam;internal int RoamStep;
         internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
         private readonly DeathSummonStats.Bonus stats=new DeathSummonStats.Bonus();private bool wasRidden;
         internal float SentHealth=-1,SentMaximum=-1;
@@ -25,13 +28,15 @@ namespace SCIEPort.Features.AbyssReaper
             selector=c.Entity.FindComponent<ComponentBehaviorSelector>(false);Path=c.Entity.FindComponent<ComponentPathfinding>(false);
             if(selector==null||Path==null||c.Entity.FindComponent<ComponentMiner>(false)==null||c.ComponentCreatureModel==null)return false;
             Creature=c;Owner=owner;Special=special;Template=c.Entity.ValuesDictionary?.DatabaseObject?.Name??"";SpawnTime=c.ComponentSpawn?.SpawnTime??0;
-            OriginalName=c.DisplayName;disabled=selector.IsDisableBehavior;autoDespawn=c.ComponentSpawn?.AutoDespawn??false;
+            OriginalName=c.DisplayName;RoamCenter=c.ComponentBody.Position;disabled=selector.IsDisableBehavior;autoDespawn=c.ComponentSpawn?.AutoDespawn??false;
             selector.IsDisableBehavior=true;foreach(var b in selector.m_behaviors)b.IsActive=false;
             chase=c.Entity.FindComponent<ComponentChaseBehavior>(false);
             if(chase!=null){mask=chase.m_autoChaseMask;retaliate=chase.m_chaseWhenAttackedProbability;touch=chase.m_chaseOnTouchProbability;nonplayer=chase.m_chaseNonPlayerProbability;chase.m_autoChaseMask=0;chase.m_chaseWhenAttackedProbability=0;chase.m_chaseOnTouchProbability=0;chase.m_chaseNonPlayerProbability=0;chase.m_target=null;chase.IsActive=false;}
             if(c.ComponentSpawn!=null)c.ComponentSpawn.AutoDespawn=false;
-            c.DisplayName=Dragon?BoneDragonRules.Name:Cerberus?CerberusRules.Name:special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;stats.Apply(c,special,Template);WorldHealthCeiling=c.ComponentHealth.Health;return true;
+            c.DisplayName=Knight?NightmareKnightRules.Name:Dragon?BoneDragonRules.Name:Cerberus?CerberusRules.Name:special?(Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+OriginalName;stats.Apply(c,special,Template);WorldHealthCeiling=c.ComponentHealth.Health;return true;
         }
+        internal void Charge(bool active)
+        {Charging=Knight&&active;stats.Charge(Charging);var model=Creature.ComponentCreatureModel as ComponentNightmareKnightModel;if(model!=null)model.Charging=Charging;}
         internal void Suppress()
         {
             bool ridden=Ridden;if(ridden!=wasRidden){Path.Stop();NextThink=0;}wasRidden=ridden;
@@ -41,7 +46,7 @@ namespace SCIEPort.Features.AbyssReaper
         }
         internal void Restore()
         {
-            if(Creature==null)return;Path.Stop();Creature.DisplayName=OriginalName;selector.IsDisableBehavior=disabled;
+            if(Creature==null)return;Charge(false);SwordTarget=null;Path.Stop();Creature.DisplayName=OriginalName;selector.IsDisableBehavior=disabled;
             stats.Release();
             if(Creature.ComponentSpawn!=null)Creature.ComponentSpawn.AutoDespawn=autoDespawn;
             if(chase!=null){chase.m_autoChaseMask=mask;chase.m_chaseWhenAttackedProbability=retaliate;chase.m_chaseOnTouchProbability=touch;chase.m_chaseNonPlayerProbability=nonplayer;chase.m_target=null;chase.m_importanceLevel=0;}

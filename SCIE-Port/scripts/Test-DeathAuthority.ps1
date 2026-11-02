@@ -2,9 +2,9 @@
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot
 $dialog=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Features/AbyssReaper/DeathArmyDialog.cs')
 $runtime=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Features/AbyssReaper/DeathAuthorityRuntime.cs')
-if($dialog -match 'summonKind|kind\.IsClicked|召唤类型' -or $runtime -match 'Summon\(p,q\.Target') { throw 'Summon must not expose or accept a chosen creature kind.' }
-if(!$dialog.Contains('Text=DeathAuthorityRules.SummonOdds') -or !$dialog.Contains('随机召唤') -or !$dialog.Contains('runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ);')) { throw 'Random summon odds/request UI contract missing.' }
-Write-Host 'Death authority: random summon odds label, touch button and selection removal verified (source guard; device pending).'
+if(!$dialog.Contains('(summonKind+1)%5') -or !$dialog.Contains('runtime.Request(player,DeathAuthorityRules.Summon,Vector3.UnitZ,summonKind);') -or !$runtime.Contains('Summon(p,q.Target,out reason)')) { throw 'Merged army must retain the confirmed remote five-kind summon selector.' }
+if($dialog.Contains('SummonOdds') -or $dialog.Contains('随机召唤')) { throw 'Merged army panel must use concise remote copy without obsolete odds.' }
+Write-Host 'Death authority: five-kind summon selector and concise mode UI verified (source guard; device pending).'
 $sources=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'design/abyss-death/sources.json')|ConvertFrom-Json
 foreach($a in $sources.assets){foreach($key in @('original','runtime')){if((Get-FileHash -LiteralPath (Join-Path $root $a.$key)).Hash -ne $a.($key+'_sha256')){throw 'Death imagegen provenance mismatch'}}}
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}
@@ -14,9 +14,9 @@ Write-Host 'Death authority: four built-in imagegen originals/runtime/native alp
 if(!$AssemblyPath){return}
 $mod=[Reflection.Assembly]::Load([IO.File]::ReadAllBytes($AssemblyPath));$compiler=New-Object Microsoft.CSharp.CSharpCodeProvider;$options=New-Object System.CodeDom.Compiler.CompilerParameters;$options.GenerateInMemory=$true
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $f))};foreach($f in @('System.dll','System.Core.dll','System.Xml.dll','System.Xml.Linq.dll')){[void]$options.ReferencedAssemblies.Add($f)}
-$files=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/AbyssHostNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Abyss.Tests/VoidSpaceNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Abyss.Tests/DeathAuthorityNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.DevouringEye.Tests/NativeApiProbe.cs'))
+$files=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/AbyssHostNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Abyss.Tests/VoidSpaceNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Abyss.Tests/DeathAuthorityNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Abyss.Tests/NightmareKnightNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.DevouringEye.Tests/NativeApiProbe.cs'))
 $result=$compiler.CompileAssemblyFromFile($options,$files);if($result.Errors.HasErrors){throw (($result.Errors|ForEach-Object ToString)-join "`n")}
 $decoder=$result.CompiledAssembly.GetType('DevouringNativeApiProbe',$true);$decoded=$decoder.GetMethod('DecodeContent').Invoke($null,@(,[IO.File]::ReadAllBytes((Join-Path $GameDir 'Content.scpak'))));Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.Xml.Linq
 $memory=New-Object IO.MemoryStream(,$decoded);$zip=New-Object IO.Compression.ZipArchive($memory)
-try{$reader=[IO.StreamReader]::new($zip.GetEntry('Assets/Database.xml').Open());try{$xml=[System.Xml.Linq.XElement]::Parse($reader.ReadToEnd())}finally{$reader.Dispose()};$result.CompiledAssembly.GetType('DeathAuthorityNativeProbe',$true).GetMethod('Run').Invoke($null,@($mod,$xml))}catch{Write-Host $_.Exception.ToString();throw}finally{$zip.Dispose();$memory.Dispose()}
+try{$reader=[IO.StreamReader]::new($zip.GetEntry('Assets/Database.xml').Open());try{$xml=[System.Xml.Linq.XElement]::Parse($reader.ReadToEnd())}finally{$reader.Dispose()};$knightDatabase=[IO.File]::OpenRead((Join-Path $root 'src/SCIEPort/Assets/Database/AbyssNightmareKnight.xdb'));try{[ModsManager]::CombineDataBase($xml,$knightDatabase)}finally{$knightDatabase.Dispose()};$result.CompiledAssembly.GetType('DeathAuthorityNativeProbe',$true).GetMethod('Run').Invoke($null,@($mod,$xml))}catch{Write-Host $_.Exception.ToString();throw}finally{$zip.Dispose();$memory.Dispose()}

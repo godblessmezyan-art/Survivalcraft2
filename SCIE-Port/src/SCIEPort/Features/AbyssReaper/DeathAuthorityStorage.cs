@@ -33,7 +33,7 @@ namespace SCIEPort.Features.AbyssReaper
                 Friend row=null;bool stored=false;
                 try
                 {
-                    var snapshot=terrain.Project.SaveEntities(new[]{c.Entity});if(snapshot.EntitiesData.Count!=1){skipped++;continue;}
+                    SetKnightCharge(g,false);g.SwordTarget=null;var snapshot=terrain.Project.SaveEntities(new[]{c.Entity});if(snapshot.EntitiesData.Count!=1){skipped++;continue;}
                     row=Row(g);row.Snapshot=new ValuesDictionary();snapshot.Save(row.Snapshot);row.Hidden=true;row.EntityId=0;row.RegenStamp=Now;
                     terrain.Project.RemoveEntity(c.Entity,false);
                     if(c.IsAddedToProject){skipped++;continue;}
@@ -47,7 +47,7 @@ namespace SCIEPort.Features.AbyssReaper
                     Log.Warning("[SCIEPort:Death] Stow callback failed: "+e.GetType().Name);
                 }
             }
-            return "已收回次位面："+done+"只"+(skipped>0?"；"+skipped+"只未收回（乘客或状态不允许）":"，契约与生命保留");
+            return "已收回"+done+"只"+(skipped>0?"，"+skipped+"只未收回":"");
         }
         private string ManifestArmy(ComponentPlayer p,ushort only=0)
         {
@@ -71,9 +71,10 @@ namespace SCIEPort.Features.AbyssReaper
                     terrain.Project.AddEntity(entity);hidden.Remove(row.Id);
                     adopted=AdoptContract(c,row.Owner,row.Special,row.Id);
                     if(!adopted){hidden[row.Id]=row;terrain.Project.RemoveEntity(entity,true);entity=null;waiting++;continue;}
-                    guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
+                    guards[c.Entity.EntityId].Mode=row.Mode;guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
                     (c.ComponentLocomotion as ComponentBoneDragonLocomotion)?.SetFlight(row.DragonFlight);
                     if(row.Cerberus)guards[c.Entity.EntityId].NextAttack=Now+row.BiteCooldown;
+                    if(row.Knight)guards[c.Entity.EntityId].NextAttack=Now+row.KnightCooldown;
                     if(row.HealthKnown)SetGuardHealth(c,row.HealthFraction);
                     if(row.PendingHeal>0)HealPoints(c,row.PendingHeal);
                     FriendPacket(Row(guards[c.Entity.EntityId]));done++;
@@ -89,7 +90,7 @@ namespace SCIEPort.Features.AbyssReaper
                     Log.Warning("[SCIEPort:Death] Manifest failed: "+e.GetType().Name);waiting++;
                 }
             }
-            return "已召回现世："+done+"只"+(waiting>0?"；"+waiting+"只继续留在次位面（空地不足或状态不允许）":"");
+            return "已召出"+done+"只"+(waiting>0?"，"+waiting+"只未召出":"");
         }
         private void UpdateDiscarded()
         {
@@ -117,6 +118,8 @@ namespace SCIEPort.Features.AbyssReaper
                     if(!DeathSummonStats.Profile(f.Special,entity.ValuesDictionary.DatabaseObject.Name,out health,out speed))return;
                     var locomotion=creature.ComponentLocomotion;clientSummonsSeen.Add(locomotion);
                     if(!clientSummonBonuses.ContainsKey(locomotion)){var bonus=new DeathSummonStats.Bonus();bonus.Apply(creature,f.Special,entity.ValuesDictionary.DatabaseObject.Name);clientSummonBonuses.Add(locomotion,bonus);}
+                    clientSummonBonuses[locomotion].Charge(f.Knight&&f.Charging&&entity.ValuesDictionary.DatabaseObject.Name==NightmareKnightRules.Template);
+                    var knightModel=creature.ComponentCreatureModel as ComponentNightmareKnightModel;if(knightModel!=null)knightModel.Charging=f.Knight&&f.Charging;
                     if(f.Dragon)(locomotion as ComponentBoneDragonLocomotion)?.SetFlight(f.DragonFlight);
                     if(f.Warhorse||f.Cerberus||f.Dragon)
                     {

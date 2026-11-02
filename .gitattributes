@@ -5,3 +5,6 @@ SCIE-Port/src/SCIEPort/Assets/Database/AbyssCerberus.xdb -text
 SCIE-Port/src/SCIEPort/Assets/Models/Excalibur.dae -text whitespace=cr-at-eol
 # The frozen V2 source manifest hashes LF bytes; core.autocrlf must not alter them.
 SCIE-Port/src/SCIEPort/Features/AbyssReaper/VoidPortalPackage.cs text eol=lf
+# Keep the cavalry's generated resource bytes stable for native/package SHA checks.
+SCIE-Port/src/SCIEPort/Assets/Models/AbyssNightmareKnight.dae -text
+SCIE-Port/src/SCIEPort/Assets/Database/AbyssNightmareKnight.xdb -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

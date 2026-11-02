@@ -27,7 +27,6 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly DynamicArray<ComponentBody> candidates=new DynamicArray<ComponentBody>();
         private readonly HashSet<Entity> swingHits=new HashSet<Entity>();
         private readonly DeathAuthorityScene scene=new DeathAuthorityScene();
-        private readonly System.Random summonRandom=new System.Random();
         private readonly Dictionary<DrawBlockEnvironmentData,ComponentPlayer> drawOwners=new Dictionary<DrawBlockEnvironmentData,ComponentPlayer>();
         private uint revision;private bool disposed;private double nextDrawBind;private Guid serverToken;
         private bool hasClock;private double clockOffset,lastServerTime;private readonly List<DeathAuthorityPackage> deferredWaves=new List<DeathAuthorityPackage>();
@@ -38,7 +37,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal DeathAuthorityRuntime(SubsystemAbyssReaper parent,SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,SubsystemPlayers players)
         {this.parent=parent;this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.players=players;recoveryWorlds.Add(this);}
         private bool Actor(ComponentPlayer p,bool held=true)=>p!=null&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)&&p.Project==terrain.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying&&p.ComponentHealth.Health>0&&(!held||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0);
-        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest||action==DeathAuthorityRules.ManifestOne||action==DeathAuthorityRules.StowOne;
+        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest||action==DeathAuthorityRules.ManifestOne||action==DeathAuthorityRules.StowOne||action>=DeathAuthorityRules.GuardMode&&action<=DeathAuthorityRules.AttackMode;
         private bool CommandActor(ComponentPlayer p,byte action)=>(action==DeathAuthorityRules.RidingMode||action==DeathAuthorityRules.RiderInput||action==DeathAuthorityRules.DragonFlight)?RidingActor(p):Management(action)?Actor(p,false)&&(action==DeathAuthorityRules.Sync||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0):Actor(p);
         private State Get(ComponentPlayer p)
         {
@@ -65,7 +64,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(unchecked(++s.Sent)==0)++s.Sent;
             var packet=new DeathAuthorityPackage{Kind=0,Action=action,Caster=p.Entity.EntityId,Sequence=s.Sent,Direction=direction,Target=target,Echo=action==6?Time.RealTime:0,World=worldId};
             if(!Authority&&action==6){if(syncEchoes.Count>=4)syncEchoes.RemoveAt(0);syncEchoes.Add(packet.Echo);}
-            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync){s.PendingUntil=Now+2;Message(p,Authority?"正在处理军势操作…":"已发送军势操作，等待房主响应…");}
+            if(action!=DeathAuthorityRules.Strike&&action!=DeathAuthorityRules.Sync){s.PendingUntil=Now+2;if(!Authority)Message(p,"同步中");}
             if(Authority){if(!Enqueue(p,null,packet)){s.PendingUntil=0;Message(p,"操作队列已满，请稍后重试");return false;}}
             else if(CommonLib.Net?.Server!=null)CommonLib.Net.QueuePackage(packet);else{s.PendingUntil=0;Message(p,"尚未连接房主");return false;}return true;
         }
@@ -113,14 +112,16 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Summon:
                     if(!s.Death){StatePacket(p,"请先切换死亡权柄");return;}
                     if(Now<s.SummonReady){StatePacket(p,"召唤冷却中，还需"+Math.Ceiling(s.SummonReady-Now).ToString("0")+"秒");return;}
-                    // Target is a contract key for other commands, never a summon selection.
-                    string reason;bool consumeCooldown;Summon(p,out reason,out consumeCooldown);if(consumeCooldown)s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
+                    string reason;if(Summon(p,q.Target,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
                 case DeathAuthorityRules.Dismiss:StatePacket(p,Dismiss(p,q.Target));break;
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
                 case DeathAuthorityRules.Stow:StatePacket(p,StowArmy(p));break;
                 case DeathAuthorityRules.Manifest:StatePacket(p,ManifestArmy(p));break;
                 case DeathAuthorityRules.ManifestOne:StatePacket(p,q.Target==0?"请先选择一只次位面生物":ManifestArmy(p,q.Target));break;
                 case DeathAuthorityRules.StowOne:StatePacket(p,q.Target==0?"请先选择一只现世生物":StowArmy(p,q.Target));break;
+                case DeathAuthorityRules.GuardMode:
+                case DeathAuthorityRules.FreeMode:
+                case DeathAuthorityRules.AttackMode:StatePacket(p,SetGuardMode(p,q.Target,(DeathGuardMode)(q.Action-DeathAuthorityRules.GuardMode)));break;
                 default:StatePacket(p,"无效的死亡权柄操作");break;
             }
         }
@@ -134,6 +135,7 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(!worldKnown||q.World!=worldId)return;
             if(q.Kind==8){ReceiveBite(q);return;}
+            if(q.Kind==10){ReceiveKnightSwing(q);return;}
             if(q.Kind==9){ReceiveRidePlan(q);return;}
             if(q.Kind==3||q.Kind==4||q.Kind==6||q.Kind==7){ReceiveFriend(q);return;}
             ComponentPlayer p=null;foreach(var candidate in players.ComponentPlayers)if(candidate.Entity.EntityId==q.Caster&&candidate.PlayerGuid==q.Owner){p=candidate;break;}if(p==null)return;
@@ -172,6 +174,6 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool EmpoweredDraw(DrawBlockEnvironmentData e){ComponentPlayer p;return e!=null&&drawOwners.TryGetValue(e,out p)&&Empowered(p);}
         private void ClearMarks(Guid id){retiredMarks.Clear();foreach(var pair in marks)if(pair.Value.Owner==id)retiredMarks.Add(pair.Key);foreach(var c in retiredMarks)marks.Remove(c);}
         internal void Draw(Camera camera)=>scene.Draw(camera,waves,Now,Quality);
-        public void Dispose(){if(disposed)return;disposed=true;recoveryWorlds.Remove(this);ClearClientSummons();ClearRiding();ClearSoftMass();posedModels.Clear();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
+        public void Dispose(){if(disposed)return;disposed=true;recoveryWorlds.Remove(this);ClearClientSummons();ClearRiding();ClearSoftMass();posedModels.Clear();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();foreach(var guard in guards.Values)guard.Charge(false);guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
     }
 }

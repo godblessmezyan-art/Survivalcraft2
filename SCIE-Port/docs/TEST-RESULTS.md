@@ -1,5 +1,39 @@
 # 测试结果
 
+## 2026-11-02 main 0.76.0：本地与远端功能合并
+
+合并本地`68e1c93`/0.75.2与远端`84f13d6`/0.71.0，共同祖先`903afcd`；初始工作区干净。使用`git fetch --no-tags origin main`读取远端，再`git merge --no-ff --no-commit FETCH_HEAD`，保留双方完整历史。冲突逐项合并：美术字节规则/历史文档取双方内容，项目版本统一0.76.0，军势采用远端面板/模式/骑士与本地Codex权限及解析修复，保留双方测试入口和本地特殊资产/源文件打包。
+
+**召唤规则由用户明确确认**：远端实际上是手选五种，没有概率表；用户最终选择“保留远端手选五种”。因此本版用远端0–4类型选择替代0.75.0的随机召唤/概率说明，成功才进30秒CD，已有唯一契约/其它失败不扣CD。旧随机专项替换为类型选择/非法类型/鉴权/容量/冷却/重放测试，没有以随机旧断言限制用户新决定。
+
+实际命令（SDK9.0.300，Mod保持net472）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PYTHONUTF8='1'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 --output (Join-Path (Get-Location) 'SCIE-Port/artifacts/build') --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+```
+
+根环境/ABI、合并专项、完整Release和最终包检查均退出码0。日志`artifacts/merge-076-compile.log`、`artifacts/merge-076-release.log`。固定Windows三程序集SHA匹配，net472/API1.42/SC2.4.10.6、内部SCIEPort身份/旧物品ID和旧字段布局保持。252保留远端新增动作16–18、Kind3 D模式/C骑士姿态及Kind10挥剑语义；253圣剑、254图谱不回退。v2契约可选新字段缺省保持远端规则，陈列器/图谱原存储不迁移。
+
+| 验证 | 实际结果与边界 |
+|---|---|
+| 军势/模式/骑士/召唤 | **350项通过**：双方原战斗/存档/认证、护卫/自由/攻击模式、近身停步/悬崖走廊、模式持久化/联机快照、骑士加速增量/贴身剑击/一次结算/冷却/收纳/身份同步；新手选测试覆盖0–4类型与非法类型、容量/唯一性、冷却/重放/跨世界/旧连接及Client禁直接生成。隔离原生组件，不是实际NPC游戏运行。 |
+| 图谱与新命令交叉 | 新增5项断言纳入上述350：封印阿比斯时，选骑士及三种模式请求在分派前拒绝；只解放阿比斯后可切换自由模式。图谱整体**436**项仍通过，权限未被远端无门控Actor覆盖。 |
+| 本地功能保持 | 圣剑**806规则/521原生**、悬浮陈列器**650原生**、图谱436原生通过；圣剑、陈列器、Compatibility及Loader源码相对本地父提交无差异，图谱只更新军势介绍。库存**775规则/170原生**、其它神器/载具/品牌/数据库/冻结源码守卫均通过。 |
+| Android解析修复保持 | **1,347**解析/实际设置、**27**GUID/调用审计通过；扫描**2,973个方法/23,483个调用点**，无直接BCL TryParse或Guid/UInt32 Parse引用。不是手机BCL仿真，不能据此承诺完整Android兼容。 |
+| 骑士模型/资源 | 实际目标Engine导入**7骨/7网格/4,924三角**，数据库、UV、不透明纹理与AABB预算通过；骑士三个Assets与远端父提交逐字节相同，授权说明追加保留。未重新设计模型或技能图标，现有软件/GIF为合成预览，非实机画面。 |
+| 包内容对比 | 对0.75.2 **167份旧Assets逐字节相同**，无条目删除；新增骑士XDB/DAE/PNG，原条目只改变DLL、modinfo与新增原创骑士来源的THIRD-PARTY-NOTICES.md。首次比较白名单漏列来源说明，断言识别后补齐预期，不改包内容。954/955/953 CSV与XDB齐全，正式包/版本副本一致，DLL与Release相同。 |
+| UI/实际游戏 | 采用远端简短手选五种/模式面板与原缩放，源码绑定守卫通过；完整单机/主机/普通客户端/晚加入、Android7723触屏/多分辨率/新旧世界和性能 **待验证**，未打开游戏或手机。 |
+
+包：`荒野探险家-0.76.0.netmod`，10,554,597字节，SHA-256 `A72DF8C2310562E871296AFEF70363EC2386A7F12517D05E02052A382B77729F`。目标/DLL/包指纹、父提交和字节差异见[机器记录](assets/merge-076/validation.json)。同房统一0.76.0，旧版混装不支持。按用户要求完成本地main合并提交，不推送GitHub。
+
+
 ## 2026-11-01 main 0.75.2：UInt32及其余BCL TryParse补修
 
 基于干净main `b30c574`。用户在上一修复后再次截图反馈`Method not found: bool System.UInt32.TryParse(string,uint&)`。该调用仍位于0.75.1图谱ReadRecords，上一轮只禁Guid系列不足。新截图未包含堆栈/MVID，未获取手机APK/BCL哈希；因此不将其身份表述为已精确匹配0.75.1，但源码/旧包确实含此缺失引用。
@@ -136,6 +170,66 @@ Android7723、完整单机/真实主机/普通客户端/晚加入、图谱实际
 实际命令：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`；设置既有SDK/Python PATH、FrameworkPathOverride和DOTNET_ROLL_FORWARD=Major后，运行`powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -OutputDir <工作区绝对路径>/SCIE-Port/artifacts/latest-main`。根环境与构建内全部回归、Release、数据库/分类/资源和最终包校验通过，退出码0。日志artifacts/rebuild-main-073.log。
 
 主包与0.73.0版本副本一致，10374720字节，SHA-256 `64C881B4A7389314598752FD5644E2901A20A907E054ACC21C731758A45AA28A`；包内DLL与本次Release DLL一致，包含圣剑与悬浮陈列器。固定Windows x25.01.17三程序集哈希与既有登记一致，net472/API1.42/SC2.4.10.6保持。本次未运行GPU或游戏/手机；Android7723、完整游戏和真实多人待验证，所有端须统一0.73.0。无Builder Assistant材料/族/DATA能力变化。
+
+## 2026-11-02 main 0.71.0：夜魇骑士常规骑兵
+
+基线 `da6f715` / 0.70.1，用户确认70生命、15伤害/1.2秒、8/10普通/冲锋速度、快速接敌后持续贴身砍杀、一个名额/共享生命/可重复召唤。新增原创马/铠甲骑士/剑七骨组合与模板，不拆分NPC骑手/坐骑实体；沿用模式、归队、次位面、治疗、七只/世界24只和30秒新召唤冷却。面板新增「夜魇骑士」名字，无机制提示。详见 [实现、模型与待验收](ABYSS-NIGHTMARE-KNIGHT.md)。
+
+实际命令（仓库根，Windows PowerShell，引用目录 `E:/SCNET/SCNETx25.01.17`）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+python SCIE-Port/scripts/New-NightmareKnightAssets.py
+python SCIE-Port/scripts/New-NightmareKnightTemplate.py
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-NightmareKnightResources.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -ModAssembly SCIE-Port/artifacts/build/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1
+```
+
+固定三个游戏程序集SHA与 [军势模式记录](ABYSS-ARMY-MODES.md#验证状态) 一致；根/独立移植环境与ABI均exit 0。最终net472 Release、完整规则/原生夹具回归、数据库及包校验均exit 0，0警告0错误。新增原生夹具按既有模式由Windows CodeDOM单独编译，已从无游戏依赖的纯规则工程排除。
+
+- 原创模型/UV：目标Engine实际导入 **7骨/7网格/4924三角**，32字节顶点、正确父子关系/模板类及资源绑定，256×256不透明PNG。静态原生及软件动画采样范围落在1.8×3.65×3.8 Body内；无Mount/Rider/Steed玩家组件、生成蛋-1，模板GUID `740568e9-bb43-529c-9495-bc4da4e2ca98`。只读核查继承组件没有原生ComponentFourLeggedModel专属字段依赖；参考安装端马声音路径，不分发游戏资源。原生元数据报告及软件预览在`design/nightmare-knight/`，不是实际游戏/GPU渲染。
+- 死亡权柄原生隔离夹具 **270项通过**，保留旧219项并覆盖骑士70/8配置、可重复且单名额、冲锋10且反复更新不漂移/外部增量保持；转弯/缺地/墙/水/空中/距离/玩家靠近取消加速，近战停止且不主动后退；挥剑前摇、下劈时命中、1.2秒间隔、一次原生15基础伤害、自由模式取消/目标逃离/帧预算耗尽/友军及玩家/死亡保护；退出归还速度、模板识别/生命/剩余攻击间隔保存和重绑定、1.2秒浮点上限的立即保存/读取边界、次位面、非法存档原样保护、主机C=2/3复制、非法同步拒绝、动作年龄与去重及客户端拒绝造伤害。
+- 既有完整回归通过：Gungnir389、Poseidon3397、Inventory739、Stormhammer751；Space V2原生26033、WorldCut原生890及共享星门原生603。22 XDB、22 CSV/55行、GUID/类名及打包资源守卫通过。神器、原召唤、星门和蓝图能力保持。
+- 最终 **9,596,602字节 / 159条目**；固定名及版本名两包一致，SHA-256 `CE5C084EA3D3336681F6F5EF77FF0FCE50B237AC9B4947A705D2F8F4B2BEDEAD`。内嵌DLL与Release输出一致，DLL SHA-256 `3241016A8FD6A03D610958482EB59FF4FF2916A64DF288703528F78B7B32E788`，程序集版本0.71.0.0。
+- 与0.70.1包逐条比较：只新增骑士DAE/PNG/XDB三项，只改变DLL/modinfo/署名三项，其余153项旧条目相同，没有删除旧资源；根`.gitattributes`为新DAE/XDB设置`-text`，保证Windows检出后资源字节及哈希不变。构建前后强制执行`Test-NightmareKnightResources.ps1`核验原文件/包内字节，比较报告已保存在`design/nightmare-knight/package-comparison.json`。
+
+日志位于忽略的`artifacts/knight-environment-root.log`、`knight-environment-port.log`、`knight-native-regression.log`及`nightmare-knight-0.71.0-build.log`。最终270项结果以完整构建日志为准。252不改变字节布局，扩展Kind3非骨龙C=2/3和Kind10演出，v2增加可选KnightCooldown；247/249/250/251、旧模板身份、星门与v1/v2读取保持，无新Hook/方块/物品/生成蛋ID或地形写入，根蓝图能力清单已更新。
+
+Android7723模型/UV/骑姿/剑击、复杂地形与手机性能、不同分辨率触屏、实际单人/房主/普通客户端、实体创建/保存重进及真实多人同步 **待验证**。未运行游戏、真实GPU场景或联机会话，不将静态导入、软件动画和隔离AttackBody夹具当作兼容已确认。各方统一0.71.0，混装旧版 **不支持**，含新实体降级须使用对应备份。按规范只提交本地main，不推送。
+
+## 2026-11-02 main 0.70.1：军势面板精简与探索规范
+
+基线 `b3afc0e` / 0.70.0。根及 SCIE-Port 的 AGENTS.md 写入用户原话「不要那么多的提示性文字，让玩家自己探索」。军势面板移除常驻模式讲解、类型数值、唯一/飞行说明和“点按切换”；仅保留简短名称、当前状态、必要操作回执及解除确认。召唤按钮固定为“召唤”，冷却时禁用。原源码未含“随机召唤/随即召唤”字样，此次统一常态和冷却态名称；精简召唤成功、模式切换、收回/召出回执及模组描述。按钮几何、生命列、战斗和契约规则保持。
+
+实际执行：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1`、`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1`、`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1`。工作目录仓库根，目标默认 `E:/SCNET/SCNETx25.01.17`，三个程序集哈希同 [0.70说明](ABYSS-ARMY-MODES.md)。环境/ABI及完整构建均exit 0，net472 Release 0警告0错误；原有全套构建检查通过，含军势原生219、Gungnir389、Poseidon3397、Inventory739、Stormhammer751、21 XDB/22 CSV与包内容守卫。本次为可逆文案改动，没有新增重复实现的字符串测试。
+
+最终 `荒野探险家.netmod` 和 `荒野探险家-0.70.1.netmod` 字节一致，9,426,145字节/156条目，SHA-256 `F2534FE5A766D4E0B7DE8923BB1BE515848B327A83ABADE4E7A39DCE2B847E48`。内嵌DLL与Release输出一致；与0.70.0包逐条比较仅DLL及modinfo变化，其余154条目相同。日志：忽略的 `artifacts/army-panel-0.70.1-environment-root.log`、`artifacts/army-panel-0.70.1-environment-port.log`、`artifacts/army-panel-0.70.1-build.log`、`artifacts/army-panel-0.70.1-package-report.json`。
+
+协议、Hook、包ID/布局、v1/v2契约、模板及星门保持0.70.0；无地形写入或蓝图能力变化，已更新根能力清单。Android7723不同分辨率触屏、冷却禁用与反馈、真实单人/房主/普通客户端 **待验证**，本次未运行游戏或真实联机。仅提交本地main，不推送。
+
+## 2026-11-02 main 0.70.0：军势行动模式与高处让路修复
+
+基线 `903afcd` / 0.69.0，本次仅本地 main 提交。取消未骑乘召唤物靠近玩家时的向外让路目标，改为停步及水平刹车；每只契约增加护卫/自由行动/攻击模式，设置覆盖现世/次位面/待加载，旧 v1/v2 默认护卫。自由漫游检查完整身体支撑和沿途空气，不跟随/自动归队/自动攻击；攻击模式纳入中立生物并保留玩家、友军、玩家承载体与领地排除。界面在军势列表下新增模式按钮，坐标/字号与面板一起缩放。详细规则见 [使用说明](ABYSS-ARMY-MODES.md)。
+
+实际执行（Windows PowerShell，工作目录仓库根，目标目录 `E:/SCNET/SCNETx25.01.17`）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+```
+
+- 根环境与独立移植环境/ABI检查均 exit 0，固定三个程序集 SHA 与 [本次说明](ABYSS-ARMY-MODES.md) 一致。
+- 完整 Release / net472 构建 exit 0，0警告0错误，所有构建脚本强制规则、实际目标程序集夹具和资源/包校验通过。
+- 死亡权柄原生隔离夹具最终 **219项通过**（完整打包时217项，补充中立生物实际AttackBody调用及Target=0拒绝后，单独重跑得到219项；生产代码和包保持相同）。本次覆盖悬崖边靠近只停步、无外移目标/推力；自由模式清除旧目标/待咬合/骑乘追击、忽略威胁及不自动回主人身边；真实短程安全漫游、路径中间缺口、宽身体侧边缺地、墙、区块未加载、长路径/高度变化和检查预算；攻击中立生物但保护玩家/友军/玩家承载体；旧 v1/v2 缺省、实体重绑定、次位面设置和未知模式原样保护；普通客户端经主机设置、所有者/世界/重放检查、Kind3 D同步以及NaN/无穷/小数/越界/过时同步拒绝。
+- 既有回归包括 Gungnir 389、Poseidon 3397、Inventory 739、Stormhammer 751；Space V2原生26033、WorldCut原生890、共享星门原生603、军势219均通过。包检查覆盖21 XDB、22 CSV、55物品行，技能图片/原模型及来源哈希保持。
+- 最终包 **9,427,141字节 / 156条目**，`荒野探险家.netmod` 与 `荒野探险家-0.70.0.netmod` 字节一致；两者SHA-256 `6436DFEF0D4AFA6D140C281115D7226BCD25B1BFA5774628E90D37AB643D6EE9`。内嵌DLL与Release输出一致，DLL SHA-256 `2FA1A0E383EBCC751E1E2CAFE1EE8E8AC8C242868BD14585D0A44910D6702111`，版本0.70.0。与0.69.0包逐条比较，只改变 `SCIEPort.dll` 和 `modinfo.json`，其余154条目相同。
+
+日志（忽略的生成物）：`artifacts/summon-modes-environment-root.log`、`artifacts/summon-modes-environment-port.log`、`artifacts/summon-modes-0.70.0-build.log`、`artifacts/summon-modes-package-report.json`、`artifacts/summon-modes-native.log`。离线检查使用真实目标组件/地形及攻击拦截记录，不启动游戏或真实网络。
+
+252字段布局不变，新增Kind3 D=0/1/2和Action16/17/18语义；契约v2可选Mode字段，v1/v2读取保持，未改Hook/包ID/其他网络包/星门/模板身份。Android7723山地物理、实际单人/主机/普通客户端、不同分辨率触屏/骑乘/保存重进 **待验证**；混装旧版 **不支持**，同房统一0.70.0。无地形写入或蓝图能力变化，已更新根 `docs/blueprint-block-reference.md`。
 
 ## 2026-11-01 main 0.69.0：合入神器第三技能分支
 

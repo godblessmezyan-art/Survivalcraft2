@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-02",
+  "version": "0.76.0",
+  "local_parent": "68e1c93",
+  "remote_parent": "84f13d67bf98140813dd2d4f540342063d2eee91",
+  "common_ancestor": "903afcdfb947821fbeeefabd432886512a9dcf5e",
+  "decision": "user confirmed remote five-kind manual summons after clarification; replaces local random weights",
+  "package": "荒野探险家-0.76.0.netmod",
+  "bytes": 10554597,
+  "sha256": "A72DF8C2310562E871296AFEF70363EC2386A7F12517D05E02052A382B77729F",
+  "dll_sha256": "BF5AA5626FFD613C6D5AF4E2D91B2A6928F76146801BCDFC982A6643D07265AB",
+  "checks": {
+    "root_environment": "passed",
+    "release_and_package": "passed",
+    "death_authority_modes_knight_selection_codex_gate": 350,
+    "excalibur_native": 521,
+    "suspension_native": 650,
+    "codex_native": 436,
+    "legacy_parsing": 1347,
+    "guid_and_il": 27,
+    "compiled_methods_scanned": 2973,
+    "call_sites_scanned": 23483,
+    "BCL_TryParse_calls": 0,
+    "knight_native_import": {
+      "bones": 7,
+      "meshes": 7,
+      "triangles": 4924
+    }
+  },
+  "package_comparison_to_0.75.2": {
+    "unchanged_old_asset_entries": 167,
+    "added": [
+      "Assets/Database/AbyssNightmareKnight.xdb",
+      "Assets/Models/AbyssNightmareKnight.dae",
+      "Assets/Textures/AbyssNightmareKnight.png"
+    ],
+    "removed": [],
+    "changed": [
+      "SCIEPort.dll",
+      "THIRD-PARTY-NOTICES.md",
+      "modinfo.json"
+    ],
+    "knight_assets_match_remote_parent": true
+  },
+  "android_and_live_game": "待验证",
+  "target_assemblies": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  }
+}

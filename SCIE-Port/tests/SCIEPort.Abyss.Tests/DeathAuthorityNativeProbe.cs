@@ -14,7 +14,7 @@ using GameEntitySystem;
 using TemplatesDatabase;
 
 // Real target components/health/path orders and isolated network queues, not live game/device proof.
-public static class DeathAuthorityNativeProbe
+public static partial class DeathAuthorityNativeProbe
 {
     const BindingFlags F=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Instance;static Assembly mod;static int checks;static Database database;static GameDatabase game;
     static void Check(bool v,string message){checks++;if(!v)throw new Exception("Death: "+message);}
@@ -35,9 +35,9 @@ public static class DeathAuthorityNativeProbe
         internal ComponentCreature Creature(ushort id,Vector3 position,bool predator=false)
         {
             var c=(ComponentCreature)Call(Base,"Creature",position,false);c.Entity.EntityId=id;c.Category=predator?CreatureCategory.LandPredator:CreatureCategory.LandOther;c.DisplayName="Fixture Wolf";
-            c.ComponentHealth.m_componentCreature=c;c.ComponentHealth.AttackResilience=100;c.ComponentSpawn=new ComponentSpawn{m_entity=c.Entity,SpawnTime=id,AutoDespawn=true};c.ComponentCreatureModel=new ComponentCreatureModel{m_entity=c.Entity,m_eyePosition=position+Vector3.UnitY};
+            c.ComponentHealth.m_componentCreature=c;c.ComponentHealth.AttackResilience=100;c.ComponentSpawn=new ComponentSpawn{m_entity=c.Entity,SpawnTime=id,AutoDespawn=true};c.ComponentCreatureModel=new ComponentCreatureModel{m_entity=c.Entity,m_eyePosition=position+Vector3.UnitY};c.ComponentLocomotion=new ComponentLocomotion{m_entity=c.Entity};
             var selector=new ComponentBehaviorSelector{m_entity=c.Entity};var path=new ComponentPathfinding{m_entity=c.Entity,m_componentPilot=new ComponentPilot()};var miner=new ComponentMiner{m_entity=c.Entity,ComponentCreature=c,AttackPower=8};
-            ((List<Component>)Get(c.Entity,"m_components")).AddRange(new Component[]{selector,path,miner,c.ComponentCreatureModel,c.ComponentSpawn});
+            ((List<Component>)Get(c.Entity,"m_components")).AddRange(new Component[]{selector,path,miner,c.ComponentCreatureModel,c.ComponentSpawn,c.ComponentLocomotion});
             var values=new ValuesDictionary{DatabaseObject=database.FindDatabaseObject("Wolf_Gray",game.EntityTemplateType,true)};Put(c.Entity,"m_valuesDictionary",values);return c;
         }
         internal void Request(byte action,Vector3 direction){Check((bool)Call(Death,"Request",Player,action,direction,(ushort)0),"local command queued");Call(Death,"Update");}
@@ -90,12 +90,6 @@ public static class DeathAuthorityNativeProbe
         }
     }
     static object Packet(Fixture f,byte action,uint sequence){var q=New("DeathAuthorityPackage");Put(q,"Action",action);Put(q,"Caster",f.Player.Entity.EntityId);Put(q,"Sequence",sequence);Put(q,"World",Get(f.Death,"worldId"));Put(q,"Direction",-Vector3.UnitZ);return q;}
-    sealed class SummonRandom:System.Random
-    {
-        internal int Calls;readonly int roll;
-        internal SummonRandom(int roll){this.roll=roll;}
-        public override int Next(int maxValue){Check(maxValue==100,"summon uses exactly one uniform 100-outcome draw");Calls++;return roll;}
-    }
     static object StoredContract(Fixture f,ushort key,Guid owner,int kind,bool pending)
     {
         var row=New("DeathAuthorityRuntime+Friend");Put(row,"Id",key);Put(row,"Owner",owner);Put(row,"Name",kind==3?"骨龙":"地狱三头犬");
@@ -104,78 +98,84 @@ public static class DeathAuthorityNativeProbe
     }
     static void Summoning()
     {
-        var rules=mod.GetType("SCIEPort.Features.AbyssReaper.DeathAuthorityRules",true);var draw=rules.GetMethod("DrawSummonKind",BindingFlags.Static|BindingFlags.NonPublic);
-        int[] counts=new int[4];for(int roll=0;roll<100;roll++)
-        {
-            int kind=(ushort)draw.Invoke(null,new object[]{roll});counts[kind]++;
-            Check(kind==(roll<50?0:roll<75?1:roll<90?3:2),"every roll boundary maps to the specified creature");
-        }
-        Check(counts.SequenceEqual(new[]{50,25,10,15}),"exact weights: hound50 horse25 cerberus10 dragon15; no statistical tolerance");
-        foreach(int roll in new[]{-1,100,int.MinValue,int.MaxValue})
-        {
-            bool rejected=false;try{draw.Invoke(null,new object[]{roll});}catch(TargetInvocationException e){rejected=e.InnerException is ArgumentOutOfRangeException;}
-            Check(rejected,"out-of-range rolls fail rather than biasing a creature");
-        }
+        // User selected the remote five-kind behavior when merging, superseding old random weights.
         foreach(var mode in new[]{WorkType.Local,WorkType.Server})foreach(bool pending in new[]{false,true})foreach(int kind in new[]{2,3})
         {
             CommonLib.WorkType=mode;
             using(var f=new Fixture(mode==WorkType.Local))
             {
-                var rng=new SummonRandom(kind==2?90:75);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var contract=StoredContract(f,400,f.Player.PlayerGuid,kind,pending);
-                var q=Packet(f,4,1);Put(q,"Target",ushort.MaxValue);Put(q,"Flags",byte.MaxValue);
-                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
-                Check(rng.Calls==1,"accepted local/ordinary-client request draws once on authority, ignoring forged selection fields");
-                Check(((string)Call(f.Death,"Feedback",f.Player)).Contains(kind==3?"抽中骨龙":"抽中地狱三头犬"),"outcome is the server roll even when Target requests another kind");
-                Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==1&&ReferenceEquals(((IDictionary)Get(f.Death,pending?"saved":"hidden"))[(ushort)400],contract),"duplicate unique draw preserves stored/pending contract and does not create a replacement");
-                Check(Math.Abs((double)Call(f.Death,"Remaining",f.Player,(byte)4)-30)<.001,"duplicate unique draw consumes the original thirty-second cooldown without rerolling");
-                var state=Call(f.Death,"Get",f.Player);Put(state,"NextManagementRequest",-1d);var blocked=Packet(f,4,2);
-                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,blocked);Call(f.Death,"Update");Check(rng.Calls==1,"cooldown rejects a new request before drawing");
+                var state=Call(f.Death,"Get",f.Player);Put(state,"Death",true);var contract=StoredContract(f,400,f.Player.PlayerGuid,kind,pending);
+                var q=Packet(f,4,1);Put(q,"Target",(ushort)kind);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
+                Check(((string)Call(f.Death,"Feedback",f.Player)).Contains(kind==3?"已契约骨龙":"已契约刻尔柏洛斯"),"authenticated authority uses the selected kind and preserves uniqueness");
+                Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==1&&ReferenceEquals(((IDictionary)Get(f.Death,pending?"saved":"hidden"))[(ushort)400],contract),"stored/pending unique contract is not replaced");
+                Check((double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"remote duplicate rejection does not spend summon cooldown");
+                Put(state,"SummonReady",f.Clock.GameTime+30);Put(state,"NextManagementRequest",-1d);var blocked=Packet(f,4,2);Put(blocked,"Target",(ushort)4);
+                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,blocked);Call(f.Death,"Update");Check(((string)Call(f.Death,"Feedback",f.Player)).StartsWith("召唤冷却"),"selected knight still observes authoritative summon cooldown");
                 f.Clock.m_gameTime+=30.01;Put(state,"NextManagementRequest",-1d);
-                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==1,"replayed request cannot draw after cooldown expires");
-                q=Packet(f,4,3);Put(q,"World",Guid.NewGuid());Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==1,"cross-world request cannot advance the random draw");
-                q=Packet(f,4,4);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check(rng.Calls==2,"one new accepted request after cooldown performs one new draw");
+                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check((uint)Get(state,"Processed")==2,"replayed selected summon does not process after cooldown expires");
+                q=Packet(f,4,3);Put(q,"World",Guid.NewGuid());Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check((uint)Get(state,"Processed")==2,"cross-world selected summon is rejected");
+                q=Packet(f,4,4);Put(q,"Target",ushort.MaxValue);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
+                Check((string)Call(f.Death,"Feedback",f.Player)=="未知的召唤类型"&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"server rejects forged unknown selection without cooldown");
             }
         }
         CommonLib.WorkType=WorkType.Local;
         using(var f=new Fixture())
         {
-            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);f.Request(4,Vector3.UnitZ);
-            Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"void authority cannot summon or consume a random draw");
+            f.Request(4,Vector3.UnitZ);Check((string)Call(f.Death,"Feedback",f.Player)=="请先切换死亡权柄","void form cannot summon");
             Put(Call(f.Death,"Get",f.Player),"Death",true);f.Player.ComponentMiner.Inventory.RemoveSlotItems(0,1);
-            Check(!(bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)0)&&rng.Calls==0,"unequipped artifact cannot request a random summon");
+            Check(!(bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)4),"unequipped artifact cannot request a selected knight");
         }
         foreach(bool worldFull in new[]{false,true})using(var f=new Fixture())
         {
-            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);
+            Put(Call(f.Death,"Get",f.Player),"Death",true);
             for(ushort key=1;key<=(worldFull?24:7);key++)StoredContract(f,key,worldFull?Guid.NewGuid():f.Player.PlayerGuid,2,false);
-            f.Request(4,Vector3.UnitZ);Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"owner/world capacity rejects before rolling or spending cooldown");
+            f.Request(4,Vector3.UnitZ);Check((string)Call(f.Death,"Feedback",f.Player)=="召唤数量已满"&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"selected summon retains owner/world capacity check");
         }
         using(var f=new Fixture())
         {
-            var rng=new SummonRandom(75);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var cells=(Terrain)Get(f.Base,"Cells");
-            for(int x=-32;x<80;x++)for(int z=-32;z<80;z++)cells.SetCellValueFast(x,63,z,0);
-            f.Request(4,Vector3.UnitZ);Check(rng.Calls==0&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"unsafe summon location rejects without rolling or consuming cooldown");
+            var cells=(Terrain)Get(f.Base,"Cells");for(int x=-32;x<80;x++)for(int z=-32;z<80;z++)cells.SetCellValueFast(x,63,z,0);
+            for(ushort kind=0;kind<5;kind++)
+            {
+                object[] args={f.Player,kind,""};Check(!(bool)Call(f.Death,"Summon",args)&&((string)args[2]).Contains("安全召唤位置"),"all five selected kinds reach safe-location validation without creating an entity");
+            }
+            foreach(ushort kind in new ushort[]{5,ushort.MaxValue}){object[] args={f.Player,kind,""};Check(!(bool)Call(f.Death,"Summon",args)&&(string)args[2]=="未知的召唤类型","unknown kind is rejected before placement");}
         }
         CommonLib.WorkType=WorkType.Server;
         using(var f=new Fixture(false))
         {
-            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);var q=Packet(f,4,1);
-            Call(f.Death,"Enqueue",f.Player,f.Client,q);Put(f.Client,"<TokenId>k__BackingField",Guid.NewGuid());Call(f.Death,"Update");Check(rng.Calls==0,"queued obsolete connection cannot draw");
+            Put(Call(f.Death,"Get",f.Player),"Death",true);var q=Packet(f,4,1);Put(q,"Target",(ushort)4);Call(f.Death,"Enqueue",f.Player,f.Client,q);
+            Put(f.Client,"<TokenId>k__BackingField",Guid.NewGuid());Call(f.Death,"Update");Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0,"obsolete connection cannot submit a selected summon");
         }
         CommonLib.WorkType=WorkType.Client;
         using(var f=new Fixture())
         {
-            var rng=new SummonRandom(90);Put(f.Death,"summonRandom",rng);Put(Call(f.Death,"Get",f.Player),"Death",true);object[] args={f.Player,"",false};
-            Check(!(bool)Call(f.Death,"Summon",args)&&rng.Calls==0&&!(bool)args[2],"direct client summon cannot draw, create or consume cooldown");
-            CommonLib.Net.Server=f.Client;Put(f.Death,"serverToken",f.Client.TokenId);Put(f.Death,"worldKnown",true);
-            Check((bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)0)&&rng.Calls==0,"client only sends a request and never chooses a local result");
-            CommonLib.Net.Server=null;
+            object[] args={f.Player,(ushort)4,""};Check(!(bool)Call(f.Death,"Summon",args)&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==0,"direct client selected knight cannot create a contract");
+            CommonLib.Net.Server=f.Client;Put(f.Death,"serverToken",f.Client.TokenId);Put(f.Death,"worldKnown",true);Put(Call(f.Death,"Get",f.Player),"Death",true);
+            Check((bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)4),"client sends its selected kind to the server");CommonLib.Net.Server=null;
+        }
+    }
+    static void MergedCodexGate()
+    {
+        CommonLib.WorkType=WorkType.Local;
+        using(var f=new Fixture())
+        {
+            var creature=f.Creature(450,new Vector3(12,64,8));Call(f.Death,"Adopt",creature,f.Player.PlayerGuid,false);var key=f.Key(creature);
+            var codex=f.Project.m_subsystems.Single(x=>x.GetType().FullName=="SCIEPort.Features.Codex.SubsystemArtifactCodex");var records=(IDictionary)Get(codex,"Records");records[f.Player.PlayerGuid]=0u;
+            Put(Call(f.Death,"Get",f.Player),"Death",true);
+            foreach(byte action in new byte[]{4,16,17,18})
+            {
+                var q=Packet(f,action,(uint)action);Put(q,"Target",action==4?(ushort)4:key);Call(f.Death,"Enqueue",f.Player,null,q);Call(f.Death,"Update");
+                Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==1,"sealed Abyss rejects selected knight and every new behavior action before dispatch");
+            }
+            records[f.Player.PlayerGuid]=64u;var mode=Packet(f,17,50);Put(mode,"Target",key);Call(f.Death,"Enqueue",f.Player,null,mode);Call(f.Death,"Update");
+            var guard=((IDictionary)Get(f.Death,"guards"))[creature.Entity.EntityId];Check(Convert.ToInt32(Get(guard,"Mode"))==1,"releasing Abyss true name enables remote free-mode management");
         }
     }
     sealed class AttackRecorder:ModLoader
     {
         internal readonly List<ComponentBody> Targets=new List<ComponentBody>();
-        public override bool AttackBody(ComponentBody target,ComponentCreature attacker,Vector3 point,Vector3 direction,ref float power,bool melee){Targets.Add(target);power=0;return true;}
+        internal readonly List<float> Powers=new List<float>();
+        public override bool AttackBody(ComponentBody target,ComponentCreature attacker,Vector3 point,Vector3 direction,ref float power,bool melee){Targets.Add(target);Powers.Add(power);power=0;return true;}
     }
     static void ArmyAndBudget()
     {
@@ -252,6 +252,99 @@ public static class DeathAuthorityNativeProbe
             var attacker=new Client(Guid.NewGuid(),null);q=friend(1,20);Put(q,"Caster",f.Player.Entity.EntityId);Put(q,"Owner",f.Player.PlayerGuid);Call(f.Death,"Enqueue",null,attacker,q);Call(f.Death,"Update");Check((bool)Call(f.Death,"IsDeath",f.Player),"state from a non-server client is rejected");CommonLib.Net.Server=null;
         }
     }
+    static object Guard(Fixture f,ComponentCreature c){return ((IDictionary)Get(f.Death,"guards"))[c.Entity.EntityId];}
+    static void Mode(Fixture f,ComponentCreature c,int mode)
+    {Call(f.Death,"SetGuardMode",f.Player,f.Key(c),Enum.ToObject(mod.GetType("SCIEPort.Features.AbyssReaper.DeathGuardMode"),mode));}
+    static object Select(Fixture f,object guard){object[] args={guard,f.Player,128};return Call(f.Death,"ChooseGuardTarget",args);}
+    static void ModesAndCliffs()
+    {
+        CommonLib.WorkType=WorkType.Local;
+        using(var f=new Fixture())
+        {
+            var c=f.Creature(90,new Vector3(10,64,8));Call(f.Death,"Adopt",c,f.Player.PlayerGuid,false);var g=Guard(f,c);
+            var neutral=f.Creature(91,new Vector3(11.5f,64,8));Check(Select(f,g)==null,"default guard mode leaves neutral creatures alone");
+            Mode(f,c,2);Check(ReferenceEquals(Select(f,g),neutral),"attack mode acquires a neutral creature");
+            Put(g,"Target",neutral);Check((bool)Call(f.Death,"GuardEnemy",g,neutral,f.Player),"attack mode validates neutral target again at impact");
+            var recorder=new AttackRecorder();ModsManager.RegisterHook("AttackBody",recorder);Call(f.Death,"Update");
+            Check(recorder.Targets.Contains(neutral.ComponentBody),"attack mode automatically dispatches native melee against a neutral creature");ModsManager.ModHooks.Clear();
+            var ally=f.Creature(92,new Vector3(10.5f,64,8));Call(f.Death,"Adopt",ally,f.Player.PlayerGuid,false);
+            Check(!(bool)Call(f.Death,"GuardEnemy",g,ally,f.Player)&&!(bool)Call(f.Death,"GuardEnemy",g,f.Player,f.Player),"attack mode protects all army allies and players");
+            f.Player.ComponentBody.ParentBody=neutral.ComponentBody;
+            Check(!(bool)Call(f.Death,"GuardEnemy",g,neutral,f.Player),"attack mode protects a player's carrier");f.Player.ComponentBody.ParentBody=null;
+            var predator=f.Creature(93,new Vector3(13,64,8),true);Call(f.Death,"NoteAttack",c.ComponentHealth,predator);
+            Put(g,"BiteTarget",neutral);Put(g,"RidingAuto",true);Mode(f,c,1);
+            Check(Get(g,"Target")==null&&Get(g,"BiteTarget")==null&&!(bool)Get(g,"RidingAuto"),"free mode cancels old melee, bite and riding pursuit immediately");
+            Check(Select(f,g)==null&&!(bool)Call(f.Death,"GuardEnemy",g,predator,f.Player),"free mode ignores predators and recorded threats");
+            f.Player.ComponentBody.Position=new Vector3(70,64,8);Vector3 before=c.ComponentBody.Position;Call(f.Death,"Update");
+            Check(c.ComponentBody.Position==before,"free mode does not teleport back to a distant owner");
+            var path=c.Entity.FindComponent<ComponentPathfinding>(true);
+            Check(!path.Destination.HasValue||Vector3.DistanceSquared(path.Destination.Value,before)<=36,"free movement stays local instead of following distant player");
+            Mode(f,c,0);Check(ReferenceEquals(Select(f,g),predator),"guard mode restores threat acquisition after free mode");
+            f.Player.ComponentBody.Position=c.ComponentBody.Position-Vector3.UnitX;
+            path.SetDestination(new Vector3(30,64,8),1,1,128,false,false,true,null);c.ComponentBody.Velocity=-Vector3.UnitX*2;
+            var cells=(Terrain)Get(f.Base,"Cells");for(int x=11;x<=18;x++)for(int z=4;z<=12;z++)cells.SetCellValueFast(x,63,z,0);
+            Check((bool)Call(f.Death,"YieldToPlayer",g)&&!path.Destination.HasValue,"player proximity at a cliff stops the old path without issuing outward movement");
+            Check(c.ComponentBody.Velocity.X==0&&c.ComponentBody.Position==before,"proximity braking creates neither new velocity nor teleport");
+        }
+        using(var f=new Fixture())
+        {
+            var c=f.Creature(94,new Vector3(20.5f,64,20.5f));var cells=(Terrain)Get(f.Base,"Cells");
+            Func<Vector3,bool> safe=at=>{Put(f.Death,"roamBudget",4096);return (bool)Call(f.Death,"SafeRoamRoute",c.ComponentBody,at);};
+            var end=new Vector3(23,64,20.5f);Check(safe(end),"fully supported short route accepted");
+            cells.SetCellValueFast(22,63,20,0);Check(!safe(end),"route rejects a gap even when destination has a solid floor");cells.SetCellValueFast(22,63,20,3);
+            c.ComponentBody.BoxSize=new Vector3(2.1f,2.7f,5.8f);cells.SetCellValueFast(21,63,18,0);
+            Check(!safe(end),"large summon requires floor under its full footprint, including edges");cells.SetCellValueFast(21,63,18,3);
+            cells.SetCellValueFast(22,65,20,3);Check(!safe(end),"roaming rejects a body-height wall");cells.SetCellValueFast(22,65,20,0);
+            cells.GetChunkAtCell(20,20).State=TerrainChunkState.InvalidContents1;Check(!safe(end),"roaming rejects unloaded terrain");cells.GetChunkAtCell(20,20).State=TerrainChunkState.Valid;
+            Check(!safe(end+Vector3.UnitY)&&!safe(new Vector3(30,64,20.5f)),"roaming rejects height changes and long paths");
+            Put(f.Death,"roamBudget",0);Check(!(bool)Call(f.Death,"SafeRoamRoute",c.ComponentBody,end),"exhausted shared terrain budget stops roaming");
+            Call(f.Death,"Adopt",c,f.Player.PlayerGuid,false);Mode(f,c,1);Put(f.Death,"roamBudget",4096);Call(f.Death,"RoamGuard",Guard(f,c));
+            Check(c.Entity.FindComponent<ComponentPathfinding>(true).Destination.HasValue,"free mode actually starts a safe local walk");
+        }
+    }
+    static void ModePersistenceAndNetwork()
+    {
+        CommonLib.WorkType=WorkType.Local;
+        using(var f=new Fixture())
+        {
+            var c=f.Creature(95,new Vector3(20,64,20));Call(f.Death,"Adopt",c,f.Player.PlayerGuid,false);Mode(f,c,2);
+            var data=(ValuesDictionary)Call(f.Death,"Save");Check(data.GetValue<ValuesDictionary>("Ally0").GetValue<int>("Mode")==2,"selected mode written to contract metadata");
+            var other=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));
+            Call(other,"Load",data);Call(other,"EntityAdded",c.Entity);Check(Convert.ToInt32(Get(((IDictionary)Get(other,"guards"))[c.Entity.EntityId],"Mode"))==2,"mode restored when an unloaded entity rebinds");((IDisposable)other).Dispose();
+            ((IDictionary)Get(data.GetValue<ValuesDictionary>("Ally0"),"m_dictionary")).Remove("Mode");other=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));Call(other,"Load",data);
+            var row=((IList)Call(other,"Friends",f.Player.PlayerGuid))[0];Check(Convert.ToInt32(Get(row,"Mode"))==0,"old v2 records default to guard mode");((IDisposable)other).Dispose();
+            data.SetValue("Version",1);other=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));Call(other,"Load",data);
+            Check(Convert.ToInt32(Get(((IList)Call(other,"Friends",f.Player.PlayerGuid))[0],"Mode"))==0,"legacy v1 records also default to guard mode");((IDisposable)other).Dispose();data.SetValue("Version",2);
+            var stored=data.GetValue<ValuesDictionary>("Ally0");stored.SetValue("Id",0);stored.SetValue("Hidden",true);stored.SetValue("Snapshot",new ValuesDictionary());stored.SetValue("Mode",2);
+            other=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));Call(other,"Load",data);
+            Check(Convert.ToInt32(Get(((IList)Call(other,"Friends",f.Player.PlayerGuid))[0],"Mode"))==2,"hidden contract loads its selected mode");
+            Call(other,"SetGuardMode",f.Player,f.Key(c),Enum.ToObject(mod.GetType("SCIEPort.Features.AbyssReaper.DeathGuardMode"),1));
+            var roundtrip=(ValuesDictionary)Call(other,"Save");Check(roundtrip.GetValue<ValuesDictionary>("Ally0").GetValue<int>("Mode")==1,"changing a hidden contract persists its new mode without manifesting it");((IDisposable)other).Dispose();
+            stored.SetValue("Mode",3);other=New("DeathAuthorityRuntime",f.Owner,Get(f.Base,"Terrain"),f.Bodies,f.Clock,Get(f.Base,"Players"));Call(other,"Load",data);
+            Check(ReferenceEquals(Call(other,"Save"),data),"unknown saved mode preserves original data instead of silently changing behavior");((IDisposable)other).Dispose();
+        }
+        CommonLib.WorkType=WorkType.Server;
+        using(var f=new Fixture(false))
+        {
+            var c=f.Creature(96,new Vector3(20,64,20));Call(f.Death,"Adopt",c,f.Player.PlayerGuid,false);var g=Guard(f,c);
+            var q=Packet(f,18,1);Put(q,"Target",f.Key(c));Call(f.Death,"Enqueue",f.Player,f.Client,q);Call(f.Death,"Update");Check(Convert.ToInt32(Get(g,"Mode"))==2,"authenticated ordinary client changes mode on host");
+            var packets=(List<IPackage>)Get(CommonLib.Net,"PendingPackages");Check(packets.Any(p=>p.GetType().Name=="DeathAuthorityPackage"&&(byte)Get(p,"Kind")==3&&(float)Get(p,"D")==2),"host replicates mode using existing Kind3 D field");
+            q=Packet(f,17,1);Put(q,"Target",f.Key(c));Call(f.Death,"Enqueue",f.Player,f.Client,q);Call(f.Death,"Update");Check(Convert.ToInt32(Get(g,"Mode"))==2,"replayed mode command cannot overwrite newer state");
+            Put(Call(f.Death,"Get",f.Player),"NextManagementRequest",0d);q=Packet(f,17,2);Call(f.Death,"Enqueue",f.Player,f.Client,q);Call(f.Death,"Update");Check(Convert.ToInt32(Get(g,"Mode"))==2,"zero contract key cannot accidentally change the whole army");
+            Put(Call(f.Death,"Get",f.Player),"NextManagementRequest",0d);q=Packet(f,17,3);Put(q,"Target",f.Key(c));Put(q,"World",Guid.NewGuid());Call(f.Death,"Enqueue",f.Player,f.Client,q);Call(f.Death,"Update");Check(Convert.ToInt32(Get(g,"Mode"))==2,"cross-world mode request rejected");
+            var owner=f.Player.PlayerGuid;f.Player.PlayerGuid=Guid.NewGuid();Mode(f,c,1);Check(Convert.ToInt32(Get(g,"Mode"))==2,"another owner cannot change the selected contract");f.Player.PlayerGuid=owner;
+        }
+        CommonLib.WorkType=WorkType.Client;
+        using(var f=new Fixture())
+        {
+            CommonLib.Net.Server=f.Client;Put(f.Death,"serverToken",f.Client.TokenId);Put(f.Death,"worldKnown",true);Put(f.Death,"hasClock",true);
+            var q=Packet(f,0,0);Put(q,"Kind",(byte)3);Put(q,"Target",(ushort)97);Put(q,"Owner",f.Player.PlayerGuid);Put(q,"Name","模式同步");Put(q,"Revision",1u);Put(q,"D",2f);Call(f.Death,"Receive",q);
+            Check(Convert.ToInt32(Get(((IList)Call(f.Death,"Friends",f.Player.PlayerGuid))[0],"Mode"))==2,"ordinary client reads host mode");
+            foreach(float invalid in new[]{float.NaN,float.PositiveInfinity,-1f,.5f,3f}){Put(q,"Revision",2u);Put(q,"D",invalid);Call(f.Death,"Receive",q);Check(Convert.ToInt32(Get(((IList)Call(f.Death,"Friends",f.Player.PlayerGuid))[0],"Mode"))==2,"invalid wire mode cannot replace client state");}
+            Put(q,"Revision",2u);Put(q,"D",1f);Call(f.Death,"Receive",q);Put(q,"Revision",1u);Put(q,"D",2f);Call(f.Death,"Receive",q);
+            Check(Convert.ToInt32(Get(((IList)Call(f.Death,"Friends",f.Player.PlayerGuid))[0],"Mode"))==1,"older mode snapshot cannot overwrite free mode");CommonLib.Net.Server=null;
+        }
+    }
     public static void Run(Assembly assembly,XElement xml)
     {
         mod=assembly;database=XmlDatabaseSerializer.LoadDatabase(xml);game=new GameDatabase(database);typeof(VoidSpaceNativeProbe).GetField("mod",BindingFlags.Static|BindingFlags.NonPublic).SetValue(null,assembly);
@@ -259,7 +352,7 @@ public static class DeathAuthorityNativeProbe
         try
         {
             CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();ModsManager.ModHooks=new Dictionary<string,ModsManager.ModHook>();SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
-            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();Summoning();
+            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();ModesAndCliffs();ModePersistenceAndNetwork();KnightRulesAndCombat();KnightNetworkAndStorage();Summoning();MergedCodexGate();
         }
         finally{CommonLib.WorkType=work;CommonLib.Net=net;ModsManager.ModHooks=hooks;SubsystemBedrockBlockBehavior.Territories=territory;BlocksManager.Blocks[0]=air;BlocksManager.Blocks[3]=stone;}
         Console.WriteLine("Death authority native health/conversion/army/ownership/persistence/authentication checks: "+checks+" passed (isolated; not live network/Android).");
