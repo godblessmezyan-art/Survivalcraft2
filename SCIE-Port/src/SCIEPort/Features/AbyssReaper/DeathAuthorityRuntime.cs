@@ -37,7 +37,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal DeathAuthorityRuntime(SubsystemAbyssReaper parent,SubsystemTerrain terrain,SubsystemBodies bodies,SubsystemTime clock,SubsystemPlayers players)
         {this.parent=parent;this.terrain=terrain;this.bodies=bodies;this.clock=clock;this.players=players;recoveryWorlds.Add(this);}
         private bool Actor(ComponentPlayer p,bool held=true)=>p!=null&&p.Project==terrain.Project&&p.IsAddedToProject&&p.PlayerGuid!=Guid.Empty&&p.PlayerData.IsReadyForPlaying&&p.ComponentHealth.Health>0&&(!held||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0&&p.ComponentRider.Mount==null&&p.ComponentBody.ParentBody==null&&p.ComponentBody.ChildBodies.Count==0);
-        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest||action==DeathAuthorityRules.ManifestOne||action==DeathAuthorityRules.StowOne;
+        private static bool Management(byte action)=>action==DeathAuthorityRules.Summon||action==DeathAuthorityRules.Sync||action==DeathAuthorityRules.Dismiss||action==DeathAuthorityRules.Recall||action==DeathAuthorityRules.Stow||action==DeathAuthorityRules.Manifest||action==DeathAuthorityRules.ManifestOne||action==DeathAuthorityRules.StowOne||action>=DeathAuthorityRules.GuardMode&&action<=DeathAuthorityRules.AttackMode;
         private bool CommandActor(ComponentPlayer p,byte action)=>(action==DeathAuthorityRules.RidingMode||action==DeathAuthorityRules.RiderInput||action==DeathAuthorityRules.DragonFlight)?RidingActor(p):Management(action)?Actor(p,false)&&(action==DeathAuthorityRules.Sync||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==952&&p.ComponentSleep.SleepFactor<=0):Actor(p);
         private State Get(ComponentPlayer p)
         {
@@ -119,6 +119,9 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Manifest:StatePacket(p,ManifestArmy(p));break;
                 case DeathAuthorityRules.ManifestOne:StatePacket(p,q.Target==0?"请先选择一只次位面生物":ManifestArmy(p,q.Target));break;
                 case DeathAuthorityRules.StowOne:StatePacket(p,q.Target==0?"请先选择一只现世生物":StowArmy(p,q.Target));break;
+                case DeathAuthorityRules.GuardMode:
+                case DeathAuthorityRules.FreeMode:
+                case DeathAuthorityRules.AttackMode:StatePacket(p,SetGuardMode(p,q.Target,(DeathGuardMode)(q.Action-DeathAuthorityRules.GuardMode)));break;
                 default:StatePacket(p,"无效的死亡权柄操作");break;
             }
         }

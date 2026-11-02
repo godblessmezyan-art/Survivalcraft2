@@ -13,6 +13,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool Dragon=>Template==BoneDragonRules.Template;
         internal ComponentCreature BiteTarget;internal double BiteStarted=-100,BiteImpactAt;
         internal bool RidingAuto,Following;internal double PursuitUntil,ManualUntil,NextPlan;internal bool AutoDriving;
+        internal DeathGuardMode Mode;internal Vector3 RoamCenter;internal double NextRoam;internal int RoamStep;
         internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
         private readonly DeathSummonStats.Bonus stats=new DeathSummonStats.Bonus();private bool wasRidden;
         internal float SentHealth=-1,SentMaximum=-1;
@@ -25,7 +26,7 @@ namespace SCIEPort.Features.AbyssReaper
             selector=c.Entity.FindComponent<ComponentBehaviorSelector>(false);Path=c.Entity.FindComponent<ComponentPathfinding>(false);
             if(selector==null||Path==null||c.Entity.FindComponent<ComponentMiner>(false)==null||c.ComponentCreatureModel==null)return false;
             Creature=c;Owner=owner;Special=special;Template=c.Entity.ValuesDictionary?.DatabaseObject?.Name??"";SpawnTime=c.ComponentSpawn?.SpawnTime??0;
-            OriginalName=c.DisplayName;disabled=selector.IsDisableBehavior;autoDespawn=c.ComponentSpawn?.AutoDespawn??false;
+            OriginalName=c.DisplayName;RoamCenter=c.ComponentBody.Position;disabled=selector.IsDisableBehavior;autoDespawn=c.ComponentSpawn?.AutoDespawn??false;
             selector.IsDisableBehavior=true;foreach(var b in selector.m_behaviors)b.IsActive=false;
             chase=c.Entity.FindComponent<ComponentChaseBehavior>(false);
             if(chase!=null){mask=chase.m_autoChaseMask;retaliate=chase.m_chaseWhenAttackedProbability;touch=chase.m_chaseOnTouchProbability;nonplayer=chase.m_chaseNonPlayerProbability;chase.m_autoChaseMask=0;chase.m_chaseWhenAttackedProbability=0;chase.m_chaseOnTouchProbability=0;chase.m_chaseNonPlayerProbability=0;chase.m_target=null;chase.IsActive=false;}

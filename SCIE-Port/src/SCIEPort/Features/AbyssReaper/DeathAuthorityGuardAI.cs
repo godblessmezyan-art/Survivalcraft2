@@ -18,15 +18,15 @@ namespace SCIEPort.Features.AbyssReaper
             if(guard.Ridden)return;var body=guard.Creature.ComponentBody;float gap=1.7f+Math.Max(body.BoxSize.X,body.BoxSize.Z)*.5f;
             foreach(var player in players.ComponentPlayers)if(player.IsAddedToProject)
             {
-                Vector3 away=body.Position-player.ComponentBody.Position;away.Y=0;float distance=away.LengthSquared();if(distance<.01f||distance>gap*gap)continue;
-                away=Vector3.Normalize(away);float approach=Vector3.Dot(body.Velocity,away);
-                if(approach<-.01f){body.Velocity-=away*approach;guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;}
+                Vector3 away=body.Position-player.ComponentBody.Position;away.Y=0;if(away.LengthSquared()>gap*gap)continue;
+                body.Velocity=new Vector3(0,body.Velocity.Y,0);guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;
             }
         }
         private bool GuardEnemy(DeathGuard guard,ComponentCreature target,ComponentPlayer owner)
-            =>SafeTarget(target)&&(Hostile(target,owner)||guard.Target==target&&Now<guard.PursuitUntil);
+            =>guard.Mode!=DeathGuardMode.Free&&SafeTarget(target)&&(guard.Mode==DeathGuardMode.Attack||Hostile(target,owner)||guard.Target==target&&Now<guard.PursuitUntil);
         private ComponentCreature ChooseGuardTarget(DeathGuard guard,ComponentPlayer owner,ref int budget)
         {
+            if(guard.Mode==DeathGuardMode.Free)return null;
             Threat threat;
             if(threats.TryGetValue(owner.PlayerGuid,out threat)&&Now<threat.Until&&SafeTarget(threat.Creature)&&Vector3.DistanceSquared(owner.ComponentBody.Position,threat.Creature.ComponentBody.Position)<=DeathAuthorityRules.PursuitRange*DeathAuthorityRules.PursuitRange)
             {guard.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;return threat.Creature;}
@@ -36,16 +36,10 @@ namespace SCIEPort.Features.AbyssReaper
             ComponentCreature chosen=null;float best=24*24;int checkedBodies=0;
             foreach(var body in candidates)
             {
-                if(++checkedBodies>128||budget--<=0)break;var target=body.Entity.FindComponent<ComponentCreature>(false);if(!Hostile(target,owner))continue;
+                if(++checkedBodies>128||budget--<=0)break;var target=body.Entity.FindComponent<ComponentCreature>(false);if(!(guard.Mode==DeathGuardMode.Attack?SafeTarget(target):Hostile(target,owner)))continue;
                 float distance=Vector3.DistanceSquared(owner.ComponentBody.Position,body.Position);if(distance<best){best=distance;chosen=target;}
             }
             if(chosen!=null)guard.PursuitUntil=Now+DeathAuthorityRules.PursuitLease;return chosen;
-        }
-        private static bool MountApproach(ComponentPlayer player,DeathGuard guard)
-        {
-            if(!(guard.Cerberus||guard.Warhorse||guard.Dragon)||player.PlayerGuid!=guard.Owner)return false;
-            Vector3 to=guard.Creature.ComponentBody.Position+Vector3.UnitY*1.9f-player.ComponentCreatureModel.EyePosition;
-            return to.LengthSquared()<25&&to.LengthSquared()>.01f&&Vector3.Dot(Vector3.Normalize(to),player.ComponentCreatureModel.EyeRotation.GetForwardVector())>.65f;
         }
         private bool YieldToPlayer(DeathGuard guard)
         {
@@ -55,14 +49,9 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 if(!player.IsAddedToProject||player.ComponentHealth.Health<=0)continue;
                 Vector3 away=body.Position-player.ComponentBody.Position;away.Y=0;float distance=away.LengthSquared();if(distance>=gap*gap)continue;
-                Vector3 velocity=body.Velocity;
-                if(distance>.01f){away=Vector3.Normalize(away);float approach=Vector3.Dot(velocity,away);if(approach<0)velocity-=away*approach;}
-                else{away=player.ComponentBody.Matrix.Right;velocity.X=velocity.Z=0;}
-                body.Velocity=velocity;
-                if(MountApproach(player,guard)){guard.Path.Stop();return true;}
-                Vector3 destination=player.ComponentBody.Position+away*(DeathAuthorityRules.FollowStop+1);
-                if(VoidPortalSafety.Ready(terrain,Terrain.ToCell(destination.X),Terrain.ToCell(destination.Z))&&VoidPortalSafety.Unprotected(Terrain.ToCell(destination.X),Terrain.ToCell(destination.Z)))GuardMoveTo(guard,destination,.55f,.75f);
-                else guard.Path.Stop();
+                body.Velocity=new Vector3(0,body.Velocity.Y,0);
+                // Proximity must never manufacture a destination away from a cliff edge.
+                guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;
                 return true;
             }
             return false;
@@ -72,6 +61,7 @@ namespace SCIEPort.Features.AbyssReaper
             var c=guard.Creature;bool mounted=guard.Ridden;
             if(mounted&&!guard.AutoDriving){guard.Path.Stop();return;}
             if(!mounted&&YieldToPlayer(guard))return;
+            if(!mounted&&guard.Mode==DeathGuardMode.Free){RoamGuard(guard);return;}
             if(guard.Target!=null)
             {
                 float stop=guard.Dragon?3.4f:guard.Cerberus?2.6f:1.2f+(c.ComponentBody.BoxSize.X+guard.Target.ComponentBody.BoxSize.X)*.5f;

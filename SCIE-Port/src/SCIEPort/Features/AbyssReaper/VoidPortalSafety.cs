@@ -21,7 +21,7 @@ namespace SCIEPort.Features.AbyssReaper
         private static bool Empty(SubsystemTerrain terrain,int x,int y,int z)
             => y>=1 && y<=254 && Ready(terrain,x,z) && Unprotected(x,z)
                && Terrain.ExtractContents(terrain.Terrain.GetCellValue(x,y,z))==0;
-        private static bool StableFloor(SubsystemTerrain terrain,int x,int y,int z)
+        internal static bool StableFloor(SubsystemTerrain terrain,int x,int y,int z)
         {
             if(y<0 || y>253 || !Ready(terrain,x,z) || !Unprotected(x,z))return false;
             int value=terrain.Terrain.GetCellValue(x,y,z);int id=Terrain.ExtractContents(value);

@@ -36,6 +36,7 @@ namespace SCIEPort.Features.AbyssReaper
         private void ToggleRiding(ComponentPlayer p,ushort key)
         {
             var g=RiddenGuard(p);if(g==null||g.Key!=key){StatePacket(p,"请先骑上自己的契约坐骑");return;}
+            if(g.Mode==DeathGuardMode.Free){StatePacket(p,"自由行动不自动追击，请先改为护卫或攻击模式");return;}
             g.RidingAuto=!g.RidingAuto;g.Target=g.BiteTarget=null;g.AutoDriving=false;g.NextThink=g.NextPlan=0;g.Path.Stop();
             FriendPacket(Row(g));PublishRidePlan(g);StatePacket(p,g.RidingAuto?"骑乘自动追击已开启 · 手动操作优先":"骑乘自动追击已关闭");
         }
@@ -74,7 +75,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(manualMount!=mount.Entity.EntityId){manualMount=mount.Entity.EntityId;riderManualUntil=Now+.5;}
                 if(RiderOrder(p)){riderManualUntil=Now+DeathAuthorityRules.RiderPriority;if(row.RidingAuto)SendRiderInput(p,row);}
                 RidePlan plan;bool fresh=ridePlans.TryGetValue(row.EntityId,out plan)&&Now<plan.Until;
-                bool drive=row.RidingAuto&&Now>=riderManualUntil&&(!fresh||plan.Enabled);
+                bool drive=row.Mode!=DeathGuardMode.Free&&row.RidingAuto&&Now>=riderManualUntil&&(!fresh||plan.Enabled);
                 // Native SCNET physics for a ridden body belongs to its local rider.
                 // Only movement follows the host's plan; targeting/hits remain on the host.
                 if(drive)

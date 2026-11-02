@@ -9,11 +9,11 @@ namespace SCIEPort.Features.AbyssReaper
     {
         private sealed class Placement{internal Widget Widget;internal Vector2 Position,Size;internal float Font;}
         private readonly List<Placement> placements=new List<Placement>();
-        private readonly ComponentPlayer player;private readonly DeathAuthorityRuntime runtime;private readonly CanvasWidget panel=new CanvasWidget{Size=new Vector2(540,590),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center,IsHitTestVisible=false,ClampToBounds=true};
+        private readonly ComponentPlayer player;private readonly DeathAuthorityRuntime runtime;private readonly CanvasWidget panel=new CanvasWidget{Size=new Vector2(540,632),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center,IsHitTestVisible=false,ClampToBounds=true};
         private readonly RectangleWidget background;
         private readonly BevelledButtonWidget[] rows=new BevelledButtonWidget[DeathAuthorityRules.OwnerLimit];private readonly LabelWidget hint;private readonly BevelledButtonWidget summon,recall,dismiss,close,kind,stow,manifest;private ushort selected,armed,summonKind;
         private readonly LabelWidget[] health=new LabelWidget[DeathAuthorityRules.OwnerLimit];
-        private readonly BevelledButtonWidget ridingMode,selectedAction;
+        private readonly BevelledButtonWidget ridingMode,selectedAction,behaviorMode;
         internal DeathArmyDialog(ComponentPlayer player,DeathAuthorityRuntime runtime)
         {
             this.player=player;this.runtime=runtime;Children.Add(panel);
@@ -26,10 +26,11 @@ namespace SCIEPort.Features.AbyssReaper
                 health[i]=new LabelWidget{FontScale=.44f,TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,IsHitTestVisible=false};
                 Place(health[i],350,96+i*39,174,35,.44f);
             }
-            hint=new LabelWidget{Text="解除契约后生物直接消失",FontScale=.48f,WordWrap=true,IsHitTestVisible=false};Place(hint,16,375,508,44,.48f);
-            summon=Button("召唤",16,428,152,44);recall=Button("召回友军",192,428,152,44);dismiss=Button("解除所选",368,428,152,44);close=Button("关闭",414,12,108,34);
-            stow=Button("全部收回次位面",16,488,244,44);manifest=Button("全部召回现世",280,488,244,44);
-            ridingMode=Button("骑乘后设置追击",16,546,244,36);selectedAction=Button("请先选择契约",280,546,244,36);
+            behaviorMode=Button("选择契约后设置行动模式",16,375,508,40);
+            hint=new LabelWidget{Text="解除契约后生物直接消失",FontScale=.48f,WordWrap=true,IsHitTestVisible=false};Place(hint,16,420,508,38,.48f);
+            summon=Button("召唤",16,468,152,44);recall=Button("召回友军",192,468,152,44);dismiss=Button("解除所选",368,468,152,44);close=Button("关闭",414,12,108,34);
+            stow=Button("全部收回次位面",16,524,244,44);manifest=Button("全部召回现世",280,524,244,44);
+            ridingMode=Button("骑乘后设置追击",16,580,244,40);selectedAction=Button("请先选择契约",280,580,244,40);
             runtime.Request(player,DeathAuthorityRules.Sync,Vector3.UnitZ);
         }
         private void Place(Widget widget,float x,float y,float w,float h,float font)
@@ -39,9 +40,9 @@ namespace SCIEPort.Features.AbyssReaper
         {
             // Target Widget.Arrange does not divide ActualSize by LayoutTransform's scale.
             // Scale coordinates/sizes/fonts together, leaving the actual widget transform at identity.
-            float scale=Math.Min(1,Math.Min(Math.Max(0,available.X-24)/540,Math.Max(0,available.Y-24)/590));
+            float scale=Math.Min(1,Math.Min(Math.Max(0,available.X-24)/540,Math.Max(0,available.Y-24)/632));
             if(!WorldCutRules.Finite(scale)||scale<=0)scale=.1f;
-            panel.LayoutTransform=Matrix.Identity;panel.Size=new Vector2(540,590)*scale;background.Size=panel.Size;
+            panel.LayoutTransform=Matrix.Identity;panel.Size=new Vector2(540,632)*scale;background.Size=panel.Size;
             foreach(var item in placements)
             {
                 panel.SetWidgetPosition(item.Widget,item.Position*scale);
@@ -82,10 +83,13 @@ namespace SCIEPort.Features.AbyssReaper
             ridingMode.Text=mount==null?"骑乘后设置追击":"骑乘追击："+(mount.RidingAuto?"开启":"关闭");
             if(ridingMode.IsClicked&&mount!=null)runtime.Request(player,DeathAuthorityRules.RidingMode,Vector3.UnitZ,mount.Id);
             var chosen=list.Find(row=>row.Id==selected);selectedAction.IsEnabled=chosen!=null&&!chosen.Pending;
+            behaviorMode.IsEnabled=chosen!=null;
+            behaviorMode.Text=chosen==null?"选择契约后设置行动模式":"所选模式："+DeathAuthorityRuntime.ModeText(chosen.Mode)+"（点按切换）";
+            if(behaviorMode.IsClicked&&chosen!=null)runtime.Request(player,(byte)(DeathAuthorityRules.GuardMode+((int)chosen.Mode+1)%3),Vector3.UnitZ,chosen.Id);
             selectedAction.Text=chosen==null?"请先选择契约":chosen.Pending?"所选生物待加载":chosen.Hidden?"召出所选 · 单只":"收回所选 · 单只";
             if(selectedAction.IsClicked&&chosen!=null&&!chosen.Pending)runtime.Request(player,chosen.Hidden?DeathAuthorityRules.ManifestOne:DeathAuthorityRules.StowOne,Vector3.UnitZ,chosen.Id);
             if(dismiss.IsClicked){if(armed==selected){if(runtime.Request(player,DeathAuthorityRules.Dismiss,Vector3.UnitZ,selected))selected=armed=0;}else armed=selected;}
-            hint.Text=runtime.Feedback(player)??(armed!=0?"再次点击确认解除：生物将直接消失":cooldown>0?"召唤冷却中；单只及批量收纳、现身仍可使用":"选中契约可单只召出/收回；次位面每2秒回复1点生命");
+            hint.Text=runtime.Feedback(player)??(armed!=0?"再次点击确认解除：生物将直接消失":chosen?.Mode==DeathGuardMode.Free?"自由行动：安全地面漫游，不跟随、不自动攻击":chosen?.Mode==DeathGuardMode.Attack?"攻击：主动攻击非玩家生物；保护契约友军及玩家坐骑":"护卫跟随主人；靠近玩家停步，不再强制让路");
             if(close.IsClicked||Input.Back||Input.Cancel||!runtime.IsDeath(player)||player.ComponentHealth.Health<=0||Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue)!=952){Input.Clear();DialogsManager.HideDialog(this);}
         }
     }

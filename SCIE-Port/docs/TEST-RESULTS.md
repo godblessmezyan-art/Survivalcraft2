@@ -1,5 +1,28 @@
 ﻿# 测试结果
 
+## 2026-11-02 main 0.70.0：军势行动模式与高处让路修复
+
+基线 `903afcd` / 0.69.0，本次仅本地 main 提交。取消未骑乘召唤物靠近玩家时的向外让路目标，改为停步及水平刹车；每只契约增加护卫/自由行动/攻击模式，设置覆盖现世/次位面/待加载，旧 v1/v2 默认护卫。自由漫游检查完整身体支撑和沿途空气，不跟随/自动归队/自动攻击；攻击模式纳入中立生物并保留玩家、友军、玩家承载体与领地排除。界面在军势列表下新增模式按钮，坐标/字号与面板一起缩放。详细规则见 [使用说明](ABYSS-ARMY-MODES.md)。
+
+实际执行（Windows PowerShell，工作目录仓库根，目标目录 `E:/SCNET/SCNETx25.01.17`）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+```
+
+- 根环境与独立移植环境/ABI检查均 exit 0，固定三个程序集 SHA 与 [本次说明](ABYSS-ARMY-MODES.md) 一致。
+- 完整 Release / net472 构建 exit 0，0警告0错误，所有构建脚本强制规则、实际目标程序集夹具和资源/包校验通过。
+- 死亡权柄原生隔离夹具最终 **219项通过**（完整打包时217项，补充中立生物实际AttackBody调用及Target=0拒绝后，单独重跑得到219项；生产代码和包保持相同）。本次覆盖悬崖边靠近只停步、无外移目标/推力；自由模式清除旧目标/待咬合/骑乘追击、忽略威胁及不自动回主人身边；真实短程安全漫游、路径中间缺口、宽身体侧边缺地、墙、区块未加载、长路径/高度变化和检查预算；攻击中立生物但保护玩家/友军/玩家承载体；旧 v1/v2 缺省、实体重绑定、次位面设置和未知模式原样保护；普通客户端经主机设置、所有者/世界/重放检查、Kind3 D同步以及NaN/无穷/小数/越界/过时同步拒绝。
+- 既有回归包括 Gungnir 389、Poseidon 3397、Inventory 739、Stormhammer 751；Space V2原生26033、WorldCut原生890、共享星门原生603、军势219均通过。包检查覆盖21 XDB、22 CSV、55物品行，技能图片/原模型及来源哈希保持。
+- 最终包 **9,427,141字节 / 156条目**，`荒野探险家.netmod` 与 `荒野探险家-0.70.0.netmod` 字节一致；两者SHA-256 `6436DFEF0D4AFA6D140C281115D7226BCD25B1BFA5774628E90D37AB643D6EE9`。内嵌DLL与Release输出一致，DLL SHA-256 `2FA1A0E383EBCC751E1E2CAFE1EE8E8AC8C242868BD14585D0A44910D6702111`，版本0.70.0。与0.69.0包逐条比较，只改变 `SCIEPort.dll` 和 `modinfo.json`，其余154条目相同。
+
+日志（忽略的生成物）：`artifacts/summon-modes-environment-root.log`、`artifacts/summon-modes-environment-port.log`、`artifacts/summon-modes-0.70.0-build.log`、`artifacts/summon-modes-package-report.json`、`artifacts/summon-modes-native.log`。离线检查使用真实目标组件/地形及攻击拦截记录，不启动游戏或真实网络。
+
+252字段布局不变，新增Kind3 D=0/1/2和Action16/17/18语义；契约v2可选Mode字段，v1/v2读取保持，未改Hook/包ID/其他网络包/星门/模板身份。Android7723山地物理、实际单人/主机/普通客户端、不同分辨率触屏/骑乘/保存重进 **待验证**；混装旧版 **不支持**，同房统一0.70.0。无地形写入或蓝图能力变化，已更新根 `docs/blueprint-block-reference.md`。
+
 ## 2026-11-01 main 0.69.0：合入神器第三技能分支
 
 用户要求把 `codex/triple-skill-artifacts` 合入 main 并解决冲突。分支基于 0.56.x，main 已到 0.68.0，落后 23 / 领先 5。

@@ -71,7 +71,7 @@ namespace SCIEPort.Features.AbyssReaper
                     terrain.Project.AddEntity(entity);hidden.Remove(row.Id);
                     adopted=AdoptContract(c,row.Owner,row.Special,row.Id);
                     if(!adopted){hidden[row.Id]=row;terrain.Project.RemoveEntity(entity,true);entity=null;waiting++;continue;}
-                    guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
+                    guards[c.Entity.EntityId].Mode=row.Mode;guards[c.Entity.EntityId].RidingAuto=row.RidingAuto;guards[c.Entity.EntityId].RegenCarry=row.RegenCarry;
                     (c.ComponentLocomotion as ComponentBoneDragonLocomotion)?.SetFlight(row.DragonFlight);
                     if(row.Cerberus)guards[c.Entity.EntityId].NextAttack=Now+row.BiteCooldown;
                     if(row.HealthKnown)SetGuardHealth(c,row.HealthFraction);
