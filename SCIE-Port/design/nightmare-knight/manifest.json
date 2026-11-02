@@ -1,0 +1,590 @@
+{
+  "original": true,
+  "source": "scripts/New-NightmareKnightAssets.py",
+  "game_meshes_used": false,
+  "bones": {
+    "Body": {
+      "parent": null,
+      "pivot": [
+        0,
+        0,
+        0
+      ]
+    },
+    "Leg1": {
+      "parent": "Body",
+      "pivot": [
+        -0.34,
+        1.235,
+        -0.77
+      ]
+    },
+    "Leg2": {
+      "parent": "Body",
+      "pivot": [
+        0.34,
+        1.235,
+        -0.77
+      ]
+    },
+    "Leg3": {
+      "parent": "Body",
+      "pivot": [
+        -0.34,
+        1.235,
+        0.83
+      ]
+    },
+    "Leg4": {
+      "parent": "Body",
+      "pivot": [
+        0.34,
+        1.235,
+        0.83
+      ]
+    },
+    "Rider": {
+      "parent": "Body",
+      "pivot": [
+        0,
+        1.99,
+        0.2
+      ]
+    },
+    "SwordArm": {
+      "parent": "Rider",
+      "pivot": [
+        0.46,
+        0.71,
+        -0.08
+      ]
+    }
+  },
+  "meshes": 7,
+  "triangles": 4924,
+  "bounds": {
+    "min": [
+      -0.65,
+      0.06450000000000022,
+      -1.7875
+    ],
+    "max": [
+      0.66,
+      3.42,
+      1.7
+    ]
+  },
+  "animated_sample_bounds": {
+    "min": [
+      -0.65,
+      0.03432850181996461,
+      -1.7875
+    ],
+    "max": [
+      0.737312700572121,
+      3.42,
+      1.7
+    ]
+  },
+  "parts": [
+    {
+      "name": "HorseBarrel",
+      "bone": "Body",
+      "triangles": 96
+    },
+    {
+      "name": "HorseNeck",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HorseHead",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Muzzle",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "NoseArmor",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HorseEar",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "HorseSoulEye",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Nostril",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Bridle",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Rein",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "HorseBarding",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HorseBarding",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleHarnessTrim",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HorseEar",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "HorseSoulEye",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Nostril",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Bridle",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Rein",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "HorseBarding",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "HorseBarding",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "PurpleHarnessTrim",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "CroppedMane",
+      "bone": "Body",
+      "triangles": 8
+    },
+    {
+      "name": "TailBase",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "TailHair",
+      "bone": "Body",
+      "triangles": 10
+    },
+    {
+      "name": "UpperLeg",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "Knee",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "LowerLeg",
+      "bone": "Leg1",
+      "triangles": 44
+    },
+    {
+      "name": "Hoof",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "IronShoe",
+      "bone": "Leg1",
+      "triangles": 60
+    },
+    {
+      "name": "UpperLeg",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "Knee",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "LowerLeg",
+      "bone": "Leg2",
+      "triangles": 44
+    },
+    {
+      "name": "Hoof",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "IronShoe",
+      "bone": "Leg2",
+      "triangles": 60
+    },
+    {
+      "name": "UpperLeg",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "Knee",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "LowerLeg",
+      "bone": "Leg3",
+      "triangles": 44
+    },
+    {
+      "name": "Hoof",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "IronShoe",
+      "bone": "Leg3",
+      "triangles": 60
+    },
+    {
+      "name": "UpperLeg",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "Knee",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "LowerLeg",
+      "bone": "Leg4",
+      "triangles": 44
+    },
+    {
+      "name": "Hoof",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "IronShoe",
+      "bone": "Leg4",
+      "triangles": 60
+    },
+    {
+      "name": "SaddlePad",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SaddleSeat",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SaddleRim",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "SaddleRim",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Girth",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "StirrupStrap",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Stirrup",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Girth",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "StirrupStrap",
+      "bone": "Body",
+      "triangles": 44
+    },
+    {
+      "name": "Stirrup",
+      "bone": "Body",
+      "triangles": 60
+    },
+    {
+      "name": "Pelvis",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Breastplate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "ChestRidge",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "ChestSoulSeal",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Belt",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Buckle",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Gorget",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "ClosedHelm",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Brow",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "VisorSlit",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "SoulVisor",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "FaceRidge",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "HelmetCrest",
+      "bone": "Rider",
+      "triangles": 10
+    },
+    {
+      "name": "Pauldron",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "SeatedThigh",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "KneeGuard",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "RidingBoot",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Pauldron",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "SeatedThigh",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "KneeGuard",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "Greave",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "RidingBoot",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "CloakPlate",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "ReinArmUpper",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "ReinArmLower",
+      "bone": "Rider",
+      "triangles": 44
+    },
+    {
+      "name": "ReinGauntlet",
+      "bone": "Rider",
+      "triangles": 60
+    },
+    {
+      "name": "SwordUpperArm",
+      "bone": "SwordArm",
+      "triangles": 44
+    },
+    {
+      "name": "SwordForearm",
+      "bone": "SwordArm",
+      "triangles": 44
+    },
+    {
+      "name": "SwordGauntlet",
+      "bone": "SwordArm",
+      "triangles": 60
+    },
+    {
+      "name": "SwordGrip",
+      "bone": "SwordArm",
+      "triangles": 44
+    },
+    {
+      "name": "Crossguard",
+      "bone": "SwordArm",
+      "triangles": 60
+    },
+    {
+      "name": "LongswordBlade",
+      "bone": "SwordArm",
+      "triangles": 8
+    },
+    {
+      "name": "BladeFuller",
+      "bone": "SwordArm",
+      "triangles": 60
+    }
+  ],
+  "assets": {
+    "src/SCIEPort/Assets/Models/AbyssNightmareKnight.dae": "17986B908BA25BB8E594B89E711A5D8C185F7E94FFB1B4CA579E8AA0DB504DC3",
+    "src/SCIEPort/Assets/Textures/AbyssNightmareKnight.png": "B25232365E1797A1650D929ADC7C22C8DD36C1728D7543F8F6AB3BE5989FC7DC"
+  }
+}

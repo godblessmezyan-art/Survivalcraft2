@@ -19,7 +19,7 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var player in players.ComponentPlayers)if(player.IsAddedToProject)
             {
                 Vector3 away=body.Position-player.ComponentBody.Position;away.Y=0;if(away.LengthSquared()>gap*gap)continue;
-                body.Velocity=new Vector3(0,body.Velocity.Y,0);guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;
+                SetKnightCharge(guard,false);body.Velocity=new Vector3(0,body.Velocity.Y,0);guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;
             }
         }
         private bool GuardEnemy(DeathGuard guard,ComponentCreature target,ComponentPlayer owner)
@@ -49,7 +49,7 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 if(!player.IsAddedToProject||player.ComponentHealth.Health<=0)continue;
                 Vector3 away=body.Position-player.ComponentBody.Position;away.Y=0;float distance=away.LengthSquared();if(distance>=gap*gap)continue;
-                body.Velocity=new Vector3(0,body.Velocity.Y,0);
+                SetKnightCharge(guard,false);body.Velocity=new Vector3(0,body.Velocity.Y,0);
                 // Proximity must never manufacture a destination away from a cliff edge.
                 guard.Path.Stop();guard.Creature.ComponentLocomotion.WalkOrder=null;
                 return true;
@@ -61,10 +61,11 @@ namespace SCIEPort.Features.AbyssReaper
             var c=guard.Creature;bool mounted=guard.Ridden;
             if(mounted&&!guard.AutoDriving){guard.Path.Stop();return;}
             if(!mounted&&YieldToPlayer(guard))return;
-            if(!mounted&&guard.Mode==DeathGuardMode.Free){RoamGuard(guard);return;}
+            if(!mounted&&guard.Mode==DeathGuardMode.Free){SetKnightCharge(guard,false);RoamGuard(guard);return;}
+            if(guard.Knight)SetKnightCharge(guard,CanKnightCharge(guard,owner));
             if(guard.Target!=null)
             {
-                float stop=guard.Dragon?3.4f:guard.Cerberus?2.6f:1.2f+(c.ComponentBody.BoxSize.X+guard.Target.ComponentBody.BoxSize.X)*.5f;
+                float stop=guard.Knight?NightmareKnightRules.StopRange:guard.Dragon?3.4f:guard.Cerberus?2.6f:1.2f+(c.ComponentBody.BoxSize.X+guard.Target.ComponentBody.BoxSize.X)*.5f;
                 if(Vector3.DistanceSquared(c.ComponentBody.Position,guard.Target.ComponentBody.Position)>stop*stop)GuardMoveTo(guard,guard.Target.ComponentBody.Position,1,stop,mounted?owner.ComponentBody:null);
                 else guard.Path.Stop();
             }

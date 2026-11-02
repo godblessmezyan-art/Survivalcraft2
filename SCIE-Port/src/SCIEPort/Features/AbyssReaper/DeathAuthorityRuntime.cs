@@ -135,6 +135,7 @@ namespace SCIEPort.Features.AbyssReaper
             }
             if(!worldKnown||q.World!=worldId)return;
             if(q.Kind==8){ReceiveBite(q);return;}
+            if(q.Kind==10){ReceiveKnightSwing(q);return;}
             if(q.Kind==9){ReceiveRidePlan(q);return;}
             if(q.Kind==3||q.Kind==4||q.Kind==6||q.Kind==7){ReceiveFriend(q);return;}
             ComponentPlayer p=null;foreach(var candidate in players.ComponentPlayers)if(candidate.Entity.EntityId==q.Caster&&candidate.PlayerGuid==q.Owner){p=candidate;break;}if(p==null)return;
@@ -173,6 +174,6 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool EmpoweredDraw(DrawBlockEnvironmentData e){ComponentPlayer p;return e!=null&&drawOwners.TryGetValue(e,out p)&&Empowered(p);}
         private void ClearMarks(Guid id){retiredMarks.Clear();foreach(var pair in marks)if(pair.Value.Owner==id)retiredMarks.Add(pair.Key);foreach(var c in retiredMarks)marks.Remove(c);}
         internal void Draw(Camera camera)=>scene.Draw(camera,waves,Now,Quality);
-        public void Dispose(){if(disposed)return;disposed=true;recoveryWorlds.Remove(this);ClearClientSummons();ClearRiding();ClearSoftMass();posedModels.Clear();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
+        public void Dispose(){if(disposed)return;disposed=true;recoveryWorlds.Remove(this);ClearClientSummons();ClearRiding();ClearSoftMass();posedModels.Clear();lock(queue)queue.Clear();marks.Clear();waves.Clear();states.Clear();foreach(var guard in guards.Values)guard.Charge(false);guards.Clear();hidden.Clear();discardedEntities.Clear();clientFriends.Clear();friendRevisions.Clear();snapshotRows.Clear();deferredWaves.Clear();threats.Clear();saved.Clear();drawOwners.Clear();scene.Dispose();}
     }
 }

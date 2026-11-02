@@ -12,7 +12,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority||key==0)return "请先选择自己的契约生物";
             foreach(var guard in guards.Values)if(guard.Key==key&&guard.Owner==player.PlayerGuid)
             {
-                guard.Mode=mode;guard.Target=guard.BiteTarget=null;guard.Following=guard.AutoDriving=false;
+                guard.Mode=mode;guard.Target=guard.BiteTarget=guard.SwordTarget=null;SetKnightCharge(guard,false);guard.Following=guard.AutoDriving=false;
                 guard.PursuitUntil=guard.NextThink=guard.NextPlan=guard.NextRoam=0;
                 guard.RoamCenter=guard.Creature.ComponentBody.Position;guard.Path.Stop();
                 guard.Creature.ComponentCreatureModel.AttackOrder=false;guard.Creature.ComponentLocomotion.WalkOrder=null;
@@ -28,8 +28,11 @@ namespace SCIEPort.Features.AbyssReaper
         }
         // Flat, fully supported short routes only. No native detour search or blind ground probes.
         private bool SafeRoamRoute(ComponentBody body,Vector3 destination)
+            =>SafeRoamRoute(body,destination,0);
+        private bool SafeRoamRoute(ComponentBody body,Vector3 destination,float margin)
         {
             Vector3 start=body.Position,size=body.BoxSize;
+            size.X+=margin*2;size.Z+=margin*2;
             if(!WorldCutDamage.Finite(start)||!WorldCutDamage.Finite(destination)||!WorldCutDamage.Finite(size)||size.X<=0||size.Z<=0||size.Y<=0||size.X>6||size.Z>8||size.Y>6)return false;
             float length=Vector3.Distance(start,destination);int y=Terrain.ToCell(start.Y+.05f);
             if(length>4||Math.Abs(start.Y-y)>.15f||Math.Abs(destination.Y-start.Y)>.01f||y<2||y+size.Y>=254)return false;

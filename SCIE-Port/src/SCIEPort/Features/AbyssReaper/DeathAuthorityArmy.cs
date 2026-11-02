@@ -10,7 +10,7 @@ namespace SCIEPort.Features.AbyssReaper
 {
     internal sealed partial class DeathAuthorityRuntime
     {
-        internal sealed class Friend{internal ushort Id,EntityId;internal Guid Owner;internal DeathGuardMode Mode;internal string Name,Template;internal bool Special,Hidden,Discard,HealOnReturn,Warhorse,Pending,Cerberus,Dragon,DragonFlight,HealthKnown,RidingAuto;internal double SpawnTime,RegenCarry,RegenStamp;internal float BiteCooldown,HealthFraction,HealthMaximum,PendingHeal;internal uint Revision;internal ValuesDictionary Snapshot;}
+        internal sealed class Friend{internal ushort Id,EntityId;internal Guid Owner;internal DeathGuardMode Mode;internal string Name,Template;internal bool Special,Hidden,Discard,HealOnReturn,Warhorse,Pending,Cerberus,Dragon,DragonFlight,HealthKnown,RidingAuto,Knight,Charging;internal double SpawnTime,RegenCarry,RegenStamp;internal float BiteCooldown,KnightCooldown,HealthFraction,HealthMaximum,PendingHeal;internal uint Revision;internal ValuesDictionary Snapshot;}
         private sealed class Threat{internal ComponentCreature Creature;internal double Until;}
         private readonly Dictionary<ushort,DeathGuard> guards=new Dictionary<ushort,DeathGuard>();
         private readonly Dictionary<ushort,Friend> clientFriends=new Dictionary<ushort,Friend>(),saved=new Dictionary<ushort,Friend>();
@@ -34,11 +34,11 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private Friend Row(DeathGuard g)
         {
-            var row=new Friend{Id=g.Key,EntityId=g.Creature.Entity.EntityId,Owner=g.Owner,Mode=g.Mode,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special,Warhorse=g.Warhorse,Cerberus=g.Cerberus,RidingAuto=g.RidingAuto,Dragon=g.Dragon,DragonFlight=(g.Creature.ComponentLocomotion as ComponentBoneDragonLocomotion)?.FlightEnabled==true,RegenCarry=g.RegenCarry,BiteCooldown=g.Cerberus?(float)Math.Max(0,Math.Min(CerberusRules.Cooldown,g.NextAttack-Now)):0};
+            var row=new Friend{Id=g.Key,EntityId=g.Creature.Entity.EntityId,Owner=g.Owner,Mode=g.Mode,Knight=g.Knight,Charging=g.Charging,KnightCooldown=g.Knight?(float)Math.Max(0,Math.Min(NightmareKnightRules.Cooldown,g.NextAttack-Now)):0,Name=g.Creature.DisplayName,Template=g.Template,SpawnTime=g.SpawnTime,Special=g.Special,Warhorse=g.Warhorse,Cerberus=g.Cerberus,RidingAuto=g.RidingAuto,Dragon=g.Dragon,DragonFlight=(g.Creature.ComponentLocomotion as ComponentBoneDragonLocomotion)?.FlightEnabled==true,RegenCarry=g.RegenCarry,BiteCooldown=g.Cerberus?(float)Math.Max(0,Math.Min(CerberusRules.Cooldown,g.NextAttack-Now)):0};
             ReadLiveHealth(row,g.Creature);return row;
         }
         // A/B were unused for Kind3. Keep the 252 byte layout and use flag32 for health metadata.
-        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Caster=row.Hidden||row.Pending?(ushort)0:row.EntityId,Owner=row.Owner,Sequence=snapshot,Flags=(byte)((row.Special?1:0)|(row.Hidden?2:0)|(row.Pending?4:0)|(row.Warhorse?8:0)|(row.Cerberus?16:0)|(row.HealthKnown?32:0)|(row.RidingAuto?64:0)|(row.Dragon?128:0)),C=row.DragonFlight?1:0,D=(float)row.Mode,A=row.HealthKnown?row.HealthFraction:0,B=row.HealthKnown?row.HealthMaximum:0,Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
+        private void FriendPacket(Friend row,Client to=null,uint snapshot=0)=>Send(new DeathAuthorityPackage{Kind=3,Target=row.Id,Caster=row.Hidden||row.Pending?(ushort)0:row.EntityId,Owner=row.Owner,Sequence=snapshot,Flags=(byte)((row.Special?1:0)|(row.Hidden?2:0)|(row.Pending?4:0)|(row.Warhorse?8:0)|(row.Cerberus?16:0)|(row.HealthKnown?32:0)|(row.RidingAuto?64:0)|(row.Dragon?128:0)),C=row.Dragon?row.DragonFlight?1:0:row.Knight?row.Charging?3:2:0,D=(float)row.Mode,A=row.HealthKnown?row.HealthFraction:0,B=row.HealthKnown?row.HealthMaximum:0,Name=(row.Name??"契约生物").Length>64?row.Name.Substring(0,64):row.Name??"契约生物"},to);
         private ushort FreeKey()
         {
             for(int i=1;i<=ushort.MaxValue;i++){ushort key=(ushort)i;if(hidden.ContainsKey(key))continue;bool used=false;foreach(var g in guards.Values)if(g.Key==key){used=true;break;}if(!used)foreach(var f in saved.Values)if(f.Id==key){used=true;break;}if(!used)return key;}return 0;
@@ -56,10 +56,12 @@ namespace SCIEPort.Features.AbyssReaper
             if(to==null)return;var start=new DeathAuthorityPackage{Kind=6,Target=(ushort)ArmyCount};Send(start,to);foreach(var g in guards.Values)FriendPacket(Row(g),to,start.Revision);foreach(var f in saved.Values)if(!f.Discard)FriendPacket(f,to,start.Revision);foreach(var f in hidden.Values)FriendPacket(f,to,start.Revision);Send(new DeathAuthorityPackage{Kind=7,Sequence=start.Revision},to);
             foreach(var w in waves)if(Now-w.Started<1.6)Send(new DeathAuthorityPackage{Kind=2,Caster=w.Owner.Entity.EntityId,Owner=w.Guid,Sequence=w.Sequence,Position=w.Center,A=(float)(Now-w.Started)},to);
             foreach(var g in guards.Values)if(g.Cerberus&&Now-g.BiteStarted<CerberusRules.AnimationDuration)Send(BitePacket(g),to);
+            foreach(var g in guards.Values)if(g.Knight&&Now-g.SwordStarted<NightmareKnightRules.SwingDuration)Send(KnightSwingPacket(g),to);
         }
         private void ReceiveFriend(DeathAuthorityPackage q)
         {
             if(q.Kind==3&&(!WorldCutRules.Finite(q.D)||q.D<0||q.D>2||q.D!=(int)q.D))return;
+            if(q.Kind==3&&(!WorldCutRules.Finite(q.C)||((q.Flags&128)!=0?q.C!=0&&q.C!=1:q.C!=0&&q.C!=2&&q.C!=3)))return;
             if(q.Kind==3&&((q.Flags&32)!=0&&!ValidHealth(q.A,q.B)||(q.Flags&128)!=0&&(!WorldCutRules.Finite(q.C)||q.C<0||q.C>1)))return;
             if(q.Kind==6){if(q.Target>24||!WorldCutRules.Newer(q.Revision,lastSnapshot))return;snapshotRows.Clear();snapshotId=q.Revision;snapshotCount=q.Target;return;}
             if(q.Kind==7)
@@ -75,20 +77,20 @@ namespace SCIEPort.Features.AbyssReaper
             if(q.Kind==4){clientFriends.Remove(q.Target);return;}if(q.Owner==Guid.Empty||q.Name.Length>64||clientFriends.Count>=24&&!clientFriends.ContainsKey(q.Target))return;
             clientFriends[q.Target]=ReadFriend(q);
         }
-        private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Mode=(DeathGuardMode)(int)q.D,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,Dragon=(q.Flags&128)!=0,DragonFlight=(q.Flags&128)!=0&&q.C>.5f,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
+        private static Friend ReadFriend(DeathAuthorityPackage q)=>new Friend{Id=q.Target,EntityId=q.Caster,Owner=q.Owner,Mode=(DeathGuardMode)(int)q.D,Knight=(q.Flags&128)==0&&q.C>=2,Charging=(q.Flags&128)==0&&q.C==3,Name=q.Name,Special=(q.Flags&1)!=0,Hidden=(q.Flags&2)!=0,Pending=(q.Flags&4)!=0,Warhorse=(q.Flags&8)!=0,Cerberus=(q.Flags&16)!=0,RidingAuto=(q.Flags&64)!=0,Dragon=(q.Flags&128)!=0,DragonFlight=(q.Flags&128)!=0&&q.C>.5f,HealthKnown=(q.Flags&32)!=0,HealthFraction=q.A,HealthMaximum=q.B,Revision=q.Revision};
         private bool Summon(ComponentPlayer p,ushort kind,out string reason)
         {
             reason="召唤数量已满";if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit)return false;
-            if(kind>BoneDragonRules.SummonKind){reason="未知的召唤类型";return false;}
+            if(kind>NightmareKnightRules.SummonKind){reason="未知的召唤类型";return false;}
             if(kind==CerberusRules.SummonKind&&HasCerberus(p.PlayerGuid)){reason="已契约刻尔柏洛斯";return false;}
             if(kind==BoneDragonRules.SummonKind&&HasDragon(p.PlayerGuid)){reason="已契约骨龙";return false;}
             Vector3 at;if(!FindFree(p.ComponentBody.Position,new Vector3(.9f,1.2f,.9f),out at)){reason="附近没有已加载的安全召唤位置";return false;}
             Entity entity=null;
             try
             {
-                entity=DatabaseManager.CreateEntity(terrain.Project,kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
+                entity=DatabaseManager.CreateEntity(terrain.Project,kind==NightmareKnightRules.SummonKind?NightmareKnightRules.Template:kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                reason=kind==BoneDragonRules.SummonKind?"骨龙已召唤":kind==CerberusRules.SummonKind?"刻尔柏洛斯已召唤":kind==1?"夜魇战马已召唤":"冥界猎犬已召唤";return true;
+                reason=kind==NightmareKnightRules.SummonKind?"夜魇骑士已召唤":kind==BoneDragonRules.SummonKind?"骨龙已召唤":kind==CerberusRules.SummonKind?"刻尔柏洛斯已召唤":kind==1?"夜魇战马已召唤":"冥界猎犬已召唤";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败，冷却未消耗";return false;}
         }
@@ -122,7 +124,7 @@ namespace SCIEPort.Features.AbyssReaper
             terrain.Project.RemoveEntity(g.Creature.Entity,true);guards.Remove(g.Creature.Entity.EntityId);Send(new DeathAuthorityPackage{Kind=4,Target=id});return "契约已解除，生物已消失";
         }
         private void Recall(ComponentPlayer p)
-        {foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid&&!Occupied(g.Creature)){g.Target=null;g.NextThink=0;Vector3 at;if(Vector3.DistanceSquared(g.Creature.ComponentBody.Position,p.ComponentBody.Position)>48*48&&FindFree(p.ComponentBody.Position,g.Creature.ComponentBody.BoxSize,out at)){VoidBlinkBody(g.Creature.ComponentBody,at);g.RoamCenter=at;g.NextRoam=0;}}}
+        {foreach(var g in guards.Values)if(g.Owner==p.PlayerGuid&&!Occupied(g.Creature)){g.Target=g.SwordTarget=null;SetKnightCharge(g,false);g.NextThink=0;Vector3 at;if(Vector3.DistanceSquared(g.Creature.ComponentBody.Position,p.ComponentBody.Position)>48*48&&FindFree(p.ComponentBody.Position,g.Creature.ComponentBody.BoxSize,out at)){VoidBlinkBody(g.Creature.ComponentBody,at);g.RoamCenter=at;g.NextRoam=0;}}}
         private static void VoidBlinkBody(ComponentBody body,Vector3 at){body.Position=at;body.Velocity=Vector3.Zero;body.netPosition=new NetPosition(at);body.netVelocity=new NetVelocity(Vector3.Zero);body.SendPosition=at;body.SendVelocity=Vector3.Zero;}
         private ComponentPlayer OwnerPlayer(Guid id){foreach(var p in players.ComponentPlayers)if(p.PlayerGuid==id&&Actor(p,false))return p;return null;}
         private readonly List<KeyValuePair<ushort,DeathGuard>> guardOrder=new List<KeyValuePair<ushort,DeathGuard>>();private int guardCursor;
@@ -133,7 +135,7 @@ namespace SCIEPort.Features.AbyssReaper
             for(int index=0;index<guardOrder.Count;index++)
             {
                 var pair=guardOrder[(index+guardCursor)%guardOrder.Count];var g=pair.Value;var c=g.Creature;
-                if(!c.IsAddedToProject||c.ComponentHealth.Health<=0){retired.Add(pair.Key);continue;}
+                if(!c.IsAddedToProject||c.ComponentHealth.Health<=0){g.Charge(false);retired.Add(pair.Key);continue;}
                 c.ComponentCreatureModel.AttackOrder=false;
                 var owner=OwnerPlayer(g.Owner);
                 bool mounted=g.Ridden;
@@ -142,18 +144,19 @@ namespace SCIEPort.Features.AbyssReaper
                 g.AutoDriving=riderOwns&&g.RidingAuto&&g.Mode!=DeathGuardMode.Free&&Now>=g.ManualUntil;g.Suppress();
                 BrakeNearPlayers(g);
                 if(owner==null||Occupied(c)&&!(riderOwns&&g.RidingAuto))
-                {g.Target=g.BiteTarget=null;g.AutoDriving=false;if(g.Path.Destination.HasValue)g.Path.Stop();PublishRidePlan(g);continue;}
-                if(g.Mode==DeathGuardMode.Free||g.Target!=null&&!GuardEnemy(g,g.Target,owner)){g.Target=g.BiteTarget=null;}
+                {g.Target=g.BiteTarget=g.SwordTarget=null;SetKnightCharge(g,false);g.AutoDriving=false;if(g.Path.Destination.HasValue)g.Path.Stop();PublishRidePlan(g);continue;}
+                if(g.Mode==DeathGuardMode.Free||g.Target!=null&&!GuardEnemy(g,g.Target,owner)){g.Target=g.BiteTarget=g.SwordTarget=null;SetKnightCharge(g,false);}
                 if(g.Path.IsStuck){if(g.StuckSince<=0)g.StuckSince=Now;}else g.StuckSince=0;
                 if(Now>=g.NextThink)
                 {
                     g.NextThink=Now+.25;g.Target=ChooseGuardTarget(g,owner,ref scanBudget);
                     float leash=g.Target==null?48:DeathAuthorityRules.PursuitRange;
                     if(!mounted&&g.Mode!=DeathGuardMode.Free&&(Vector3.DistanceSquared(c.ComponentBody.Position,owner.ComponentBody.Position)>leash*leash||g.StuckSince>0&&Now-g.StuckSince>6))
-                    {g.Target=g.BiteTarget=null;g.StuckSince=0;Vector3 at;if(FindFree(owner.ComponentBody.Position,c.ComponentBody.BoxSize,out at))VoidBlinkBody(c.ComponentBody,at);}
+                    {g.Target=g.BiteTarget=g.SwordTarget=null;SetKnightCharge(g,false);g.StuckSince=0;Vector3 at;if(FindFree(owner.ComponentBody.Position,c.ComponentBody.BoxSize,out at))VoidBlinkBody(c.ComponentBody,at);}
                     MoveGuard(g,owner);
                 }
                 PublishRidePlan(g);
+                if(g.Knight){if(g.Charging&&!KnightChargeMotion(g))SetKnightCharge(g,false);UpdateKnightAttack(g,owner,ref hitBudget);continue;}
                 if(g.Cerberus){UpdateCerberusAttack(g,owner,ref hitBudget);continue;}
                 if(g.Target==null)continue;
                 float range=g.Dragon?BoneDragonRules.Range:1.4f+(c.ComponentBody.BoxSize.X+g.Target.ComponentBody.BoxSize.X)*.5f;
@@ -178,6 +181,7 @@ namespace SCIEPort.Features.AbyssReaper
             guards[entity.EntityId].Mode=f.Mode;guards[entity.EntityId].RidingAuto=f.RidingAuto;guards[entity.EntityId].RegenCarry=f.RegenCarry;
             (c.ComponentLocomotion as ComponentBoneDragonLocomotion)?.SetFlight(f.DragonFlight);
             if(f.Cerberus)guards[entity.EntityId].NextAttack=Now+f.BiteCooldown;
+            if(f.Knight)guards[entity.EntityId].NextAttack=Now+f.KnightCooldown;
             if(f.PendingHeal>0)HealPoints(c,f.PendingHeal);FriendPacket(Row(guards[entity.EntityId]));
         }
         internal void Load(ValuesDictionary data)
@@ -194,7 +198,8 @@ namespace SCIEPort.Features.AbyssReaper
                     var row=data.GetValue<ValuesDictionary>("Ally"+i);int entity=row.GetValue<int>("Id"),key=row.GetValue<int>("Key",entity);
                     var f=new Friend{Id=(ushort)key,EntityId=(ushort)entity,Owner=row.GetValue<Guid>("Owner"),Template=row.GetValue<string>("Template"),SpawnTime=row.GetValue<double>("Spawn"),Special=row.GetValue<bool>("Special"),Hidden=row.GetValue<bool>("Hidden",false),Discard=row.GetValue<bool>("Discard",false),HealOnReturn=row.GetValue<bool>("HealOnReturn",false),RidingAuto=row.GetValue<bool>("RidingAuto",false),DragonFlight=row.GetValue<bool>("DragonFlight",false),Snapshot=row.GetValue<ValuesDictionary>("Snapshot",null)};
                     int mode=row.GetValue<int>("Mode",0);if(mode<0||mode>2)throw new InvalidOperationException();f.Mode=(DeathGuardMode)mode;
-                    f.Pending=!f.Hidden;f.Warhorse=f.Special&&f.Template==DeathAuthorityRules.MountTemplate;f.Cerberus=f.Template==CerberusRules.Template;f.Dragon=f.Template==BoneDragonRules.Template;f.BiteCooldown=row.GetValue<float>("BiteCooldown",0);f.Name=row.GetValue<string>("Name",f.Dragon?BoneDragonRules.Name:f.Cerberus?CerberusRules.Name:f.Special?(f.Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+f.Template);
+                    f.Knight=f.Template==NightmareKnightRules.Template;f.KnightCooldown=row.GetValue<float>("KnightCooldown",0);if(!WorldCutRules.Finite(f.KnightCooldown)||f.KnightCooldown<0||f.KnightCooldown>(float)NightmareKnightRules.Cooldown)throw new InvalidOperationException();
+                    f.Pending=!f.Hidden;f.Warhorse=f.Special&&f.Template==DeathAuthorityRules.MountTemplate;f.Cerberus=f.Template==CerberusRules.Template;f.Dragon=f.Template==BoneDragonRules.Template;f.BiteCooldown=row.GetValue<float>("BiteCooldown",0);f.Name=row.GetValue<string>("Name",f.Knight?NightmareKnightRules.Name:f.Dragon?BoneDragonRules.Name:f.Cerberus?CerberusRules.Name:f.Special?(f.Warhorse?"夜魇战马":"冥界猎犬"):"契约 · "+f.Template);
                     if(!WorldCutRules.Finite(f.BiteCooldown)||f.BiteCooldown<0||f.BiteCooldown>4||f.Cerberus&&!f.Discard&&HasCerberus(f.Owner)||f.Dragon&&!f.Discard&&HasDragon(f.Owner))throw new InvalidOperationException();
                     // Older v2 rows can contain up to four seconds of the old bite cooldown.
                     f.BiteCooldown=Math.Min((float)CerberusRules.Cooldown,f.BiteCooldown);ReadSavedHealth(f,row);ReadRecovery(f,row);
@@ -211,10 +216,10 @@ namespace SCIEPort.Features.AbyssReaper
             foreach(var g in guards.Values)if(g.Creature.IsAddedToProject&&g.Creature.ComponentHealth.Health>0)SaveRow(data,Row(g),n++);
             foreach(var row in saved.Values)SaveRow(data,row,n++);foreach(var row in hidden.Values)SaveRow(data,row,n++);data.SetValue("Count",n);return data;
         }
-        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.EntityId);row.SetValue("Key",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);row.SetValue("Name",f.Name??"契约生物");row.SetValue("Hidden",f.Hidden);row.SetValue("Discard",f.Discard);row.SetValue("HealOnReturn",f.HealOnReturn);row.SetValue("RidingAuto",f.RidingAuto);row.SetValue("Mode",(int)f.Mode);row.SetValue("DragonFlight",f.DragonFlight);row.SetValue("RegenCarry",f.RegenCarry);row.SetValue("PendingHeal",f.PendingHeal);if(f.HealthKnown){row.SetValue("HealthFraction",f.HealthFraction);row.SetValue("HealthMaximum",f.HealthMaximum);}if(f.Cerberus)row.SetValue("BiteCooldown",f.BiteCooldown);if(f.Snapshot!=null)row.SetValue("Snapshot",f.Snapshot);data.SetValue("Ally"+index,row);}
+        private static void SaveRow(ValuesDictionary data,Friend f,int index){var row=new ValuesDictionary();row.SetValue("Id",(int)f.EntityId);row.SetValue("Key",(int)f.Id);row.SetValue("Owner",f.Owner);row.SetValue("Template",f.Template);row.SetValue("Spawn",f.SpawnTime);row.SetValue("Special",f.Special);row.SetValue("Name",f.Name??"契约生物");row.SetValue("Hidden",f.Hidden);row.SetValue("Discard",f.Discard);row.SetValue("HealOnReturn",f.HealOnReturn);row.SetValue("RidingAuto",f.RidingAuto);row.SetValue("Mode",(int)f.Mode);row.SetValue("DragonFlight",f.DragonFlight);row.SetValue("RegenCarry",f.RegenCarry);row.SetValue("PendingHeal",f.PendingHeal);if(f.HealthKnown){row.SetValue("HealthFraction",f.HealthFraction);row.SetValue("HealthMaximum",f.HealthMaximum);}if(f.Cerberus)row.SetValue("BiteCooldown",f.BiteCooldown);if(f.Knight)row.SetValue("KnightCooldown",f.KnightCooldown);if(f.Snapshot!=null)row.SetValue("Snapshot",f.Snapshot);data.SetValue("Ally"+index,row);}
         internal void Tint(Game.ComponentModel model)
         {
-            var c=model?.Entity.FindComponent<ComponentCreature>(false);if(IsFriendly(c)&&!(model is ComponentCerberusModel)&&!(model is ComponentBoneDragonModel))model.DiffuseColor=new Vector3(.35f,.23f,.48f);
+            var c=model?.Entity.FindComponent<ComponentCreature>(false);if(IsFriendly(c)&&!(model is ComponentCerberusModel)&&!(model is ComponentBoneDragonModel)&&!(model is ComponentNightmareKnightModel))model.DiffuseColor=new Vector3(.35f,.23f,.48f);
         }
     }
 }

@@ -1,5 +1,32 @@
 ﻿# 测试结果
 
+## 2026-11-02 main 0.71.0：夜魇骑士常规骑兵
+
+基线 `da6f715` / 0.70.1，用户确认70生命、15伤害/1.2秒、8/10普通/冲锋速度、快速接敌后持续贴身砍杀、一个名额/共享生命/可重复召唤。新增原创马/铠甲骑士/剑七骨组合与模板，不拆分NPC骑手/坐骑实体；沿用模式、归队、次位面、治疗、七只/世界24只和30秒新召唤冷却。面板新增「夜魇骑士」名字，无机制提示。详见 [实现、模型与待验收](ABYSS-NIGHTMARE-KNIGHT.md)。
+
+实际命令（仓库根，Windows PowerShell，引用目录 `E:/SCNET/SCNETx25.01.17`）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+python SCIE-Port/scripts/New-NightmareKnightAssets.py
+python SCIE-Port/scripts/New-NightmareKnightTemplate.py
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-NightmareKnightResources.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -ModAssembly SCIE-Port/artifacts/build/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1
+```
+
+固定三个游戏程序集SHA与 [军势模式记录](ABYSS-ARMY-MODES.md#验证状态) 一致；根/独立移植环境与ABI均exit 0。最终net472 Release、完整规则/原生夹具回归、数据库及包校验均exit 0，0警告0错误。新增原生夹具按既有模式由Windows CodeDOM单独编译，已从无游戏依赖的纯规则工程排除。
+
+- 原创模型/UV：目标Engine实际导入 **7骨/7网格/4924三角**，32字节顶点、正确父子关系/模板类及资源绑定，256×256不透明PNG。静态原生及软件动画采样范围落在1.8×3.65×3.8 Body内；无Mount/Rider/Steed玩家组件、生成蛋-1，模板GUID `740568e9-bb43-529c-9495-bc4da4e2ca98`。只读核查继承组件没有原生ComponentFourLeggedModel专属字段依赖；参考安装端马声音路径，不分发游戏资源。原生元数据报告及软件预览在`design/nightmare-knight/`，不是实际游戏/GPU渲染。
+- 死亡权柄原生隔离夹具 **270项通过**，保留旧219项并覆盖骑士70/8配置、可重复且单名额、冲锋10且反复更新不漂移/外部增量保持；转弯/缺地/墙/水/空中/距离/玩家靠近取消加速，近战停止且不主动后退；挥剑前摇、下劈时命中、1.2秒间隔、一次原生15基础伤害、自由模式取消/目标逃离/帧预算耗尽/友军及玩家/死亡保护；退出归还速度、模板识别/生命/剩余攻击间隔保存和重绑定、1.2秒浮点上限的立即保存/读取边界、次位面、非法存档原样保护、主机C=2/3复制、非法同步拒绝、动作年龄与去重及客户端拒绝造伤害。
+- 既有完整回归通过：Gungnir389、Poseidon3397、Inventory739、Stormhammer751；Space V2原生26033、WorldCut原生890及共享星门原生603。22 XDB、22 CSV/55行、GUID/类名及打包资源守卫通过。神器、原召唤、星门和蓝图能力保持。
+- 最终 **9,596,602字节 / 159条目**；固定名及版本名两包一致，SHA-256 `CE5C084EA3D3336681F6F5EF77FF0FCE50B237AC9B4947A705D2F8F4B2BEDEAD`。内嵌DLL与Release输出一致，DLL SHA-256 `3241016A8FD6A03D610958482EB59FF4FF2916A64DF288703528F78B7B32E788`，程序集版本0.71.0.0。
+- 与0.70.1包逐条比较：只新增骑士DAE/PNG/XDB三项，只改变DLL/modinfo/署名三项，其余153项旧条目相同，没有删除旧资源；根`.gitattributes`为新DAE/XDB设置`-text`，保证Windows检出后资源字节及哈希不变。构建前后强制执行`Test-NightmareKnightResources.ps1`核验原文件/包内字节，比较报告已保存在`design/nightmare-knight/package-comparison.json`。
+
+日志位于忽略的`artifacts/knight-environment-root.log`、`knight-environment-port.log`、`knight-native-regression.log`及`nightmare-knight-0.71.0-build.log`。最终270项结果以完整构建日志为准。252不改变字节布局，扩展Kind3非骨龙C=2/3和Kind10演出，v2增加可选KnightCooldown；247/249/250/251、旧模板身份、星门与v1/v2读取保持，无新Hook/方块/物品/生成蛋ID或地形写入，根蓝图能力清单已更新。
+
+Android7723模型/UV/骑姿/剑击、复杂地形与手机性能、不同分辨率触屏、实际单人/房主/普通客户端、实体创建/保存重进及真实多人同步 **待验证**。未运行游戏、真实GPU场景或联机会话，不将静态导入、软件动画和隔离AttackBody夹具当作兼容已确认。各方统一0.71.0，混装旧版 **不支持**，含新实体降级须使用对应备份。按规范只提交本地main，不推送。
+
 ## 2026-11-02 main 0.70.1：军势面板精简与探索规范
 
 基线 `b3afc0e` / 0.70.0。根及 SCIE-Port 的 AGENTS.md 写入用户原话「不要那么多的提示性文字，让玩家自己探索」。军势面板移除常驻模式讲解、类型数值、唯一/飞行说明和“点按切换”；仅保留简短名称、当前状态、必要操作回执及解除确认。召唤按钮固定为“召唤”，冷却时禁用。原源码未含“随机召唤/随即召唤”字样，此次统一常态和冷却态名称；精简召唤成功、模式切换、收回/召出回执及模组描述。按钮几何、生命列、战斗和契约规则保持。

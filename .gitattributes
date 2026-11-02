@@ -1,3 +1,6 @@
 # Preserve generated asset bytes used by the Cerberus provenance and package manifests.
 SCIE-Port/src/SCIEPort/Assets/Models/AbyssCerberus.dae -text
 SCIE-Port/src/SCIEPort/Assets/Database/AbyssCerberus.xdb -text
+# Keep the cavalry's generated resource bytes stable for native/package SHA checks.
+SCIE-Port/src/SCIEPort/Assets/Models/AbyssNightmareKnight.dae -text
+SCIE-Port/src/SCIEPort/Assets/Database/AbyssNightmareKnight.xdb -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

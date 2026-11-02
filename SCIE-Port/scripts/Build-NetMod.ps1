@@ -323,6 +323,8 @@ foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? 
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Bone dragon native model/database resource import failed.' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-NightmareKnightResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Nightmare knight native resources failed validation.' }
 & (Join-Path $PSScriptRoot 'Test-PoseidonRuntime.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
 
@@ -2372,6 +2374,9 @@ if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $ve
 & (Join-Path $PSScriptRoot 'Test-AbyssSpaceV2.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-DeathAuthority.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir -Package $package
+
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-NightmareKnightResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll') -Package $package
+if ($LASTEXITCODE -ne 0) { throw 'Nightmare knight packaged resources failed validation.' }
 
 Write-Host "Package: $package"
 Write-Host "Versioned package: $versionedPackage"

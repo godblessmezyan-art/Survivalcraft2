@@ -1,0 +1,56 @@
+﻿{
+    "kind":  "Read-only native resource import and metadata inspection; not game/Android/network proof",
+    "game_sha256":  "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "engine_sha256":  "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "template_guid":  "740568e9-bb43-529c-9495-bc4da4e2ca98",
+    "health":  70,
+    "walk_speed":  8,
+    "damage":  15,
+    "bone_count":  7,
+    "mesh_count":  7,
+    "triangles":  4924,
+    "native_bounds":  {
+                          "min":  "-0.65,0.06449997,-1.7875",
+                          "max":  "0.66,3.42,1.7"
+                      },
+    "body":  "1.8,3.65,3.8",
+    "player_rideable":  false,
+    "egg_index":  -1,
+    "bones":  [
+                  {
+                      "parent":  -1,
+                      "name":  "Body",
+                      "translation":  "0,0,0"
+                  },
+                  {
+                      "parent":  0,
+                      "name":  "Leg1",
+                      "translation":  "-0.34,1.235,-0.77"
+                  },
+                  {
+                      "parent":  0,
+                      "name":  "Leg2",
+                      "translation":  "0.34,1.235,-0.77"
+                  },
+                  {
+                      "parent":  0,
+                      "name":  "Leg3",
+                      "translation":  "-0.34,1.235,0.83"
+                  },
+                  {
+                      "parent":  0,
+                      "name":  "Leg4",
+                      "translation":  "0.34,1.235,0.83"
+                  },
+                  {
+                      "parent":  0,
+                      "name":  "Rider",
+                      "translation":  "0,1.99,0.2"
+                  },
+                  {
+                      "parent":  5,
+                      "name":  "SwordArm",
+                      "translation":  "0.46,2.7,0.12"
+                  }
+              ]
+}
