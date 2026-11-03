@@ -1,3 +1,5 @@
+> 🧭 **导航：**此文档保留原仓库首页的 Builder Assistant 完整历史与技术记录。了解整个生存战争模组集合，请返回 [项目总览](../README.md)。
+
 # Builder Assistant for Survivalcraft NET
 
 当前建筑助手 **v0.24.0**：新增18种地形与装饰材料，共81种；土沙、冰雪、草地/耕地、花草、地毯和石饰支持严格DATA及地面支撑。自然生长/融化/下落保留，撤销不冻结或回收环境副作用。工作台可自动分房并布置7件家具的一室一厅住宅，可选尺寸、屋顶、木石外墙和种子，生成结果可交给903保存和预览。继续提供剪贴板导入、本地蓝图库保存/载入/确认删除，以及可旋转、升降、重选的只读落点预览。支持81种原版材料与10种结构块家具模板；新生成和保存统一 schema 3，旧 schema 1/2 继续可读。SCIE-Port 是独立移植工程，其版本与内容不代表建筑助手能力。
@@ -6,25 +8,25 @@
 
 **蓝图使用：**903打开管理→导入或载入→保存（可选）→选择落点并预览→点地→调整旋转/高度→确认建造；有覆盖时确认清障。902撤销。删除所选文件不会删除当前内存蓝图或世界建筑。
 
-- [v0.24 新增材料与限制](docs/BUILDER-MATERIALS-0.24.0.md) / [18种材料示例](docs/examples/blueprint-materials-v3.json)
-- [统一蓝图生成规范](docs/BLUEPRINT-SPEC.md)
-- [可复制 AI 提示词](docs/AI-BLUEPRINT-PROMPT.md)
-- [方块与家具能力表](docs/blueprint-block-reference.md) / [精确 DATA 机器矩阵](docs/blueprint-block-capabilities.json)
-- [v0.23 一室一厅与离线布局图](docs/BUILDER-FURNISHED-HOME-0.23.0.md)
-- [三份示范蓝图](docs/examples/furnished-homes/)
-- [v0.22 开发与设备验收记录](docs/BUILDER-BLUEPRINT-0.22.0.md)
+- [v0.24 新增材料与限制](BUILDER-MATERIALS-0.24.0.md) / [18种材料示例](examples/blueprint-materials-v3.json)
+- [统一蓝图生成规范](BLUEPRINT-SPEC.md)
+- [可复制 AI 提示词](AI-BLUEPRINT-PROMPT.md)
+- [方块与家具能力表](blueprint-block-reference.md) / [精确 DATA 机器矩阵](blueprint-block-capabilities.json)
+- [v0.23 一室一厅与离线布局图](BUILDER-FURNISHED-HOME-0.23.0.md)
+- [三份示范蓝图](examples/furnished-homes/)
+- [v0.22 开发与设备验收记录](BUILDER-BLUEPRINT-0.22.0.md)
 
 目标为 SCNET x25.01.17 / net472。Windows编译、固定程序集ABI及离线测试与Android7723真机验证分开记录；触屏、剪贴板、绘制、存读档和真实联机仍待设备验证。撤销仅承诺既有地形日志范围，不能保证恢复物品、电路或流体连锁副作用。
 
 ## 历史功能记录
 
-> **v0.18.0 精细建筑能力**：63种原版类型；九种 PaintedCube、楼梯/半砖/栅栏16色和合法楼梯角形、三轴原木无损编解码；新增木梯、铁梯和火把的支撑排序与施工后复核。schema1/2继续读取，每事务10000、每批32、每轴64不变，撤销/回滚也分批。活板门、栅栏门、地毯、藤蔓因跨子系统恢复缺口仍不支持。Android/7723及联机均待验证。详见[方块清单](docs/blueprint-block-reference.md)、[逐类型矩阵](docs/blueprint-block-capabilities.json)和[开发报告](docs/BUILDER-DETAIL-STATES-0.18.0.md)。
+> **v0.18.0 精细建筑能力**：63种原版类型；九种 PaintedCube、楼梯/半砖/栅栏16色和合法楼梯角形、三轴原木无损编解码；新增木梯、铁梯和火把的支撑排序与施工后复核。schema1/2继续读取，每事务10000、每批32、每轴64不变，撤销/回滚也分批。活板门、栅栏门、地毯、藤蔓因跨子系统恢复缺口仍不支持。Android/7723及联机均待验证。详见[方块清单](blueprint-block-reference.md)、[逐类型矩阵](blueprint-block-capabilities.json)和[开发报告](BUILDER-DETAIL-STATES-0.18.0.md)。
 
-> **v0.17.0 Portable Fortress Mk.I 白模里程碑**：加入可重复生成的 `11 × 13 × 9` DAE 技术白模（单静态骨骼、11 网格、1116 三角面、真实门窗/楼梯井/屋顶舱口）及目标 x25.01.17 `Engine.Media.ModelData.Load(Stream)` 导入守卫。完整结构、逐层坐标、碰撞代理、48 格储物、供暖、部署回收和联机边界见 [`docs/portable-fortress/`](docs/portable-fortress/)。本轮没有接入可部署实体，也没有制作正式精模；运行渲染、玩家通行、玻璃、储物、供暖、Android 与联机均为**待验证**。
+> **v0.17.0 Portable Fortress Mk.I 白模里程碑**：加入可重复生成的 `11 × 13 × 9` DAE 技术白模（单静态骨骼、11 网格、1116 三角面、真实门窗/楼梯井/屋顶舱口）及目标 x25.01.17 `Engine.Media.ModelData.Load(Stream)` 导入守卫。完整结构、逐层坐标、碰撞代理、48 格储物、供暖、部署回收和联机边界见 [`docs/portable-fortress/`](portable-fortress/)。本轮没有接入可部署实体，也没有制作正式精模；运行渲染、玩家通行、玻璃、储物、供暖、Android 与联机均为**待验证**。
 
 面向 Android 版《生存战争 2.4》联机客户端（Survivalcraft NET / SCNET）的建筑辅助 Mod。首要适配版本是 **Net_x25.01.17**，目标产物为 `.netmod`。
 
-> **v0.16.0 方块能力第一阶段**：已从哈希固定的 x25.01.17 公开 Windows 程序集与 `BlocksData` 审计 165 个原版可放置类型，蓝图开放类型由 39 扩到 60，并改为“能力元数据 + 运行时注册表 + 按族编解码”。非法 DATA、`f`/材料族冲突、彩色状态有损复制均明确拒绝。详见 [方块能力清单](docs/blueprint-block-reference.md) 与 [完整审计](docs/blueprint-block-audit-x25.01.17.md)。Android 7723 真机渲染、存读档和联机同步仍为**待验证**。
+> **v0.16.0 方块能力第一阶段**：已从哈希固定的 x25.01.17 公开 Windows 程序集与 `BlocksData` 审计 165 个原版可放置类型，蓝图开放类型由 39 扩到 60，并改为“能力元数据 + 运行时注册表 + 按族编解码”。非法 DATA、`f`/材料族冲突、彩色状态有损复制均明确拒绝。详见 [方块能力清单](blueprint-block-reference.md) 与 [完整审计](blueprint-block-audit-x25.01.17.md)。Android 7723 真机渲染、存读档和联机同步仍为**待验证**。
 
 > 当前状态：Phase 1 最小加载已由用户在 Android/7723 客户端确认。功能线（建筑生成、蓝图 JSON、复制/粘贴/旋转、批量建造与撤销）已推进到 **v0.11.0**——自 v0.7.0 的通用 JSON 蓝图、v0.8.0 的库浏览导入、v0.8.1 的剪贴板粘贴导入、v0.8.2 的更多纯立方石/砖块、v0.9.0 首次支持**带朝向方块（楼梯 / 半砖 / 栅栏 / 门）**并将蓝图交换格式从 `schemaVersion=1` 升级到 **`schemaVersion=2`**、**v0.10.0 的参数化建筑生成引擎**（`BuildingSpec → BuildingComposer → Blueprint` 统一入口、模块化组件、独立结构校验器 `BuildingValidator`、种子确定性，产出参数化小屋与全新的两层住宅；中世纪小屋仍为注册表默认、输出逐字节不变，纯**追加**），到 **v0.10.1 解除联机限制**——建造/撤销/蓝图工具的权限闸从“仅单人”放宽为“单人或联机房主（`WorkType.Server`）可用，仅拒绝非权威的联机客户端（`WorkType.Client`）”；因生成的建筑全是房主写入的**原版方块**，未装本 Mod 的客户端理论上仍可经普通区块同步看到落成结构（仅看不到 901/902/903 手持工具方块），但**主机写入能否真正同步到 7723 非装 Mod 客户端仍为待验证**，须真机两台联机实测。再到 **v0.11.0 可视化建筑工作台**——新增手持工作台工具 `904`，玩家纯触屏双手势（**点天空**循环当前旋钮、**点地面**推进确认）即可「选建筑（小屋 / 两层住宅 / 当前导入蓝图）→ 调少量参数（宽 / 长 / 层数 / 层高 / 屋顶 / 种子 / 朝向）→ 看只读占地预览 → 确认落成」；预览严格只读、绝不写世界、且预览面积按构造恒等于最终建造面积，落成走同一条计划→执行→撤销管线，权限闸与 1024/32/64 限额一字未改。交互大脑全部落在**游戏无关、可离线单测**的 `Core/Workbench`，`WorldEditRuntime` 未被重写（仅追加只读闸面把确认后的建造接回既有路径）。x25.01.17 虽在引用程序集里暴露了原生 `Dialog`/`ListSelectionDialog` 与方块高亮 API，但“public-in-reference ≠ Mod 沙箱可安全挂载”，故本轮改走**已验证的 toast + 双手势回退**、Phase-2 透明幽灵投影与原生对话框选择器一律标 **待验证**、不伪装可用。最后 **v0.11.1** 专门取证「房主装、其他人没装 → 客户端报'资源包FastDebug校验不通过'与'客户端没有安装服务器Mod[Builder Assistant 建筑助手:x.y.z]'」——通过反编译目标 `Survivalcraft.exe`（x25.01.17）直接定位到 `Game.NetWork.Packages.ConnectionRequestPackage.AcceptAclient`：**服务端**在收到连接请求后**无条件**要求客户端上报的 `modInfos` 与主机自己的 `ModsManager.ModList` 严格多重集相等（数量一致、每条 `PackageName+Version` 一致、除 `survivalcraft` 内置项外每条 `ResourcesMd5` 一致）。`Game.ModInfo` 只有 `Name/Version/ApiVersion/Description/ScVersion/Link/Author/PackageName/Dependencies` 九个字段，**没有** server-only / client-optional / advertise=false 之类的开关——所以「主机独装 Mod」在当前 SCNET 里被游戏本身架构拒绝，而非 Builder Assistant 拒绝。唯一两条受支持的路径：(1) 客户端在服务器列表走游戏自带的 `Game.NetWork.ModFileService.ModFileClient.DownloadModAndJoinServer`——它会向房主的 `ModFileServer`（`HttpListener`，按 `/{modMd5}/` 暴露每个 `.netmod`）拉取所有缺失的 `.netmod` 文件、写入 `Utils.ModFileDirectory`、然后 `GameRestarter.RestartGame()` 重启加载；Android 7723 上 `HttpListener` 是否可绑定、非 root 是否有权限写入 `NetMods/`、`Utils.GetModInfoDatas` 依赖的 `com.fastdebug` 实体在两端是否健康，**全部为待验证**。(2) 客户端预装**完全相同 SHA-256**的 `BuilderAssistant.netmod`（因本 Mod 落建全是原版方块、`TestBuildEmitsOnlyVanillaBlocks` 已在离线证明不会把 900–904 写进世界，预装后所有客户端都能看到落成结构、且不会引入方块映射漂移）。至于「`资源包FastDebug校验不通过`」这条与 Builder Assistant **正交**的错误——它意味着两台设备的 **FastDebug** `.netmod` 文件本身 MD5 不同（不同 7723 构建周期，或一方是官方 APK 一方是 7723 重打包），须两台设备从**同一构建渠道**重装游戏；本 Mod 依 AGENTS.md 铁律**不会**、也**不能**伪造 Mod 列表 / 跳过 `ResourcesMd5` 校验 / 修改 `ConnectionRequestPackage`。v0.11.1 是**纯文档 + 加载器多打一行说明**，379/379 测试与 net472 0 错 0 警均无变化。最新 **v0.12.0** 交付任务『大型奇幻树屋·森之王庭』的 M1+M2 里程碑：M1 反编译 x25.01.17 逐格取证后，只纳入确有且状态可控的原版方块 `OakWoodBlock`（Index=9，仅竖向原木 data 0）与 `SpruceLeavesBlock`（Index=14，常青半透明叶），据此给无游戏依赖的 `BlockOrientation` 追加 `BlockFamily.Log`/`log` 标签、给 `MaterialCatalog`/`VanillaBlockPalette` 追加映射，带实体/状态/季节的梯子·火把·家具·落叶树·树苗标**不支持**、绝不硬造；M2 新增五个纯 C# 可离线单测的**程序化**生成器（`GiantTreeGenerator`/`TreeBranchGenerator`/`TreeCanopyGenerator`/`TreehouseGenerator`/`TreehouseDecorationGenerator`）+ 装配校验器 `TreehouseBlueprintSet` + 离线三视图预览 `TreehousePreview`，在一张主 `TreeCanvas` 上按固定顺序一次性作者化 giant tree + 三层可进入木屋，再切成每段都满足 ≤1024/任一轴 ≤64 的阶段蓝图（超限自动按 Y 分层、绝不上调限额），复用既有 `BuildPlanner→BuildTask→undo` 管线不改动；默认种子 `33×36×33`、`2765` 方块、`9` 阶段、逐字节确定、校验干净，工具块 900–904 绝不落进建筑体（离线 `TestTreehouseEmitsOnlyVanillaBlocks` 证明）；纯追加、仅限 `Core/Tree`+`Blueprints`+`Building/MaterialCatalog`+`WorldEdit/VanillaBlockPalette` 与离线测试，未触碰 SCIE-Port/快艇/ATV/工作台/蓝图 schema/限额/`.xdb`/GUID。以上功能均已通过**离线逻辑测试 413/413**与对真实 x25.01.17 程序集的 **net472 编译 0 错误 0 警告**；但在 7723 手机上的**渲染与地形写入效果仍为待验证**，任何功能未实机验证前不得标“兼容/已确认”。联机同步效果同样待主机和客户端分别验证。最新 **v0.13.0** 收口任务 §8 的 M4 里程碑：新增游戏无关的 `Core/Tree/TreehouseAssembly` 分阶段编排器，并在 `WorldEditRuntime` 仅追加一条 `RuntimeMode.Treehouse` 触屏流程，把 v0.12.0 只能逐段手动两按确认的多阶段树屋蓝图接成**单次确认即按主锚点严格顺序自动装配全部 9 阶段**的执行器，让巨型树屋真正可一键落成；每阶段完成即 `Record` 保持逐阶段撤销、硬失败即停摆不再执行后续阶段、取消只回滚当前在飞阶段，全程复用**未改动**的 `BuildPlanner→BuildTask→撤销` 管线与 1024/32/64 限额、`allowOverride` 恒 false、绝不把工具块 900–904 落进世界。离线逻辑测试 **413 → 444/444**、net472 Release 仍 **0 错误 0 警告**，`.netmod` 已重打包（DLL 反射版本 `0.13.0.0`）；但一键分阶段装配在 Android 7723 真机的落建/渲染/存读档/有界停等帧耗时与联机同步**仍全部待验证**，不得以离线通过标“兼容/已确认”。最新 **v0.13.1** 只做一处行为改动：应项目所有者 2026-10-20 决定把单事务方块上限 `BuildSafetyLimits.MaxBlocksPerOperation` 由 `1024` 上调为 `2756`（每批 32、每轴 64、有界停等 240、`allowOverride` 恒 false、计划→执行→撤销管线、schema v2、权限闸、工具块 900–904 永不落世界等**均未改**）；默认树屋 2765 方块仍略超 2756，故仍按 9 阶段逐段装配、阶段数不合并，上调仅让单份扁平蓝图导入能容纳更大结构。离线随之调整 3 个越界夹具，测试仍 **444/444**、net472 Release 仍 **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.13.1.0`）；真机效果**仍待验证**。最新 **v0.14.0** 同样只做一处行为改动：应项目所有者「解除限制到 1 万个方块」指令，把同一上限 `MaxBlocksPerOperation` 由 `2756` 再上调为 `10000`——每批 32（1 万格仍按 ~313 批逐帧写入、绝不单帧写万格）、每轴 64、有界停等 240（只数连续零进度帧，上调不拉长它）、`allowOverride` 恒 false、计划→执行→撤销管线、schema v2、权限闸、工具块 900–904 永不落世界等**一字未改**；默认树屋 2765 格现**落在单事务之内**、可作一份扁平蓝图直接导入，出厂的 9 阶段逐段装配路径仍保留可用。离线两个越界夹具改为按 `MaxBlocksPerOperation` **动态生成**（以后再调上限不必改测试），测试仍 **444/444**、net472 Release 仍 **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.14.0.0`）；真机效果**仍全部待验证**，未实机前不得标“兼容/已确认”。最新 **v0.15.0**（合并版）交付「一键清障」这一**显式、默认关闭**的开关，直接回应"生成时不要出现太多限制、直接清除周围所有障碍方块"：把既有、离线已证可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 早期即支持，v0.13.0～v0.14.0 一路在四条落建路径写死 `false`）串接进**建造 / 粘贴 / 树屋一键装配 / 工作台**四条路径——开启后 footprint 内**每一格无条件替换**，**实心方块与水/岩浆流体一并清除**（按项目所有者决定不做流体保护）、**不留任何周边留白**（footprint 外一格不动），开关本身即"显式二次确认"故不再逐格中止、也不再走软清除的重复两按；关闭时计划→执行与 v0.14.0 **逐字节相同**（默认不覆盖非空气、越界即拒并写明"实心方块"冲突）。触发为纯触屏：撤销工具 `902` 空闲点击的模式循环由 4 步扩为 6 步（小屋→复制→粘贴→树屋→装填清障→关闭），不新增工具块、开关跨模式持久并 toast 提醒。安全底线未动：每事务 **10000**（沿用 v0.14.0 的上调，本功能未再改）、每批 32、每轴 64、有界停等 240、坐标边界、修改前先捕获撤销（被清的实心与流体都进撤销栈、可逐段还原）、仅主线程、拒非权威联机客户端、工具块 900–904 永不落世界。离线逻辑测试 **474/474**（含新增 5 个清障夹具）、net472 Release 仍 **0 错误 0 警告**，`.netmod` 重打包（DLL 反射版本 `0.15.0.0`，SHA-256 `BF63A814AB3B3AC1A41C6594C3FC6CBC547455E356E90AD1A9DAE9F8E8A05912`）；真机触屏手感、流体清除与还原、树屋越障装配帧耗时与联机同步**仍全部待验证**，未实机验证前不标"兼容/已确认"。
 
@@ -46,7 +48,7 @@
 | SCAPI / `.scmod` | 不支持 | 加载器 ABI 与包格式不同 |
 | 官方原版 Survivalcraft | 不支持 | 不包含已确认的 SCNET ModLoader |
 
-详见 [兼容性矩阵](docs/COMPATIBILITY.md)。
+详见 [兼容性矩阵](COMPATIBILITY.md)。
 
 ## 构建
 
@@ -140,6 +142,6 @@ Windows 固定程序集编译和离线测试不能代替游戏运行；Android 7
 
 ## 工程边界
 
-`src/BuilderAssistant/` 只承载自动生成建筑、蓝图、批量建造和安全撤销等建筑助手功能。获许可的第三方 Mod 移植统一放在独立的 [`SCIE-Port/`](SCIE-Port/) 工程中，禁止把其代码或资源打入 Builder Assistant。
+`src/BuilderAssistant/` 只承载自动生成建筑、蓝图、批量建造和安全撤销等建筑助手功能。获许可的第三方 Mod 移植统一放在独立的 [`SCIE-Port/`](../SCIE-Port/) 工程中，禁止把其代码或资源打入 Builder Assistant。
 
-开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)，兼容性结论见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。
+开发规范见 [AGENTS.md](../AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](ROADMAP.md)，兼容性结论见 [docs/COMPATIBILITY.md](COMPATIBILITY.md)。
