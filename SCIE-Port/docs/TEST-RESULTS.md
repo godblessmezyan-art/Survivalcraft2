@@ -1,5 +1,31 @@
 # 测试结果
 
+## 2026-11-03 main 0.76.1：拉取最新代码并在本机重新打包
+
+用户要求“查看Git，拉取我的最新代码，打个netmod包”。本地与远端main均为`644aa47`；执行`git pull --ff-only origin main`返回`Already up to date`。构建代码保持该提交及0.76.1版本，不改功能、ID或协议；保留原有未跟踪的工作记录。
+
+实际命令（仓库根`E:/Survivalcraft2`，.NET SDK 9.0.314，Mod仍为net472）：
+
+```powershell
+git pull --ff-only origin main
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+$env:PYTHONUTF8='1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release > artifacts/latest-main-0761-20261103-build.log 2>&1
+```
+
+上述命令均退出码0。固定Windows x25.01.17三程序集哈希匹配，net472/API1.42/SC2.4.10.6保持；完整Release、规则/原生组件隔离、资源/品牌/数据库和包检查通过。圣剑806规则/521原生、陈列器650原生、图谱436原生、军势423、库存775规则/170原生、解析1347及GUID/调用审计27项通过；审计2974方法/23488调用点，无直接BCL TryParse或Guid/UInt32 Parse引用。没有运行完整游戏、Android或真实网络会话。
+
+成品包含圣剑953、悬浮陈列器954、神器图谱955及其六份CSV/XDB；骑士与随机召唤/60秒冷却保持。ZIP完整性、173条目无重复、170份Assets与打包暂存区逐字节一致；其中166份直接位于src的资源亦与源码字节一致。DLL与Release输出一致，主包与版本副本一致；不含游戏DLL、EXE、APK或PDB。验证结果另存忽略目录`artifacts/latest-main-0761-20261103-verification.json`。
+
+本机新产物`SCIE-Port/artifacts/荒野探险家-0.76.1.netmod`及`荒野探险家.netmod`：**10,554,483字节 / 173 entries**。以下指纹对应本次重新构建，不沿用上一环境的包指纹：
+
+```text
+netmod SHA-256 8820A0BB0BB80F40C806269A508C7488CE9511E791DD059992DD1072D6368DCE
+DLL    SHA-256 3E1FABDF81BC406DE127FA0CED8C397BEF0B518D705A3BDC0B52AF91ADAE00AC
+```
+
+固定Windows环境/离线检查 **已确认**；Android7723、新旧世界、触屏多分辨率及实际单人/房主/普通客户端 **待验证**。同房统一0.76.1，旧版混装不支持。此次只将构建记录提交本地main，不推送。
+
 ## 2026-11-03 main 0.76.1：合并最新远端并准备推送
 
 用户明确要求“帮我推送到远端”。初始本地main `d14cd06`工作区干净；远端main已新增`f1c2279`，双方分别有10/1条独有提交。因此先fetch并真正合并，完整保留两边历史；本轮推送授权是根AGENTS默认仅本地提交规则的当次例外，不修改长期规则。
