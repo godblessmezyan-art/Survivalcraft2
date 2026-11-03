@@ -21,6 +21,7 @@ namespace SCIEPort.Features.AbyssReaper
         private readonly SubsystemAbyssReaper parent;private readonly SubsystemTerrain terrain;private readonly SubsystemTime clock;private readonly SubsystemBodies bodies;private readonly SubsystemPlayers players;
         private readonly Dictionary<Guid,State> states=new Dictionary<Guid,State>();
         private readonly Queue<Pending> queue=new Queue<Pending>();
+        private readonly System.Random summonRandom=new System.Random();
         private readonly Dictionary<ComponentCreature,Mark> marks=new Dictionary<ComponentCreature,Mark>();
         private readonly List<ComponentCreature> retiredMarks=new List<ComponentCreature>();
         private readonly List<WaveCast> waves=new List<WaveCast>();
@@ -112,7 +113,11 @@ namespace SCIEPort.Features.AbyssReaper
                 case DeathAuthorityRules.Summon:
                     if(!s.Death){StatePacket(p,"请先切换死亡权柄");return;}
                     if(Now<s.SummonReady){StatePacket(p,"召唤冷却中，还需"+Math.Ceiling(s.SummonReady-Now).ToString("0")+"秒");return;}
-                    string reason;if(Summon(p,q.Target,out reason))s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;StatePacket(p,reason);break;
+                    if(Count(p.PlayerGuid)>=DeathAuthorityRules.OwnerLimit||ArmyCount>=DeathAuthorityRules.WorldLimit){StatePacket(p,"召唤数量已满");return;}
+                    // An accepted attempt consumes its cooldown before drawing or creating an entity.
+                    // Target is deliberately unused: a client cannot choose the summon type.
+                    s.SummonReady=Now+DeathAuthorityRules.SummonCooldown;
+                    string reason;Summon(p,DeathSummonRules.Kind(summonRandom.Next(100)),out reason);StatePacket(p,reason);break;
                 case DeathAuthorityRules.Dismiss:StatePacket(p,Dismiss(p,q.Target));break;
                 case DeathAuthorityRules.Recall:Recall(p);StatePacket(p,"友军正在归队");break;
                 case DeathAuthorityRules.Stow:StatePacket(p,StowArmy(p));break;
@@ -142,7 +147,7 @@ namespace SCIEPort.Features.AbyssReaper
             var s=Get(p);if(s==null)return;
             if(q.Kind==1)
             {
-                if(!WorldCutRules.Newer(q.Revision,s.Revision)||!WorldCutRules.Finite(q.A)||!WorldCutRules.Finite(q.B)||!WorldCutRules.Finite(q.C)||!WorldCutRules.Finite(q.D)||q.A<0||q.A>12.1f||q.B<0||q.B>3.1f||q.C<0||q.C>36.1f||q.D<0||q.D>30.1f)return;
+                if(!WorldCutRules.Newer(q.Revision,s.Revision)||!WorldCutRules.Finite(q.A)||!WorldCutRules.Finite(q.B)||!WorldCutRules.Finite(q.C)||!WorldCutRules.Finite(q.D)||q.A<0||q.A>12.1f||q.B<0||q.B>3.1f||q.C<0||q.C>36.1f||q.D<0||q.D>(float)DeathAuthorityRules.SummonCooldown+.1f)return;
                 double rtt=Time.RealTime-q.Echo;if(p.PlayerData.IsMainPlayer&&q.Echo>0&&DeathAuthorityRules.Finite(rtt)&&rtt>=0&&rtt<8){hasClock=true;clockOffset=q.Stamp+rtt*.5-Now;}
                 double age=hasClock?Math.Max(0,Math.Max(lastServerTime,Now+clockOffset)-q.Stamp):0;
                 s.Revision=q.Revision;s.Death=(q.Flags&1)!=0;s.EmpowerUntil=Now+Math.Max(0,q.A-age);s.EmpowerReady=Now+Math.Max(0,q.B-age);s.WaveReady=Now+Math.Max(0,q.C-age);s.SummonReady=Now+Math.Max(0,q.D-age);s.PendingUntil=0;if(q.Name.Length>0)Message(p,q.Name);

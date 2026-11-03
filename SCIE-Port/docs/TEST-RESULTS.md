@@ -1,5 +1,36 @@
 # 测试结果
 
+## 2026-11-03 main 0.76.1：合并最新远端并准备推送
+
+用户明确要求“帮我推送到远端”。初始本地main `d14cd06`工作区干净；远端main已新增`f1c2279`，双方分别有10/1条独有提交。因此先fetch并真正合并，完整保留两边历史；本轮推送授权是根AGENTS默认仅本地提交规则的当次例外，不修改长期规则。
+
+保留本地圣剑953、悬浮陈列器954、神器图谱955/254与Android解析修复，合入远端最新随机召唤/60秒CD和异常实体Dispose修正。0.76.0手选行为由远端最新规则替代：单次5/10/15/20/30/20分桶，依次三头犬/骨龙/骑士/战马/猎犬/失败；有效尝试先扣CD，不重抽。252字节布局保持，Action4忽略Target、Kind1 D支持60秒，253/254和旧身份/存档保持。冲突保留本地Codex Actor门控、私有Summon的Authority检查、两边测试文件与历史文档；版本统一0.76.1，图谱移除过时的指定类型介绍，界面维持简短“召唤”。
+
+实际命令（SDK9.0.300，Mod仍为net472）：
+
+```powershell
+$env:PATH="$env:LOCALAPPDATA\Microsoft\dotnet;$env:USERPROFILE\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;$env:PATH"
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PYTHONUTF8='1'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17
+```
+
+两条命令均退出码0；完整Release/回归/资源/包校验通过，日志`artifacts/merge-0761-release.log`。固定三程序集SHA匹配原记录，net472/API1.42/SC2.4.10.6保持。
+
+| 检查 | 实际结果与范围 |
+|---|---|
+| 军势、骑士、模式与随机召唤 | **423项通过**。保留双方战斗/存储/模式/网络认证测试，远端100个分桶穷举及失败、唯一冲突、容量、60秒边界、重放、跨世界、旧连接、伪造Target与Client禁结算检查通过。旧手选专项由新随机专项替代。 |
+| 图谱与随机召唤交叉 | 在上述423项中，封印阿比斯拒绝召唤和动作16–18；额外确认封印时抽签次数与CD均为0，解放阿比斯后可管理自由模式。图谱原生**436项**保持通过。 |
+| 本地功能与库存 | 圣剑**806规则/521原生**，陈列器**650原生**，库存**775规则/170原生**通过；圣剑、陈列器和Compatibility源码与本地父提交无差异。 |
+| Android解析适配 | **1,347**解析/实际设置与**27**GUID/调用检查通过；扫描**2,974方法/23,488调用点**，无直接BCL TryParse、Guid/UInt32 Parse引用。不能由桌面隔离结果推定手机运行时全部兼容。 |
+| 资源与包 | 骑士原生导入**7骨/7网格/4,924三角**；其余资源/品牌/数据库/冻结源码守卫均通过。对0.76.0条目集合相同，**170份Assets逐字节不变**，只有DLL和modinfo改变；六份圣剑/陈列器/图谱CSV/XDB齐全。正式包和版本副本字节一致，DLL与Release相同。 |
+| 实机边界 | 未打开完整游戏、Android7723或真实多人；新旧世界、单机/主机/普通客户端/晚加入、触屏多分辨率及性能 **待验证**。同房统一0.76.1，旧版混装不支持。 |
+
+包`荒野探险家-0.76.1.netmod`：**10,554,519字节**，SHA-256 `7A99126A5249C0A88343747F4794B02BEFF334EE77E7C3CB898AB8600AF9A844`。指纹及比较结果见[机器记录](assets/merge-0761/validation.json)。构建生成的无关旧美术统计恢复父提交，未打包/提交游戏程序集或生成物。
+
+
 ## 2026-11-02 main 0.76.0：本地与远端功能合并
 
 合并本地`68e1c93`/0.75.2与远端`84f13d6`/0.71.0，共同祖先`903afcd`；初始工作区干净。使用`git fetch --no-tags origin main`读取远端，再`git merge --no-ff --no-commit FETCH_HEAD`，保留双方完整历史。冲突逐项合并：美术字节规则/历史文档取双方内容，项目版本统一0.76.0，军势采用远端面板/模式/骑士与本地Codex权限及解析修复，保留双方测试入口和本地特殊资产/源文件打包。
@@ -170,6 +201,37 @@ Android7723、完整单机/真实主机/普通客户端/晚加入、图谱实际
 实际命令：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`；设置既有SDK/Python PATH、FrameworkPathOverride和DOTNET_ROLL_FORWARD=Major后，运行`powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -OutputDir <工作区绝对路径>/SCIE-Port/artifacts/latest-main`。根环境与构建内全部回归、Release、数据库/分类/资源和最终包校验通过，退出码0。日志artifacts/rebuild-main-073.log。
 
 主包与0.73.0版本副本一致，10374720字节，SHA-256 `64C881B4A7389314598752FD5644E2901A20A907E054ACC21C731758A45AA28A`；包内DLL与本次Release DLL一致，包含圣剑与悬浮陈列器。固定Windows x25.01.17三程序集哈希与既有登记一致，net472/API1.42/SC2.4.10.6保持。本次未运行GPU或游戏/手机；Android7723、完整游戏和真实多人待验证，所有端须统一0.73.0。无Builder Assistant材料/族/DATA能力变化。
+
+## 2026-11-02 main 0.72.0：随机召唤与60秒冷却
+
+基线 `84f13d6` / 0.71.0。移除类型选择，按用户指定的5%三头犬/10%骨龙/15%骑士/20%战马/30%猎犬/20%失败抽取。Local/Server在有效请求中先记60秒冷却，再均匀抽签一次；失败、重复唯一生物、无安全落点均不重抽。满名额或无效请求在抽签前拒绝，不消耗冷却。机制与边界见[随机召唤说明](ABYSS-RANDOM-SUMMON.md)。
+
+实际命令（仓库根，Windows PowerShell）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 > artifacts/random-summon-0.72.0-build.log 2>&1
+```
+
+两套环境/ABI检查均exit 0；固定Windows x25.01.17三程序集SHA与0.71.0记录一致，net472 Release、完整离线回归及打包exit 0。本次没有运行游戏或连接设备/真实联机。
+
+- 死亡权柄原生隔离夹具 **415项通过**（前版270项保留，新增145项）。穷举100个抽签值与各段端点，精确得到5/10/15/20/30/20；越界随机值拒绝。20%失败无实体/名额变化、反馈精简，立即记60秒；59.99秒重试不抽签、60秒可再次抽签。满个人/世界名额、未切死亡权柄/持物失效不消耗冷却；三头犬/骨龙次位面及待加载冲突不重抽、保持冷却；未加载安全落点不创建实体并保持冷却。
+- 主机夹具中，认证普通客户端传入Target 0/1/2/3/4/65535均无法指定结果，发布与本人绑定的D=60状态；重放、跨世界及旧连接Token不能触发新抽签。客户端接受60秒并扣除1.5秒包年龄；旧状态不能清除冷却，61/负数/NaN/无穷拒绝，客户端命令不执行本地随机/创建。
+- 新原生夹具仍用Windows CodeDOM和实际游戏组件隔离执行，已从无游戏依赖的纯规则工程排除。未把模拟原生对象当成真实Local/Server/Client游戏会话。
+- 完整回归通过：Gungnir389、Poseidon3397、Inventory739、Stormhammer751；Space V2原生26033、WorldCut原生890及共享星门原生603；22 XDB、22 CSV/55行、GUID/类名和品牌/资源检查通过。骑士原生模型仍为7骨/7网格/4924三角，资源字节保持。
+- UI源码几何复核：删除类型按钮后16个按钮均在540×586面板内，按钮矩形互不重叠；1920×1080、1280×720、812×375、640×480、375×812按现有Measure公式缩放后均在24单位留边内。结果保存在忽略目录 `artifacts/random-summon-0.72.0-verification.json`；这不证明实际字体渲染、触屏可达性或原生控件遮挡已通过。
+- 生成通用与版本包逐字节一致，**9,596,630字节 / 159 entries**。对比0.71.0仅`SCIEPort.dll`和`modinfo.json`改变，其余157项内容哈希一致，无新美术/模板或专有二进制。
+
+产物：`SCIE-Port/artifacts/荒野探险家.netmod`、`荒野探险家-0.72.0.netmod`。
+
+```text
+netmod SHA-256 80A8322133BF6FBB254DDA790954111972E7786AF6A633B8173BAAB18E7FC1A5
+DLL    SHA-256 6CC038966A418B97C8B5547521EF76AE470E323C55551C1E2AF1EF497DCCA97C
+```
+
+固定Windows环境/离线检查 **已确认**。Android7723真实触屏、不同分辨率/控件遮挡、真实单人/房主/普通客户端召唤同步及长时间运行 **待验证**。旧版30秒状态校验不能接收完整新冷却，混装 **不支持**，各方需统一0.72.0。契约仍读v1/v2、写v2，无模型/模板/Hook/ID/地形或Builder Assistant蓝图能力变化。按用户规范只提交本地main，不推送。
 
 ## 2026-11-02 main 0.71.0：夜魇骑士常规骑兵
 

@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-03",
+  "version": "0.76.1",
+  "local_parent": "d14cd0616751cf533a5ef60fb51904ecb2f61001",
+  "remote_parent": "f1c227916b0587679f023153b0be1f76ffa8aa04",
+  "purpose": "User explicitly requested pushing local main; merge newest remote random summons and retain local artifacts/Android parsing fixes.",
+  "package": "荒野探险家-0.76.1.netmod",
+  "bytes": 10554519,
+  "sha256": "7A99126A5249C0A88343747F4794B02BEFF334EE77E7C3CB898AB8600AF9A844",
+  "dll_sha256": "B4FAC1C03BF1187FFA7FCF094E21992EB7E32BAAE8F4B6A533BA7D2C41124B96",
+  "checks": {
+    "root_environment": "passed",
+    "release_and_package": "passed",
+    "death_authority_random_modes_knight_codex_gate": 423,
+    "excalibur_rules": 806,
+    "excalibur_native": 521,
+    "suspension_native": 650,
+    "codex_native": 436,
+    "legacy_parsing": 1347,
+    "guid_and_il": 27,
+    "compiled_methods_scanned": 2974,
+    "call_sites_scanned": 23488,
+    "BCL_TryParse_calls": 0,
+    "inventory_rules": 775,
+    "inventory_native": 170
+  },
+  "comparison_to_0.76.0": {
+    "unchanged_asset_entries": 170,
+    "added": [],
+    "removed": [],
+    "changed": [
+      "SCIEPort.dll",
+      "modinfo.json"
+    ],
+    "excalibur_suspension_compatibility_sources_unchanged": true
+  },
+  "android_and_live_game": "待验证",
+  "target_assemblies": {
+    "Survivalcraft.exe": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "Engine.dll": "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
+    "EntitySystem.dll": "7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C"
+  }
+}

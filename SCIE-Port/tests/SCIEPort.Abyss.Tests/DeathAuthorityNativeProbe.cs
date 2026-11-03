@@ -90,70 +90,6 @@ public static partial class DeathAuthorityNativeProbe
         }
     }
     static object Packet(Fixture f,byte action,uint sequence){var q=New("DeathAuthorityPackage");Put(q,"Action",action);Put(q,"Caster",f.Player.Entity.EntityId);Put(q,"Sequence",sequence);Put(q,"World",Get(f.Death,"worldId"));Put(q,"Direction",-Vector3.UnitZ);return q;}
-    static object StoredContract(Fixture f,ushort key,Guid owner,int kind,bool pending)
-    {
-        var row=New("DeathAuthorityRuntime+Friend");Put(row,"Id",key);Put(row,"Owner",owner);Put(row,"Name",kind==3?"骨龙":"地狱三头犬");
-        Put(row,"Template",kind==3?"SCIEPortBoneDragon_Saddled":"SCIEPortCerberus");Put(row,"Hidden",!pending);Put(row,"Pending",pending);Put(row,"RegenStamp",f.Clock.GameTime);
-        ((IDictionary)Get(f.Death,pending?"saved":"hidden")).Add(key,row);return row;
-    }
-    static void Summoning()
-    {
-        // User selected the remote five-kind behavior when merging, superseding old random weights.
-        foreach(var mode in new[]{WorkType.Local,WorkType.Server})foreach(bool pending in new[]{false,true})foreach(int kind in new[]{2,3})
-        {
-            CommonLib.WorkType=mode;
-            using(var f=new Fixture(mode==WorkType.Local))
-            {
-                var state=Call(f.Death,"Get",f.Player);Put(state,"Death",true);var contract=StoredContract(f,400,f.Player.PlayerGuid,kind,pending);
-                var q=Packet(f,4,1);Put(q,"Target",(ushort)kind);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
-                Check(((string)Call(f.Death,"Feedback",f.Player)).Contains(kind==3?"已契约骨龙":"已契约刻尔柏洛斯"),"authenticated authority uses the selected kind and preserves uniqueness");
-                Check((int)Call(f.Death,"Count",f.Player.PlayerGuid)==1&&ReferenceEquals(((IDictionary)Get(f.Death,pending?"saved":"hidden"))[(ushort)400],contract),"stored/pending unique contract is not replaced");
-                Check((double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"remote duplicate rejection does not spend summon cooldown");
-                Put(state,"SummonReady",f.Clock.GameTime+30);Put(state,"NextManagementRequest",-1d);var blocked=Packet(f,4,2);Put(blocked,"Target",(ushort)4);
-                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,blocked);Call(f.Death,"Update");Check(((string)Call(f.Death,"Feedback",f.Player)).StartsWith("召唤冷却"),"selected knight still observes authoritative summon cooldown");
-                f.Clock.m_gameTime+=30.01;Put(state,"NextManagementRequest",-1d);
-                Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check((uint)Get(state,"Processed")==2,"replayed selected summon does not process after cooldown expires");
-                q=Packet(f,4,3);Put(q,"World",Guid.NewGuid());Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");Check((uint)Get(state,"Processed")==2,"cross-world selected summon is rejected");
-                q=Packet(f,4,4);Put(q,"Target",ushort.MaxValue);Call(f.Death,"Enqueue",f.Player,mode==WorkType.Server?f.Client:null,q);Call(f.Death,"Update");
-                Check((string)Call(f.Death,"Feedback",f.Player)=="未知的召唤类型"&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"server rejects forged unknown selection without cooldown");
-            }
-        }
-        CommonLib.WorkType=WorkType.Local;
-        using(var f=new Fixture())
-        {
-            f.Request(4,Vector3.UnitZ);Check((string)Call(f.Death,"Feedback",f.Player)=="请先切换死亡权柄","void form cannot summon");
-            Put(Call(f.Death,"Get",f.Player),"Death",true);f.Player.ComponentMiner.Inventory.RemoveSlotItems(0,1);
-            Check(!(bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)4),"unequipped artifact cannot request a selected knight");
-        }
-        foreach(bool worldFull in new[]{false,true})using(var f=new Fixture())
-        {
-            Put(Call(f.Death,"Get",f.Player),"Death",true);
-            for(ushort key=1;key<=(worldFull?24:7);key++)StoredContract(f,key,worldFull?Guid.NewGuid():f.Player.PlayerGuid,2,false);
-            f.Request(4,Vector3.UnitZ);Check((string)Call(f.Death,"Feedback",f.Player)=="召唤数量已满"&&(double)Call(f.Death,"Remaining",f.Player,(byte)4)==0,"selected summon retains owner/world capacity check");
-        }
-        using(var f=new Fixture())
-        {
-            var cells=(Terrain)Get(f.Base,"Cells");for(int x=-32;x<80;x++)for(int z=-32;z<80;z++)cells.SetCellValueFast(x,63,z,0);
-            for(ushort kind=0;kind<5;kind++)
-            {
-                object[] args={f.Player,kind,""};Check(!(bool)Call(f.Death,"Summon",args)&&((string)args[2]).Contains("安全召唤位置"),"all five selected kinds reach safe-location validation without creating an entity");
-            }
-            foreach(ushort kind in new ushort[]{5,ushort.MaxValue}){object[] args={f.Player,kind,""};Check(!(bool)Call(f.Death,"Summon",args)&&(string)args[2]=="未知的召唤类型","unknown kind is rejected before placement");}
-        }
-        CommonLib.WorkType=WorkType.Server;
-        using(var f=new Fixture(false))
-        {
-            Put(Call(f.Death,"Get",f.Player),"Death",true);var q=Packet(f,4,1);Put(q,"Target",(ushort)4);Call(f.Death,"Enqueue",f.Player,f.Client,q);
-            Put(f.Client,"<TokenId>k__BackingField",Guid.NewGuid());Call(f.Death,"Update");Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0,"obsolete connection cannot submit a selected summon");
-        }
-        CommonLib.WorkType=WorkType.Client;
-        using(var f=new Fixture())
-        {
-            object[] args={f.Player,(ushort)4,""};Check(!(bool)Call(f.Death,"Summon",args)&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==0,"direct client selected knight cannot create a contract");
-            CommonLib.Net.Server=f.Client;Put(f.Death,"serverToken",f.Client.TokenId);Put(f.Death,"worldKnown",true);Put(Call(f.Death,"Get",f.Player),"Death",true);
-            Check((bool)Call(f.Death,"Request",f.Player,(byte)4,Vector3.UnitZ,(ushort)4),"client sends its selected kind to the server");CommonLib.Net.Server=null;
-        }
-    }
     static void MergedCodexGate()
     {
         CommonLib.WorkType=WorkType.Local;
@@ -161,12 +97,13 @@ public static partial class DeathAuthorityNativeProbe
         {
             var creature=f.Creature(450,new Vector3(12,64,8));Call(f.Death,"Adopt",creature,f.Player.PlayerGuid,false);var key=f.Key(creature);
             var codex=f.Project.m_subsystems.Single(x=>x.GetType().FullName=="SCIEPort.Features.Codex.SubsystemArtifactCodex");var records=(IDictionary)Get(codex,"Records");records[f.Player.PlayerGuid]=0u;
-            Put(Call(f.Death,"Get",f.Player),"Death",true);
+            Put(Call(f.Death,"Get",f.Player),"Death",true);var rolls=SummonRandom(f);
             foreach(byte action in new byte[]{4,16,17,18})
             {
                 var q=Packet(f,action,(uint)action);Put(q,"Target",action==4?(ushort)4:key);Call(f.Death,"Enqueue",f.Player,null,q);Call(f.Death,"Update");
-                Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==1,"sealed Abyss rejects selected knight and every new behavior action before dispatch");
+                Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==1,"sealed Abyss rejects random summon and every new behavior action before dispatch");
             }
+            Check(rolls.Calls==0&&(double)Get(Call(f.Death,"Get",f.Player),"SummonReady")==0,"sealed Abyss cannot draw a summon or consume cooldown");
             records[f.Player.PlayerGuid]=64u;var mode=Packet(f,17,50);Put(mode,"Target",key);Call(f.Death,"Enqueue",f.Player,null,mode);Call(f.Death,"Update");
             var guard=((IDictionary)Get(f.Death,"guards"))[creature.Entity.EntityId];Check(Convert.ToInt32(Get(guard,"Mode"))==1,"releasing Abyss true name enables remote free-mode management");
         }
@@ -352,7 +289,7 @@ public static partial class DeathAuthorityNativeProbe
         try
         {
             CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();ModsManager.ModHooks=new Dictionary<string,ModsManager.ModHook>();SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
-            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();ModesAndCliffs();ModePersistenceAndNetwork();KnightRulesAndCombat();KnightNetworkAndStorage();Summoning();MergedCodexGate();
+            BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0,IsCollidable=false};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};Combat();ArmyAndBudget();Network();ClientAndInput();ModesAndCliffs();ModePersistenceAndNetwork();KnightRulesAndCombat();KnightNetworkAndStorage();RandomSummonRulesAndCooldown();RandomSummonNetwork();MergedCodexGate();
         }
         finally{CommonLib.WorkType=work;CommonLib.Net=net;ModsManager.ModHooks=hooks;SubsystemBedrockBlockBehavior.Territories=territory;BlocksManager.Blocks[0]=air;BlocksManager.Blocks[3]=stone;}
         Console.WriteLine("Death authority native health/conversion/army/ownership/persistence/authentication checks: "+checks+" passed (isolated; not live network/Android).");

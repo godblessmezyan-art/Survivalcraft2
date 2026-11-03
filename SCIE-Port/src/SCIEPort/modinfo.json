@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.76.0",
+  "Version": "0.76.1",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。0.76.0 合并本地与远端：保留圣剑、悬浮陈列器、神器图谱和Android解析修复，接入军势行动模式及夜魇骑士。按用户确认采用手选五种召唤。Android/真实联机待验证。",
+  "Description": "荒野探险家 / Wilderness Explorer。神器、冥界军势、悬浮陈列器、载具与生态扩展。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",
