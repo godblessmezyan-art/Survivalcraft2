@@ -1,0 +1,145 @@
+# Builder Assistant for Survivalcraft NET
+
+当前建筑助手 **v0.24.0**：新增18种地形与装饰材料，共81种；土沙、冰雪、草地/耕地、花草、地毯和石饰支持严格DATA及地面支撑。自然生长/融化/下落保留，撤销不冻结或回收环境副作用。工作台可自动分房并布置7件家具的一室一厅住宅，可选尺寸、屋顶、木石外墙和种子，生成结果可交给903保存和预览。继续提供剪贴板导入、本地蓝图库保存/载入/确认删除，以及可旋转、升降、重选的只读落点预览。支持81种原版材料与10种结构块家具模板；新生成和保存统一 schema 3，旧 schema 1/2 继续可读。SCIE-Port 是独立移植工程，其版本与内容不代表建筑助手能力。
+
+**自动生成：**904工作台选择“一室一厅（自动家具）”→配置→生成→“交给903蓝图工具”→切换903保存和预览。宽9..21、长13..25、固定单层、墙高4..6；家具保留原木配色。
+
+**蓝图使用：**903打开管理→导入或载入→保存（可选）→选择落点并预览→点地→调整旋转/高度→确认建造；有覆盖时确认清障。902撤销。删除所选文件不会删除当前内存蓝图或世界建筑。
+
+- [v0.24 新增材料与限制](docs/BUILDER-MATERIALS-0.24.0.md) / [18种材料示例](docs/examples/blueprint-materials-v3.json)
+- [统一蓝图生成规范](docs/BLUEPRINT-SPEC.md)
+- [可复制 AI 提示词](docs/AI-BLUEPRINT-PROMPT.md)
+- [方块与家具能力表](docs/blueprint-block-reference.md) / [精确 DATA 机器矩阵](docs/blueprint-block-capabilities.json)
+- [v0.23 一室一厅与离线布局图](docs/BUILDER-FURNISHED-HOME-0.23.0.md)
+- [三份示范蓝图](docs/examples/furnished-homes/)
+- [v0.22 开发与设备验收记录](docs/BUILDER-BLUEPRINT-0.22.0.md)
+
+目标为 SCNET x25.01.17 / net472。Windows编译、固定程序集ABI及离线测试与Android7723真机验证分开记录；触屏、剪贴板、绘制、存读档和真实联机仍待设备验证。撤销仅承诺既有地形日志范围，不能保证恢复物品、电路或流体连锁副作用。
+
+## 历史功能记录
+
+> **v0.18.0 精细建筑能力**：63种原版类型；九种 PaintedCube、楼梯/半砖/栅栏16色和合法楼梯角形、三轴原木无损编解码；新增木梯、铁梯和火把的支撑排序与施工后复核。schema1/2继续读取，每事务10000、每批32、每轴64不变，撤销/回滚也分批。活板门、栅栏门、地毯、藤蔓因跨子系统恢复缺口仍不支持。Android/7723及联机均待验证。详见[方块清单](docs/blueprint-block-reference.md)、[逐类型矩阵](docs/blueprint-block-capabilities.json)和[开发报告](docs/BUILDER-DETAIL-STATES-0.18.0.md)。
+
+> **v0.17.0 Portable Fortress Mk.I 白模里程碑**：加入可重复生成的 `11 × 13 × 9` DAE 技术白模（单静态骨骼、11 网格、1116 三角面、真实门窗/楼梯井/屋顶舱口）及目标 x25.01.17 `Engine.Media.ModelData.Load(Stream)` 导入守卫。完整结构、逐层坐标、碰撞代理、48 格储物、供暖、部署回收和联机边界见 [`docs/portable-fortress/`](docs/portable-fortress/)。本轮没有接入可部署实体，也没有制作正式精模；运行渲染、玩家通行、玻璃、储物、供暖、Android 与联机均为**待验证**。
+
+面向 Android 版《生存战争 2.4》联机客户端（Survivalcraft NET / SCNET）的建筑辅助 Mod。首要适配版本是 **Net_x25.01.17**，目标产物为 `.netmod`。
+
+> **v0.16.0 方块能力第一阶段**：已从哈希固定的 x25.01.17 公开 Windows 程序集与 `BlocksData` 审计 165 个原版可放置类型，蓝图开放类型由 39 扩到 60，并改为“能力元数据 + 运行时注册表 + 按族编解码”。非法 DATA、`f`/材料族冲突、彩色状态有损复制均明确拒绝。详见 [方块能力清单](docs/blueprint-block-reference.md) 与 [完整审计](docs/blueprint-block-audit-x25.01.17.md)。Android 7723 真机渲染、存读档和联机同步仍为**待验证**。
+
+> 当前状态：Phase 1 最小加载已由用户在 Android/7723 客户端确认。功能线（建筑生成、蓝图 JSON、复制/粘贴/旋转、批量建造与撤销）已推进到 **v0.11.0**——自 v0.7.0 的通用 JSON 蓝图、v0.8.0 的库浏览导入、v0.8.1 的剪贴板粘贴导入、v0.8.2 的更多纯立方石/砖块、v0.9.0 首次支持**带朝向方块（楼梯 / 半砖 / 栅栏 / 门）**并将蓝图交换格式从 `schemaVersion=1` 升级到 **`schemaVersion=2`**、**v0.10.0 的参数化建筑生成引擎**（`BuildingSpec → BuildingComposer → Blueprint` 统一入口、模块化组件、独立结构校验器 `BuildingValidator`、种子确定性，产出参数化小屋与全新的两层住宅；中世纪小屋仍为注册表默认、输出逐字节不变，纯**追加**），到 **v0.10.1 解除联机限制**——建造/撤销/蓝图工具的权限闸从“仅单人”放宽为“单人或联机房主（`WorkType.Server`）可用，仅拒绝非权威的联机客户端（`WorkType.Client`）”；因生成的建筑全是房主写入的**原版方块**，未装本 Mod 的客户端理论上仍可经普通区块同步看到落成结构（仅看不到 901/902/903 手持工具方块），但**主机写入能否真正同步到 7723 非装 Mod 客户端仍为待验证**，须真机两台联机实测。再到 **v0.11.0 可视化建筑工作台**——新增手持工作台工具 `904`，玩家纯触屏双手势（**点天空**循环当前旋钮、**点地面**推进确认）即可「选建筑（小屋 / 两层住宅 / 当前导入蓝图）→ 调少量参数（宽 / 长 / 层数 / 层高 / 屋顶 / 种子 / 朝向）→ 看只读占地预览 → 确认落成」；预览严格只读、绝不写世界、且预览面积按构造恒等于最终建造面积，落成走同一条计划→执行→撤销管线，权限闸与 1024/32/64 限额一字未改。交互大脑全部落在**游戏无关、可离线单测**的 `Core/Workbench`，`WorldEditRuntime` 未被重写（仅追加只读闸面把确认后的建造接回既有路径）。x25.01.17 虽在引用程序集里暴露了原生 `Dialog`/`ListSelectionDialog` 与方块高亮 API，但“public-in-reference ≠ Mod 沙箱可安全挂载”，故本轮改走**已验证的 toast + 双手势回退**、Phase-2 透明幽灵投影与原生对话框选择器一律标 **待验证**、不伪装可用。最后 **v0.11.1** 专门取证「房主装、其他人没装 → 客户端报'资源包FastDebug校验不通过'与'客户端没有安装服务器Mod[Builder Assistant 建筑助手:x.y.z]'」——通过反编译目标 `Survivalcraft.exe`（x25.01.17）直接定位到 `Game.NetWork.Packages.ConnectionRequestPackage.AcceptAclient`：**服务端**在收到连接请求后**无条件**要求客户端上报的 `modInfos` 与主机自己的 `ModsManager.ModList` 严格多重集相等（数量一致、每条 `PackageName+Version` 一致、除 `survivalcraft` 内置项外每条 `ResourcesMd5` 一致）。`Game.ModInfo` 只有 `Name/Version/ApiVersion/Description/ScVersion/Link/Author/PackageName/Dependencies` 九个字段，**没有** server-only / client-optional / advertise=false 之类的开关——所以「主机独装 Mod」在当前 SCNET 里被游戏本身架构拒绝，而非 Builder Assistant 拒绝。唯一两条受支持的路径：(1) 客户端在服务器列表走游戏自带的 `Game.NetWork.ModFileService.ModFileClient.DownloadModAndJoinServer`——它会向房主的 `ModFileServer`（`HttpListener`，按 `/{modMd5}/` 暴露每个 `.netmod`）拉取所有缺失的 `.netmod` 文件、写入 `Utils.ModFileDirectory`、然后 `GameRestarter.RestartGame()` 重启加载；Android 7723 上 `HttpListener` 是否可绑定、非 root 是否有权限写入 `NetMods/`、`Utils.GetModInfoDatas` 依赖的 `com.fastdebug` 实体在两端是否健康，**全部为待验证**。(2) 客户端预装**完全相同 SHA-256**的 `BuilderAssistant.netmod`（因本 Mod 落建全是原版方块、`TestBuildEmitsOnlyVanillaBlocks` 已在离线证明不会把 900–904 写进世界，预装后所有客户端都能看到落成结构、且不会引入方块映射漂移）。至于「`资源包FastDebug校验不通过`」这条与 Builder Assistant **正交**的错误——它意味着两台设备的 **FastDebug** `.netmod` 文件本身 MD5 不同（不同 7723 构建周期，或一方是官方 APK 一方是 7723 重打包），须两台设备从**同一构建渠道**重装游戏；本 Mod 依 AGENTS.md 铁律**不会**、也**不能**伪造 Mod 列表 / 跳过 `ResourcesMd5` 校验 / 修改 `ConnectionRequestPackage`。v0.11.1 是**纯文档 + 加载器多打一行说明**，379/379 测试与 net472 0 错 0 警均无变化。最新 **v0.12.0** 交付任务『大型奇幻树屋·森之王庭』的 M1+M2 里程碑：M1 反编译 x25.01.17 逐格取证后，只纳入确有且状态可控的原版方块 `OakWoodBlock`（Index=9，仅竖向原木 data 0）与 `SpruceLeavesBlock`（Index=14，常青半透明叶），据此给无游戏依赖的 `BlockOrientation` 追加 `BlockFamily.Log`/`log` 标签、给 `MaterialCatalog`/`VanillaBlockPalette` 追加映射，带实体/状态/季节的梯子·火把·家具·落叶树·树苗标**不支持**、绝不硬造；M2 新增五个纯 C# 可离线单测的**程序化**生成器（`GiantTreeGenerator`/`TreeBranchGenerator`/`TreeCanopyGenerator`/`TreehouseGenerator`/`TreehouseDecorationGenerator`）+ 装配校验器 `TreehouseBlueprintSet` + 离线三视图预览 `TreehousePreview`，在一张主 `TreeCanvas` 上按固定顺序一次性作者化 giant tree + 三层可进入木屋，再切成每段都满足 ≤1024/任一轴 ≤64 的阶段蓝图（超限自动按 Y 分层、绝不上调限额），复用既有 `BuildPlanner→BuildTask→undo` 管线不改动；默认种子 `33×36×33`、`2765` 方块、`9` 阶段、逐字节确定、校验干净，工具块 900–904 绝不落进建筑体（离线 `TestTreehouseEmitsOnlyVanillaBlocks` 证明）；纯追加、仅限 `Core/Tree`+`Blueprints`+`Building/MaterialCatalog`+`WorldEdit/VanillaBlockPalette` 与离线测试，未触碰 SCIE-Port/快艇/ATV/工作台/蓝图 schema/限额/`.xdb`/GUID。以上功能均已通过**离线逻辑测试 413/413**与对真实 x25.01.17 程序集的 **net472 编译 0 错误 0 警告**；但在 7723 手机上的**渲染与地形写入效果仍为待验证**，任何功能未实机验证前不得标“兼容/已确认”。联机同步效果同样待主机和客户端分别验证。最新 **v0.13.0** 收口任务 §8 的 M4 里程碑：新增游戏无关的 `Core/Tree/TreehouseAssembly` 分阶段编排器，并在 `WorldEditRuntime` 仅追加一条 `RuntimeMode.Treehouse` 触屏流程，把 v0.12.0 只能逐段手动两按确认的多阶段树屋蓝图接成**单次确认即按主锚点严格顺序自动装配全部 9 阶段**的执行器，让巨型树屋真正可一键落成；每阶段完成即 `Record` 保持逐阶段撤销、硬失败即停摆不再执行后续阶段、取消只回滚当前在飞阶段，全程复用**未改动**的 `BuildPlanner→BuildTask→撤销` 管线与 1024/32/64 限额、`allowOverride` 恒 false、绝不把工具块 900–904 落进世界。离线逻辑测试 **413 → 444/444**、net472 Release 仍 **0 错误 0 警告**，`.netmod` 已重打包（DLL 反射版本 `0.13.0.0`）；但一键分阶段装配在 Android 7723 真机的落建/渲染/存读档/有界停等帧耗时与联机同步**仍全部待验证**，不得以离线通过标“兼容/已确认”。最新 **v0.13.1** 只做一处行为改动：应项目所有者 2026-10-20 决定把单事务方块上限 `BuildSafetyLimits.MaxBlocksPerOperation` 由 `1024` 上调为 `2756`（每批 32、每轴 64、有界停等 240、`allowOverride` 恒 false、计划→执行→撤销管线、schema v2、权限闸、工具块 900–904 永不落世界等**均未改**）；默认树屋 2765 方块仍略超 2756，故仍按 9 阶段逐段装配、阶段数不合并，上调仅让单份扁平蓝图导入能容纳更大结构。离线随之调整 3 个越界夹具，测试仍 **444/444**、net472 Release 仍 **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.13.1.0`）；真机效果**仍待验证**。最新 **v0.14.0** 同样只做一处行为改动：应项目所有者「解除限制到 1 万个方块」指令，把同一上限 `MaxBlocksPerOperation` 由 `2756` 再上调为 `10000`——每批 32（1 万格仍按 ~313 批逐帧写入、绝不单帧写万格）、每轴 64、有界停等 240（只数连续零进度帧，上调不拉长它）、`allowOverride` 恒 false、计划→执行→撤销管线、schema v2、权限闸、工具块 900–904 永不落世界等**一字未改**；默认树屋 2765 格现**落在单事务之内**、可作一份扁平蓝图直接导入，出厂的 9 阶段逐段装配路径仍保留可用。离线两个越界夹具改为按 `MaxBlocksPerOperation` **动态生成**（以后再调上限不必改测试），测试仍 **444/444**、net472 Release 仍 **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.14.0.0`）；真机效果**仍全部待验证**，未实机前不得标“兼容/已确认”。最新 **v0.15.0**（合并版）交付「一键清障」这一**显式、默认关闭**的开关，直接回应"生成时不要出现太多限制、直接清除周围所有障碍方块"：把既有、离线已证可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 早期即支持，v0.13.0～v0.14.0 一路在四条落建路径写死 `false`）串接进**建造 / 粘贴 / 树屋一键装配 / 工作台**四条路径——开启后 footprint 内**每一格无条件替换**，**实心方块与水/岩浆流体一并清除**（按项目所有者决定不做流体保护）、**不留任何周边留白**（footprint 外一格不动），开关本身即"显式二次确认"故不再逐格中止、也不再走软清除的重复两按；关闭时计划→执行与 v0.14.0 **逐字节相同**（默认不覆盖非空气、越界即拒并写明"实心方块"冲突）。触发为纯触屏：撤销工具 `902` 空闲点击的模式循环由 4 步扩为 6 步（小屋→复制→粘贴→树屋→装填清障→关闭），不新增工具块、开关跨模式持久并 toast 提醒。安全底线未动：每事务 **10000**（沿用 v0.14.0 的上调，本功能未再改）、每批 32、每轴 64、有界停等 240、坐标边界、修改前先捕获撤销（被清的实心与流体都进撤销栈、可逐段还原）、仅主线程、拒非权威联机客户端、工具块 900–904 永不落世界。离线逻辑测试 **474/474**（含新增 5 个清障夹具）、net472 Release 仍 **0 错误 0 警告**，`.netmod` 重打包（DLL 反射版本 `0.15.0.0`，SHA-256 `BF63A814AB3B3AC1A41C6594C3FC6CBC547455E356E90AD1A9DAE9F8E8A05912`）；真机触屏手感、流体清除与还原、树屋越障装配帧耗时与联机同步**仍全部待验证**，未实机验证前不标"兼容/已确认"。
+
+## 项目目标
+
+- Android 触屏优先的功能入口。
+- 小范围、有限额、可撤销的批量建造。
+- 区域选择、复制、粘贴、旋转与建筑蓝图。
+- 渐进式执行，避免一次修改大量方块导致卡顿或损坏存档。
+- 明确区分单机、主机和联机客户端权限。
+
+## 支持范围
+
+| 运行环境 | 状态 | 说明 |
+| --- | --- | --- |
+| SCNET Net_x25.01.17 Windows 程序集 | 已确认/已编译 | 用于 ABI 校验与构建引用 |
+| SCNET Net_x25.01.17 Android 官方发布 APK | 待实机测试 | 尚未完成安装与加载验证 |
+| 7723 渠道 Android 安装包 | 最小加载已确认 | 用户实机确认安装/加载；程序集指纹和功能 API 仍待验证 |
+| SCAPI / `.scmod` | 不支持 | 加载器 ABI 与包格式不同 |
+| 官方原版 Survivalcraft | 不支持 | 不包含已确认的 SCNET ModLoader |
+
+详见 [兼容性矩阵](docs/COMPATIBILITY.md)。
+
+## 构建
+
+要求：Windows、PowerShell 5.1+、.NET SDK，以及 .NET Framework 4.7.2 Targeting Pack。构建需指向**本机真实的 SCNET 游戏目录**（含 `Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll`）；本机实际路径为 `D:\SCNET`（文档别处出现的 `E:\SCNET` 为历史错误值）：
+
+```powershell
+./scripts/Build-NetMod.ps1 -GameDir 'D:\SCNET'
+```
+
+脚本会依次执行 `Test-Environment.ps1`（程序集指纹/ABI 核验）、`Test-Logic.ps1`（离线单元测试，编译仅含 Core+Generators、不引用游戏程序集），再对真实程序集做 Release 编译并打包 `.netmod`，同时强制校验必需资产、CSV 方块类名唯一与 XDB 合并安全 GUID。成功后生成：`artifacts/BuilderAssistant.netmod`。脚本只引用本机游戏程序集，不会将其复制进仓库或 Mod 包。
+
+## 安装
+
+1. 备份测试存档。
+2. 将 `BuilderAssistant.netmod` 复制到客户端的 `NetMods` 目录。
+3. 在游戏设置中启用 Mod 加载（若该构建默认关闭）。
+4. 首次仅使用新建的单人测试世界启动。
+5. 检查游戏日志是否出现 `[BuilderAssistant] Loaded`。
+
+Android 的实际 `NetMods` 路径会受客户端构建和 Android 存储权限影响；必须以设备上该客户端实际创建的目录为准。不要把文件放入 `Mods`，也不要改名为 `.scmod`。
+
+## 当前功能
+
+建筑助手功能线（均在离线逻辑测试 444/444 与 net472 编译 0/0 层面**已确认**；在 7723 实机层面**待验证**）：
+
+- [x] 内置生成器：原创中世纪小屋 `9×11×10`，走同一“计划→校验→分批执行→记录撤销”管线；v0.9.0 起其檐口为 35 个楼梯、窗台 2 个半砖、屋脊 2 个栅栏、正面 1 扇门（离线测试逐项断言）。
+- [x] **v0.10.0 参数化建筑生成引擎**：改少量 `BuildingSpec` 参数（类型/宽/长/层数/层高/屋顶 Hip·Gabled·Flat/种子/窗密度/材料档）即得不同尺寸与布局的建筑，不再手写方块坐标。纯 `Core/Building` 逻辑层：`BuildingSpec.Validate` 在写任何一格前硬拒非法/超预算规格；`Foundation/Wall/Stair/Opening/FloorPlan/Roof/Decoration` 模块化组件共享一个 xorshift32 种子上下文、按固定顺序运行（后写覆盖实现开门洞与楼梯井穿楼板）；`BuildingComposer` 提供 `BuildingSpec → BuildingComposer → Blueprint` 统一入口（为未来 AI 预留，全程离线、不联网）；`BuildingValidator` 独立从**已产出的格子**反推并逐项报告结构缺陷（占地/唯一坐标/材料可解析与族匹配/入口支撑与可通行/外壳环无缺口/内部空腔与入口洪水填充可达/多层楼梯连通/单连通无悬空）。`MaterialCatalog` 为单一事实源，`VanillaBlockPalette` 与离线校验器均由它派生、不可能漂移。产出两种建筑：参数化小屋（默认 9×11 单层 Hip，沿用熟悉形状）与**全新两层住宅**（逐层楼板 + 承重外壳 + 可通行折返楼梯井 + 四立面窗 + 山墙轮廓 + 室内隔墙与家具，非两空心盒叠放）。同 `(spec,seed)` 字节级一致、换 seed 布局变而结构完好。整条引擎**纯追加**：中世纪小屋仍是注册表默认、输出逐字节不变，生成蓝图与手写小屋走**同一条**落建/撤销管线，`schemaVersion=1` 导入兼容保持。
+- [x] 手持工具方块：建造 `901` / 撤销 `902` / 蓝图 `903` / 工作台 `904`（均基于已验证立方基类；900–903 编号未被原版 x25.01.17 使用，904 为 v0.11.0 新增、复用已验证玻璃纹理槽 15，与原版不冲突但**与其他 Mod 是否撞 904 索引仍待真机确认**）。
+- [x] 通用 JSON 蓝图交换格式（`BlueprintJson`），无第三方依赖的严格解析/序列化、坐标规范化、尺寸/计数/轴长上限校验；坏蓝图**只精确拒绝、绝不部分导入**。
+- [x] 蓝图持久化到 Mod 自身库目录（`ModsManager.UserDataPath` 下，从不硬编码设备路径）；蓝图工具点击逐份浏览载入并校验。
+- [x] 剪贴板粘贴导入（`Game.ClipboardManager` 守卫适配器）：复制一段蓝图 JSON → 点蓝图工具即导入；纯中文名不再统统塌成 `blueprint`、`ResolveUnique` 永不覆盖同名。
+- [x] 实时区域两角复制（`BlueprintCopier`）把真实方块读成蓝图并自动导出；粘贴复用同一建造/撤销管线。
+- [x] v0.9.0 起支持**带朝向方块**：楼梯（9 变体）、半砖（9 变体）、栅栏（5 变体）、门（2 变体），蓝图 `schemaVersion=2` 携带每格族标签 `f` 与自有数据位 `d`；旋转/镜像经纯 Core `BlockOrientation` 群律变换。门为双格方块，蓝图/复制只存下半格、由引擎 `SubsystemDoorBlockBehavior` 自动补上半格。
+- [x] 安全模型：默认不覆盖非空气 + 显式二次确认、主线程分批写入、区块就绪预检、有界停等、撤销仅恢复玩家未再改动的格。
+- [x] 独立快艇方块物品（编号 `900`）与受限推进逻辑（v0.4.0 起，行为保持）。
+- [x] **v0.10.1 联机权限闸（解除联机限制）**：建造/撤销/蓝图工具原仅在单人模式可用，现放宽为“单人（`WorkType.Local`）或联机房主（`WorkType.Server`）可建，仅拒绝非权威的联机客户端（`WorkType.Client`）”。判定逻辑落在无游戏依赖的 `Core/Safety/TerrainAuthority`（把游戏 `WorkType` 映射为 `SinglePlayer/Host/RemoteClient` 再决定放行/拒绝），离线测试断言“Client 被拒、Local 与 Server 放行”。同轮离线测试还断言整条生成/建造管线**只会写原版方块**、绝不会把 Mod 自定义工具方块（900/901/902/903）落进世界——故未装本 Mod 的客户端理论上仍能经普通区块同步看到房主建成的建筑。安全管线（计划→执行→撤销）、1024/32/64 限额与参数化引擎一字未改，纯改权限闸。**主机写入能否真正同步到 7723 非装 Mod 客户端仍待两台真机联机实测（待验证）**。
+- [x] **v0.11.0 可视化建筑工作台**：新增手持工作台工具 `904`，把 v0.10.0 参数化引擎接进一个**纯触屏、无需改代码**的引导流程。双手势：**点天空**（交互射线未命中方块）循环当前旋钮（选建筑：小屋 / 两层住宅 / 当前导入蓝图；再宽 / 长 / 层数 / 层高 / 屋顶 Hip·Gabled·Flat / 随机种子布局变体 / 顺时针朝向），**点地面**（射线命中方块）确认该步并前进；选为导入蓝图时自动跳过不适用的参数旋钮、绝不伪装可用。步骤：选择→宽→长→层数→层高→屋顶→种子→朝向→落点预览→确认建造。**只读占地预览**（严格经未改动的 `BuildPlanner`，绝不 `SetCellValue`、绝不 place-then-delete、绝不为预览改真实世界）播报尺寸/占地格/高度区间/主门朝向/方块数/允许或被拒，且**预览面积按构造恒等于最终建造面积**（同一有效蓝图的一次推导）。确认建造前用**最新地形 + 当前权限**再跑一遍规划器，区块卸载或预览后被占用即干净中止、不写任何一格；通过后把 `BuildStartDescriptor` 直接交回**同一条** `BeginBuildBlueprint → PlanAndStart → BuildTask → 撤销` 管线。交互大脑全部落在**游戏无关、可离线单测**的 `Core/Workbench`（`BuildingWorkbench` 状态机 + `BuildingSelectionService` + `BuildPreviewModel/Composer`），`WorldEditRuntime` **未重写**、仅追加只读闸面（`Palette`/`ClipboardBlueprint`/`IsBusy`/`CurrentAuthority`/`WorkbenchOriginFor`/`WorkbenchBeginBuild`），并在 `ResetSession` 接 `WorkbenchSession.Reset()`。离线断言覆盖：改参/旋转后确认**静默失效**（版本 token+stale）、非法参**保留上一个有效建筑**、预览只读、建造前重校验、权限未退化、工具块 900–904 绝不落世界、同 seed 一致/换 seed 变、四转恒等、门随蓝图旋转。整条**纯追加**：901/902/903、参数化引擎、导入/复制、schemaVersion=2、撤销/延迟回滚、限额一字未改。原生 `Dialog`/`ListSelectionDialog`/透明幽灵投影在 x25.01.17 引用程序集里存在但“public-in-reference ≠ Mod 沙箱可安全挂载”，故本轮以**已验证的 toast + 双手势回退**交付，原生对话框选择器、Phase-2 透明投影、904 索引唯一性、天空/地面射线判定、toast 分辨率可读性与主机→非装 Mod 客户端同步**全部待真机验证**。
+- [x] **v0.11.1 联机连接拒绝根因取证（纯文档 + 加载器多一行说明）**：通过 `ilspycmd` 反编译 `D:\SCNET\Survivalcraft.exe`（x25.01.17），把「房主装、其他人没装 → 客户端报'客户端没有安装服务器Mod[Builder Assistant 建筑助手:x.y.z]'与'资源包FastDebug校验不通过'」的**真实拒绝点**、机制与两条受支持的解决路径彻底说清楚。**证据**：`Game.NetWork.Packages.ConnectionRequestPackage.AcceptAclient` 在**服务端**处理连接请求，遍历 `ModsManager.ModList`（服务端加载好的 Mod 列表）与客户端上报的 `modInfos`，任一方向缺失即 `ConnectionError.AppendLine("客户端没有安装服务器Mod["+item.modInfo.Name+":"+item.modInfo.Version+"]")` 或 `"服务器没有安装客户端Mod["+info.modInfo.Name+":"+info.modInfo.Version+"]"`；数量不等则 `"客户端Mod数量和服务器Mod数量不一致"` + `[服务器]n.Name:Version` + `[客户端]n.Name:Version` 两条 dump；同名同版本但 `ResourcesMd5` 不一致则 `"资源包"+info.modInfo.Name+"校验不通过"` + `[服务端]`/`[客户端]` 两行 MD5（`survivalcraft` 内置项例外）。`Game.ModInfo` 只有 `Name/Version/ApiVersion/Description/ScVersion/Link/Author/PackageName/Dependencies`——**没有** server-only / client-optional 之类字段；`ModEntity.IsSystemMod` 存在但 `AcceptAclient` 不使用。所以「主机独装 Mod」被**游戏架构本身**拒绝。游戏**有**内置的模组自动分发：`Game.NetWork.ModFileService.ModFileServer`（`HttpListener`，按 `/{modMd5}/` 提供每个 `.netmod`）+ `ModFileClient.DownloadModAndJoinServer` → `CacheAllModFile`/`CopyCachedMod`/`MultithreadDownloadMod` → `GameRestarter.RestartGame()`；`Utils.GetModInfoDatas` 通过 `((FastDebugModEntity)ModList.Find(px => px.modInfo.PackageName=='com.fastdebug')).FModFiles` 拿清单——FastDebug 必须是两端健康的 `.netmod`。`资源包FastDebug校验不通过` 意味两台设备上的 FastDebug 本身不同（不同 7723 构建周期 / 官方 APK 与 7723 重打包混用），本 Mod 依 AGENTS.md **不会**伪造 Mod 列表或跳过校验，须由用户端解决：要么两台设备用**同一渠道包**重装 SCNET，要么客户端手动预装**同一 SHA-256** 的 `BuilderAssistant.netmod`，要么客户端通过游戏服务器列表 UI 走 `DownloadModAndJoinServer` 触发自动下载（Android 7723 上 HttpListener 能否绑定、非 root 能否写入 `NetMods/` 均**待验证**）。代码层只新增一行 `Log.Information`（在 `__ModInitialize` 里打印上述结论，方便运维核对），`BuilderAssistantModLoader` 的所有既有行为、`WorldEditRuntime`、计划→执行→撤销管线、`TerrainAuthority`、1024/32/64 限额、SCIE-Port、快艇、ATV **一字未动**；`modinfo.json` Version → `0.11.1`、csproj `Version/AssemblyVersion/FileVersion` → `0.11.1/0.11.1.0/0.11.1.0`；离线测试仍 **379/379**、net472 编译仍 **0 错误 0 警告**。
+- [x] **v0.15.0 一键清障模式（显式、默认关闭；纯串接 `allowOverride`，不改任何限额）**：直接回应"生成时不要出现太多限制、直接清除周围所有障碍方块"。既有、已在离线证明可无条件覆盖整份 blueprint footprint 的 `allowOverride` 形参（`BuildPlanner`/`BuildTask` 早期即支持），此前在**建造、粘贴、树屋一键装配、工作台**四条落建路径一律写死 `false`；本版本把它串接到一个新的显式开关上——**开启后** footprint 内每一格无条件替换，**实心方块与水/岩浆流体一并清除**（按项目所有者决定**不做流体保护**），**不留任何周边留白**（只清精确写入格，footprint 外一格不动）；**关闭时**计划→执行路径与 v0.14.0 **逐字节相同**（默认不覆盖非空气、越界即拒并写明"实心方块"冲突）。触发为纯触屏**模式开关**：撤销工具 `902` 空闲点击的模式循环由 4 步扩为 6 步——`Cottage→Copy→Paste→Treehouse`（`SetMode`）后，在 `Treehouse` 再点一次即 `_clearObstaclesArmed=true`（装填、仍留在 Treehouse 并 toast `[清障模式]` 前缀），装填态下再点即 `_clearObstaclesArmed=false` 回 `Cottage`；开关**跨模式切换持久**、`SetMode` 结束时若仍开启会 toast 提醒；该开关本身即"显式二次确认"，故开启后不再逐格中止、也不再走软清除的重复两按确认。落点仅动 `_clearObstaclesArmed`/`_preflightClearObstacles`（`WorldEditRuntime`）与 `TreehouseAssembly.ClearObstacles`、`Workbench` 预览/建造的 `allowOverride` 透传（`BuildStartDescriptor.AllowOverride`、`WorkbenchSession` 预览接 `WorldEditRuntime.IsClearObstaclesActive`），四条路径复用**未改动**的 `BuildPlanner→BuildTask→TransactionHistory`。**安全底线一字未动**：每事务 10000（沿用 v0.14.0）、每批 32、每轴 64、有界停等 240、坐标边界、**修改前先捕获撤销数据（被清除的实心与流体都进撤销栈、`TransactionHistory` 可逐段还原，含流体）**、仅主线程写入、权限闸仍拒非权威联机客户端、工具块 900–904 永不落世界；无需新增工具块，避开 `.xdb`/GUID/打包风险。离线新增 5 组夹具（覆盖实心+流体且撤销可还原、关闭即维持默认拒覆盖、footprint 外一格不动、树屋分阶段越过障碍装配到底、预览与建造用同一 `allowOverride` 口径），逻辑测试 **474/474**、net472 Release 仍 **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.15.0.0`，SHA-256 `BF63A814AB3B3AC1A41C6594C3FC6CBC547455E356E90AD1A9DAE9F8E8A05912`）；csproj+modinfo 版本随合并 `0.14.0 → 0.15.0`。真机上清障开关的触屏循环手感、流体清除与还原、树屋越障装配帧耗时与联机同步**全部待验证**，未实机验证前不标"兼容/已确认"。
+- [x] **v0.14.0 再次上调单事务方块上限 2756 → 10000**：应项目所有者「解除限制到 1 万个方块」指令（2026-10-20），把 `Core/Safety/BuildSafetyLimits.MaxBlocksPerOperation` 从 `2756` 再上调为 `10000`。**这是本版本唯一的行为改动**：每批写入 `MaxBlocksPerBatch=32`（1 万格分 ≈313 批逐帧写入、绝不单帧写万格，符合 AGENTS「禁止单帧写入数万方块」）、任一轴 `MaxSelectionAxisLength=64`、有界停等 `MaxIdleAdvanceCallsDuringBuild=240`（语义为「连续零进度帧」计数、任何真实写入即归零，故上调不拉长它、也不误判大建筑超时）、`allowOverride` 恒 false、计划→执行→撤销管线、`schemaVersion=2`、权限闸、工具块 900–904 永不落世界等全部**一字未改**。默认大型树屋 `2765` 方块现**落在单事务上限之内**，可作为一份扁平蓝图 JSON 直接导入；出厂默认的 `TreehouseAssembly` 逐阶段（9 段）装配路径**保持不变且仍可用**（分阶段是为真机分步可读/逐阶段撤销，非受限于上限），每轴 ≤64 仍强制。离线侧把 `TestPlanRejectsCountCap` 与 `TestBlueprintJsonRejectsOverCap` 两个越界夹具改为按 `MaxBlocksPerOperation` **动态计算**（以后再调上限不必改测试），离线逻辑测试仍 **444/444**、net472 Release **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.14.0.0`）。真机导入/渲染/存读档/帧耗时/联机同步效果**仍全部待验证**，不得以离线通过标“兼容/已确认”。
+- [x] **v0.13.1 上调单事务方块上限 1024 → 2756**：应项目所有者 2026-10-20 决定，把 `Core/Safety/BuildSafetyLimits.MaxBlocksPerOperation` 从 `1024` 上调为 `2756`，以放宽单次导入/建造事务的方块数量闸门。**这是本版本唯一的行为改动**：每批写入上限 `MaxBlocksPerBatch=32`、任一轴上限 `MaxSelectionAxisLength=64`、有界停等 `MaxIdleAdvanceCallsDuringBuild=240`、`allowOverride` 恒 false、计划→执行→撤销管线、蓝图 `schemaVersion=2`、权限闸、工具块 900–904 永不落世界等全部**一字未改**。需要说明的是默认大型树屋为 `2765` 方块，**仍略超 2756**，因此树屋依旧走 `TreehouseAssembly` 的**逐阶段（9 段，每段各自远低于新上限）装配**，阶段数**不因此合并**——上调只是让单份扁平蓝图导入能容纳更大的结构。离线侧随之调整 3 个断言夹具（`TestPlanRejectsCountCap` 用 33×3×33=3267 触发、`TestBlueprintJsonRejectsOverCap` 用 39×39×2 网格按 `MaxBlocksPerOperation` 动态越界、超高用例改用 4×(16+1)=68 触发轴上限），离线逻辑测试仍 **444/444**、net472 Release **0 错误 0 警告**、`.netmod` 重打包（DLL 反射版本 `0.13.1.0`）。真机导入/渲染/存读档/联机同步效果**仍全部待验证**，不得以离线通过标“兼容/已确认”。
+- [x] **v0.13.0 森之王庭 M4 一键分阶段自动装配（任务 §8 收口，纯追加）**：把 v0.12.0 只能“逐段手动两按确认”的多阶段树屋蓝图，接成一个**单次确认即按主锚点顺序自动装配全部阶段**的执行器，让巨型树屋真正可在游戏内一键落成。编排逻辑全部落在**游戏无关、可离线单测**的新 `Core/Tree/TreehouseAssembly`：它复用**未改动**的 `BuildPlanner→BuildTask→TransactionHistory` 管线，把每阶段蓝图按其 `OffsetInMaster` 折进规划器唯一的 `origin` 参数（`origin = anchor + part.OffsetInMaster`，因每段蓝图已按最小角规范化，故**零改动**复用规划器），严格**一次只有一个在飞 `BuildTask`**（杜绝阶段交错），每完成一阶段即 `_history.Record(task)` 使撤销保持**逐阶段粒度**；限额一字未动（每批 ≤32、每事务 ≤1024、任一轴 ≤64，超限段在 v0.12.0 已按 Y 自动分层），`allowOverride` **恒为 false**（默认绝不覆盖非空气）；硬失败（不可恢复的编辑性拒绝）即**停摆、绝不再执行后续阶段**，有界停等超时会取消当前段并回滚，取消仅回滚**当前在飞阶段**、已完成阶段原样保留。`Features/WorldEdit/WorldEditRuntime` 仅**追加**一条 `RuntimeMode.Treehouse` 触屏流程：切到该模式后两按确认落点（对天空循环模式、对地面确认），`Tick` 每帧泵一次 `Advance(32)`、播报进度/预算，建造走 `BeginTreehouse` 复用同一 `GameTerrainGateway`/权限闸/区块就绪预检，撤销工具在有装配在飞时优先取消装配；`ResetSession` 会清掉装配态。离线新增 6 组 M4 测试（整建产物逐格等于主画布 2765、严格顺序无交错、取消只回滚当前段保留已完成、硬失败停摆不越后段、逐阶段撤销尊重玩家后续改动、两次跑逐字节确定）。默认种子一次确认产出 `33×36×33`、`2765` 方块、`9` 阶段，全程**绝不把工具块 900–904 落进世界**。整条**纯追加**：小屋/两层住宅/工作台/复制粘贴/导入、schemaVersion=2、`BlockFamily.Log`、1024/32/64 限额与计划→执行→撤销管线**一字未改**，未触碰 SCIE-Port/快艇/ATV/`.xdb`/GUID；csproj+modinfo 版本 `0.12.0 → 0.13.0`。离线逻辑测试 **413 → 444/444**、net472 Release **0 错误 0 警告**、`.netmod` 重打包 SHA-256 `34EBBE28…873C`（DLL 反射版本 `0.13.0.0`）。**注意**：一键分阶段装配在 Android 7723 真机的落建、渲染、存读档、有界停等帧耗时与联机同步**全部待验证**，不得以离线通过标“兼容/已确认”。
+- [x] **v0.12.0 大型奇幻树屋「森之王庭」（M1 原版方块取证 + M2 程序化生成，纯追加）**：交付任务 §7 的 M1+M2 里程碑。**M1** 对 x25.01.17 逐一反编译取证，只纳入**确有且状态可控**的原版方块——`OakWoodBlock`（Index=9，仅竖向原木 data 0，`GetCutFace(0)=4`=Y 朝向）与 `SpruceLeavesBlock`（Index=14，常青 `AlphaTestCube` 半透明叶；落叶树把季节 `TimeOfYear` 存进 DATA、会换相故排除）；据此给无游戏依赖的 `Core/Blueprints/BlockOrientation` 追加 `BlockFamily.Log` 与 `log` 族标签、给 `MaterialCatalog`/`VanillaBlockPalette` 各追加对应映射；带实体/状态/随机生长的梯子·火把·家具·树苗一律标**不支持**、绝不硬造冒充。**M2** 新增五个纯 C#、可离线单测的**程序化**生成器（`GiantTreeGenerator`/`TreeBranchGenerator`/`TreeCanopyGenerator`/`TreehouseGenerator`/`TreehouseDecorationGenerator`）+ 装配校验器 `TreehouseBlueprintSet` + 离线预览 `TreehousePreview`：在一张主 `TreeCanvas` 上按固定顺序（树干→侧枝→树冠→三层木屋→露台装饰）一次性作者化，树干从地面长穿每层楼板、侧枝整数八方位罗盘（不依赖 `Math.Cos/Sin`、跨运行时逐位一致）末端登记锚点、树冠叶团贴着已证原木以半径 2 生长并满足 `SubsystemWoodBlockBehavior` 的 Chebyshev-3 腐坏不变式（`TreehouseBlueprintSet.Validate` 在**最终画布**逐格复核，存读档不落叶），门只作者化下半格（上半由引擎自动补）、楼梯真实可上；再切成**每段都满足 ≤1024 单元 / 任一轴 ≤64** 的阶段蓝图（超限自动按 Y 分层、**绝不上调 1024 硬闸**），每格相对坐标 = 主坐标 − 该桶最小角，执行端落在 `anchor + OffsetInMaster + cell.Relative`，从而**复用既有** `BuildPlanner→BuildTask→undo` 管线不改动。连通性用 **26 邻接**（楼梯/攀爬枝是棱连接）。产出正/侧立面 + 俯视 + 分层平面三视图与逐阶段可导入 JSON。默认种子 `33×36×33`、`2765` 方块、`9` 阶段、校验干净、逐字节确定。工具块 900–904 **绝不落进建筑体**（`TestTreehouseEmitsOnlyVanillaBlocks` 逐格反查每单元都能解析为原版方块）。整条**纯追加**、仅限 `Core/Tree`+`Core/Blueprints`+`Core/Building/MaterialCatalog`+`Features/WorldEdit/VanillaBlockPalette` 与离线测试，**未触碰** SCIE-Port/快艇/ATV/工作台/WorldEditRuntime/蓝图 schema v2/限额/`.xdb`/`.csv`/GUID；`modinfo.json` 与 csproj 版本 `0.11.1 → 0.12.0`，并修复 `modinfo.json` 一处上轮遗留的非法 JSON（重复尾块，现过 `JSON.parse`）。离线逻辑测试 **413/413**、net472 Release **0 错误 0 警告**、XDB 守卫通过、`.netmod` SHA-256 `E9E3BD02…3544`。**注意 §8**：一次点击按主锚点自动装配多阶段的执行器是 M4、尚未接入，本轮只产蓝图 + 离线预览；能否在 Android 7723 真机导入、渲染、存读档保持、楼梯可爬、门自动补上半、联机同步**全部待验证**，不得以离线通过标兼容。
+
+尚未完成 / 待验证：
+
+- [ ] 上述功能在 Android/7723 单人创造世界的**实机渲染与地形写入**验证（楼梯/半砖/栅栏/门逐族、小屋整幢、复制往返、旋转镜像）。
+- [ ] 剪贴板 `Game.ClipboardManager` 在 7723 的可用性验证（不可用时已优雅回退到文件库浏览）。
+- [ ] 安卓 SAF 系统文件选择器（仅预留入口桩，恒返回“未接入”，第二阶段）。
+- [ ] 联机（主机 / 普通客户端）分别验证建造、撤销与同步权限。特别是 v0.10.1 解除限制后需两台真机实测：房主装 Mod 且能联机自动建造、联机客户端被正确拒绝、且房主生成的**原版方块**建筑能否经区块同步**真正显示在未装 Mod 的客户端上**（详见 `docs/COMPATIBILITY.md` 的真机联机验证协议）。
+- [ ] Android 触屏 UI 在不同分辨率下不遮挡原生控件的验证。
+- [ ] **v0.11.0 工作台真机验证**：装 v0.11.0 后手持 904 能进新建单人创造世界并走完「选择→调参→只读预览→确认落成→902 撤销」；重点核验 **点天空 vs 点地面的射线判定**是否可靠、各步 toast 在不同分辨率下可读不遮挡、只读预览确实**未改动世界**且预览占地与实际落成一致、预览后改参/旋转再确认应报“确认已失效”、落成走同一管线并可整体撤销、904 索引与设备已装其他 Mod 是否冲突（SCNET 无全局第三方索引注册表）。原生 `Dialog`/`ListSelectionDialog` 选择器与 Phase-2 透明幽灵投影因“public-in-reference ≠ Mod 沙箱可安全挂载”尚未接入，须先真机取证 UI 挂载点再上——在通过前一律保持**待验证 / 不支持**，不得标兼容。
+- [ ] **v0.11.1 联机拒绝 6 场景两台真机验证**（详见 `docs/COMPATIBILITY.md` v0.11.1 章节，全部为**待验证**）：①两端都不装 Mod → 应能进；②两端装同一 SHA-256 → 应能进、双方都能看到落成；③仅房主装 → 客户端应报 `客户端没有安装服务器Mod[Builder Assistant 建筑助手:x.y.z]`（若还伴随 `资源包FastDebug校验不通过` 说明两端 7723 渠道包不同，先重装同渠道）；④仅客户端装 → 服务端应报 `服务器没有安装客户端Mod[...]`（对称）；⑤房主 904 建成后，同装 Mod 的客户端应经普通区块同步看到建筑、`902` 撤销应同步；⑥客户端退出重进、建筑应仍在。若希望「房主独装、其他人不装也能进」，须先在两台设备上验证游戏自带 `ModFileClient.DownloadModAndJoinServer`（服务器列表 UI 触发、HttpListener 绑定 + `NetMods/` 写入 + `GameRestarter.RestartGame` 全流程）在 7723 上是否可用；不可用则**没有其它合规路径**，须每台设备手动装同 SHA-256 的 `.netmod`。禁止伪造 `ModList` / 跳过 `ResourcesMd5` / 修改 `ConnectionRequestPackage` 绕过。
+- [ ] **v0.12.0 大型树屋真机验证**（全部为**待验证**，不得以离线 413/413 通过标兼容）：① 逐阶段可导入 JSON 能否被 Android 7723 的蓝图工具 `903` 正常**导入**（剪贴板/库路径）；② **一次点击按主锚点自动装配多阶段**的执行器属 M4、**尚未接入**——当前只能逐段手动两按确认落建，故第一版树屋**不能**在真机上一键成品；③ `OakWoodBlock` 竖向原木在 7723 的实际渲染与朝向、`SpruceLeavesBlock` 的 `AlphaTestCube` 半透明镂空是否正确、不闪不黑块；④ 落建后**存读档**：原木保持竖向、树叶不因腐坏消失、门自动补出上半格、楼梯可攀爬且三层连通、树干仍贯穿透各层楼板；⑤ 联机房主权威下这些**原版方块**能否经区块同步显示到未装 Mod 的客户端；⑥ `33×36×33` 巨型结构的分批写入在手机端帧时间是否可接受、有界停等是否会长时间卡顿。横向原木轴映射与家具方块为**不支持**（M1 未取证）。
+- [ ] **v0.13.0 M4 一键分阶段自动装配真机验证**（执行器已接入，**取代** v0.12.0 待验证项②的“尚未接入、不能一键成品”；但真机行为仍**全部待验证**，不得以离线 444/444 通过标兼容）：① 切到 `Treehouse` 模式后的两按流程（对天空循环模式 vs 对地面确认落点）在 7723 的射线判定是否可靠、各步 toast 分辨率可读且不遮挡；② 单次确认后**严格顺序自动装配 9 阶段**能否在**有界停等超时**内跑完（区块流式加载是否会触发取消并回滚当前段）；③ `2765` 方块分批（每批 ≤32）写入在手机端帧时间是否可接受、会不会长时间卡顿；④ 装配中途**取消/硬失败**是否只回滚当前在飞阶段、已完成阶段原样保留，逐阶段撤销是否尊重玩家后续改动；⑤ `OakWoodBlock` 竖向原木与 `SpruceLeavesBlock` 常青叶的真机渲染、落建后存读档保持（叶不因腐坏消失、门自动补上半、楼梯可爬、树干贯穿透各层楼板）；⑥ 联机房主权威下这些原版方块能否经区块同步显示到未装 Mod 的客户端。横向原木轴映射与家具方块仍为**不支持**（M1 未取证）。
+- [ ] **v0.13.2 一键清障模式真机验证**（清障开关已接入、默认关闭；真机行为仍**全部待验证**，不得以离线 474/474 通过标兼容）：① 撤销工具 `902` 空闲点击的 6 步模式循环（小屋→复制→粘贴→树屋→**装填清障**→关闭）在 7723 触屏上的手感与“点天空循环 vs 点地面确认”的射线判定是否可靠、各步 toast（含 `[清障模式]` 前缀与“仍处于开启状态”提醒）在不同分辨率下可读且不遮挡原生控件；② 装填清障后建造/粘贴/树屋装配是否**真的**无条件替换 footprint 内的实心方块**与水/岩浆流体**、footprint 外一格是否确实未动（无留白）；③ 被清除的原版方块与**流体**能否经 `902` 撤销**逐格/逐段精确还原**（尤其流体还原在真机存档里是否回到原样）；④ 树屋分阶段装配中途有障碍时是否越障装配到底、`2765` 方块分批（每批 ≤32）写入在手机端帧时间是否可接受、有界停等是否长时间卡顿；⑤ 联机房主权威下清障写入与撤销能否同步到未装 Mod 的客户端；⑥ 关闭开关时是否确实回到“默认不覆盖非空气、越界即拒”的 v0.13.1 行为。未实机验证前，清障模式对**流体的无条件清除与还原**属设计意图（离线已证），真机效果**待验证**。
+
+### v0.21.1 蓝图工具
+
+手持 903 使用打开管理窗口，可从系统剪贴板导入 JSON（仅载入内存），输入名称后显式保存到本地蓝图库，或浏览并载入文件。选择朝向和清障选项后点击开始放置，再对准地面使用 903；对准天空使用取消。空旷且安全时直接开始；需要覆盖时展示数量并要求确认，确认后重新校验权限与地形。默认清障只覆盖蓝图写入位置，不清理矩形内其他格或向外扩展。
+
+v0.21.1 已移除快捷清障的地形白名单和邻近方块检查，沙地、草地或旁边的建筑不再触发类型拦截。清障仍须确认且仅写入蓝图所需位置；撤销不保证恢复物品、电路、流体连锁等副作用。Android 7723 剪贴板、软键盘、屏幕布局、存取和联机仍待真机验证。
+
+### v0.20.0 建筑工作台
+
+手持 904 使用可打开建筑配置窗口。选择小屋、两层住宅或已导入蓝图，输入参数并点击生成，再点击选择建造位置；对准地面使用工作台选落点，对准天空使用可取消。确认窗口展示落点、尺寸、方块数量和规划结果；确认前重新检查权限和地形。导入蓝图只能调整朝向。返回键或关闭按钮关闭窗口；施工仍使用既有分批、撤销与回滚管线，默认不覆盖。
+
+Windows 固定程序集编译和离线测试不能代替游戏运行；Android 7723 的窗口布局、滚动、输入框和软键盘、返回键、落点选择、存读档及联机均待真机验证。请先在可丢弃的单人测试世界操作。
+
+
+### v0.13.2 一键清障模式使用方法
+
+> 前提：清障是**显式、默认关闭**的开关；务必先备份存档、并在可丢弃的创造模式世界测试，联机须为房主或单人。以下步骤为设计意图，**真机手感与流体清除/还原仍待 7723 验证**。
+
+1. 手持撤销工具 `902`，**对着天空点击**会循环运行模式。循环现为 6 步：`小屋 → 复制 → 粘贴 → 树屋`，到 `树屋` 后再点一次即**装填清障**（点亮 `[清障模式]`，仍停留在树屋模式），装填态下再点一次即**关闭清障**并回到 `小屋`。
+2. 装填清障后，无论后续用建造工具、粘贴、树屋一键装配还是工作台落成，蓝图 **footprint 内的每一格都会被无条件替换**——**实心方块与水/岩浆流体一并清除**（本版本按项目所有者决定**不做流体保护**），且**不留任何周边留白**（footprint 之外一格都不动）。被清除的原始方块（含流体）在写入前已捕获进撤销栈。
+3. 该开关本身即“显式二次确认”，故开启后**不再逐格中止**、也不再走软清除的重复两按确认；限额（每事务 2756 / 每批 32 / 每轴 64 / 有界停等 240）与主线程写入、权限闸一字未改。
+4. **撤销**：用 `902` 仍逐段/逐事务回退——被清障覆盖掉的实心方块与流体会被精确还原到建造前的样子。
+5. 关闭开关后，行为立即回到 v0.13.1 的“默认不覆盖非空气、越界即拒并写明实心方块冲突”。切到其他运行模式时，若清障仍处开启态，工具会 toast 提醒，以免忘记。
+
+### v0.4.0 独立快艇使用方法
+
+1. 先备份存档，并新建一个可丢弃的创造模式单人世界。
+2. 在创造栏 `Items` 分类寻找 `Speedboat`（快艇），其内容编号为 `900`。
+3. 手持快艇物品，点击水面或岸边方块表面，应生成独立快艇并消耗一个物品。
+4. 点击快艇乘坐，使用原有 Android 移动摇杆前进、后退和转向。
+5. 上船后应出现 `Speedboat boost active`；普通原生木船不应出现该提示，也不应获得加速。
+6. 保存退出并重新进入世界，确认快艇实体和存档仍能正常加载。
+
+附近 8 格范围最多生成 4 艘快艇，水平速度始终限制在 `18`。v0.4.0 已允许联机生成和推进，但客户端速度可能仍被服务器权威状态修正，因此必须分别记录主机玩家与普通客户端的实际速度、回弹和同步表现。编号 `900` 未被原版 x25.01.17 使用，但安装其他新增方块 Mod 时仍需检查编号冲突。
+
+## 工程边界
+
+`src/BuilderAssistant/` 只承载自动生成建筑、蓝图、批量建造和安全撤销等建筑助手功能。获许可的第三方 Mod 移植统一放在独立的 [`SCIE-Port/`](SCIE-Port/) 工程中，禁止把其代码或资源打入 Builder Assistant。
+
+开发规范见 [AGENTS.md](AGENTS.md)，环境与测试流程见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)，计划见 [docs/ROADMAP.md](docs/ROADMAP.md)，兼容性结论见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)。
