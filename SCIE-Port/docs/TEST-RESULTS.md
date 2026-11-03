@@ -1,5 +1,34 @@
 # 测试结果
 
+## 2026-11-03 main 0.76.2：阿比斯普通玩家攻击与释放反馈
+
+基线`a53d5f2`/0.76.1。用户报告联机提示需要主机确认并要求所有玩家可用。确认重击“主机确认中”只是自动回执文案、无人工审批入口，且收到成功事件未即时清除文字；另确认虚空普攻仍有V0.1直接排除Client及Server非主玩家的真实限制。现将两种形态的普攻输入统一送入既有252 Action5，由主机自动认证/定段/结算，复用原虚空目标选择、基础伤害与保护逻辑。重击/空间/领域文案精简，成功重击即时清除等待反馈。见[原因与实现](ABYSS-MULTIPLAYER-0.76.2.md)。
+
+实际命令（仓库根，SDK9.0.314，Mod为net472）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-AbyssSpaceV2.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-WorldCut.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll
+$env:PYTHONUTF8='1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release > artifacts/abyss-multiplayer-0762-build.log 2>&1
+```
+
+环境、最终专项和完整Release/规则/资源/数据库/包校验均退出码0。固定Windows x25.01.17三程序集SHA匹配，API1.42/SC2.4.10.6/net472保持。
+
+- 军势/双形态/普通玩家原生隔离 **449项通过**，原423项保留，新增26项。Local与认证普通客户端均产生原生22/22/34基础伤害调用，第三段恢复期间下一轮首击22可正常到达；重复序号、过快请求、跨世界/伪造Caster/旧连接、NaN/后向/未归一方向、封印/卸下武器均拒绝；伪造Target/A不能指定段数/伤害，墙体和契约友军保护通过。Local/房主/Client真实输入入口均先提交请求，Client不直接结算。原生AttackBody记录器停止后续游戏副作用，这些不是实机伤害或真实网络会话。
+- 空间/重击隔离 **26038项通过**：普通客户端原有重击、折跃准备/提交/确认、失败回滚与权威检查保持；补测重击仅提交请求、收到成功事件自动开始客户端表现并立即清除待回执文字。断界斩原生 **890项**、主机瞄准/星门 **13项**、领域协议/生命周期 **989项**回归通过。领域本次只改两处提示，冻结守卫逐字还原这两处后仍匹配原基线，不更新基线或放行算法变化。
+- 圣剑806规则/521原生、陈列器650、图谱436、库存775规则/170原生及其余完整回归通过。解析1347及GUID/调用检查27项通过，扫描2975方法/23492调用点，无直接BCL TryParse或Guid/UInt32 Parse引用。原神器持有移速/攻速/专属背景与资源守卫通过。
+- `.netmod` **10,554,576字节 / 173 entries**；ZIP完整、通用包/版本副本字节一致、DLL与Release一致。对0.76.1条目集合相同，**170份Assets逐字节不变**，只改变`SCIEPort.dll`与`modinfo.json`。圣剑、陈列器、图谱、骑士资源保持；没有打包游戏程序集或PDB。忽略目录机器记录为`artifacts/abyss-multiplayer-0762-verification.json`。
+
+```text
+netmod SHA-256 E7751EBE2E8E2F52482148D328BD3524B364EB7FDE06617438EE196F26C61FDD
+DLL    SHA-256 D2F346C6E64900C7E6412116F4E25EC7A7BA4C93354636BFD94C11F607507A07
+```
+
+固定Windows环境、离线组件/规则和Release/包检查 **已确认**。没有运行完整游戏、手机或真实双端联机；Android7723触屏、多分辨率、真实单人/房主/普通客户端/晚加入及延迟下的普攻/重击/技能反馈 **待验证**。既有图谱解放真名、角色/目标/冷却验证仍适用于所有玩家，不是人工房主权限。旧服务器不处理虚空Action5，旧版混装 **不支持**，各端统一0.76.2。无字节布局、Hook/加载器入口、存档、物品ID或蓝图能力变更；只提交本地main，不推送。
+
 ## 2026-11-03 main 0.76.1：拉取最新代码并在本机重新打包
 
 用户要求“查看Git，拉取我的最新代码，打个netmod包”。本地与远端main均为`644aa47`；执行`git pull --ff-only origin main`返回`Already up to date`。构建代码保持该提交及0.76.1版本，不改功能、ID或协议；保留原有未跟踪的工作记录。

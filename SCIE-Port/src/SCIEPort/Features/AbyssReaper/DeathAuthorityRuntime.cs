@@ -58,9 +58,9 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool Request(ComponentPlayer p,byte action,Vector3 direction,ushort target=0)
         {
             if(disposed||p==null||!p.PlayerData.IsMainPlayer)return false;
-            if(!CommandActor(p,action)){Message(p,Management(action)?"请保持持有终焉之镰，清醒且存活时管理军势":"当前角色状态不能使用死亡权柄");return false;}
+            if(!CommandActor(p,action)){Message(p,Management(action)?"请保持持有终焉之镰，清醒且存活时管理军势":"当前无法使用");return false;}
             var s=Get(p);if(s==null)return false;
-            if(!Authority&&!worldKnown&&action!=DeathAuthorityRules.Sync){Message(p,"正在同步死亡权柄，请稍候");return false;}
+            if(!Authority&&!worldKnown&&action!=DeathAuthorityRules.Sync){Message(p,"同步中");return false;}
             if(action!=DeathAuthorityRules.Sync&&action!=DeathAuthorityRules.RidingMode&&action!=DeathAuthorityRules.DragonFlight&&(Locked(p)||Busy(p)&&action!=DeathAuthorityRules.Strike)){Message(p,"请先结束当前动作");return false;}
             if(unchecked(++s.Sent)==0)++s.Sent;
             var packet=new DeathAuthorityPackage{Kind=0,Action=action,Caster=p.Entity.EntityId,Sequence=s.Sent,Direction=direction,Target=target,Echo=action==6?Time.RealTime:0,World=worldId};

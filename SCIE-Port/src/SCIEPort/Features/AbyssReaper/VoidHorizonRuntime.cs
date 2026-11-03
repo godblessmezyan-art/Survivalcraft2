@@ -100,7 +100,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(Authority)Accept(new Pending { Owner=p,Packet=packet });
             else if(CommonLib.WorkType==WorkType.Client && CommonLib.Net!=null)CommonLib.Net.QueuePackage(packet);
             else { peer.PendingUntil=0;return false; }
-            reason=Authority?(Find(p)!=null?"领域展开 · 虚夜":peer.Feedback):"正在向主机请求展开虚夜";
+            reason=Authority?(Find(p)!=null?"领域展开 · 虚夜":peer.Feedback):"释放中";
             return !Authority || Find(p)!=null;
         }
         internal void Enqueue(ComponentPlayer player,Client reply,VoidHorizonPackage packet)
@@ -166,7 +166,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(packet.Kind!=VoidHorizonRules.Snapshot)
             {
                 if(cast!=null)Stop(cast,false);
-                if(packet.Kind==VoidHorizonRules.Reject){peer.Feedback=packet.Cooldown>0?"终焉坍缩冷却中":"主机未允许展开虚夜";peer.FeedbackUntil=Now+2;}
+                if(packet.Kind==VoidHorizonRules.Reject){peer.Feedback=packet.Cooldown>0?"终焉坍缩冷却中":"暂时无法释放";peer.FeedbackUntil=Now+2;}
                 return;
             }
             if(!Actor(p) || packet.Elapsed>=VoidSkillRules.HorizonDuration)

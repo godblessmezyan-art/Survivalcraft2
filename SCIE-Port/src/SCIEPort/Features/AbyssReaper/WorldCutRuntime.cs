@@ -116,7 +116,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(heavy&&(e==null||e.LocalCharge==0)){BeginCharge(p);e=Get(p,false);}
             if(e==null||e.LocalCharge==0){if(heavy)Report(p,e==null?WorldCutFailure.Capacity:Busy(p)?WorldCutFailure.Busy:WorldCutFailure.ChargeLost);return false;}
             uint sequence=e.LocalCharge;e.LocalCharge=0;
-            if(heavy){e.PendingUntil=Now+2;e.Feedback="蓄力断界斩 · 主机确认中";e.FeedbackUntil=Now+2;}
+            if(heavy){e.PendingUntil=Now+2;e.Feedback="释放中";e.FeedbackUntil=Now+2;}
             Command(p,heavy?WorldCutRules.ChargeRelease:WorldCutRules.ChargeCancel,sequence);return heavy;
         }
         private static void ClearCharge(Peer e)
@@ -238,7 +238,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(packet.Kind==3 && packet.Sequence==e.Closed)return;
             if(packet.Kind==1 && packet.Sequence==e.Visual)return; // Duplicate accepted event must not restart animation/cooldown.
             // A presentation slot shortage must never turn an accepted request into a timeout/cancel.
-            e.Visual=packet.Sequence;e.ReadyAt=Math.Max(e.ReadyAt,Now+packet.Cooldown);if(packet.Sequence==e.Sent)e.PendingUntil=0;
+            e.Visual=packet.Sequence;e.ReadyAt=Math.Max(e.ReadyAt,Now+packet.Cooldown);if(packet.Sequence==e.Sent){e.PendingUntil=0;e.Feedback=null;e.FeedbackUntil=0;}
             e.ActiveUntil=Now+(packet.Kind==3?WorldCutRules.CloseEnd:WorldCutRules.Windup+WorldCutRules.Range/WorldCutRules.Speed+WorldCutRules.CloseEnd);
             if(packet.Kind==3)e.Closed=packet.Sequence;
             if(cast==null)

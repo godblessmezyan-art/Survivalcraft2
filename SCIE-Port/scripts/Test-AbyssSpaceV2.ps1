@@ -10,6 +10,8 @@ foreach($file in $protected.files.PSObject.Properties){
  $text=[IO.File]::ReadAllText($path)
  # Android MissingMethodException hotfix: normalize only the GUID parser call target.
  if($file.Name -eq 'src/SCIEPort/Features/AbyssReaper/VoidPortalRegistry.cs'){$text=$text.Replace('SCIEPort.Compatibility.LegacyGuid.TryParse(','Guid.TryParse(').Replace('SCIEPort.Compatibility.LegacyParsing.TryInt32(','int.TryParse(').Replace('SCIEPort.Compatibility.LegacyParsing.TrySingle(','float.TryParse(')}
+ # 0.76.2: only transport/permission wording changes; retain the frozen algorithm hash.
+ if($file.Name -eq 'src/SCIEPort/Features/AbyssReaper/VoidHorizonRuntime.cs'){$text=$text.Replace(':"释放中";',':"正在向主机请求展开虚夜";').Replace(':"暂时无法释放";',':"主机未允许展开虚夜";')}
  $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index&&SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==AbyssReaperBlock.Index')
  $text=$text.Replace('(Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))','Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index')
  $text=$text.Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,952)&&','').Replace('SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(player,952) && ','')

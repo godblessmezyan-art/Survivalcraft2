@@ -77,7 +77,7 @@ public static class AbyssHostNativeProbe
             Put(npcEntity,"m_components",new List<Component>{creature,creature.ComponentHealth,creature.ComponentBody});bodies.AddBody(creature.ComponentBody);
             var recorder=new AttackRecorder();ModsManager.RegisterHook("AttackBody",recorder);
             var state=Activator.CreateInstance(type.GetNestedType("State",BindingFlags.NonPublic),true);Put(state,"SwingDirection",Vector3.Normalize(new Vector3(1,0,1)));
-            type.GetMethod("Strike",Flags).Invoke(runtime,new object[]{owner,state});
+            type.GetMethod("ApplyVoidMelee",Flags).Invoke(runtime,new object[]{owner,Vector3.Normalize(new Vector3(1,0,1)),0});
             Check(recorder.Targets.Count==1&&recorder.Targets[0]==creature.ComponentBody&&recorder.Powers[0]==22,"host directs positive normal damage to aimed non-predator");
             var allow=type.GetMethod("MeleeTargetAllowed",BindingFlags.Static|BindingFlags.NonPublic);
             Check(!(bool)allow.Invoke(null,new object[]{false,false,false,false,false,false}),"passive collateral stays disabled");

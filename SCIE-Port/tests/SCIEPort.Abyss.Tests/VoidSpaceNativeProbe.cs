@@ -402,6 +402,10 @@ public static class VoidSpaceNativeProbe
             f.EnableCut();Pending().Clear();Call(f.Cut,"BeginCharge",f.Player);Call(f.Cut,"EndCharge",f.Player,true);
             Check(Pending().Count==2&&(byte)Get(Pending()[0],"Kind")==6&&(byte)Get(Pending()[1],"Kind")==7,"ordinary client submits start/release rather than calculating heavy damage");
             Check(((IList)Get(f.Cut,"casts")).Count==0,"client has no local authoritative heavy cast");
+            Check((string)Call(f.Cut,"Feedback",f.Player)=="释放中","heavy feedback does not imply host manual approval");
+            var accepted=CutPacket(f,1,1);Put(accepted,"Origin",f.Player.ComponentCreatureModel.EyePosition);Put(accepted,"Direction",-Vector3.UnitZ);Call(f.Cut,"Receive",accepted);
+            Check(!(bool)Call(f.Cut,"PendingRequest",f.Player)&&Call(f.Cut,"Feedback",f.Player)==null,"accepted heavy immediately clears pending feedback");
+            Check(((IList)Get(f.Cut,"casts")).Count==1,"heavy reply starts the client visual without host UI interaction");
         }
     }
     public static void Run(Assembly assembly)

@@ -113,7 +113,7 @@ namespace SCIEPort.Features.AbyssReaper
             peer.PendingSequence=peer.Sent;peer.PendingSkill=skill;peer.PendingUntil=Now+3;
             var packet=new VoidSpacePackage{Kind=0,Skill=skill,Caster=p.Entity.EntityId,Sequence=peer.Sent,Direction=p.ComponentCreatureModel.EyeRotation.GetForwardVector()};
             if(Authority)Enqueue(p,null,packet);else{Ping(p);CommonLib.Net.QueuePackage(packet);}
-            reason=Name(skill)+" · 正在请求主机";return true;
+            reason="释放中";return true;
         }
         internal void Enqueue(ComponentPlayer p,Client client,VoidSpacePackage packet)
         {lock(queue)if(!disposed&&queue.Count<VoidSpaceRules.MaxQueue)queue.Enqueue(new Pending{Player=p,Client=client,Token=client?.TokenId??Guid.Empty,Packet=packet.Copy()});}

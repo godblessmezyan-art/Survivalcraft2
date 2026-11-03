@@ -35,12 +35,17 @@ namespace SCIEPort.Features.AbyssReaper
         }
         private void Strike(ComponentPlayer p,Vector3 direction)
         {
-            if(!Authority)return;
-            var s=Get(p);if(!s.Death||BusyWave(p)||Now<s.NextStrike||!WorldCutDamage.Finite(direction)||direction.LengthSquared()<.9f||direction.LengthSquared()>1.1f)return;
+            if(!Authority||!Actor(p)||Locked(p))return;
+            var s=Get(p);if(s==null||BusyWave(p)||Now<s.NextStrike||!WorldCutDamage.Finite(direction)||direction.LengthSquared()<.9f||direction.LengthSquared()>1.1f)return;
             direction=Vector3.Normalize(direction);var eyeDirection=p.ComponentCreatureModel.EyeRotation.GetForwardVector();if(Vector3.Dot(direction,eyeDirection)<-.2f)return;
             float frequency=1.1f*(p.Project.FindSubsystem<SCIEPort.Features.FourSaints.SubsystemFourSaints>(false)?.AttackFrequency(p)??1f);if(!WorldCutRules.Finite(frequency)||frequency<=0)return;
-            int stage=Now-s.LastStrike>1.8?0:s.Combo;double duration=stage==0?.35:stage==1?.42:.58;s.NextStrike=Now+duration/Math.Max(.1f,Math.Min(10,frequency));s.Combo=(stage+1)%3;s.LastStrike=Now;
+            int stage=Now-s.LastStrike>1.8?0:s.Combo;double duration=stage==0?.35:stage==1?.42:.58;
+            // Void input reports the 48% impact edge, so the next gap spans two swing phases.
+            // Waiting a full third swing here would drop the first hit of the next combo.
+            double interval=s.Death?duration:duration*.52+(stage==0?.42:stage==1?.58:.35)*.48;
+            s.NextStrike=Now+interval/Math.Max(.1f,Math.Min(10,frequency));s.Combo=(stage+1)%3;s.LastStrike=Now;
             Send(new DeathAuthorityPackage{Kind=5,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=s.Processed,Action=(byte)stage,Direction=direction});
+            if(!s.Death){parent.ApplyVoidMelee(p,direction,stage);return;}
             Vector3 origin=p.ComponentCreatureModel.EyePosition,flat=new Vector3(direction.X,0,direction.Z);flat=flat.LengthSquared()<.001f?Vector3.UnitZ:Vector3.Normalize(flat);
             candidates.Clear();bodies.FindBodiesInArea(origin.XZ-new Vector2(5),origin.XZ+new Vector2(5),candidates);swingHits.Clear();int checkedBodies=0;
             foreach(var body in candidates)

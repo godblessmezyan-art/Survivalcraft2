@@ -235,12 +235,16 @@ namespace SCIEPort.Features.AbyssReaper
         void Strike(ComponentPlayer p,State s) {
             if(!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index))return;
             if(s.Combo.Stage==3)return; // Charged releases exclusively use WorldCutRuntime.
-            if(Death?.IsDeath(p)==true){Death.Request(p,DeathAuthorityRules.Strike,MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector()));return;}
-            if(CommonLib.WorkType==WorkType.Client)return;
-            if(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer)return; // No untrusted remote input path in V0.1.
+            Death?.Request(p,DeathAuthorityRules.Strike,MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector()));
+        }
+        // Called after the same authenticated strike request for local, host and remote owners.
+        // The server selects the combo stage and power; a client only supplies its aim.
+        internal void ApplyVoidMelee(ComponentPlayer p,Vector3 direction,int stage)
+        {
+            if((CommonLib.WorkType!=WorkType.Local&&CommonLib.WorkType!=WorkType.Server)||p==null||p.Project!=Project||!p.IsAddedToProject||p.ComponentHealth.Health<=0||!p.PlayerData.IsReadyForPlaying||Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)!=AbyssReaperBlock.Index||!SCIEPort.Features.Codex.SubsystemArtifactCodex.Allowed(p,AbyssReaperBlock.Index)||stage<0||stage>2)return;
             Vector3 origin=p.ComponentCreatureModel.EyePosition;
-            Vector3 forward=MeleeDirection(s.SwingDirection,p.ComponentCreatureModel.EyeRotation.GetForwardVector());
-            float reach=s.Combo.Stage==3?AbyssMeleeMotion.ChargedReach:AbyssMeleeMotion.NormalReach;
+            Vector3 forward=MeleeDirection(direction,p.ComponentCreatureModel.EyeRotation.GetForwardVector());
+            float reach=AbyssMeleeMotion.NormalReach;
             var aimed=bodies.Raycast(origin,origin+forward*reach,.15f,(body,distance)=>body.Entity!=p.Entity);
             var primary=aimed.HasValue?aimed.Value.ComponentBody:null;
             Vector3 flat=new Vector3(forward.X,0,forward.Z);flat=flat.LengthSquared()<.001f?Vector3.UnitZ:Vector3.Normalize(flat);
@@ -256,12 +260,12 @@ namespace SCIEPort.Features.AbyssReaper
                 if(!MeleeTargetAllowed(player,hostile,body==primary,allowPassive,allowPlayers,player&&Project.FindSubsystem<SubsystemGameInfo>(true).WorldSettings.IsFriendlyFireEnabled))continue;
                 Vector3 center=body.BoundingBox.Center();Vector3 delta=center-origin;
                 Vector3 horizontal=new Vector3(delta.X,0,delta.Z);float len=horizontal.Length();
-                if(!AbyssMeleeMotion.Sector(delta.Length(),body==primary||len<=.01f?1:Vector3.Dot(horizontal/len,flat),delta.Y,s.Combo.Stage))continue;
+                if(!AbyssMeleeMotion.Sector(delta.Length(),body==primary||len<=.01f?1:Vector3.Dot(horizontal/len,flat),delta.Y,stage))continue;
                 Territoriy region;if(SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(Terrain.ToCell(center.X),Terrain.ToCell(center.Z),out region))continue;
                 if(++rays>48)break;
                 if(!VoidCombatSafety.ClearPath(terrain,origin,center,AbyssMeleeMotion.ChargedReach))continue;
                 hit.Add(body.Entity);
-                ComponentMiner.AttackBody(body,p,center,forward,s.Combo.Stage==3?52:s.Combo.Stage==2?34:22,true);
+                ComponentMiner.AttackBody(body,p,center,forward,stage==2?34:22,true);
                 if(hit.Count>=24)break;
             }
         }
