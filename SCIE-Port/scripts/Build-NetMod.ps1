@@ -326,6 +326,8 @@ foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? 
 # the closing quote and accidentally absorbing the following MSBuild arguments.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build/" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Integrated Celestial Codex reader tests failed.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Bone dragon native model/database resource import failed.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-NightmareKnightResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
@@ -782,6 +784,9 @@ try {
     $entries = @($archive.Entries | ForEach-Object FullName | Sort-Object)
     foreach ($resource in @('Assets/Models/AbyssReaper.dae','Assets/Textures/AbyssReaper.png','Assets/Blocks/AbyssReaper.csv','Assets/Database/AbyssReaper.xdb')) { if ($entries -notcontains $resource) { throw "Missing Abyss resource: $resource" } }
     foreach ($requiredEntry in @(
+        'Assets/Blocks/CelestialCodex.csv',
+        'Assets/Database/CelestialCodex.xdb',
+        'Assets/Textures/CelestialCodex/Book.png',
         'Assets/Models/PoseidonTrident.dae',
         'Assets/Textures/PoseidonTrident.png',
         'Assets/Textures/PoseidonSkills.png',
@@ -2377,6 +2382,8 @@ finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
+if ($LASTEXITCODE -ne 0) { throw 'Integrated reader package validation failed.' }
 $versionedPackage = Join-Path $artifacts ("荒野探险家-" + $modInfo.Version + '.netmod')
 Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }

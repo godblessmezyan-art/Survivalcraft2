@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net472</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SCIEPort/Features/CelestialCodex/Core/*.cs" Link="Core/%(Filename)%(Extension)" />
+    <Compile Include="../../src/SCIEPort/Features/CelestialCodex/Networking/*.cs" Link="Networking/%(Filename)%(Extension)" />
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+</Project>

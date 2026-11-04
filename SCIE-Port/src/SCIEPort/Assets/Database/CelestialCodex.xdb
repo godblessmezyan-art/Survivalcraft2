@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="CelestialCodexBehavior" Guid="8e7fc4af-2b7a-4b68-a02e-5c5443b1ece2" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="58451814-3a27-4453-b96b-8d87e9241368" Value="SCIEPort.Features.CelestialCodex.Mod.SubsystemCelestialCodexBehavior" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="CelestialCodexBehavior" Guid="00999a64-5d27-4a0a-a4d8-7b42c7593782" InheritanceParent="8e7fc4af-2b7a-4b68-a02e-5c5443b1ece2" />
+  </ProjectTemplate>
+</DatabaseObjects>

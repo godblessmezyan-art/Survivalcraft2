@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net472</TargetFramework><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SCIEPort/SCIEPort.csproj"><Private>false</Private></ProjectReference>
+    <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
+    <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+</Project>

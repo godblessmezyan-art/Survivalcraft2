@@ -1,5 +1,40 @@
 # 测试结果
 
+## 2026-11-04 main 0.77.0：整合云天书典0.1.4
+
+基线7eb3ddf。用户本会话反馈独立0.1.4“测试通过”并授权合入荒野探险家；只把该反馈记为独立版本次功能验收，不推定整合包已在手机测试。源码/资源/测试迁入SCIE-Port，独立工程及ModLoader退休，只有SCIEPort.dll；保留956、GUID、缓存/进度格式和HTTP适配。新实用工具Tab与独立槽位主题，不改其它神器逻辑或Builder Assistant。
+
+实际命令（仓库根目录；以下PATH/Framework均为本机依赖，不写入运行时代码）：
+
+```powershell
+$env:PATH = 'C:\Users\85196\AppData\Local\Microsoft\dotnet;C:\Users\85196\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;' + $env:PATH
+$env:DOTNET_ROOT = 'C:\Users\85196\AppData\Local\Microsoft\dotnet'
+$env:DOTNET_ROLL_FORWARD = 'Major'
+$env:FrameworkPathOverride = 'C:\Users\85196\.nuget\packages\microsoft.netframework.referenceassemblies.net472\1.0.3\build\.NETFramework\v4.7.2'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:\Games\SCNET-x25.01.17
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:\Games\SCNET-x25.01.17 -Configuration Release
+# PowerShell7，读取本机已提取快照；这些取证文件不提交。
+./SCIE-Port/scripts/Test-CelestialCodexAndroidBcl.ps1 -AndroidBclDir artifacts/celestial-audit/android-bcl -CecilPath D:\Dev\Tools\ilspy\.store\ilspycmd\9.1.0.7988\ilspycmd\9.1.0.7988\tools\net8.0\any\Mono.Cecil.dll -NegativeDll artifacts/celestial-audit/CelestialCodex-0.1.3-negative.dll
+./SCIE-Port/tests/SCIEPort.CelestialCodex.TargetTests/bin/Release/net472/SCIEPort.CelestialCodex.TargetTests.exe D:\Games\SCNET-x25.01.17 (Get-Location).Path (Join-Path (Get-Location) 'SCIE-Port/artifacts/build/SCIEPort.dll') --https-probe
+git diff --check
+```
+
+结果：最终环境/完整构建/快照审计及最后公网重试exit0，Release零警告/零错误，固定Windows三程序集SHA匹配。较早整合DLL的公网三阶段检查成功；最终打包DLL补测先后在详情、目录请求触发12秒预算的TaskCanceledException，第三次完整探测三次200。其间同来源curl也出现0字节超时，bin/Release DLL复测成功，两个构建147个阅读方法的规范IL指令体相同；未放宽预算或增加产品自动重试，公网稳定性仍待验证。最初完整构建因默认PATH缺Python与net8运行时中断；给当前进程提供已安装Python和SDK9 Major roll-forward后通过，没有降低/跳过守卫或改TargetFramework。完整日志保存在忽略的`SCIE-Port/artifacts/celestial-integration-build.log`。美术验证生成的validation.json仅有本机浮点末位差异，已恢复，未混入提交。
+
+| 范围 | 实际结果 |
+|---|---|
+| 阅读Core/Network | 408项通过，含离线/容量/缓存/进度/严格JSON/revision、取消/超时/关闭迟到结果、真实loopback禁跳转/无Cookie、裁剪HTTP结构模拟与诊断。 |
+| 实际整合DLL书典目标检查 | 12286项/348条外部成员，唯一956、单一既有ModLoader、XDB类名/GUID、原生CSV/XDB/PNG、零武器伤害、DATA0、SCIEPort.Tools、本地UI异常边界/释放、书典namespace无地形/生命/移速/房间协议调用、0.1.3重建负对照通过。当前目标目录已装包0个；不能据此宣称未知第三方Mod均无冲突。 |
+| Android BCL元数据 | 231个书典直接方法/字段引用可解析，0缺失；核验实际快照的HTTP私有策略布局与ToString重写。旧0.1.3重建DLL检出4个缺失成员。作用域仅书典及其嵌套状态机，非整个SCIEPort DLL；同一快照三哈希/MVID见[独立0.1.4取证](../../docs/CELESTIAL-CODEX-HTTP-0.1.4.md)。 |
+| 实际最终DLL HTTPS/解码 | 本轮较早bin/Release DLL及最终artifacts/build DLL最后复测均读取目录20本、clouds-and-stars详情/c1正文三次200，4279/362/6211字节，正文2097 UTF-16单位，revision `1ab420b0764a28b0916d0708089e48de3a171f28e96c8c031324f5ad5e61f55e`。保留中间两次12秒超时记录，公网稳定性待验证。只读，没有部署/写生产内容。 |
+| 分类/主题 | 794条规则、173项原生分类/翻译/幂等/衣物隔离，26 CSV/59行逐字节分类检查通过；书典独立主题，新工具Tab，原神器/圣兽主题保持。 |
+| 旧功能完整回归 | 原离线规则/美术与音频/数据库守卫全过；神器图谱437、GUID/整DLL解析27、原解析与设置1347、悬浮陈列器651、圣剑522、空间26038、死亡军势449、共享星门605、断界890、虚夜989及既有载具/植物/圣兽套件通过。均为Windows隔离与资源检查，未运行完整游戏/实际网络房间。 |
+| 包 | 176条目，只有SCIEPort.dll，新CSV/XDB/Book.png与最终DLL逐字节核对，原品牌/内部身份/版本一致，禁带独立DLL。最终正式包与版本副本完全相同。 |
+
+最终两个包均为 **10577715字节**，SHA-256 **`B7EDFAA0A8C4314B43BA801664D15CDD5F8717C8086700BF8912C1F348C86CC4`**。SCIEPort.dll程序集/FileVersion **0.77.0.0**，最终DLL MVID **`46d502e021664666ab7f7fc63633f198`**。正式包`SCIE-Port/artifacts/荒野探险家.netmod`，版本副本`荒野探险家-0.77.0.netmod`；产物不提交，源码/测试/文档仅本地main提交，不推送。
+
+整合包Android7723分类/背景/触屏、缓存续读及旧世界升级、真实Local/Server/Client仍 **待验证**；同装独立CelestialCodex和混版联机 **不支持**。安装/验收见[书典说明](CELESTIAL-CODEX.md)。
+
 ## 2026-11-03 main 0.76.2：阿比斯普通玩家攻击与释放反馈
 
 基线`a53d5f2`/0.76.1。用户报告联机提示需要主机确认并要求所有玩家可用。确认重击“主机确认中”只是自动回执文案、无人工审批入口，且收到成功事件未即时清除文字；另确认虚空普攻仍有V0.1直接排除Client及Server非主玩家的真实限制。现将两种形态的普攻输入统一送入既有252 Action5，由主机自动认证/定段/结算，复用原虚空目标选择、基础伤害与保护逻辑。重击/空间/领域文案精简，成功重击即时清除等待反馈。见[原因与实现](ABYSS-MULTIPLAYER-0.76.2.md)。

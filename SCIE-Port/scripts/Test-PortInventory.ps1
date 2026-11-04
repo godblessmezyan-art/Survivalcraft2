@@ -3,7 +3,7 @@ param([string]$GameDir='E:\SCNET\SCNETx25.01.17',[string]$BuiltAssembly,[string]
 $ErrorActionPreference='Stop'
 $inventoryRoot=Split-Path -Parent $PSScriptRoot
 $inventoryProject=Join-Path $inventoryRoot 'src\SCIEPort'
-$inventoryAllowed=@('Artifacts','Vehicles','Saints','Plants','Food','Materials','Industry','Building','Creatures','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
+$inventoryAllowed=@('Artifacts','Vehicles','Saints','Plants','Food','Materials','Industry','Building','Creatures','Tools','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
 $inventoryRows=@(Get-ChildItem (Join-Path $inventoryProject 'Assets\Blocks') -Filter *.csv | ForEach-Object { Import-Csv -Delimiter ';' -Encoding UTF8 $_.FullName })
 foreach($row in $inventoryRows){
     if($inventoryAllowed -notcontains $row.DefaultCategory -or $row.DefaultCategory -eq 'SCIEPort.Misc'){throw "Release item must have a deliberate dedicated tab: $($row.'Class Name')"}
@@ -14,6 +14,7 @@ foreach($name in @('StormhammerBlock','StormhammerAwakenedBlock','GungnirBlock',
 foreach($name in @('TankBlock','TankShellBlock','HelicopterBlock','AtvBlock','OffroadCarBlock','SteamBoatBlock','AirshipBlock','TrainBlock','CarriageBlock')){
     if(@($inventoryRows | Where-Object {$_.'Class Name' -eq $name -and $_.DefaultCategory -eq 'SCIEPort.Vehicles'}).Count -ne 1){throw "Vehicle tab missing: $name"}
 }
+if(@($inventoryRows | Where-Object {$_.'Class Name' -eq 'CelestialCodexBlock' -and $_.DefaultCategory -eq 'SCIEPort.Tools'}).Count -ne 1){throw 'Celestial Codex must be a utility tool.'}
 $inventoryBuild=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Build-NetMod.ps1'))
 if(-not $inventoryBuild.Contains("Join-Path `$artifacts '荒野探险家.netmod'") -or -not $inventoryBuild.Contains('荒野探险家-')){throw 'Release filename contract missing.'}
 if($Package){

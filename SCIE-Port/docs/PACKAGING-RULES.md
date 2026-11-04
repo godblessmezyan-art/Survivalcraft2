@@ -44,6 +44,8 @@
 
 ## 4 版本一致性
 
+0.77.0内置云天书典：只打包一个SCIEPort.dll及现有modinfo；必须存在`Assets/Blocks/CelestialCodex.csv`、`Assets/Database/CelestialCodex.xdb`、`Assets/Textures/CelestialCodex/Book.png`，禁止另带CelestialCodex.dll或独立modinfo。956/DATA0与原书典三GUID保留，Class改为本程序集中的命名空间。独立CelestialCodex包与整合版同时安装不支持，存在ID/GUID重复；安装要求见[云天书典](CELESTIAL-CODEX.md)。
+
 `SCIEPort.csproj` 的 `Version` / `AssemblyVersion` / `FileVersion` 与 `modinfo.json` 的 `Version` 必须完全一致，
 由构建脚本比对；`.netmod` 内 `modinfo.json` 会在压缩后再读一次，确认没有被改写。
 

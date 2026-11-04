@@ -1,5 +1,13 @@
 # 兼容性矩阵
 
+## 2026-11-04 荒野探险家0.77.0：内置云天书典
+
+用户在本会话明确反馈刚交付的独立云天书典0.1.4“测试通过”，并要求整合至荒野探险家。独立版该次功能复测 **已确认**（用户反馈，上一交付包SHA `EFEBDDCA76A57C629A8405C77A95B7C0194110B40114CC769C8E7159E23A33E3`）；未提供APK/BCL哈希、详细分辨率或多人步骤，不扩大为全部渠道/缓存/多人测试结论，也不自动继承到整合包。
+
+原阅读源码/资源迁入SCIE-Port并直接编入SCIEPort.dll，沿用单一SCIEPortLoader；独立工程/modinfo退休，原构建入口转到荒野探险家。保留956/DATA0、三条自有XDB GUID、运行时相对缓存路径CelestialCodex、API/缓存/进度格式和Android HTTP修复。XDB Class改为`SCIEPort.Features.CelestialCodex.Mod.SubsystemCelestialCodexBehavior`；创造分类改为SCIEPort.Tools/实用工具，登记独立天蓝/古金主题。书典仍为非神器阅读工具，不加入真名图谱/属性系统。net472/API1.42/SC2.4.10.6、内部SCIEPort身份、既有物品/Hook/240–254协议与世界数据布局保持；新增包资源3条，不携带CelestialCodex.dll。
+
+固定Windows ABI/Release、完整旧回归、阅读隔离/原生XDB及最终DLL公网目录/详情/正文三次200 **已确认**；保留中间两次12秒超时记录，公网稳定性 **待验证**。整合后的Android/旧世界/触屏及实际Local/Server/Client **待验证**；与独立CelestialCodex同装或旧荒野探险家混版 **不支持**。安装需移除独立书典、各端统一0.77.0并重启，原阅读缓存不删除。具体命令、指纹及取证边界见[整合说明](../SCIE-Port/docs/CELESTIAL-CODEX.md)与[本轮测试结果](../SCIE-Port/docs/TEST-RESULTS.md)。
+
 ## 2026-11-04 Celestial Codex 0.1.4：Android HTTP裁剪接口适配
 
 用户22:23:09.266日志仍报`Network BCL stage=http`，MVID `d223541dfc924976ac1f5c34dd433a83`匹配此前交付0.1.3记录。本次摘录没有异常类型/消息，不能仅凭此认定具体缺失成员。本机2026-10-28留存的Android BCL实际成员审计发现0.1.3还直接引用四个已裁剪方法：HttpClientHandler的AllowAutoRedirect、UseCookies、AutomaticDecompression三个setter及MediaTypeHeaderValue.MediaType getter。mscorlib MVID `9d0f885b92554f54bb3ffdcb8916ab03`与先前用户0.1.2日志的BCL MVID一致；本次手机全部BCL哈希仍未取得，不能自动等同两个渠道构建。

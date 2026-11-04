@@ -291,3 +291,9 @@ Four original icons generated separately with the built-in OpenAI image_gen tool
 ## Nightmare knight original cavalry / 2026-11-02
 
 `Assets/Models/AbyssNightmareKnight.dae` and `Assets/Textures/AbyssNightmareKnight.png` are original project-authored geometry and UV artwork, generated reproducibly by `scripts/New-NightmareKnightAssets.py`. The horse anatomy, tack, armored rider and sword share seven rigid bones and 4924 triangles; no game or third-party mesh, character skin, weapon model or texture is copied. Primitive/export helpers originate in this project's own bone-dragon generator. `scripts/New-NightmareKnightTemplate.py` authors mod-owned overrides and references the installed Rhino component defaults and `Audio/Creatures/Horse` sounds at runtime; these installed assets/database are not redistributed. Asset SHA-256, native-import evidence and clearly labelled software previews are retained in `design/nightmare-knight/`. This original artwork may be distributed with the mod; Android/gameplay acceptance remains pending.
+
+## Celestial Codex integration / 2026-11-04
+
+The owner explicitly authorized integration of this repository's Celestial Codex 0.1.4 (commit 7eb3ddf) into Wilderness Explorer. The reader C# implementation, mod-owned CSV/XDB and original 32x32 book PNG are moved into SCIE-Port and compiled from source, without bundling the standalone DLL or any proprietary game/BCL content. No Digital-Study book text is distributed in the package; the client reads the public API under its existing source/size/cache rules.
+
+`Assets/Textures/CelestialCodex/Book.png` is the unchanged project-authored standard-library Python icon, reproducible with `scripts/New-CelestialCodexIcon.py`; SHA-256 `FCA8F0AFE0A4C047361C97D7EC3C409598B780A8AADA9840D480C27ECF97E37E`. This is a reading-tool icon, with no new weapon/skill imagery generated for this integration. Existing third-party notices and authorization boundaries remain in force.
