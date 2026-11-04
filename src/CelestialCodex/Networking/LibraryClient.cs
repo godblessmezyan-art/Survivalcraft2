@@ -35,31 +35,35 @@ namespace CelestialCodex.Networking
         {
             // All paths are constructed by Request; never accept response links or redirects.
             if (!path.StartsWith("/books", StringComparison.Ordinal) || path.IndexOf("..", StringComparison.Ordinal) >= 0 || path.IndexOf('\\') >= 0 || path.IndexOf('#') >= 0) throw new InvalidDataException("Request path");
-            using (var deadline = CancellationTokenSource.CreateLinkedTokenSource(token))
-            using (HttpMessageHandler handler = handlerFactory == null ? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.None } : handlerFactory())
-            using (var client = new HttpClient(handler))
+            var deadline = new RequestDeadline(token, 12000);
+            try
             {
-                deadline.CancelAfter(12000);
-                client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
-                using (HttpResponseMessage response = await client.GetAsync(endpoint + path, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
+                deadline.Token.ThrowIfCancellationRequested();
+                using (HttpMessageHandler handler = handlerFactory == null ? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.None } : handlerFactory())
+                using (var client = new HttpClient(handler))
                 {
-                    if (response.StatusCode != HttpStatusCode.OK) throw new LibraryHttpException((int)response.StatusCode);
-                    var content = response.Content;
-                    if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response content type");
-                    string charset = content.Headers.ContentType.CharSet;
-                    if (!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response encoding");
-                    if (content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > Limits.MaxFileBytes) throw new InvalidDataException("Response size/encoding");
-                    using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
-                    using (var output = new MemoryStream())
+                    client.DefaultRequestHeaders.Add("Accept", "application/json");
+                    client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
+                    using (HttpResponseMessage response = await client.GetAsync(new Uri(endpoint + path), HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
                     {
-                        var buffer = new byte[4096]; int read;
-                        while ((read = await input.ReadAsync(buffer, 0, Math.Min(buffer.Length, Limits.MaxFileBytes + 1 - (int)output.Length), deadline.Token).ConfigureAwait(false)) > 0)
-                        { output.Write(buffer, 0, read); if (output.Length > Limits.MaxFileBytes) throw new InvalidDataException("Response size"); }
-                        deadline.Token.ThrowIfCancellationRequested(); return output.ToArray();
+                        if (response.StatusCode != HttpStatusCode.OK) throw new LibraryHttpException((int)response.StatusCode);
+                        var content = response.Content;
+                        if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response content type");
+                        string charset = content.Headers.ContentType.CharSet;
+                        if (!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response encoding");
+                        if (content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > Limits.MaxFileBytes) throw new InvalidDataException("Response size/encoding");
+                        using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
+                        using (var output = new MemoryStream())
+                        {
+                            var buffer = new byte[4096]; int read;
+                            while ((read = await input.ReadAsync(buffer, 0, Math.Min(buffer.Length, Limits.MaxFileBytes + 1 - (int)output.Length), deadline.Token).ConfigureAwait(false)) > 0)
+                            { output.Write(buffer, 0, read); if (output.Length > Limits.MaxFileBytes) throw new InvalidDataException("Response size"); }
+                            deadline.Token.ThrowIfCancellationRequested(); return output.ToArray();
+                        }
                     }
                 }
             }
+            finally { await deadline.Stop().ConfigureAwait(false); }
         }
     }
     internal sealed class Request

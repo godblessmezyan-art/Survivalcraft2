@@ -19,6 +19,6 @@ namespace CelestialCodex.Mod
     }
     public sealed class CelestialCodexModLoader : ModLoader
     {
-        public override void __ModInitialize() { Log.Information("[CelestialCodex] 0.1.2; x25.01.17; network diagnostics enabled; Android reading retest pending."); }
+        public override void __ModInitialize() { Log.Information("[CelestialCodex] 0.1.3; x25.01.17; portable cancellation; Android reading retest pending."); }
     }
 }

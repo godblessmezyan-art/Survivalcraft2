@@ -113,6 +113,14 @@ internal static class Program
         }
         var refs = AuditMembers(mod);
         Check(RejectsReportedListCall(typeof(LegacyListProbe).Assembly, new[] { typeof(LegacyListProbe) }), "BCL guard rejects compiled List.Exists negative fixture");
+        Check(RejectsLinkedCancellation(typeof(LegacyCancellationProbe).Assembly, new[] { typeof(LegacyCancellationProbe) }), "BCL guard rejects compiled linked CTS fixture");
+        string previousNetwork = Path.Combine(repo, "artifacts/celestial-audit/CelestialCodex-0.1.2-negative.dll");
+        if (File.Exists(previousNetwork))
+        {
+            Assembly previous = Assembly.LoadFile(previousNetwork);
+            Check(RejectsLinkedCancellation(previous), "BCL guard rejects actual 0.1.2 linked CTS call");
+            Console.WriteLine("Actual 0.1.2 negative DLL rejected: " + previous.ManifestModule.ModuleVersionId.ToString("N"));
+        }
         string legacy = Path.Combine(repo, "artifacts/celestial-audit/CelestialCodex-0.1.0-negative.dll");
         if (File.Exists(legacy))
         {
@@ -154,6 +162,12 @@ internal static class Program
     {
         try { AuditMembers(assembly, types, true); }
         catch (Exception e) { if (e.Message.StartsWith("Android unsupported collection method ", StringComparison.Ordinal) && e.Message.Contains(".Exists")) return true; throw; }
+        return false;
+    }
+    private static bool RejectsLinkedCancellation(Assembly assembly, Type[] types = null)
+    {
+        try { AuditMembers(assembly, types); }
+        catch (Exception e) { if (e.Message.StartsWith("Android unsupported cancellation method ", StringComparison.Ordinal)) return true; throw; }
         return false;
     }
     private static void VerifyUiFailureBoundary(Assembly assembly)
@@ -202,6 +216,8 @@ internal static class Program
                         var member = method.Module.ResolveMember(BitConverter.ToInt32(il, i), type.IsGenericType ? type.GetGenericArguments() : null, method.IsGenericMethod ? method.GetGenericArguments() : null);
                         Type declaring = member.DeclaringType ?? member as Type; string name = declaring == null ? member.ToString() : declaring.FullName + "." + member.Name;
                         Check(!(name.StartsWith("System.") && (member.Name.StartsWith("TryParse") || name.Contains("System.Linq.Enumerable"))), "Android known missing API " + name);
+                        if (!onlyReportedMissing && declaring == typeof(System.Threading.CancellationTokenSource))
+                            Check(member.Name != "CreateLinkedTokenSource" && member.Name != "CancelAfter", "Android unsupported cancellation method " + name);
                         if (declaring != null && declaring.IsGenericType && declaring.GetGenericTypeDefinition() == typeof(List<>))
                         {
                             bool forbidden = member.Name == "Exists";
@@ -225,4 +241,10 @@ internal static class LegacyListProbe
 {
     internal static bool ContainsZero(List<int> values) { return values.Exists(IsZero); }
     private static bool IsZero(int value) { return value == 0; }
+}
+
+internal static class LegacyCancellationProbe
+{
+    internal static System.Threading.CancellationTokenSource Create(System.Threading.CancellationToken caller)
+    { return System.Threading.CancellationTokenSource.CreateLinkedTokenSource(caller); }
 }

@@ -42,6 +42,7 @@ internal static class Program
     }
     private static async Task Run()
     {
+        await DeadlineChecks();
         Check(NetworkFailure.Code(new MissingMethodException("missing-member")) == "BCL", "missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new MissingMethodException("inner-member"))) == "BCL", "nested missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new System.Security.Authentication.AuthenticationException("certificate"))) == "TLS", "nested TLS diagnostic");
@@ -105,6 +106,39 @@ internal static class Program
         finally { Directory.Delete(root, true); }
         await GateChecks();
     }
+    private static async Task DeadlineChecks()
+    {
+        Check(!RequestDeadline.HasElapsed(100, 119, 20) && RequestDeadline.HasElapsed(100, 120, 20), "monotonic deadline boundary");
+        Check(RequestDeadline.HasElapsed(long.MaxValue - 10, long.MinValue + 15, 20), "monotonic tick wrap");
+        Reject(() => new RequestDeadline(CancellationToken.None, 0));
+        using (var caller = new CancellationTokenSource())
+        {
+            var deadline = new RequestDeadline(caller.Token, 1000);
+            try
+            {
+                caller.Cancel();
+                for (int i = 0; i < 100 && !deadline.Token.IsCancellationRequested; i++) await Task.Delay(10);
+                Check(deadline.Token.IsCancellationRequested, "caller cancellation reaches request token without linked source");
+            }
+            finally { await deadline.Stop(); }
+        }
+        var expired = new RequestDeadline(CancellationToken.None, 50);
+        try
+        {
+            await RejectAsync(async () => await Task.Delay(1000, expired.Token));
+            Check(expired.Token.IsCancellationRequested, "real timeout cancels pending operation");
+        }
+        finally { await expired.Stop(); }
+        var finished = new RequestDeadline(CancellationToken.None, 50);
+        await finished.Stop(); await Task.Delay(80);
+        Check(!finished.Token.IsCancellationRequested, "early completion stops deadline before source disposal");
+        using (var caller = new CancellationTokenSource())
+        {
+            caller.Cancel(); var deadline = new RequestDeadline(caller.Token, 1000);
+            try { Check(deadline.Token.IsCancellationRequested, "pre-canceled caller"); }
+            finally { await deadline.Stop(); }
+        }
+    }
     private static HttpResponseMessage Response(string json = Catalog, int status = 200, string type = "application/json; charset=utf-8")
     {
         var r = new HttpResponseMessage((HttpStatusCode)status) { Content = new ByteArrayContent(Bytes(json)) }; r.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(type); return r;
@@ -161,6 +195,16 @@ internal static class Program
         var tracked = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(disposed) }; tracked.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         await Transport((r, t) => Task.FromResult(tracked)).Get(request.Path, CancellationToken.None); Check(disposed.Disposed, "response stream disposal");
         using (var canceled = new CancellationTokenSource()) { canceled.Cancel(); await RejectAsync(async () => await client.Read(request, canceled.Token)); }
+        using (var caller = new CancellationTokenSource())
+        {
+            bool entered = false;
+            var slow = Transport(async (r, t) => { entered = true; await Task.Delay(3000, t); return Response(); });
+            Task<byte[]> pending = slow.Get(request.Path, caller.Token);
+            for (int i = 0; i < 100 && !entered; i++) await Task.Delay(5);
+            Check(entered, "in-flight transport entered");
+            caller.Cancel();
+            await RejectAsync(async () => await pending);
+        }
     }
     private static async Task GateChecks()
     {

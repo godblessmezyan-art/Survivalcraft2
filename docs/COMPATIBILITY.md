@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-11-04 Celestial Codex 0.1.3：移除Android缺失的链接取消源
+
+用户20:57:43.901日志已明确：`Network BCL stage=http`，缺少`CancellationTokenSource.CreateLinkedTokenSource(CancellationToken[])`，Mod MVID为`842f3895e44a4df586c2f98fbe8a7642`，与本机0.1.2交付DLL一致。其异步Get在发出请求前失败；该手机运行时使用0.1.2在线阅读 **不支持**。同段World2权限和m.schub.top DNS错误不来自书典固定来源，未据此改动世界权限/DNS。
+
+0.1.3完全移除CreateLinkedTokenSource及CancelAfter引用，不引入Register/额外Timer接口。自有CTS以后台25ms观察调用方取消及Stopwatch单调预算；请求结束先停止/等待观察任务再Dispose，避免取消与释放竞态。基础CTS、Task.Delay、Stopwatch经固定目标程序集实际用法核对，HTTP采用原生WebManager相同的Uri重载；没有推定这些API已在所有Android渠道实测。保留HTTPS证书校验、来源/跳转/大小/12秒预算、完整日志、旧Exists防线与缓存/进度。956/DATA0、GUID、net472/API1.42/SC2.4.10.6、PackageName、5条目布局及SCNET协议保持。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 日志对应Android运行时的0.1.2在线阅读 | 不支持 | 精确MVID匹配，缺失方法与stage=http已定位；并非服务器404。 |
+| 0.1.3固定Windows ABI、取消/超时/释放/旧DLL负对照、Release与包 | 已确认 | 真正取消等待、在途HTTP取消、提前完成与溢出边界检查通过；实际命令及公网三阶段证据见专项。 |
+| 0.1.3 Android实际目录/正文/缓存、TLS及Local/Server/Client | 待验证 | 已移除已证故障调用，未运行手机；不能宣称其它全部BCL成员或网络已兼容。 |
+
+见 [0.1.3修复记录](CELESTIAL-CODEX-CANCELLATION-0.1.3.md)，保留下面的历史证据。
+
 ## 2026-11-04 Celestial Codex 0.1.2：API上线后的网络诊断
 
 用户提供Digital-Study上线结果，随后报告游戏刷新显示“连接失败”且日志没有新增异常。已重新只读验证公开API，并通过实际Mod DLL的HTTP通道及Protocol.Decode获取page1/20、clouds-and-stars详情与c1正文：三次200、4279/362/6211字节、正文2097 UTF-16单位，未压缩、无跳转、身份与revision匹配。旧版泛化catch吞掉异常，不足以判断手机问题是TLS、DNS、BCL成员还是解码；本轮没有Android新增堆栈，不能猜定根因。
