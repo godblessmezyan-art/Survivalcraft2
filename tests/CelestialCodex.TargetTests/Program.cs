@@ -127,15 +127,28 @@ internal static class Program
     }
     private static void HttpsProbe()
     {
-        Type transport = typeof(CelestialCodexBlock).Assembly.GetType("CelestialCodex.Networking.LibraryTransport");
+        Assembly assembly = typeof(CelestialCodexBlock).Assembly;
+        Type transport = assembly.GetType("CelestialCodex.Networking.LibraryTransport");
         object instance = Activator.CreateInstance(transport, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { "https://wxhappylife.top/digital-study/api/game-library/v1", null }, null);
-        var request = (System.Threading.Tasks.Task<byte[]>)transport.GetMethod("Get", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, new object[] { "/books?page=1&pageSize=1", System.Threading.CancellationToken.None });
-        try { Console.WriteLine("HTTPS runtime probe: 200; " + request.GetAwaiter().GetResult().Length + " bytes (read only)"); }
-        catch (Exception e)
-        {
-            if (e.GetType().FullName != "CelestialCodex.Networking.LibraryHttpException") throw;
-            Console.WriteLine("HTTPS runtime probe: certificate-validated connection; HTTP " + e.GetType().GetField("Status", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(e) + "; no deployment performed.");
-        }
+        MethodInfo get = transport.GetMethod("Get", BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo decode = assembly.GetType("CelestialCodex.Core.Protocol").GetMethod("Decode", BindingFlags.NonPublic | BindingFlags.Static);
+        Func<string, byte[]> fetch = path => ((System.Threading.Tasks.Task<byte[]>)get.Invoke(instance, new object[] { path, System.Threading.CancellationToken.None })).GetAwaiter().GetResult();
+        Func<object, string, object> field = (obj, name) => obj.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(obj);
+        byte[] catalogBytes = fetch("/books?page=1&pageSize=20");
+        object catalog = decode.Invoke(null, new object[] { catalogBytes, null, null, null });
+        var books = (System.Collections.IList)field(catalog, "Books");
+        if (books.Count == 0) throw new Exception("Live catalog has no sample for reading validation");
+        string slug = (string)field(books[0], "Slug");
+        byte[] bookBytes = fetch("/books/" + slug);
+        object detail = decode.Invoke(null, new object[] { bookBytes, slug, null, null });
+        object book = field(detail, "Book"); string revision = (string)field(book, "Revision");
+        var chapters = (System.Collections.IList)field(book, "Chapters");
+        if (chapters.Count == 0) throw new Exception("Live sample book has no readable chapter");
+        string id = (string)field(chapters[0], "Id");
+        byte[] bodyBytes = fetch("/books/" + slug + "/chapters/" + id + "?revision=" + revision);
+        object body = decode.Invoke(null, new object[] { bodyBytes, slug, id, revision });
+        string text = (string)field(field(body, "Chapter"), "Text");
+        Console.WriteLine("HTTPS live pipeline: 3 x 200; catalog=" + books.Count + "; slug=" + slug + "; chapter=" + id + "; text chars=" + text.Length + "; bytes=" + catalogBytes.Length + "/" + bookBytes.Length + "/" + bodyBytes.Length + "; revision=" + revision + ". Mod DLL transport + decoder, read only.");
     }
     private static bool RejectsReportedListCall(Assembly assembly, Type[] types = null)
     {

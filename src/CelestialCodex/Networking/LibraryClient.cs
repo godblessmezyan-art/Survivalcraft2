@@ -41,6 +41,7 @@ namespace CelestialCodex.Networking
             {
                 deadline.CancelAfter(12000);
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
                 using (HttpResponseMessage response = await client.GetAsync(endpoint + path, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
                 {
                     if (response.StatusCode != HttpStatusCode.OK) throw new LibraryHttpException((int)response.StatusCode);
@@ -93,7 +94,8 @@ namespace CelestialCodex.Networking
         private readonly BoundedCache cache;
         private readonly LibraryTransport transport;
         private readonly string source;
-        internal LibraryClient(BoundedCache cache, string endpoint, LibraryTransport transport = null) { this.cache = cache; source = SourcePolicy.Validate(endpoint); this.transport = transport ?? new LibraryTransport(source); }
+        private readonly Action<string> diagnostics;
+        internal LibraryClient(BoundedCache cache, string endpoint, LibraryTransport transport = null, Action<string> diagnostics = null) { this.cache = cache; source = SourcePolicy.Validate(endpoint); this.transport = transport ?? new LibraryTransport(source); this.diagnostics = diagnostics; }
         internal async Task<ReaderResult> Read(Request request, CancellationToken token, bool offlineOnly = false)
         {
             string key = BoundedCache.Key(source + request.Path);
@@ -104,21 +106,23 @@ namespace CelestialCodex.Networking
                 if (snapshot != null) try { result.Document = request.Decode(snapshot); result.Offline = true; return result; } catch (Exception) { cache.Delete(key); }
                 result.Error = "尚未缓存"; return result;
             }
+            string stage = "http";
             try
             {
                 byte[] bytes = await transport.Get(request.Path, token).ConfigureAwait(false);
+                stage = "decode";
                 result.Document = request.Decode(bytes); token.ThrowIfCancellationRequested(); result.CacheFailed = !cache.Write(key, bytes);
             }
-            catch (OperationCanceledException) { if (token.IsCancellationRequested) throw; result.Error = "连接超时"; }
+            catch (OperationCanceledException error) { if (token.IsCancellationRequested) throw; result.Error = NetworkFailure.Message("TIME"); NetworkFailure.Report(diagnostics, stage, "TIME", error); }
             catch (LibraryHttpException e)
             {
+                NetworkFailure.Report(diagnostics, stage, "HTTP-" + e.Status, e);
                 result.HttpStatus = e.Status;
                 // An authoritative removal, permission denial, or update must never resurrect stale content.
                 if (e.Status == 404 || e.Status == 403 || e.Status == 401 || e.Status == 409) { cache.Delete(key); result.Error = e.Status == 409 ? "章节已更新" : "内容不可用"; return result; }
                 result.Error = "书库暂不可用";
             }
-            catch (InvalidDataException) { result.Error = "内容格式异常"; }
-            catch (Exception) { result.Error = "连接失败"; }
+            catch (Exception error) { string code = NetworkFailure.Code(error); result.Error = NetworkFailure.Message(code); NetworkFailure.Report(diagnostics, stage, code, error); }
             if (result.Document == null)
             {
                 byte[] bytes = cache.Read(key);

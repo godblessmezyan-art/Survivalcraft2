@@ -27,7 +27,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Release/target tests did not build.' }
 if ($LASTEXITCODE -ne 0) { throw 'Target CSV/XDB/member checks failed.' }
 
 $info = Get-Content -LiteralPath (Join-Path $project 'modinfo.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-if ($info.PackageName -ne 'CelestialCodex' -or $info.Version -ne '0.1.1' -or $info.ApiVersion -ne '1.42' -or $info.ScVersion -ne '2.4.10.6' -or $info.Dependencies.Count -ne 0) { throw 'Unexpected modinfo.' }
+if ($info.PackageName -ne 'CelestialCodex' -or $info.Version -ne '0.1.2' -or $info.ApiVersion -ne '1.42' -or $info.ScVersion -ne '2.4.10.6' -or $info.Dependencies.Count -ne 0) { throw 'Unexpected modinfo.' }
 foreach ($other in @('src\BuilderAssistant', 'SCIE-Port\src', 'SurvivalcraftRuins-Port\src')) {
     Get-ChildItem -LiteralPath (Join-Path $root $other) -Filter modinfo.json -Recurse -File | ForEach-Object {
         $otherInfo = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json

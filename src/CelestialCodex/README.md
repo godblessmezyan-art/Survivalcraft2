@@ -1,4 +1,6 @@
-# 云天书典 · Celestial Codex 0.1.1
+# 云天书典 · Celestial Codex 0.1.2
+
+0.1.2显式请求未压缩响应，补充网络错误码及Game.log完整异常。公开API现已由Digital-Study项目上线，本机用实际Mod DLL读取目录、详情、正文均通过；Android仍显示连接失败的具体原因尚未确定，本版需手机复测取证。见 [网络诊断记录](../../docs/CELESTIAL-CODEX-NETWORK-0.1.2.md)。
 
 0.1.1修复手机点击使用后因 `List<T>.Exists` 缺失而退出游戏的问题，并补齐界面异常隔离。0.1.0已在用户所示Android运行时证实闪退；0.1.1手机复测仍待验证。详见 [修复与验证记录](../../docs/CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md)。
 
@@ -12,9 +14,9 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-CelestialCodex.ps1 -GameDir <本机x25.01.17目录>
 ```
 
-输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.1.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.1。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
+输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.2.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.2。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
 
-**云库可用的前提**：Digital-Study 新 API 已由运营者部署。本轮明确未部署生产，因此不能仅安装 Mod 就期待生产新路由已存在。默认公开来源为 `https://wxhappylife.top/digital-study/api/game-library/v1`。
+默认公开来源为 `https://wxhappylife.top/digital-study/api/game-library/v1`。2026-11-04另一个项目完成API上线，本轮已验证公开目录、详情及正文200；此结果不代替Android游戏的HTTPS/运行时验收。手机失败时查看界面短错误码与Game.log的`[CelestialCodex] Network`及其后续异常。
 
 阅读过的目录/分片自动缓存；未打开的内容没有预下载。首个网络失败可等待最多 12 秒后回退；进入离线状态后，本次 Dialog 后续读取直接用缓存，点「刷新」重试联网。主动关闭/返回取消请求。收到明确 401/403/404/409 时不使用该请求的旧缓存；章节更新须重载目录，跨 revision 不恢复旧滚动位置。
 

@@ -1,8 +1,8 @@
 {
   "Name": "云天书典 · Celestial Codex",
-  "Version": "0.1.1",
+  "Version": "0.1.2",
   "ApiVersion": "1.42",
-  "Description": "修正书典首次打开时的集合接口闪退。Android 7723 复测待验证。",
+  "Description": "公开书库阅读与离线缓存；补充网络错误码和诊断日志。Android阅读待复测。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

@@ -3,9 +3,9 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>CelestialCodex</AssemblyName>
     <RootNamespace>CelestialCodex</RootNamespace>
-    <Version>0.1.1</Version>
-    <AssemblyVersion>0.1.1.0</AssemblyVersion>
-    <FileVersion>0.1.1.0</FileVersion>
+    <Version>0.1.2</Version>
+    <AssemblyVersion>0.1.2.0</AssemblyVersion>
+    <FileVersion>0.1.2.0</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">$(SCNET_GAME_DIR)</SCNetGameDir>
   </PropertyGroup>

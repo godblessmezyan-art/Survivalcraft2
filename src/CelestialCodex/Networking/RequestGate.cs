@@ -12,6 +12,8 @@ namespace CelestialCodex.Networking
         private bool closed;
         private CancellationTokenSource active;
         private ReaderResult pending;
+        private readonly Action<string> diagnostics;
+        internal RequestGate(Action<string> diagnostics = null) { this.diagnostics = diagnostics; }
         internal void Begin(Func<CancellationToken, Task<ReaderResult>> work)
         {
             lock (gate)
@@ -24,8 +26,16 @@ namespace CelestialCodex.Networking
                 {
                     ReaderResult result;
                     try { result = await work(source.Token).ConfigureAwait(false); }
-                    catch (OperationCanceledException) { result = new ReaderResult { Error = "连接超时" }; }
-                    catch (Exception) { result = new ReaderResult { Error = "书库暂不可用" }; }
+                    catch (OperationCanceledException error)
+                    {
+                        result = new ReaderResult { Error = NetworkFailure.Message("TIME") };
+                        if (!source.IsCancellationRequested) NetworkFailure.Report(diagnostics, "worker", "TIME", error);
+                    }
+                    catch (Exception error)
+                    {
+                        string code = NetworkFailure.Code(error); result = new ReaderResult { Error = NetworkFailure.Message(code) };
+                        if (!source.IsCancellationRequested) NetworkFailure.Report(diagnostics, "worker", code, error);
+                    }
                     lock (gate)
                     {
                         if (!closed && id == generation) pending = result;

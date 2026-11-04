@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-11-04 Celestial Codex 0.1.2：API上线后的网络诊断
+
+用户提供Digital-Study上线结果，随后报告游戏刷新显示“连接失败”且日志没有新增异常。已重新只读验证公开API，并通过实际Mod DLL的HTTP通道及Protocol.Decode获取page1/20、clouds-and-stars详情与c1正文：三次200、4279/362/6211字节、正文2097 UTF-16单位，未压缩、无跳转、身份与revision匹配。旧版泛化catch吞掉异常，不足以判断手机问题是TLS、DNS、BCL成员还是解码；本轮没有Android新增堆栈，不能猜定根因。
+
+0.1.2补齐HTTP/解码/worker初始化失败的有界完整异常日志，短码BCL/TLS/DATA/NET/TIME区分状态，诊断失败本身不覆盖原错；取消/旧代数结果继续丢弃。显式请求Accept-Encoding: identity，默认TLS证书校验、允许源、禁跳转、大小/超时及缓存/权限规则保持。net472/API1.42/SC2.4.10.6、956/DATA0、PackageName、GUID及5条目布局保持，无新Hook或SCNET网络包，不改服务器或其它Mod。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows完整公开阅读通道及新错误分支、Release/包 | 已确认 | 实际DLL三阶段200并成功解码；错误分类、日志及原有回归通过，命令与数量见专项记录。 |
+| Android使用入口 | 待验证 | 用户已反馈所装书典可以打开，但未补精确新MVID及完整多次开关验收。 |
+| Android实际网络阅读/缓存、TLS/BCL、Local/Server/Client | 待验证 | 仍报连接失败；需用0.1.2捕获具体异常，不能以服务器/Windows通过代替手机验证。 |
+
+详见 [0.1.2网络诊断](CELESTIAL-CODEX-NETWORK-0.1.2.md)。下方“生产未上线/404”为当时历史记录，不再代表当前公网状态。
+
 ## 2026-11-04 Celestial Codex 0.1.1：Android使用入口闪退修复
 
 用户7723 Android日志19:15:27.502报告缺少 `System.Collections.Generic.List<T>.Exists(Predicate<T>)`，调用链为 `CodexDialog.Update → Widget.UpdateWidgetsHierarchy`。Mod MVID `74b90e06da8646c4bf65b617b31829cf`与本机原始0.1.0交付DLL一致；该运行时使用0.1.0 **不支持**。手机游戏MVID为`c690fa8547734ab8bc808e79264babbc`，不同于固定Windows目标；没有APK/BCL哈希，不能据此推断其它成员可用。

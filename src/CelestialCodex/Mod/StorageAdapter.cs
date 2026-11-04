@@ -31,7 +31,7 @@ namespace CelestialCodex.Mod
     }
     internal sealed class ReaderSession : IDisposable
     {
-        private readonly RequestGate gate = new RequestGate();
+        private readonly RequestGate gate = new RequestGate(LogNetwork);
         private readonly string root;
         private readonly PositionWriter positions;
         private volatile bool offline;
@@ -68,13 +68,14 @@ namespace CelestialCodex.Mod
             gate.Begin(async token =>
             {
                 var files = new StorageAdapter(root);
-                var client = new LibraryClient(new BoundedCache(files), Endpoint(files));
+                var client = new LibraryClient(new BoundedCache(files), Endpoint(files), null, LogNetwork);
                 var result = await client.Read(request, token, offline).ConfigureAwait(false);
                 if (!token.IsCancellationRequested && result.Offline) offline = true;
                 return result;
             });
         }
         internal ReaderResult Take() { return gate.Take(); }
+        private static void LogNetwork(string message) { Log.Error(message); }
         internal void Cancel() { gate.Cancel(); }
         internal void GoOnline() { offline = false; }
         internal bool IsOffline { get { return offline; } }

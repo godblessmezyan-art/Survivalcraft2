@@ -42,6 +42,13 @@ internal static class Program
     }
     private static async Task Run()
     {
+        Check(NetworkFailure.Code(new MissingMethodException("missing-member")) == "BCL", "missing member diagnostic");
+        Check(NetworkFailure.Code(new HttpRequestException("outer", new MissingMethodException("inner-member"))) == "BCL", "nested missing member diagnostic");
+        Check(NetworkFailure.Code(new HttpRequestException("outer", new System.Security.Authentication.AuthenticationException("certificate"))) == "TLS", "nested TLS diagnostic");
+        Check(NetworkFailure.Code(new DecoderFallbackException("UTF8")) == "DATA", "UTF8 failure is data, not a connection error");
+        string report = null;
+        NetworkFailure.Report(message => report = message, "decode", "DATA", new InvalidDataException(new string('x', 10000)));
+        Check(report.Contains("stage=decode") && report.Length < 8300, "bounded diagnostics");
         Check(Protocol.Decode(Bytes(Catalog)).Books[0].Title == "测试书", "catalog");
         Check(Protocol.Decode(Bytes(Detail), "test").Book.Chapters.Count == 1, "TOC");
         Check(Protocol.Decode(Bytes(Body), "test", "c1", Revision).Chapter.Text == "你好\n\n世界😀", "UTF8 body");
@@ -107,7 +114,7 @@ internal static class Program
     private static async Task ClientChecks(BoundedCache cache)
     {
         var request = new Request(1);
-        var ok = Transport((r, t) => { Check(r.RequestUri.Scheme == "https" && r.RequestUri.Host == "wxhappylife.top", "request source"); return Task.FromResult(Response()); });
+        var ok = Transport((r, t) => { Check(r.RequestUri.Scheme == "https" && r.RequestUri.Host == "wxhappylife.top", "request source"); Check(r.Headers.AcceptEncoding.ToString() == "identity", "explicit identity response request"); return Task.FromResult(Response()); });
         var client = new LibraryClient(cache, SourcePolicy.DefaultEndpoint, ok);
         ReaderResult result = await client.Read(request, CancellationToken.None); Check(result.Document.Books.Count == 1 && !result.Offline, "network success");
         var fail = Transport((r, t) => { throw new IOException("Offline"); });
@@ -136,6 +143,14 @@ internal static class Program
         }
         string key = BoundedCache.Key(SourcePolicy.DefaultEndpoint + request.Path);
         cache.Write(key, Bytes("corrupt")); result = await new LibraryClient(cache, SourcePolicy.DefaultEndpoint, fail).Read(request, CancellationToken.None); Check(result.Document == null && cache.Read(key) == null, "corrupt cached JSON");
+        string diagnostic = null;
+        var missing = Transport((r, t) => { throw new HttpRequestException("wrapper", new MissingMethodException("test-network-member")); });
+        result = await new LibraryClient(cache, SourcePolicy.DefaultEndpoint, missing, message => diagnostic = message).Read(request, CancellationToken.None);
+        Check(result.Error.Contains("[BCL]") && diagnostic.Contains("test-network-member") && diagnostic.Contains("stage=http"), "network exception reaches diagnostics");
+        result = await new LibraryClient(cache, SourcePolicy.DefaultEndpoint, badJson, message => diagnostic = message).Read(request, CancellationToken.None);
+        Check(result.Error.Contains("[DATA]") && diagnostic.Contains("stage=decode"), "malformed server JSON is distinguishable");
+        result = await new LibraryClient(cache, SourcePolicy.DefaultEndpoint, missing, message => { throw new IOException("logger failed"); }).Read(request, CancellationToken.None);
+        Check(result.Error.Contains("[BCL]"), "diagnostic failure preserves original error");
         foreach (var response in new[] { Response(type: "text/html"), Response(type: "application/json; charset=gbk"), Response(status: 302), Response(new string('x', Limits.MaxFileBytes + 1)) })
             await RejectAsync(async () => await Transport((r, t) => Task.FromResult(response)).Get(request.Path, CancellationToken.None));
         // Unknown-length streaming body must be bounded too; Content-Length is not trusted.
@@ -149,6 +164,14 @@ internal static class Program
     }
     private static async Task GateChecks()
     {
+        string diagnostic = null;
+        using (var failed = new RequestGate(message => diagnostic = message))
+        {
+            failed.Begin(t => { throw new MissingMethodException("worker-setup-member"); });
+            ReaderResult failure = null;
+            for (int i = 0; i < 100 && failure == null; i++) { await Task.Delay(10); failure = failed.Take(); }
+            Check(failure != null && failure.Error.Contains("[BCL]") && diagnostic.Contains("worker-setup-member") && diagnostic.Contains("stage=worker"), "worker initialization failures are logged");
+        }
         var late = new TaskCompletionSource<ReaderResult>(); var started = new TaskCompletionSource<bool>();
         using (var gate = new RequestGate())
         {
