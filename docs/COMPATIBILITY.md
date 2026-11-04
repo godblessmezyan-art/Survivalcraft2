@@ -1,5 +1,20 @@
 # 兼容性矩阵
 
+## 2026-11-04 Celestial Codex 0.1.4：Android HTTP裁剪接口适配
+
+用户22:23:09.266日志仍报`Network BCL stage=http`，MVID `d223541dfc924976ac1f5c34dd433a83`匹配此前交付0.1.3记录。本次摘录没有异常类型/消息，不能仅凭此认定具体缺失成员。本机2026-10-28留存的Android BCL实际成员审计发现0.1.3还直接引用四个已裁剪方法：HttpClientHandler的AllowAutoRedirect、UseCookies、AutomaticDecompression三个setter及MediaTypeHeaderValue.MediaType getter。mscorlib MVID `9d0f885b92554f54bb3ffdcb8916ab03`与先前用户0.1.2日志的BCL MVID一致；本次手机全部BCL哈希仍未取得，不能自动等同两个渠道构建。
+
+0.1.4移除四个直接引用；桌面以反射调用存在的public setter，已核验的Android后端使用`_delegatingHandler → _settings`中的三个策略字段，并回读public getter。陌生布局/字段类型或回读失败在发送前拒绝，不放行跳转/Cookie；TLS配置不变。JSON类型经现有ContentType.ToString的精确媒体类型边界检查，charset等检查保持。HTTP日志细分deadline/handler/send/headers/body，首行包含异常类型与消息。net472/API1.42/SC2.4.10.6、956/DATA0、GUID、入口、包布局及缓存/进度/SCNET协议保持。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 本机Android BCL快照的Mod直接引用和策略布局 | 已确认 | 237个BCL成员引用可解析；0.1.3源码重建负对照检出四个缺失成员，具体BCL哈希与命令见专项。属于元数据审计，不是Android执行。 |
+| 固定Windows ABI、Release、隔离与真实HTTP、包 | 已确认 | 真实目标编译、原生CSV/XDB/PNG、公开目录/详情/正文200；数量、指纹及命令见专项。 |
+| 日志所示0.1.3在线阅读 | 不支持 | 用户提供匹配交付MVID的BCL错误；具体本次缺失方法在摘录中未给出。 |
+| 0.1.4 Android7723阅读/缓存/TLS、触屏多分辨率及Local/Server/Client | 待验证 | 私有布局只支持已核验结构；Windows与元数据通过不代替手机或完整游戏。 |
+
+详见 [0.1.4 HTTP修复记录](CELESTIAL-CODEX-HTTP-0.1.4.md)。World2枚举权限错误发生于书典HTTP之前，不是书典缓存路径；本轮未修改存档权限。
+
 ## 2026-11-04 Celestial Codex 0.1.3：移除Android缺失的链接取消源
 
 用户20:57:43.901日志已明确：`Network BCL stage=http`，缺少`CancellationTokenSource.CreateLinkedTokenSource(CancellationToken[])`，Mod MVID为`842f3895e44a4df586c2f98fbe8a7642`，与本机0.1.2交付DLL一致。其异步Get在发出请求前失败；该手机运行时使用0.1.2在线阅读 **不支持**。同段World2权限和m.schub.top DNS错误不来自书典固定来源，未据此改动世界权限/DNS。

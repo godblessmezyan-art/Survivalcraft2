@@ -1,4 +1,6 @@
-# 云天书典 · Celestial Codex 0.1.3
+# 云天书典 · Celestial Codex 0.1.4
+
+0.1.4修复本机Android BCL快照中被裁剪的HTTP配置setter和MediaType getter；使用核验过的请求策略适配并回读，保持禁跳转、无Cookie、无自动解压和TLS校验。新增整DLL Android成员审计与HTTP细阶段日志。见 [0.1.4 HTTP修复与验证](../../docs/CELESTIAL-CODEX-HTTP-0.1.4.md)。Android完整阅读仍待复测。
 
 0.1.3修复手机日志证实缺失的 `CreateLinkedTokenSource(CancellationToken[])`。请求改用自有取消源和后台轮询，保持12秒预算、关闭取消和有序释放；未禁用HTTPS验证。见 [0.1.3取消机制修复](../../docs/CELESTIAL-CODEX-CANCELLATION-0.1.3.md)。Android阅读仍待复测。
 
@@ -16,7 +18,7 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-CelestialCodex.ps1 -GameDir <本机x25.01.17目录>
 ```
 
-输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.3.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.3。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
+输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.4.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.4。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
 
 默认公开来源为 `https://wxhappylife.top/digital-study/api/game-library/v1`。2026-11-04另一个项目完成API上线，本轮已验证公开目录、详情及正文200；此结果不代替Android游戏的HTTPS/运行时验收。手机失败时查看界面短错误码与Game.log的`[CelestialCodex] Network`及其后续异常。
 

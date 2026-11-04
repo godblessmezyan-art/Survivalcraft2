@@ -31,27 +31,32 @@ namespace CelestialCodex.Networking
         private readonly string endpoint;
         private readonly Func<HttpMessageHandler> handlerFactory;
         internal LibraryTransport(string endpoint, Func<HttpMessageHandler> handlerFactory = null) { this.endpoint = SourcePolicy.Validate(endpoint); this.handlerFactory = handlerFactory; }
-        internal async Task<byte[]> Get(string path, CancellationToken token)
+        internal async Task<byte[]> Get(string path, CancellationToken token, Action<string> progress = null)
         {
             // All paths are constructed by Request; never accept response links or redirects.
             if (!path.StartsWith("/books", StringComparison.Ordinal) || path.IndexOf("..", StringComparison.Ordinal) >= 0 || path.IndexOf('\\') >= 0 || path.IndexOf('#') >= 0) throw new InvalidDataException("Request path");
+            if (progress != null) progress("http/deadline");
             var deadline = new RequestDeadline(token, 12000);
             try
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                using (HttpMessageHandler handler = handlerFactory == null ? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.None } : handlerFactory())
+                if (progress != null) progress("http/handler");
+                using (HttpMessageHandler handler = handlerFactory == null ? HttpHandlerPolicy.Create() : handlerFactory())
                 using (var client = new HttpClient(handler))
                 {
+                    if (progress != null) progress("http/send");
                     client.DefaultRequestHeaders.Add("Accept", "application/json");
                     client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
                     using (HttpResponseMessage response = await client.GetAsync(new Uri(endpoint + path), HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
                     {
                         if (response.StatusCode != HttpStatusCode.OK) throw new LibraryHttpException((int)response.StatusCode);
+                        if (progress != null) progress("http/headers");
                         var content = response.Content;
-                        if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response content type");
+                        if (content == null || content.Headers.ContentType == null || !IsJson(content.Headers.ContentType.ToString())) throw new InvalidDataException("Response content type");
                         string charset = content.Headers.ContentType.CharSet;
                         if (!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Response encoding");
                         if (content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > Limits.MaxFileBytes) throw new InvalidDataException("Response size/encoding");
+                        if (progress != null) progress("http/body");
                         using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
                         using (var output = new MemoryStream())
                         {
@@ -64,6 +69,12 @@ namespace CelestialCodex.Networking
                 }
             }
             finally { await deadline.Stop().ConfigureAwait(false); }
+        }
+        internal static bool IsJson(string contentType)
+        {
+            if (contentType == null) return false;
+            int separator = contentType.IndexOf(';');
+            return string.Equals((separator < 0 ? contentType : contentType.Substring(0, separator)).Trim(), "application/json", StringComparison.OrdinalIgnoreCase);
         }
     }
     internal sealed class Request
@@ -113,7 +124,7 @@ namespace CelestialCodex.Networking
             string stage = "http";
             try
             {
-                byte[] bytes = await transport.Get(request.Path, token).ConfigureAwait(false);
+                byte[] bytes = await transport.Get(request.Path, token, value => stage = value).ConfigureAwait(false);
                 stage = "decode";
                 result.Document = request.Decode(bytes); token.ThrowIfCancellationRequested(); result.CacheFailed = !cache.Write(key, bytes);
             }

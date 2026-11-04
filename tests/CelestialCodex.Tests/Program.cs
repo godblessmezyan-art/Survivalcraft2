@@ -43,13 +43,17 @@ internal static class Program
     private static async Task Run()
     {
         await DeadlineChecks();
+        HandlerPolicyChecks();
+        await HandlerWireChecks();
         Check(NetworkFailure.Code(new MissingMethodException("missing-member")) == "BCL", "missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new MissingMethodException("inner-member"))) == "BCL", "nested missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new System.Security.Authentication.AuthenticationException("certificate"))) == "TLS", "nested TLS diagnostic");
         Check(NetworkFailure.Code(new DecoderFallbackException("UTF8")) == "DATA", "UTF8 failure is data, not a connection error");
         string report = null;
         NetworkFailure.Report(message => report = message, "decode", "DATA", new InvalidDataException(new string('x', 10000)));
-        Check(report.Contains("stage=decode") && report.Length < 8300, "bounded diagnostics");
+        Check(report.Contains("stage=decode") && report.Contains("type=System.IO.InvalidDataException message=") && report.Length < 9400, "bounded diagnostics with type/message on first line");
+        NetworkFailure.Report(message => report = message, "http/handler", "BCL", new MissingMethodException("missing\nsetter"));
+        Check(report.Split('\n')[0].Contains("type=System.MissingMethodException message=missing setter"), "summary survives multiline stack truncation");
         Check(Protocol.Decode(Bytes(Catalog)).Books[0].Title == "测试书", "catalog");
         Check(Protocol.Decode(Bytes(Detail), "test").Book.Chapters.Count == 1, "TOC");
         Check(Protocol.Decode(Bytes(Body), "test", "c1", Revision).Chapter.Text == "你好\n\n世界😀", "UTF8 body");
@@ -139,6 +143,52 @@ internal static class Program
             finally { await deadline.Stop(); }
         }
     }
+    private static void HandlerPolicyChecks()
+    {
+        using (var handler = (HttpClientHandler)HttpHandlerPolicy.Create())
+            Check(!handler.AllowAutoRedirect && !handler.UseCookies && handler.AutomaticDecompression == DecompressionMethods.None, "desktop public setter policy");
+        var trimmed = new TrimmedHandler();
+        Check(trimmed.AllowAutoRedirect && trimmed.UseCookies && trimmed.AutomaticDecompression == DecompressionMethods.GZip, "trimmed fixture starts with unsafe defaults");
+        HttpHandlerPolicy.Configure(trimmed);
+        Check(!trimmed.AllowAutoRedirect && !trimmed.UseCookies && trimmed.AutomaticDecompression == DecompressionMethods.None, "verified Android fields enforce policy without setters");
+        Reject(() => HttpHandlerPolicy.Configure(new UnknownHandler()));
+        Reject(() => HttpHandlerPolicy.Configure(new IgnoredSetterHandler()));
+        foreach (string type in new[] { "application/json", "APPLICATION/JSON; charset=\"utf-8\"", " application/json ; charset=utf-8" }) Check(LibraryTransport.IsJson(type), "JSON header without MediaType getter");
+        foreach (string type in new[] { null, "", "text/html", "application/jsonp", "application/json-x; charset=utf-8" }) Check(!LibraryTransport.IsJson(type), "strict media type boundary");
+    }
+    private static async Task HandlerWireChecks()
+    {
+        var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        string address = "http://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port;
+        var requests = new List<string>();
+        Task server = Task.Run(async () =>
+        {
+            for (int i = 0; i < 2; i++)
+            using (var connection = await listener.AcceptTcpClientAsync())
+            using (var stream = connection.GetStream())
+            using (var reader = new StreamReader(stream, Encoding.ASCII, false, 1024, true))
+            {
+                string line; var headers = new StringBuilder();
+                while (!string.IsNullOrEmpty(line = await reader.ReadLineAsync())) headers.AppendLine(line);
+                requests.Add(headers.ToString());
+                byte[] response = Encoding.ASCII.GetBytes("HTTP/1.1 302 Found\r\nLocation: " + address + "/followed\r\nSet-Cookie: codex-test=1; Path=/\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+                await stream.WriteAsync(response, 0, response.Length);
+            }
+        });
+        try
+        {
+            using (var client = new HttpClient(HttpHandlerPolicy.Create()))
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                for (int i = 0; i < 2; i++)
+                using (var response = await client.GetAsync(address + "/books")) Check(response.StatusCode == HttpStatusCode.Found, "real wire redirect is returned without following");
+            }
+            await server;
+            Check(requests.Count == 2 && requests[1].IndexOf("Cookie:", StringComparison.OrdinalIgnoreCase) < 0 && requests[1].StartsWith("GET /books ", StringComparison.Ordinal), "real wire does not replay cookies or follow Location");
+        }
+        finally { listener.Stop(); }
+    }
     private static HttpResponseMessage Response(string json = Catalog, int status = 200, string type = "application/json; charset=utf-8")
     {
         var r = new HttpResponseMessage((HttpStatusCode)status) { Content = new ByteArrayContent(Bytes(json)) }; r.Content.Headers.ContentType = MediaTypeHeaderValue.Parse(type); return r;
@@ -185,7 +235,7 @@ internal static class Program
         Check(result.Error.Contains("[DATA]") && diagnostic.Contains("stage=decode"), "malformed server JSON is distinguishable");
         result = await new LibraryClient(cache, SourcePolicy.DefaultEndpoint, missing, message => { throw new IOException("logger failed"); }).Read(request, CancellationToken.None);
         Check(result.Error.Contains("[BCL]"), "diagnostic failure preserves original error");
-        foreach (var response in new[] { Response(type: "text/html"), Response(type: "application/json; charset=gbk"), Response(status: 302), Response(new string('x', Limits.MaxFileBytes + 1)) })
+        foreach (var response in new[] { Response(type: "text/html"), Response(type: "application/jsonp"), Response(type: "application/json; charset=gbk"), Response(status: 302), Response(new string('x', Limits.MaxFileBytes + 1)) })
             await RejectAsync(async () => await Transport((r, t) => Task.FromResult(response)).Get(request.Path, CancellationToken.None));
         // Unknown-length streaming body must be bounded too; Content-Length is not trusted.
         var streamed = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(new NonSeekStream(new byte[Limits.MaxFileBytes + 1])) };

@@ -34,7 +34,10 @@ namespace CelestialCodex.Networking
             {
                 string detail = error == null ? "" : error.ToString();
                 if (detail.Length > 8192) detail = detail.Substring(0, 8192);
-                diagnostics("[CelestialCodex] Network " + code + " stage=" + stage + "\n" + detail);
+                string summary = error == null ? "" : " type=" + error.GetType().FullName + " message=" + error.Message;
+                summary = summary.Replace('\r', ' ').Replace('\n', ' ');
+                if (summary.Length > 1024) summary = summary.Substring(0, 1024);
+                diagnostics("[CelestialCodex] Network " + code + " stage=" + stage + summary + "\n" + detail);
             }
             catch (Exception) { /* Diagnostic sinks must never replace the original failure. */ }
         }

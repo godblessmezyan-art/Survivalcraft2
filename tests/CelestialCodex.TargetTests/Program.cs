@@ -112,6 +112,14 @@ internal static class Program
             Check(xml.Descendants().Count(x => (string)x.Attribute("Name") == "CelestialCodexBehavior") == 2, "Subsystem template/member registration");
         }
         var refs = AuditMembers(mod);
+        string previousHttp = Path.Combine(repo, "artifacts/celestial-audit/CelestialCodex-0.1.3-negative.dll");
+        if (File.Exists(previousHttp))
+        {
+            bool rejected = false;
+            try { AuditMembers(Assembly.LoadFile(previousHttp)); }
+            catch (Exception e) { if (!e.Message.StartsWith("Android trimmed HTTP member ", StringComparison.Ordinal)) throw; rejected = true; }
+            Check(rejected, "BCL guard rejects 0.1.3 trimmed HTTP calls");
+        }
         Check(RejectsReportedListCall(typeof(LegacyListProbe).Assembly, new[] { typeof(LegacyListProbe) }), "BCL guard rejects compiled List.Exists negative fixture");
         Check(RejectsLinkedCancellation(typeof(LegacyCancellationProbe).Assembly, new[] { typeof(LegacyCancellationProbe) }), "BCL guard rejects compiled linked CTS fixture");
         string previousNetwork = Path.Combine(repo, "artifacts/celestial-audit/CelestialCodex-0.1.2-negative.dll");
@@ -140,7 +148,7 @@ internal static class Program
         object instance = Activator.CreateInstance(transport, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { "https://wxhappylife.top/digital-study/api/game-library/v1", null }, null);
         MethodInfo get = transport.GetMethod("Get", BindingFlags.NonPublic | BindingFlags.Instance);
         MethodInfo decode = assembly.GetType("CelestialCodex.Core.Protocol").GetMethod("Decode", BindingFlags.NonPublic | BindingFlags.Static);
-        Func<string, byte[]> fetch = path => ((System.Threading.Tasks.Task<byte[]>)get.Invoke(instance, new object[] { path, System.Threading.CancellationToken.None })).GetAwaiter().GetResult();
+        Func<string, byte[]> fetch = path => ((System.Threading.Tasks.Task<byte[]>)get.Invoke(instance, new object[] { path, System.Threading.CancellationToken.None, null })).GetAwaiter().GetResult();
         Func<object, string, object> field = (obj, name) => obj.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance).GetValue(obj);
         byte[] catalogBytes = fetch("/books?page=1&pageSize=20");
         object catalog = decode.Invoke(null, new object[] { catalogBytes, null, null, null });
@@ -216,6 +224,7 @@ internal static class Program
                         var member = method.Module.ResolveMember(BitConverter.ToInt32(il, i), type.IsGenericType ? type.GetGenericArguments() : null, method.IsGenericMethod ? method.GetGenericArguments() : null);
                         Type declaring = member.DeclaringType ?? member as Type; string name = declaring == null ? member.ToString() : declaring.FullName + "." + member.Name;
                         Check(!(name.StartsWith("System.") && (member.Name.StartsWith("TryParse") || name.Contains("System.Linq.Enumerable"))), "Android known missing API " + name);
+                        Check(!(declaring != null && declaring.FullName == "System.Net.Http.HttpClientHandler" && (member.Name == "set_AllowAutoRedirect" || member.Name == "set_UseCookies" || member.Name == "set_AutomaticDecompression")) && !(name == "System.Net.Http.Headers.MediaTypeHeaderValue.get_MediaType"), "Android trimmed HTTP member " + name);
                         if (!onlyReportedMissing && declaring == typeof(System.Threading.CancellationTokenSource))
                             Check(member.Name != "CreateLinkedTokenSource" && member.Name != "CancelAfter", "Android unsupported cancellation method " + name);
                         if (declaring != null && declaring.IsGenericType && declaring.GetGenericTypeDefinition() == typeof(List<>))
