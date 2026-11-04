@@ -1,5 +1,18 @@
 # 兼容性矩阵
 
+## 2026-11-04 Celestial Codex 0.1.0（独立阅读工具）
+
+新增独立 `src/CelestialCodex` / PackageName、AssemblyName `CelestialCodex`，物品956/DATA0，net472/API1.42/SC2.4.10.6，正式包 `artifacts/CelestialCodex/云天书典.netmod`。使用真实 ModLoader.__ModInitialize、SubsystemBlockBehavior.OnUse/Dispose、FlatBlock、原生Dialog/ScrollPanel/Label与Engine.Storage；无新增Hook/自定义网络包。CSV/XDB及3个新GUID经目标原生加载/合并/反序列化与冲突审计。PlayerData.IsMainPlayer限制本机UI，读书网络/缓存不访问SCNET房间协议或服务器进度，不改玩家属性/地形/存档结构。原生同包同版本握手保持。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows x25.01.17程序集、net472 Release、原生CSV/XDB/PNG与包 | 已确认 | 三SHA与既有固定值一致，真实编译0警告/0错误；新工具隔离及目标成员解析通过，详见专项记录。 |
+| Windows HTTPS来源通道 | 已确认 | 正式Mod网络实现默认验证证书、禁跳转、容量/超时校验；实际GET返回404，生产新API未部署。 |
+| Android7723加载、TLS/BCL、Storage、UI安全区；实际Local/Server/Client | 待验证 | 没有精确Android APK/程序集或真机，不能由桌面推定兼容。 |
+| 异版本/缺Mod混装，SCAPI/scmod，PDF/EPUB解析 | 不支持 | 保留原生握手；只读文本V1，无认证/云进度扩展。 |
+
+重点：此Windows ABI的 `ModsManager.UserDataPath` 是 `app:/UserId.dat` 文件，运行时取其父目录后交给Engine.Storage；不硬编码Android路径。原生WebManager.Get绕过证书校验/吞异常，故独立使用在Windows目标及实际HTTPS下验证的HttpClient成员，Android对应BCL仍待取证。API只读模块位于Digital-Study独立仓库，本轮不部署、不同步书籍。完整命令、ID/GUID、API、缓存与设备验收见 [Celestial Codex V0.1](CELESTIAL-CODEX-V0.1.md)，不替代其它Mod的兼容记录。
+
 ## 2026-11-03 SCIE-Port 0.76.2：阿比斯普通玩家普攻
 
 修复虚空普攻排除Client/远端玩家的V0.1限制，既有252 Action5/Kind5扩为双形态普攻的自动鉴权/伤害与演出，无房主人工批准入口；精简主机确认措辞并立即清除重击成功回执的等待文字。图谱解放、冷却及目标保护保持。无新Hook、加载器ABI、字节布局、存档/ID、美术或蓝图能力变化。

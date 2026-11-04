@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>CelestialCodex</AssemblyName>
+    <RootNamespace>CelestialCodex</RootNamespace>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">$(SCNET_GAME_DIR)</SCNetGameDir>
+  </PropertyGroup>
+  <Target Name="CheckGame" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(SCNetGameDir)/Survivalcraft.exe')" Text="Provide SCNetGameDir or SCNET_GAME_DIR for x25.01.17." />
+  </Target>
+  <ItemGroup>
+    <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
+    <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,168 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Xml.Linq;
+using CelestialCodex.Mod;
+using Engine.Media;
+using Game;
+
+internal static class Program
+{
+    private static int checks;
+    private static void Check(bool value, string name) { checks++; if (!value) throw new Exception(name); }
+    private static void Main(string[] args)
+    {
+        // Register resolution before JIT compiling any method that references game types.
+        AppDomain.CurrentDomain.AssemblyResolve += (sender, e) =>
+        {
+            string path = Path.Combine(args[0], new AssemblyName(e.Name).Name + ".dll");
+            if (new AssemblyName(e.Name).Name == "Survivalcraft") path = Path.Combine(args[0], "Survivalcraft.exe");
+            return File.Exists(path) ? Assembly.LoadFrom(path) : null;
+        };
+        try { Run(args[0], args[1]); if (args.Length > 2 && args[2] == "--https-probe") HttpsProbe(); }
+        catch (Exception e) { Console.Error.WriteLine(e); Environment.ExitCode = 1; }
+    }
+    private static void Run(string gameDir, string repo)
+    {
+        Assembly game = typeof(Block).Assembly, mod = typeof(CelestialCodexBlock).Assembly;
+        AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += (sender, e) =>
+        {
+            string file = Path.Combine(gameDir, new AssemblyName(e.Name).Name + ".dll");
+            if (new AssemblyName(e.Name).Name == "Survivalcraft") file = Path.Combine(gameDir, "Survivalcraft.exe");
+            return File.Exists(file) ? Assembly.ReflectionOnlyLoadFrom(file) : Assembly.ReflectionOnlyLoad(e.Name);
+        };
+        int installed = 0;
+        string netMods = Path.Combine(gameDir, "NetMods");
+        foreach (string package in Directory.Exists(netMods) ? Directory.EnumerateFiles(netMods, "*.netmod") : new string[0])
+        {
+            using (var zip = System.IO.Compression.ZipFile.OpenRead(package))
+            {
+                foreach (var entry in zip.Entries)
+                {
+                    if (!entry.FullName.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) continue;
+                    Check(entry.Length <= 32 * 1024 * 1024, "Installed DLL audit bound");
+                    using (Stream input = entry.Open())
+                    using (var memory = new MemoryStream())
+                    {
+                        byte[] buffer = new byte[4096]; int read;
+                        while ((read = input.Read(buffer, 0, buffer.Length)) > 0) { if (memory.Length + read > 32 * 1024 * 1024) throw new InvalidDataException("Installed DLL bound"); memory.Write(buffer, 0, read); }
+                        Assembly other = Assembly.ReflectionOnlyLoad(memory.ToArray());
+                        if (other.GetName().Name == "CelestialCodex") continue;
+                        foreach (Type t in other.GetTypes())
+                        {
+                            var index = t.GetField("Index", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                            if (index != null && index.IsLiteral && index.FieldType == typeof(int)) Check((int)index.GetRawConstantValue() != 956, "Installed Index collision " + t.FullName);
+                        }
+                    }
+                }
+            }
+            installed++;
+        }
+        foreach (Type type in game.GetTypes())
+        {
+            if (!type.IsSubclassOf(typeof(Block))) continue;
+            FieldInfo field = type.GetField("Index", BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+            if (field != null && field.IsLiteral && field.FieldType == typeof(int)) Check((int)field.GetRawConstantValue() != CelestialCodexBlock.Index, "Native Index collision " + type.Name);
+        }
+        foreach (string sourceRoot in new[] { "src", "SCIE-Port/src", "SurvivalcraftRuins-Port/src" })
+        foreach (string file in Directory.EnumerateFiles(Path.Combine(repo, sourceRoot), "*.cs", SearchOption.AllDirectories))
+        {
+            if (file.Contains("CelestialCodex") || file.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar)) continue;
+            Check(!System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText(file), @"\b(?:Index|BlockIndex|ContentIndex)\s*=\s*956\b"), "Source Index collision " + file);
+        }
+        string modRoot = Path.Combine(repo, "src/CelestialCodex");
+        var block = new CelestialCodexBlock { BlockIndex = CelestialCodexBlock.Index };
+        var air = new AirBlock();
+        for (int i = 0; i < BlocksManager.m_blocks.Length; i++) BlocksManager.m_blocks[i] = air;
+        BlocksManager.m_blocks[CelestialCodexBlock.Index] = block;
+        BlocksManager.LoadBlocksData(File.ReadAllText(Path.Combine(modRoot, "Assets/Blocks/CelestialCodex.csv")));
+        Check(!block.IsPlaceable && !block.IsCollidable && block.MaxStacking == 1, "Native CSV flags");
+        Check(block.GetTextureSlotCount(956) == 1 && block.GetMeleePower(956) == 0 && block.GetProjectilePower(956) == 0, "Nonweapon/icon semantics");
+        Check(block.GetCreativeValues().SequenceEqual(new[] { 956 }), "Native creative item DATA0");
+        Check(block.GetDisplayName(null, 956) == "云天书典" && block.GetCategory(956) == "云天书典", "Item/category");
+        Check(new SubsystemCelestialCodexBehavior().HandledBlocks.SequenceEqual(new[] { 956 }), "Use route");
+        using (Stream image = File.OpenRead(Path.Combine(modRoot, "Assets/Textures/CelestialCodex/Book.png"))) { Image icon = Image.Load(image); Check(icon.Width == 32 && icon.Height == 32, "Native PNG decoder"); }
+
+        var decoder = game.GetType("Game.SurvivalCraftModEntity").GetMethod("GetDecipherStream", BindingFlags.NonPublic | BindingFlags.Static);
+        using (var content = File.OpenRead(Path.Combine(gameDir, "Content.scpak")))
+        using (var decoded = (Stream)decoder.Invoke(null, new object[] { content }))
+        using (var zip = new System.IO.Compression.ZipArchive(decoded, ZipArchiveMode.Read))
+        using (var reader = new StreamReader(zip.GetEntry("Assets/Database.xml").Open()))
+        {
+            XElement xml = XElement.Parse(reader.ReadToEnd());
+            var xdb = XElement.Load(Path.Combine(modRoot, "Assets/Database/CelestialCodex.xdb"));
+            var shared = new HashSet<string>(new[] { "00c97f0f-731e-481c-9909-eae9cc5ee940", "85023bf8-1c90-4dd1-9442-e6c13691d078" });
+            foreach (var node in xdb.Descendants().Where(x => x.Attribute("Guid") != null))
+            {
+                string guid = (string)node.Attribute("Guid"); if (shared.Contains(guid)) continue;
+                Check(!xml.Descendants().Any(x => (string)x.Attribute("Guid") == guid), "Native GUID collision");
+                foreach (string sourceRoot in new[] { "src/BuilderAssistant", "SCIE-Port/src", "SurvivalcraftRuins-Port/src" })
+                foreach (string file in Directory.EnumerateFiles(Path.Combine(repo, sourceRoot), "*.xdb", SearchOption.AllDirectories)) Check(!File.ReadAllText(file).Contains(guid), "Other Mod GUID collision " + file);
+            }
+            using (var stream = File.OpenRead(Path.Combine(modRoot, "Assets/Database/CelestialCodex.xdb"))) ModsManager.CombineDataBase(xml, stream);
+            // Deserialize the merged native tree to catch broken nesting and inheritance.
+            var serializer = typeof(TemplatesDatabase.Database).Assembly.GetType("TemplatesDatabase.XmlDatabaseSerializer");
+            MethodInfo load = serializer.GetMethods().Single(m => m.Name == "LoadDatabase" && m.GetParameters().Length == 1);
+            object database = load.Invoke(null, new object[] { xml }); Check(database != null, "Native XDB deserialization");
+            Check(xml.Descendants().Count(x => (string)x.Attribute("Name") == "CelestialCodexBehavior") == 2, "Subsystem template/member registration");
+        }
+        var refs = AuditMembers(mod);
+        string output = Path.Combine(repo, "artifacts/celestial-audit/member-refs.txt"); Directory.CreateDirectory(Path.GetDirectoryName(output)); File.WriteAllLines(output, refs.OrderBy(x => x));
+        Check(!mod.GetReferencedAssemblies().Any(a => a.Name == "SCIEPort" || a.Name == "BuilderAssistant"), "Independent assembly");
+        Console.WriteLine("CelestialCodex target: " + checks + " checks; " + refs.Count + " resolved member references; " + installed + " installed packages audited; native CSV/XDB/PNG passed. Windows x25.01.17 only.");
+    }
+    private static void HttpsProbe()
+    {
+        Type transport = typeof(CelestialCodexBlock).Assembly.GetType("CelestialCodex.Networking.LibraryTransport");
+        object instance = Activator.CreateInstance(transport, BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { "https://wxhappylife.top/digital-study/api/game-library/v1", null }, null);
+        var request = (System.Threading.Tasks.Task<byte[]>)transport.GetMethod("Get", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, new object[] { "/books?page=1&pageSize=1", System.Threading.CancellationToken.None });
+        try { Console.WriteLine("HTTPS runtime probe: 200; " + request.GetAwaiter().GetResult().Length + " bytes (read only)"); }
+        catch (Exception e)
+        {
+            if (e.GetType().FullName != "CelestialCodex.Networking.LibraryHttpException") throw;
+            Console.WriteLine("HTTPS runtime probe: certificate-validated connection; HTTP " + e.GetType().GetField("Status", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(e) + "; no deployment performed.");
+        }
+    }
+    private static HashSet<string> AuditMembers(Assembly assembly)
+    {
+        var codes = new Dictionary<ushort, OpCode>(); foreach (FieldInfo f in typeof(OpCodes).GetFields()) if (f.FieldType == typeof(OpCode)) { var op = (OpCode)f.GetValue(null); codes[(ushort)op.Value] = op; }
+        var references = new HashSet<string>();
+        foreach (Type type in assembly.GetTypes())
+        {
+            var methods = new List<MethodBase>(type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic));
+            methods.AddRange(type.GetConstructors(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic));
+            foreach (MethodBase method in methods)
+            {
+                var body = method.GetMethodBody(); if (body == null) continue; byte[] il = body.GetILAsByteArray();
+                for (int i = 0; i < il.Length;)
+                {
+                    ushort code = il[i++]; if (code == 0xfe) code = (ushort)(0xfe00 | il[i++]); var op = codes[code];
+                    int length;
+                    switch (op.OperandType)
+                    {
+                        case OperandType.InlineNone: length = 0; break;
+                        case OperandType.ShortInlineI: case OperandType.ShortInlineVar: case OperandType.ShortInlineBrTarget: length = 1; break;
+                        case OperandType.InlineVar: length = 2; break;
+                        case OperandType.InlineI8: case OperandType.InlineR: length = 8; break;
+                        case OperandType.InlineSwitch: length = 4 + BitConverter.ToInt32(il, i) * 4; break;
+                        default: length = 4; break;
+                    }
+                    if (op.OperandType == OperandType.InlineMethod || op.OperandType == OperandType.InlineField || op.OperandType == OperandType.InlineType || op.OperandType == OperandType.InlineTok)
+                    {
+                        var member = method.Module.ResolveMember(BitConverter.ToInt32(il, i), type.IsGenericType ? type.GetGenericArguments() : null, method.IsGenericMethod ? method.GetGenericArguments() : null);
+                        Type declaring = member.DeclaringType ?? member as Type; string name = declaring == null ? member.ToString() : declaring.FullName + "." + member.Name;
+                        Check(!(name.StartsWith("System.") && (member.Name.StartsWith("TryParse") || name.Contains("System.Linq.Enumerable"))), "Android known missing API " + name);
+                        Check(!name.StartsWith("Game.NetWork.") && !name.StartsWith("Game.ComponentLocomotion.") && !name.StartsWith("Game.ComponentHealth.") && !name.Contains(".ChangeCell"), "Client reader side effects " + name);
+                        if (declaring != null && declaring.Assembly != assembly) references.Add(name + " :: " + member);
+                    }
+                    i += length;
+                }
+            }
+        }
+        return references;
+    }
+}
