@@ -19,6 +19,7 @@ namespace CelestialCodex.Core
     }
     internal sealed class BoundedCache
     {
+        private sealed class Entry { internal string Name; internal long Size; internal DateTime Modified; }
         private static readonly object Gate = new object();
         private readonly IFileStore files;
         internal BoundedCache(IFileStore files) { this.files = files; }
@@ -64,7 +65,7 @@ namespace CelestialCodex.Core
             {
                 try
                 {
-                    files.Create(); var names = new List<string>(); long total = 0; int scanned = 0;
+                    files.Create(); var entries = new List<Entry>(); long total = 0; int scanned = 0;
                     foreach (string name in files.Names())
                     {
                         if (++scanned > 1024) throw new InvalidDataException("Cache directory limit");
@@ -72,14 +73,15 @@ namespace CelestialCodex.Core
                         if (!Managed(name)) continue;
                         if (name == key) continue;
                         long size = files.Size(name); if (size > Limits.MaxFileBytes) { files.Delete(name); continue; }
-                        names.Add(name); total += size;
+                        entries.Add(new Entry { Name = name, Size = size, Modified = files.Modified(name) }); total += size;
                     }
-                    names.Sort((a, b) => files.Modified(a).CompareTo(files.Modified(b)));
-                    while (names.Count >= Limits.MaxFiles || total + bytes.Length > Limits.MaxTotalBytes)
+                    while (entries.Count >= Limits.MaxFiles || total + bytes.Length > Limits.MaxTotalBytes)
                     {
-                        int victim = names.FindIndex(candidate => candidate != "position.json");
+                        int victim = -1;
+                        for (int i = 0; i < entries.Count; i++)
+                            if (entries[i].Name != "position.json" && (victim < 0 || entries[i].Modified.CompareTo(entries[victim].Modified) < 0)) victim = i;
                         if (victim < 0) throw new InvalidDataException("Cache capacity");
-                        string name = names[victim]; total -= files.Size(name); files.Delete(name); names.RemoveAt(victim);
+                        Entry entry = entries[victim]; total -= entry.Size; files.Delete(entry.Name); entries.RemoveAt(victim);
                     }
                     using (Stream output = files.Write(key + ".tmp")) output.Write(bytes, 0, bytes.Length);
                     files.Move(key + ".tmp", key); return true;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using CelestialCodex.Core;
 using CelestialCodex.Mod;
 using CelestialCodex.Networking;
@@ -118,7 +119,7 @@ namespace CelestialCodex.UI
         {
             view = View.Reading; Clear(); heading = book.Title; text.Text = chapter.Title + "\n\n" + chapter.Text; entries.Children.Add(text);
         }
-        private int ChapterIndex() { return book == null || chapter == null ? -1 : book.Chapters.FindIndex(c => c.Id == chapter.Id); }
+        private int ChapterIndex() { return book == null || chapter == null ? -1 : ChapterNavigation.IndexOf(book.Chapters, chapter.Id); }
         private void OpenBook(string slug, bool continueReading)
         {
             resume = continueReading; Load(new Request(slug));
@@ -148,7 +149,7 @@ namespace CelestialCodex.UI
                 if (resume)
                 {
                     resume = false;
-                    if (saved.Slug == book.Slug && saved.Revision == book.Revision && book.Chapters.Exists(c => c.Id == saved.Chapter)) { Load(new Request(book.Slug, saved.Chapter, book.Revision)); return; }
+                    if (saved.Slug == book.Slug && saved.Revision == book.Revision && ChapterNavigation.IndexOf(book.Chapters, saved.Chapter) >= 0) { Load(new Request(book.Slug, saved.Chapter, book.Revision)); return; }
                     if (saved.Slug == book.Slug && saved.Revision != book.Revision) status.Text = "内容已更新";
                 }
             }
@@ -183,6 +184,13 @@ namespace CelestialCodex.UI
         public override void Update()
         {
             if (Closed) return;
+            try { UpdateReader(); }
+            catch (Exception error) { FailReader(error); }
+        }
+        // Keep JIT/member-resolution failures inside the caller's exception boundary.
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void UpdateReader()
+        {
             if (Player == null || Player.GameWidget == null || Player.GameWidget.GuiWidget == null) { Close(); return; }
             Layout(); ReaderResult result = session.Take(); if (result != null) Apply(result);
             if (restoreScroll >= 0 && --restoreFrames <= 0)
@@ -210,6 +218,15 @@ namespace CelestialCodex.UI
                 if (middle.IsClicked) { if (reading) GoBack(); else if (view == View.Catalog && Protocol.SafeSlug(saved.Slug)) OpenBook(saved.Slug, true); else Load(view == View.Catalog ? new Request(page) : new Request(book.Slug)); }
             }
             if (close.IsClicked) Close(); else if (back.IsClicked || Input.Back || Input.Cancel) { Input.Clear(); GoBack(); }
+        }
+        private void FailReader(Exception error)
+        {
+            ComponentPlayer player = Player; Closed = true; Player = null;
+            // A broken reader must not escape into Widget.UpdateWidgetsHierarchy.
+            try { if (session != null) session.Dispose(); } catch (Exception) { }
+            try { if (ParentWidget != null) DialogsManager.HideDialog(this); } catch (Exception) { }
+            try { Log.Warning("[CelestialCodex] Reader update failed: " + error); } catch (Exception) { }
+            try { if (player != null && player.ComponentGui != null) player.ComponentGui.DisplaySmallMessage("书典暂不可用", Color.White, false, false); } catch (Exception) { }
         }
     }
 }

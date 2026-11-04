@@ -45,6 +45,12 @@ internal static class Program
         Check(Protocol.Decode(Bytes(Catalog)).Books[0].Title == "测试书", "catalog");
         Check(Protocol.Decode(Bytes(Detail), "test").Book.Chapters.Count == 1, "TOC");
         Check(Protocol.Decode(Bytes(Body), "test", "c1", Revision).Chapter.Text == "你好\n\n世界😀", "UTF8 body");
+        var chapters = new List<Chapter> { new Chapter { Id = "c1" }, new Chapter { Id = "c2" }, new Chapter { Id = "c3" } };
+        Check(ChapterNavigation.IndexOf(chapters, "c1") == 0, "first chapter lookup without predicate BCL");
+        Check(ChapterNavigation.IndexOf(chapters, "c2") == 1, "resume chapter lookup without Exists");
+        Check(ChapterNavigation.IndexOf(chapters, "c3") == 2, "last chapter lookup");
+        Check(ChapterNavigation.IndexOf(chapters, "c4") == -1, "removed chapter lookup");
+        Check(ChapterNavigation.IndexOf(null, "c1") == -1 && ChapterNavigation.IndexOf(chapters, null) == -1, "empty chapter lookup");
         foreach (string invalid in new[] { "", "{", "[]x", "{\"a\":1,\"a\":2}", "[1,]", "{\"a\":01}", "{\"a\":1.5}", "{\"a\":999999999999}", "\"\\uD800\"", "\"\\uDC00\"", "\"\\q\"", "[truefalse]", new string('[', 20) + new string(']', 20), "{\"a\":\"" + new string('x', 16001) + "\"}" }) Reject(() => StrictJson.Parse(Bytes(invalid)));
         Reject(() => StrictJson.Parse(new byte[] { 255 })); Reject(() => StrictJson.Parse(new byte[Limits.MaxFileBytes + 1]));
         Reject(() => Protocol.Decode(Bytes(Catalog.Replace("schemaVersion\":1", "schemaVersion\":2"))));
@@ -76,6 +82,16 @@ internal static class Program
             Check(info.Length <= Limits.MaxFiles && total <= Limits.MaxTotalBytes, "count and capacity"); Check(cache.Read("position.json") != null, "keep position");
             for (int i = 0; i < Limits.MaxFiles + 5; i++) Check(cache.Write(BoundedCache.Key("tiny" + i), Bytes("{}")), "small cache fill");
             Check(new DirectoryInfo(root).GetFiles().Length == Limits.MaxFiles, "file count limit independently");
+            string oldest = null;
+            foreach (string file in Directory.GetFiles(root))
+            {
+                File.SetLastWriteTimeUtc(file, new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+                if (Path.GetFileName(file) != "position.json" && oldest == null) oldest = file;
+            }
+            File.SetLastWriteTimeUtc(oldest, new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+            Check(cache.Write(BoundedCache.Key("new-after-aging"), Bytes("{}")), "cache eviction without Sort/FindIndex");
+            Check(!File.Exists(oldest), "oldest snapshot evicted");
+            Check(cache.Read("position.json") != null, "position survives indexed eviction");
             File.WriteAllText(Path.Combine(root, "orphan.tmp"), "partial"); cache.Write(key, Bytes(Catalog)); Check(!File.Exists(Path.Combine(root, "orphan.tmp")), "interrupted write cleanup");
             await ClientChecks(cache);
         }

@@ -1,5 +1,19 @@
 # 兼容性矩阵
 
+## 2026-11-04 Celestial Codex 0.1.1：Android使用入口闪退修复
+
+用户7723 Android日志19:15:27.502报告缺少 `System.Collections.Generic.List<T>.Exists(Predicate<T>)`，调用链为 `CodexDialog.Update → Widget.UpdateWidgetsHierarchy`。Mod MVID `74b90e06da8646c4bf65b617b31829cf`与本机原始0.1.0交付DLL一致；该运行时使用0.1.0 **不支持**。手机游戏MVID为`c690fa8547734ab8bc808e79264babbc`，不同于固定Windows目标；没有APK/BCL哈希，不能据此推断其它成员可用。
+
+0.1.1以索引循环替代Exists/FindIndex/RemoveAll和委托排序，保持章节续读、关闭项清理及按时间淘汰缓存语义。补充不内联的UI更新边界：托管异常关闭并取消书典、释放玩家引用及记录完整错误，避免传播到原生屏幕更新。新增最终DLL集合接口守卫、自编译负对照及实际0.1.0 DLL负对照。net472/API1.42/SC2.4.10.6、956/DATA0、PackageName/GUID、包布局、API/缓存/进度格式保持；无新Hook/网络包，不改其它Mod。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 用户日志对应Android运行时的0.1.0使用入口 | 不支持 | 精确Mod MVID匹配、Exists缺失及原生Update堆栈已提供。 |
+| 0.1.1固定Windows ABI、Release、移除故障引用、章节/缓存/异常隔离与包 | 已确认 | 目标编译、IL守卫、故障旧DLL负对照和隔离测试通过；实际命令/结果见专项记录。 |
+| 0.1.1 Android7723使用/连续打开关闭、续读、网络/缓存与真实Local/Server/Client | 待验证 | 无手机复测；移除已证缺失调用不等于全部Android接口已确认。 |
+
+交付与复测见 [0.1.1修复记录](CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md)。下方0.1.0桌面证据作为历史保留，不能用于反驳本次手机失败。
+
 ## 2026-11-04 Celestial Codex 0.1.0（独立阅读工具）
 
 新增独立 `src/CelestialCodex` / PackageName、AssemblyName `CelestialCodex`，物品956/DATA0，net472/API1.42/SC2.4.10.6，正式包 `artifacts/CelestialCodex/云天书典.netmod`。使用真实 ModLoader.__ModInitialize、SubsystemBlockBehavior.OnUse/Dispose、FlatBlock、原生Dialog/ScrollPanel/Label与Engine.Storage；无新增Hook/自定义网络包。CSV/XDB及3个新GUID经目标原生加载/合并/反序列化与冲突审计。PlayerData.IsMainPlayer限制本机UI，读书网络/缓存不访问SCNET房间协议或服务器进度，不改玩家属性/地形/存档结构。原生同包同版本握手保持。

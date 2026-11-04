@@ -1,4 +1,6 @@
-# 云天书典 · Celestial Codex 0.1.0
+# 云天书典 · Celestial Codex 0.1.1
+
+0.1.1修复手机点击使用后因 `List<T>.Exists` 缺失而退出游戏的问题，并补齐界面异常隔离。0.1.0已在用户所示Android运行时证实闪退；0.1.1手机复测仍待验证。详见 [修复与验证记录](../../docs/CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md)。
 
 独立客户端阅读工具，目标 SCNET `Net_x25.01.17` / API `1.42` / SC `2.4.10.6`，程序集 `net472`。Windows 目标 ABI、Release 与离线检查已确认；Android 7723 与实际 Local/Server/Client 游戏行为待验证。
 
@@ -10,7 +12,7 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-CelestialCodex.ps1 -GameDir <本机x25.01.17目录>
 ```
 
-输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.0.netmod`。将同一份正式包导入各参与端 `NetMods`，重新启动游戏并在 Mod 列表核对版本。不要把两个副本一起安装；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
+输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.1.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.1。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
 
 **云库可用的前提**：Digital-Study 新 API 已由运营者部署。本轮明确未部署生产，因此不能仅安装 Mod 就期待生产新路由已存在。默认公开来源为 `https://wxhappylife.top/digital-study/api/game-library/v1`。
 

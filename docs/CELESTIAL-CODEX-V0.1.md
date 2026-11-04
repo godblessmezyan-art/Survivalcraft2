@@ -1,5 +1,7 @@
 # 云天书典 · Celestial Codex V0.1 交付与验收
 
+后续记录：用户已确认0.1.0在其Android运行时因List.Exists缺失而使用闪退；本页保留原始0.1.0交付与桌面证据。最新0.1.1安装包及手机复测范围见 [0.1.1闪退修复](CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md)。
+
 日期：2026-11-04。两仓库均基于现有本地 main；不改远端、不 push、不部署 Digital-Study 生产、不执行内容同步。Digital-Study 本次本地提交 `008e793`；已有前端改动保留，不包含在本次提交中。
 
 ## 工程边界与身份

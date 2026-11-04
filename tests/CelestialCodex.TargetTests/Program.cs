@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.Serialization;
 using System.Xml.Linq;
 using CelestialCodex.Mod;
 using Engine.Media;
@@ -111,6 +112,15 @@ internal static class Program
             Check(xml.Descendants().Count(x => (string)x.Attribute("Name") == "CelestialCodexBehavior") == 2, "Subsystem template/member registration");
         }
         var refs = AuditMembers(mod);
+        Check(RejectsReportedListCall(typeof(LegacyListProbe).Assembly, new[] { typeof(LegacyListProbe) }), "BCL guard rejects compiled List.Exists negative fixture");
+        string legacy = Path.Combine(repo, "artifacts/celestial-audit/CelestialCodex-0.1.0-negative.dll");
+        if (File.Exists(legacy))
+        {
+            Assembly previous = Assembly.LoadFile(legacy);
+            Check(RejectsReportedListCall(previous), "BCL guard rejects actual 0.1.0 DLL List.Exists");
+            Console.WriteLine("Actual 0.1.0 negative DLL rejected: " + previous.ManifestModule.ModuleVersionId.ToString("N"));
+        }
+        VerifyUiFailureBoundary(mod);
         string output = Path.Combine(repo, "artifacts/celestial-audit/member-refs.txt"); Directory.CreateDirectory(Path.GetDirectoryName(output)); File.WriteAllLines(output, refs.OrderBy(x => x));
         Check(!mod.GetReferencedAssemblies().Any(a => a.Name == "SCIEPort" || a.Name == "BuilderAssistant"), "Independent assembly");
         Console.WriteLine("CelestialCodex target: " + checks + " checks; " + refs.Count + " resolved member references; " + installed + " installed packages audited; native CSV/XDB/PNG passed. Windows x25.01.17 only.");
@@ -127,11 +137,34 @@ internal static class Program
             Console.WriteLine("HTTPS runtime probe: certificate-validated connection; HTTP " + e.GetType().GetField("Status", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(e) + "; no deployment performed.");
         }
     }
-    private static HashSet<string> AuditMembers(Assembly assembly)
+    private static bool RejectsReportedListCall(Assembly assembly, Type[] types = null)
+    {
+        try { AuditMembers(assembly, types, true); }
+        catch (Exception e) { if (e.Message.StartsWith("Android unsupported collection method ", StringComparison.Ordinal) && e.Message.Contains(".Exists")) return true; throw; }
+        return false;
+    }
+    private static void VerifyUiFailureBoundary(Assembly assembly)
+    {
+        Type type = assembly.GetType("CelestialCodex.UI.CodexDialog");
+        MethodInfo core = type.GetMethod("UpdateReader", BindingFlags.NonPublic | BindingFlags.Instance);
+        Check(core != null && (core.GetMethodImplementationFlags() & MethodImplAttributes.NoInlining) != 0, "JIT boundary is not inlined into native Update");
+        MethodInfo update = type.GetMethod("Update");
+        Check(update.GetMethodBody().ExceptionHandlingClauses.Any(c => c.Flags == ExceptionHandlingClauseOptions.Clause && c.CatchType == typeof(Exception)), "Update has an exception boundary");
+        // A partial native player has no PlayerData. Its GameWidget getter faults before layout.
+        // Exercise the actual override and verify that it contains the fault without a game process.
+        var dialog = (Dialog)FormatterServices.GetUninitializedObject(type);
+        var player = (ComponentPlayer)FormatterServices.GetUninitializedObject(typeof(ComponentPlayer));
+        type.GetProperty("Player", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(dialog, player, null);
+        dialog.Update();
+        Check((bool)type.GetProperty("Closed", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(dialog, null), "failed frame closes only reader");
+        Check(type.GetProperty("Player", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(dialog, null) == null, "failed frame releases player reference");
+        dialog.Update(); Check(true, "closed reader update stays inert");
+    }
+    private static HashSet<string> AuditMembers(Assembly assembly, Type[] selectedTypes = null, bool onlyReportedMissing = false)
     {
         var codes = new Dictionary<ushort, OpCode>(); foreach (FieldInfo f in typeof(OpCodes).GetFields()) if (f.FieldType == typeof(OpCode)) { var op = (OpCode)f.GetValue(null); codes[(ushort)op.Value] = op; }
         var references = new HashSet<string>();
-        foreach (Type type in assembly.GetTypes())
+        foreach (Type type in selectedTypes ?? assembly.GetTypes())
         {
             var methods = new List<MethodBase>(type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic));
             methods.AddRange(type.GetConstructors(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic));
@@ -156,6 +189,13 @@ internal static class Program
                         var member = method.Module.ResolveMember(BitConverter.ToInt32(il, i), type.IsGenericType ? type.GetGenericArguments() : null, method.IsGenericMethod ? method.GetGenericArguments() : null);
                         Type declaring = member.DeclaringType ?? member as Type; string name = declaring == null ? member.ToString() : declaring.FullName + "." + member.Name;
                         Check(!(name.StartsWith("System.") && (member.Name.StartsWith("TryParse") || name.Contains("System.Linq.Enumerable"))), "Android known missing API " + name);
+                        if (declaring != null && declaring.IsGenericType && declaring.GetGenericTypeDefinition() == typeof(List<>))
+                        {
+                            bool forbidden = member.Name == "Exists";
+                            if (!onlyReportedMissing)
+                                foreach (string candidate in new[] { "Find", "FindAll", "FindIndex", "FindLast", "FindLastIndex", "RemoveAll", "Sort", "TrueForAll", "ForEach", "ConvertAll", "BinarySearch" }) if (member.Name == candidate) forbidden = true;
+                            Check(!forbidden, "Android unsupported collection method " + name);
+                        }
                         Check(!name.StartsWith("Game.NetWork.") && !name.StartsWith("Game.ComponentLocomotion.") && !name.StartsWith("Game.ComponentHealth.") && !name.Contains(".ChangeCell"), "Client reader side effects " + name);
                         if (declaring != null && declaring.Assembly != assembly) references.Add(name + " :: " + member);
                     }
@@ -165,4 +205,11 @@ internal static class Program
         }
         return references;
     }
+}
+
+// Deliberately stays in the test assembly, never in the shipped Mod.
+internal static class LegacyListProbe
+{
+    internal static bool ContainsZero(List<int> values) { return values.Exists(IsZero); }
+    private static bool IsZero(int value) { return value == 0; }
 }

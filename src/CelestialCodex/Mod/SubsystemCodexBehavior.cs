@@ -15,7 +15,7 @@ namespace CelestialCodex.Mod
             ComponentPlayer player = miner.ComponentPlayer;
             if (player == null || player.PlayerData == null || !player.PlayerData.IsMainPlayer || player.GameWidget == null || player.GameWidget.GuiWidget == null) return true;
             foreach (CodexDialog existing in dialogs) if (existing.Player == player && !existing.Closed) return true;
-            dialogs.RemoveAll(item => item.Closed);
+            for (int i = dialogs.Count - 1; i >= 0; i--) if (dialogs[i].Closed) dialogs.RemoveAt(i);
             CodexDialog created = null;
             try
             {

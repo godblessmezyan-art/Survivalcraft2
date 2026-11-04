@@ -31,7 +31,7 @@
 | 项目 | 简介 | 当前开发基线 | 入口 |
 |:--|:--|:--|:--|
 | 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.24.0** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
-| 📚 **云天书典 · Celestial Codex** | Digital-Study公开云库、原生触屏阅读、离线缓存与本机续读 | **v0.1.0；Android待验证** | [使用与构建](src/CelestialCodex/README.md) · [API/验收记录](docs/CELESTIAL-CODEX-V0.1.md) |
+| 📚 **云天书典 · Celestial Codex** | Digital-Study公开云库、原生触屏阅读、离线缓存与本机续读 | **v0.1.1；Android复测待验证** | [使用与构建](src/CelestialCodex/README.md) · [闪退修复记录](docs/CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md) |
 | ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与扩展玩法 | **v0.76.1** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
 | 🏛️ **Survivalcraft Ruins · 遗迹探索** | 在新生成的地形中加入神殿、废墟、险境、守卫与战利品 | **SCNET 移植工程** | [移植说明](SurvivalcraftRuins-Port/README.md) · [独立仓库](https://github.com/godblessmezyan-art/SurvivalcraftRuins) |
 | 🌋 **World Expansion · 世界扩展** | 新地貌与生态、探索区域及模组共存策略 | **规划中，非已发布模组** | [开发规范](AGENTS.md) |
