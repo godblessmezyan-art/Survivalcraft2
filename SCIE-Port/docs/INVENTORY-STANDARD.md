@@ -2,6 +2,8 @@
 
 适用于全部现有物品及以后新增内容；Builder Assistant 不受此规范影响。
 
+2026-11-05 / 0.77.0：PixelFX V0.1只叠加妙尔尼尔技能的场景精灵。942/DATA0及943/DATA0、`SCIEPort.Artifacts`、雷神专属槽位主题与原始物品资源保持；妙尔尼尔持有移速+20%的自有增量、近战攻速+10%与外部倍率相乘的规则保持。未新增物品或类别。原分类/主题套件及751项雷神规则检查继续执行，35文件保留守卫覆盖本轮原有规则、库存和网络包。详见[PixelFX V0.1](PIXELFX-V0.1.md)。
+
 ## 独立原生 Tab
 
 使用 x25.01.17 的 `Block.GetCategory(value)`、`BlocksManager.AddCategory`、

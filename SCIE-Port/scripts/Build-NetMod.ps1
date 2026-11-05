@@ -22,6 +22,10 @@ $package = Join-Path $artifacts '荒野探险家.netmod'
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PixelFx.ps1') -GameDir $GameDir
+if ($LASTEXITCODE -ne 0) { throw 'PixelFX offline resources/native ABI/preservation checks failed.' }
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.PixelFx.Tests') -c Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'PixelFX timing/pool/quality tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Excalibur.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Excalibur rule/balance/touch-layout tests failed.' }
@@ -338,6 +342,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/dr
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Artifact Codex native permissions/storage checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PixelFx.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'PixelFX compiled frame table/native import failed.' }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
@@ -2377,6 +2383,8 @@ finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PixelFx.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
+if ($LASTEXITCODE -ne 0) { throw 'PixelFX package resource/license validation failed.' }
 $versionedPackage = Join-Path $artifacts ("荒野探险家-" + $modInfo.Version + '.netmod')
 Copy-Item -LiteralPath $package -Destination $versionedPackage -Force
 if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $versionedPackage).Hash) { throw 'Versioned release differs from validated package.' }

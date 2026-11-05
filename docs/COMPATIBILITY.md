@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-05 SCIE-Port 0.77.0：PixelFX V0.1
+
+妙尔尼尔仅新增蓄力/落雷/爆闪精灵叠层，原3D雷电与机制、伤害/冷却、神器属性、存档、网络字节布局保持。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、离线导出/规则、461项目标Engine GPU隔离及Release/包检查 **已确认**；Android7723、真实Local/Server/Client、触屏及手机性能 **待验证**。同房统一0.77.0，旧版混装 **不支持**；无新Hook/ID/GUID或Builder Assistant能力，包新增PNG/JSON/MIT许可，内部身份保持。见[专项与实机清单](../SCIE-Port/docs/PIXELFX-V0.1.md)及[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
 ## 2026-11-04 Celestial Codex 0.1.3：移除Android缺失的链接取消源
 
 用户20:57:43.901日志已明确：`Network BCL stage=http`，缺少`CancellationTokenSource.CreateLinkedTokenSource(CancellationToken[])`，Mod MVID为`842f3895e44a4df586c2f98fbe8a7642`，与本机0.1.2交付DLL一致。其异步Get在发出请求前失败；该手机运行时使用0.1.2在线阅读 **不支持**。同段World2权限和m.schub.top DNS错误不来自书典固定来源，未据此改动世界权限/DNS。

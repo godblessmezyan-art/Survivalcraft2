@@ -1,5 +1,23 @@
 # Third-party notices
 
+## PixelFX lightning sprites (2026-11-05, integration V0.1)
+
+The charge-up, lightning-strike and thunderclap animations are offline raster exports
+of [patch-gg/pixelfx](https://github.com/patch-gg/pixelfx) at commit
+`a84159688af3ca37a4be05a0d422b94451b2e24e` (MIT).
+Copyright (c) 2026 Patch. Copyright (c) 2026 Hugo Duprez.
+The complete license is distributed as `Assets/Effects/PixelFX-LICENSE.txt`.
+The pinned, unmodified core and three effect modules, license and PNG writer live
+under `tools/pixelfx/upstream/` for reproducible offline builds. Their Git blob
+hashes and SHA-256 values are retained in `PixelFxStormhammer.json`.
+The project-authored exporter selects source time windows, supplies an empty actor
+mask, area-filters to a padded atlas and emits JSON/C# tables; it does not change
+the upstream effect sources. No stock actor, backdrop, JavaScript engine, npm
+dependency, network exporter or offline source is included in the runtime package.
+The C# player and native scene adapter are project code. No skill icon, original
+weapon art, proprietary game assembly, model, audio or gameplay asset is replaced.
+Synthetic Engine GPU fixtures are verification artifacts, not Android/game footage.
+
 ## Original Artifact Codex book (2026-11-01)
 
 `ArtifactCodexBlock` authors its own leather covers, layered ivory pages, gilt corners, clasp, bookmark and raised cover sigils directly as native mesh geometry with one white texture pixel. The book model and parchment-style dialog are original project code, with no imported book art, game UI asset, external model or new skill icon. Existing item previews reuse the installed Mod's own models and descriptions. Synthetic QA previews are not game/Android footage and are not packaged.

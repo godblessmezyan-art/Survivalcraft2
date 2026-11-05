@@ -8,3 +8,8 @@ SCIE-Port/src/SCIEPort/Features/AbyssReaper/VoidPortalPackage.cs text eol=lf
 # Keep the cavalry's generated resource bytes stable for native/package SHA checks.
 SCIE-Port/src/SCIEPort/Assets/Models/AbyssNightmareKnight.dae -text
 SCIE-Port/src/SCIEPort/Assets/Database/AbyssNightmareKnight.xdb -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Pinned PixelFX blobs and byte-reproducible export tables must survive Windows checkout.
+SCIE-Port/tools/pixelfx/** text eol=lf
+SCIE-Port/src/SCIEPort/Assets/Effects/PixelFxStormhammer.json text eol=lf
+SCIE-Port/src/SCIEPort/Assets/Effects/PixelFX-LICENSE.txt text eol=lf
+SCIE-Port/src/SCIEPort/Features/PixelFx/StormhammerSpriteClips.g.cs text eol=lf

@@ -1,5 +1,49 @@
 # 测试结果
 
+## 2026-11-05 main 0.77.0：PixelFX × SCIE-Port V0.1
+
+基线main `7b77b7c`。参考固定MIT源码`patch-gg/pixelfx@a84159688af3ca37a4be05a0d422b94451b2e24e`，三种技能演出离线导出78帧PNG/JSON与C#表。固定池及TexturedBatch3D层接入原LightningScene，只加现有去重事件的表现调用。原3D雷电、数值/冷却、神器默认属性/库存、存档和所有包的代码保留。具体源帧、档位、生命周期和**单列实机验收**见[PixelFX V0.1](PIXELFX-V0.1.md)。
+
+实际命令（仓库根，Windows PowerShell 5.1、.NET SDK9.0.314，目标Mod仍为net472；Node内置模块、Python3.11/Pillow；未安装npm依赖）：
+
+```powershell
+node SCIE-Port/tools/pixelfx/export.mjs
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.PixelFx.Tests -c Release --nologo
+dotnet run --project SCIE-Port/tests/SCIEPort.Stormhammer.Tests -c Release --nologo
+dotnet msbuild SCIE-Port/src/SCIEPort/SCIEPort.csproj /restore /t:Build /p:Configuration=Release /p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 /nologo /verbosity:minimal
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-PixelFx.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+$env:PYTHONUTF8='1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release *> artifacts/pixelfx-0770-build.log
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-PixelFxGpu.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/pixelfx-gpu-final
+git diff --check
+```
+
+上述均退出0。Release与完整打包日志无warning/error。根/移植环境核对三程序集SHA：Survivalcraft.exe `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`；Engine.dll `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`；EntitySystem.dll `7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C`。版本2.4.0.0/API1.42/SC2.4.10.6/net472保持。
+
+| 检查 | 结果 |
+|---|---|
+| PixelFX纯播放器 | 229项通过：非法输入/溢出、帧期/提前过期、缩放蓄力窗口、UV、优先级、三档、降档、时钟回退、引用释放。主机10万池/帧/UV循环150–205ms、稳态0字节；不是手机性能结论。 |
+| 图集/重导出/原代码保留 | 512项通过：22固定源码Git blob/SHA、78非空帧/透明留边、3个坏清单负对照、PNG/JSON/C#/许可逐字节重导出一致；35原文件剥离明确接入行后与基线一致。 |
+| 目标ABI/导入与包 | 真实Quad签名/顶点字段、PNG原生RGBA、DLL帧表与包内PNG/JSON/完整MIT字节一致；JS/工具/基线不入包。 |
+| 最终DLL原生Engine GPU | 461项通过：三种动画×三档、帧推进、减闪、墙体遮挡、侧/高视角、20:9、0.28秒蓄力可见与终止、200次生成压力的池/quad/顶点/索引上限、距离/背后剔除、清理/重接。 |
+| 原雷神规则与库存 | 751项雷神、775项分类/主题纯规则及170项目标库存API通过；原+20%自有移速/+10%相乘攻速与专属主题保持。 |
+| 完整Release/既有回归 | 构建强制调用的新专项，以及原世界/空间/死亡权柄、载具、海神/圣剑、图谱、陈列器、四圣兽、生态、资源和数据库全部通过。最终整DLL扫描3001方法/23623调用点，无直接BCL TryParse或Guid/UInt32 Parse引用；这不等于所有Android BCL已实测。 |
+
+最终产物：`SCIE-Port/artifacts/荒野探险家.netmod`，**10,883,956字节 / 176条目**；`荒野探险家-0.77.0.netmod`逐字节一致。
+
+- 包SHA-256：`B9B6059C850B4E91CE529E68F8389C750D6E34D8A47D87D243E9556E95EB0347`。
+- SCIEPort.dll SHA-256：`9FC92509B100888B6C43F6FC06B130D59B602D52C25B3E3059D86DDEF018AED2`；MVID：`5285becc-77a7-4bc6-a4e4-b50679451f27`。
+- 图集：328,340字节/1024×1024；SHA-256 `5C98C465989513C586451574EAD260840A6F71B4290C218FFA36A825767F82F7`。
+- 新运行条目仅PNG（328,340字节）、JSON（6,392字节）、完整MIT许可（1,093字节）；THIRD-PARTY-NOTICES同步署名。
+
+原生GPU工具首次编译暴露测试夹具把顶点字段写成TextureCoordinates；回到目标反射取证后修正为实际TexCoord，重新编译/执行及最终DLL复测通过，未为通过检查伪造接口。
+
+离线[帧预览](assets/pixelfx-v0.1/contact.png)与[真实目标Engine合成绘制](assets/pixelfx-v0.1/engine.png)已视觉检查；它们不进入运行包，不是Android或完整游戏录屏。
+
+**Android/7723、实际单机/主机/普通客户端/旁观者、延迟/晚加入、触屏分辨率、设备恢复及10分钟多人性能全部待验证。** 本轮未启动完整游戏/网络或玩家存档；手机重打包必须另取程序集证据。实机检查不得用上述隔离结论替代。只本地提交，不push、不建远端Release或上传。
+
 ## 2026-11-03 main 0.76.2：阿比斯普通玩家攻击与释放反馈
 
 基线`a53d5f2`/0.76.1。用户报告联机提示需要主机确认并要求所有玩家可用。确认重击“主机确认中”只是自动回执文案、无人工审批入口，且收到成功事件未即时清除文字；另确认虚空普攻仍有V0.1直接排除Client及Server非主玩家的真实限制。现将两种形态的普攻输入统一送入既有252 Action5，由主机自动认证/定段/结算，复用原虚空目标选择、基础伤害与保护逻辑。重击/空间/领域文案精简，成功重击即时清除等待反馈。见[原因与实现](ABYSS-MULTIPLAYER-0.76.2.md)。

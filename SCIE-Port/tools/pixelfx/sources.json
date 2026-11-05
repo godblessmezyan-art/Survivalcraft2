@@ -1,0 +1,90 @@
+[
+  {
+    "path": "LICENSE",
+    "gitBlob": "74eff5d22b4195a2b1690d1c769fd5f2537e7cf6"
+  },
+  {
+    "path": "package.json",
+    "gitBlob": "5ffd9d1065d82e608adb803f8138937b35c66d3f"
+  },
+  {
+    "path": "src/core/act.js",
+    "gitBlob": "731e56c89512650bb56dcc9318e495a2b14dd85e"
+  },
+  {
+    "path": "src/core/actor.js",
+    "gitBlob": "d6824aceada5fd8f696df4312f0ec4486f82b06b"
+  },
+  {
+    "path": "src/core/chain.js",
+    "gitBlob": "c816e89170277c16d2820548c2b31ace6f797e0d"
+  },
+  {
+    "path": "src/core/color.js",
+    "gitBlob": "60cdedd3352b3a682ef0391f4b3957918b5756d3"
+  },
+  {
+    "path": "src/core/font.js",
+    "gitBlob": "1aa816b802fff7beb490548eeb792049ec824da0"
+  },
+  {
+    "path": "src/core/fx.js",
+    "gitBlob": "1acacba6e8cf7c7ded76c5cfc8b02c128f8f1fc7"
+  },
+  {
+    "path": "src/core/index.js",
+    "gitBlob": "14b3144cb33068271221f1766994b627660d5d93"
+  },
+  {
+    "path": "src/core/math.js",
+    "gitBlob": "90356680e4696072b6fc8faedcc9ac15ef42ae9d"
+  },
+  {
+    "path": "src/core/painter.js",
+    "gitBlob": "4f397dbf558e29ad04fcba9e45488b4ee588bb39"
+  },
+  {
+    "path": "src/core/particles.js",
+    "gitBlob": "345c67fbea7cfa5f03e1591bb428a18abdd0263b"
+  },
+  {
+    "path": "src/core/poses.js",
+    "gitBlob": "c6a9daa3b945405b53d7d49ff072bb0a8499f1e8"
+  },
+  {
+    "path": "src/core/rig.js",
+    "gitBlob": "525b7145624f53722fde335503cdf271d3958ca5"
+  },
+  {
+    "path": "src/core/scene.js",
+    "gitBlob": "04b61a341eaf062c46ad5dfe028428ec909db33f"
+  },
+  {
+    "path": "src/core/shapes.js",
+    "gitBlob": "a59200b40f137b5852b1f8917dc6c7209f6ffe45"
+  },
+  {
+    "path": "src/core/sim.js",
+    "gitBlob": "68f1a7097a6cf263b03d61a5144cfdb3938e4850"
+  },
+  {
+    "path": "src/fx/lightning/_lib.js",
+    "gitBlob": "0d41c83b5f154235588d80143f2d4fd7537c4886"
+  },
+  {
+    "path": "src/fx/lightning/charge-up.js",
+    "gitBlob": "ef7c5201698fa75c0bc0ebd9abd4aad5cf238513"
+  },
+  {
+    "path": "src/fx/lightning/lightning-strike.js",
+    "gitBlob": "252bdc884409f10453f6b2c4a7d39459300a3086"
+  },
+  {
+    "path": "src/fx/lightning/thunderclap.js",
+    "gitBlob": "6fac4bbf932c9ad91d01085d257b97fcdd309c09"
+  },
+  {
+    "path": "tools/lib/png.mjs",
+    "gitBlob": "df029bbb942106fe710311c5431a3605340eb588"
+  }
+]
