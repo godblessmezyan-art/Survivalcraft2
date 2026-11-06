@@ -173,6 +173,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(Authority){UpdateDiscarded();UpdateGuards();UpdateDragonFlight();UpdateWaves();UpdateStoredRecovery();UpdateArmyHealth();}
             else{UpdateClientSummons();UpdateClientRiding();for(int i=waves.Count-1;i>=0;i--)if(Now>=waves[i].Started+1.6||!Actor(waves[i].Owner,false))waves.RemoveAt(i);}
             UpdateFriendlyYield();UpdateRiderFall();
+            foreach(var wave in waves)SCIEPort.Features.PixelFx.ArtifactSpriteFx.Abyss(parent.Project,wave.Owner,wave.Sequence,wave.Center,Now,(float)(Now-wave.Started));
             if(Now>=nextDrawBind){nextDrawBind=Now+.5;drawOwners.Clear();foreach(var p in players.ComponentPlayers){var fp=p.Entity.FindComponent<ComponentFirstPersonModel>(false);if(fp!=null)drawOwners[fp.m_drawBlockEnvironmentData]=p;var human=p.Entity.FindComponent<ComponentHumanModel>(false);if(human!=null)drawOwners[human.m_drawBlockEnvironmentData]=p;}}
             scene.Update(Now);
         }

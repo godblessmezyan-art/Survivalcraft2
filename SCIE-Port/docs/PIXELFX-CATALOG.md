@@ -3,7 +3,7 @@
 神器特效选型前先读[开发规范](PIXELFX-DEVELOPMENT-STANDARD.md)。本表是离线检索索引，不代表这些效果已移植或Android已验证。
 
 来源：[patch-gg/pixelfx 固定提交](https://github.com/patch-gg/pixelfx/tree/a84159688af3ca37a4be05a0d422b94451b2e24e)，从该提交的Git tree提取 `src/fx/<类别>/<名称>.js`，排除下划线辅助模块，共244种/21类；目录日期2026-11-06。不从浮动main继承接口/许可证结论。
-当前只有 `lightning/charge-up`、`lightning/lightning-strike`、`lightning/thunderclap`已经纳入工程并完成Windows离线/原生GPU隔离，Android/真实联机仍待验证。其它条目只有名称/路径线索，采用前必须取得相应固定源码并检查依赖、meta、许可、导出和实际效果。
+当前已纳入工程：`lightning/charge-up`、`lightning/lightning-strike`、`lightning/thunderclap`，及0.78.0新增的`holy/blessing`、`holy/sunburst`、`holy/smite`、`water/splash`、`water/wave-crash`、`shadow/dark-explosion`，离线/Windows原生GPU隔离结果见[多神器专项](PIXELFX-ARTIFACTS-0.78.0.md)，Android/真实联机仍待验证。其它条目只有名称/路径线索，采用前必须取得相应固定源码并检查依赖、meta、许可、导出和实际效果。
 
 ```powershell
 rg -n 'holy|shadow|water|beam|charge|slash|portal' SCIE-Port/docs/PIXELFX-CATALOG.md

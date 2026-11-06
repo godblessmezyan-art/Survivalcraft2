@@ -1,5 +1,49 @@
 # 测试结果
 
+## 2026-11-06 main 0.78.0：其它神器PixelFX与共用预算
+
+基线`db11fe8`/0.77.1。按开发规范先检查并记录候选，再为圣剑/昆古尼尔/波塞冬/阿比斯接入6种固定MIT效果；工具类双眼/图谱评估后不加召唤光柱。选型分别写入四神器专项与[本轮总记录](PIXELFX-ARTIFACTS-0.78.0.md)。九效果共用1024×2048/186帧/8MiB图集、单世界池/三档总预算，补晚包剩余帧与定长精灵事件门。原3D、伤害/冷却/默认属性、权限、存档、物品身份、Hook和240–254协议保持。
+
+实际命令（仓库根，SDK9.0.314、Windows PowerShell5.1、net472目标；Node内置模块、Python3.11/Pillow）：
+
+```powershell
+node SCIE-Port/tools/pixelfx/export.mjs
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.PixelFx.Tests -c Release --nologo
+python SCIE-Port/scripts/Test-PixelFxAssets.py
+dotnet msbuild SCIE-Port/src/SCIEPort/SCIEPort.csproj /restore /t:Build /p:Configuration=Release /p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 /nologo /verbosity:minimal
+$env:PYTHONUTF8='1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release *> artifacts/pixelfx-0780-build.log
+# 首次全量回归在原Corn测试启动时出现主机OutOfMemoryException，未跳过该项。
+dotnet build-server shutdown
+dotnet run --project SCIE-Port/tests/SCIEPort.Crops.Tests -c Release --nologo
+$env:MSBUILDDISABLENODEREUSE='1'
+$env:DOTNET_CLI_USE_MSBUILD_SERVER='0'
+$env:UseSharedCompilation='false'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release *> artifacts/pixelfx-0780-build-retry.log
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-PixelFxGpu.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/pixelfx-0780-gpu-final
+git diff --check
+```
+
+首轮全量命令退出1，仅报原玉米规则测试启动时OOM；当时主机可用物理内存约1.65GiB、虚拟提交余量约1.51GiB。关闭SDK构建服务器后原Corn26项独立通过，关闭本轮子进程的构建服务器复用/共享编译后，完整构建重跑退出0、无warning/error；未修改玉米源码或跳过规则。其余列出命令通过，最终DLL再执行完整GPU夹具通过。固定Windows三程序集SHA与既有x25.01.17记录一致，API1.42/SC2.4.10.6/net472保持。
+
+| 检查 | 结果 |
+|---|---|
+| 播放器/事件门 | 493项：九clip的帧/UV，late Age不回退世界时钟、不清掉其它效果，过期拒绝，owner/cast/family/phase隔离、重复/租约/回退/饱和/清理及空间cue合并。10万池/帧/UV循环207ms/0字节，另10万去重事件0字节；主机CLR数据，非手机性能承诺。 |
+| 资源、来源及原实现 | 1193项：31固定blob/SHA、186个非空帧/透明留边、关掉splash石头、3坏清单负对照，PNG/JSON/两份C#/完整MIT逐字节重导出；旧78帧RGBA逐格一致；原35文件及新增32文件剥离明确表现接入行后匹配各自原基线。 |
+| 最终Engine/OpenGL | 1351项：九效果×三档、动画/减闪/遮挡/侧视/20:9/屏幕边缘/覆盖及quad；调用真实四神器适配器，验证圣剑重复/晚包/取消无未来爆发、海神0.3秒和阿比斯1.25秒旧时点、神枪cue合并、全神器同池压力、多相机不重复、因饱和丢弃后不补播、清理重接。 |
+| 旧视觉对照 | 与0.77.1同名29张原生GPU画面逐像素一致，0张变化；新六效果及四神器适配器场景已另行检查。 |
+| 原规则/资源/原生隔离与包 | 751项雷神、389项神枪、3397项海神、806项圣剑规则及521项圣剑原生、449项死亡权柄、26038项空间、890项断界斩、775/170项库存纯/原生等全量回归通过；原模型/纹理/图标/音效、数据库、品牌和包检查通过。最终BCL审计3024方法/23777调用点，无直接BCL TryParse或Guid/UInt32 Parse引用。 |
+
+包 `SCIE-Port/artifacts/荒野探险家.netmod` / `荒野探险家-0.78.0.netmod`：**11,490,593字节、176条目**，版本副本逐字节相同。
+
+- 包SHA-256：`D876AE69E98C098AE29DA6E44F12528E3C273ECCED6841D4D63D58A83A63A077`。
+- DLL SHA-256：`560B633B1A4E9EC29F6F35A9365F3DD9278B254769525AEF4AC9E7201E066E7A`；MVID `1c7eafff-c7fb-4fed-82de-181e9d19a2e8`。
+- PNG936,298字节，SHA-256：`0A5F6ECB559BCFF0027A833AAD1ABCD0F2E996C4B9FE7149B12A4F1A82BD1BE8`，运行纹理8MiB，无mipmap。
+- 与0.77.1无新增/移除包条目，仅DLL、modinfo、THIRD-PARTY-NOTICES、PixelFxStormhammer PNG/JSON五项字节变化。原模型/图标/音效/CSV/XDB及完整MIT不变；不带JS/工具/源码/专有程序集。
+
+[离线帧预览](assets/pixelfx-v0.2/contact.png)及[四神器目标原生合成图](assets/pixelfx-v0.2/engine.png)已视觉检查，非游戏/手机录屏。本轮没有启动完整游戏、Android/7723或真实网络房间；实际Local/Server/Client、触屏、8MiB资源与10分钟多人性能/设备恢复仍**待验证**，验收已单列在专项。同房统一0.78.0，旧版混装不支持。仅本地main提交，不push/上传。
+
 ## 2026-11-06 main 0.77.1：PixelFX空闲/覆盖优化与神器开发规范
 
 基线`67ec6de`/0.77.0。新增空闲绘制门、同GameTime/同档过期检查复用、平方距离/零alpha剔除、真实ViewProjection四角屏幕外测试及1.0/1.5/2.0视口面积的三档叠加预算。原图集/清单/帧表/许可、3D雷电、伤害/冷却/默认神器属性、存档与协议保持。根AGENTS.md和SCIE-Port/AGENTS.md同步加入“新建/改造神器特效前先评估PixelFX”要求，另补[评估模板与规则](PIXELFX-DEVELOPMENT-STANDARD.md)、固定244效果索引和[优化专项](PIXELFX-OPTIMIZATION-0.77.1.md)。

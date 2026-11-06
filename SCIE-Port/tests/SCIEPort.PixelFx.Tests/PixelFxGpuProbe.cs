@@ -4,6 +4,9 @@ using System.Reflection;
 using Engine;
 using Engine.Graphics;
 using Engine.Media;
+using Game;
+using GameEntitySystem;
+using System.Runtime.Serialization;
 
 // Actual target Engine/OpenGL, isolated synthetic scene. No game world or network is started.
 public static class PixelFxGpuBootstrap
@@ -70,7 +73,7 @@ public static class PixelFxGpuProbe
         var mod = Assembly.LoadFrom(assembly); output = directory;
         scene = Activator.CreateInstance(mod.GetType("SCIEPort.Features.PixelFx.SpriteFxScene"), true);
         player = scene.GetType().GetField("Player", F).GetValue(scene);
-        clips = mod.GetType("SCIEPort.Features.PixelFx.StormhammerSpriteClips");
+        clips = mod.GetType("SCIEPort.Features.PixelFx.ArtifactSpriteClips");
         Window.Created += () => { var w = typeof(Window).GetField("m_gameWindow", F).GetValue(null); w.GetType().GetProperty("Visible").SetValue(w, false, null); };
         Exception failure = null;
         Window.Frame += () => { try { Execute(assets); } catch (Exception e) { failure = e; } finally { Window.Close(); } };
@@ -90,7 +93,7 @@ public static class PixelFxGpuProbe
             Check(BlendState.Additive.ColorSourceBlend == Blend.SourceAlpha && BlendState.Additive.ColorDestinationBlend == Blend.One, "audited straight-alpha additive blend");
             var eye = new Vector3(0,4,-8);
             var empty = Frame(0,2,false,eye,"empty",false,16f/9,true);
-            foreach (string clip in new[] { "ChargeUp", "LightningStrike", "Thunderclap" })
+            foreach (string clip in new[] { "ChargeUp", "LightningStrike", "Thunderclap", "HolyBlessing", "HolySunburst", "HolySmite", "WaterSplash", "WaterWave", "DarkExplosion" })
             for (int q = 0; q < 3; q++)
             {
                 Reset(); Spawn(clip,new Vector3(0,0,12),clip == "LightningStrike" ? 16 : 7,q,0);
@@ -148,9 +151,72 @@ public static class PixelFxGpuProbe
             Call(scene,"Clear"); Check((int)player.GetType().GetProperty("ActiveCount",F).GetValue(player,null)==0,"scene cleanup");
             Call(scene,"Attach",renderer,texture); Reset();
             Frame(.2,2,false,eye,"after-clear",false,16f/9,false); Check(Quads==0,"no old-world effects after reattach");
+            SharedArtifacts(lightning, eye);
             string result=checks+" target Engine/OpenGL PixelFX state/geometry/animation/occlusion/quality/cleanup checks passed. Synthetic scene, not Android/game/network evidence.";
             File.WriteAllText(Path.Combine(output,"result.txt"),result); Console.WriteLine(result);
         }
         finally { Display.RenderTarget=null; texture.Dispose(); target.Dispose(); renderer.Clear(); world.Clear(); }
+    }
+
+    static void SharedReset()
+    { Call(scene,"Clear"); Call(scene,"Attach",renderer,texture); renderer.Clear(); }
+    static int Active { get { return (int)player.GetType().GetProperty("ActiveCount",F).GetValue(player,null); } }
+    static object At(int index) { return Call(player,"At",index); }
+    static void SharedArtifacts(object lightning, Vector3 eye)
+    {
+        var mod=clips.Assembly;
+        var project=(Project)FormatterServices.GetUninitializedObject(typeof(Project));
+        var owner=new ComponentPlayer(); owner.m_entity=(Entity)FormatterServices.GetUninitializedObject(typeof(Entity));
+        var register=mod.GetType("SCIEPort.Features.Stormhammer.AwakenedStormhammerVisuals").GetMethod("RegisterScene",F);
+        var presenter=mod.GetType("SCIEPort.Features.PixelFx.ArtifactSpriteFx");
+        scene=lightning.GetType().GetProperty("SpriteFx",F).GetValue(lightning,null); player=scene.GetType().GetField("Player",F).GetValue(scene);
+        register.Invoke(null,new object[]{project,lightning});
+        Vector3 origin=new Vector3(0,1.5f,12),direction=Vector3.UnitZ;
+        try
+        {
+            SharedReset();
+            var start=presenter.GetMethod("Excalibur",F);
+            start.Invoke(null,new object[]{project,owner,1u,(byte)1,origin,direction,0d,0f});
+            Check(Active==1,"accepted Excalibur starts shared holy clip");
+            start.Invoke(null,new object[]{project,owner,1u,(byte)1,origin,direction,.1d,.1f});
+            Check(Active==1,"Excalibur snapshot never duplicates event");
+            Frame(.2,2,false,eye,"shared-excalibur-start",false,16f/9,false);
+            Frame(.2,2,false,new Vector3(10,5,-8),null,false,16f/9,false); Check(Active==1,"second camera does not duplicate cast");
+            SharedReset(); start.Invoke(null,new object[]{project,owner,2u,(byte)2,origin,direction,0d,1.95f});
+            Check(Active==1 && (double)At(0).GetType().GetField("Birth",F).GetValue(At(0))<0,"late Excalibur resumes release without old charge");
+            Frame(0,2,false,eye,"shared-excalibur-late",false,16f/9,false);
+            SharedReset(); start.Invoke(null,new object[]{project,owner,3u,(byte)2,origin,direction,0d,0f});
+            Call(player,"Update",1.75d,2); Check(Active==0,"cancelled Excalibur has no queued future burst");
+            SharedReset(); start.Invoke(null,new object[]{project,owner,4u,(byte)2,origin,direction,0d,3f});
+            Check(Active==0,"expired Excalibur snapshot never replays");
+            var water=presenter.GetMethod("Poseidon",F); SharedReset();
+            water.Invoke(null,new object[]{project,owner,5u,(byte)2,new Vector3(0,0,12),direction,0d,.29f}); Check(Active==0,"Poseidon wave waits for original windup");
+            water.Invoke(null,new object[]{project,owner,5u,(byte)2,new Vector3(0,0,12),direction,0d,.3f}); Check(Active==1,"Poseidon wave starts at original windup");
+            water.Invoke(null,new object[]{project,owner,5u,(byte)2,new Vector3(0,0,12),direction,.1d,.4f}); Check(Active==1,"Poseidon updates deduplicated");
+            Frame(.2,2,false,eye,"shared-poseidon",false,16f/9,false);
+            var dark=presenter.GetMethod("Abyss",F); SharedReset();
+            dark.Invoke(null,new object[]{project,owner,6u,new Vector3(0,0,12),0d,1.24f}); Check(Active==0,"Abyss does not burst before existing impact");
+            dark.Invoke(null,new object[]{project,owner,6u,new Vector3(0,0,12),0d,1.25f}); Check(Active==1,"Abyss bursts at original impact");
+            dark.Invoke(null,new object[]{project,owner,6u,new Vector3(0,0,12),.1d,1.35f}); Check(Active==1,"Abyss wave duplicates suppressed");
+            Frame(.2,2,false,eye,"shared-abyss",false,16f/9,false);
+            var spear=presenter.GetMethod("Gungnir",F); SharedReset();
+            spear.Invoke(null,new object[]{project,"Invoke",origin,0d}); spear.Invoke(null,new object[]{project,"Invoke",origin,.05d});
+            Check(Active==1,"Gungnir same-place cue merge"); spear.Invoke(null,new object[]{project,"Impact",origin,.05d}); Check(Active==2,"Gungnir impact distinct from invoke");
+            Frame(.2,2,false,eye,"shared-gungnir",false,16f/9,false);
+            foreach(int q in new[]{0,1,2})
+            {
+                SharedReset(); string[] names={"ChargeUp","HolyBlessing","HolySunburst","HolySmite","WaterSplash","WaterWave","DarkExplosion"};
+                for(int i=0;i<200;i++)Call(scene,"PlayUnique",clips.GetField(names[i%names.Length],F).GetValue(null),new Vector3(0,0,12),7f,0d,q,(ulong)(1000+i),0f,4d);
+                Check(Active==(q==0?8:q==1?16:32),"all artifacts share one world pool cap");
+                Frame(.2,q,false,eye,"shared-all-q"+q,false,16f/9,false);
+                Check(Quads<=(q==0?6:q==1?12:24),"all artifact quad budgets are shared");
+            }
+            SharedReset(); dark.Invoke(null,new object[]{project,owner,7u,new Vector3(0,0,12),0d,1.25f}); Check(Active==1,"world cleanup releases dedup references");
+            SharedReset(); for(int i=0;i<32;i++)Spawn("LightningStrike",new Vector3(0,0,12),7,2,0);
+            object low=clips.GetField("HolyBlessing",F).GetValue(null);
+            Check(!(bool)Call(scene,"PlayUnique",low,origin,4f,0d,2,9000UL,0f,4d)&&Active==32,"low-priority effect dropped under shared saturation");
+            Call(player,"Clear"); Check(!(bool)Call(scene,"PlayUnique",low,origin,4f,.1d,2,9000UL,.1f,4d)&&Active==0,"dropped event never becomes delayed replay");
+        }
+        finally { Call(scene,"Clear"); register.Invoke(null,new object[]{project,null}); }
     }
 }

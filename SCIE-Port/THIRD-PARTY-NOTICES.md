@@ -1,5 +1,24 @@
 # Third-party notices
 
+## PixelFX shared artifact atlas V0.2 (2026-11-06)
+
+V0.2 adds fixed-source offline exports of `holy/blessing`, `holy/sunburst`,
+`holy/smite`, `water/splash` (with its optional preview stone disabled),
+`water/wave-crash` and `shadow/dark-explosion` for Excalibur, Gungnir, Poseidon
+and Abyss Reaper. The source remains
+[patch-gg/pixelfx](https://github.com/patch-gg/pixelfx/tree/a84159688af3ca37a4be05a0d422b94451b2e24e)
+at `a84159688af3ca37a4be05a0d422b94451b2e24e`, MIT,
+Copyright (c) 2026 Patch / Copyright (c) 2026 Hugo Duprez.
+The complete license remains `Assets/Effects/PixelFX-LICENSE.txt`.
+Nine additional unmodified source/helper modules join the previous 22 offline
+files, with Git blob and SHA-256 provenance. Loop sources are sampled as short
+one-shots; they do not add gameplay buffs or runtime looping. Stock actor masks
+remain empty; no actor, background, JavaScript or export dependency ships.
+All nine effects share one 1024x2048 atlas and one per-world bounded player/batch.
+The historical `PixelFxStormhammer` PNG/JSON names remain, with all original 78
+frame cells unchanged. No weapon model, skill icon, audio or proprietary game
+resource is replaced. Synthetic previews are not Android/game footage.
+
 ## PixelFX lightning sprites (2026-11-05, integration V0.1)
 
 The charge-up, lightning-strike and thunderclap animations are offline raster exports

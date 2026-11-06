@@ -28,26 +28,27 @@ def digest(data):
 def validate(manifest, png, generated):
     check(manifest['schema'] == 'SCIEPort.SpriteFx/1', 'schema')
     check(manifest['pngSha256'] == digest(png), 'PNG hash')
-    check((manifest['width'], manifest['height'], manifest['cell'], manifest['columns']) == (1024, 1024, 96, 10), 'atlas layout')
+    check((manifest['width'], manifest['height'], manifest['cell'], manifest['columns']) == (1024, 2048, 96, 10), 'atlas layout')
     check(manifest['alpha'] == 'straight' and manifest['sampler'] == 'PointClamp' and not manifest['mipmaps'], 'native texture policy')
-    expected = ['charge-up', 'lightning-strike', 'thunderclap']
-    check([c['name'] for c in manifest['clips']] == expected, 'three requested effects')
+    expected = ['charge-up', 'lightning-strike', 'thunderclap', 'holy/blessing', 'holy/sunburst', 'holy/smite', 'water/splash', 'water/wave-crash', 'shadow/dark-explosion']
+    check([c['name'] for c in manifest['clips']] == expected, 'nine selected effects')
     end = 0
     for clip in manifest['clips']:
         check(clip['firstFrame'] == end and clip['frameCount'] > 0, 'no overlapping/missing clip frames')
         end += clip['frameCount']
         expression = (f'new SpriteFxClip("{clip["name"]}", {clip["firstFrame"]}, {clip["frameCount"]}, '
-                      f'{clip["fps"]}, 1024, 1024, 10, 96, {clip["pivotX"]}f, {clip["pivotY"]}f, '
+                      f'{clip["fps"]}, 1024, 2048, 10, 96, {clip["pivotX"]}f, {clip["pivotY"]}f, '
                       f'SpriteFxFacing.{clip["facing"]}, {clip["priority"]})')
         check(expression in generated, 'JSON/generated C# frame table identity')
         check(0 <= clip['pivotX'] <= 1 and 0 <= clip['pivotY'] <= 1, 'pivot')
-    check(end == manifest['frameCount'] == 78 and end <= 100, 'frame capacity')
+    check(end == manifest['frameCount'] == 186 and end <= 210, 'frame capacity')
+    check(manifest['clips'][6]['options']['stone'] is False, 'splash preview stone removed')
 
 
 def main():
     png_path = PROJECT / 'Assets/Textures/PixelFxStormhammer.png'
     manifest = json.loads((PROJECT / 'Assets/Effects/PixelFxStormhammer.json').read_text('utf-8'))
-    generated = (PROJECT / 'Features/PixelFx/StormhammerSpriteClips.g.cs').read_text('utf-8')
+    generated = (PROJECT / 'Features/PixelFx/ArtifactSpriteClips.g.cs').read_text('utf-8')
     png = png_path.read_bytes()
     validate(manifest, png, generated)
     for mutation in ('checksum', 'overlap', 'table'):
@@ -65,19 +66,23 @@ def main():
         else:
             raise AssertionError('negative control accepted: ' + mutation)
     image = Image.open(png_path)
-    check(image.mode == 'RGBA' and image.size == (1024, 1024), 'PNG format')
+    check(image.mode == 'RGBA' and image.size == (1024, 2048), 'PNG format')
     alpha = image.getchannel('A')
     check(alpha.getextrema() == (0, 255), 'transparent background and bright core')
-    for f in range(100):
+    for f in range(210):
         x, y = f % 10 * 96, f // 10 * 96
         tile = alpha.crop((x, y, x+96, y+96))
-        if f >= 78:
+        if f >= 186:
             check(tile.getbbox() is None, 'unused atlas cell transparent')
             continue
         check(tile.getbbox() is not None, 'every exported frame contains effect')
         for bounds in [(0,0,96,2), (0,94,96,96), (0,0,2,96), (94,0,96,96)]:
             check(tile.crop(bounds).getbbox() is None, 'two-pixel gutter')
-    check(alpha.crop((960,0,1024,1024)).getbbox() is None and alpha.crop((0,960,1024,1024)).getbbox() is None, 'atlas remainder empty')
+    check(alpha.crop((960,0,1024,2048)).getbbox() is None and alpha.crop((0,2016,1024,2048)).getbbox() is None, 'atlas remainder empty')
+    legacy = json.loads((TOOLS / 'legacy-frame-baseline.json').read_text('utf-8'))
+    for f, expected in enumerate(legacy['frames']):
+        x, y = f % 10 * 96, f // 10 * 96
+        check(digest(image.crop((x,y,x+96,y+96)).tobytes()) == expected, 'old lightning frame RGBA retained')
     for entry in manifest['upstream']['files']:
         data = (TOOLS / 'upstream' / entry['path']).read_bytes()
         blob = hashlib.sha1(b'blob ' + str(len(data)).encode() + b'\0' + data).hexdigest()
@@ -90,7 +95,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='pixelfx-export-', dir=artifacts) as directory:
         subprocess.run(['node', str(TOOLS / 'export.mjs'), directory], check=True)
         for name in ('Assets/Textures/PixelFxStormhammer.png', 'Assets/Effects/PixelFxStormhammer.json',
-                     'Assets/Effects/PixelFX-LICENSE.txt', 'Features/PixelFx/StormhammerSpriteClips.g.cs'):
+                     'Assets/Effects/PixelFX-LICENSE.txt', 'Features/PixelFx/StormhammerSpriteClips.g.cs', 'Features/PixelFx/ArtifactSpriteClips.g.cs'):
             check((Path(directory) / name).read_bytes() == (PROJECT / name).read_bytes(), 'byte-reproducible offline export: ' + name)
     baseline = json.loads((TOOLS / 'gameplay-baseline.json').read_text('utf-8'))
     for path, expected in baseline['files'].items():
@@ -118,6 +123,11 @@ def main():
                          '            LastQuadCount += m_spriteFx.LastQuadCount;\n'):
                 source = source.replace(line.encode(), b'')
         check(digest(source) == expected, 'preserved mechanics/3D/persistence/protocol/attributes: ' + path)
+    artifacts_baseline = json.loads((TOOLS / 'artifact-baseline.json').read_text('utf-8'))
+    for path, expected in artifacts_baseline['files'].items():
+        source = (PROJECT / path).read_bytes().replace(b'\r\n', b'\n')
+        source = re.sub(rb'^ +[^\n]*SCIEPort\.Features\.PixelFx\.ArtifactSpriteFx\.[^\n]+\n', b'', source, flags=re.M)
+        check(digest(source) == expected, 'other artifact mechanics/3D/persistence/protocol retained: ' + path)
     runtime = '\n'.join(p.read_text('utf-8') for p in (PROJECT / 'Features/PixelFx').glob('*.cs'))
     check(not re.search(r'\b(AttackBody|Injure|ChangeCell|DestroyCell|SetCellValueFast|ValuesDictionary|IPackage|SendPackage|WalkSpeed|m_lastHitTime)\b', runtime), 'sprite runtime isolated from gameplay/save/network')
     print(f'{checks} PixelFX resource/reproducibility/preservation checks passed (three corrupt-manifest negative controls rejected).')

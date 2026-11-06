@@ -19,10 +19,10 @@ if (!$batch.GetMethod('QueueQuad',$signature)) { throw 'Target TexturedBatch3D.Q
 foreach ($field in @('TriangleVertices','TriangleIndices')) { if (!$batch.GetField($field)) { throw "Missing native batch buffer: $field" } }
 $stream = [IO.File]::OpenRead((Join-Path $root 'src/SCIEPort/Assets/Textures/PixelFxStormhammer.png'))
 try { $image = [Engine.Media.Image]::Load($stream) } finally { $stream.Dispose() }
-if ($image.Width -ne 1024 -or $image.Height -ne 1024 -or $image.GetPixel(0,0).A -ne 0) { throw 'Native PNG decode/alpha failed.' }
+if ($image.Width -ne 1024 -or $image.Height -ne 2048 -or $image.GetPixel(0,0).A -ne 0) { throw 'Native PNG decode/alpha failed.' }
 if ($AssemblyPath) {
     $mod = [Reflection.Assembly]::Load([IO.File]::ReadAllBytes([IO.Path]::GetFullPath($AssemblyPath)))
-    $table = $mod.GetType('SCIEPort.Features.PixelFx.StormhammerSpriteClips',$true)
+    $table = $mod.GetType('SCIEPort.Features.PixelFx.ArtifactSpriteClips',$true)
     $flags = [Reflection.BindingFlags]'Static,Instance,NonPublic,Public'
     $manifest = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Assets/Effects/PixelFxStormhammer.json') | ConvertFrom-Json
     foreach ($clip in $manifest.clips) {

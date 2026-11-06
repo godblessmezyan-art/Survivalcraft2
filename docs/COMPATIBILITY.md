@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-06 SCIE-Port 0.78.0：PixelFX其它神器
+
+新增圣剑/昆古尼尔/波塞冬/阿比斯的圣光、水浪、紫色爆发，九效果共用186帧/1024×2048/8MiB图集和单世界预算；原78帧保留。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、493项播放器/1193项资源、1351项最终Engine GPU隔离及Release/包 **已确认**；Android7723、触屏/8MiB资源/手机性能与真实Local/Server/Client **待验证**。原3D/数值/存档/身份/协议/Hook和包路径布局保持，元数据与帧表扩展；同房统一0.78.0，旧版混装 **不支持**。见[逐神器选型及单列实机验收](../SCIE-Port/docs/PIXELFX-ARTIFACTS-0.78.0.md)与[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
 ## 2026-11-06 SCIE-Port 0.77.1：PixelFX绘制优化与开发选型规范
 
 精灵层加入空闲绘制门、同tick池检查复用、屏幕外/零alpha剔除及每相机投影面积三档预算，复用原ViewProjectionMatrix/真实Vector4.Transform。原图集/JSON/C#表/许可、3D雷电、伤害/冷却、神器属性、存档、ID及协议保持，无新Hook或包布局变化。固定Windows三SHA/net472、239项播放器/512项资源/601项Engine GPU及Release/包范围 **已确认**；Android7723、触屏/手机性能、完整游戏及真实单人/主机/普通客户端 **待验证**；旧版混装 **不支持**，同房统一0.77.1。根/移植AGENTS新增“神器特效开发前先评估PixelFX”规则，见[规范](../SCIE-Port/docs/PIXELFX-DEVELOPMENT-STANDARD.md)及[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。

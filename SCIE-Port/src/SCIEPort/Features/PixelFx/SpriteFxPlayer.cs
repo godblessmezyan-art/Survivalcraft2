@@ -110,10 +110,14 @@ namespace SCIEPort.Features.PixelFx
         }
 
         internal bool Play(SpriteFxClip clip, float x, float y, float z, float size, double now, int quality, float life = 0)
+            => PlayAtAge(clip, x, y, z, size, now, quality, life, 0);
+
+        // Correct late snapshots without replaying the windup or moving the shared clock forward.
+        internal bool PlayAtAge(SpriteFxClip clip, float x, float y, float z, float size, double now, int quality, float life, float age)
         {
             if (clip == null || !SpriteFxClip.Finite(x) || !SpriteFxClip.Finite(y) || !SpriteFxClip.Finite(z) ||
                 !SpriteFxClip.Finite(size) || size <= 0 || size > 32 || !SpriteFxClip.Finite(life) || life < 0 || life > 8 ||
-                double.IsNaN(now) || double.IsInfinity(now)) return false;
+                double.IsNaN(now) || double.IsInfinity(now) || !SpriteFxClip.Finite(age) || age < 0 || age >= (life > 0 ? life : clip.Duration)) return false;
             Update(now, quality);
             int slot = -1;
             if (ActiveCount < SpriteFxBudget.ForQuality(quality).Instances)
@@ -125,7 +129,7 @@ namespace SCIEPort.Features.PixelFx
             }
             else ActiveCount++;
             m_items[slot] = new SpriteFxInstance { Clip = clip, X = x, Y = y, Z = z, Size = size,
-                Birth = now, Life = life > 0 ? life : clip.Duration };
+                Birth = now - age, Life = life > 0 ? life : clip.Duration };
             return true;
         }
 

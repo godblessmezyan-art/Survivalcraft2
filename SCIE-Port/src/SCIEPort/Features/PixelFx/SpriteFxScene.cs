@@ -9,6 +9,7 @@ namespace SCIEPort.Features.PixelFx
     internal sealed class SpriteFxScene
     {
         internal readonly SpriteFxPlayer Player = new SpriteFxPlayer();
+        private readonly SpriteFxEvents m_events = new SpriteFxEvents();
         private TexturedBatch3D m_batch;
         private int m_width, m_height;
         internal int LastQuadCount { get; private set; }
@@ -42,9 +43,18 @@ namespace SCIEPort.Features.PixelFx
                 Player.Play(clip, anchor.X, anchor.Y, anchor.Z, size, now, quality, life);
         }
 
+        internal bool PlayUnique(SpriteFxClip clip, Vector3 anchor, float size, double now, int quality, ulong key, float age, double hold)
+        {
+            if (m_batch == null || clip == null || clip.AtlasWidth != m_width || clip.AtlasHeight != m_height ||
+                !Finite(anchor) || !SpriteFxClip.Finite(age) || age < 0 || age >= clip.Duration) return false;
+            // Remember even pool-rejected events: overload must not turn into delayed replay.
+            if (!m_events.Accept(key, now, hold)) return false;
+            return Player.PlayAtAge(clip, anchor.X, anchor.Y, anchor.Z, size, now, quality, 0, age);
+        }
+
         internal void Clear()
         {
-            Player.Clear(); m_batch = null; m_width = 0; m_height = 0; LastQuadCount = 0; LastScreenArea = 0;
+            Player.Clear(); m_events.Clear(); m_batch = null; m_width = 0; m_height = 0; LastQuadCount = 0; LastScreenArea = 0;
             // ContentManager owns the atlas. Never dispose its shared texture here.
         }
 

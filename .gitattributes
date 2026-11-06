@@ -13,3 +13,4 @@ SCIE-Port/tools/pixelfx/** text eol=lf
 SCIE-Port/src/SCIEPort/Assets/Effects/PixelFxStormhammer.json text eol=lf
 SCIE-Port/src/SCIEPort/Assets/Effects/PixelFX-LICENSE.txt text eol=lf
 SCIE-Port/src/SCIEPort/Features/PixelFx/StormhammerSpriteClips.g.cs text eol=lf
+SCIE-Port/src/SCIEPort/Features/PixelFx/ArtifactSpriteClips.g.cs text eol=lf

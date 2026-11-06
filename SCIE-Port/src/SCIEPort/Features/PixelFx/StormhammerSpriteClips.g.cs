@@ -3,9 +3,9 @@ namespace SCIEPort.Features.PixelFx
 {
     internal static class StormhammerSpriteClips
     {
-        internal const string Texture = "Textures/PixelFxStormhammer";
-        internal static readonly SpriteFxClip ChargeUp = new SpriteFxClip("charge-up", 0, 33, 24, 1024, 1024, 10, 96, 0.51057f, 0.622849f, SpriteFxFacing.Screen, 1);
-        internal static readonly SpriteFxClip LightningStrike = new SpriteFxClip("lightning-strike", 33, 21, 24, 1024, 1024, 10, 96, 0.5f, 0.848485f, SpriteFxFacing.Vertical, 3);
-        internal static readonly SpriteFxClip Thunderclap = new SpriteFxClip("thunderclap", 54, 24, 24, 1024, 1024, 10, 96, 0.5f, 0.653579f, SpriteFxFacing.Vertical, 2);
+        internal const string Texture = ArtifactSpriteClips.Texture;
+        internal static readonly SpriteFxClip ChargeUp = ArtifactSpriteClips.ChargeUp;
+        internal static readonly SpriteFxClip LightningStrike = ArtifactSpriteClips.LightningStrike;
+        internal static readonly SpriteFxClip Thunderclap = ArtifactSpriteClips.Thunderclap;
     }
 }

@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/SCIEPort/Features/PixelFx/SpriteFxPlayer.cs" Link="SpriteFxPlayer.cs" />
+    <Compile Include="../../src/SCIEPort/Features/PixelFx/SpriteFxEvents.cs" Link="SpriteFxEvents.cs" />
+    <Compile Include="../../src/SCIEPort/Features/PixelFx/ArtifactSpriteClips.g.cs" Link="ArtifactSpriteClips.g.cs" />
     <Compile Include="../../src/SCIEPort/Features/PixelFx/StormhammerSpriteClips.g.cs" Link="StormhammerSpriteClips.g.cs" />
     <Compile Remove="PixelFxGpuProbe.cs" />
   </ItemGroup>

@@ -21,7 +21,7 @@ internal static class Program
         Reject(() => new SpriteFxClip("bad", int.MaxValue, int.MaxValue, 24, 1024, 1024, 10, 96, .5f, .5f, SpriteFxFacing.Screen, 1));
         Reject(() => new SpriteFxClip("bad", 0, 1, 24, 96, 96, 2, 96, .5f, .5f, SpriteFxFacing.Screen, 1));
         Reject(() => new SpriteFxClip("bad", 0, 1, 24, 96, 96, 1, 96, float.NaN, .5f, SpriteFxFacing.Screen, 1));
-        foreach (SpriteFxClip clip in new[] { charge, strike, StormhammerSpriteClips.Thunderclap })
+        foreach (SpriteFxClip clip in new[] { charge, strike, StormhammerSpriteClips.Thunderclap, ArtifactSpriteClips.HolyBlessing, ArtifactSpriteClips.HolySunburst, ArtifactSpriteClips.HolySmite, ArtifactSpriteClips.WaterSplash, ArtifactSpriteClips.WaterWave, ArtifactSpriteClips.DarkExplosion })
         for (int i = -1; i <= clip.FrameCount; i++)
         {
             float a,b,c,d; clip.Uv(i, out a, out b, out c, out d);
@@ -40,6 +40,22 @@ internal static class Program
         Check(SpriteFxPlayer.Frame(item, .42, 24) == -1, "charge expires without extra release");
         Check(SpriteFxPlayer.Frame(item, double.NaN, 24) == -1, "invalid draw clock");
         player.Update(1, 0); Check(player.ActiveCount == 0, "pool expiry");
+        player.Clear(); player.Play(charge, 0, 0, 0, 1, 10, 2);
+        Check(player.PlayAtAge(ArtifactSpriteClips.HolySunburst, 0, 0, 0, 1, 10, 2, 0, .25f), "late snapshot accepts remaining frames");
+        Check(player.ActiveCount == 2 && player.At(1).Birth == 9.75, "age correction does not rewind shared clock or clear other effects");
+        Check(SpriteFxPlayer.Frame(player.At(1),10,24)>0,"late event starts inside clip");
+        Check(!player.PlayAtAge(ArtifactSpriteClips.HolySunburst,0,0,0,1,10,2,0,1),"expired event never replays");
+        Check(!player.PlayAtAge(charge,0,0,0,1,10,2,0,float.NaN),"invalid snapshot age rejected");
+        var events = new SpriteFxEvents(); ulong key=SpriteFxEvents.Key(1,2,3,4);
+        Check(key!=SpriteFxEvents.Key(2,2,3,4)&&key!=SpriteFxEvents.Key(1,3,3,4)&&key!=SpriteFxEvents.Key(1,2,4,4)&&key!=SpriteFxEvents.Key(1,2,3,5),"event owner/cast/family/phase isolation");
+        Check(events.Accept(key,0,4)&&!events.Accept(key,0,4)&&!events.Accept(key,1,4),"snapshot/multicamera duplicates rejected");
+        Check(events.Accept(key,4,4),"expired gate can be reused");
+        Check(events.Accept(key,3,4),"clock rollback resets event history");
+        Check(!events.Accept(key,double.NaN,4)&&!events.Accept(key,3,0),"invalid event clocks/leases rejected");
+        events.Clear();Check(events.Accept(key,3,4),"world cleanup releases event history");
+        for(uint i=0;i<SpriteFxEvents.Capacity*4;i++)events.Accept(i,10,4);
+        Check(!events.Accept(SpriteFxEvents.Capacity*4-1,10,4),"bounded event history retains newest saturated event");
+        Check(SpriteFxEvents.Spatial(1.01f,2,3)==SpriteFxEvents.Spatial(1.02f,2,3)&&SpriteFxEvents.Spatial(1.01f,2,3)!=SpriteFxEvents.Spatial(2,2,3),"spatial cue merge limited to quarter-block cell");
         for (int q = 0; q < 3; q++)
         {
             player.Clear(); var budget = SpriteFxBudget.ForQuality(q);
@@ -69,7 +85,12 @@ internal static class Program
         for (int i = 0; i < 100000; i++) Cycle(player, strike, 100 + i * .01);
         long bytes = GC.GetAllocatedBytesForCurrentThread() - watchBytes; watch.Stop();
         Check(bytes == 0, "steady-state pool/frame/UV path allocates zero bytes");
-        Console.WriteLine(checks + " PixelFX pool/timing/UV/quality checks passed; 100000 cycles " + watch.ElapsedMilliseconds + " ms, " + bytes + " bytes (host CLR, not Android); harness " + (watchBytes - allocated) + " bytes.");
+        for(uint i=0;i<10000;i++)events.Accept(i,i*.01,4);
+        long gateStart=GC.GetAllocatedBytesForCurrentThread();
+        for(uint i=0;i<100000;i++)events.Accept(i,100+i*.01,4);
+        long gateBytes=GC.GetAllocatedBytesForCurrentThread()-gateStart;
+        Check(gateBytes==0,"steady-state dedup gate allocates zero bytes");
+        Console.WriteLine(checks + " PixelFX pool/timing/UV/quality checks passed; 100000 cycles " + watch.ElapsedMilliseconds + " ms, " + bytes + " bytes; 100000 dedup events " + gateBytes + " bytes (host CLR, not Android); harness " + (watchBytes - allocated) + " bytes.");
         return 0;
     }
     private static void Cycle(SpriteFxPlayer player, SpriteFxClip clip, double now)

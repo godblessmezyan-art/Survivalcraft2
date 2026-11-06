@@ -86,5 +86,41 @@
   {
     "path": "tools/lib/png.mjs",
     "gitBlob": "df029bbb942106fe710311c5431a3605340eb588"
+  },
+  {
+    "path": "src/fx/holy/blessing.js",
+    "gitBlob": "e3e0ed7add397cb71b4c001e6633497aad44fb3c"
+  },
+  {
+    "path": "src/fx/holy/sunburst.js",
+    "gitBlob": "2083d4e40049dd9e9b183fddb7db37b640c6bfd9"
+  },
+  {
+    "path": "src/fx/holy/smite.js",
+    "gitBlob": "bbfe3825e06e97aece43af1099acaf5f3e3a379b"
+  },
+  {
+    "path": "src/fx/holy/_lib.js",
+    "gitBlob": "fbf39afb15e8ca554c0ea472cf92bbb476b33cee"
+  },
+  {
+    "path": "src/fx/water/splash.js",
+    "gitBlob": "abb52499d80bcb461a33e8a94f2355dfe90c2bcc"
+  },
+  {
+    "path": "src/fx/water/wave-crash.js",
+    "gitBlob": "4a22114c1c405fd0c905b5bdad91eb2418808004"
+  },
+  {
+    "path": "src/fx/water/_lib.js",
+    "gitBlob": "86fed1780753d72210930aa703a308e477987edf"
+  },
+  {
+    "path": "src/fx/shadow/dark-explosion.js",
+    "gitBlob": "0a088c0633e271d5a02a231c7ab61a0b6cf4a0b0"
+  },
+  {
+    "path": "src/fx/shadow/_lib.js",
+    "gitBlob": "656b0e570c2ac558f9ad04a7f410c81e1f9687f4"
   }
 ]
