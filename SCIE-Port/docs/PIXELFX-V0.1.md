@@ -1,5 +1,7 @@
 # PixelFX × SCIE-Port V0.1
 
+2026-11-06：当前播放器优化见[0.77.1专项](PIXELFX-OPTIMIZATION-0.77.1.md)；以后神器特效开发前必须先读[选型规范](PIXELFX-DEVELOPMENT-STANDARD.md)并检索[固定效果目录](PIXELFX-CATALOG.md)。本页保留0.77.0的初始实现与历史证据。
+
 2026-11-05，基于 Survivalcraft2/main `7b77b7c`，Mod版本 **0.77.0**。
 目标仍为 SCNET `Net_x25.01.17` / Android / net472；Windows固定ABI、离线及原生GPU隔离范围**已确认**，Android/7723和真实联机**待验证**。
 

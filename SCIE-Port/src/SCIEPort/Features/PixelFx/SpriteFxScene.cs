@@ -12,6 +12,7 @@ namespace SCIEPort.Features.PixelFx
         private TexturedBatch3D m_batch;
         private int m_width, m_height;
         internal int LastQuadCount { get; private set; }
+        internal float LastScreenArea { get; private set; }
 
         internal void Load(PrimitivesRenderer3D renderer, string textureName)
         {
@@ -43,14 +44,14 @@ namespace SCIEPort.Features.PixelFx
 
         internal void Clear()
         {
-            Player.Clear(); m_batch = null; m_width = 0; m_height = 0; LastQuadCount = 0;
+            Player.Clear(); m_batch = null; m_width = 0; m_height = 0; LastQuadCount = 0; LastScreenArea = 0;
             // ContentManager owns the atlas. Never dispose its shared texture here.
         }
 
-        internal void Queue(Vector3 eye, Vector3 direction, double now, int quality, bool reducedFlashes)
+        internal void Queue(Vector3 eye, Vector3 direction, Matrix viewProjection, double now, int quality, bool reducedFlashes)
         {
-            LastQuadCount = 0;
-            if (m_batch == null || direction.LengthSquared() < 0.0001f) return;
+            LastQuadCount = 0; LastScreenArea = 0;
+            if (m_batch == null || Player.ActiveCount == 0 || !Finite(eye) || !Finite(direction) || direction.LengthSquared() < 0.0001f) return;
             direction = Vector3.Normalize(direction);
             Vector3 right = Vector3.Cross(direction, Vector3.UnitY);
             if (right.LengthSquared() < 0.0001f) right = Vector3.UnitX;
@@ -67,23 +68,55 @@ namespace SCIEPort.Features.PixelFx
                 if (frame < 0) continue;
                 Vector3 anchor = new Vector3(item.X, item.Y, item.Z);
                 Vector3 delta = anchor - eye;
-                float distance = delta.Length(), depth = Vector3.Dot(delta, direction);
-                if (distance > budget.Distance || distance < 0.65f || depth <= 0.2f) continue;
+                float distanceSquared = delta.LengthSquared(), depth = Vector3.Dot(delta, direction);
+                if (distanceSquared > budget.Distance * budget.Distance || distanceSquared < 0.65f * 0.65f || depth <= 0.2f) continue;
                 if (LastQuadCount >= budget.Quads) return;
+                float distance = MathUtils.Sqrt(distanceSquared);
+                float fade = MathUtils.Saturate((budget.Distance - distance) / 8f) * MathUtils.Saturate((distance - 0.65f) / 0.85f);
+                float tail = (float)((now - item.Birth) / item.Life);
+                fade *= MathUtils.Saturate((1f - tail) / 0.18f) * (reducedFlashes ? 0.25f : 0.72f);
+                int alpha = (int)(255f * fade);
+                if (alpha == 0) continue;
                 // Avoid a giant billboard covering the phone screen when the caster stands inside it.
                 float width = MathUtils.Min(item.Size, distance * 0.8f);
                 Vector3 up = item.Clip.Facing == SpriteFxFacing.Vertical ? Vector3.UnitY : screenUp;
                 Vector3 p0 = anchor - right * (width * item.Clip.PivotX) + up * (width * item.Clip.PivotY);
                 Vector3 p1 = p0 + right * width, p2 = p1 - up * width, p3 = p0 - up * width;
+                float area;
+                if (!VisibleArea(Vector4.Transform(new Vector4(p0, 1f), viewProjection),
+                    Vector4.Transform(new Vector4(p1, 1f), viewProjection),
+                    Vector4.Transform(new Vector4(p2, 1f), viewProjection),
+                    Vector4.Transform(new Vector4(p3, 1f), viewProjection), out area)) continue;
+                if (LastScreenArea + area > budget.ScreenArea) continue;
                 float u0, v0, u1, v1; item.Clip.Uv(frame, out u0, out v0, out u1, out v1);
-                float fade = MathUtils.Saturate((budget.Distance - distance) / 8f) * MathUtils.Saturate((distance - 0.65f) / 0.85f);
-                float tail = (float)((now - item.Birth) / item.Life);
-                fade *= MathUtils.Saturate((1f - tail) / 0.18f) * (reducedFlashes ? 0.25f : 0.72f);
                 // Native Additive is SourceAlpha/One; tint alpha attenuates both core and soft glow.
-                Color tint = new Color(255, 255, 255, (int)(255f * fade));
+                Color tint = new Color(255, 255, 255, alpha);
                 m_batch.QueueQuad(p0, p1, p2, p3, new Vector2(u0, v0), new Vector2(u1, v0), new Vector2(u1, v1), new Vector2(u0, v1), tint);
                 LastQuadCount++;
+                LastScreenArea += area;
             }
+        }
+
+        private static bool Finite(Vector3 v) => SpriteFxClip.Finite(v.X) && SpriteFxClip.Finite(v.Y) && SpriteFxClip.Finite(v.Z);
+
+        // Homogeneous side-plane tests keep partially visible quads. The clipped screen AABB
+        // conservatively bounds fragment coverage, including overlapping transparent regions.
+        private static bool VisibleArea(Vector4 a, Vector4 b, Vector4 c, Vector4 d, out float area)
+        {
+            area = 0;
+            if ((a.X < -a.W && b.X < -b.W && c.X < -c.W && d.X < -d.W) ||
+                (a.X > a.W && b.X > b.W && c.X > c.W && d.X > d.W) ||
+                (a.Y < -a.W && b.Y < -b.W && c.Y < -c.W && d.Y < -d.W) ||
+                (a.Y > a.W && b.Y > b.W && c.Y > c.W && d.Y > d.W) ||
+                (a.W <= 0 && b.W <= 0 && c.W <= 0 && d.W <= 0)) return false;
+            if (a.W <= 0.0001f || b.W <= 0.0001f || c.W <= 0.0001f || d.W <= 0.0001f)
+            { area = 1f; return true; } // Crossing the eye plane: keep it, charge one full viewport.
+            float left = MathUtils.Max(-1f, MathUtils.Min(MathUtils.Min(a.X / a.W, b.X / b.W), MathUtils.Min(c.X / c.W, d.X / d.W)));
+            float right = MathUtils.Min(1f, MathUtils.Max(MathUtils.Max(a.X / a.W, b.X / b.W), MathUtils.Max(c.X / c.W, d.X / d.W)));
+            float bottom = MathUtils.Max(-1f, MathUtils.Min(MathUtils.Min(a.Y / a.W, b.Y / b.W), MathUtils.Min(c.Y / c.W, d.Y / d.W)));
+            float top = MathUtils.Min(1f, MathUtils.Max(MathUtils.Max(a.Y / a.W, b.Y / b.W), MathUtils.Max(c.Y / c.W, d.Y / d.W)));
+            area = (right - left) * (top - bottom) * 0.25f;
+            return SpriteFxClip.Finite(area) && area > 0;
         }
     }
 }

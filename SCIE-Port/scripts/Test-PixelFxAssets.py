@@ -99,16 +99,22 @@ def main():
             # Only the explicit additive integration lines are removable. All preexisting code stays frozen.
             source = source.replace(b'using SCIEPort.Features.PixelFx;\n', b'')
             source = re.sub(rb'^ +scene\?\.SpriteFx\.Play\([^\n]+\);\n', b'', source, flags=re.M)
-            source = source.replace(b'if (m_scene == null)\n', b'if (m_scene == null || m_scene.ActiveBolts == 0)\n')
+            source = source.replace(b'if (m_scene == null || !m_scene.HasEffects)\n', b'if (m_scene == null || m_scene.ActiveBolts == 0)\n')
         if path.endswith('/LightningScene.cs'):
             addition = ('        private readonly SpriteFxScene m_spriteFx = new SpriteFxScene();\n\n'
                         "        /// <summary>Presentation-only sprite pool, sharing this scene's renderer and clock.</summary>\n"
                         '        internal SpriteFxScene SpriteFx => m_spriteFx;\n')
             source = source.replace(addition.encode(), b'')
+            idle_gate = ("\n        // Includes sprite-only tails and ground runes; idle scenes skip the renderer entirely.\n"
+                         '        internal bool HasEffects\n        {\n            get\n            {\n'
+                         '                if (ActiveBolts > 0 || m_spriteFx.Player.ActiveCount > 0) return true;\n'
+                         '                for (int i = 0; i < m_runes.Length; i++) if (m_runes[i].Active) return true;\n'
+                         '                return false;\n            }\n        }\n')
+            source = source.replace(idle_gate.encode(), b'')
             for line in ('            m_spriteFx.Load(m_renderer, StormhammerSpriteClips.Texture);\n',
                          '            m_spriteFx.Clear();\n', '            m_renderer?.Clear();\n',
                          '            m_spriteFx.Player.Update(now, (int)StormhammerOptions.Quality);\n',
-                         '            m_spriteFx.Queue(viewPosition, viewForward, now, (int)StormhammerOptions.Quality, StormhammerOptions.ReducedFlashes);\n',
+                         '            m_spriteFx.Queue(viewPosition, viewForward, camera.ViewProjectionMatrix, now, (int)StormhammerOptions.Quality, StormhammerOptions.ReducedFlashes);\n',
                          '            LastQuadCount += m_spriteFx.LastQuadCount;\n'):
                 source = source.replace(line.encode(), b'')
         check(digest(source) == expected, 'preserved mechanics/3D/persistence/protocol/attributes: ' + path)

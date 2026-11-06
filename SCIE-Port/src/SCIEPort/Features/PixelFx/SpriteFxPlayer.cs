@@ -43,11 +43,12 @@ namespace SCIEPort.Features.PixelFx
     {
         internal int Instances, Quads, SampleFps;
         internal float Distance;
+        internal float ScreenArea;
         internal static SpriteFxBudget ForQuality(int quality)
         {
-            if (quality <= 0) return new SpriteFxBudget { Instances = 8, Quads = 6, SampleFps = 12, Distance = 32 };
-            if (quality == 1) return new SpriteFxBudget { Instances = 16, Quads = 12, SampleFps = 18, Distance = 56 };
-            return new SpriteFxBudget { Instances = 32, Quads = 24, SampleFps = 24, Distance = 80 };
+            if (quality <= 0) return new SpriteFxBudget { Instances = 8, Quads = 6, SampleFps = 12, Distance = 32, ScreenArea = 1f };
+            if (quality == 1) return new SpriteFxBudget { Instances = 16, Quads = 12, SampleFps = 18, Distance = 56, ScreenArea = 1.5f };
+            return new SpriteFxBudget { Instances = 32, Quads = 24, SampleFps = 24, Distance = 80, ScreenArea = 2f };
         }
     }
 
@@ -64,23 +65,30 @@ namespace SCIEPort.Features.PixelFx
         internal const int Capacity = 32;
         private readonly SpriteFxInstance[] m_items = new SpriteFxInstance[Capacity];
         private double m_lastTime = double.NaN;
+        private int m_lastQuality = -1;
         internal int ActiveCount { get; private set; }
         internal int DroppedCount { get; private set; }
+        internal int LastUpdateScanCount { get; private set; }
         internal SpriteFxInstance At(int index) => m_items[index];
 
         internal void Clear()
         {
             Array.Clear(m_items, 0, m_items.Length);
-            ActiveCount = 0; DroppedCount = 0; m_lastTime = double.NaN;
+            ActiveCount = 0; DroppedCount = 0; m_lastTime = double.NaN; m_lastQuality = -1; LastUpdateScanCount = 0;
         }
 
         internal void Update(double now, int quality)
         {
+            LastUpdateScanCount = 0;
             if (double.IsNaN(now) || double.IsInfinity(now)) return;
             if (!double.IsNaN(m_lastTime) && now < m_lastTime) Clear();
-            m_lastTime = now; ActiveCount = 0;
+            if (now == m_lastTime && quality == m_lastQuality) return;
+            m_lastTime = now; m_lastQuality = quality;
+            if (ActiveCount == 0) return;
+            ActiveCount = 0;
             for (int i = 0; i < Capacity; i++)
             {
+                LastUpdateScanCount++;
                 if (m_items[i].Clip == null) continue;
                 if (now - m_items[i].Birth >= m_items[i].Life) m_items[i] = default(SpriteFxInstance);
                 else ActiveCount++;

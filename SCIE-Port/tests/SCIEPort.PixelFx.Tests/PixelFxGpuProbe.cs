@@ -32,6 +32,7 @@ public static class PixelFxGpuProbe
     static object Call(object obj, string name, params object[] args) { return obj.GetType().GetMethod(name, F).Invoke(obj, args); }
     static void Check(bool b, string message) { checks++; if (!b) throw new Exception(message); }
     static int Quads { get { return (int)scene.GetType().GetProperty("LastQuadCount", F).GetValue(scene, null); } }
+    static float ScreenArea { get { return (float)scene.GetType().GetProperty("LastScreenArea", F).GetValue(scene, null); } }
     static void Spawn(string name, Vector3 at, float size, int quality, float life)
     { Call(scene, "Play", clips.GetField(name, F).GetValue(null), at, size, 0d, quality, life); }
     static void Reset() { Call(player, "Clear"); renderer.Clear(); }
@@ -47,8 +48,9 @@ public static class PixelFxGpuProbe
             b.QueueQuad(new Vector3(-100,-100,5), new Vector3(100,-100,5), new Vector3(100,100,5), new Vector3(-100,100,5), new Color(72,69,83));
         }
         world.Flush(view);
-        if (!empty) Call(scene, "Queue", eye, dir, age, quality, reduced);
+        if (!empty) Call(scene, "Queue", eye, dir, view, age, quality, reduced);
         Check(Quads <= (quality == 0 ? 6 : quality == 1 ? 12 : 24), "quad cap");
+        Check(ScreenArea <= (quality == 0 ? 1f : quality == 1 ? 1.5f : 2f), "screen coverage cap");
         var batch = (TexturedBatch3D)scene.GetType().GetField("m_batch", F).GetValue(scene);
         Check(batch.TriangleVertices.Count == (empty ? 0 : Quads * 4) && batch.TriangleIndices.Count == (empty ? 0 : Quads * 6), "exact native vertex/index budget");
         for (int i = 0; i < batch.TriangleVertices.Count; i++)
@@ -120,6 +122,29 @@ public static class PixelFxGpuProbe
             Frame(.2,0,false,eye,null,false,16f/9,false); Check(Quads==0,"distance culling");
             Reset(); Spawn("Thunderclap",new Vector3(0,0,-20),7,2,0);
             Frame(.2,2,false,eye,null,false,16f/9,false); Check(Quads==0,"behind-camera culling");
+            Reset(); Spawn("Thunderclap",new Vector3(40,0,12),7,2,0);
+            Frame(.2,2,false,eye,null,false,16f/9,false); Check(Quads==0 && ScreenArea==0,"offscreen quad consumes no budget");
+            Reset(); Spawn("Thunderclap",new Vector3(23,0,12),7,2,0);
+            Check(Diff(empty,Frame(.2,2,false,eye,"screen-edge",false,16f/9,false))>0 && Quads==1,"partially visible quad retained at screen edge");
+            for (int q=0;q<3;q++)
+            {
+                Reset(); for(int i=0;i<32;i++) Spawn("LightningStrike",new Vector3(0,0,0),24,q,0);
+                Frame(.2,q,false,eye,"coverage-stress-q"+q,false,16f/9,false);
+                Check(Quads>0 && Quads<(q==0?6:q==1?12:24),"overlap coverage budget reduces near-camera draw count");
+                Check(ScreenArea>0,"coverage diagnostics populated");
+            }
+            var lightning=Activator.CreateInstance(scene.GetType().Assembly.GetType("SCIEPort.Features.Stormhammer.LightningScene"),true);
+            var hasEffects=lightning.GetType().GetProperty("HasEffects",F);
+            Check(!(bool)hasEffects.GetValue(lightning,null),"idle lightning scene draw gate");
+            Call(lightning,"SpawnRune",Vector3.Zero,1f,2f,0d,1d,Color.White);
+            Check((bool)hasEffects.GetValue(lightning,null),"rune-only scene remains drawable");
+            Call(lightning,"Update",2d); Check(!(bool)hasEffects.GetValue(lightning,null),"expired rune releases idle gate");
+            var sprite=lightning.GetType().GetProperty("SpriteFx",F).GetValue(lightning,null);
+            Call(sprite,"Attach",renderer,texture);
+            Call(sprite,"Play",clips.GetField("ChargeUp",F).GetValue(null),Vector3.Zero,2f,2d,2,.42f);
+            Check((bool)hasEffects.GetValue(lightning,null),"sprite-only scene remains drawable");
+            Call(lightning,"Update",3d); Check(!(bool)hasEffects.GetValue(lightning,null),"sprite expiry releases idle gate");
+            Call(lightning,"Clear"); Check(!(bool)hasEffects.GetValue(lightning,null),"clear releases idle gate");
             Call(scene,"Clear"); Check((int)player.GetType().GetProperty("ActiveCount",F).GetValue(player,null)==0,"scene cleanup");
             Call(scene,"Attach",renderer,texture); Reset();
             Frame(.2,2,false,eye,"after-clear",false,16f/9,false); Check(Quads==0,"no old-world effects after reattach");

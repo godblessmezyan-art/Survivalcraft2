@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-06 SCIE-Port 0.77.1：PixelFX绘制优化与开发选型规范
+
+精灵层加入空闲绘制门、同tick池检查复用、屏幕外/零alpha剔除及每相机投影面积三档预算，复用原ViewProjectionMatrix/真实Vector4.Transform。原图集/JSON/C#表/许可、3D雷电、伤害/冷却、神器属性、存档、ID及协议保持，无新Hook或包布局变化。固定Windows三SHA/net472、239项播放器/512项资源/601项Engine GPU及Release/包范围 **已确认**；Android7723、触屏/手机性能、完整游戏及真实单人/主机/普通客户端 **待验证**；旧版混装 **不支持**，同房统一0.77.1。根/移植AGENTS新增“神器特效开发前先评估PixelFX”规则，见[规范](../SCIE-Port/docs/PIXELFX-DEVELOPMENT-STANDARD.md)及[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
 ## 2026-11-05 SCIE-Port 0.77.0：PixelFX V0.1
 
 妙尔尼尔仅新增蓄力/落雷/爆闪精灵叠层，原3D雷电与机制、伤害/冷却、神器属性、存档、网络字节布局保持。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、离线导出/规则、461项目标Engine GPU隔离及Release/包检查 **已确认**；Android7723、真实Local/Server/Client、触屏及手机性能 **待验证**。同房统一0.77.0，旧版混装 **不支持**；无新Hook/ID/GUID或Builder Assistant能力，包新增PNG/JSON/MIT许可，内部身份保持。见[专项与实机清单](../SCIE-Port/docs/PIXELFX-V0.1.md)及[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。

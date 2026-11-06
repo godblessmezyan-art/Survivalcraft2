@@ -97,6 +97,17 @@ namespace SCIEPort.Features.Stormhammer
         /// <summary>Presentation-only sprite pool, sharing this scene's renderer and clock.</summary>
         internal SpriteFxScene SpriteFx => m_spriteFx;
 
+        // Includes sprite-only tails and ground runes; idle scenes skip the renderer entirely.
+        internal bool HasEffects
+        {
+            get
+            {
+                if (ActiveBolts > 0 || m_spriteFx.Player.ActiveCount > 0) return true;
+                for (int i = 0; i < m_runes.Length; i++) if (m_runes[i].Active) return true;
+                return false;
+            }
+        }
+
         /// <summary>Number of bolts currently alive.</summary>
         public int ActiveBolts { get; private set; }
 
@@ -418,7 +429,7 @@ namespace SCIEPort.Features.Stormhammer
             }
 
             LastQuadCount = quads;
-            m_spriteFx.Queue(viewPosition, viewForward, now, (int)StormhammerOptions.Quality, StormhammerOptions.ReducedFlashes);
+            m_spriteFx.Queue(viewPosition, viewForward, camera.ViewProjectionMatrix, now, (int)StormhammerOptions.Quality, StormhammerOptions.ReducedFlashes);
             LastQuadCount += m_spriteFx.LastQuadCount;
             m_renderer.Flush(camera.ViewProjectionMatrix);
         }

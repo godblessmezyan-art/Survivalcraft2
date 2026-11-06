@@ -1,5 +1,42 @@
 # 测试结果
 
+## 2026-11-06 main 0.77.1：PixelFX空闲/覆盖优化与神器开发规范
+
+基线`67ec6de`/0.77.0。新增空闲绘制门、同GameTime/同档过期检查复用、平方距离/零alpha剔除、真实ViewProjection四角屏幕外测试及1.0/1.5/2.0视口面积的三档叠加预算。原图集/清单/帧表/许可、3D雷电、伤害/冷却/默认神器属性、存档与协议保持。根AGENTS.md和SCIE-Port/AGENTS.md同步加入“新建/改造神器特效前先评估PixelFX”要求，另补[评估模板与规则](PIXELFX-DEVELOPMENT-STANDARD.md)、固定244效果索引和[优化专项](PIXELFX-OPTIMIZATION-0.77.1.md)。
+
+实际命令（仓库根，SDK9.0.314、Mod为net472；固定Windows x25.01.17，三程序集SHA与上一条记录相同）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.PixelFx.Tests -c Release --nologo
+python SCIE-Port/scripts/Test-PixelFxAssets.py
+dotnet msbuild SCIE-Port/src/SCIEPort/SCIEPort.csproj /restore /t:Build /p:Configuration=Release /p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 /nologo /verbosity:minimal
+$env:PYTHONUTF8='1'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release *> artifacts/pixelfx-0771-build.log
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-PixelFxGpu.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -OutputDir SCIE-Port/artifacts/pixelfx-0771-gpu-final
+git diff --check
+```
+
+上述均退出0，完整构建日志无warning/error。根环境及构建内移植环境检查、API1.42/SC2.4.10.6/net472和固定三SHA通过。
+
+| 检查 | 实际结果 |
+|---|---|
+| 播放器 | 239项：原帧/池/优先级/清理检查，加空池0扫描、同tick复用、同tick切档不跳过、回退及过期后空闲；最终构建10万池/帧/UV循环192ms、稳态0字节（独立首轮226ms，非Android性能证据）。 |
+| 资源与机制保留 | 512项及3个坏清单负对照通过；35文件仍以原7b77b7c逐字节校验，未覆盖基线，仅剥离明确绘制门/矩阵接入；22上游blob/哈希、PNG/JSON/C#/许可离线重导出一致。 |
+| 最终DLL目标Engine/OpenGL | 601项：原动画/三档/减闪/遮挡/侧视/20:9/压力及新增覆盖预算、屏外不占预算、边缘可见不误删、近处重叠减少quad、空场景/仅符文/仅精灵/过期/清理绘制门。测试生成GPU帧，已目视检查屏幕边缘结果。 |
+| 原规则及全量Release/包 | 751项雷神、775项库存纯规则与170项目标库存API通过；原其它神器/载具/生态/数据库/协议/存档隔离回归和包检查全部通过。最终DLL解析审计3008方法/23670调用点，无直接BCL TryParse或Guid/UInt32 Parse引用。 |
+| 与0.77.0包对比 | 176条目集合相同；只有SCIEPort.dll和modinfo.json字节变化，全部资源及署名文件不变。主包与0.77.1版本副本字节一致。 |
+
+另外比较0.77.0/0.77.1原生GPU夹具的25张同名既有场景PNG，逐像素全部一致（0张变化）；新增屏幕边缘与近处覆盖压力场景另验收。
+
+最终 `SCIE-Port/artifacts/荒野探险家.netmod` / `荒野探险家-0.77.1.netmod`：**10,884,588字节、176条目**。
+
+- 包SHA-256：`45BD798D44E28B8AB316C4B6243DA3D8C06E2AADA7F0ABEF0197FF482BE64734`。
+- DLL SHA-256：`AC65E0D8FBF6E5AC65A05B67DFA94C09A22475D671C03286F9A078AD686090EB`；MVID：`6a078fc4-7671-4028-b5d1-9c59e850ff02`。
+- 图集SHA-256仍为 `5C98C465989513C586451574EAD260840A6F71B4290C218FFA36A825767F82F7`，4MiB运行纹理，PNG328,340字节；JSON/许可和帧数保持。
+
+本轮未启动完整游戏世界、手机或真实房间；Android7723、触屏、实际Local/Server/Client、多人P95帧耗/内存/发热及设备恢复仍**待验证**，详见优化专项单列清单。同房统一0.77.1，旧版混装不支持。仅本地提交，不push或上传。
+
 ## 2026-11-05 main 0.77.0：PixelFX × SCIE-Port V0.1
 
 基线main `7b77b7c`。参考固定MIT源码`patch-gg/pixelfx@a84159688af3ca37a4be05a0d422b94451b2e24e`，三种技能演出离线导出78帧PNG/JSON与C#表。固定池及TexturedBatch3D层接入原LightningScene，只加现有去重事件的表现调用。原3D雷电、数值/冷却、神器默认属性/库存、存档和所有包的代码保留。具体源帧、档位、生命周期和**单列实机验收**见[PixelFX V0.1](PIXELFX-V0.1.md)。

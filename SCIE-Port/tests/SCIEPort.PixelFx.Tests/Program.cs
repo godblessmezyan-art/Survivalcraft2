@@ -11,6 +11,13 @@ internal static class Program
     {
         SpriteFxClip charge = StormhammerSpriteClips.ChargeUp, strike = StormhammerSpriteClips.LightningStrike;
         var player = new SpriteFxPlayer();
+        player.Update(0, 2); Check(player.LastUpdateScanCount == 0, "idle update skips pool scan");
+        player.Play(charge, 0, 0, 0, 1, 0, 2);
+        Check(player.LastUpdateScanCount == 0, "same-tick spawn reuses update");
+        player.Update(.1, 2); Check(player.LastUpdateScanCount == SpriteFxPlayer.Capacity, "new time expires active pool");
+        player.Update(.1, 2); Check(player.LastUpdateScanCount == 0, "same-time update skips duplicate scan");
+        player.Update(.1, 0); Check(player.LastUpdateScanCount == SpriteFxPlayer.Capacity, "same-time quality change still updates");
+        player.Clear();
         Reject(() => new SpriteFxClip("bad", int.MaxValue, int.MaxValue, 24, 1024, 1024, 10, 96, .5f, .5f, SpriteFxFacing.Screen, 1));
         Reject(() => new SpriteFxClip("bad", 0, 1, 24, 96, 96, 2, 96, .5f, .5f, SpriteFxFacing.Screen, 1));
         Reject(() => new SpriteFxClip("bad", 0, 1, 24, 96, 96, 1, 96, float.NaN, .5f, SpriteFxFacing.Screen, 1));
@@ -36,6 +43,7 @@ internal static class Program
         for (int q = 0; q < 3; q++)
         {
             player.Clear(); var budget = SpriteFxBudget.ForQuality(q);
+            Check(budget.ScreenArea == (q == 0 ? 1f : q == 1 ? 1.5f : 2f), "tier screen coverage budget");
             for (int i = 0; i < 1000; i++) player.Play(charge, i, 0, 0, 1, 0, q);
             Check(player.ActiveCount == budget.Instances && player.DroppedCount == 1000 - budget.Instances, "bounded saturation");
             player.Play(strike, 0, 0, 0, 1, 0, q);
@@ -48,6 +56,10 @@ internal static class Program
         }
         player.Update(.1, 0); Check(player.ActiveCount == 8, "live quality reduction");
         player.Update(-1, 0); Check(player.ActiveCount == 0, "clock rollback clears old world effects");
+        Check(player.LastUpdateScanCount == 0, "rollback into empty pool does not scan");
+        player.Play(strike, 0, 0, 0, 1, 0, 2);
+        player.Update(10, 2); player.Update(11, 2);
+        Check(player.ActiveCount == 0 && player.LastUpdateScanCount == 0, "expired idle pool fast path");
         player.Play(strike, 0, 0, 0, 1, 0, 2); player.Clear();
         for (int i = 0; i < SpriteFxPlayer.Capacity; i++) Check(player.At(i).Clip == null, "clear releases clip references");
         // Warm up JIT and all operations before measuring steady-state managed allocation.

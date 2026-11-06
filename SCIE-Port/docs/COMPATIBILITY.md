@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-06 SCIE-Port 0.77.1：PixelFX空闲与屏幕覆盖优化
+
+新增HasEffects绘制门（雷柱/符文/精灵都空才跳过）、同GameTime/同档池检查缓存、平方距离/零alpha剔除及齐次四角视口测试。精灵每相机覆盖AABB预算为Low1.0/Medium1.5/High2.0视口面积，保留原实例/quad/采样/距离三档；沿用真实Camera.ViewProjectionMatrix与目标Vector4.Transform，无新Hook/加载器/依赖。原78帧PNG/JSON/C#表/许可与技能、3D几何、伤害/冷却、存档、ID/GUID、240–254协议保持。
+
+固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、239项播放器/512项资源保留/601项原生GPU及Release/包范围 **已确认**；Android7723、触屏、完整游戏与真实Local/Server/Client及长时性能 **待验证**。原握手保持，旧版混装 **不支持**，同房统一0.77.1。新根/移植AGENTS规则要求后续神器先评估PixelFX，见[规范](PIXELFX-DEVELOPMENT-STANDARD.md)、[优化专项](PIXELFX-OPTIMIZATION-0.77.1.md)和[实际测试记录](TEST-RESULTS.md)。
+
 ## 2026-11-05 SCIE-Port 0.77.0：PixelFX V0.1
 
 妙尔尼尔现有去重表现事件叠加charge-up/lightning-strike/thunderclap。PNG/JSON与C#帧表离线生成；新增通用固定池与原生TexturedBatch3D适配，同一LightningScene renderer/105次序，无新Hook。原3D雷电、伤害/冷却、神器属性/库存、ID/GUID、存档及240–254包保持。固定net472/API1.42/SC2.4.10.6，包增加一张图集、一个清单和MIT许可，内部SCIEPort身份保持。
