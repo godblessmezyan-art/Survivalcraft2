@@ -1,5 +1,30 @@
 # 测试结果
 
+## 2026-11-08 main 0.78.0：六类原创家居
+
+新增957–963、独立家居Tab、原生16格储物、龙头/窗帘/冰箱门状态和有界两格生命周期；未修改旧物品身份或Builder Assistant实现。新增请求239，旧240–254保持。造型通过已安装的Blender技能链与官方MCP执行，工具链实际安装并完成只读场景查询、建模、渲染和保存；不是仅写了未执行的Blender脚本。
+
+本机Windows工具链：Blender5.1.1（build b70da489d7f4），官方发行zip SHA256 `307123CAA3BAD0C1D04EC373A2F22F622C403EECB34B9C646EDE104906B04CED`；官方Blender MCP1.0.2源码提交`dbbf836ad4b1025f14a2b3b504c43903f39e0b04`，独立venv与127.0.0.1:9877。Codex连接名blender已写入本机配置并由`codex mcp get blender`回读。MCP实际返回工具列表、默认场景与建模结果；持久场景使用独立后台会话，避免短命令结束造成场景丢失。
+
+实际命令（仓库根；均为本机开发路径，不编入游戏逻辑）：
+
+```powershell
+$env:FrameworkPathOverride='D:\Dev\Tools\net472\build\.NETFramework\v4.7.2'
+$env:PATH='C:\Users\85196\.cache\codex-runtimes\codex-primary-runtime\dependencies\python;'+$env:PATH
+.\SCIE-Port\scripts\Test-Environment.ps1 -GameDir 'D:\Games\SCNET-x25.01.17'
+.\SCIE-Port\scripts\Build-WithPinnedSdk.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release
+python .\SCIE-Port\scripts\Test-HomeGeometry.py
+.\SCIE-Port\scripts\Test-HomeFurniture.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -AssemblyPath '.\SCIE-Port\artifacts\build\SCIEPort.dll' -Package '.\SCIE-Port\artifacts\荒野探险家.netmod'
+```
+
+前两次模型导出暴露默认UVMap串图和极薄倒角退化三角形，均在本轮图集激活与倒角上限修正后重新导出。16个最终模型均由目标`Engine.Media.ModelData.Load`实际导入为1骨骼，合计30000三角面，单模型728–2924；PNG512×512/完全不透明、几何/独立索引/分区UV/源哈希检查通过。补充目检修正吊柜多余底座与转角沙发同面接缝；预览来自最终Blender网格，不当作游戏画面。
+
+`SCIEPort.Home.Tests`通过491535断言：非法DATA清理、全部旋转/模块/状态、掉落闭包、上下配对、取消/陈旧/占用拒绝、权限拒写、提交后异常条件回滚、撤销失败分类与第三方替换保留。直接测试真实PackageManager的255项容量（255不能索引），39个原生ID空闲审计及239注册/注销；两种动作均经原生压缩写流/解压读流往返，未压缩载荷17字节。原生读写流测试不代表真实多人。
+
+完整Release构建、旧回归、原生数据库验证、分类枚举、打包禁带二进制和本批19个资源的包内/源SHA一致性检查通过；保留初稿255越界及修正过程，最终守卫实际注册239。本机正式输出为`荒野探险家.netmod`与同字节`荒野探险家-0.78.0.netmod`。最终文件指纹以本次构建日志与`artifacts/home-furniture/release-summary.json`为准。回归脚本重写了阿比斯设计验证JSON的浮点尾数，已检查为生成噪声并恢复，不混入家居提交。
+
+范围结论：Windows指纹/编译/导入/隔离规则/包**已确认**；Android7723、完整世界放置/拆除/库存保存、触屏多分辨率及真实Local/Server/Client**待验证**。没有在手机、主机或普通客户端执行本轮功能，不继承旧版反馈。人工步骤见[家居验收](HOME-FURNITURE.md)。
+
 ## 2026-11-04 main 0.77.0：整合云天书典0.1.4
 
 基线7eb3ddf。用户本会话反馈独立0.1.4“测试通过”并授权合入荒野探险家；只把该反馈记为独立版本次功能验收，不推定整合包已在手机测试。源码/资源/测试迁入SCIE-Port，独立工程及ModLoader退休，只有SCIEPort.dll；保留956、GUID、缓存/进度格式和HTTP适配。新实用工具Tab与独立槽位主题，不改其它神器逻辑或Builder Assistant。

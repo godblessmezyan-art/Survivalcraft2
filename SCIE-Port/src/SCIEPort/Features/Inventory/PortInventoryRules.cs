@@ -6,9 +6,9 @@ namespace SCIEPort.Features.Inventory
     internal static class PortInventoryRules
     {
         internal const string Artifacts = "SCIEPort.Artifacts", Vehicles = "SCIEPort.Vehicles", Saints = "SCIEPort.Saints";
-        internal const string Tools = "SCIEPort.Tools";
-        internal static readonly string[] Categories = { Artifacts, Vehicles, Saints, "SCIEPort.Plants", "SCIEPort.Food", "SCIEPort.Materials", "SCIEPort.Industry", "SCIEPort.Building", "SCIEPort.Creatures", Tools, "SCIEPort.Misc" };
-        internal static readonly string[] Labels = { "神器", "载具", "圣兽套装", "生态植物", "食材", "工业材料", "工业部件", "建筑装置", "生物生成", "实用工具", "移植杂项" };
+        internal const string Tools = "SCIEPort.Tools", Home = "SCIEPort.Home";
+        internal static readonly string[] Categories = { Artifacts, Vehicles, Saints, "SCIEPort.Plants", "SCIEPort.Food", "SCIEPort.Materials", "SCIEPort.Industry", "SCIEPort.Building", Home, "SCIEPort.Creatures", Tools, "SCIEPort.Misc" };
+        internal static readonly string[] Labels = { "神器", "载具", "圣兽套装", "生态植物", "食材", "工业材料", "工业部件", "建筑装置", "家居", "生物生成", "实用工具", "移植杂项" };
         internal enum Theme { None, Mjolnir, FalseHammer, Gungnir, Poseidon, OmniscientEye, DevouringEye, AbyssReaper, Qinglong, Xuanwu, Baihu, Zhuque, Artifact, Excalibur, Codex, CelestialCodex }
         internal struct Rgba
         {

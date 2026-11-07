@@ -1,0 +1,32 @@
+{
+  "scope": "Actual fixed Windows target Engine import; no Android execution",
+  "status": "已确认",
+  "units": "one game cell = one authoring meter",
+  "blenderAxis": "Z_UP",
+  "engineAxis": "Y_UP",
+  "transform": [
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      -1,
+      0
+    ]
+  ],
+  "engineFront": "-Z",
+  "sceneNodesPerModel": 1,
+  "actualBonesPerModel": 1,
+  "models": 16,
+  "triangles": 30000,
+  "packageProtocol": 239,
+  "nativeRegistryCapacity": 255,
+  "nativeProtocolGettersAudited": 39
+}

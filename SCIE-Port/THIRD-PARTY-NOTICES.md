@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original cozy furniture (2026-11-08)
+
+The six Home furniture families (13 creative appearances, 16 runtime COLLADA variants) and `HomeFurniture.png` are original project geometry and procedural color textures. The editable source is `scripts/New-HomeFurnitureAssets.py`; per-asset SHA-256 and the generator fingerprint are recorded in `docs/assets/home-furniture/manifest.json`. No external furniture model, photo, texture pack, logo, game DLL or proprietary game content was added for this feature. Blender 5.1.1 and the official Blender MCP 1.0.2 were used as local authoring tools; their installers, source checkout and Python environment are not included in the `.netmod`. Proof renders are Blender previews, not Android/game screenshots, and are not packaged.
+
 ## Original Artifact Codex book (2026-11-01)
 
 `ArtifactCodexBlock` authors its own leather covers, layered ivory pages, gilt corners, clasp, bookmark and raised cover sigils directly as native mesh geometry with one white texture pixel. The book model and parchment-style dialog are original project code, with no imported book art, game UI asset, external model or new skill icon. Existing item previews reuse the installed Mod's own models and descriptions. Synthetic QA previews are not game/Android footage and are not packaged.

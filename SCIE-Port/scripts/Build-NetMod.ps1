@@ -18,6 +18,11 @@ $zip = Join-Path $artifacts '荒野探险家.zip'
 $package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& python (Join-Path $PSScriptRoot 'Test-HomeGeometry.py')
+if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.' }
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests failed.' }
+& (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
@@ -2381,6 +2386,7 @@ try {
 finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
+& (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Integrated reader package validation failed.' }

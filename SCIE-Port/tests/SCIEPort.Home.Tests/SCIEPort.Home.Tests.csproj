@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/SCIEPort/Features/Home/HomeRules.cs" Link="HomeRules.cs"/>
+    <Compile Include="../../src/SCIEPort/Features/Home/HomeCellTransaction.cs" Link="HomeCellTransaction.cs"/>
+  </ItemGroup>
+</Project>

@@ -1,5 +1,21 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-08 0.78.0：家居系列
+
+目标仍为Windows固定哈希Net_x25.01.17，程序集2.4.0.0/API1.42/SC2.4.10.6/net472。新增957–962六类家居、963隐藏占位、SCIEPort.Home分类、HomeFurniture CSV/XDB和16个原创DAE/一张PNG；新子系统`SCIEPort.Features.Home.SubsystemHomeFurniture`、实体`SCIEPortHomeStorage`/`ComponentHomeStorage`。单一SCIEPortLoader保持，复用已有GuiUpdate Hook，不改变旧ID/GUID及240–254协议。
+
+新增交互请求239。实际`PackageManager.basePackages`为255长度，255越界；39个原生协议IL审计确认239空闲，真实注册/注销及原生压缩流双动作往返已确认。未提供其它Mod的协议表，外部239/957–963冲突待验证。内部PackageName/AssemblyName/RootNamespace/DLL及中文正式产物规则保持，联机各端统一0.78.0。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows ABI、Release及包完整性 | 已确认 | 实际目标编译；原生XDB/CSV/PNG、协议注册、19个本批资源逐字节包比对；具体命令见测试记录 |
+| 16个模型的目标Engine导入 | 已确认 | 各1骨骼，合计30000三角面；独立索引、有限/非退化几何、分区UV和不透明PNG均通过 |
+| DATA/双格配对/有条件撤销的隔离测试 | 已确认 | 491535断言；包括占用/陈旧计划、权限拒绝、提交后异常、撤销失败和第三方替换；不代表完整游戏流程 |
+| Android7723显示、触屏多分辨率、放置/拆除/保存、实际Local/Server/Client | 待验证 | 没有设备执行或游戏进程多人证据；Blender渲染不能替代实机画面 |
+| 混用旧荒野探险家客户端的家居协议 | 不支持 | 旧版本没有239及家居实体/方块；全部参与端需更新 |
+
+Windows精确指纹：Survivalcraft.exe `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`；Engine.dll `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`；EntitySystem.dll `7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C`。7723同版本号重打包仍须单独取证。详见[家居实现与验收](HOME-FURNITURE.md)。
+
 ## 2026-11-04 0.77.0：云天书典内置
 
 用户反馈独立0.1.4测试通过并授权整合；功能源码/资产与测试全部迁入SCIE-Port，直接编入SCIEPort.dll，不依赖独立包/Builder Assistant。保留956/DATA0与原三条书典GUID，Class改为`SCIEPort.Features.CelestialCodex.Mod.SubsystemCelestialCodexBehavior`，使用既有单一加载器及原生OnUse/Dispose；新增3条包资源。net472/API1.42/SC2.4.10.6、内部SCIEPort身份及旧ID/GUID/Hook/240–254协议保持。SCIEPort.Tools/实用工具分类与独立天蓝/古金主题已登记，书典为无属性的普通阅读工具。

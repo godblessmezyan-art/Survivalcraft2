@@ -3,7 +3,7 @@ param([string]$GameDir='E:\SCNET\SCNETx25.01.17',[string]$BuiltAssembly,[string]
 $ErrorActionPreference='Stop'
 $inventoryRoot=Split-Path -Parent $PSScriptRoot
 $inventoryProject=Join-Path $inventoryRoot 'src\SCIEPort'
-$inventoryAllowed=@('Artifacts','Vehicles','Saints','Plants','Food','Materials','Industry','Building','Creatures','Tools','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
+$inventoryAllowed=@('Artifacts','Vehicles','Saints','Plants','Food','Materials','Industry','Building','Home','Creatures','Tools','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
 $inventoryRows=@(Get-ChildItem (Join-Path $inventoryProject 'Assets\Blocks') -Filter *.csv | ForEach-Object { Import-Csv -Delimiter ';' -Encoding UTF8 $_.FullName })
 foreach($row in $inventoryRows){
     if($inventoryAllowed -notcontains $row.DefaultCategory -or $row.DefaultCategory -eq 'SCIEPort.Misc'){throw "Release item must have a deliberate dedicated tab: $($row.'Class Name')"}

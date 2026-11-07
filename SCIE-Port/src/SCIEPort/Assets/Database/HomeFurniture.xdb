@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortHomeFurniture>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortHomeStorage" Guid="f950a0cd-97ce-4967-9131-88710668ac80">
+      <MemberComponentTemplate Name="Chest" Guid="ff313901-e209-47dd-8c1f-1fb0ae27c113" InheritanceParent="7312ec8c-10c7-4133-85b4-4a35bd44c956">
+        <Parameter Name="Class" Guid="11d75437-b388-4bc2-af24-1e1f5187c339" Value="SCIEPort.Features.Home.ComponentHomeStorage" Type="string"/>
+        <Parameter Name="SlotsCount" Guid="3d657747-5091-43aa-8bbf-ef7e146378ce" Value="16" Type="int"/>
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="BlockEntity" Guid="cad2f112-9814-4947-a53a-d8cb632c0491" InheritanceParent="09a85cba-d94e-41b8-9497-f20ed942c17e"/>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortHomeFurniture" Guid="e8a4e1b0-bfad-4693-b6bf-4c026d0e49fa" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="74e26dc9-5671-454b-991f-e57f64b6bc66" Value="SCIEPort.Features.Home.SubsystemHomeFurniture" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortHomeFurniture" Guid="f6168d27-53d2-4fa3-b562-deb9a0e20697" InheritanceParent="e8a4e1b0-bfad-4693-b6bf-4c026d0e49fa"/>
+  </ProjectTemplate>
+</SCIEPortHomeFurniture>

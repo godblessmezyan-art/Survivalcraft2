@@ -6,6 +6,7 @@ using SCIEPort.Features.Poseidon;
 using SCIEPort.Features.Excalibur;
 using SCIEPort.Features.Codex;
 using SCIEPort.Features.Suspension;
+using SCIEPort.Features.Home;
 using SCIEPort.Features.Inventory;
 using Engine;
 using Game.NetWork;
@@ -47,6 +48,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new DeathAuthorityPackage());
                 PackageManager.RegisterPackage(new ExcaliburPackage());
                 PackageManager.RegisterPackage(new CodexPackage());
+                PackageManager.RegisterPackage(new HomeFurniturePackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -198,6 +200,7 @@ namespace SCIEPort.Mod
         public override void GuiUpdate(ComponentGui componentGui)
         {
             SubsystemSuspendedItem.AdaptGui(componentGui);
+            SubsystemHomeFurniture.AdaptGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
             FourSaintsClothingPreview.Update(componentGui);
