@@ -1,5 +1,37 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-06 SCIE-Port 0.78.0：PixelFX多神器共用场景
+
+圣剑/昆古尼尔/波塞冬/阿比斯增加6种圣光/水浪/暗影片段，与雷锤3种合并为186帧、单1024×2048图集/8MiB、单世界池/绘制预算。资源路径和176条目布局保持，JSON与生成帧表更新，原78帧RGBA不变。已接受施法/旧演出入口只加6行表现调用，32文件剥离这些行后匹配db11fe8；原35守卫仍匹配7b77b7c。原3D、伤害/冷却/默认属性、ID/DATA/GUID、存档、包与Hook均保持。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定Windows x25.01.17三SHA、net472/API1.42/SC2.4.10.6、离线/Release/包 | 已确认 | 493项播放器/事件门，1193项资源/重导出/帧和源保留，原生PNG/编译表与全量回归通过，实际命令/指纹见测试记录。 |
+| 最终DLL目标Engine GPU隔离 | 已确认 | 1351项九效果×三档/减闪/遮挡/全世界共享预算、四神器真实适配器、晚包/去重/无未来爆发及清理检查，合成场景。 |
+| Android7723、真实Local/Server/Client、触屏/多分辨率与8MiB资源/长时性能 | 待验证 | 未使用手机/完整游戏或房间；不能继承Windows结果，专项实机清单单列。 |
+| 旧版混装、SCAPI/scmod | 不支持 | 原生版本握手保持，各端统一0.78.0。 |
+
+新增晚包余帧和128条定长精灵事件门，丢弃不补播；不新增网络消息。神枪Kind3无单独施法ID，新精灵采用1/4格+同cue的0.12秒短合并。来源固定MIT31文件及完整许可；工具UI双眼/图谱未叠加长光柱。见[选型/实现与验收](PIXELFX-ARTIFACTS-0.78.0.md)。
+
+## 2026-11-06 SCIE-Port 0.77.1：PixelFX空闲与屏幕覆盖优化
+
+新增HasEffects绘制门（雷柱/符文/精灵都空才跳过）、同GameTime/同档池检查缓存、平方距离/零alpha剔除及齐次四角视口测试。精灵每相机覆盖AABB预算为Low1.0/Medium1.5/High2.0视口面积，保留原实例/quad/采样/距离三档；沿用真实Camera.ViewProjectionMatrix与目标Vector4.Transform，无新Hook/加载器/依赖。原78帧PNG/JSON/C#表/许可与技能、3D几何、伤害/冷却、存档、ID/GUID、240–254协议保持。
+
+固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、239项播放器/512项资源保留/601项原生GPU及Release/包范围 **已确认**；Android7723、触屏、完整游戏与真实Local/Server/Client及长时性能 **待验证**。原握手保持，旧版混装 **不支持**，同房统一0.77.1。新根/移植AGENTS规则要求后续神器先评估PixelFX，见[规范](PIXELFX-DEVELOPMENT-STANDARD.md)、[优化专项](PIXELFX-OPTIMIZATION-0.77.1.md)和[实际测试记录](TEST-RESULTS.md)。
+
+## 2026-11-05 SCIE-Port 0.77.0：PixelFX V0.1
+
+妙尔尼尔现有去重表现事件叠加charge-up/lightning-strike/thunderclap。PNG/JSON与C#帧表离线生成；新增通用固定池与原生TexturedBatch3D适配，同一LightningScene renderer/105次序，无新Hook。原3D雷电、伤害/冷却、神器属性/库存、ID/GUID、存档及240–254包保持。固定net472/API1.42/SC2.4.10.6，包增加一张图集、一个清单和MIT许可，内部SCIEPort身份保持。
+
+| 范围 | 状态 | 证据/边界 |
+|---|---|---|
+| 固定Windows x25.01.17 ABI、net472 Release、离线与包 | 已确认 | 三程序集SHA沿用下述固定记录；环境、原生RGBA解码/Quad/混合参数、逐字节导出、帧表及打包检查通过，完整命令/指纹见测试记录。 |
+| 固定Windows目标Engine GPU隔离绘制 | 已确认 | 461项三档/动画/遮挡/UV/减闪/压力/清理检查，合成场景，不是完整游戏或手机。 |
+| Android/7723加载、触屏/分辨率、GPU/长时性能与真实Local/Server/Client | 待验证 | 未获得本轮手机/房间测试，实机清单单列于专项；不能继承Windows兼容结论。 |
+| 旧版混装、scmod/SCAPI | 不支持 | 原生版本握手保持；各端统一0.77.0。 |
+
+来源固定`patch-gg/pixelfx@a84159688af3ca37a4be05a0d422b94451b2e24e`，MIT完整许可随包；不带JS/Node或专有程序集。[PixelFX专项](PIXELFX-V0.1.md)。
+
 ## 2026-11-03 SCIE-Port 0.76.2：阿比斯普通玩家普攻
 
 虚空普攻移除V0.1的Client/远端玩家直接返回，改为既有252 Action5自动鉴权、限速和结算；双形态同入口，Kind5复制连击演出，保留图谱解放和正常技能/目标条件，无人工批准步骤。重击/空间待回执文案精简，重击成功立即清除等待状态；虚夜只改两处提示文字，冻结算法守卫保留原基线。无加载器/Hook/字节布局/存档/ID或美术变化。

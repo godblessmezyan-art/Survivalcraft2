@@ -4,6 +4,7 @@ using Engine;
 using Engine.Graphics;
 using Game;
 using GameEntitySystem;
+using SCIEPort.Features.PixelFx;
 
 namespace SCIEPort.Features.Stormhammer
 {
@@ -91,6 +92,21 @@ namespace SCIEPort.Features.Stormhammer
         private TexturedBatch3D m_rune;
         private TexturedBatch3D m_glow;
         private int m_quadBudget;
+        private readonly SpriteFxScene m_spriteFx = new SpriteFxScene();
+
+        /// <summary>Presentation-only sprite pool, sharing this scene's renderer and clock.</summary>
+        internal SpriteFxScene SpriteFx => m_spriteFx;
+
+        // Includes sprite-only tails and ground runes; idle scenes skip the renderer entirely.
+        internal bool HasEffects
+        {
+            get
+            {
+                if (ActiveBolts > 0 || m_spriteFx.Player.ActiveCount > 0) return true;
+                for (int i = 0; i < m_runes.Length; i++) if (m_runes[i].Active) return true;
+                return false;
+            }
+        }
 
         /// <summary>Number of bolts currently alive.</summary>
         public int ActiveBolts { get; private set; }
@@ -110,11 +126,14 @@ namespace SCIEPort.Features.Stormhammer
             m_beam = m_renderer.TexturedBatch(beamTexture, false, 0, DepthStencilState.DepthRead, RasterizerState.CullNone, BlendState.Additive, SamplerState.LinearClamp);
             m_rune = m_renderer.TexturedBatch(runeTexture, false, 0, DepthStencilState.DepthRead, RasterizerState.CullNone, BlendState.Additive, SamplerState.LinearClamp);
             m_glow = m_renderer.TexturedBatch(glowTexture, false, 0, DepthStencilState.DepthRead, RasterizerState.CullNone, BlendState.Additive, SamplerState.LinearClamp);
+            m_spriteFx.Load(m_renderer, StormhammerSpriteClips.Texture);
         }
 
         /// <summary>Releases pooled state.</summary>
         public void Clear()
         {
+            m_spriteFx.Clear();
+            m_renderer?.Clear();
             for (int i = 0; i < m_bolts.Length; i++)
             {
                 if (m_bolts[i] != null)
@@ -294,6 +313,7 @@ namespace SCIEPort.Features.Stormhammer
         /// <summary>Advances lifetimes and re-jitters live bolts so the channel keeps crawling.</summary>
         public void Update(double now)
         {
+            m_spriteFx.Player.Update(now, (int)StormhammerOptions.Quality);
             for (int i = 0; i < m_bolts.Length; i++)
             {
                 LightningBolt bolt = m_bolts[i];
@@ -409,6 +429,8 @@ namespace SCIEPort.Features.Stormhammer
             }
 
             LastQuadCount = quads;
+            m_spriteFx.Queue(viewPosition, viewForward, camera.ViewProjectionMatrix, now, (int)StormhammerOptions.Quality, StormhammerOptions.ReducedFlashes);
+            LastQuadCount += m_spriteFx.LastQuadCount;
             m_renderer.Flush(camera.ViewProjectionMatrix);
         }
 

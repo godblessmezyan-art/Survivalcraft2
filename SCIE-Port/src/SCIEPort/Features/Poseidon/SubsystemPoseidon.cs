@@ -160,6 +160,7 @@ namespace SCIEPort.Features.Poseidon
             {
                 var c=Casts[i];float age=(float)(Now-c.Start);
                 if(!Actor(c.Player)||age<0||(!Authority&&!Fresh(Get(c.Player)))){Casts.RemoveAt(i);continue;}
+                SCIEPort.Features.PixelFx.ArtifactSpriteFx.Poseidon(Project,c.Player,unchecked((uint)c.GetHashCode()),c.Skill,c.Origin,c.Direction,Now,age);
                 bool alive=PoseidonRules.Alive(c.Skill,age);
                 if(Now>=c.NextQuery||!alive){Strike(c,Math.Min(age,PoseidonRules.Duration(c.Skill)));c.NextQuery=Now+.08;}
                 if(!alive)Casts.RemoveAt(i);

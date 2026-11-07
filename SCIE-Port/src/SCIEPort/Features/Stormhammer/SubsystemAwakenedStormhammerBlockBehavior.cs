@@ -164,7 +164,7 @@ namespace SCIEPort.Features.Stormhammer
         /// <inheritdoc />
         public void Draw(Camera camera, int drawOrder)
         {
-            if (m_scene == null || m_scene.ActiveBolts == 0)
+            if (m_scene == null || !m_scene.HasEffects)
             {
                 return;
             }

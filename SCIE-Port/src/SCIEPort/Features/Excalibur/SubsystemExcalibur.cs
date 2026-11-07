@@ -176,11 +176,13 @@ namespace SCIEPort.Features.Excalibur
         private void Present(State s,Cast c)
         {
             if(s.LastVisual==c.Id)return;s.LastVisual=c.Id;
+            if(Authority)SCIEPort.Features.PixelFx.ArtifactSpriteFx.Excalibur(Project,c.Player,c.Id,c.Skill,c.Origin,c.Direction,Now,0);
             Project.FindSubsystem<SubsystemAudio>(false)?.PlaySound("Audio/Excalibur/Charge",.85f,c.Skill==2?.25f:.12f,c.Origin,24,false);
         }
         private void Release(Cast c)
         {
             if(c.Skill!=2)return;
+            SCIEPort.Features.PixelFx.ArtifactSpriteFx.ExcaliburRelease(Project,c.Player,c.Id,c.Origin,c.Direction,Now,(float)(Now-c.Start)-ExcaliburRules.Release);
             Project.FindSubsystem<SubsystemAudio>(false)?.PlaySound("Audio/Excalibur/Release",1f,-.08f,c.Origin,40,false);
         }
         private static bool Related(ComponentBody a,ComponentBody b)=>a==b||a.ParentBody==b||b.ParentBody==a||a.ChildBodies.Contains(b)||b.ChildBodies.Contains(a);
@@ -251,6 +253,7 @@ namespace SCIEPort.Features.Excalibur
                     if(count>=ExcaliburRules.MaxCasts)return;
                     ClearCast(s);s.Active=new Cast{Player=p,Skill=packet.Skill,Id=packet.CastId,Origin=packet.Origin,Direction=packet.Direction,Settled=true,Released=packet.Age>=ExcaliburRules.Impact(packet.Skill)};Present(s,s.Active);
                 }
+                SCIEPort.Features.PixelFx.ArtifactSpriteFx.Excalibur(Project,p,packet.CastId,packet.Skill,packet.Origin,packet.Direction,Now,packet.Age);
                 s.Active.Start=Now-packet.Age;return;
             }
         }

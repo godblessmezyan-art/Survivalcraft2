@@ -566,6 +566,7 @@ namespace SCIEPort.Features.Gungnir
         }
         private void PlaySound(string name, Vector3 p)
         {
+            SCIEPort.Features.PixelFx.ArtifactSpriteFx.Gungnir(Project,name,p,Now);
             Project.FindSubsystem<SubsystemAudio>(true).PlaySound("Audio/Gungnir/" + name, 0.8f, 0, p, 10, false);
             if (name == "Impact" && SCIEPort.Features.Stormhammer.StormhammerOptions.CameraShake)
             {
