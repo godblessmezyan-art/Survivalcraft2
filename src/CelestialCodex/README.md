@@ -1,14 +1,14 @@
-# 云天书典 · Celestial Codex 0.1.3
+# 云天书典 · Celestial Codex 0.2.0
 
-0.1.3修复手机日志证实缺失的 `CreateLinkedTokenSource(CancellationToken[])`。请求改用自有取消源和后台轮询，保持12秒预算、关闭取消和有序释放；未禁用HTTPS验证。见 [0.1.3取消机制修复](../../docs/CELESTIAL-CODEX-CANCELLATION-0.1.3.md)。Android阅读仍待复测。
+0.2.0重做书库、目录、正文与阅读设置：双层书籍列表、继续阅读卡片、纸页/夜读、五档字号、独立章节标题与宽松行距。原文通过独立Label显示，避免原生语言表替换；长标题按自己的控件宽度裁切，保留触屏按钮区域。设计依据、目标原生预览及实机验收见 [0.2.0界面记录](../../docs/CELESTIAL-CODEX-UI-0.2.0.md)。
 
-0.1.2显式请求未压缩响应，补充网络错误码及Game.log完整异常。公开API现已由Digital-Study项目上线，本机用实际Mod DLL读取目录、详情、正文均通过；Android仍显示连接失败的具体原因尚未确定，本版需手机复测取证。见 [网络诊断记录](../../docs/CELESTIAL-CODEX-NETWORK-0.1.2.md)。
+保留0.1.3的Android取消源修复和0.1.2的完整网络诊断、HTTPS证书验证与请求限额。用户已反馈此前书典测试成功；没有提供精确构建指纹、全部操作和房间角色记录，不能将反馈扩大为新界面、多机型或多人兼容结论。历史证据见 [取消机制](../../docs/CELESTIAL-CODEX-CANCELLATION-0.1.3.md)、[网络诊断](../../docs/CELESTIAL-CODEX-NETWORK-0.1.2.md)。
 
 0.1.1修复手机点击使用后因 `List<T>.Exists` 缺失而退出游戏的问题，并补齐界面异常隔离。0.1.0已在用户所示Android运行时证实闪退；0.1.1手机复测仍待验证。详见 [修复与验证记录](../../docs/CELESTIAL-CODEX-ANDROID-HOTFIX-0.1.1.md)。
 
 独立客户端阅读工具，目标 SCNET `Net_x25.01.17` / API `1.42` / SC `2.4.10.6`，程序集 `net472`。Windows 目标 ABI、Release 与离线检查已确认；Android 7723 与实际 Local/Server/Client 游戏行为待验证。
 
-创造栏「云天书典」内获取物品 **956 / DATA0**，持有并使用打开书库。选择书籍/章节，竖向滑动正文，`A− / A+` 调整字号，`章节 / 返回 / 关闭` 导航；重新进入后点「继续」。原生物品使用会受 SCNET 原有使用/领地规则约束，测试时可朝天空使用。
+创造栏「云天书典」内获取物品 **956 / DATA0**，持有并使用打开书库。选择书籍/章节，竖向滑动正文；底部「目录」选章节，「设置」调整字号和切换纸页/夜读，「完成」回到阅读位置。书库顶部「继续阅读」返回上次位置；主题和字号随本机进度保存。原生物品使用会受 SCNET 原有使用/领地规则约束，测试时可朝天空使用。
 
 书典是非武器阅读工具，不是神器；依用户本轮“不修改玩家属性”要求，不提供神器移速或攻速加成。没有自定义网络包、服务器阅读状态、世界方块写入、属性/生命变更或世界存档结构变更。物品本身仍由原生库存/握手机制管理。
 
@@ -16,7 +16,7 @@
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-CelestialCodex.ps1 -GameDir <本机x25.01.17目录>
 ```
 
-输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.1.3.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.1.3。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
+输出 `artifacts/CelestialCodex/云天书典.netmod` 与 `云天书典-0.2.0.netmod`。将同一份正式包导入各参与端 `NetMods`，替换旧版并重新启动游戏，在 Mod 列表核对0.2.0。不要同时安装旧版或两个副本；不是 `.scmod`，不携带原版 DLL。与 Builder Assistant、SCIE-Port 的构建、资源、版本和包完全分离。
 
 默认公开来源为 `https://wxhappylife.top/digital-study/api/game-library/v1`。2026-11-04另一个项目完成API上线，本轮已验证公开目录、详情及正文200；此结果不代替Android游戏的HTTPS/运行时验收。手机失败时查看界面短错误码与Game.log的`[CelestialCodex] Network`及其后续异常。
 

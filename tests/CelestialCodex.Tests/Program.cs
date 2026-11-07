@@ -26,6 +26,7 @@ internal static class Program
     {
         try
         {
+            ReaderPresentationChecks.Run(Check);
             Run().GetAwaiter().GetResult();
             if (args.Length > 0)
             {

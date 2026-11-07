@@ -24,7 +24,7 @@ internal static class Program
             if (new AssemblyName(e.Name).Name == "Survivalcraft") path = Path.Combine(args[0], "Survivalcraft.exe");
             return File.Exists(path) ? Assembly.LoadFrom(path) : null;
         };
-        try { Run(args[0], args[1]); if (args.Length > 2 && args[2] == "--https-probe") HttpsProbe(); }
+        try { Run(args[0], args[1]); if (args.Length > 2 && args[2] == "--https-probe") HttpsProbe(); if (args.Length > 2 && args[2] == "--ui-probe") NativeUiChecks.Render(args[0], args[1]); }
         catch (Exception e) { Console.Error.WriteLine(e); Environment.ExitCode = 1; }
     }
     private static void Run(string gameDir, string repo)
@@ -95,6 +95,7 @@ internal static class Program
         using (var reader = new StreamReader(zip.GetEntry("Assets/Database.xml").Open()))
         {
             XElement xml = XElement.Parse(reader.ReadToEnd());
+            NativeUiChecks.Run(mod, zip, Check);
             var xdb = XElement.Load(Path.Combine(modRoot, "Assets/Database/CelestialCodex.xdb"));
             var shared = new HashSet<string>(new[] { "00c97f0f-731e-481c-9909-eae9cc5ee940", "85023bf8-1c90-4dd1-9442-e6c13691d078" });
             foreach (var node in xdb.Descendants().Where(x => x.Attribute("Guid") != null))
