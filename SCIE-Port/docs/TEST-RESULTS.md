@@ -1,5 +1,29 @@
 # 测试结果
 
+## 2026-11-08 main 0.76.2：本机重新打包与推送
+
+用户要求查看最新代码、打 netmod 包并提交推送到 GitHub。本地 main 为 `7b77b7c`，工作区原本干净；源码未改动，仅按该提交重新构建，版本仍为 0.76.2。构建环境与此前记录不同：Windows PowerShell 5.1、`global.json` 指定的 .NET SDK 9.0.300（另装 .NET 8.0.33 运行时供 net8.0 测试宿主）、游戏目录 `D:\Games\SCNET-x25.01.17`、net472 引用 `D:\Dev\Tools\net472\build\.NETFramework\v4.7.2`、Python 3.12.10 + Pillow 13.0.0 + numpy 2.5.4、MinGit 提供的 git。
+
+实际命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride = 'D:\Dev\Tools\net472\build\.NETFramework\v4.7.2'
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+环境、专项与完整 Release/规则/资源/数据库/包校验均退出码 0。`Survivalcraft.exe`/`Engine.dll`/`EntitySystem.dll` 三份 SHA-256 与审计值一致，2.4.0.0、API 1.42、SC 2.4.10.6、net472 与 Hook/网络 ABI 保持；品牌契约打包前后各校验一次并通过。
+
+- 规则/布局主要结果：空间与重击 **26038**、虚空领域 **989**、断界斩 **890**、军势/双形态 **449**、圣剑协议 **521**、圣剑规则 **806**、陈列器 **650**、库存 **775**、Gungnir **389**、Skywrath **751**、四圣兽 **37**、直升机 **8119**、堡垒 **319**、吞噬之眼 **75**、波塞冬 **66**、统一神器技能弧 **96**、阿比斯 HUD **1401**、圆形 HUD **1590**，其余载具/生态/作物/解析/GUID 套件按既有断言通过。
+- `.netmod` **10,554,583 字节 / 173 entries**；ZIP 完整，主包与版本副本字节一致，包内 DLL 与 Release 输出一致，不含游戏 EXE/DLL/APK/PDB；包内 `modinfo.json` Version `0.76.2`，DLL FileVersion `0.76.2.0`、ProductVersion `0.76.2+7b77b7c9b29c877a1e77dd08ad71e66bfa6dd600`。
+- 构建重新生成的 `design/abyss-eclipse/validation.json` 仅浮点末位有差异，随本次记录一并提交。
+
+```text
+netmod SHA-256 4A580467E28EBC503AC9B810B4B34ED4A5A650B09225A8FC664F34A17128055E
+DLL    SHA-256 D011AA9F823FE4BF62BE326D7F1E225830D9F3FE11144138EE40F952CB532308
+```
+
+固定 Windows 环境、离线组件/规则与 Release/包检查 **已确认**；没有运行完整游戏、Android 7723 或真实双端联机，触屏多分辨率、真实单人/房主/普通客户端行为 **待验证**。本轮按用户当次明确要求提交并推送 GitHub，是根 `AGENTS.md` 默认仅本地提交规则的当次例外，长期规则不变。无字节布局、Hook/加载器入口、存档、物品 ID 或蓝图能力变更。
+
 ## 2026-11-03 main 0.76.2：阿比斯普通玩家攻击与释放反馈
 
 基线`a53d5f2`/0.76.1。用户报告联机提示需要主机确认并要求所有玩家可用。确认重击“主机确认中”只是自动回执文案、无人工审批入口，且收到成功事件未即时清除文字；另确认虚空普攻仍有V0.1直接排除Client及Server非主玩家的真实限制。现将两种形态的普攻输入统一送入既有252 Action5，由主机自动认证/定段/结算，复用原虚空目标选择、基础伤害与保护逻辑。重击/空间/领域文案精简，成功重击即时清除等待反馈。见[原因与实现](ABYSS-MULTIPLAYER-0.76.2.md)。
