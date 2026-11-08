@@ -114,3 +114,10 @@ Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`�
 - 用户明确指定其他目标分支或要求暂不提交时，以当次指令为准。
 - 只提交本次任务范围内的改动，不夹带其他任务或用户未完成的修改；不强制推送，不覆盖远端历史。
 - 若远端保护规则或凭据问题阻止同步，保留已有工作并明确报告尚未完成的步骤，不把仅提交到本地说成已推送到远端。
+
+## 云天书典 GitHub Release（2026-11-08 用户要求）
+
+- 云天书典每发布一个新版本，都要有与源码版本一一对应的 GitHub Release；使用 `celestial-codex-vX.Y.Z` 标签，禁止移动或重写已发布标签。
+- 具体流程见 `docs/CELESTIAL-CODEX-RELEASE-POLICY.md`；`main` 分支 `src/CelestialCodex/modinfo.json` 发生版本变更后，由 `.github/workflows/release-celestial-codex.yml` 创建源码预发布。正式 `.netmod` 必须经过真实编译、打包和适当设备验证才可作为安装包上传。
+- 新版本必须同步 `modinfo.json`、项目程序集版本、构建脚本中的版本检查、README、变更和测试记录。未编译、未实机测试的版本只能标为源码预发布，不得宣传为可安装稳定版。
+- 继续保持由用户本人执行 `git push` 的约定；推送后的 GitHub Actions 自动 Release 不等于允许助手擅自推送本地代码。
