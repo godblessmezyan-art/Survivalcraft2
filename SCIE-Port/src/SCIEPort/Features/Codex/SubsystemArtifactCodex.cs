@@ -16,8 +16,8 @@ namespace SCIEPort.Features.Codex
         private readonly Dictionary<ComponentPlayer,float> walk=new Dictionary<ComponentPlayer,float>();
         private readonly List<ComponentPlayer> retired=new List<ComponentPlayer>();
         private readonly Queue<Pending> pending=new Queue<Pending>();
-        private sealed class Pending{internal ComponentPlayer Player;internal Client Connection;internal CodexPackage Packet;}
-        private SubsystemPlayers players;private SubsystemTime clock;private double nextSync;private uint revision;private bool disposed;
+        private sealed class Pending{internal ComponentPlayer Player;internal Client Connection;internal Guid Token;internal CodexPackage Packet;}
+        private SubsystemPlayers players;private SubsystemTime clock;private double nextSync;private uint revision;private bool disposed;private Guid serverToken;
         internal bool Authority=>CommonLib.WorkType==WorkType.Local||CommonLib.WorkType==WorkType.Server;
         /// <inheritdoc/>
         public override int[] HandledBlocks=>new[]{CodexRules.Book};
@@ -59,7 +59,11 @@ namespace SCIEPort.Features.Codex
             var packet=new CodexPackage{Kind=kind,Entry=entry,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=n};
             if(Authority)Enqueue(p,packet);else if(CommonLib.WorkType==WorkType.Client)CommonLib.Net.QueuePackage(packet);
         }
-        internal void Enqueue(ComponentPlayer p,CodexPackage packet){lock(pending){if(!disposed&&pending.Count<32)pending.Enqueue(new Pending{Player=p,Connection=p?.PlayerData.Client,Packet=packet});}}
+        internal void Enqueue(ComponentPlayer p,CodexPackage packet)
+        {
+            var connection=p!=null?p.PlayerData.Client:packet.From;
+            lock(pending){if(!disposed&&pending.Count<32)pending.Enqueue(new Pending{Player=p,Connection=connection,Token=connection?.TokenId??Guid.Empty,Packet=packet});}
+        }
         internal void Accept(ComponentPlayer p,CodexPackage packet)
         {
             if(!Authority||!Held(p,CodexRules.Book)||packet.Owner!=p.PlayerGuid||packet.Caster!=p.Entity.EntityId||(packet.Kind!=0&&packet.Kind!=2)||packet.Entry>=CodexRules.Items.Length)return;
@@ -82,7 +86,12 @@ namespace SCIEPort.Features.Codex
         public void Update(float dt)
         {
             if(clock.GameTimeDelta<=0)return;
-            for(int i=0;i<8;i++){Pending item;lock(pending){if(pending.Count==0)break;item=pending.Dequeue();}if(item.Player!=null){if(ReferenceEquals(item.Connection,item.Player.PlayerData.Client))Accept(item.Player,item.Packet);}else Receive(item.Packet);}
+            if(!Authority)
+            {
+                var token=SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net);
+                if(token!=serverToken){serverToken=token;received.Clear();Records.Clear();}
+            }
+            for(int i=0;i<8;i++){Pending item;lock(pending){if(pending.Count==0)break;item=pending.Dequeue();}if(item.Player!=null){if(ReferenceEquals(item.Connection,item.Player.PlayerData.Client)&&(item.Connection?.TokenId??Guid.Empty)==item.Token)Accept(item.Player,item.Packet);}else if(SCIEPort.Compatibility.ServerConnection.IsServer(CommonLib.Net,item.Connection)&&item.Token==serverToken)Receive(item.Packet);}
             retired.Clear();foreach(var pair in walk){pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;retired.Add(pair.Key);}foreach(var p in retired)walk.Remove(p);
             foreach(var p in players.ComponentPlayers)
             {

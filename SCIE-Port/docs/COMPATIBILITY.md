@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-08 0.80.1：普通玩家主机消息识别
+
+固定Net_x25.01.17原生SyncList将引导连接保存在Server，另将同NetPeer的Client登记到Clients[0]；后续解包From使用登记对象。新增ServerConnection按原生登记对象/同连接解析主机与会话，修复254真名快照、250星门及252死亡权柄/骨龙状态被错误拦截，并统一251/247二次队列及238座位入口。真名换会话清理本地修订号/掩码，主机TrueNames存档保持。net472/API1.42/SC2.4.10.6、加载器/Hook、包ID/字段布局、全部ID/DATA/GUID/资源/存档键不变。
+
+只读引用新增游戏自带LiteNetLib.dll（1.0.0.0，SHA256 `D9C49444639102021EC6141C66E61B35F57493D3393CF2A737F68195C362D25A`，Private=false，包内禁带），原三程序集精确指纹保持。原生ClientPackage往返/Handle复现、修复组件隔离与旧0.80.0 DLL三项失败负对照 **已确认**；完整构建检查/包证据见[测试记录](TEST-RESULTS.md)。Android7723、触屏/分辨率、真实Local/Server/Client仍 **待验证**。同房统一0.80.1并重启，不以本轮Windows证据替代7723渠道取证；[原因与复测步骤](MULTIPLAYER-CONNECTION-0.80.1.md)。
+
 ## 2026-11-08 0.80.0：家具坐姿与原生壁炉取暖/照明
 
 新增沙发960每模块一座、餐桌965/969两座的主机分配与“起身”触屏入口。单一加载器新增真实目标 `OnModelAnimate(ComponentCreatureModel, out bool)` Hook，复用既有 UpdateInput/SubsystemUpdate/GuiUpdate；独立新协议238固定38字节，239的17字节及其它旧包布局不改。旧ID/DATA/GUID/XDB/存档键、net472/API1.42/SC2.4.10.6和内部SCIEPort身份保持。壁炉964原bit2控制 `GetHeat=0.35/0` 与原生方块发光 `8/0`，不直接写体温。

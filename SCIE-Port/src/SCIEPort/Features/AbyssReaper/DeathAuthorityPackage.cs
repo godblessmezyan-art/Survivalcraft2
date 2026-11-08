@@ -29,7 +29,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             var death=project?.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;if(death==null||node==null)return;
             if(server){var p=From?.PlayerData?.ComponentPlayer;if(Kind==0&&From!=null&&From.State>=ClientState.ProjectLoaded&&p!=null&&p.Entity.EntityId==Caster)death.Enqueue(p,From,this);}
-            else if(From!=null&&ReferenceEquals(From,node.Server))death.Enqueue(null,From,this);
+            else if(SCIEPort.Compatibility.ServerConnection.IsServer(node,From))death.Enqueue(null,From,this);
         }
     }
 }

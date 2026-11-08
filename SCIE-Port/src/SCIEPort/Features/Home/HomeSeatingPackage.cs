@@ -48,7 +48,7 @@ namespace SCIEPort.Features.Home
                 if (Kind != 2 && Kind != 5 && From != null && From.State >= ClientState.ProjectLoaded && p != null && p.Entity.EntityId == Actor)
                     runtime.QueueSeat(p, this, From);
             }
-            else if ((Kind == 2 || Kind == 5) && From != null && ReferenceEquals(From, node.Server)) runtime.QueueSeat(null, this, null);
+            else if ((Kind == 2 || Kind == 5) && SCIEPort.Compatibility.ServerConnection.IsServer(node, From)) runtime.QueueSeat(null, this, null);
         }
     }
 }

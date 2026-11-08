@@ -198,10 +198,14 @@ public static class PortalNetworkNativeProbe
                 CommonLib.WorkType=WorkType.Client;
                 using(var client=new Fixture(mod,true))
                 {
+                    var previousClients=new Dictionary<int,Client>(CommonLib.Net.Clients);
+                    var canonical=NativeServerSession.Install(CommonLib.Net);
+                    var proxy=Bare<ProjectNet>();foreach(var field in typeof(Project).GetFields(Flags))field.SetValue(proxy,field.GetValue(client.Project));
+                    Check(!ReferenceEquals(canonical,CommonLib.Net.Server),"native bootstrap server differs from registered sender");
                     foreach(var packet in snapshot)
                     {
                         byte kind=(byte)Get(packet,"Kind");if(kind<1||kind>3)continue;
-                        Put(packet,"Caster",client.Player.Entity.EntityId);Call(client.Net,"Enqueue",null,null,packet);Call(client.Net,"Update");
+                        Put(packet,"Caster",client.Player.Entity.EntityId);packet.From=canonical;packet.Handle(proxy,CommonLib.Net,false);Call(client.Net,"Update");
                         object current=Get(client.Owner,"<Portals>k__BackingField");
                         if(kind!=3)Check((int)current.GetType().GetProperty("Count",Flags).GetValue(current,null)==0,"partial rows never expose half a snapshot");
                     }
@@ -210,10 +214,11 @@ public static class PortalNetworkNativeProbe
                     var created=Packet(packetType,0,client.Player,0,a,Guid.Empty,"永久星门已建立并记录");Put(created,"Kind",(byte)4);Call(client.Net,"Receive",created);
                     foreach(var row in snapshot)if((byte)Get(row,"Kind")>=1&&(byte)Get(row,"Kind")<=3)Call(client.Net,"Receive",row);
                     Check(Feedback(client).Contains("已建立"),"automatic shared-list snapshot does not erase the create result");
+                    // Return to the existing isolated direct-server fixture below.
+                    CommonLib.Net.Clients.Clear();foreach(var entry in previousClients)CommonLib.Net.Clients[entry.Key]=entry.Value;
                     // The authenticated packet handler rejects peers pretending to be the host.
                     var malicious=New(packetType);Put(malicious,"Kind",(byte)1);((IPackage)malicious).From=server.Client;
                     CommonLib.Net.Server=client.Client;int before=((ICollection)Get(client.Net,"queue")).Count;
-                    var proxy=Bare<ProjectNet>();foreach(var field in typeof(Project).GetFields(Flags))field.SetValue(proxy,field.GetValue(client.Project));
                     ((IPackage)malicious).Handle(proxy,CommonLib.Net,false);
                     Check(((ICollection)Get(client.Net,"queue")).Count==before,"peer cannot inject server snapshot");
                     var sameId=new Client(Guid.NewGuid(),null);Put(sameId,"<ID>k__BackingField",client.Client.ID);((IPackage)malicious).From=sameId;

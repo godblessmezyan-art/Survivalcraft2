@@ -72,7 +72,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(p==null)return null;Peer peer;
             if(!peers.TryGetValue(p.PlayerGuid,out peer)){if(peers.Count>=64)return null;peer=new Peer();peers.Add(p.PlayerGuid,peer);}
-            Guid token=Authority?(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer?p.PlayerData.Client?.TokenId??Guid.Empty:Guid.Empty):(CommonLib.Net?.Server?.TokenId??Guid.Empty);
+            Guid token=Authority?(CommonLib.WorkType==WorkType.Server&&!p.PlayerData.IsMainPlayer?p.PlayerData.Client?.TokenId??Guid.Empty:Guid.Empty):(SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net));
             if(peer.Player!=p||peer.Entity!=p.Entity.EntityId||peer.Token!=token)
             {
                 peer.Player=p;peer.Entity=p.Entity.EntityId;peer.Token=token;peer.PendingUntil=0;peer.PendingSequence=0;
@@ -424,14 +424,14 @@ namespace SCIEPort.Features.AbyssReaper
             if(disposed)return;
             if(!Authority)
             {
-                Guid token=CommonLib.Net?.Server?.TokenId??Guid.Empty;
+                Guid token=SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net);
                 if(token!=serverToken){serverToken=token;hasClock=false;lastServerEstimate=0;nextClock=-100;deferred.Clear();if(clientPlayer!=null)Cancel(clientPlayer);}
                 if(players!=null)foreach(var p in players.ComponentPlayers)if(p.PlayerData.IsMainPlayer&&Actor(p,false)){Ping(p);break;}
             }
             for(int i=0;i<VoidSpaceRules.RequestsPerFrame;i++)
             {
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
-                try{if(Authority)Process(pending);else if(ReferenceEquals(pending.Client,CommonLib.Net?.Server)&&pending.Token==serverToken)Receive(pending.Packet);}
+                try{if(Authority)Process(pending);else if(SCIEPort.Compatibility.ServerConnection.IsServer(CommonLib.Net,pending.Client)&&pending.Token==serverToken)Receive(pending.Packet);}
                 catch(Exception e){Log.Warning("[SCIEPort:Space] Command rejected: "+e.GetType().Name);if(Authority&&pending.Player!=null)Reject(pending.Player,pending.Packet,6);}
             }
             if(hasClock&&deferred.Count>0){var waiting=deferred.ToArray();deferred.Clear();foreach(var packet in waiting)Receive(packet);}

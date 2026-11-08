@@ -8,6 +8,7 @@ $required = @{
     'Survivalcraft.exe' = '3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD'
     'Engine.dll' = '98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694'
     'EntitySystem.dll' = '7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C'
+    'LiteNetLib.dll' = 'D9C49444639102021EC6141C66E61B35F57493D3393CF2A737F68195C362D25A'
 }
 foreach ($item in $required.GetEnumerator()) {
     $path = Join-Path $GameDir $item.Key
@@ -41,6 +42,7 @@ foreach ($marker in @('Initilizing Mods Manager. Api Version: 1.42', '2.4.10.6',
     if (-not $unicode.Contains($marker)) { throw "Missing target marker: $marker" }
 }
 
+$transportAssembly = [Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'LiteNetLib.dll'))
 $engineAssembly = [Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'Engine.dll'))
 [void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir 'EntitySystem.dll'))
 $assembly = [Reflection.Assembly]::LoadFrom($gamePath)
@@ -174,6 +176,10 @@ if (-not $assembly.GetType('Game.NetWork.Client', $true).GetProperty('PlayerData
     throw 'Client.PlayerData required for authenticated tank fire requests was not found.'
 }
 $clientType = $assembly.GetType('Game.NetWork.Client', $true)
+if ($clientType.GetProperty('Peer').PropertyType -ne $transportAssembly.GetType('LiteNetLib.NetPeer', $true) -or
+    -not $clientType.GetProperty('TokenId') -or -not $assembly.GetType('Game.NetWork.NetNode', $true).GetField('Clients')) {
+    throw 'Missing registered-server transport/session ABI.'
+}
 if (-not $clientType.GetProperty('GUID')) {
     throw 'Client.GUID required as the per-player vehicle activation session key was not found.'
 }

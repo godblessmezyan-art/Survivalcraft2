@@ -25,7 +25,7 @@ namespace SCIEPort.Features.Codex
         {
             var runtime=project.FindSubsystem<SubsystemArtifactCodex>(false);if(runtime==null||node==null)return;
             if(server){var p=From?.PlayerData?.ComponentPlayer;if(From!=null&&From.State>=ClientState.ProjectLoaded&&p!=null&&p.PlayerGuid==Owner&&p.Entity.EntityId==Caster&&(Kind==0||Kind==2))runtime.Enqueue(p,this);}
-            else if(From!=null&&ReferenceEquals(From,node.Server)&&Kind==1)runtime.Enqueue(null,this);
+            else if(SCIEPort.Compatibility.ServerConnection.IsServer(node,From)&&Kind==1)runtime.Enqueue(null,this);
         }
     }
 }

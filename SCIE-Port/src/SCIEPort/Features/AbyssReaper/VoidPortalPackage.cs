@@ -57,7 +57,7 @@ namespace SCIEPort.Features.AbyssReaper
                 if(actor==null||actor.Entity.EntityId!=Caster)return;
                 runtime.Enqueue(actor,From,Copy());
             }
-            else if(ReferenceEquals(From,node.Server)&&From!=null&&Kind>=1&&Kind<=7)runtime.Enqueue(null,null,Copy());
+            else if(SCIEPort.Compatibility.ServerConnection.IsServer(node,From)&&Kind>=1&&Kind<=7)runtime.Enqueue(null,null,Copy());
         }
     }
 }

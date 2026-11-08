@@ -1,5 +1,43 @@
 # 测试结果
 
+## 2026-11-08 main 0.80.1：普通玩家神器、星门与骨龙同步
+
+用户反馈加入者在图谱点击解放真名无反应、无法使用星门、仅加入者骨龙无法起飞。固定目标原生SyncList创建共享NetPeer的两份主机Client，解包From使用Clients[0]，旧移植却要求与Server同一对象。新增登记主机/实际连接/会话校验及真名副本重连清理，保留全部技能/骑乘算法、权限、协议布局和资产。[具体取证、修改与手机复测](MULTIPLAYER-CONNECTION-0.80.1.md)。
+
+实际成功命令（仓库根；本机路径仅用于复现，没有写入运行代码）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PATH=$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/multiplayer-full-build.log`。入口执行本工程Test-Environment（固定三程序集及新增LiteNetLib指纹/ABI）、net472 Release、既有完整离线/目标程序集隔离回归、分类/数据库/模型/资源及包检查。开发中首次直接编译缺少LiteNetLib编译引用，补为游戏目录Private=false引用；第一次完整入口发现新的原生网络fixture被纯net9规则工程误收录，已显式Compile Remove后重跑完整入口成功。这两次失败不作为通过证据。
+
+| 检查 | 实际结果/边界 |
+|---|---|
+| 原生入房复现 | 原生ClientPackage压缩流往返与SyncList.Handle；确认Server与From登记对象不同且共用NetPeer，无网络连接或游戏进程 |
+| 图谱原生权限/存档/输入/同步 | 459项通过；含完整请求入口、登记主机快照、伪造相同ID/GUID/Token/Peer的非登记对象拒绝、重连旧包丢弃、新会话低修订号恢复 |
+| 星门原生操作/协议/完整快照/传送 | 基础13项、网络608项通过；完整共享列表改为通过原生入房后真实包入口，不再直接跳过来源检查 |
+| 军势/近战/契约/网络及骨龙 | 455项通过；含原生入房后的世界握手、真实骨龙移动组件接收起飞/降落模式、重连前排队起飞拒绝。没有运行飞行物理 |
+| 原空间/重击、断界斩、虚夜 | 26040、890、991项通过；12项大范围执行隔离通过。冻结资源/算法守卫仅对250主机来源谓词增加精确归一化，其余仍核对原哈希 |
+| 物品/家居/陈列器 | 795物品规则、208目标分类API、325家居库存/存档/占位、665陈列器原生检查通过；24家居模型Engine导入/40232面，73分类行保持 |
+| 旧0.80.0负对照 | 同样的新测试分别在真名主机回执、完整星门快照、骨龙前置世界握手断言失败，三个进程均退出1；日志multiplayer-negative-codex/portal/flight.log |
+
+负对照实际命令（均期望失败，输出保存至忽略目录）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/home-interaction-build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-AbyssHost.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/home-interaction-build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-DeathAuthority.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/home-interaction-build/SCIEPort.dll
+```
+
+固定目标指纹沿用专项表；新增LiteNetLib.dll 1.0.0.0 SHA256 `D9C49444639102021EC6141C66E61B35F57493D3393CF2A737F68195C362D25A`。产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.80.1.netmod` 字节一致：**11641359字节、204条目**，SHA256 `DE3EDE70EBFF7241F2EC854DF2F7584222BEBBBEB769B3C26156A0FC161A52B3`；包内DLL SHA256 `CC251A51C068C3644D68C3F6C615A9B4BD20E906EDE20B36F06F374BDB0D1C2F`。额外用Python ZipFile逐项比较旧0.80.0包：条目集合一致，仅SCIEPort.dll及modinfo.json字节变化，全部模型/纹理/CSV/XDB/音频/署名保持；唯一DLL为SCIEPort.dll，无游戏/网络依赖库。记录为 `artifacts/multiplayer-package-check.json`。
+
+Windows固定目标ABI/构建/隔离回归/包内容 **已确认**。真实单机Local、房主Server、加入者Client、Android7723/触屏多分辨率、完整飞行/跨门传送及保存重进 **待验证**；本轮未启动游戏或设备，不继承旧版本运行结论。各端统一0.80.1并完全退出重启后，先在可丢弃备份测试世界复测。仅提交本地main，不推送、不上传产物。
+
 ## 2026-11-08 main 0.80.0：家具互动，用户自行实机测试
 
 新增沙发/餐椅坐姿、起身触屏入口和主机座位分配；壁炉开关接入原生热量与方块光照。保留全部旧家居/容量/存档键/ID/DATA/GUID，新增独立座位包238与OnModelAnimate Hook，旧239/其它既有包布局保持。用户明确“无需验证，亲自测试”，本轮没有运行环境检查、自动测试、包内容验收、游戏或手机；没有推送。下方0.79的通过记录只属于旧版本，不能当作0.80运行结果。

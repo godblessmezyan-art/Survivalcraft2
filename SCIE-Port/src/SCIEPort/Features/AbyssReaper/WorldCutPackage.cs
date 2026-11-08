@@ -42,7 +42,7 @@ namespace SCIEPort.Features.AbyssReaper
                 var player=From?.PlayerData?.ComponentPlayer;
                 if(WorldCutRules.Dispatch(true,false,player!=null && player.Entity.EntityId==Caster,Kind))runtime.Enqueue(player,From,Snapshot());
             }
-            else if(WorldCutRules.Dispatch(false,From!=null && ReferenceEquals(From,node.Server),false,Kind))runtime.Enqueue(null,From,Snapshot());
+            else if(WorldCutRules.Dispatch(false,SCIEPort.Compatibility.ServerConnection.IsServer(node,From),false,Kind))runtime.Enqueue(null,From,Snapshot());
         }
     }
 }

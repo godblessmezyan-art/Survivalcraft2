@@ -73,6 +73,32 @@ public static class CodexNativeProbe
             Put(snapshot,"Owner",p.PlayerGuid);Put(snapshot,"Sequence",1u);Put(snapshot,"Mask",0u);Call(runtime,"Receive",snapshot);Check(records[p.PlayerGuid]==128,"replayed snapshots cannot roll back progress");
             var writer=new PackageStreamWriter();((IPackage)q).WriteData(writer);Check(writer.BaseStream.Length<=40,"bounded native compressed payload");var copy=(IPackage)Activator.CreateInstance(packetType);using(var reader=new PackageStreamReader(writer.Data()))copy.ReadData(reader);foreach(string field in new[]{"Kind","Entry","Caster","Owner","Sequence","Mask"})Check(Get(copy,field).Equals(Get(q,field)),"native package roundtrip "+field);writer.Dispose();
             var mesh=new BlockMesh();bookType.GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static).Invoke(null,new object[]{mesh});Check(mesh.Indices.Count/3>300&&mesh.Indices.Count/3<700,"independent detailed book model within fixed budget");
+            // Enter through the real packet handler, with the same GUID on the
+            // connection, PlayerData and entity (rather than calling Accept).
+            CommonLib.WorkType=WorkType.Server;records.Clear();snapshots.Clear();
+            p.Entity.EntityId=37;p.PlayerData.PlayerGUID=p.PlayerGuid;
+            var remote=new Client(p.PlayerGuid,null);Put(remote,"<ID>k__BackingField",(byte)2);Put(remote,"<SubsystemPlayers>k__BackingField",players);remote.State=ClientState.Playing;
+            players.m_playersData.Add(p.PlayerData);CommonLib.Net.Clients[2]=remote;
+            var proxy=(ProjectNet)FormatterServices.GetUninitializedObject(typeof(ProjectNet));Put(proxy,"m_subsystems",project.m_subsystems);
+            inv.m_slots[0].Value=955;clock.m_gameTime=30;Put(q,"Owner",p.PlayerGuid);Put(q,"Caster",p.Entity.EntityId);Put(q,"Sequence",201u);Put(q,"Entry",(byte)6);((IPackage)q).From=remote;
+            ((IPackage)q).Handle(proxy,CommonLib.Net,true);Call(runtime,"Update",.05f);
+            Check(records.ContainsKey(p.PlayerGuid)&&records[p.PlayerGuid]==64,"real remote handler unseals only its authenticated player");
+            CommonLib.WorkType=WorkType.Client;records.Clear();snapshots.Clear();
+            var server=NativeServerSession.Install(CommonLib.Net);
+            Check(!ReferenceEquals(server,CommonLib.Net.Server)&&ReferenceEquals(server.Peer,CommonLib.Net.Server.Peer),"native SyncList creates distinct server Clients for the same transport");
+            Put(snapshot,"Caster",p.Entity.EntityId);Put(snapshot,"Sequence",300u);Put(snapshot,"Mask",128u);((IPackage)snapshot).From=server;
+            ((IPackage)snapshot).Handle(proxy,CommonLib.Net,false);Call(runtime,"Update",.05f);
+            Check(records.ContainsKey(p.PlayerGuid)&&records[p.PlayerGuid]==128,"native bootstrap split still delivers authoritative true-name reply");
+            var impostor=new Client(server.Peer,server.ID,server.TokenId,server.GUID,null,"-1","impostor");
+            Put(snapshot,"Sequence",301u);Put(snapshot,"Mask",255u);((IPackage)snapshot).From=impostor;
+            ((IPackage)snapshot).Handle(proxy,CommonLib.Net,false);Call(runtime,"Update",.05f);
+            Check(records[p.PlayerGuid]==128,"same ID, GUID, token and peer cannot substitute an unregistered sender");
+            ((IPackage)snapshot).From=server;((IPackage)snapshot).Handle(proxy,CommonLib.Net,false);
+            var nextServer=NativeServerSession.Install(CommonLib.Net);Call(runtime,"Update",.05f);
+            Check(records.Count==0,"reconnect drops old queued masks and permission revision");
+            Put(snapshot,"Sequence",1u);Put(snapshot,"Mask",64u);((IPackage)snapshot).From=nextServer;
+            ((IPackage)snapshot).Handle(proxy,CommonLib.Net,false);Call(runtime,"Update",.05f);
+            Check(records.ContainsKey(p.PlayerGuid)&&records[p.PlayerGuid]==64,"new session can start permission revisions at one");
             ((IDisposable)runtime).Dispose();Check(records.Count==0,"world exit clears runtime permissions");
         }
         finally{CommonLib.WorkType=prior;CommonLib.Net=oldNet;}

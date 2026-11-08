@@ -8,6 +8,40 @@ using Game.NetWork;
 
 public static partial class DeathAuthorityNativeProbe
 {
+    static void NativeServerFlight()
+    {
+        CommonLib.WorkType=WorkType.Client;
+        using(var f=new Fixture())
+        {
+            var server=NativeServerSession.Install(CommonLib.Net);
+            var proxy=Bare<Game.NetWork.ProjectNet>();Put(proxy,"m_subsystems",f.Project.m_subsystems);proxy.EntityMaps=new Dictionary<int,GameEntitySystem.Entity>();
+            foreach(var subsystem in f.Project.m_subsystems)Put(subsystem,"m_project",proxy);Put(f.Player.Entity,"m_project",proxy);
+            var packets=(List<IPackage>)Get(CommonLib.Net,"PendingPackages");packets.Clear();
+            Call(f.Death,"Update");
+            var sync=packets.Last(p=>p.GetType().Name=="DeathAuthorityPackage"&&(byte)Get(p,"Action")==6);
+            var world=Guid.NewGuid();var reply=Packet(f,0,0);Put(reply,"Kind",(byte)1);Put(reply,"Owner",f.Player.PlayerGuid);Put(reply,"World",world);Put(reply,"Revision",1u);Put(reply,"Stamp",f.Clock.GameTime);Put(reply,"Echo",Get(sync,"Echo"));
+            ((IPackage)reply).From=server;((IPackage)reply).Handle(proxy,CommonLib.Net,false);Call(f.Death,"Update");
+            Check((bool)Get(f.Death,"worldKnown"),"native split-server reply completes the ordinary rider world handshake");
+            // Bind a real custom locomotion to a native mounted body. Its own flight
+            // state must receive the host flag, before any motion or body simulation.
+            var dragon=f.Creature(160,new Vector3(8,64,8));var values=new TemplatesDatabase.ValuesDictionary{DatabaseObject=database.FindDatabaseObject("SCIEPortBoneDragon_Saddled",game.EntityTemplateType,true)};
+            Put(dragon.Entity,"m_valuesDictionary",values);
+            var flight=(ComponentLocomotion)Activator.CreateInstance(mod.GetType("SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion"));flight.m_entity=dragon.Entity;Put(flight,"clock",f.Clock);
+            ((List<GameEntitySystem.Component>)Get(dragon.Entity,"m_components")).Remove(dragon.ComponentLocomotion);dragon.ComponentLocomotion=flight;((List<GameEntitySystem.Component>)Get(dragon.Entity,"m_components")).Add(flight);
+            Put(dragon.Entity,"m_project",proxy);proxy.EntityMaps[dragon.Entity.EntityId]=dragon.Entity;
+            var mount=new ComponentMount{m_entity=dragon.Entity,ComponentBody=dragon.ComponentBody};((List<GameEntitySystem.Component>)Get(dragon.Entity,"m_components")).Add(mount);f.Player.ComponentBody.ParentBody=dragon.ComponentBody;
+            var row=Packet(f,0,0);Put(row,"Kind",(byte)3);Put(row,"World",world);Put(row,"Revision",2u);Put(row,"Owner",f.Player.PlayerGuid);Put(row,"Caster",dragon.Entity.EntityId);Put(row,"Target",(ushort)23);Put(row,"Flags",(byte)129);Put(row,"C",1f);Put(row,"Name","骨龙");((IPackage)row).From=server;
+            ((IPackage)row).Handle(proxy,CommonLib.Net,false);Call(f.Death,"Update");
+            Check((bool)Get(flight,"FlightEnabled")&&(bool)Get(Call(f.Death,"RiddenFriend",f.Player),"DragonFlight"),"host takeoff reaches the owning client locomotion through both receive gates; physical="+Get(flight,"FlightEnabled")+", rows="+((IList)Call(f.Death,"Friends",f.Player.PlayerGuid)).Count+", ride="+(Call(f.Death,"RiddenFriend",f.Player)!=null));
+            Put(row,"Revision",3u);Put(row,"C",0f);((IPackage)row).Handle(proxy,CommonLib.Net,false);Call(f.Death,"Update");
+            Check(!(bool)Get(flight,"FlightEnabled"),"host landing clears client flight mode");
+            Put(row,"Revision",4u);Put(row,"C",1f);((IPackage)row).Handle(proxy,CommonLib.Net,false);
+            NativeServerSession.Install(CommonLib.Net);Call(f.Death,"Update");
+            Check(!(bool)Get(flight,"FlightEnabled")&&((IList)Call(f.Death,"Friends",f.Player.PlayerGuid)).Count==0,"old queued takeoff cannot cross reconnect");
+            f.Player.ComponentBody.ParentBody=null;
+        }
+        CommonLib.Net.Clients.Clear();CommonLib.Net.Server=null;
+    }
     static void EnableVoidMelee(Fixture f)
     {Put(f.Owner,"terrain",Get(f.Base,"Terrain"));Put(f.Owner,"bodies",f.Bodies);}
     static object VoidStrikePacket(Fixture f,uint sequence,Vector3 direction)

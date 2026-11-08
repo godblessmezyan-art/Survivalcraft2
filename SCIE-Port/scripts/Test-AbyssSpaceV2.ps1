@@ -8,6 +8,9 @@ foreach($file in $protected.files.PSObject.Properties){
  # The user explicitly requires the Codex gate on all artifacts. Strip only these
  # literal permission predicates; the original frozen implementation hash must still match.
  $text=[IO.File]::ReadAllText($path)
+ # 0.80.1: the native SyncList bootstrap and registered server are different
+ # objects sharing one NetPeer. Normalize only this receive provenance predicate.
+ if($file.Name -eq 'src/SCIEPort/Features/AbyssReaper/VoidPortalPackage.cs'){$text=$text.Replace('SCIEPort.Compatibility.ServerConnection.IsServer(node,From)','ReferenceEquals(From,node.Server)&&From!=null')}
  # Android MissingMethodException hotfix: normalize only the GUID parser call target.
  if($file.Name -eq 'src/SCIEPort/Features/AbyssReaper/VoidPortalRegistry.cs'){$text=$text.Replace('SCIEPort.Compatibility.LegacyGuid.TryParse(','Guid.TryParse(').Replace('SCIEPort.Compatibility.LegacyParsing.TryInt32(','int.TryParse(').Replace('SCIEPort.Compatibility.LegacyParsing.TrySingle(','float.TryParse(')}
  # 0.76.2: only transport/permission wording changes; retain the frozen algorithm hash.

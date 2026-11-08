@@ -1,16 +1,17 @@
 ﻿param([Parameter(Mandatory=$true)][string]$GameDir,[Parameter(Mandatory=$true)][string]$AssemblyPath,[string]$Package,[switch]$PackageOnly)
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot
-foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}
+foreach($f in @('Engine.dll','EntitySystem.dll','LiteNetLib.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}
 $mod=[Reflection.Assembly]::LoadFrom([IO.Path]::GetFullPath($AssemblyPath))
 $registry=$mod.GetType('SCIEPort.Features.Codex.CodexRules',$true).GetField('Items',[Reflection.BindingFlags]'Static,NonPublic').GetValue($null)
 foreach($csv in Get-ChildItem (Join-Path $root 'src/SCIEPort/Assets/Blocks') -Filter *.csv){foreach($row in Import-Csv -Delimiter ';' -Encoding UTF8 $csv.FullName){if($row.DefaultCategory -eq 'SCIEPort.Artifacts' -and $row.'Class Name' -ne 'ArtifactCodexBlock'){$type=@($mod.GetTypes()|Where-Object Name -eq $row.'Class Name')[0];$id=$type.GetField('Index').GetRawConstantValue();if($id -notin $registry){throw ('Artifact missing from true-name catalog: '+$row.'Class Name')}}}}
 
 if(!$PackageOnly){
 $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider;$options=New-Object System.CodeDom.Compiler.CompilerParameters;$options.GenerateInMemory=$true
-foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $f))}
+foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe','LiteNetLib.dll')){[void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $f))}
 foreach($f in @('System.dll','System.Core.dll','System.Xml.dll','System.Xml.Linq.dll')){[void]$options.ReferencedAssemblies.Add($f)}
 $sources=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/AbyssHostNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.DevouringEye.Tests/NativeApiProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/CodexNativeProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/GuidCompatibilityProbe.cs'),(Join-Path $root 'tests/SCIEPort.Codex.Tests/LegacyParsingProbe.cs'))
-$compiled=$compiler.CompileAssemblyFromFile($options,$sources);if($compiled.Errors.HasErrors){throw (($compiled.Errors|ForEach-Object ToString)-join "`n")}
+$sources+=[string[]]@((Join-Path $root 'tests/SCIEPort.Abyss.Tests/ServerSessionNativeProbe.cs'))
+$compiled=$compiler.CompileAssemblyFromFile($options,[string[]]$sources);if($compiled.Errors.HasErrors){throw (($compiled.Errors|ForEach-Object ToString)-join "`n")}
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.Xml.Linq
 $bytes=$compiled.CompiledAssembly.GetType('DevouringNativeApiProbe').GetMethod('DecodeContent').Invoke($null,@(,[IO.File]::ReadAllBytes((Join-Path $GameDir 'Content.scpak'))))

@@ -275,7 +275,7 @@ namespace SCIEPort.Features.AbyssReaper
             for(int i=0;i<WorldCutRules.RequestsPerFrame;i++)
             {
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
-                try { if(Authority)Accept(pending);else if(ReferenceEquals(pending.Reply,CommonLib.Net?.Server)&&pending.Token==(CommonLib.Net?.Server?.TokenId??Guid.Empty))Receive(pending.Packet); }
+                try { if(Authority)Accept(pending);else if(SCIEPort.Compatibility.ServerConnection.IsServer(CommonLib.Net,pending.Reply)&&pending.Token==(SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net)))Receive(pending.Packet); }
                 catch(Exception error) { if(pending.Owner!=null)Reject(pending.Owner,pending.Reply,pending.Packet,WorldCutFailure.Execution);Log.Warning("[SCIEPort:WorldCut] Request rejected: "+error); }
             }
             if(Authority)foreach(var pair in peers)

@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-08 荒野探险家0.80.1：普通玩家神器、星门与骨龙同步
+
+原生入房流程中Server与Clients[0]为共享NetPeer的不同对象，移植的对象身份检查丢弃合法主机包。SCIE-Port改用登记主机及实际连接/会话校验，修复真名回执、星门、军势/飞行与空间/断界斩队列入口，同源座位回执也适配。原协议编号/字节布局、Hook/加载器、ID/DATA/GUID、资源与存档保持；仍net472/API1.42/SC2.4.10.6。新增只读LiteNetLib游戏引用，SHA256 `D9C49444639102021EC6141C66E61B35F57493D3393CF2A737F68195C362D25A`，不随包分发。
+
+固定Windows目标原生入房复现、真名/星门/骨龙状态隔离检查及旧DLL负对照 **已确认**；实际Release/包结果见[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。Android7723、触屏及真实Local/Server/Client **待验证**，各端统一0.80.1重启复测。Builder Assistant未改动，无蓝图材料能力变化。[修复与验收范围](../SCIE-Port/docs/MULTIPLAYER-CONNECTION-0.80.1.md)。
+
 ## 2026-11-08 荒野探险家0.80.0：家具互动
 
 SCIE-Port新增沙发/双人餐椅坐下与起身，壁炉使用原生GetHeat/方块光照。新增单加载器OnModelAnimate Hook与独立座位包238（38字节）；239及其它旧协议、旧ID/DATA/GUID/存档键、net472及内部身份保持。只读目标元数据39包未占238；本机固定引用Release编译0警告0错误 **已确认**，不代表手机或游戏运行兼容。依用户“无需验证、亲自测试”指令未执行环境检查、自动测试、包内容验收或游戏，Android7723、触屏、存档和真实Local/Server/Client均 **待验证**。与旧包混装 **不支持**，各端统一0.80.0。详见[交互实现与限制](../SCIE-Port/docs/HOME-INTERACTIONS.md)和[构建/产物记录](../SCIE-Port/docs/TEST-RESULTS.md)。Builder Assistant未改动。

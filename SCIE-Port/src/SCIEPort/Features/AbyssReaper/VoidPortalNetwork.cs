@@ -33,7 +33,7 @@ namespace SCIEPort.Features.AbyssReaper
         internal uint ChoiceSequence{get;private set;}
         private Guid choiceSource,choiceTarget;
         private ComponentPlayer choicePlayer;private Guid serverToken;
-        internal bool MatchesChoice(ComponentPlayer p,VoidPortalPackage packet) => choicePlayer==p&&serverToken==(CommonLib.Net?.Server?.TokenId??Guid.Empty)
+        internal bool MatchesChoice(ComponentPlayer p,VoidPortalPackage packet) => choicePlayer==p&&serverToken==(SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net))
             &&ChoiceSequence!=0&&packet.Sequence==ChoiceSequence&&packet.Portal==choiceSource&&packet.Target==choiceTarget;
         internal VoidPortalLocalTravel Travel{get;set;}
         internal bool Authority => CommonLib.WorkType==WorkType.Local||CommonLib.WorkType==WorkType.Server;
@@ -76,7 +76,7 @@ namespace SCIEPort.Features.AbyssReaper
             if(!Authority&&CommonLib.Net?.Server==null){Feedback="未连接主机，请重新连接后重试";return;}
             if(unchecked(++sent)==0)++sent;
             var packet=new VoidPortalPackage{Kind=0,Command=command,Caster=p.Entity.EntityId,Sequence=sent,Portal=source,Target=target,Text=name??"",Direction=p.ComponentCreatureModel.EyeRotation.GetForwardVector()};
-            if(command==Choose){ChoiceSequence=sent;choiceSource=source;choiceTarget=target;choicePlayer=p;serverToken=CommonLib.Net?.Server?.TokenId??Guid.Empty;}
+            if(command==Choose){ChoiceSequence=sent;choiceSource=source;choiceTarget=target;choicePlayer=p;serverToken=SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net);}
             Feedback=command==Sync?"正在读取共享星门…":"正在处理…";
             if(Authority)Enqueue(p,null,packet);else CommonLib.Net?.QueuePackage(packet);
         }
@@ -239,16 +239,16 @@ namespace SCIEPort.Features.AbyssReaper
         internal void Update()
         {
             if(disposed)return;
-            if(!Authority&&replicaConnection!=(CommonLib.Net?.Server?.TokenId??Guid.Empty))
+            if(!Authority&&replicaConnection!=(SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net)))
             {
-                replicaConnection=CommonLib.Net?.Server?.TokenId??Guid.Empty;received=0;staging=null;
+                replicaConnection=SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net);received=0;staging=null;
                 if(serverToken!=replicaConnection)ChoiceSequence=0;
                 if(CommonLib.Net?.Server!=null)foreach(var p in players.ComponentPlayers)if(p.PlayerData.IsMainPlayer&&Actor(p)){Request(p,Sync,Guid.Empty,Guid.Empty,"");break;}
             }
             for(int i=0;i<32;i++)
             {
                 Pending pending;lock(queue){if(queue.Count==0)break;pending=queue.Dequeue();}
-                try{if(Authority)Process(pending);else if(pending.Token==(CommonLib.Net?.Server?.TokenId??Guid.Empty))Receive(pending.Packet);}
+                try{if(Authority)Process(pending);else if(pending.Token==(SCIEPort.Compatibility.ServerConnection.Token(CommonLib.Net)))Receive(pending.Packet);}
                 catch(Exception e){Log.Warning("[SCIEPort:Portals] Command failed: "+e.GetType().Name);if(pending.Player!=null)Message(pending.Player,"星门操作失败，请重试");}
             }
             if(staging!=null&&clock.GameTime>stagingUntil)staging=null;
