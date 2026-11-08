@@ -6,7 +6,7 @@
 - **统一产品 =「荒野探险家 / Wilderness Explorer」**。云天书典（Celestial Codex）是其中的**阅读功能模块**，不是未来独立发布的产品。两个模块共享同一版本、同一发行流程，目标交付为**单个可安装的 `荒野探险家-<Version>.netmod`**，其中同时包含云天书典与荒野探险家功能。
 - 保留现有 `SCIE-Port/` 与 `src/CelestialCodex/` 的源码目录作为过渡组织；**源码目录分开不等于单独发布**。合并时优先保留已有 `SCIEPort` 的 PackageName、AssemblyName、GUID、Block ID、SCNET 网络包和旧存档归属；书典物品 956/DATA0、客户端个人阅读进度与游戏 API 契约同样不得擅自破坏。
 - **技术状态必须说清**：截至本指令时，两个模块实际上仍用两个 `modinfo.json`、两套构建脚本和两份 `.netmod`；仅统一规范**不代表合包完成**。未完成真实编译、资源合并、冲突审计、Android 和联机回归前，不得发布所谓“一包整合成功”的安装包。
-- 停止单独新增云天书典 Release，过去的 `celestial-codex-v0.2.0` 预发布保留为历史记录，不能改 tag、删历史。后续整合完成后，按 `docs/UNIFIED-MOD-POLICY.md` 由统一工作流创建整合产品预发布，再以实际验证的同版本 .netmod 升为正式发行。
+- 停止单独新增云天书典 Release，过去的 `celestial-codex-v0.2.0` 预发布保留为历史记录，不能改 tag、删历史。后续整合完成后，按 `docs/UNIFIED-MOD-POLICY.md` 由统一工作流先编译并校验实际 .netmod，再创建包含该安装包的预发布；没有 .netmod 禁止创建新的源码空壳 Release。
 - **Builder Assistant 和 Ruins 未被此次合并指令涵盖**，仍维持原本独立的代码、发布和兼容性边界，除非用户另行明确要求。
 
 任何开发任务开始前必须先阅读本文件，并同时检查 `docs/COMPATIBILITY.md` 的当前结论。
@@ -125,5 +125,5 @@ Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`�
 ## 统一版本与 Release（2026-11-08 用户新指令）
 
 - 参阅 `docs/UNIFIED-MOD-POLICY.md`。目标为「荒野探险家」**一个产品、一个版本号、一个安装包、一个 Release**，云天书典只在该产品内作为功能模块。
-- 旧的 `.github/workflows/release-celestial-codex.yml` 专项发布流停用；历史书典版本和 Release 仅保留供追溯。统一工作流在**合包完成并标记可发布**后，根据主产品版本递增生成统一源码预发布。
+- 旧的 `.github/workflows/release-celestial-codex.yml` 专项发布流停用；历史书典版本和 Release 仅保留供追溯。统一工作流在**合包完成、标记可发布且 Windows 构建成功**后，直接创建**附带 `.netmod` 安装包和 SHA-256** 的统一预发布；不能编译或集成失败时不得发布仅含源码的 Release。
 - 合并前仍然存在两份分离代码和二进制；不得通过简单更名、拼 ZIP、复制 DLL 等手段伪称成品单包。改动内部标识/存档/资源注册须先证明兼容，并记录清晰的迁移与回退路径。

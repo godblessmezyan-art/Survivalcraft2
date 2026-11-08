@@ -21,8 +21,8 @@
 
 - 集成完成后，使用 `SCIE-Port/src/SCIEPort/modinfo.json` 作为统一**发行版本**真值，`SCIEPort.csproj` 同步；云天书典不再以自己的版本号单独触发发布。合包迁移时应处理遗留的独立版本元数据，但在验证完成前不得随意改动现有包的内部身份。
 - 后续每发布一个更新版本都要在 GitHub Releases 提供一个 `wilderness-explorer-vX.Y.Z` Release。Release 发布必须对应 `main` 的明确提交与版本号；旧 `v0.x.y` 和 `celestial-codex-v0.2.0` 均保留历史。
-- 对于还没有可安装 .netmod 的版本，只能创建**源码预发布**，如实说明待验证项；正式 .netmod 必须有实际构建、SHA-256、SCNET ABI 测试与 Android/联机的适当验收。
-- `.github/workflows/release-wilderness-explorer.yml` 负责统一源码预发布。为避免误发旧分离包，工作流设有显式集成门槛：只有在真实联合构建成功、验收记录齐备后才允许创建 `docs/UNIFIED-RELEASE-READY` 文件（内容为 `ready=1`）。未创建之前**不会自动发布新的合包 Release**。
+- **今后不创建只有源码 ZIP 的新 Release。** 统一包没有实际构建成功时，代码留在 main，但发布流程跳过；成功构建和打包校验后，Release 必须附上可直接安装的 `.netmod` 和 SHA-256 文件。Android/联机验证状态必须如实标明；未经这些实测的包只能作为带安装包的 prerelease。
+- `.github/workflows/release-wilderness-explorer.yml` 负责统一 `.netmod` 发行：首先检查 `docs/UNIFIED-RELEASE-READY`（严格 `ready=1`），然后使用受信任的 Windows 自托管 Runner 调用 `scripts/Publish-WildernessExplorerRelease.ps1`，执行完整构建、测试、包内容和身份校验，**只有 `.netmod` 存在且验证通过，才连同 SHA-256 校验文件一起创建 Release**。没有就跳过/失败，不再生成源码空壳 Release。
 - 禁止只因为源码已合并到 `main` 或文档改了就声称已经产出可安装的统一模组。
 
 ## 四、迁移实施步骤（待完成）
@@ -31,7 +31,7 @@
 2. 在 SCIEPort 主项目中集成书典 Core / UI / Networking / Mod，以及必要 XML/CSV/图片资源与第三方依赖；一个包只保留一份 modinfo 和正式运行入口。禁止无目标 ABI 依据地靠重命名 DLL 合并。
 3. 为单包补全测试：书典网络/本地阅读、旧读书缓存、全部 SCIE 既有模块、Block/GUID/网络包唯一性与隔离。
 4. 真实 Windows Release 构建、包展开逐项核对、Android 7723 全流程及联机验证，记录包 SHA-256、安装升级和回滚。
-5. 验证通过后创建 `docs/UNIFIED-RELEASE-READY` 并递增统一发行版本，触发 GitHub Actions 创建统一源码预发布；将已验证的同版本 .netmod 上传并按状态转为正式 Release。
+5. 完整合包验证后创建 `docs/UNIFIED-RELEASE-READY` 并递增统一发行版本；配置带 `scnet-x25` 标签的受信任 Windows 自托管 Runner 与 `SCNET_GAME_DIR` 仓库变量。新版本推送到 main 后，GitHub Actions 在此环境执行构建与检查、自动上传 `荒野探险家-X.Y.Z.netmod` 和 SHA-256。只有经过真实 Android/联机测试后才能把预发布升级为稳定版本。
 
 ## 五、不在此次范围
 
