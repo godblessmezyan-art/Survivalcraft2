@@ -37,6 +37,14 @@ if (-not (Test-Path -LiteralPath (Join-Path $stage 'THIRD-PARTY-NOTICES.md'))) {
     Copy-Item -LiteralPath (Join-Path $root 'THIRD-PARTY-NOTICES.md') -Destination $stage
 }
 Copy-Item -LiteralPath (Join-Path $projectDir 'Assets') -Destination (Join-Path $stage 'Assets') -Recurse
+# Merge book assets into this ONE SCIEPort package, not a nested second mod.
+$bookAssets = Join-Path $root 'src\CelestialCodex\Assets'
+Get-ChildItem -LiteralPath $bookAssets -Recurse -File | ForEach-Object {
+    $relative = $_.FullName.Substring($bookAssets.Length).TrimStart('\', '/')
+    $destination = Join-Path (Join-Path $stage 'Assets') $relative
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+    Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+}
 # Known x25.01.17 mobile unsupported format, not a test or archive audit.
 $unsupportedWebp = Join-Path $stage 'Assets\Textures\KellyExpansion.webp'
 if (Test-Path -LiteralPath $unsupportedWebp) {

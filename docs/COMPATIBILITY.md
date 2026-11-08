@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-09 荒野探险家 0.79.0：云天书典游戏内 TXT/EPUB 导入与单包源码接入（待验证）
+
+书典目录页增加「导入图书」入口；运行时反射尝试宿主 `Engine.Storage.ChooseFile`，若不可用则提供仅限游戏可访问 `app:/` 虚拟目录的游戏内浏览器。选中文件通过 `Storage.OpenFile` 复制到私有书库，8MiB限制、同名不覆盖、失败临时文件清理，导入成功自动刷新本地目录。**SCNET x25.01.17 Android 是否存在兼容的系统文件选择器、能否读取 `content://` URI 均未经过真实程序集确认**，公共 Downloads 选择能力暂为待验证。新版 Survivalcraft API 的 `ChooseFile` 不能当作 SCNET ABI 证据。
+
+统一工程 `SCIEPort.csproj` 已配置将 `src/CelestialCodex` 的 C# 源码编译进单个 `SCIEPort.dll`，快建和全量构建都在同一份 Assets 内合并原书典 CSV/XDB/PNG；只发布 SCIEPort modinfo、DLL 和 .netmod（不嵌套第二个包）。方块 956 与原神器图谱 955 不同，均保留。**真实 Windows net472 编译、SCNET 加载器、XDB 合并结果、Android7723、单机/主机/普通客户端行为均待验证**；本次仅有源码/构建配置变更，无新安装包验证证据。按用户要求，Release 快速流程不自动测试或包校验，故发布成功不能证明兼容。
+
 ## Celestial Codex 0.2.0：本地 TXT/EPUB 与云端双书源（待验证）
 
 在0.1.3源码上增加 LocalBookLibrary；云端协议、缓存、安全限制、物品956/DATA0、模组身份均保持。TXT 严格 UTF-8，EPUB 为有界 ZIP + OPF/spine + XHTML 纯文本。导入方式为 app:/CelestialCodex/Imports 文件夹扫描；未接入 Android 系统文件选择器。代码已准备合入 main，但 Windows/net472 编译、Android7723、Local/Server/Client 均**待验证**。见 docs/CELESTIAL-CODEX-V0.2.md。

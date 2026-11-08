@@ -24,3 +24,7 @@
 - 不强制生成 `.sha256`，也不扫描归档内部。Release 页面中的 Source code (zip/tar.gz) 是 GitHub 自带源码链接，不是游戏安装文件。
 
 下载：https://github.com/godblessmezyan-art/Survivalcraft2/releases
+
+## 2026-11-09 更新
+
+荒野探险家 0.79.0 开始，快速构建已经配置从 `src/CelestialCodex/` 编译全部书典 C# 并合并资产，而不再仅打包旧版 SCIEPort。真实 Windows 编译/Android 使用未验证，旧说明“不含书典”仅对应早期版本。无需测试或包校验的发布政策不变。

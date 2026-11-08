@@ -17,6 +17,7 @@ namespace CelestialCodex.UI
         internal ComponentPlayer Player { get; private set; }
         internal bool Closed { get; private set; }
         private readonly ReaderSession session;
+        private BookImportDialog importer;
         private readonly CanvasWidget panel, viewport;
         private readonly ScrollPanelWidget scroll;
         private readonly StackPanelWidget entries;
@@ -103,6 +104,18 @@ namespace CelestialCodex.UI
             catalog = null; book = null; chapter = null; saved = new ReadingPosition();
             page = 1; chapterPage = 0; view = View.Catalog;
             Load(new Request(1));
+        }
+        private void OpenImporter()
+        {
+            if (!local || Closed || busy || Player == null || Player.GameWidget == null ||
+                Player.GameWidget.GuiWidget == null) return;
+            if (importer != null && !importer.Closed) return;
+            importer = new BookImportDialog(Player, session.ImportFile, () =>
+            {
+                // The import dialog only calls this from its game-thread Update.
+                if (!Closed && local) Load(new Request(1));
+            });
+            DialogsManager.ShowDialog(Player.GameWidget.GuiWidget, importer);
         }
         private void ShowCatalog()
         {
@@ -215,14 +228,14 @@ namespace CelestialCodex.UI
             previous.Text = reading ? "上节" : "上一页"; next.Text = reading ? "下节" : "下一页";
             previous.IsEnabled = !busy && (reading ? index > 0 : view == View.Catalog ? page > 1 : chapterPage > 0);
             next.IsEnabled = !busy && (reading ? book != null && index + 1 < book.Chapters.Count : view == View.Catalog ? catalog != null && catalog.HasMore : (chapterPage + 1) * 24 < book.Chapters.Count);
-            middle.Text = busy ? "载入中" : reading ? "章节" : view == View.Catalog && Protocol.SafeSlug(saved.Slug) ? "继续" : local && view == View.Catalog ? "扫描" : "刷新"; middle.IsEnabled = !busy;
+            middle.Text = busy ? "载入中" : reading ? "章节" : local && view == View.Catalog ? "导入图书" : view == View.Catalog && Protocol.SafeSlug(saved.Slug) ? "继续" : "刷新"; middle.IsEnabled = !busy;
             foreach (var b in rowButtons) b.IsEnabled = !busy;
             if (!busy)
             {
                 for (int i = 0; i < rowButtons.Count; i++) if (rowButtons[i].IsClicked) { if (view == View.Catalog) OpenBook(rowIds[i], false); else OpenChapter(rowIds[i]); break; }
                 if (previous.IsClicked) { if (reading) OpenChapter(book.Chapters[index - 1].Id); else if (view == View.Catalog) Load(new Request(page - 1)); else { chapterPage--; ShowChapters(); } }
                 if (next.IsClicked) { if (reading) OpenChapter(book.Chapters[index + 1].Id); else if (view == View.Catalog) Load(new Request(page + 1)); else { chapterPage++; ShowChapters(); } }
-                if (middle.IsClicked) { if (reading) GoBack(); else if (view == View.Catalog && Protocol.SafeSlug(saved.Slug)) OpenBook(saved.Slug, true); else Load(view == View.Catalog ? new Request(page) : new Request(book.Slug)); }
+                if (middle.IsClicked) { if (reading) GoBack(); else if (view == View.Catalog && local) OpenImporter(); else if (view == View.Catalog && Protocol.SafeSlug(saved.Slug)) OpenBook(saved.Slug, true); else Load(view == View.Catalog ? new Request(page) : new Request(book.Slug)); }
             }
             if (close.IsClicked) Close(); else if (back.IsClicked || Input.Back || Input.Cancel) { Input.Clear(); GoBack(); }
         }

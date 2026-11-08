@@ -1,6 +1,14 @@
-# 云天书典 · Celestial Codex 0.2.0（源码待实机验证）
+# 云天书典 · Celestial Codex（游戏内图书导入开发版，待 SCNET 实机验证）
 
 新增本地 TXT/EPUB 书库与原 Digital-Study 云端书库切换；本地扫描目录为 app:/CelestialCodex/Imports（真实 Android 可访问路径待确认）。本地与云端阅读进度独立，原 API、物品956/DATA0 不变。详见 docs/CELESTIAL-CODEX-V0.2.md。本版本尚未取得 SCNET x25.01.17 目标编译及 Android 真机验收证据，不是已验证的 .netmod。
+
+## 游戏内导入 TXT / EPUB（2026-11-09 源码更新）
+
+在**本地书库**目录页点击「导入图书」，新弹窗优先通过**运行时反射探测** `Engine.Storage.ChooseFile` 启动系统文件选择器。若当前 SCNET 客户端没有可兼容的 `ChooseFile` 签名，显示明确反馈，并提供游戏内可访问的 `app:/` 虚拟目录浏览器；**该浏览器不能保证访问 Android 公共 Downloads 或任意手机文件**。
+
+选中 TXT/EPUB 后复制到游戏私有的 `CelestialCodex/Imports`，8MiB 单文件上限，最多 64 本；同名文件采用 `(2)` 后缀，临时文件在失败时清理；完成后自动刷新原本地书库，无需玩家手动修改内部目录。原云端 Digital-Study 阅读不变。
+
+技术限制：不同于新版 Survivalcraft API，**SCNET x25.01.17 的 Android 原生系统文件选择器签名尚未经目标游戏程序集确认**，因此系统选书按钮可能仅提示不可用；如果宿主提供的是 `content://` URI 而 `Engine.Storage.OpenFile` 不支持该地址，也会导入失败并显示错误。真正支持手机公共 Downloads 需要在本机 Android 实测并可能补充 SCNET 专属桥接。**当前源码尚未真实编译，也尚未与荒野探险家集成为一个安装包；不会单独发布云天书典 Release。**
 
 ## V0.1.3 及历史说明
 

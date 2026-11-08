@@ -703,6 +703,14 @@ Copy-Item -LiteralPath (Join-Path $build 'SCIEPort.dll') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectDir 'modinfo.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $projectRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
 Copy-Item -Recurse -LiteralPath (Join-Path $projectDir 'Assets') -Destination (Join-Path $stage 'Assets')
+# Include book resources in the same package for the full-build route.
+$bookAssetsRoot = Join-Path $projectRoot '..\src\CelestialCodex\Assets'
+Get-ChildItem -LiteralPath $bookAssetsRoot -Recurse -File | ForEach-Object {
+    $relative = $_.FullName.Substring($bookAssetsRoot.Length).TrimStart('\', '/')
+    $destination = Join-Path (Join-Path $stage 'Assets') $relative
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+    Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+}
 # Keep the authorized WebP source for provenance, but do not ship it. The
 # x25.01.17 Android content manager did not register it as Texture2D and the
 # creative inventory crashed when a Kelly fruit icon was drawn.
