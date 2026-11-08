@@ -3,8 +3,10 @@ $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
 foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
 $manifest=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'docs/assets/home-furniture/manifest.json') | ConvertFrom-Json
+$extension=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'docs/assets/home-extension/manifest.json') | ConvertFrom-Json
+$models=@($manifest.models)+@($extension.models)
 $triangles=0
-foreach($entry in $manifest.models){
+foreach($entry in $models){
     $path=Join-Path $root ('src/SCIEPort/Assets/Models/'+$entry.name+'.dae')
     if((Get-FileHash -LiteralPath $path).Hash -ne $entry.sha256){throw "Home model hash drift: $($entry.name)"}
     $stream=[IO.File]::OpenRead($path)
@@ -39,7 +41,7 @@ if($AssemblyPath){
         $field=$type.GetField('Index');if($field){$ids+=[int]$field.GetRawConstantValue()}
     }
     if(@($ids | Group-Object | Where-Object Count -gt 1).Count){throw 'Duplicate owned Block ID'}
-    foreach($id in 957..963){if($ids -notcontains $id){throw "Missing Home Block $id"}}
+    foreach($id in 957..970){if($ids -notcontains $id){throw "Missing Home Block $id"}}
     $packet=[Activator]::CreateInstance($assembly.GetType('SCIEPort.Features.Home.HomeFurniturePackage',$true))
     if($packet.ID -ne 239){throw 'Furniture packet identity changed'}
     if($null -ne $table[239]){throw 'Furniture protocol 239 already registered in this audit process'}
@@ -65,13 +67,17 @@ if($AssemblyPath){
     }
     $upper=[Activator]::CreateInstance($assembly.GetType('SCIEPort.Features.Home.HomeUpperBlock',$true));$upper.BlockIndex=963
     if(@($upper.GetCreativeValues()).Count -ne 0){throw 'Upper occupancy leaked into creative inventory'}
+    foreach($name in @('HomeDiningPartBlock','HomeBedPartBlock')){
+        $hidden=[Activator]::CreateInstance($assembly.GetType('SCIEPort.Features.Home.'+$name,$true))
+        if(@($hidden.GetCreativeValues()).Count -ne 0){throw "Footprint leaked into creative inventory: $name"}
+    }
 }
 if($Package){
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=[IO.Compression.ZipFile]::OpenRead($Package)
     try{
-        $paths=@('Assets/Blocks/HomeFurniture.csv','Assets/Database/HomeFurniture.xdb','Assets/Textures/HomeFurniture.png')
-        $paths+=@($manifest.models | ForEach-Object {'Assets/Models/'+$_.name+'.dae'})
+        $paths=@('Assets/Blocks/HomeFurniture.csv','Assets/Blocks/HomeExtension.csv','Assets/Database/HomeFurniture.xdb','Assets/Textures/HomeFurniture.png')
+        $paths+=@($models | ForEach-Object {'Assets/Models/'+$_.name+'.dae'})
         foreach($path in $paths){
             $entry=$zip.GetEntry($path);if(-not $entry){throw "Missing packaged furniture: $path"}
             $source=Join-Path $root ('src/SCIEPort/'+$path);$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open()
@@ -80,4 +86,4 @@ if($Package){
         }
     }finally{$zip.Dispose()}
 }
-Write-Host "Home: native Engine 16 models / one bone each / $triangles triangles, PNG, $($nativePackageIds.Count) native protocol IDs and package integrity passed."
+Write-Host "Home: native Engine $($models.Count) models / one bone each / $triangles triangles, PNG, $($nativePackageIds.Count) native protocol IDs and package integrity passed."

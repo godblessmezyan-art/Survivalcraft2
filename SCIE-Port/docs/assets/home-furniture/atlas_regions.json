@@ -1,14 +1,16 @@
 {
+  "artRevision": "V2",
   "asset": "Assets/Textures/HomeFurniture.png",
   "size": [
     512,
     512
   ],
   "opaque": true,
-  "sha256": "ec9241734372f0d8f92f5e0206dcb9e71bc7523701e1ca12a8212280b0ef884c",
+  "sha256": "79a20b01a0070fdb5c1f472aca33c65ff144fcbf1fef6557d98ec3c90493e6ec",
   "regions": [
     {
-      "role": "Cream",
+      "role": "Glacier",
+      "srgb": "#E5EAEE",
       "kind": "paint",
       "blenderUV": [
         0.01,
@@ -24,8 +26,9 @@
       ]
     },
     {
-      "role": "Oak",
-      "kind": "wood",
+      "role": "Titanium",
+      "srgb": "#A4B1BD",
+      "kind": "metal",
       "blenderUV": [
         0.26,
         0.01,
@@ -40,7 +43,8 @@
       ]
     },
     {
-      "role": "Linen",
+      "role": "MistCloth",
+      "srgb": "#E5EAEE",
       "kind": "cloth",
       "blenderUV": [
         0.51,
@@ -56,7 +60,8 @@
       ]
     },
     {
-      "role": "Sage",
+      "role": "SpaceBlue",
+      "srgb": "#546C80",
       "kind": "cloth",
       "blenderUV": [
         0.76,
@@ -73,6 +78,7 @@
     },
     {
       "role": "Steel",
+      "srgb": "#A4B1BD",
       "kind": "metal",
       "blenderUV": [
         0.01,
@@ -88,7 +94,8 @@
       ]
     },
     {
-      "role": "Brass",
+      "role": "EdgeSilver",
+      "srgb": "#C8D1D8",
       "kind": "metal",
       "blenderUV": [
         0.26,
@@ -104,7 +111,8 @@
       ]
     },
     {
-      "role": "Ceramic",
+      "role": "Porcelain",
+      "srgb": "#E5EAEE",
       "kind": "paint",
       "blenderUV": [
         0.51,
@@ -120,7 +128,8 @@
       ]
     },
     {
-      "role": "Shadow",
+      "role": "Graphite",
+      "srgb": "#303943",
       "kind": "paint",
       "blenderUV": [
         0.76,
@@ -136,8 +145,9 @@
       ]
     },
     {
-      "role": "Water",
-      "kind": "water",
+      "role": "Ice",
+      "srgb": "#65D5EC",
+      "kind": "indicator",
       "blenderUV": [
         0.01,
         0.51,
@@ -152,24 +162,26 @@
       ]
     },
     {
-      "role": "OakDark",
-      "kind": "wood",
-      "blenderUV": [
-        0.26,
-        0.51,
-        0.49,
-        0.74
-      ],
-      "engineUV": [
-        0.26,
-        0.26,
-        0.49,
-        0.49
-      ]
-    },
-    {
-      "role": "Ivory",
+      "role": "Base",
+      "srgb": "#303943",
       "kind": "paint",
+      "blenderUV": [
+        0.26,
+        0.51,
+        0.49,
+        0.74
+      ],
+      "engineUV": [
+        0.26,
+        0.26,
+        0.49,
+        0.49
+      ]
+    },
+    {
+      "role": "Glass",
+      "srgb": "#303943",
+      "kind": "glass",
       "blenderUV": [
         0.51,
         0.51,
@@ -185,6 +197,7 @@
     },
     {
       "role": "Seam",
+      "srgb": "#B5C0C9",
       "kind": "cloth",
       "blenderUV": [
         0.76,
@@ -200,8 +213,9 @@
       ]
     },
     {
-      "role": "Leaf",
-      "kind": "paint",
+      "role": "Panel",
+      "srgb": "#252E38",
+      "kind": "panel",
       "blenderUV": [
         0.01,
         0.76,
@@ -216,8 +230,9 @@
       ]
     },
     {
-      "role": "Clay",
-      "kind": "paint",
+      "role": "Curtain",
+      "srgb": "#C8D0D6",
+      "kind": "cloth",
       "blenderUV": [
         0.26,
         0.76,
@@ -233,6 +248,7 @@
     },
     {
       "role": "Paper",
+      "srgb": "#E5EAEE",
       "kind": "paint",
       "blenderUV": [
         0.51,
@@ -249,6 +265,7 @@
     },
     {
       "role": "Stone",
+      "srgb": "#BCC4CA",
       "kind": "stone",
       "blenderUV": [
         0.76,

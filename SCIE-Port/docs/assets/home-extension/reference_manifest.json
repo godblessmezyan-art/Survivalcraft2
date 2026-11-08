@@ -1,0 +1,28 @@
+{
+  "source": "User brief: extend the established modern smart-home V2 style with a fireplace, two-person dining set, double bed, nightstand and wall art",
+  "status": "待验证",
+  "palette": [
+    "#E5EAEE",
+    "#A4B1BD",
+    "#303943",
+    "#546C80",
+    "#65D5EC"
+  ],
+  "sourceImages": [],
+  "originalGeometry": true,
+  "originalGeometricArtwork": true,
+  "thirdPartyFurnitureAssets": [],
+  "authoring": "Blender 5.1.1 / official Blender MCP 1.0.2",
+  "generatorSha256": "368c41abae7a2b35f95005610a14aa935cf025cd2d6e35468956cedd560d455d",
+  "baseGeneratorSha256": "fb99d36a5dd7c3dffe895f64075aa93c00aeb88486a5c3fdfb9ed1673cc41e92",
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  }
+}

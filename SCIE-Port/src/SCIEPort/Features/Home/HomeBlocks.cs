@@ -17,7 +17,7 @@ namespace SCIEPort.Features.Home
         {
             texture = ContentManager.Get<Texture2D>("Textures/HomeFurniture");
             for (int variant = 0; variant < HomeRules.VariantCount(BlockIndex); variant++)
-            for (int state = 0; state < (BlockIndex == HomeRules.Fridge || BlockIndex == HomeRules.Sink || BlockIndex == HomeRules.Curtain ? 2 : 1); state++)
+            for (int state = 0; state < (HomeRules.IsSwitchable(BlockIndex) ? 2 : 1); state++)
             {
                 int data = (variant << 3) | (state << 2);
                 Model model = ContentManager.Get<Model>("Models/" + HomeRules.Model(BlockIndex, data));
@@ -42,6 +42,7 @@ namespace SCIEPort.Features.Home
         }
         internal static BoundingBox[] Boxes(int id, int variant, int rotation, bool upper, bool open)
         {
+            if (id >= HomeRules.Fireplace && id <= HomeRules.WallArt) return HomeExtensionGeometry.Boxes(id, rotation, 0);
             var boxes = new List<BoundingBox>();
             if (id == HomeRules.Curtain)
             {
@@ -80,7 +81,8 @@ namespace SCIEPort.Features.Home
         public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value) => collisions[Data(value)];
         /// <inheritdoc/>
         public override BoundingBox[] GetCustomInteractionBoxes(SubsystemTerrain terrain, int value)
-            => BlockIndex == HomeRules.Curtain ? new[] { new BoundingBox(new Vector3(.02f, 0, .02f), new Vector3(.98f, 1.98f, .98f)) } : GetCustomCollisionBoxes(terrain, value);
+            => BlockIndex == HomeRules.Curtain ? new[] { new BoundingBox(new Vector3(.02f, 0, .02f), new Vector3(.98f, 1.98f, .98f)) }
+                : BlockIndex == HomeRules.WallArt ? HomeExtensionGeometry.ArtInteraction(HomeRules.Rotation(Terrain.ExtractData(value))) : GetCustomCollisionBoxes(terrain, value);
         /// <inheritdoc/>
         public override bool IsFaceTransparent(SubsystemTerrain terrain, int face, int value) => true;
         /// <inheritdoc/>
@@ -102,10 +104,18 @@ namespace SCIEPort.Features.Home
             Vector3 forward = Matrix.CreateFromQuaternion(miner.ComponentCreature.ComponentCreatureModel.EyeRotation).Forward;
             int rotation = HomeRules.Facing(forward.X, forward.Z);
             Point3 p = hit.CellFace.Point + CellFace.FaceToPoint3(hit.CellFace.Face);
+            if (BlockIndex == HomeRules.WallArt)
+            {
+                Point3 normal = CellFace.FaceToPoint3(hit.CellFace.Face);
+                if (normal.Y != 0) return new BlockPlacementData { CellFace = hit.CellFace, Value = 0 };
+                rotation = normal.Z < 0 ? 0 : normal.X < 0 ? 1 : normal.Z > 0 ? 2 : 3;
+            }
             bool valid = terrain.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.MayPlace == true
                 && p.Y > 0 && p.Y < (HomeRules.IsTall(BlockIndex) ? 254 : 255)
                 && terrain.Terrain.GetCellContents(p.X, p.Y, p.Z) == 0;
             if (HomeRules.IsTall(BlockIndex)) valid &= terrain.Terrain.GetCellContents(p.X, p.Y + 1, p.Z) == 0;
+            if (HomeRules.HasFootprint(BlockIndex)) valid &= HomeExtensionGeometry.CanPlace(terrain, p, rotation);
+            if (BlockIndex == HomeRules.WallArt) valid &= HomeExtensionGeometry.HasWall(terrain, p, rotation);
             return new BlockPlacementData { CellFace = hit.CellFace, Value = valid ? Terrain.MakeBlockValue(BlockIndex, 0, HomeRules.ItemData(BlockIndex, Terrain.ExtractData(value)) | rotation) : 0 };
         }
         /// <inheritdoc/>
@@ -120,6 +130,7 @@ namespace SCIEPort.Features.Home
             int v = HomeRules.Variant(HomeRules.Normalize(BlockIndex, Terrain.ExtractData(value)));
             if (BlockIndex == HomeRules.Cabinet) return new[] { "橱柜", "转角橱柜", "吊柜", "抽屉柜" }[v];
             if (BlockIndex == HomeRules.Sofa) return new[] { "单人沙发", "沙发左座", "沙发中座", "沙发右座", "转角沙发" }[v];
+            if (BlockIndex == HomeRules.WallArt) return new[] { "山月挂画", "山峦挂画", "轨迹挂画" }[v];
             return base.GetDisplayName(terrain, value);
         }
     }

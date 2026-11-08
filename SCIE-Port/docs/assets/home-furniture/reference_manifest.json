@@ -1,9 +1,21 @@
 {
-  "source": "User brief: refrigerator, modular cabinets, sink, sofa, coffee table, curtains for a cozy villa",
-  "artDirection": "Cream, oak, linen, sage green; original stylized mobile game furniture",
+  "source": "User V2 brief: modern smart-home art refactor of all existing furniture and custom storage; preserve runtime identities and halve deposit slots without truncating saved items",
+  "artDirection": "Glacier #E5EAEE, titanium #A4B1BD, graphite #303943, space blue #546C80, small ice-blue #65D5EC accents; opaque mobile game atlas",
   "sourceImages": [],
   "originalGeometry": true,
   "thirdPartyFurnitureAssets": [],
   "authoring": "Blender 5.1.1 / official Blender MCP 1.0.2",
-  "generatorSha256": "1fb06795873bf9c5d244089694725eeb23948b22731f61b5a75f276569d7434a"
+  "generatorSha256": "fb99d36a5dd7c3dffe895f64075aa93c00aeb88486a5c3fdfb9ed1673cc41e92",
+  "artRevision": "V2",
+  "runtimeValidation": "待验证",
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  }
 }

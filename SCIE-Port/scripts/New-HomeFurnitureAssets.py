@@ -1,55 +1,73 @@
-"""Original cozy furniture. Execute build(name) inside Blender via official MCP.
+"""Original modern smart-home furniture V2. Author inside Blender via official MCP.
 
 Blender owns geometry, bevels, UVs and rendering. The small COLLADA serializer
 targets the verified SCNET importer (one identity node, independent offsets).
 The runtime atlas contains color detail only; Blender PBR is preview-only.
 """
 from pathlib import Path
-import math, hashlib, json, xml.etree.ElementTree as ET
+import math, hashlib, json, struct, zlib, xml.etree.ElementTree as ET
 import bpy
 from mathutils import Vector
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT/'src/SCIEPort/Assets'
-OUTPUT = ROOT/'artifacts/home-furniture'
+OUTPUT = ROOT/'artifacts/home-furniture-v2'
+# sRGB palette. The runtime gets these color pixels, not Blender PBR materials.
 PALETTE = [
-    ('Cream',(.88,.84,.73),'paint'),('Oak',(.63,.39,.19),'wood'),
-    ('Linen',(.77,.73,.62),'cloth'),('Sage',(.40,.55,.40),'cloth'),
-    ('Steel',(.58,.64,.64),'metal'),('Brass',(.68,.48,.20),'metal'),
-    ('Ceramic',(.92,.93,.86),'paint'),('Shadow',(.13,.17,.15),'paint'),
-    ('Water',(.37,.69,.73),'water'),('OakDark',(.28,.17,.09),'wood'),
-    ('Ivory',(.96,.92,.81),'paint'),('Seam',(.49,.47,.39),'cloth'),
-    ('Leaf',(.25,.40,.25),'paint'),('Clay',(.63,.33,.23),'paint'),
-    ('Paper',(.78,.72,.55),'paint'),('Stone',(.65,.66,.60),'stone')]
+    ('Glacier','#E5EAEE','paint'),('Titanium','#A4B1BD','metal'),
+    ('MistCloth','#E5EAEE','cloth'),('SpaceBlue','#546C80','cloth'),
+    ('Steel','#A4B1BD','metal'),('EdgeSilver','#C8D1D8','metal'),
+    ('Porcelain','#E5EAEE','paint'),('Graphite','#303943','paint'),
+    ('Ice','#65D5EC','indicator'),('Base','#303943','paint'),
+    ('Glass','#303943','glass'),('Seam','#B5C0C9','cloth'),
+    ('Panel','#252E38','panel'),('Curtain','#C8D0D6','cloth'),
+    ('Paper','#E5EAEE','paint'),('Stone','#BCC4CA','stone')]
 NAMES = ['HomeFridge','HomeFridgeOpen'] + ['HomeCabinet'+str(i) for i in range(4)] + ['HomeSink','HomeSinkOpen'] + ['HomeSofa'+str(i) for i in range(5)] + ['HomeCoffeeTable','HomeCurtain','HomeCurtainOpen']
+
+def write_atlas():
+    """Write sRGB bytes directly: no preview color transform, no alpha/transparency."""
+    raw=bytearray()
+    for y in range(512):
+        raw.append(0)
+        for x in range(512):
+            # PNG rows are top-down, matching export()'s V flip.
+            k=((511-y)//128)*4+x//128; _,hexcolor,kind=PALETTE[k]
+            color=[int(hexcolor[i:i+2],16) for i in (1,3,5)]
+            u=(x%128)/127; v=((511-y)%128)/127
+            noise=math.sin(x*127.1+y*311.7)*43758.5453; noise-=math.floor(noise)
+            delta=(noise-.5)*1.4
+            if kind=='cloth': delta+=1.5*((x%4<2)-(y%4<2))+.7*math.sin(u*50)
+            elif kind=='metal': delta+=1.8*math.sin(v*370)+5.0*math.sin(u*math.pi)-2.5
+            elif kind=='stone': delta+=2.3*math.sin(x*.13+y*.09)*math.sin(x*.07-y*.11)+1.4*math.cos(v*30+u*7)
+            elif kind=='glass': delta+=7*math.exp(-((u-.35*v-.25)/.055)**2)+2*math.exp(-((u-.35*v-.6)/.11)**2)
+            elif kind=='panel': delta+=.7*math.cos(v*95)
+            elif kind=='indicator': delta=0
+            raw.extend(max(0,min(255,round(c+delta))) for c in color)
+            raw.append(255)
+    def chunk(tag,data): return struct.pack('>I',len(data))+tag+data+struct.pack('>I',zlib.crc32(tag+data)&0xffffffff)
+    png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',512,512,8,6,0,0,0))+chunk(b'sRGB',b'\x00')+chunk(b'IDAT',zlib.compress(bytes(raw),9))+chunk(b'IEND',b'')
+    path=ASSETS/'Textures/HomeFurniture.png'; pending=path.with_suffix('.png.pending')
+    pending.write_bytes(png); pending.replace(path)
+    return path
 
 def setup():
     OUTPUT.mkdir(parents=True,exist_ok=True)
     # A dedicated factory-startup scene was inspected before authorizing this reset.
     bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
-    image=bpy.data.images.get('HomeFurniture') or bpy.data.images.new('HomeFurniture',width=512,height=512,alpha=False)
-    pixels=[]
-    for y in range(512):
-        for x in range(512):
-            k=(y//128)*4+x//128; color=PALETTE[k][1]; kind=PALETTE[k][2]
-            u=(x%128)/128; v=(y%128)/128
-            noise=math.sin(x*127.1+y*311.7)*43758.5453; noise-=math.floor(noise)
-            delta=(noise-.5)*.018
-            if kind=='wood': delta+=.032*math.sin(90*v+5*math.sin(7*u))+.012*math.sin(235*v+11*math.sin(8*u))
-            elif kind=='cloth': delta+=.018*((x%4<2)-(y%4<2))+.008*math.sin(u*40)
-            elif kind=='metal': delta+=.012*math.sin(v*190)
-            elif kind=='stone': delta+=.018*math.sin(x*.13+y*.09)*math.sin(x*.07-y*.11)
-            pixels.extend([max(0,min(1,c+delta)) for c in color]+[1])
-    image.pixels=pixels; image.filepath_raw=str(ASSETS/'Textures/HomeFurniture.png'); image.file_format='PNG'; image.save()
+    path=write_atlas()
+    image=bpy.data.images.load(str(path),check_existing=False); image.name='HomeFurniture'; image.colorspace_settings.name='sRGB'
     for role,color,kind in PALETTE:
         material=bpy.data.materials.get('MAT-home-'+role) or bpy.data.materials.new('MAT-home-'+role)
-        material.use_nodes=True; shader=material.node_tree.nodes.get('Principled BSDF')
-        shader.inputs['Metallic'].default_value=1 if kind=='metal' else 0
-        shader.inputs['Roughness'].default_value=.38 if kind=='metal' else .76
+        material.use_nodes=True; material.node_tree.nodes.clear()
+        shader=material.node_tree.nodes.new('ShaderNodeBsdfPrincipled'); out=material.node_tree.nodes.new('ShaderNodeOutputMaterial')
+        material.node_tree.links.new(shader.outputs['BSDF'],out.inputs['Surface'])
+        # Keep the proof image faithful to the color-only game pipeline. No preview-only
+        # metal, transmission or emission that could hide a weak runtime texture.
+        shader.inputs['Metallic'].default_value=0; shader.inputs['Roughness'].default_value=.78
         tex=material.node_tree.nodes.new('ShaderNodeTexImage'); tex.image=image; tex.interpolation='Closest'
         material.node_tree.links.new(tex.outputs['Color'],shader.inputs['Base Color'])
     world=bpy.data.worlds.new('Home-neutral-world'); world.use_nodes=True
-    world.node_tree.nodes['Background'].inputs[0].default_value=(.34,.39,.38,1)
+    world.node_tree.nodes['Background'].inputs[0].default_value=(.28,.32,.37,1)
     world.node_tree.nodes['Background'].inputs[1].default_value=.65; bpy.context.scene.world=world
     print('Home atlas and materials initialized')
 
@@ -78,7 +96,7 @@ def box(name,loc,size,role,c,bevel=.015,rotation=0):
     obj=bpy.context.object; obj.dimensions=size
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
     if bevel:
-        mod=obj.modifiers.new('Crafted edge','BEVEL'); mod.width=min(bevel,min(size)*.24); mod.segments=2
+        mod=obj.modifiers.new('Crafted edge','BEVEL'); mod.width=min(bevel,min(size)*.24); mod.segments=1 if min(size)<.035 else 2
         bpy.ops.object.modifier_apply(modifier=mod.name)
     obj.rotation_euler.z=rotation
     return finish(obj,name,role,c)
@@ -87,6 +105,7 @@ def cylinder(name,a,b,radius,role,c,sides=12):
     direction=Vector(b)-Vector(a)
     bpy.ops.mesh.primitive_cylinder_add(vertices=sides,radius=radius,depth=direction.length,location=(Vector(a)+Vector(b))/2)
     obj=bpy.context.object; obj.rotation_euler=direction.to_track_quat('Z','Y').to_euler()
+    for poly in obj.data.polygons: poly.use_smooth=abs(poly.normal.z)<.99
     return finish(obj,name,role,c)
 
 def surface(name,vertices,faces,role,c,thickness=0):
@@ -100,7 +119,7 @@ def surface(name,vertices,faces,role,c,thickness=0):
 def tube(name,points,radius,role,c):
     closed=points[0]==points[-1]
     if closed: points=points[:-1]
-    verts=[]; sides=10
+    verts=[]; sides=6 if radius<.006 else 10
     for i,p in enumerate(points):
         tangent=(Vector(points[(i+1)%len(points)])-Vector(points[(i-1)%len(points)])) if closed else Vector(points[min(i+1,len(points)-1)])-Vector(points[max(0,i-1)])
         tangent.normalize(); cross=tangent.cross(Vector((0,1,0)))
@@ -111,7 +130,9 @@ def tube(name,points,radius,role,c):
     for i in range(len(points) if closed else len(points)-1):
         nxt=(i+1)%len(points)
         for j in range(sides): faces.append((i*sides+j,i*sides+(j+1)%sides,nxt*sides+(j+1)%sides,nxt*sides+j))
-    return surface(name,verts,faces,role,c)
+    obj=surface(name,verts,faces,role,c)
+    for poly in obj.data.polygons: poly.use_smooth=closed or len(poly.vertices)==4
+    return obj
 
 def cushion(name,loc,size,role,c):
     # Multiple gently inflated cross-sections, with an explicit stitched welt.
@@ -128,48 +149,62 @@ def cushion(name,loc,size,role,c):
 def cabinet(c,variant=0,sink=False):
     bottom=.32 if variant==2 else .08; top=.80
     width=.96; depth=.52 if variant==2 else .90; back=-.44; front=back+depth
-    if variant!=2: box('oak-plinth',(0,back+depth/2,bottom/2),(width-.08,depth-.06,bottom),'OakDark',c,.008)
-    box('left-stile',(-.455,back+depth/2,(top+bottom)/2),(.05,depth,top-bottom),'Oak',c)
-    box('right-stile',(.455,back+depth/2,(top+bottom)/2),(.05,depth,top-bottom),'Oak',c)
-    box('cabinet-back',(0,back+.025,(top+bottom)/2),(.90,.05,top-bottom),'Cream',c,.008)
-    box('cabinet-floor',(0,back+depth/2,bottom+.025),(.90,depth,.05),'Oak',c,.008)
-    if not sink: box('rounded-stone-counter',(0,back+depth/2,top+.025),(.99,depth+.04,.05),'Stone' if variant!=2 else 'Oak',c,.016)
+    if variant!=2:
+        box('recessed-graphite-toe',(0,back+depth/2-.025,bottom/2),(width-.09,depth-.11,bottom),'Base',c,.008)
+        box('toe-silver-edge',(0,front-.065,.018),(.83,.008,.012),'Titanium',c,.002)
+    box('graphite-left-stile',(-.455,back+depth/2,(top+bottom)/2),(.05,depth,top-bottom),'Graphite',c,.009)
+    box('graphite-right-stile',(.455,back+depth/2,(top+bottom)/2),(.05,depth,top-bottom),'Graphite',c,.009)
+    box('cabinet-back',(0,back+.025,(top+bottom)/2),(.90,.05,top-bottom),'Graphite',c,.008)
+    box('cabinet-floor',(0,back+depth/2,bottom+.025),(.90,depth,.05),'Graphite',c,.008)
+    box('continuous-reveal',(0,front-.008,(top+bottom)/2),(.90,.025,top-bottom-.02),'Panel',c,.003)
+    if not sink: box('stone-slab' if variant!=2 else 'wall-cabinet-cap',(0,back+depth/2,top+.025),(.99,depth+.04,.05),'Stone' if variant!=2 else 'Graphite',c,.009)
     if variant==3:
         for i in range(3):
             z=bottom+.12+i*.22
-            box('drawer-'+str(i),(0,front+.008,z),(.86,.045,.205),'Cream',c,.012)
-            cylinder('drawer-handle-'+str(i),(-.12,front+.05,z+.025),(.12,front+.05,z+.025),.011,'Brass',c)
+            box('flush-drawer-'+str(i),(0,front+.008,z),(.86,.045,.205),'Glacier',c,.008)
+            box('drawer-finger-recess-'+str(i),(0,front+.032,z+.076),(.56,.009,.018),'Graphite',c,.003)
+            box('drawer-silver-lip-'+str(i),(0,front+.039,z+.065),(.56,.012,.009),'Titanium',c,.002)
     else:
         for side in [-1,1]:
             x=side*.22
-            box('shaker-door-'+str(side),(x,front+.015,(top+bottom)/2),(.42,.045,top-bottom-.025),'Cream',c,.012)
-            box('inset-panel-'+str(side),(x,front+.040,(top+bottom)/2),(.32,.012,top-bottom-.15),'Ivory',c,.006)
-            cylinder('door-pull-'+str(side),(side*.055,front+.075,top-.19),(side*.055,front+.075,top-.08),.009,'Brass',c)
+            box('flush-glacier-door-'+str(side),(x,front+.015,(top+bottom)/2),(.426,.045,top-bottom-.025),'Glacier',c,.008)
+            box('inset-finger-channel-'+str(side),(x,front+.040,top-.054),(.32,.009,.020),'Graphite',c,.003)
+            box('machined-handle-lip-'+str(side),(x,front+.047,top-.067),(.32,.016,.010),'Titanium',c,.002)
+    box('status-recess',(.35,front+.040,bottom+.046),(.055,.009,.015),'Panel',c,.002)
+    box('ice-status',(.35,front+.046,bottom+.046),(.021,.006,.006),'Ice',c,.001)
     if variant==1:
-        # A return door gives the corner module two usable visual fronts.
-        box('corner-return-door',(.486,0,.45),(.035,.73,.64),'Cream',c,.012)
-        box('corner-return-inset',(.508,0,.45),(.012,.60,.51),'Ivory',c,.006)
-        cylinder('corner-return-pull',(.535,.25,.60),(.535,.25,.71),.009,'Brass',c)
+        box('corner-flush-return',(.486,0,.45),(.035,.73,.64),'Glacier',c,.008)
+        box('corner-return-channel',(.507,0,.71),(.009,.57,.020),'Graphite',c,.003)
+        box('corner-return-lip',(.515,0,.697),(.012,.57,.010),'Titanium',c,.002)
 
 def fridge(c,opened):
     for x in [-.37,.37]:
-        for y in [-.32,.32]: cylinder('levelling-foot',(x,y,0),(x,y,.075),.035,'Shadow',c)
-    box('insulated-back',(0,-.39,.98),(.86,.08,1.80),'Cream',c,.025)
-    for x in [-.40,.40]: box('rounded-side',(x,0,.98),(.08,.78,1.80),'Cream',c,.025)
-    for z in [.10,1.85]: box('insulated-cap',(0,0,z),(.82,.78,.08),'Cream',c,.018)
+        for y in [-.32,.32]: cylinder('levelling-foot',(x,y,0),(x,y,.075),.035,'Graphite',c)
+    box('titanium-back',(0,-.39,.98),(.86,.08,1.80),'Titanium',c,.018)
+    for x in [-.40,.40]: box('titanium-side',(x,0,.98),(.08,.78,1.80),'Titanium',c,.018)
+    for z in [.10,1.85]: box('insulated-cap',(0,0,z),(.82,.78,.08),'Titanium',c,.012)
+    box('interior-liner',(0,-.343,.98),(.70,.014,1.62),'Glacier',c,.005)
     for z in [.27,.66,1.05,1.38]:
-        box('shelf',(0,0,z),(.72,.67,.025),'Ivory',c,.008)
+        box('shelf',(0,0,z),(.72,.67,.025),'Glacier',c,.006)
         cylinder('shelf-lip',(-.34,.32,z),(.34,.32,z),.008,'Steel',c)
-    box('freezer-divider',(0,0,1.39),(.75,.73,.055),'Cream',c,.015)
-    for z,h in [(.73,1.22),(1.65,.40)]:
-        door=box('recessed-door',(0,.415,z),(.84,.095,h),'Cream',c,.035)
-        seal=box('door-gasket',(0,.355,z),(.79,.025,h-.04),'Shadow',c,.018)
-        handle=cylinder('brushed-handle',(-.28,.495,z-h*.25),(-.28,.495,z+h*.25),.014,'Brass',c)
+    box('freezer-divider',(0,0,1.39),(.75,.73,.055),'Glacier',c,.012)
+    for z,h in [(.745,1.23),(1.635,.43)]:
+        parts=[]
+        parts.append(box('titanium-door',(0,.415,z),(.84,.095,h),'Titanium',c,.018))
+        parts.append(box('graphite-door-seal',(0,.355,z),(.80,.025,h-.02),'Graphite',c,.008))
+        parts.append(box('handle-recess',(-.285,.466,z),(.052,.012,h*.46),'Graphite',c,.006))
+        parts.append(box('handle-silver-edge',(-.305,.482,z),(.012,.029,h*.44),'EdgeSilver',c,.004))
+        if z>1:
+            parts.append(box('display-bezel',(.13,.466,z+.015),(.285,.012,.19),'Graphite',c,.010))
+            parts.append(box('display-glass',(.13,.474,z+.015),(.255,.008,.16),'Panel',c,.006))
+            for i,w in enumerate([.065,.10,.040]):
+                parts.append(box('display-status-line',(.09,.480,z+.056-i*.032),(w,.004,.006),'Titanium',c,.001))
+            parts.append(box('ice-indicator',(.218,.481,z-.038),(.016,.004,.007),'Ice',c,.001))
         if opened:
             hinge=Vector((.40,.38,z)); angle=-math.radians(72)
-            for obj in [door,seal,handle]:
+            for obj in parts:
                 v=obj.location-hinge; obj.location=hinge+Vector((math.cos(angle)*v.x-math.sin(angle)*v.y,math.sin(angle)*v.x+math.cos(angle)*v.y,v.z)); obj.rotation_euler.z+=angle
-    box('lower-vent',(0,.41,.09),(.62,.012,.04),'Shadow',c,.006)
+    box('lower-vent',(0,.41,.09),(.62,.012,.04),'Graphite',c,.006)
     for i in range(8): box('vent-fin',(-.27+i*.077,.421,.09),(.012,.009,.035),'Steel',c,.002)
 
 def sink(c,opened):
@@ -189,60 +224,72 @@ def sink(c,opened):
     for ring in range(3):
         for i in range(sides): faces.append((ring*sides+i,ring*sides+(i+1)%sides,(ring+1)*sides+(i+1)%sides,(ring+1)*sides+i))
     faces.append(tuple(range(3*sides,4*sides)))
-    surface('deep-ceramic-bowl',verts,faces,'Ceramic',c,.008)
-    cylinder('drain',(0,.035,.62),(0,.035,.626),.035,'Steel',c,16)
-    points=[(0,-.29,.84),(0,-.29,.935),(0,-.26,.982),(0,-.19,.988),(0,-.12,.957),(0,-.10,.92)]
-    tube('curved-mixer',points,.016,'Steel',c)
-    cylinder('mixer-lever',(.065,-.29,.85),(.065,-.29,.94),.018,'Brass',c)
-    if opened: cylinder('water-stream',(0,-.10,.919),(0,-.10,.64),.012,'Water',c,8)
+    basin=surface('brushed-stainless-basin',verts,faces,'Steel',c,.008)
+    for poly in basin.data.polygons: poly.use_smooth=len(poly.vertices)==4
+    cylinder('drain-rim',(0,.035,.62),(0,.035,.626),.035,'EdgeSilver',c,16)
+    cylinder('drain-recess',(0,.035,.626),(0,.035,.628),.023,'Graphite',c,12)
+    points=[(0,-.29,.84),(0,-.29,1.075),(0,-.277,1.125),(0,-.245,1.156),(0,-.20,1.17),(0,-.15,1.164),(0,-.104,1.139),(0,-.073,1.095),(0,-.065,1.025)]
+    tube('proportioned-mixer',points,.015,'Steel',c)
+    cylinder('mixer-foot',(0,-.29,.843),(0,-.29,.864),.030,'EdgeSilver',c)
+    cylinder('mixer-lever',(.065,-.29,.85),(.065,-.29,.925),.012,'Titanium',c)
+    box('lever-top',(.065,-.265,.925),(.023,.075,.012),'Steel',c,.003)
+    if opened: cylinder('water-stream',(0,-.065,1.024),(0,-.065,.64),.010,'Ice',c,8)
 
 def sofa(c,variant):
-    for x in [-.36,.36]:
-        for y in [-.32,.32]: cylinder('tapered-leg',(x,y,0),(x*.97,y*.97,.16),.033,'OakDark',c)
-    box('oak-frame',(0,0,.19),(.94,.88,.14),'Oak',c,.025)
+    box('inset-floating-plinth',(0,-.02,.095),(.68,.59,.19),'Base',c,.013)
+    box('graphite-shadow-frame',(0,0,.225),(.90,.82,.095),'Graphite',c,.016)
+    box('silver-under-edge',(0,0,.265),(.88,.80,.010),'Titanium',c,.002)
     left=variant in [0,1,4]; right=variant in [0,3]
     seatwidth=.94-(.14 if left else 0)-(.14 if right else 0)
     seatx=(.07 if left else 0)-(.07 if right else 0)
-    cushion('seat',(seatx,.075,.40),(seatwidth,.70,.24),'Linen',c)
-    cushion('angled-back',(0,-.345,.72),(.94,.20,.46),'Linen',c)
-    if left: cushion('left-arm',(-.405,.025,.55),(.16,.87,.31),'Linen',c)
-    if right: cushion('right-arm',(.405,.025,.55),(.16,.87,.31),'Linen',c)
-    if variant==4: cushion('corner-back',(-.365,.02,.72),(.20,.84,.44),'Linen',c)
+    cushion('seat-under-layer',(seatx,.065,.292),(seatwidth-.012,.68,.045),'Seam',c)
+    cushion('seat',(seatx,.075,.40),(seatwidth,.70,.24),'MistCloth',c)
+    cushion('layered-back',(0,-.345,.72),(.94,.20,.46),'MistCloth',c)
+    if left: cushion('left-arm',(-.405,.025,.55),(.16,.87,.31),'MistCloth',c)
+    if right: cushion('right-arm',(.405,.025,.55),(.16,.87,.31),'MistCloth',c)
+    if variant==4: cushion('corner-back',(-.365,.02,.72),(.20,.84,.44),'MistCloth',c)
     if variant in [0,1,3,4]:
-        pillow=cushion('sage-pillow',(seatx,-.17,.66),(.30,.15,.30),'Sage',c)
+        pillow=cushion('space-blue-pillow',(seatx,-.17,.66),(.30,.15,.30),'SpaceBlue',c)
         pillow.rotation_euler.y=math.radians(12)
 
 def table(c):
-    box('soft-oak-tabletop',(0,0,.41),(.88,.79,.075),'Oak',c,.055)
+    box('thin-smoked-glass-top',(0,0,.42),(.88,.79,.054),'Glass',c,.018)
+    box('polished-glass-edge',(0,0,.395),(.868,.778,.009),'SpaceBlue',c,.002)
+    box('titanium-underframe',(0,0,.378),(.79,.70,.022),'Titanium',c,.005)
     for x in [-.31,.31]:
-        for y in [-.26,.26]: cylinder('splayed-leg',(x*1.06,y*1.06,.015),(x*.91,y*.91,.38),.039,'OakDark',c)
-    box('lower-shelf',(0,0,.17),(.64,.52,.025),'Oak',c,.014)
-    box('linen-book',(0,-.02,.463),(.22,.17,.025),'Sage',c,.005)
-    box('book-pages',(0,-.02,.475),(.20,.155,.014),'Paper',c,.002)
-    cylinder('ceramic-cup',(.23,.12,.455),(.23,.12,.53),.041,'Ceramic',c,16)
-    cylinder('tea-surface',(.23,.12,.531),(.23,.12,.533),.033,'OakDark',c,16)
+        for y in [-.26,.26]:
+            cylinder('slim-titanium-leg',(x*1.06,y*1.06,.015),(x*.97,y*.97,.378),.026,'Titanium',c)
+            cylinder('graphite-foot',(x*1.06,y*1.06,.006),(x*1.06,y*1.06,.022),.027,'Graphite',c)
+    for x in [-.31,.31]: box('lower-stretcher',(x,0,.10),(.018,.54,.020),'Titanium',c,.004)
+    box('slim-tablet',(0,-.02,.458),(.22,.17,.014),'Graphite',c,.004)
+    box('tablet-screen',(0,-.02,.466),(.197,.147,.004),'Panel',c,.001)
+    box('tablet-status',(.065,-.06,.469),(.023,.004,.002),'Ice',c,0)
+    cylinder('porcelain-cup',(.23,.12,.45),(.23,.12,.525),.041,'Porcelain',c,16)
+    cylinder('cup-interior',(.23,.12,.526),(.23,.12,.529),.033,'Graphite',c,16)
 
 def curtain(c,opened):
-    cylinder('curtain-rod',(-.48,-.38,1.92),(.48,-.38,1.92),.015,'Brass',c,16)
+    box('minimal-track',(0,-.38,1.92),(.96,.055,.038),'Titanium',c,.008)
+    box('track-shadow-slot',(0,-.348,1.91),(.91,.009,.012),'Graphite',c,.002)
     for side in [-1,1]:
-        cylinder('rod-support',(side*.42,-.46,1.92),(side*.42,-.37,1.92),.018,'OakDark',c)
+        box('track-wall-mount',(side*.42,-.43,1.92),(.045,.09,.035),'Graphite',c,.006)
         center=side*(.37 if opened else .23); width=.20 if opened else .46
         for panel in [0,1]:
             z0=.06 if panel==0 else 1.75; height=1.74 if panel==0 else .055
-            verts=[]; faces=[]; steps=32
-            for row in range(3):
-                z=z0+height*row/2
+            verts=[]; faces=[]; steps=30
+            for row in range(4):
+                z=z0+height*row/3
                 for j in range(steps+1):
                     t=j/steps; x=center+(t-.5)*width
-                    y=-.35+.038*math.cos(t*math.tau*5)+.004*math.sin(row*2+t*8)
+                    y=-.35+(.031 if opened else .038)*math.cos(t*math.tau*5)+.003*math.sin(t*math.pi)*math.sin(row*1.1)
                     verts.append((x,y,z))
-            for row in range(2):
+            for row in range(3):
                 for j in range(steps):
                     a=row*(steps+1)+j; faces.append((a,a+1,a+steps+2,a+steps+1))
-            surface('pleated-fabric' if panel==0 else 'woven-header',verts,faces,'Sage' if panel==0 else 'Linen',c,.005)
+            fabric=surface('silver-pleated-fabric' if panel==0 else 'woven-header',verts,faces,'Curtain' if panel==0 else 'MistCloth',c,.005)
+            for poly in fabric.data.polygons: poly.use_smooth=True
         for j in range(5):
             x=center+(j/4-.5)*width*.88
-            tube('curtain-loop',[(x,-.36,1.79),(x,-.39,1.92),(x,-.35,1.945),(x,-.32,1.81)],.009,'Linen',c)
+            box('hidden-track-glider',(x,-.36,1.855),(.018,.020,.086),'Titanium',c,.004)
 
 def export(c,name):
     ns='http://www.collada.org/2005/11/COLLADASchema'; ET.register_namespace('',ns)
@@ -274,7 +321,8 @@ def export(c,name):
         for semantic,source,offset in [('VERTEX','v',0),('NORMAL','n',1),('TEXCOORD','uv',2)]: e(tris,'input',{'semantic':semantic,'source':'#'+ident+source,'offset':str(offset)})
         e(tris,'p',text=' '.join(str(i) for j in range(count) for i in (j,j,j))); e(node,'instance_geometry',{'url':'#'+ident,'name':obj.name})
     e(e(root,'scene'),'instance_visual_scene',{'url':'#Scene'})
-    path=ASSETS/'Models'/f'{name}.dae'; ET.ElementTree(root).write(path,encoding='utf-8',xml_declaration=True)
+    path=ASSETS/'Models'/f'{name}.dae'; pending=path.with_suffix('.dae.pending')
+    pending.write_bytes(ET.tostring(root,encoding='utf-8',xml_declaration=True)); pending.replace(path)
     report={'name':name,'triangles':triangles,'meshes':len(c.objects),'bounds':[[min(v[i] for v in bounds) for i in range(3)],[max(v[i] for v in bounds) for i in range(3)]],'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
     (OUTPUT/(name+'.json')).write_text(json.dumps(report,indent=2),encoding='utf-8')
     return report
@@ -336,12 +384,17 @@ def save():
                 area.spaces.active.shading.type='MATERIAL'; area.spaces.active.shading.use_scene_world=False
                 area.spaces.active.region_3d.view_location=(0,0,.7); area.spaces.active.region_3d.view_distance=14
     bpy.data.images['HomeFurniture'].pack()
-    bpy.ops.wm.save_as_mainfile(filepath=str(OUTPUT/'CozyFurniture.blend'))
+    bpy.ops.wm.save_as_mainfile(filepath=str(OUTPUT/'ModernFurnitureV2.blend'))
     for name,location in original.items(): bpy.data.objects[name].location=location
     if camera: camera.matrix_world=old_camera; camera.data.ortho_scale=old_scale
     bpy.context.view_layer.update()
     reports=[json.loads((OUTPUT/(n+'.json')).read_text()) for n in NAMES]
-    manifest={'author':'Original project geometry and procedural textures','blender':bpy.app.version_string,'generatorSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'models':reports,'textureSha256':hashlib.sha256((ASSETS/'Textures/HomeFurniture.png').read_bytes()).hexdigest()}
+    manifest={'artRevision':'Modern smart home V2','status':'待验证','author':'Original project geometry and procedural textures','blender':bpy.app.version_string,'generatorSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'models':reports,'textureSha256':hashlib.sha256((ASSETS/'Textures/HomeFurniture.png').read_bytes()).hexdigest(),'note':'Export bookkeeping only. V2 target Engine import, build, automated tests and game/device execution were not run.'}
     target=ROOT/'docs/assets/home-furniture'; target.mkdir(parents=True,exist_ok=True)
     (target/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
+    regions=[]
+    for i,(role,color,kind) in enumerate(PALETTE):
+        col=i%4; row=i//4; u0=(col+.04)/4; u1=(col+.96)/4; v0=(row+.04)/4; v1=(row+.96)/4
+        regions.append({'role':role,'srgb':color,'kind':kind,'blenderUV':[u0,v0,u1,v1],'engineUV':[u0,1-v1,u1,1-v0]})
+    (target/'atlas_regions.json').write_text(json.dumps({'artRevision':'V2','asset':'Assets/Textures/HomeFurniture.png','size':[512,512],'opaque':True,'sha256':manifest['textureSha256'],'regions':regions},indent=2),encoding='utf-8')
     return manifest

@@ -5,10 +5,16 @@ from PIL import Image
 ROOT=Path(__file__).resolve().parents[1]
 manifest=json.loads((ROOT/'docs/assets/home-furniture/manifest.json').read_text(encoding='utf-8'))
 assert hashlib.sha256((ROOT/'scripts/New-HomeFurnitureAssets.py').read_bytes()).hexdigest()==manifest['generatorSha256'], 'Authoring script fingerprint changed; regenerate/save the manifest.'
+extension=json.loads((ROOT/'docs/assets/home-extension/manifest.json').read_text(encoding='utf-8'))
+assert hashlib.sha256((ROOT/'scripts/New-HomeExtensionAssets.py').read_bytes()).hexdigest()==extension['generatorSha256'], 'Extension authoring fingerprint changed; regenerate/save.'
+assert extension['baseGeneratorSha256']==manifest['generatorSha256']
+assert extension['textureSha256']==manifest['textureSha256'], 'Both collections must use the same atlas bytes.'
 ns={'c':'http://www.collada.org/2005/11/COLLADASchema'}
 assert len(manifest['models'])==16
+assert len(extension['models'])==8
+entries=manifest['models']+extension['models']
 triangles=0
-for entry in manifest['models']:
+for entry in entries:
     path=ROOT/'src/SCIEPort/Assets/Models'/ (entry['name']+'.dae')
     assert hashlib.sha256(path.read_bytes()).hexdigest()==entry['sha256'],path
     root=ET.parse(path).getroot()
@@ -51,4 +57,4 @@ texture=ROOT/'src/SCIEPort/Assets/Textures/HomeFurniture.png'
 assert hashlib.sha256(texture.read_bytes()).hexdigest()==manifest['textureSha256']
 with Image.open(texture) as image:
     assert image.size==(512,512) and image.convert('RGBA').getextrema()[3]==(255,255)
-print(f'Home COLLADA, independent indices, finite/nondegenerate geometry, per-part atlas UV and opaque PNG: 16 models / {triangles} triangles passed.')
+print(f'Home COLLADA, independent indices, finite/nondegenerate geometry, per-part atlas UV and opaque PNG: {len(entries)} models / {triangles} triangles passed.')

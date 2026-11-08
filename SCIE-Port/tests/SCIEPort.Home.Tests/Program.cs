@@ -31,6 +31,21 @@ internal static class Program
             Check(variants.Count == HomeRules.VariantCount(id), "creative/drop variant closure");
         }
         Check(models.Count == 16, "all sixteen runtime mesh variants are addressable");
+        foreach (int id in new[] { HomeRules.Fireplace, HomeRules.Dining, HomeRules.Bed, HomeRules.Nightstand, HomeRules.WallArt })
+        {
+            Check(HomeRules.IsHome(id), "extension root participates in furniture lifecycle");
+            for (int data = 0; data < 256; data++)
+            {
+                int clean = HomeRules.Normalize(id, data);
+                Check(HomeRules.Normalize(id, clean) == clean, "extension DATA normalization is idempotent");
+                Check(HomeRules.ItemData(id, data) == (HomeRules.Variant(clean) << 3), "extension drops preserve art variant only");
+                models.Add(HomeRules.Model(id, clean));
+            }
+        }
+        Check(models.Count == 24, "all original and extension states are addressable");
+        Check(HomeRules.IsStorage(HomeRules.Nightstand) && HomeRules.UsableSlots == 8 && HomeRules.Slots == 16, "nightstand uses eight writable slots without truncating legacy persistence");
+        Check(!HomeRules.IsHome(HomeRules.DiningPart) && !HomeRules.IsHome(HomeRules.BedPart), "footprint cells are not root items");
+        Check(HomeRules.PartRootId(HomeRules.PartId(HomeRules.Bed)) == HomeRules.Bed && HomeRules.PartRootId(HomeRules.PartId(HomeRules.Dining)) == HomeRules.Dining, "new footprints have distinct stable root identities");
         Check(!HomeRules.IsStorage(HomeRules.Sink) && !HomeRules.IsStorage(HomeRules.Upper), "decorative and upper cells never create inventories");
         int cell = 0, writes = 0; Exception error;
         Func<int> read = () => cell;

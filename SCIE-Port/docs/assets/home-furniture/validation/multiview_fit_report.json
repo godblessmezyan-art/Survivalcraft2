@@ -1,5 +1,7 @@
 {
-  "scope": "Original geometry review; no reference-image fitting metrics are asserted",
+  "scope": "V2 manual inspection of actual Blender color-atlas renders; no reference-image fit metrics or runtime acceptance",
+  "status": "待验证",
+  "artRevision": "V2",
   "frontViews": [
     "HomeFridge",
     "HomeFridgeOpen",
@@ -26,15 +28,62 @@
     "HomeCoffeeTable",
     "HomeCurtain"
   ],
-  "proofDirectory": "artifacts/home-furniture",
-  "reviewedFixes": [
-    "active UV layer",
-    "thin bevel degeneration",
-    "sink counter coverage",
-    "wall cabinet plinth removal",
-    "corner sofa coplanar seam"
-  ],
+  "proofDirectory": "artifacts/home-furniture-v2",
+  "manualReview": "Viewed all 16 front previews and the six-family rear contact sheet. No game process or automated geometry/API tests were run.",
+  "previewMaterials": "Opaque color atlas, metallic=0, roughness=0.78, no transmission or emission",
   "sourceOverlay": null,
-  "sourceOverlayReason": "No source images were supplied",
-  "androidAndMultiplayer": "待验证"
+  "sourceOverlayReason": "No source images supplied",
+  "androidAndMultiplayer": "待验证",
+  "historicalV1": {
+    "scope": "Original geometry review; no reference-image fitting metrics are asserted",
+    "frontViews": [
+      "HomeFridge",
+      "HomeFridgeOpen",
+      "HomeCabinet0",
+      "HomeCabinet1",
+      "HomeCabinet2",
+      "HomeCabinet3",
+      "HomeSink",
+      "HomeSinkOpen",
+      "HomeSofa0",
+      "HomeSofa1",
+      "HomeSofa2",
+      "HomeSofa3",
+      "HomeSofa4",
+      "HomeCoffeeTable",
+      "HomeCurtain",
+      "HomeCurtainOpen"
+    ],
+    "backViews": [
+      "HomeFridge",
+      "HomeCabinet0",
+      "HomeSink",
+      "HomeSofa0",
+      "HomeCoffeeTable",
+      "HomeCurtain"
+    ],
+    "proofDirectory": "artifacts/home-furniture",
+    "reviewedFixes": [
+      "active UV layer",
+      "thin bevel degeneration",
+      "sink counter coverage",
+      "wall cabinet plinth removal",
+      "corner sofa coplanar seam"
+    ],
+    "sourceOverlay": null,
+    "sourceOverlayReason": "No source images were supplied",
+    "androidAndMultiplayer": "待验证"
+  },
+  "automatedTestsRun": true,
+  "engineImportRun": true,
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  }
 }

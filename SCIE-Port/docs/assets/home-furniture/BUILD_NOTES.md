@@ -1,4 +1,20 @@
-# Home authoring handoff
+# Home V2 authoring and 0.79.0 release handoff
+
+Latest, 2026-11-08: the later user packaging request authorized build and checks. Windows fixed-target 0.79.0 Release, native Engine import of the 16 V2 models plus eight extension models (one bone each), full existing checks, source/package bytes and 325 added native inventory/entity/save/legacy-capacity/drop/footprint fixtures passed. Home pure rules passed 494104 assertions. No game/Android/live network was run. The manifests' releaseVerification fields and ../../TEST-RESULTS.md record exact evidence; original authoring-stage notes below are historical, not the current Windows build status.
+
+## Original V2 authoring-stage record
+
+The current source assets are the modern smart-home V2 revision, not the V1 set covered by the historical notes below. User direction: glacier white #E5EAEE, titanium #A4B1BD, graphite #303943, space blue #546C80, small ice-blue #65D5EC accents. Existing DAE names and runtime C#/opaque atlas pipeline take precedence over PBR/transmission/glTF recipes in the skills. No third-party furniture assets were used.
+
+Selected backend: the same official Blender MCP 1.0.2 (`blender`) with Blender 5.1.1. A read-only query found a fresh unnamed default scene (3 objects, Collection); the task then replaced it using the dedicated authoring setup. Skill sequence: text-to-blender / harmonizer, existing coordinate/export contract, modeling, UV/texturing, materials, offline previews. No game scene or world was opened.
+
+Actual work: edited and ran `scripts/New-HomeFurnitureAssets.py` through official MCP, exported all 16 existing models and the same 512x512 opaque atlas, saved packed `artifacts/home-furniture-v2/ModernFurnitureV2.blend`, rendered all 16 front states and six rear views, inspected the two contact sheets. There are 29,244 triangles according to export bookkeeping. Preview materials deliberately use only the image color, metallic=0, roughness=.78, no emission/transmission, so they do not imply game PBR. Preview lights remain Blender-only. `Prepare-HomePreviews.py` composes the actual renders without retouching the assets.
+
+One direct XML write returned OSError 22 for HomeCabinet1.dae during export. The actual connected scene and file were inspected; export was changed to serialize into a sibling `.dae.pending` file and replace the target after writing. The model batches were then exported successfully. Atlas output follows the same pending-file pattern. This is an asset-authoring recovery, not a game import test.
+
+At the user's explicit request, no environment checker, automated tests, compiler, packager, target Engine import, game or device run was performed. Current manifest hashes are provenance/bookkeeping only; `registration_report.json` and the multiview record have current status 待验证 and retain historical V1 evidence separately. No V2 .netmod or new release hash exists. Version metadata remains 0.78.0. The old installation packages and old editable V1 scene were not overwritten. Code changes, storage capacity handling and the remaining native processing-packet boundary are documented in `../../HOME-FURNITURE-V2.md`.
+
+## Historical V1 handoff (does not validate current V2 resources)
 
 The selected backend is the official Blender MCP, source commit `dbbf836ad4b1025f14a2b3b504c43903f39e0b04`, package 1.0.2, on Blender 5.1.1. Codex's `blender` stdio entry starts an isolated background instance on 127.0.0.1:9877. The original Codex configuration was backed up locally before adding this server. Installers, tool checkout, virtual environment and backup remain outside this repository/package.
 

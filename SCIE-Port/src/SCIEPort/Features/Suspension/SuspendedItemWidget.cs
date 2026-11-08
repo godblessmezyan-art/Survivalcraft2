@@ -11,7 +11,7 @@ namespace SCIEPort.Features.Suspension
             m_chestGrid.Children.Clear();
             m_chestGrid.ColumnsCount = 1; m_chestGrid.RowsCount = 1;
             m_chestGrid.HorizontalAlignment = WidgetAlignment.Center;
-            var slot = new InventorySlotWidget(); slot.AssignInventorySlot(item, 0);
+            var slot = new InventorySlotWidget { CenterColor = new Color(48, 57, 67), BevelColor = new Color(164, 177, 189) }; slot.AssignInventorySlot(item, 0);
             m_chestGrid.Children.Add(slot); m_chestGrid.SetWidgetCell(slot, Point2.Zero);
             Rename(this);
         }

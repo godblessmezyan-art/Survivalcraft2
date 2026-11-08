@@ -1,0 +1,13 @@
+{
+  "status": "待验证",
+  "reuse": "../home-furniture/atlas_regions.json",
+  "runtimeTexture": "Assets/Textures/HomeFurniture.png",
+  "sha256": "79a20b01a0070fdb5c1f472aca33c65ff144fcbf1fef6557d98ec3c90493e6ec",
+  "size": [
+    512,
+    512
+  ],
+  "opaque": true,
+  "rewrittenThisTask": false,
+  "notes": "Existing V2 UV role tiles reused by new geometry; no extra textures or shaders."
+}

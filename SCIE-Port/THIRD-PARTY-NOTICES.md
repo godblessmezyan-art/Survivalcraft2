@@ -301,3 +301,7 @@ Four original icons generated separately with the built-in OpenAI image_gen tool
 The owner explicitly authorized integration of this repository's Celestial Codex 0.1.4 (commit 7eb3ddf) into Wilderness Explorer. The reader C# implementation, mod-owned CSV/XDB and original 32x32 book PNG are moved into SCIE-Port and compiled from source, without bundling the standalone DLL or any proprietary game/BCL content. No Digital-Study book text is distributed in the package; the client reads the public API under its existing source/size/cache rules.
 
 `Assets/Textures/CelestialCodex/Book.png` is the unchanged project-authored standard-library Python icon, reproducible with `scripts/New-CelestialCodexIcon.py`; SHA-256 `FCA8F0AFE0A4C047361C97D7EC3C409598B780A8AADA9840D480C27ECF97E37E`. This is a reading-tool icon, with no new weapon/skill imagery generated for this integration. Existing third-party notices and authorization boundaries remain in force.
+# 2026-11-08 原创现代家居扩展
+
+HomeFireplace / HomeFireplaceOn、HomeDiningSet、HomeDoubleBed、HomeNightstand、HomeWallArt0/1/2及挂画几何图案为本项目原创，通过本机Blender官方MCP与`New-HomeExtensionAssets.py`制作；复用本项目原创HomeFurniture图集，没有引入第三方家具/画作/贴图。来源及SHA256见`docs/assets/home-extension/manifest.json`，未构建/实机验证；本条不改变下方历史第三方内容的许可范围。
+

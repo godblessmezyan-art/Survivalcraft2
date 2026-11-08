@@ -1,0 +1,40 @@
+{
+  "status": "待验证",
+  "scope": "Manual art inspection of real Blender color-atlas renders, not game acceptance or reference-image fitting",
+  "frontViews": [
+    "HomeFireplace",
+    "HomeFireplaceOn",
+    "HomeDiningSet",
+    "HomeDoubleBed",
+    "HomeNightstand",
+    "HomeWallArt0",
+    "HomeWallArt1",
+    "HomeWallArt2"
+  ],
+  "backViews": [
+    "HomeFireplaceOn",
+    "HomeDiningSet",
+    "HomeDoubleBed",
+    "HomeNightstand",
+    "HomeWallArt0"
+  ],
+  "proofDirectory": "artifacts/home-extension",
+  "manualReview": "Viewed the eight-front contact sheet, five-family rear sheet and overview. Refined flame silhouettes into curved ice-blue shapes with glacier cores.",
+  "sourceOverlay": null,
+  "sourceOverlayReason": "No source image supplied",
+  "materials": "Opaque shared color atlas; metallic=0, roughness=.78, no transmission/emission",
+  "automatedTestsRun": true,
+  "engineImportRun": true,
+  "androidAndMultiplayer": "待验证",
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  },
+  "buildFix": "HomeWallArt1 valley +.09 to +.105 removes a collinear cap triangle at seven-digit DAE precision. Re-exported, rerendered and manually viewed; geometry/native import passed."
+}

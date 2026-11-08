@@ -1,0 +1,167 @@
+{
+  "status": "待验证",
+  "author": "Original project geometry and geometric artwork",
+  "artDirection": "Modern smart-home V2",
+  "blender": "5.1.1",
+  "generatorSha256": "368c41abae7a2b35f95005610a14aa935cf025cd2d6e35468956cedd560d455d",
+  "baseGeneratorSha256": "fb99d36a5dd7c3dffe895f64075aa93c00aeb88486a5c3fdfb9ed1673cc41e92",
+  "models": [
+    {
+      "name": "HomeFireplace",
+      "triangles": 1260,
+      "meshes": 21,
+      "bounds": [
+        [
+          -0.4699999988079071,
+          0.0,
+          0.0009999999310821295
+        ],
+        [
+          0.4699999988079071,
+          0.9599999785423279,
+          0.48000001907348633
+        ]
+      ],
+      "sha256": "f3b31bfd2d689b4f237a0d2cc10a3c01381af9052ff6fecc8bc1e9e92ebe02e1"
+    },
+    {
+      "name": "HomeFireplaceOn",
+      "triangles": 1808,
+      "meshes": 36,
+      "bounds": [
+        [
+          -0.4699999988079071,
+          0.0,
+          0.0009999999310821295
+        ],
+        [
+          0.4699999988079071,
+          0.9599999785423279,
+          0.48000001907348633
+        ]
+      ],
+      "sha256": "d6cf61f2a2421d0cc151cba2a8fc7e2a5ca1c53c876bada2659286b6f6588580"
+    },
+    {
+      "name": "HomeDiningSet",
+      "triangles": 2360,
+      "meshes": 36,
+      "bounds": [
+        [
+          -0.4699999988079071,
+          0.01199999451637268,
+          -0.1600000262260437
+        ],
+        [
+          1.4700000286102295,
+          0.9549999833106995,
+          1.1600000858306885
+        ]
+      ],
+      "sha256": "0ed1494da4cb223a567211e2bca4316d73fdbf5d45b56ed7386a7f61fa1d0a11"
+    },
+    {
+      "name": "HomeDoubleBed",
+      "triangles": 2008,
+      "meshes": 22,
+      "bounds": [
+        [
+          -0.4599999785423279,
+          0.03999999910593033,
+          -0.4560000002384186
+        ],
+        [
+          1.4600000381469727,
+          0.9800000190734863,
+          1.459999918937683
+        ]
+      ],
+      "sha256": "fa940ccf45ab0712c9d896ff6218a9e0e78e33bfdbd08d09657eaf469f2dec87"
+    },
+    {
+      "name": "HomeNightstand",
+      "triangles": 760,
+      "meshes": 10,
+      "bounds": [
+        [
+          -0.33000001311302185,
+          0.0,
+          -0.30799999833106995
+        ],
+        [
+          0.33000001311302185,
+          0.5999999642372131,
+          0.3700000047683716
+        ]
+      ],
+      "sha256": "df613fd2007c67083220c8da45b23ab6d9c1402120976de23a9be1c3d90edbcd"
+    },
+    {
+      "name": "HomeWallArt0",
+      "triangles": 484,
+      "meshes": 9,
+      "bounds": [
+        [
+          -0.4000000059604645,
+          0.11999999731779099,
+          0.39500001072883606
+        ],
+        [
+          0.4000000059604645,
+          0.8799999952316284,
+          0.4845000207424164
+        ]
+      ],
+      "sha256": "2391975494cab92f2eb7790412e38bfde878989ef8ce6540723edacfd755d433"
+    },
+    {
+      "name": "HomeWallArt1",
+      "triangles": 464,
+      "meshes": 10,
+      "bounds": [
+        [
+          -0.4000000059604645,
+          0.11999999731779099,
+          0.3879999816417694
+        ],
+        [
+          0.4000000059604645,
+          0.8799999952316284,
+          0.4845000207424164
+        ]
+      ],
+      "sha256": "bf76763b48d08e93a9c59a98440f59d6800f3641c572d841194eb687823b1790"
+    },
+    {
+      "name": "HomeWallArt2",
+      "triangles": 1844,
+      "meshes": 10,
+      "bounds": [
+        [
+          -0.4000000059604645,
+          0.11999999731779099,
+          0.3840000033378601
+        ],
+        [
+          0.4000000059604645,
+          0.8799999952316284,
+          0.4845000207424164
+        ]
+      ],
+      "sha256": "e4672af89dbd87b2c7788eb9748356a798fef32c237bbcff536bb82a9e5dfe73"
+    }
+  ],
+  "texture": "Assets/Textures/HomeFurniture.png",
+  "textureSha256": "79a20b01a0070fdb5c1f472aca33c65ff144fcbf1fef6557d98ec3c90493e6ec",
+  "nativeBuildAndGameValidation": "Windows 0.79.0 Release, native Engine import and isolated fixtures passed; no game, Android or live multiplayer run.",
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  }
+}

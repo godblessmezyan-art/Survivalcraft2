@@ -1,0 +1,66 @@
+{
+  "status": "已确认",
+  "scope": "Fixed Windows Net_x25.01.17 native Engine import and source/package bookkeeping; no Android or gameplay proof",
+  "units": "one game cell = one authoring meter",
+  "blenderAxis": "Z_UP",
+  "engineAxis": "Y_UP",
+  "transform": [
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ],
+    [
+      0,
+      -1,
+      0
+    ]
+  ],
+  "engineFront": "-Z",
+  "sceneNodesPerModel": 1,
+  "actualImportedBonesPerModel": 1,
+  "models": 8,
+  "exportTriangles": 10988,
+  "rootIds": [
+    964,
+    965,
+    966,
+    967,
+    968
+  ],
+  "hiddenIds": [
+    969,
+    970
+  ],
+  "existingProtocolId": 239,
+  "existingUncompressedPayloadBytes": 17,
+  "nativeMetadata": {
+    "target": "Net_x25.01.17 Windows",
+    "exeSha256": "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
+    "nativeBlockIndexConstantsRead": 260,
+    "nativeEntriesIn964to970": [],
+    "membersRead": [
+      "Block.SleepSuitability : Single",
+      "ComponentSleep.CanSleep(out string) : bool",
+      "ComponentSleep.Sleep(bool)",
+      "ComponentSleepPackage(ComponentSleep, EventType, bool, bool, string)"
+    ],
+    "evidenceDirectory": "artifacts/home-extension-abi",
+    "runtimeExecution": false
+  },
+  "releaseVerification": {
+    "version": "0.79.0",
+    "windows": "已确认",
+    "androidAndLiveMultiplayer": "待验证",
+    "packageSha256": "0EB07B82270328176EAE2F131036D39497074F53516A9391BA3872F7E4613170",
+    "assemblyMvid": "ce3d3cd2-045a-4be7-9496-baabc5e0f193",
+    "homeRuleAssertions": 494104,
+    "nativeFixtureAssertions": 325,
+    "testResults": "../../TEST-RESULTS.md"
+  }
+}

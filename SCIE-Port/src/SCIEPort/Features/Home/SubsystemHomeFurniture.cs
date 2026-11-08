@@ -9,8 +9,8 @@ using TemplatesDatabase;
 
 namespace SCIEPort.Features.Home
 {
-    /// <summary>Host-owned two-cell occupancy, native storage and bounded interaction requests.</summary>
-    public sealed class SubsystemHomeFurniture : SubsystemChestBlockBehavior, IUpdateable
+    /// <summary>Host-owned bounded multi-cell occupancy, native storage and interaction requests.</summary>
+    public sealed partial class SubsystemHomeFurniture : SubsystemChestBlockBehavior, IUpdateable
     {
         private readonly Queue<Point3> added = new Queue<Point3>();
         private readonly HashSet<Point3> waiting = new HashSet<Point3>();
@@ -22,7 +22,8 @@ namespace SCIEPort.Features.Home
         private bool placementHalted;
         private struct Request { internal ComponentPlayer Player; internal Point3 Point; internal int Expected; internal byte Action; internal Client Reply; }
         /// <inheritdoc/>
-        public override int[] HandledBlocks => new[] { HomeRules.Fridge, HomeRules.Cabinet, HomeRules.Sink, HomeRules.Sofa, HomeRules.Table, HomeRules.Curtain, HomeRules.Upper };
+        public override int[] HandledBlocks => new[] { HomeRules.Fridge, HomeRules.Cabinet, HomeRules.Sink, HomeRules.Sofa, HomeRules.Table, HomeRules.Curtain, HomeRules.Upper,
+            HomeRules.Fireplace, HomeRules.Dining, HomeRules.Bed, HomeRules.Nightstand, HomeRules.WallArt, HomeRules.DiningPart, HomeRules.BedPart };
         /// <inheritdoc/>
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
         internal bool MayPlace => !placementHalted && added.Count < 128;
@@ -67,6 +68,13 @@ namespace SCIEPort.Features.Home
             if (!Ready(p)) return;
             int value = Value(p), id = Terrain.ExtractContents(value);
             if (!HomeRules.IsHome(id)) return; // Placement was cancelled/removed before this batch.
+            if (HomeRules.HasFootprint(id)) { InitializeFootprint(p, value, miner); return; }
+            if (id == HomeRules.WallArt)
+            {
+                bool supported;
+                if (!HomeExtensionGeometry.TryWall(SubsystemTerrain, p, HomeRules.Rotation(Terrain.ExtractData(value)), out supported)) return;
+                if (!supported) { RemoveRoot(p, miner); return; }
+            }
             if (HomeRules.IsTall(id))
             {
                 Point3 top = new Point3(p.X, p.Y + 1, p.Z);
@@ -128,6 +136,8 @@ namespace SCIEPort.Features.Home
             }
             if (HomeRules.IsStorage(id) && m_subsystemBlockEntities.GetBlockEntity(x, y, z)?.Entity.FindComponent<ComponentHomeStorage>(false) != null)
                 base.OnBlockRemoved(value, newValue, x, y, z);
+            if (HomeRules.IsFootprintPart(id)) { RemoveFootprintRootFromPart(p, value); return; }
+            if (HomeRules.HasFootprint(id)) RemoveFootprintParts(p, value);
             if (id == HomeRules.Upper)
             {
                 Point3 lower = new Point3(x, y - 1, z);
@@ -149,6 +159,13 @@ namespace SCIEPort.Features.Home
         {
             if (CommonLib.WorkType == WorkType.Client) return;
             Point3 p = new Point3(x, y, z); int value = Value(p), id = Terrain.ExtractContents(value);
+            if (HomeRules.HasFootprint(id)) { CheckFootprint(p, value); return; }
+            if (id == HomeRules.WallArt)
+            {
+                bool supported;
+                if (!waiting.Contains(p) && HomeExtensionGeometry.TryWall(SubsystemTerrain, p, HomeRules.Rotation(Terrain.ExtractData(value)), out supported) && !supported) RemoveRoot(p, null);
+                return;
+            }
             if (!HomeRules.IsTall(id) || waiting.Contains(p)) return;
             Point3 top = new Point3(x, y + 1, z);
             if (Ready(top) && (Terrain.ExtractContents(Value(top)) != HomeRules.Upper || HomeRules.LowerId(Terrain.ExtractData(Value(top))) != id)) RemoveRoot(p, null);
@@ -158,11 +175,16 @@ namespace SCIEPort.Features.Home
         {
             Point3 p = hit.CellFace.Point;
             int value = Value(p), id = Terrain.ExtractContents(value);
+            if (HomeRules.IsFootprintPart(id))
+            {
+                if (!TryFootprintRoot(p, value, out p)) return false;
+                value = Value(p); id = Terrain.ExtractContents(value);
+            }
             bool upper = id == HomeRules.Upper;
             if (upper) { p.Y--; value = Value(p); id = Terrain.ExtractContents(value); }
             if (!HomeRules.IsHome(id) || miner?.ComponentPlayer == null) return false;
             byte action = HomeRules.IsStorage(id) && !(id == HomeRules.Fridge && upper) ? (byte)1 : (byte)0;
-            if (action == 0 && id != HomeRules.Curtain && id != HomeRules.Sink && id != HomeRules.Fridge) return false;
+            if (action == 0 && !HomeRules.IsSwitchable(id) && id != HomeRules.Bed) return false;
             int expected = Terrain.MakeBlockValue(id, 0, Terrain.ExtractData(value));
             if (CommonLib.WorkType == WorkType.Client)
             {
@@ -180,7 +202,7 @@ namespace SCIEPort.Features.Home
             ComponentPlayer player = request.Player; Point3 p = request.Point; int expected = request.Expected;
             if (player == null || !player.IsAddedToProject || !Ready(p)) return;
             int value = Value(p), id = Terrain.ExtractContents(value), data = Terrain.ExtractData(value);
-            if (request.Action == 1 ? !HomeRules.IsStorage(id) : id != HomeRules.Fridge && id != HomeRules.Sink && id != HomeRules.Curtain) return;
+            if (request.Action == 1 ? !HomeRules.IsStorage(id) : !HomeRules.IsSwitchable(id) && id != HomeRules.Bed) return;
             if (Terrain.MakeBlockValue(id, 0, data) != expected || Vector3.DistanceSquared(player.ComponentBody.Position, new Vector3(p.X + .5f, p.Y, p.Z + .5f)) > 36) return;
             double last; if (lastRequest.TryGetValue(player.Entity.EntityId, out last) && clock.GameTime - last < .25) return;
             var eye = player.ComponentCreatureModel;
@@ -188,7 +210,7 @@ namespace SCIEPort.Features.Home
             if (direction.LengthSquared() < .001f) return;
             var ray = new Ray3(eye.EyePosition, Vector3.Normalize(direction));
             TerrainRaycastResult? sight = player.ComponentMiner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Interaction);
-            if (!sight.HasValue || sight.Value.CellFace.X != p.X || sight.Value.CellFace.Z != p.Z || (sight.Value.CellFace.Y != p.Y && sight.Value.CellFace.Y != p.Y + 1)) return;
+            if (!sight.HasValue || !InteractionBelongsTo(p, id, sight.Value.CellFace.Point)) return;
             Territoriy region;
             if (SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(p.X, p.Z, out region)
                 && (!region.AllowBlockBehavior || region.IsVisible && SubsystemBedrockBlockBehavior.IsInTerritoriyBorder(region, p.X, p.Z))
@@ -205,6 +227,7 @@ namespace SCIEPort.Features.Home
                 else if (player.PlayerData.IsMainPlayer) player.ComponentGui.ModalPanelWidget = new HomeStorageWidget(player.ComponentMiner.Inventory, inventory);
                 return;
             }
+            if (id == HomeRules.Bed) { TrySleep(player, p, data, request.Reply); return; }
             if (id == HomeRules.Fridge && !HomeRules.IsOpen(data))
             {
                 Point3 forward = new[] { new Point3(0, 0, -1), new Point3(-1, 0, 0), new Point3(0, 0, 1), new Point3(1, 0, 0) }[HomeRules.Rotation(data)];
@@ -230,31 +253,6 @@ namespace SCIEPort.Features.Home
                 gui.ModalPanelWidget = new HomeStorageWidget(gui.m_componentPlayer.ComponentMiner.Inventory, (ComponentHomeStorage)chest.m_componentChest);
         }
         /// <inheritdoc/>
-        public override void Dispose() { lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); base.Dispose(); }
-    }
-    /// <summary>Native SCNET container persistence and slot synchronization.</summary>
-    public sealed class ComponentHomeStorage : ComponentChest { }
-    internal sealed class HomeStorageWidget : ChestWidget
-    {
-        internal HomeStorageWidget(IInventory inventory, ComponentHomeStorage storage) : base(inventory, storage)
-        {
-            m_chestGrid.Children.Clear(); m_chestGrid.ColumnsCount = 4; m_chestGrid.RowsCount = 4;
-            for (int i = 0; i < HomeRules.Slots; i++)
-            {
-                var slot = new InventorySlotWidget(); slot.AssignInventorySlot(storage, i);
-                m_chestGrid.Children.Add(slot); m_chestGrid.SetWidgetCell(slot, new Point2(i % 4, i / 4));
-            }
-            var block = storage.Entity.FindComponent<ComponentBlockEntity>(true);
-            var terrain = storage.Project.FindSubsystem<SubsystemTerrain>(true); Point3 p = block.Coordinates;
-            int value = terrain.Terrain.GetCellValue(p.X, p.Y, p.Z);
-            Rename(this, BlocksManager.Blocks[Terrain.ExtractContents(value)].GetDisplayName(terrain, value));
-        }
-        private static bool Rename(Widget widget, string name)
-        {
-            var label = widget as LabelWidget; if (label != null) { label.Text = name; return true; }
-            var parent = widget as ContainerWidget;
-            if (parent != null) foreach (Widget child in parent.Children) if (Rename(child, name)) return true;
-            return false;
-        }
+        public override void Dispose() { lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); footprintBusy.Clear(); base.Dispose(); }
     }
 }

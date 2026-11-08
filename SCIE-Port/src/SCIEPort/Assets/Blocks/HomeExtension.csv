@@ -1,0 +1,8 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;IsCollidable;IsPlaceable;IsPlacementTransparent;IsTransparent;LightAttenuation;DefaultShadowStrength;DefaultIsInteractive;IsGatherable;MaxStacking;DefaultDropContent;DefaultDescription;SleepSuitability
+HomeFireplaceBlock;壁炉;SCIEPort.Home;SCIEPortHomeFurniture;964;0;1;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;964;;0
+HomeDiningSetBlock;双人餐桌;SCIEPort.Home;SCIEPortHomeFurniture;965;0;0.6;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;965;;0
+HomeDoubleBedBlock;双人床;SCIEPort.Home;SCIEPortHomeFurniture;966;0;0.6;TRUE;TRUE;FALSE;TRUE;1;4;TRUE;TRUE;40;966;;1
+HomeNightstandBlock;床头柜;SCIEPort.Home;SCIEPortHomeFurniture;967;0;1.2;TRUE;TRUE;FALSE;TRUE;1;4;TRUE;TRUE;40;967;;0
+HomeWallArtBlock;挂画;SCIEPort.Home;SCIEPortHomeFurniture;968;0;1.1;FALSE;TRUE;FALSE;TRUE;0;0;FALSE;TRUE;40;968;;0
+HomeDiningPartBlock;双人餐桌;SCIEPort.Home;SCIEPortHomeFurniture;969;-1;1;TRUE;FALSE;FALSE;TRUE;0;0;FALSE;FALSE;0;0;;0
+HomeBedPartBlock;双人床;SCIEPort.Home;SCIEPortHomeFurniture;970;-1;1;TRUE;FALSE;FALSE;TRUE;0;0;TRUE;FALSE;0;0;;1

@@ -31,16 +31,17 @@ namespace SCIEPort.Features.Suspension
                 float a = i * MathUtils.PI / 2, b = (i + 1) * MathUtils.PI / 2;
                 var p = new Vector3(MathUtils.Cos(a) * .11f, 0, MathUtils.Sin(a) * .11f);
                 var q = new Vector3(MathUtils.Cos(b) * .11f, 0, MathUtils.Sin(b) * .11f);
-                Triangle(mesh, top, p, q, new Color(186, 227, 255));
-                Triangle(mesh, bottom, q, p, new Color(122, 173, 216));
+                Triangle(mesh, top, p, q, new Color(229, 234, 238));
+                Triangle(mesh, bottom, q, p, new Color(84, 108, 128));
             }
             for (int i = 0; i < 32; i++)
             {
                 float a = i * MathUtils.PI / 16, b = (i + 1) * MathUtils.PI / 16;
                 var p = new Vector3(MathUtils.Cos(a), MathUtils.Sin(a) * .18f, MathUtils.Sin(a));
                 var q = new Vector3(MathUtils.Cos(b), MathUtils.Sin(b) * .18f, MathUtils.Sin(b));
-                Triangle(mesh, p * .29f, q * .29f, q * .31f, new Color(227, 192, 112));
-                Triangle(mesh, p * .29f, q * .31f, p * .31f, new Color(227, 192, 112));
+                Color ring = i % 8 == 0 ? new Color(101, 213, 236) : new Color(164, 177, 189);
+                Triangle(mesh, p * .29f, q * .29f, q * .31f, ring);
+                Triangle(mesh, p * .29f, q * .31f, p * .31f, ring);
             }
         }
         private static void Triangle(BlockMesh mesh, Vector3 a, Vector3 b, Vector3 c, Color color)
