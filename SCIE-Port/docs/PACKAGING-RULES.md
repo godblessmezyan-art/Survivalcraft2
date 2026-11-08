@@ -1,5 +1,7 @@
 # `.netmod` 品牌与打包契约
 
+> **2026-11-08 最新发布覆盖规则：**用户要求自动 Release 不运行测试或包校验，改用 `scripts/Build-WildernessExplorerFast.ps1` 和 `scripts/Publish-WildernessExplorerRelease.ps1`。下文的完整打包验证只用于历史/手动的 `Build-NetMod.ps1`，不阻塞快速发布。快建可能跳过历史资源转换，且不证明 Android/联机兼容。详见根 `docs/NETMOD-RELEASE.md`。
+
 > **最新统一发布目标（2026-11-08）**：「荒野探险家」与「云天书典」未来合为**一个 .netmod**，保持原 SCIEPort 稳定内部身份、兼容性与物品映射。以下历史约束仍适用于当前荒野探险家现有包；**目前尚未实际整合书典源码、资源及注册**，旧单包规则不等于已经满足新统一产品要求。正式整合时，须验证 956/DATA0、CSV/XDB/GUID、模组加载和 Android/SCNET；统一发布规则见仓库 `docs/UNIFIED-MOD-POLICY.md`。
 
 2026-11-06 / 0.78.0 PixelFX：包内沿用`Assets/Textures/PixelFxStormhammer.png`（现为1024×2048、186帧）与同名JSON及`PixelFX-LICENSE.txt`，支持多神器共用，条目路径集合保持。`Test-PixelFx.ps1`在构建前/编译后/打包后验证native RGBA、JSON/C#表与包字节、原帧保留/来源许可；禁止离线JS/工具/源码进入运行包。外部中文包名、内部SCIEPort身份和原3D资源保持。

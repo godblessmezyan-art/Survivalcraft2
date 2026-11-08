@@ -1,11 +1,10 @@
-name: Wilderness Explorer - verified installable netmod Release
+name: Wilderness Explorer - fast netmod Release
 
 on:
   push:
     branches: [main]
     paths:
       - 'SCIE-Port/src/SCIEPort/modinfo.json'
-      - 'docs/UNIFIED-RELEASE-READY'
   workflow_dispatch:
 
 permissions:
@@ -16,53 +15,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  gate:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    outputs:
-      ready: ${{ steps.check.outputs.ready }}
-    steps:
-      - name: Checkout exact main revision
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Only proceed for verified unified packaging
-        id: check
-        shell: bash
-        run: |
-          if [ -f docs/UNIFIED-RELEASE-READY ] && grep -qx 'ready=1' docs/UNIFIED-RELEASE-READY; then
-            echo 'ready=true' >> "$GITHUB_OUTPUT"
-          else
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo 'No verified unified packaging gate; skipping release rather than publishing a source-only zip.'
-          fi
-
   build-and-publish:
-    needs: gate
-    if: needs.gate.outputs.ready == 'true'
-    # A trusted Windows runner must have legally obtained SCNET x25.01.17 binaries
-    # installed outside the repository and the scnet-x25 label configured.
-    # GitHub-hosted runners DO NOT have proprietary game assemblies.
+    if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, windows, scnet-x25]
     timeout-minutes: 120
     permissions:
       contents: write
     steps:
-      - name: Checkout exact release source
+      - name: Checkout main
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Compile, verify and attach the real .netmod to GitHub Release
+      - name: Build .netmod and upload Release (no tests or package audit)
         shell: powershell
         env:
           GH_TOKEN: ${{ github.token }}
           SCNET_GAME_DIR: ${{ vars.SCNET_GAME_DIR }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:SCNET_GAME_DIR)) {
-            throw 'Configure repository variable SCNET_GAME_DIR with the runner-local SCNET x25.01.17 path.'
+            throw 'Set repository Actions variable SCNET_GAME_DIR to runner-local game directory.'
           }
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-WildernessExplorerRelease.ps1 -GameDir $env:SCNET_GAME_DIR
-          if ($LASTEXITCODE -ne 0) { throw 'Release build or .netmod asset upload failed.' }
+          if ($LASTEXITCODE -ne 0) { throw 'Fast release failed.' }

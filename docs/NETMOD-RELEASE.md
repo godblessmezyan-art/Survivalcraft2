@@ -1,40 +1,26 @@
-# 直接发布可安装 .netmod：环境配置与安全边界
+# 快速自动发布 .netmod（无测试、无安装包校验）
 
-本文件说明用户希望 GitHub Release 的 Assets 中直接提供 `荒野探险家-X.Y.Z.netmod`，而非仅源码 ZIP。GitHub 固有的 Source code (zip/tar.gz) 链接无法当作游戏安装包。
+最新约定：GitHub Release 必须在 Assets 提供可下载的 `.netmod`，而不是只有源码 ZIP。发布过程只要求成功编译并生成文件；**不执行测试套件、压缩包结构检查或 SHA-256 比对。**
 
-## 当前情况
+## 自动化流程
 
-- `celestial-codex-v0.2.0` 是历史源码预发布，没有可安装 `.netmod`。
-- 当前 `SCIE-Port/` 与 `src/CelestialCodex/` 仍没有真正整合成单一 DLL/包，**不能发布一个声称包含阅读功能的荒野探险家包**。
-- 本仓库 `.github/workflows/release-wilderness-explorer.yml` 现已配置为“先编译、后发布”；缺少集成就直接跳过，不再创建只有 ZIP 的新 Release。
+1. 更新 `main` 分支中的 `SCIE-Port/src/SCIEPort/modinfo.json` 版本号（并同步 csproj），或者从 Actions 手动运行工作流。
+2. GitHub Actions 通过 Windows 自托管 Runner 调用 `scripts/Publish-WildernessExplorerRelease.ps1`。
+3. 它调用 `scripts/Build-WildernessExplorerFast.ps1`，使用 `dotnet build -c Release` 编译 `SCIEPort.dll`，随后将 DLL、`modinfo.json`、第三方署名与 Assets 打包成 `荒野探险家-X.Y.Z.netmod`。
+4. 构建成功后使用 `gh release create` 直接上传 `.netmod`。不运行旧版 `Build-NetMod.ps1` 的完整测试和资源审计；也不再需要 `docs/UNIFIED-RELEASE-READY` 标志。
+5. 任何编译失败或未能产出实际 `.netmod` 都不创建 Release。历史版本不覆盖，新版本使用 `wilderness-explorer-vX.Y.Z`。
 
-## 自动生成 .netmod 的前提
+## Windows 构建机要求
 
-1. 完成两个功能模块的单包集成，确认阅读功能与原荒野探险家在同一 `SCIEPort.dll` 中，资源/物品 ID/存档兼容与测试均有记录。
-2. 真正通过 Windows/net472、SCNET x25.01.17 精确程序集验证及相关测试，然后创建 `docs/UNIFIED-RELEASE-READY`，文件唯一内容为 `ready=1`（末尾换行可选）。禁止为了触发 Release 而未经验证添加这个标志。
-3. GitHub 仓库 Settings → Actions → Runners 配置一台**受信任的 Windows 自托管 Runner**，标签包括 `self-hosted`、`windows`、`scnet-x25`。游戏程序集保存在这台电脑的**私有本地路径**，不可上传 GitHub 仓库、Actions artifact、Release 或日志。
-4. GitHub 仓库 Settings → Secrets and variables → Actions → Variables 中添加 `SCNET_GAME_DIR`，其值为 Runner 上实际的游戏目录，例如 `D:\Games\SCNET-x25.01.17`。这是该机器路径，不是云端游戏安装下载地址。
-5. Runner 安装 Windows PowerShell 5.1、.NET 构建工具、Python 和 GitHub CLI `gh`，并满足 `SCIE-Port/scripts/Build-NetMod.ps1` 已有全部工具及资源依赖。不要给外部不可信 PR 或工作流在此 Runner 上执行的权限。
+- GitHub 仓库 Settings → Actions → Runners 添加受信任 Windows 自托管 Runner，标签为 `self-hosted`、`windows`、`scnet-x25`。
+- 在 Settings → Secrets and variables → Actions → Variables 添加 `SCNET_GAME_DIR`，填写构建机本地 SCNET x25.01.17 程序集目录。
+- 构建机安装 Windows PowerShell 5.1、.NET SDK、GitHub CLI `gh`，并由 GitHub Actions 使用 `GH_TOKEN`。游戏 DLL 不得上传公开仓库或 Release。
 
-## 触发与交付
+## 交付状态与风险
 
-- 统一产品版本升级：更新 `SCIE-Port/src/SCIEPort/modinfo.json` 和 `SCIEPort.csproj` 中全部版本字段，直接提交到 `main`。只有集成标记存在才会执行 Windows 自托管构建。
-- 真实构建执行 `scripts/Publish-WildernessExplorerRelease.ps1`：它先调用既有 SCIEPort 构建/测试脚本，然后核验版本号、唯一 modinfo、唯一正式 DLL 身份、核心书典类型、阅读资源与 SHA-256。检查失败就不发布。
-- 成功后自动创建 `wilderness-explorer-vX.Y.Z`，Assets 包含 `荒野探险家-X.Y.Z.netmod` 和对应 `.sha256`。发布初始状态为 prerelease，直到 Android 和联机实际测试通过。
-- 发布文件与源码 tag 均不可悄悄重写：旧版本 Release/asset 如果已存在，工具报错，应该递增新版本。
+- Release 默认是 **未经测试的 prerelease**。跳过测试和校验可能出现导入失败、贴图/模型异常或 Android 启动问题；不保证游戏内可运行。
+- 当前云天书典源码与 SCIEPort 尚未真正合包，因此这个快速构建**只包含 SCIEPort 工程已有的内容，不包含独立的云天书典**；等功能真正移入同一工程才会随包发布。
+- 此快建只打包现有项目 Assets，并排除旧版 Android 已知不支持的 `KellyExpansion.webp`；未执行历史构建流程的复杂模型/资源转换，可能与过去正式包存在差异。
+- 不强制生成 `.sha256`，也不扫描归档内部。Release 页面中的 Source code (zip/tar.gz) 是 GitHub 自带源码链接，不是游戏安装文件。
 
-## 不启用自托管 Runner 的手动发布
-
-拥有 Windows/SCNET 游戏目录的开发者可在干净的 `main` 分支执行：
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Publish-WildernessExplorerRelease.ps1 -GameDir "D:\Games\SCNET-x25.01.17"
-```
-
-手动方式仍然需要安装并登录 `gh`（`gh auth login`），同样需要完整集成标志、构建、校验。只做编译验收、不创建 Release 时追加 `-ValidateOnly`。
-
-## 下载
-
-GitHub Releases 地址：https://github.com/godblessmezyan-art/Survivalcraft2/releases
-
-下载 Assets 中 `.netmod` 文件；不要下载 Source code (zip) 当作安装包。
+下载：https://github.com/godblessmezyan-art/Survivalcraft2/releases

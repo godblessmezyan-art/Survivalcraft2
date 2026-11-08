@@ -1,12 +1,20 @@
 # Codex 长期开发规范
 
+## 2026-11-08 最新 Release 快速发布规则（优先于下方旧的测试与包校验要求）
+
+- 用户要求 Release **不运行测试、不进行安装包校验**，而是 **编译 → 打包 .netmod → 上传 GitHub Release**。
+- 自动发布改由 `scripts/Build-WildernessExplorerFast.ps1` 和 `scripts/Publish-WildernessExplorerRelease.ps1` 执行，禁止在这条路径调用旧版全量 `SCIE-Port/scripts/Build-NetMod.ps1` 或测试工具。
+- 不再需要 `docs/UNIFIED-RELEASE-READY` 的集成标记或 SHA-256 附件。但必须真能编译并产生 `.netmod` 文件；失败时不能创建仅源码的 Release。
+- 对外标记 **未经测试的 prerelease**，不能声称已在 Android / SCNET 上验证，且当前仅打包 SCIEPort 工程，**云天书典仍未真正集成到这份包**。
+- 仍需使用受信任 Windows Runner 与本地游戏程序集，不得发布专有游戏 DLL、覆盖旧 tag 或已有 Release。详见 `docs/NETMOD-RELEASE.md`。
+
 ## 统一项目与直接 main 开发（2026-11-08 最新用户指令，优先于下方历史规则）
 
 - **唯一默认开发分支为 `main`**：后续功能、修复和规范直接在本仓库 `main` 上修改并提交，不再因为云天书典或荒野探险家分别创建功能分支或子项目。用户明确允许当前和后续任务直接更新远程 `main`；先读取 HEAD、只做快进提交，不得 force push、覆盖他人提交或忽略工作区未提交改动。
 - **统一产品 =「荒野探险家 / Wilderness Explorer」**。云天书典（Celestial Codex）是其中的**阅读功能模块**，不是未来独立发布的产品。两个模块共享同一版本、同一发行流程，目标交付为**单个可安装的 `荒野探险家-<Version>.netmod`**，其中同时包含云天书典与荒野探险家功能。
 - 保留现有 `SCIE-Port/` 与 `src/CelestialCodex/` 的源码目录作为过渡组织；**源码目录分开不等于单独发布**。合并时优先保留已有 `SCIEPort` 的 PackageName、AssemblyName、GUID、Block ID、SCNET 网络包和旧存档归属；书典物品 956/DATA0、客户端个人阅读进度与游戏 API 契约同样不得擅自破坏。
 - **技术状态必须说清**：截至本指令时，两个模块实际上仍用两个 `modinfo.json`、两套构建脚本和两份 `.netmod`；仅统一规范**不代表合包完成**。未完成真实编译、资源合并、冲突审计、Android 和联机回归前，不得发布所谓“一包整合成功”的安装包。
-- 停止单独新增云天书典 Release，过去的 `celestial-codex-v0.2.0` 预发布保留为历史记录，不能改 tag、删历史。后续整合完成后，按 `docs/UNIFIED-MOD-POLICY.md` 由统一工作流先编译并校验实际 .netmod，再创建包含该安装包的预发布；没有 .netmod 禁止创建新的源码空壳 Release。
+- 停止单独新增云天书典 Release，过去的 `celestial-codex-v0.2.0` 预发布保留为历史记录，不能改 tag、删历史。后续按照最新快速发布规则，只编译并打包实际 `.netmod` 后创建含安装包的预发布；**不运行自动测试或包内容校验**，没有 `.netmod` 不能创建仅源码 Release。
 - **Builder Assistant 和 Ruins 未被此次合并指令涵盖**，仍维持原本独立的代码、发布和兼容性边界，除非用户另行明确要求。
 
 任何开发任务开始前必须先阅读本文件，并同时检查 `docs/COMPATIBILITY.md` 的当前结论。
@@ -125,5 +133,5 @@ Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`�
 ## 统一版本与 Release（2026-11-08 用户新指令）
 
 - 参阅 `docs/UNIFIED-MOD-POLICY.md`。目标为「荒野探险家」**一个产品、一个版本号、一个安装包、一个 Release**，云天书典只在该产品内作为功能模块。
-- 旧的 `.github/workflows/release-celestial-codex.yml` 专项发布流停用；历史书典版本和 Release 仅保留供追溯。统一工作流在**合包完成、标记可发布且 Windows 构建成功**后，直接创建**附带 `.netmod` 安装包和 SHA-256** 的统一预发布；不能编译或集成失败时不得发布仅含源码的 Release。
+- 旧的 `.github/workflows/release-celestial-codex.yml` 专项发布流停用；历史书典版本和 Release 仅保留供追溯。统一工作流在 Windows 目标编译成功、生成 `.netmod` 后直接上传文件，不再要求 `UNIFIED-RELEASE-READY`、测试、安装包审计或 SHA-256 附件；当前合包未完成时不得宣传含云天书典。
 - 合并前仍然存在两份分离代码和二进制；不得通过简单更名、拼 ZIP、复制 DLL 等手段伪称成品单包。改动内部标识/存档/资源注册须先证明兼容，并记录清晰的迁移与回退路径。
