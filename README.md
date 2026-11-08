@@ -24,15 +24,15 @@
 
 我们的目标并非简单增加物品数量，而是让每一种工具、每一把武器、每一处遗迹，都能为生存战争带来新的游玩体验。
 
-> **重要说明：**本仓库是多个独立 Mod 的开发工作区，不是单一的“大合集安装包”。各模块有自己的版本、资源、构建流程和验证状态。仓库里出现某项功能，不代表它已通过 Android 真机和多人联机验收。
+> **项目边界：**建筑助手、荒野探险家、遗迹探索保持独立工程及产物。云天书典属于荒野探险家的内置模块，两者共用版本与安装包。各工程的构建和实机验证状态见对应测试记录。
 
 ## 🧭 项目矩阵
 
 | 项目 | 简介 | 当前开发基线 | 入口 |
 |:--|:--|:--|:--|
 | 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.24.0** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
-| 📚 **云天书典 · Celestial Codex** | Digital-Study公开云库、原生触屏阅读、离线缓存与本机续读 | **荒野探险家0.77.0内置；整合实机待验证** | [整合与使用](SCIE-Port/docs/CELESTIAL-CODEX.md) · [Android HTTP修复](docs/CELESTIAL-CODEX-HTTP-0.1.4.md) |
-| ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与云天书典 | **v0.77.0** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
+| 📚 **云天书典 · Celestial Codex** | Digital-Study公开云库、原生触屏阅读、离线缓存与本机续读 | **荒野探险家0.80.1内置；统一开发交付，实机待验证** | [整合与使用](SCIE-Port/docs/CELESTIAL-CODEX.md) · [Android HTTP修复](docs/CELESTIAL-CODEX-HTTP-0.1.4.md) |
+| ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与云天书典 | **v0.80.1** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
 | 🏛️ **Survivalcraft Ruins · 遗迹探索** | 在新生成的地形中加入神殿、废墟、险境、守卫与战利品 | **SCNET 移植工程** | [移植说明](SurvivalcraftRuins-Port/README.md) · [独立仓库](https://github.com/godblessmezyan-art/SurvivalcraftRuins) |
 | 🌋 **World Expansion · 世界扩展** | 新地貌与生态、探索区域及模组共存策略 | **规划中，非已发布模组** | [开发规范](AGENTS.md) |
 
@@ -57,6 +57,8 @@
 
 **Wilderness Explorer** 是位于 `SCIE-Port/` 的独立移植及扩展工程，内部仍使用 `SCIEPort` 标识，正式构建包使用 **`荒野探险家.netmod`**。
 
+云天书典永久作为其中的内置模块，安装这一份包即可。两部分今后直接在本地 `main` 统一开发、版本和交付，不再生成独立书典包；完整规则见 [开发规范](AGENTS.md)。
+
 **神器与权柄**
 
 | 神器 / 系统 | 体验方向 |
@@ -73,7 +75,7 @@
 - **载具系统：**越野车、双人载具、坦克、直升机、快艇、移动堡垒等方向；各载具的模型完整度和实机验证状态并不相同。
 - **更多内容：**植物与生态资源、创造栏独立分类、「全知之眼」「吞噬之眼」、悬浮物品陈列装置与永久星门等功能。
 
-**近期主线：**`v0.76.1` 整合了圣剑、悬浮陈列器、神器图谱、Android 解析兼容修复，以及冥界军势的随机召唤、夜魇骑士与 **60 秒冷却**规则。构建与离线检查有记录；**Android 真机和真实多人联机效果仍需验证**。
+**近期主线：**`v0.80.1` 包含内置云天书典、现代家居及普通玩家神器/星门/骨龙同步修复，保留已有神器、军势与载具。构建与离线检查有记录；**Android 真机和真实多人联机效果仍需验证**。
 
 **阅读更多：**[荒野探险家完整更新记录](SCIE-Port/README.md) · [神器图谱](SCIE-Port/docs/ARTIFACT-CODEX.md) · [阿比斯](SCIE-Port/docs/ABYSS-REAPER.md) · [测试结果](SCIE-Port/docs/TEST-RESULTS.md)
 

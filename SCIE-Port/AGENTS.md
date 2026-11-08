@@ -2,6 +2,16 @@
 
 本目录是第三方 Mod → SCNET x25.01.17 的独立移植工作区。当前包含 SCIE Industrial Era 与 Kelly Expansion 植物资源移植；它不属于 `src/BuilderAssistant`，不得引用、修改或打包 Builder Assistant 源码与资源。
 
+## 荒野探险家与云天书典统一维护（2026-11-08 用户要求）
+
+- 云天书典永久作为荒野探险家内置模块，源码在 `src/SCIEPort/Features/CelestialCodex/`；后续两者的开发、修复、资源和测试全部在本工作区集成，不再建立独立书典工程或分开交付。
+- 常规任务直接在本地 `main` 开发、验证并提交，不为这两部分另建功能分支/worktree；用户当次明确指定其他分支或隔离工作区时遵从当次要求，最终交付仍为统一包。
+- 共用一个 `SCIEPort.csproj`、`SCIEPortLoader`、`modinfo.json` 和版本号，只编译/打包 `SCIEPort.dll`，正式产物固定为 `荒野探险家.netmod` 与字节一致的版本副本。禁止恢复独立 `云天书典.netmod`、`CelestialCodex.dll` 或第二个加载器/元数据；根书典构建脚本只转发至荒野探险家统一构建入口。
+- 修改任一模块必须保留另一模块现有功能及修复，执行相关回归并核验统一包中的书典CSV/XDB/纹理及编译运行类型。保留956/DATA0、原三GUID、阅读缓存/续读位置；安装移除旧独立包，不删除缓存，联机各端统一荒野探险家版本。
+- 以上不合并Builder Assistant或其它独立项目；只在本地提交，GitHub推送仍由用户执行。整合布局与检查见 `docs/CELESTIAL-CODEX.md` 和 `docs/PACKAGING-RULES.md`。
+
+## 通用约束
+
 - 唯一目标运行时：Survivalcraft NET `Net_x25.01.17`，目标平台 Android，产物 `.netmod`。
 - 每个上游来源必须记录名称、版本/提交、来源、许可或用户授权声明、纳入范围和资源哈希；缺少许可证据的内容不得进入可发布产物。
 - `upstream/SCIE/` 是被 Git 忽略的只读上游快照。SCIE 上游未声明公开许可证，只能按已记录的用户授权范围使用；不能据此扩大到其他上游内容。

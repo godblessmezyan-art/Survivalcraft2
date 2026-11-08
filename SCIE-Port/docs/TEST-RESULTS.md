@@ -1,5 +1,26 @@
 # 测试结果
 
+## 2026-11-08 main：荒野探险家/云天书典长期统一开发与成品复核
+
+用户要求两者整合安装包、今后持续合并开发并直接在main工作。检查确认书典自0.77.0已内置，当前0.80.1也保留整合；本轮将永久统一源码/测试/版本/产物、共用一个工程/加载器/modinfo/DLL、常规任务直接main开发提交、不再拆分书典包写入根及移植AGENTS.md。同步打包规则、整合文档和两份README，根Build-CelestialCodex仅移除过时0.77.0提示，继续转发统一构建。Builder Assistant等独立工程边界保持；没有运行时功能、ID/GUID、协议或资源改动，因此沿用现有0.80.1产物，不重复改版或重打包。
+
+实际命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PATH=$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-CelestialCodex.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/artifacts/build/SCIEPort.dll -Package SCIE-Port/artifacts/荒野探险家-0.80.1.netmod
+```
+
+两入口均退出0。书典408项Core/Network检查、12302项目标检查、348成员解析通过；目标检查包含编译类型归属SCIEPort、单加载器、唯一956、原生CSV/XDB/GUID/PNG及包内源码/DLL比对。检查入口连带执行net472 Release项目引用构建，0警告0错误；实际验证指向上次完整构建保留且与交付包字节一致的 `artifacts/build/SCIEPort.dll`。日志 `artifacts/unified-codex-environment.log`、`artifacts/unified-codex-check.log`。另以PowerShell Parser检查修改的根构建脚本，语法通过，没有重复执行完整打包或公网探测。
+
+Python ZipFile额外核验：唯一DLL为SCIEPort.dll、唯一modinfo在根目录、PackageName=SCIEPort/Version=0.80.1；书典CSV/XDB/Book.png分别与当前源码一致，包内DLL与保留Release DLL一致，主包和版本副本字节一致。**204条目、11641359字节**，SHA256仍为 `DE3EDE70EBFF7241F2EC854DF2F7584222BEBBBEB769B3C26156A0FC161A52B3`。
+
+上述构建/隔离检查和包整合 **已确认**；Android7723、触屏及实际Local/Server/Client仍 **待验证**。本轮没有启动游戏、修改玩家安装目录/缓存或推送。安装只保留当前荒野探险家一份包，移除旧独立书典包但保留阅读缓存，联机各端统一版本。
+
 ## 2026-11-08 main 0.80.1：普通玩家神器、星门与骨龙同步
 
 用户反馈加入者在图谱点击解放真名无反应、无法使用星门、仅加入者骨龙无法起飞。固定目标原生SyncList创建共享NetPeer的两份主机Client，解包From使用Clients[0]，旧移植却要求与Server同一对象。新增登记主机/实际连接/会话校验及真名副本重连清理，保留全部技能/骑乘算法、权限、协议布局和资产。[具体取证、修改与手机复测](MULTIPLAYER-CONNECTION-0.80.1.md)。
