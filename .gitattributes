@@ -12,3 +12,9 @@ SCIE-Port/src/SCIEPort/Assets/Database/AbyssNightmareKnight.xdb -text whitespace
 SCIE-Port/src/SCIEPort/Assets/Models/Home*.dae -text whitespace=cr-at-eol
 SCIE-Port/scripts/New-HomeFurnitureAssets.py text eol=lf
 SCIE-Port/scripts/New-HomeExtensionAssets.py text eol=lf
+# Pinned PixelFX blobs and byte-reproducible export tables must survive Windows checkout.
+SCIE-Port/tools/pixelfx/** text eol=lf
+SCIE-Port/src/SCIEPort/Assets/Effects/PixelFxStormhammer.json text eol=lf
+SCIE-Port/src/SCIEPort/Assets/Effects/PixelFX-LICENSE.txt text eol=lf
+SCIE-Port/src/SCIEPort/Features/PixelFx/StormhammerSpriteClips.g.cs text eol=lf
+SCIE-Port/src/SCIEPort/Features/PixelFx/ArtifactSpriteClips.g.cs text eol=lf

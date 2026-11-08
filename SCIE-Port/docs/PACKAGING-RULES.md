@@ -1,5 +1,7 @@
 # `.netmod` 品牌与打包契约
 
+2026-11-06 / 0.78.0 PixelFX：包内沿用`Assets/Textures/PixelFxStormhammer.png`（现为1024×2048、186帧）与同名JSON及`PixelFX-LICENSE.txt`，支持多神器共用，条目路径集合保持。`Test-PixelFx.ps1`在构建前/编译后/打包后验证native RGBA、JSON/C#表与包字节、原帧保留/来源许可；禁止离线JS/工具/源码进入运行包。外部中文包名、内部SCIEPort身份和原3D资源保持。
+
 本文件定义 SCIE-Port 产物（`.netmod`）的**强制**打包规则，自 v0.36.0 起生效，v0.40.3 起由
 `scripts/Build-NetMod.ps1` 在打包前后各校验一次。任何一条不满足都会让构建直接失败，不允许"先出包再补文档"。
 

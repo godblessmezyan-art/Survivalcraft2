@@ -33,7 +33,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
         private ReadingPosition saved = new ReadingPosition();
         private int page = 1, chapterPage, font = 2;
         private int restoreScroll = -1, restoreFrames;
-        private bool busy, resume;
+        private bool busy, resume, local;
         private double lastSave;
 
         internal CodexDialog(ComponentPlayer player)
@@ -97,9 +97,16 @@ namespace SCIEPort.Features.CelestialCodex.UI
         {
             busy = true; status.Text = "载入中…"; session.Begin(request);
         }
+        private void ToggleSource()
+        {
+            session.Cancel(); local = !local; session.SetLocal(local);
+            catalog = null; book = null; chapter = null; saved = new ReadingPosition();
+            page = 1; chapterPage = 0; view = View.Catalog;
+            Load(new Request(1));
+        }
         private void ShowCatalog()
         {
-            view = View.Catalog; Clear(); heading = "云天书典";
+            view = View.Catalog; Clear(); heading = local ? "本地书库" : "云端书库";
             if (catalog == null) return;
             foreach (Book item in catalog.Books)
             {
@@ -107,7 +114,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
                 string state = item.Status == "unsupported" ? " · 不支持" : item.Status == "unavailable" ? " · 暂无正文" : "";
                 Row(mode + item.Title + state, item.Slug);
             }
-            if (catalog.Books.Count == 0) status.Text = "书库为空";
+            if (catalog.Books.Count == 0) status.Text = local ? "导入目录暂无TXT/EPUB" : "书库为空";
         }
         private void ShowChapters()
         {
@@ -200,15 +207,15 @@ namespace SCIEPort.Features.CelestialCodex.UI
             if (view == View.Reading && Time.RealTime - lastSave > 5) SavePosition();
             bool reading = view == View.Reading;
             smaller.IsVisible = true; larger.IsVisible = reading;
-            smaller.Text = reading ? "A−" : "刷新";
+            smaller.Text = reading ? "A−" : view == View.Catalog ? (local ? "云端" : "本地") : "刷新";
             smaller.IsEnabled = !busy && (!reading || font > 0); larger.IsEnabled = !busy && font < 4;
             if (reading && (smaller.IsClicked || larger.IsClicked)) { SavePosition(); font = MathUtils.Clamp(font + (larger.IsClicked ? 1 : -1), 0, 4); saved.Font = font; session.Save(saved); restoreScroll = saved.Scroll; restoreFrames = 2; }
-            else if (!reading && smaller.IsClicked) { session.GoOnline(); Load(view == View.Catalog ? new Request(page) : new Request(book.Slug)); }
+            else if (!reading && smaller.IsClicked) { if (view == View.Catalog) ToggleSource(); else { session.GoOnline(); Load(new Request(book.Slug)); } }
             int index = ChapterIndex();
             previous.Text = reading ? "上节" : "上一页"; next.Text = reading ? "下节" : "下一页";
             previous.IsEnabled = !busy && (reading ? index > 0 : view == View.Catalog ? page > 1 : chapterPage > 0);
             next.IsEnabled = !busy && (reading ? book != null && index + 1 < book.Chapters.Count : view == View.Catalog ? catalog != null && catalog.HasMore : (chapterPage + 1) * 24 < book.Chapters.Count);
-            middle.Text = busy ? "载入中" : reading ? "章节" : view == View.Catalog && Protocol.SafeSlug(saved.Slug) ? "继续" : "刷新"; middle.IsEnabled = !busy;
+            middle.Text = busy ? "载入中" : reading ? "章节" : view == View.Catalog && Protocol.SafeSlug(saved.Slug) ? "继续" : local && view == View.Catalog ? "扫描" : "刷新"; middle.IsEnabled = !busy;
             foreach (var b in rowButtons) b.IsEnabled = !busy;
             if (!busy)
             {

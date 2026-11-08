@@ -1,0 +1,408 @@
+{
+  "schema": "SCIEPort.SpriteFx/1",
+  "version": "0.2",
+  "upstream": {
+    "repository": "https://github.com/patch-gg/pixelfx",
+    "commit": "a84159688af3ca37a4be05a0d422b94451b2e24e",
+    "license": "MIT",
+    "files": [
+      {
+        "path": "LICENSE",
+        "gitBlob": "74eff5d22b4195a2b1690d1c769fd5f2537e7cf6",
+        "sha256": "0a77565a50c3462831244452f129c38d2adc4fd07897cbeba8adc943f958604e"
+      },
+      {
+        "path": "package.json",
+        "gitBlob": "5ffd9d1065d82e608adb803f8138937b35c66d3f",
+        "sha256": "9102cb998d434acd1d7ed6867346b3b5ec67a9d30697c3af0410f4a0ba38730e"
+      },
+      {
+        "path": "src/core/act.js",
+        "gitBlob": "731e56c89512650bb56dcc9318e495a2b14dd85e",
+        "sha256": "b4fdeaf8af30c709748bb221c3b3854cc0438f2ce6c6d99f0324e3b3701b9f71"
+      },
+      {
+        "path": "src/core/actor.js",
+        "gitBlob": "d6824aceada5fd8f696df4312f0ec4486f82b06b",
+        "sha256": "5c867a24a88e93520d020b77190f12db265eb8fc357136ce3d92de05e19e63c2"
+      },
+      {
+        "path": "src/core/chain.js",
+        "gitBlob": "c816e89170277c16d2820548c2b31ace6f797e0d",
+        "sha256": "5014a0eae326f1855f5e320308ad370dbc342d2f1051df3665866401956bfef9"
+      },
+      {
+        "path": "src/core/color.js",
+        "gitBlob": "60cdedd3352b3a682ef0391f4b3957918b5756d3",
+        "sha256": "4e63f3074df7c1e138f721959858d12e4f6ccc2bf4f8e98c576efbae51241e54"
+      },
+      {
+        "path": "src/core/font.js",
+        "gitBlob": "1aa816b802fff7beb490548eeb792049ec824da0",
+        "sha256": "c094f1d3a9f94478a255f1cc81aa7ccd2c2ba7a97fc1227a29d268acc1f2ec7c"
+      },
+      {
+        "path": "src/core/fx.js",
+        "gitBlob": "1acacba6e8cf7c7ded76c5cfc8b02c128f8f1fc7",
+        "sha256": "a959c5f7b1c15ba8e07cb26e5b1ccc0bce0aef54ca14cf01f9d6e794cf4e5a0b"
+      },
+      {
+        "path": "src/core/index.js",
+        "gitBlob": "14b3144cb33068271221f1766994b627660d5d93",
+        "sha256": "ef5966a6365dbbe8a990867b6c7f3fc61922428e5f2e61262a3a430c119bf02d"
+      },
+      {
+        "path": "src/core/math.js",
+        "gitBlob": "90356680e4696072b6fc8faedcc9ac15ef42ae9d",
+        "sha256": "da45e1ed43f7d119dd80fbe97c7de2b35b4ea95dea8781671c296ee5942ac0bc"
+      },
+      {
+        "path": "src/core/painter.js",
+        "gitBlob": "4f397dbf558e29ad04fcba9e45488b4ee588bb39",
+        "sha256": "5b8ada6a25cdf1e63ae3684cc56276c61306558dc0a3a827a6a39ab038f74681"
+      },
+      {
+        "path": "src/core/particles.js",
+        "gitBlob": "345c67fbea7cfa5f03e1591bb428a18abdd0263b",
+        "sha256": "867e58baf522278b4aad383c7224c599cff9ba93268b5eac9485a39a3809477b"
+      },
+      {
+        "path": "src/core/poses.js",
+        "gitBlob": "c6a9daa3b945405b53d7d49ff072bb0a8499f1e8",
+        "sha256": "829f9b59ac883061afb9e952d6b608363ec7678bd00b026c538046685af88139"
+      },
+      {
+        "path": "src/core/rig.js",
+        "gitBlob": "525b7145624f53722fde335503cdf271d3958ca5",
+        "sha256": "5af3f455b18f9feb9f060732fb457529c6c76975a309c72171aa4e88b31aa70c"
+      },
+      {
+        "path": "src/core/scene.js",
+        "gitBlob": "04b61a341eaf062c46ad5dfe028428ec909db33f",
+        "sha256": "520a465f771829162dde114880224eb30efbab3cff859cb8a24a28e49d8e198c"
+      },
+      {
+        "path": "src/core/shapes.js",
+        "gitBlob": "a59200b40f137b5852b1f8917dc6c7209f6ffe45",
+        "sha256": "3e28f77e25b3083949f083c74304ead6826b7b1da20a658ccb114ab531fc8898"
+      },
+      {
+        "path": "src/core/sim.js",
+        "gitBlob": "68f1a7097a6cf263b03d61a5144cfdb3938e4850",
+        "sha256": "517febe05b72de9d07e3596c019b9bb01e1f97a74089a30fa80e9e98849ba4b0"
+      },
+      {
+        "path": "src/fx/lightning/_lib.js",
+        "gitBlob": "0d41c83b5f154235588d80143f2d4fd7537c4886",
+        "sha256": "6fa0eba00e706590865c0cadbcb0c79b07ae934f0f40dbf72426e45b51ccf487"
+      },
+      {
+        "path": "src/fx/lightning/charge-up.js",
+        "gitBlob": "ef7c5201698fa75c0bc0ebd9abd4aad5cf238513",
+        "sha256": "43fd8250bc825185716595bf3be424f56e9db7b3a2fb1a5b0704e5cb782f1aff"
+      },
+      {
+        "path": "src/fx/lightning/lightning-strike.js",
+        "gitBlob": "252bdc884409f10453f6b2c4a7d39459300a3086",
+        "sha256": "bbb6485615807a740df19f5196a81c033f938fc7081deefeb750d941790fddec"
+      },
+      {
+        "path": "src/fx/lightning/thunderclap.js",
+        "gitBlob": "6fac4bbf932c9ad91d01085d257b97fcdd309c09",
+        "sha256": "4127605c987643e214a7a01995b6f929b72e42327d5b1f6d652b164e2449220d"
+      },
+      {
+        "path": "tools/lib/png.mjs",
+        "gitBlob": "df029bbb942106fe710311c5431a3605340eb588",
+        "sha256": "19da8ce363e7a4722fa49f06dd9066e07e83262c24da14a496b39a793111ed7c"
+      },
+      {
+        "path": "src/fx/holy/blessing.js",
+        "gitBlob": "e3e0ed7add397cb71b4c001e6633497aad44fb3c",
+        "sha256": "93c8ffe12d7def0fd8d427128a598b912d85c0ee61442a2f03c860809b287018"
+      },
+      {
+        "path": "src/fx/holy/sunburst.js",
+        "gitBlob": "2083d4e40049dd9e9b183fddb7db37b640c6bfd9",
+        "sha256": "64c28225db3b858adc4cd2691ad659b2d1437e88843e8d4012fea17ff2f90b30"
+      },
+      {
+        "path": "src/fx/holy/smite.js",
+        "gitBlob": "bbfe3825e06e97aece43af1099acaf5f3e3a379b",
+        "sha256": "f0958ff226cb9114de31722b917c50867f715b9029f210c251186565895ea69b"
+      },
+      {
+        "path": "src/fx/holy/_lib.js",
+        "gitBlob": "fbf39afb15e8ca554c0ea472cf92bbb476b33cee",
+        "sha256": "6768e3763ff7c5d5294308cb92137319a979ff365881dc3b101f3f2a01e6ec27"
+      },
+      {
+        "path": "src/fx/water/splash.js",
+        "gitBlob": "abb52499d80bcb461a33e8a94f2355dfe90c2bcc",
+        "sha256": "511a1f4e5b95c7c9c92db61fad587f6ff990a000bcda232412bf3efe5a6ba3eb"
+      },
+      {
+        "path": "src/fx/water/wave-crash.js",
+        "gitBlob": "4a22114c1c405fd0c905b5bdad91eb2418808004",
+        "sha256": "c787fa13943c2ce5b5fd5f7b8f24d22a364c8c2358e76443b9cb7f68fe0cc5bc"
+      },
+      {
+        "path": "src/fx/water/_lib.js",
+        "gitBlob": "86fed1780753d72210930aa703a308e477987edf",
+        "sha256": "367d4014ef7c173a722cde22b9a132e61b39e5942e5cee6fa0a7737beaa4fd2a"
+      },
+      {
+        "path": "src/fx/shadow/dark-explosion.js",
+        "gitBlob": "0a088c0633e271d5a02a231c7ab61a0b6cf4a0b0",
+        "sha256": "23b5383cd80b07053ec88649d4eb7d8bc6cc2b63c51ba17d79c3181b045e29aa"
+      },
+      {
+        "path": "src/fx/shadow/_lib.js",
+        "gitBlob": "656b0e570c2ac558f9ad04a7f410c81e1f9687f4",
+        "sha256": "ed341e0aa203e465fd3a7ada6faefc9aefbb161eac8bf836514bb6c12e79f7a0"
+      }
+    ]
+  },
+  "texture": "Textures/PixelFxStormhammer",
+  "width": 1024,
+  "height": 2048,
+  "cell": 96,
+  "padding": 2,
+  "columns": 10,
+  "alpha": "straight",
+  "blend": "additive",
+  "sampler": "PointClamp",
+  "mipmaps": false,
+  "pngSha256": "0a5f6ecb559bcff0027a833aad1abcd0f2e996c4b9fe7149b12a4f1a82bd1be8",
+  "frameCount": 186,
+  "clips": [
+    {
+      "name": "charge-up",
+      "field": "ChargeUp",
+      "firstFrame": 0,
+      "frameCount": 33,
+      "fps": 24,
+      "pivotX": 0.51057,
+      "pivotY": 0.622849,
+      "facing": "Screen",
+      "priority": 1,
+      "sourceStart": 0.25,
+      "seed": 4,
+      "sourceSize": [
+        272,
+        184
+      ],
+      "sourceOrigin": [
+        124,
+        148
+      ],
+      "sourceAnchor": [
+        15,
+        -21
+      ]
+    },
+    {
+      "name": "lightning-strike",
+      "field": "LightningStrike",
+      "firstFrame": 33,
+      "frameCount": 21,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.848485,
+      "facing": "Vertical",
+      "priority": 3,
+      "sourceStart": 0.76,
+      "seed": 5,
+      "sourceSize": [
+        240,
+        264
+      ],
+      "sourceOrigin": [
+        120,
+        228
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "thunderclap",
+      "field": "Thunderclap",
+      "firstFrame": 54,
+      "frameCount": 24,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.653579,
+      "facing": "Vertical",
+      "priority": 2,
+      "sourceStart": 0.12,
+      "seed": 6,
+      "sourceSize": [
+        288,
+        156
+      ],
+      "sourceOrigin": [
+        144,
+        124
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "holy/blessing",
+      "field": "HolyBlessing",
+      "firstFrame": 78,
+      "frameCount": 16,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.829427,
+      "facing": "Vertical",
+      "priority": 1,
+      "sourceStart": 0.4,
+      "seed": 7,
+      "sourceSize": [
+        80,
+        128
+      ],
+      "sourceOrigin": [
+        40,
+        108
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "holy/sunburst",
+      "field": "HolySunburst",
+      "firstFrame": 94,
+      "frameCount": 16,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "facing": "Screen",
+      "priority": 2,
+      "sourceStart": 0.2,
+      "seed": 3,
+      "sourceSize": [
+        128,
+        128
+      ],
+      "sourceOrigin": [
+        64,
+        64
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "holy/smite",
+      "field": "HolySmite",
+      "firstFrame": 110,
+      "frameCount": 20,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.755682,
+      "facing": "Vertical",
+      "priority": 3,
+      "sourceStart": 0.54,
+      "seed": 9,
+      "sourceSize": [
+        224,
+        176
+      ],
+      "sourceOrigin": [
+        112,
+        148
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "water/splash",
+      "field": "WaterSplash",
+      "firstFrame": 130,
+      "frameCount": 18,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.651667,
+      "facing": "Vertical",
+      "priority": 1,
+      "sourceStart": 0.16,
+      "seed": 3,
+      "sourceSize": [
+        176,
+        100
+      ],
+      "sourceOrigin": [
+        88,
+        78
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ],
+      "options": {
+        "stone": false
+      }
+    },
+    {
+      "name": "water/wave-crash",
+      "field": "WaterWave",
+      "firstFrame": 148,
+      "frameCount": 20,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.641226,
+      "facing": "Vertical",
+      "priority": 2,
+      "sourceStart": 1.2,
+      "seed": 6,
+      "sourceSize": [
+        224,
+        104
+      ],
+      "sourceOrigin": [
+        112,
+        86
+      ],
+      "sourceAnchor": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "shadow/dark-explosion",
+      "field": "DarkExplosion",
+      "firstFrame": 168,
+      "frameCount": 18,
+      "fps": 24,
+      "pivotX": 0.5,
+      "pivotY": 0.590054,
+      "facing": "Screen",
+      "priority": 2,
+      "sourceStart": 0.52,
+      "seed": 6,
+      "sourceSize": [
+        280,
+        248
+      ],
+      "sourceOrigin": [
+        140,
+        206
+      ],
+      "sourceAnchor": [
+        0,
+        -54
+      ]
+    }
+  ]
+}

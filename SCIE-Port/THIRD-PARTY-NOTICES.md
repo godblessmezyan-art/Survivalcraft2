@@ -3,6 +3,42 @@
 ## Original cozy furniture (2026-11-08)
 
 The six Home furniture families (13 creative appearances, 16 runtime COLLADA variants) and `HomeFurniture.png` are original project geometry and procedural color textures. The editable source is `scripts/New-HomeFurnitureAssets.py`; per-asset SHA-256 and the generator fingerprint are recorded in `docs/assets/home-furniture/manifest.json`. No external furniture model, photo, texture pack, logo, game DLL or proprietary game content was added for this feature. Blender 5.1.1 and the official Blender MCP 1.0.2 were used as local authoring tools; their installers, source checkout and Python environment are not included in the `.netmod`. Proof renders are Blender previews, not Android/game screenshots, and are not packaged.
+## PixelFX shared artifact atlas V0.2 (2026-11-06)
+
+V0.2 adds fixed-source offline exports of `holy/blessing`, `holy/sunburst`,
+`holy/smite`, `water/splash` (with its optional preview stone disabled),
+`water/wave-crash` and `shadow/dark-explosion` for Excalibur, Gungnir, Poseidon
+and Abyss Reaper. The source remains
+[patch-gg/pixelfx](https://github.com/patch-gg/pixelfx/tree/a84159688af3ca37a4be05a0d422b94451b2e24e)
+at `a84159688af3ca37a4be05a0d422b94451b2e24e`, MIT,
+Copyright (c) 2026 Patch / Copyright (c) 2026 Hugo Duprez.
+The complete license remains `Assets/Effects/PixelFX-LICENSE.txt`.
+Nine additional unmodified source/helper modules join the previous 22 offline
+files, with Git blob and SHA-256 provenance. Loop sources are sampled as short
+one-shots; they do not add gameplay buffs or runtime looping. Stock actor masks
+remain empty; no actor, background, JavaScript or export dependency ships.
+All nine effects share one 1024x2048 atlas and one per-world bounded player/batch.
+The historical `PixelFxStormhammer` PNG/JSON names remain, with all original 78
+frame cells unchanged. No weapon model, skill icon, audio or proprietary game
+resource is replaced. Synthetic previews are not Android/game footage.
+
+## PixelFX lightning sprites (2026-11-05, integration V0.1)
+
+The charge-up, lightning-strike and thunderclap animations are offline raster exports
+of [patch-gg/pixelfx](https://github.com/patch-gg/pixelfx) at commit
+`a84159688af3ca37a4be05a0d422b94451b2e24e` (MIT).
+Copyright (c) 2026 Patch. Copyright (c) 2026 Hugo Duprez.
+The complete license is distributed as `Assets/Effects/PixelFX-LICENSE.txt`.
+The pinned, unmodified core and three effect modules, license and PNG writer live
+under `tools/pixelfx/upstream/` for reproducible offline builds. Their Git blob
+hashes and SHA-256 values are retained in `PixelFxStormhammer.json`.
+The project-authored exporter selects source time windows, supplies an empty actor
+mask, area-filters to a padded atlas and emits JSON/C# tables; it does not change
+the upstream effect sources. No stock actor, backdrop, JavaScript engine, npm
+dependency, network exporter or offline source is included in the runtime package.
+The C# player and native scene adapter are project code. No skill icon, original
+weapon art, proprietary game assembly, model, audio or gameplay asset is replaced.
+Synthetic Engine GPU fixtures are verification artifacts, not Android/game footage.
 
 ## Original Artifact Codex book (2026-11-01)
 

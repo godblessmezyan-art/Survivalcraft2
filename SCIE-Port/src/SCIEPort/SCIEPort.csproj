@@ -3,9 +3,10 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>SCIEPort</AssemblyName>
     <RootNamespace>SCIEPort</RootNamespace>
-    <Version>0.80.1</Version>
-    <AssemblyVersion>0.80.1.0</AssemblyVersion>
-    <FileVersion>0.80.1.0</FileVersion>
+    <Version>0.81.0</Version>
+    <AssemblyVersion>0.81.0.0</AssemblyVersion>
+    <FileVersion>0.81.0.0</FileVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SCNET_GAME_DIR)' != ''">$(SCNET_GAME_DIR)</SCNetGameDir>
     <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
@@ -20,6 +21,8 @@
 
   <ItemGroup>
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml" />
     <Reference Include="LiteNetLib">
       <HintPath>$(SCNetGameDir)\LiteNetLib.dll</HintPath>
       <Private>false</Private>

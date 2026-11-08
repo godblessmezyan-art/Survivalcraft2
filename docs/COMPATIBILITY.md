@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-08 荒野探险家0.81.0：合并远端本地书库
+
+远端main `6a6f715` 的TXT/EPUB本地书库与PixelFX合入统一SCIEPort；保留本地0.80.1的家居和联机修复、书典Android HTTP修复、原有身份与进度。新增System.IO.Compression/System.Xml框架引用，手机端运行库、文件夹映射、触屏及真实Local/Server/Client **待验证**；固定Windows ABI/Release/离线回归与包内容 **已确认**。老独立书典同装 **不支持**。具体哈希、边界与安装参见[移植记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
 ## 2026-11-08 荒野探险家0.80.1：普通玩家神器、星门与骨龙同步
 
 原生入房流程中Server与Clients[0]为共享NetPeer的不同对象，移植的对象身份检查丢弃合法主机包。SCIE-Port改用登记主机及实际连接/会话校验，修复真名回执、星门、军势/飞行与空间/断界斩队列入口，同源座位回执也适配。原协议编号/字节布局、Hook/加载器、ID/DATA/GUID、资源与存档保持；仍net472/API1.42/SC2.4.10.6。新增只读LiteNetLib游戏引用，SHA256 `D9C49444639102021EC6141C66E61B35F57493D3393CF2A737F68195C362D25A`，不随包分发。
@@ -52,6 +56,22 @@ SCIE-Port新增沙发/双人餐椅坐下与起身，壁炉使用原生GetHeat/�
 | 0.1.4 Android7723阅读/缓存/TLS、触屏多分辨率及Local/Server/Client | 待验证 | 私有布局只支持已核验结构；Windows与元数据通过不代替手机或完整游戏。 |
 
 详见 [0.1.4 HTTP修复记录](CELESTIAL-CODEX-HTTP-0.1.4.md)。World2枚举权限错误发生于书典HTTP之前，不是书典缓存路径；本轮未修改存档权限。
+## Celestial Codex 0.2.0：本地 TXT/EPUB 与云端双书源（待验证）
+
+在0.1.3源码上增加 LocalBookLibrary；云端协议、缓存、安全限制、物品956/DATA0、模组身份均保持。TXT 严格 UTF-8，EPUB 为有界 ZIP + OPF/spine + XHTML 纯文本。导入方式为 app:/CelestialCodex/Imports 文件夹扫描；未接入 Android 系统文件选择器。代码已准备合入 main，但 Windows/net472 编译、Android7723、Local/Server/Client 均**待验证**。见 docs/CELESTIAL-CODEX-V0.2.md。
+
+
+## 2026-11-06 SCIE-Port 0.78.0：PixelFX其它神器
+
+新增圣剑/昆古尼尔/波塞冬/阿比斯的圣光、水浪、紫色爆发，九效果共用186帧/1024×2048/8MiB图集和单世界预算；原78帧保留。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、493项播放器/1193项资源、1351项最终Engine GPU隔离及Release/包 **已确认**；Android7723、触屏/8MiB资源/手机性能与真实Local/Server/Client **待验证**。原3D/数值/存档/身份/协议/Hook和包路径布局保持，元数据与帧表扩展；同房统一0.78.0，旧版混装 **不支持**。见[逐神器选型及单列实机验收](../SCIE-Port/docs/PIXELFX-ARTIFACTS-0.78.0.md)与[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
+## 2026-11-06 SCIE-Port 0.77.1：PixelFX绘制优化与开发选型规范
+
+精灵层加入空闲绘制门、同tick池检查复用、屏幕外/零alpha剔除及每相机投影面积三档预算，复用原ViewProjectionMatrix/真实Vector4.Transform。原图集/JSON/C#表/许可、3D雷电、伤害/冷却、神器属性、存档、ID及协议保持，无新Hook或包布局变化。固定Windows三SHA/net472、239项播放器/512项资源/601项Engine GPU及Release/包范围 **已确认**；Android7723、触屏/手机性能、完整游戏及真实单人/主机/普通客户端 **待验证**；旧版混装 **不支持**，同房统一0.77.1。根/移植AGENTS新增“神器特效开发前先评估PixelFX”规则，见[规范](../SCIE-Port/docs/PIXELFX-DEVELOPMENT-STANDARD.md)及[测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
+
+## 2026-11-05 SCIE-Port 0.77.0：PixelFX V0.1
+
+妙尔尼尔仅新增蓄力/落雷/爆闪精灵叠层，原3D雷电与机制、伤害/冷却、神器属性、存档、网络字节布局保持。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、离线导出/规则、461项目标Engine GPU隔离及Release/包检查 **已确认**；Android7723、真实Local/Server/Client、触屏及手机性能 **待验证**。同房统一0.77.0，旧版混装 **不支持**；无新Hook/ID/GUID或Builder Assistant能力，包新增PNG/JSON/MIT许可，内部身份保持。见[专项与实机清单](../SCIE-Port/docs/PIXELFX-V0.1.md)及[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。
 
 ## 2026-11-04 Celestial Codex 0.1.3：移除Android缺失的链接取消源
 

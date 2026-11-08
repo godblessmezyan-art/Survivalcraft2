@@ -4,5 +4,7 @@
     <Compile Include="../../src/SCIEPort/Features/CelestialCodex/Core/*.cs" Link="Core/%(Filename)%(Extension)" />
     <Compile Include="../../src/SCIEPort/Features/CelestialCodex/Networking/*.cs" Link="Networking/%(Filename)%(Extension)" />
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
 </Project>

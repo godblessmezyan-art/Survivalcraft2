@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using GameEntitySystem;
+using SCIEPort.Features.PixelFx;
 
 namespace SCIEPort.Features.Stormhammer
 {
@@ -175,6 +176,7 @@ namespace SCIEPort.Features.Stormhammer
 
         private static void EmitCharge(Project project, Vector3 centre, LightningScene scene, double now, float duration)
         {
+            scene?.SpriteFx.Play(StormhammerSpriteClips.ChargeUp, centre + Vector3.UnitY * 1.15f, 3.8f, now, (int)StormhammerOptions.Quality, duration);
             if (scene != null)
             {
                 scene.SpawnRune(centre, 0.5f, 2.2f, now, duration, new Color(150, 205, 255, 210));
@@ -194,6 +196,7 @@ namespace SCIEPort.Features.Stormhammer
 
         private static void EmitJudgment(Project project, Vector3 centre, uint castId, LightningScene scene, double now, bool boosted)
         {
+            scene?.SpriteFx.Play(StormhammerSpriteClips.Thunderclap, centre + Vector3.UnitY * 0.12f, boosted ? 9f : 7f, now, (int)StormhammerOptions.Quality);
             int baseCount = StormhammerOptions.Quality == StormhammerEffectQuality.High ? 12
                 : StormhammerOptions.Quality == StormhammerEffectQuality.Medium ? 10 : 8;
             int count = boosted ? baseCount + 2 : baseCount;
@@ -241,6 +244,7 @@ namespace SCIEPort.Features.Stormhammer
 
         private static void BeginStorm(Project project, StormhammerSkillPackage package, LightningScene scene, double now)
         {
+            scene?.SpriteFx.Play(StormhammerSpriteClips.ChargeUp, package.Position + Vector3.UnitY * 1.15f, 5f, now, (int)StormhammerOptions.Quality, MainStrikeTime);
             List<StormState> list;
             if (!s_storms.TryGetValue(project, out list))
             {
@@ -370,6 +374,8 @@ namespace SCIEPort.Features.Stormhammer
 
         private static void EmitMainStrike(Project project, StormhammerSkillPackage package, LightningScene scene, double now)
         {
+            scene?.SpriteFx.Play(StormhammerSpriteClips.LightningStrike, package.Position, 24f, now, (int)StormhammerOptions.Quality);
+            scene?.SpriteFx.Play(StormhammerSpriteClips.Thunderclap, package.Position + Vector3.UnitY * 0.12f, 12f, now, (int)StormhammerOptions.Quality);
             Vector3 impact = package.Position;
             Vector3 start = new Vector3(impact.X, SkyStartHeight(project, impact), impact.Z);
             if (scene != null)
