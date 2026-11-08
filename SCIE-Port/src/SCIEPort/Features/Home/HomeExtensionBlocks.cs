@@ -6,8 +6,15 @@ using Game;
 namespace SCIEPort.Features.Home
 {
     /// <summary>Five modern home additions; only new content identities are assigned.</summary>
-    public sealed class HomeFireplaceBlock : HomeBlock { /// <summary>Content index.</summary>
-        public const int Index = HomeRules.Fireplace; }
+    public sealed class HomeFireplaceBlock : HomeBlock
+    {
+        /// <summary>Content index.</summary>
+        public const int Index = HomeRules.Fireplace;
+        /// <inheritdoc/>
+        public override float GetHeat(int value) => HomeRules.IsOpen(Terrain.ExtractData(value)) ? .35f : 0f;
+        /// <inheritdoc/>
+        public override int GetEmittedLightAmount(int value) => HomeRules.IsOpen(Terrain.ExtractData(value)) ? 8 : 0;
+    }
     /// <summary>One table and two chairs sharing a protected two-by-two footprint.</summary>
     public sealed class HomeDiningSetBlock : HomeBlock { /// <summary>Content index.</summary>
         public const int Index = HomeRules.Dining; }

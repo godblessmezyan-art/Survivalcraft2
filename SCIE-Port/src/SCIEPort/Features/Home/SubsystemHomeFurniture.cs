@@ -46,6 +46,7 @@ namespace SCIEPort.Features.Home
         /// <inheritdoc/>
         public void Update(float dt)
         {
+            UpdateSeats(dt);
             if (CommonLib.WorkType == WorkType.Client) return;
             for (int i = 0; i < 32 && added.Count > 0; i++)
             {
@@ -136,6 +137,7 @@ namespace SCIEPort.Features.Home
             }
             if (HomeRules.IsStorage(id) && m_subsystemBlockEntities.GetBlockEntity(x, y, z)?.Entity.FindComponent<ComponentHomeStorage>(false) != null)
                 base.OnBlockRemoved(value, newValue, x, y, z);
+            if (HomeSeatRules.IsSeat(id)) ReleaseFurnitureSeats(p);
             if (HomeRules.IsFootprintPart(id)) { RemoveFootprintRootFromPart(p, value); return; }
             if (HomeRules.HasFootprint(id)) RemoveFootprintParts(p, value);
             if (id == HomeRules.Upper)
@@ -183,6 +185,7 @@ namespace SCIEPort.Features.Home
             bool upper = id == HomeRules.Upper;
             if (upper) { p.Y--; value = Value(p); id = Terrain.ExtractContents(value); }
             if (!HomeRules.IsHome(id) || miner?.ComponentPlayer == null) return false;
+            if (HomeSeatRules.IsSeat(id)) { RequestSeat(miner.ComponentPlayer, p, value); return true; }
             byte action = HomeRules.IsStorage(id) && !(id == HomeRules.Fridge && upper) ? (byte)1 : (byte)0;
             if (action == 0 && !HomeRules.IsSwitchable(id) && id != HomeRules.Bed) return false;
             int expected = Terrain.MakeBlockValue(id, 0, Terrain.ExtractData(value));
@@ -253,6 +256,6 @@ namespace SCIEPort.Features.Home
                 gui.ModalPanelWidget = new HomeStorageWidget(gui.m_componentPlayer.ComponentMiner.Inventory, (ComponentHomeStorage)chest.m_componentChest);
         }
         /// <inheritdoc/>
-        public override void Dispose() { lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); footprintBusy.Clear(); base.Dispose(); }
+        public override void Dispose() { ClearSeats(); lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); footprintBusy.Clear(); base.Dispose(); }
     }
 }

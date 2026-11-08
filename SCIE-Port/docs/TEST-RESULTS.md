@@ -1,5 +1,49 @@
 # 测试结果
 
+## 2026-11-08 main 0.80.0：家具互动，用户自行实机测试
+
+新增沙发/餐椅坐姿、起身触屏入口和主机座位分配；壁炉开关接入原生热量与方块光照。保留全部旧家居/容量/存档键/ID/DATA/GUID，新增独立座位包238与OnModelAnimate Hook，旧239/其它既有包布局保持。用户明确“无需验证，亲自测试”，本轮没有运行环境检查、自动测试、包内容验收、游戏或手机；没有推送。下方0.79的通过记录只属于旧版本，不能当作0.80运行结果。
+
+实际编译命令（仓库根，本机开发路径）：
+
+```powershell
+$env:DOTNET_ROOT='C:\Users\85196\AppData\Local\Microsoft\dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:FrameworkPathOverride='D:\Dev\Tools\net472\build\.NETFramework\v4.7.2'
+& 'C:\Users\85196\AppData\Local\Microsoft\dotnet\dotnet.exe' build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir='D:\Games\SCNET-x25.01.17' -o SCIE-Port/artifacts/home-interaction-build --nologo *>&1 | Tee-Object -FilePath 'SCIE-Port/artifacts/home-interaction-build/build.log'
+```
+
+首次13.71秒编译0错误/0警告；随后修正认证会话重连序号归属、退出后的原生位置插值缓存和强制释放的邻近落点选择，再次同命令编译成功（5.09秒，0错误/0警告）。这只是编译，不代表坐姿或联机已运行。另执行ILSpy静态读取目标人形模型、身体、骑乘、输入、热量等接口，输出位于忽略目录 `artifacts/home-interaction-abi/`；读取39个原生包getter的IL常量，238未占用且无未知getter。没有运行测试套件或实体fixture，也没有重新测三程序集哈希。
+
+打包复用已保留0.79.0的授权资产，使用.NET ZipArchive.Update替换5个精确条目：SCIEPort.dll、modinfo.json、THIRD-PARTY-NOTICES.md（相同署名）、Assets/Blocks/HomeFurniture.csv、Assets/Blocks/HomeExtension.csv。没有新模型/图集/XDB，无需转换资产；没有调用会自动执行测试的Build-NetMod/Build-WithPinnedSdk入口。实际增量写包命令如下（元数据统计仅作产物记账）：
+
+```powershell
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$taskRoot=(Resolve-Path 'SCIE-Port').Path
+$baseline=Join-Path $taskRoot 'artifacts/荒野探险家-0.79.0.netmod'
+$versioned=Join-Path $taskRoot 'artifacts/荒野探险家-0.80.0.netmod'
+$pending=$versioned+'.pending'
+Copy-Item -LiteralPath $baseline -Destination $pending -Force
+$payload=@{
+ 'SCIEPort.dll'=Join-Path $taskRoot 'artifacts/home-interaction-build/SCIEPort.dll'
+ 'modinfo.json'=Join-Path $taskRoot 'src/SCIEPort/modinfo.json'
+ 'THIRD-PARTY-NOTICES.md'=Join-Path $taskRoot 'THIRD-PARTY-NOTICES.md'
+ 'Assets/Blocks/HomeFurniture.csv'=Join-Path $taskRoot 'src/SCIEPort/Assets/Blocks/HomeFurniture.csv'
+ 'Assets/Blocks/HomeExtension.csv'=Join-Path $taskRoot 'src/SCIEPort/Assets/Blocks/HomeExtension.csv'
+}
+$archive=[IO.Compression.ZipFile]::Open($pending,[IO.Compression.ZipArchiveMode]::Update)
+try{
+ foreach($name in $payload.Keys){$old=$archive.GetEntry($name);if($old){$old.Delete()};[void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive,$payload[$name],$name,[IO.Compression.CompressionLevel]::Optimal)}
+ $entryCount=$archive.Entries.Count
+}finally{$archive.Dispose()}
+Move-Item -LiteralPath $pending -Destination $versioned -Force
+Copy-Item -LiteralPath $versioned -Destination (Join-Path $taskRoot 'artifacts/荒野探险家.netmod') -Force
+```
+
+产物 `artifacts/荒野探险家-0.80.0.netmod` 及主包 `荒野探险家.netmod`（复制生成），**11670760字节、204条目**。SHA256 `824DE5D77E8F25523ED00B985CACB9FDE5D6F605EC848755648D81539DC7DEA5`；本次用于写包的DLL SHA256 `8E01292966547A7994AAC336193F6248639BE0F58C2599A21CAD2428CEC18B7D`，项目/元数据版本0.80.0/0.80.0.0。0.79历史版本副本保留。没有在打包后运行解包比对或包内容验证。
+
+本机Release编译 **已确认**；包验收、Android7723/触屏、第一/第三人称/衣物/持物、起身碰撞、原生取暖与照明、完整存读档、Local/Server/Client/晚加入/重连均 **待验证**。其它Mod可能占238或覆盖人形动画/体型；强制释放无安全落点时依靠原生碰撞处理。联机旧包混装 **不支持**，各端统一0.80.0。[实现、参数与风险](HOME-INTERACTIONS.md)。
+
 ## 2026-11-08 main 0.79.0：现代科技家居V2与五类扩展打包
 
 用户本轮明确要求“打个netmod”，本次授权构建覆盖前两轮“不构建/不运行自动测试”的开发阶段限制；仍未启动游戏、未推送。Release包含全部V2美术、自有家居8格写入/16槽保留、964–968五类扩展及969/970隐藏占位。版本元数据统一0.79.0/0.79.0.0，旧ID/DATA/GUID/存档键、net472和协议239/240–254保持。

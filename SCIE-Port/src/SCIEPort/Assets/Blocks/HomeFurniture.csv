@@ -2,7 +2,7 @@ Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCrea
 HomeFridgeBlock;冰箱;SCIEPort.Home;SCIEPortHomeFurniture;957;0;0.65;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;957;
 HomeCabinetBlock;组合橱柜;SCIEPort.Home;SCIEPortHomeFurniture;958;0;1;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;958;
 HomeSinkBlock;水槽;SCIEPort.Home;SCIEPortHomeFurniture;959;0;1;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;959;
-HomeSofaBlock;沙发;SCIEPort.Home;SCIEPortHomeFurniture;960;0;1;TRUE;TRUE;FALSE;TRUE;1;5;FALSE;TRUE;40;960;
+HomeSofaBlock;沙发;SCIEPort.Home;SCIEPortHomeFurniture;960;0;1;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;960;
 HomeCoffeeTableBlock;茶几;SCIEPort.Home;SCIEPortHomeFurniture;961;0;1.1;TRUE;TRUE;FALSE;TRUE;1;3;FALSE;TRUE;40;961;
 HomeCurtainBlock;窗帘;SCIEPort.Home;SCIEPortHomeFurniture;962;0;0.65;FALSE;TRUE;FALSE;TRUE;0;0;TRUE;TRUE;40;962;
 HomeUpperBlock;家居上部;SCIEPort.Home;SCIEPortHomeFurniture;963;-1;1;TRUE;FALSE;FALSE;TRUE;0;0;TRUE;FALSE;0;0;

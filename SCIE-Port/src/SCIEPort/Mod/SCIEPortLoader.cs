@@ -49,6 +49,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new ExcaliburPackage());
                 PackageManager.RegisterPackage(new CodexPackage());
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
+                PackageManager.RegisterPackage(new HomeSeatingPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -62,6 +63,7 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("UpdateInput", this);
             ModsManager.RegisterHook("SubsystemUpdate", this);
             ModsManager.RegisterHook("GuiUpdate", this);
+            ModsManager.RegisterHook("OnModelAnimate", this);
             ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
             ModsManager.RegisterHook("ModelShaderParameter", this);
             ModsManager.RegisterHook("ChangeSkyColor", this);
@@ -167,6 +169,7 @@ namespace SCIEPort.Mod
         public override void UpdateInput(ComponentInput componentInput, WidgetInput widgetInput)
         {
             ComponentPlayer player = componentInput?.m_componentPlayer;
+            player?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.HandleSeatInput(player);
             SubsystemFourSaints runtime = player?.Project.FindSubsystem<SubsystemFourSaints>(false);
             if (player != null && Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == DevouringEyeBlock.Index)
             {
@@ -194,6 +197,7 @@ namespace SCIEPort.Mod
             // a supported x25.01.17 path and could stall a fresh world on the loading screen.
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
+            GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
         }
 
         /// <inheritdoc />
@@ -201,6 +205,7 @@ namespace SCIEPort.Mod
         {
             SubsystemSuspendedItem.AdaptGui(componentGui);
             SubsystemHomeFurniture.AdaptGui(componentGui);
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.SeatGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.TickGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemDevouringEye>(false)?.Tick();
             FourSaintsClothingPreview.Update(componentGui);
@@ -211,6 +216,12 @@ namespace SCIEPort.Mod
             FourSaintsHud.Update(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemOmniscientEye>(false)?.Tick(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemFourSaints>(false)?.RefreshLocalHealthBar(componentGui.m_componentPlayer);
+        }
+
+        /// <inheritdoc />
+        public override void OnModelAnimate(ComponentCreatureModel model, out bool skip)
+        {
+            skip = model?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.AnimateSeat(model) == true;
         }
 
         /// <inheritdoc />
