@@ -1,5 +1,10 @@
 # 兼容性矩阵
 
+## Celestial Codex 0.2.0：本地 TXT/EPUB 与云端双书源（待验证）
+
+在0.1.3源码上增加 LocalBookLibrary；云端协议、缓存、安全限制、物品956/DATA0、模组身份均保持。TXT 严格 UTF-8，EPUB 为有界 ZIP + OPF/spine + XHTML 纯文本。导入方式为 app:/CelestialCodex/Imports 文件夹扫描；未接入 Android 系统文件选择器。代码已准备合入 main，但 Windows/net472 编译、Android7723、Local/Server/Client 均**待验证**。见 docs/CELESTIAL-CODEX-V0.2.md。
+
+
 ## 2026-11-06 SCIE-Port 0.78.0：PixelFX其它神器
 
 新增圣剑/昆古尼尔/波塞冬/阿比斯的圣光、水浪、紫色爆发，九效果共用186帧/1024×2048/8MiB图集和单世界预算；原78帧保留。固定Windows x25.01.17三SHA/net472/API1.42/SC2.4.10.6、493项播放器/1193项资源、1351项最终Engine GPU隔离及Release/包 **已确认**；Android7723、触屏/8MiB资源/手机性能与真实Local/Server/Client **待验证**。原3D/数值/存档/身份/协议/Hook和包路径布局保持，元数据与帧表扩展；同房统一0.78.0，旧版混装 **不支持**。见[逐神器选型及单列实机验收](../SCIE-Port/docs/PIXELFX-ARTIFACTS-0.78.0.md)与[实际测试记录](../SCIE-Port/docs/TEST-RESULTS.md)。

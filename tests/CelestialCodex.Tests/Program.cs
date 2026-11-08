@@ -43,6 +43,8 @@ internal static class Program
     private static async Task Run()
     {
         await DeadlineChecks();
+        LocalBookChecks();
+        LocalBookTests.Run();
         Check(NetworkFailure.Code(new MissingMethodException("missing-member")) == "BCL", "missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new MissingMethodException("inner-member"))) == "BCL", "nested missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new System.Security.Authentication.AuthenticationException("certificate"))) == "TLS", "nested TLS diagnostic");
@@ -105,6 +107,25 @@ internal static class Program
         }
         finally { Directory.Delete(root, true); }
         await GateChecks();
+    }
+    private static void LocalBookChecks()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "CelestialCodex-local-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "book.txt"), "第一章 开始\n你好，雪山。\n第二章 云端\n明天继续。", new UTF8Encoding(false));
+            var library = new LocalBookLibrary(new Files(root));
+            ReaderResult catalog = library.Read(new Request(1), CancellationToken.None);
+            Check(catalog.Document != null && catalog.Document.Books.Count == 1, "local TXT catalog");
+            string slug = catalog.Document.Books[0].Slug;
+            ReaderResult detail = library.Read(new Request(slug), CancellationToken.None);
+            Check(detail.Document != null && detail.Document.Book.Chapters.Count == 2, "TXT headings");
+            ReaderResult chapter = library.Read(new Request(slug, "c1", detail.Document.Book.Revision), CancellationToken.None);
+            Check(chapter.Document.Chapter.Text.Contains("雪山"), "TXT chapter text");
+            Check(library.Read(new Request(slug, "c1", new string('a', 64)), CancellationToken.None).HttpStatus == 409, "local revision conflict");
+        }
+        finally { Directory.Delete(root, true); }
     }
     private static async Task DeadlineChecks()
     {

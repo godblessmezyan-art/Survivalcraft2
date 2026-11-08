@@ -1,4 +1,8 @@
-# 云天书典 · Celestial Codex 0.1.3
+# 云天书典 · Celestial Codex 0.2.0（源码待实机验证）
+
+新增本地 TXT/EPUB 书库与原 Digital-Study 云端书库切换；本地扫描目录为 app:/CelestialCodex/Imports（真实 Android 可访问路径待确认）。本地与云端阅读进度独立，原 API、物品956/DATA0 不变。详见 docs/CELESTIAL-CODEX-V0.2.md。本版本尚未取得 SCNET x25.01.17 目标编译及 Android 真机验收证据，不是已验证的 .netmod。
+
+## V0.1.3 及历史说明
 
 0.1.3修复手机日志证实缺失的 `CreateLinkedTokenSource(CancellationToken[])`。请求改用自有取消源和后台轮询，保持12秒预算、关闭取消和有序释放；未禁用HTTPS验证。见 [0.1.3取消机制修复](../../docs/CELESTIAL-CODEX-CANCELLATION-0.1.3.md)。Android阅读仍待复测。
 

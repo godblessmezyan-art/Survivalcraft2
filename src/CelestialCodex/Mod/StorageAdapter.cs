@@ -34,7 +34,9 @@ namespace CelestialCodex.Mod
         private readonly RequestGate gate = new RequestGate(LogNetwork);
         private readonly string root;
         private readonly PositionWriter positions;
+        private readonly PositionWriter localPositions;
         private volatile bool offline;
+        private bool local;
         internal ReaderSession()
         {
             // Read runtime metadata, avoiding inlining a Windows const into an Android assembly.
@@ -46,6 +48,12 @@ namespace CelestialCodex.Mod
             root = Storage.CombinePaths(parent, "CelestialCodex");
             string directory = root;
             positions = new PositionWriter(bytes => new BoundedCache(new StorageAdapter(directory)).Write("position.json", bytes));
+            localPositions = new PositionWriter(bytes =>
+            {
+                var store = new StorageAdapter(directory); store.Create();
+                using (Stream output = store.Write("local-position.tmp")) output.Write(bytes, 0, bytes.Length);
+                store.Move("local-position.tmp", "local-position.json");
+            });
         }
         private string Endpoint(StorageAdapter store)
         {
@@ -62,9 +70,36 @@ namespace CelestialCodex.Mod
             catch (IOException) { }
             return SourcePolicy.Validate(endpoint);
         }
+        internal void SetLocal(bool enabled)
+        {
+            gate.Cancel(); local = enabled;
+            if (!local) offline = false;
+        }
+        private ReadingPosition LocalPosition()
+        {
+            try
+            {
+                var store = new StorageAdapter(root);
+                if (store.Size("local-position.json") > 2048) return new ReadingPosition();
+                using (Stream input = store.Read("local-position.json"))
+                    return ReadingPosition.Decode(BoundedCache.ReadLimited(input, 2048));
+            }
+            catch (Exception) { return new ReadingPosition(); }
+        }
         internal void Begin(Request request)
         {
             // The delegate captures this session and an immutable request, never a Dialog.
+            if (local)
+            {
+                gate.Begin(token =>
+                {
+                    var source = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
+                    ReaderResult result = new LocalBookLibrary(source).Read(request, token);
+                    result.Position = LocalPosition();
+                    return Task.FromResult(result);
+                });
+                return;
+            }
             gate.Begin(async token =>
             {
                 var files = new StorageAdapter(root);
@@ -82,7 +117,8 @@ namespace CelestialCodex.Mod
         internal void Save(ReadingPosition position)
         {
             // Snapshot serialization is bounded and in memory; disk work always runs on a worker.
-            positions.Save(position.Encode());
+            if (local) localPositions.Save(position.Encode());
+            else positions.Save(position.Encode());
         }
         public void Dispose() { gate.Dispose(); }
     }

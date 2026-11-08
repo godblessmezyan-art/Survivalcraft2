@@ -1,8 +1,8 @@
 {
   "Name": "云天书典 · Celestial Codex",
-  "Version": "0.1.3",
+  "Version": "0.2.0",
   "ApiVersion": "1.42",
-  "Description": "移除Android缺失的链接取消令牌接口，保留请求超时和取消。Android阅读待复测。",
+  "Description": "云端Digital-Study书库与本地TXT/EPUB双书源阅读；Android本地导入与联网实测待验证。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",
