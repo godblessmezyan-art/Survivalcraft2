@@ -1,0 +1,97 @@
+name: Wilderness Explorer - unified source release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SCIE-Port/src/SCIEPort/modinfo.json'
+      - 'docs/UNIFIED-RELEASE-READY'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wilderness-explorer-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require verified unified packaging gate
+        id: gate
+        shell: bash
+        run: |
+          if [ -f docs/UNIFIED-RELEASE-READY ] && grep -qx 'ready=1' docs/UNIFIED-RELEASE-READY; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Unified package integration is not verified; do not publish a misleading release.'
+          fi
+
+      - name: Read unified version
+        if: steps.gate.outputs.ready == 'true'
+        id: version
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          mod = json.loads(Path('SCIE-Port/src/SCIEPort/modinfo.json').read_text(encoding='utf-8'))
+          assert mod.get('PackageName') == 'SCIEPort', 'Unexpected unified package identity'
+          v = mod.get('Version', '')
+          assert isinstance(v, str) and re.fullmatch(r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)', v), 'Invalid version'
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+              f.write('version=' + v + '\n')
+              f.write('tag=wilderness-explorer-v' + v + '\n')
+          PY
+
+      - name: Check existing release and tag
+        if: steps.gate.outputs.ready == 'true'
+        id: check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo 'exists=false' >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/$TAG^{commit}" >/dev/null; then
+            sha="$(git rev-parse "refs/tags/$TAG^{commit}")"
+            if [ "$sha" != "$GITHUB_SHA" ]; then
+              echo 'Refusing to move historical tag' >&2
+              exit 1
+            fi
+          fi
+
+      - name: Publish unified source prerelease
+        if: steps.gate.outputs.ready == 'true' && steps.check.outputs.exists == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          # 荒野探险家 $VERSION（含云天书典）
+
+          这是统一项目的源码预发布，包含荒野探险家和云天书典功能。
+          - 游戏：Survivalcraft 2.4 / SCNET x25.01.17 / Android
+          - 状态：源码预发布（不代表已生成 .netmod）
+          - 如需要可安装包，必须上传经 Windows 构建及 Android/联机验证的同版本 .netmod。
+          - 提交：$GITHUB_SHA
+          EOF
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "荒野探险家 $VERSION（含云天书典）" --notes-file "$RUNNER_TEMP/release-notes.md" --prerelease --latest=false

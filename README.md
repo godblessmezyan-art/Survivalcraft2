@@ -24,15 +24,18 @@
 
 我们的目标并非简单增加物品数量，而是让每一种工具、每一把武器、每一处遗迹，都能为生存战争带来新的游玩体验。
 
-> **重要说明：**本仓库是多个独立 Mod 的开发工作区，不是单一的“大合集安装包”。各模块有自己的版本、资源、构建流程和验证状态。仓库里出现某项功能，不代表它已通过 Android 真机和多人联机验收。
+> **最新约定：**「荒野探险家」与「云天书典」归为同一产品，未来只交付一份荒野探险家 `.netmod` 和对应一个 GitHub Release；**当前两个模块仍是分别构建的过渡状态，尚未完成真正合包**。建筑助手、遗迹等其他模块暂不纳入此次合并。任何模块均不可把未实测代码宣称为 Android 已兼容。
+
+## 🧩 统一开发进度
+
+从 2026-11-08 起，云天书典不再作为独立发行模组继续迭代，代码统一归入荒野探险家主线；所有代码变更直接提交 `main`。最终目标是一份同时具备阅读、神器、载具及探索功能的安装包。目前还未完成物品/资源注册、DLL 和 XDB 集成验证，独立旧包只作为历史/迁移依据；详见 [统一方案与验收条件](docs/UNIFIED-MOD-POLICY.md)。
 
 ## 🧭 项目矩阵
 
 | 项目 | 简介 | 当前开发基线 | 入口 |
 |:--|:--|:--|:--|
 | 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.24.0** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
-| 📚 **云天书典 · Celestial Codex** | Digital-Study公开云库、原生触屏阅读、离线缓存与本机续读 | **v0.1.3；Android阅读待验证** | [使用与构建](src/CelestialCodex/README.md) · [取消机制修复](docs/CELESTIAL-CODEX-CANCELLATION-0.1.3.md) |
-| ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与扩展玩法 | **v0.76.1** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
+| ⚔️📚 **荒野探险家 · Wilderness Explorer（含云天书典）** | 工业/载具/神器/探索 + Digital-Study 在线阅读与 TXT/EPUB 本地书库 | **统一打包改造中**；当前书典源码 v0.2.0 / 荒野探险家 v0.78.0，尚非单包 | [荒野探险家](SCIE-Port/README.md) · [云天书典源码](src/CelestialCodex/) · [统一规范](docs/UNIFIED-MOD-POLICY.md) |
 | 🏛️ **Survivalcraft Ruins · 遗迹探索** | 在新生成的地形中加入神殿、废墟、险境、守卫与战利品 | **SCNET 移植工程** | [移植说明](SurvivalcraftRuins-Port/README.md) · [独立仓库](https://github.com/godblessmezyan-art/SurvivalcraftRuins) |
 | 🌋 **World Expansion · 世界扩展** | 新地貌与生态、探索区域及模组共存策略 | **规划中，非已发布模组** | [开发规范](AGENTS.md) |
 
@@ -53,9 +56,9 @@
 
 **阅读更多：**[建筑助手完整历史与使用说明](docs/BUILDER-ASSISTANT.md) · [蓝图格式规范](docs/BLUEPRINT-SPEC.md) · [AI 生成蓝图提示词](docs/AI-BLUEPRINT-PROMPT.md) · [方块能力清单](docs/blueprint-block-reference.md)
 
-### ⚔️ 02 / 荒野探险家 — 将工业、神话与奇幻带入生存战争
+### ⚔️📚 02 / 荒野探险家 — 将阅读、工业、神话与奇幻带入生存战争
 
-**Wilderness Explorer** 是位于 `SCIE-Port/` 的独立移植及扩展工程，内部仍使用 `SCIEPort` 标识，正式构建包使用 **`荒野探险家.netmod`**。
+**Wilderness Explorer** 以 `SCIE-Port/` 为现有核心工程，并将 `src/CelestialCodex/` 的阅读功能整合为同一产品模块；内部主要标识计划保留 `SCIEPort`。现有独立包仍属合并前的历史构建，统一安装包**尚未完成验证**。
 
 **神器与权柄**
 

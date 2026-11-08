@@ -1,5 +1,9 @@
 # SCIE-Port 移植工作区规范
 
+## 最新统一产品约定（优先执行）
+
+根据用户 2026-11-08 新要求，所有开发直接在仓库 `main` 分支进行。「荒野探险家」是唯一产品与未来发行身份，云天书典作为其阅读模块；不再把书典当成另一个独立新模组发行。目标是一个版本、一个 `.netmod`、一个 GitHub Release，详见根 `AGENTS.md` 和 `docs/UNIFIED-MOD-POLICY.md`。本目录可以继续维护独立模块源码用于组织开发，但必须参与最终联合打包、全功能测试与版本同步。**当前单包集成尚未完成，绝不能用“同仓库”替代“已合包”。**
+
 本目录是第三方 Mod → SCNET x25.01.17 的独立移植工作区。当前包含 SCIE Industrial Era 与 Kelly Expansion 植物资源移植；它不属于 `src/BuilderAssistant`，不得引用、修改或打包 Builder Assistant 源码与资源。
 
 - 唯一目标运行时：Survivalcraft NET `Net_x25.01.17`，目标平台 Android，产物 `.netmod`。
