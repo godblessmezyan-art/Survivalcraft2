@@ -8,7 +8,7 @@
 - 常规任务直接在本地 `main` 开发、验证并提交，不为这两部分另建功能分支/worktree；用户当次明确指定其他分支或隔离工作区时遵从当次要求，最终交付仍为统一包。
 - 共用一个 `SCIEPort.csproj`、`SCIEPortLoader`、`modinfo.json` 和版本号，只编译/打包 `SCIEPort.dll`，正式产物固定为 `荒野探险家.netmod` 与字节一致的版本副本。禁止恢复独立 `云天书典.netmod`、`CelestialCodex.dll` 或第二个加载器/元数据；根书典构建脚本只转发至荒野探险家统一构建入口。
 - 修改任一模块必须保留另一模块现有功能及修复，执行相关回归并核验统一包中的书典CSV/XDB/纹理及编译运行类型。保留956/DATA0、原三GUID、阅读缓存/续读位置；安装移除旧独立包，不删除缓存，联机各端统一荒野探险家版本。
-- 以上不合并Builder Assistant或其它独立项目；只在本地提交，GitHub推送仍由用户执行。整合布局与检查见 `docs/CELESTIAL-CODEX.md` 和 `docs/PACKAGING-RULES.md`。
+- 以上不合并Builder Assistant或其它独立项目；GitHub源码推送仍由用户执行，每次开发完成且包通过检查后按根规范上传对应GitHub Release。整合布局与检查见 `docs/CELESTIAL-CODEX.md` 和 `docs/PACKAGING-RULES.md`。
 
 ## 通用约束
 

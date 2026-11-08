@@ -46,6 +46,8 @@
 
 2026-11-08用户将整合设为长期规则：荒野探险家与云天书典后续全部直接在本地main开发、验证和提交，共用SCIEPort工程、加载器、modinfo及一个版本号；不得再拆分开发/发布独立书典包。常规任务不新建功能分支/worktree，用户当次明确指定时除外。根书典脚本仅转发统一构建，交付始终只有本契约规定的荒野探险家主包及版本副本；此规则不合并Builder Assistant等独立项目。
 
+2026-11-08用户要求开发完成的`.netmod`默认上传到对应GitHub Release：先通过构建和内容校验，核验版本、目标仓库、可访问的准确源码提交及已有资产，再上传并校验下载文件哈希。源码推送仍由用户执行；若GitHub尚无对应提交，保留包并报告等待用户推送，不将其错误关联至其他提交。
+
 0.77.0内置云天书典：只打包一个SCIEPort.dll及现有modinfo；必须存在`Assets/Blocks/CelestialCodex.csv`、`Assets/Database/CelestialCodex.xdb`、`Assets/Textures/CelestialCodex/Book.png`，禁止另带CelestialCodex.dll或独立modinfo。956/DATA0与原书典三GUID保留，Class改为本程序集中的命名空间。独立CelestialCodex包与整合版同时安装不支持，存在ID/GUID重复；安装要求见[云天书典](CELESTIAL-CODEX.md)。
 
 `SCIEPort.csproj` 的 `Version` / `AssemblyVersion` / `FileVersion` 与 `modinfo.json` 的 `Version` 必须完全一致，
