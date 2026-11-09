@@ -1,5 +1,14 @@
 # 兼容性矩阵
 
+## 2026-11-09 工业家具长按回收修正
+
+钢齿轮、钢轮、齿轮模具、车轮模具、工业活塞、钢瓶（917–922）的 `IsDiggingTransparent` 由真改为假；原有碰撞盒、挖掘硬度和掉落一个对应物品的逻辑不变。目标 x25.01.17 `ComponentMiner.Raycast` 的 Digging 分支会跳过该属性为真的方块。冰箱、床头柜和窗帘的实现不在当前仓库中，不能将本修正视为这些家居已修复。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 目标程序集及编译 | 已确认 | `scripts/Test-Environment.ps1` 三个已知 Windows 哈希匹配；`SCIE-Port/tests/Test-IndustrialFurnitureRecovery.ps1` 六项配置通过；`scripts/Build-WildernessExplorerFast.ps1 -GameDir E:\SCNET\SCNETx25.01.17` 编译打包成功。 |
+| Android 长按及物品掉落、Local/Server/Client | 待验证 | 尚未在游戏中测试；冒险模式和无合适工具的生存模式继续遵循原生权限和挖掘规则。 |
+
 ## 2026-11-09 合并验证：书典阅读界面与本地图书导入
 
 合并新版阅读界面与云端/本地图书切换、导入入口；修复联合编译误收书典 obj/bin、缺失命名空间、Android 已知缺失的 List.Sort 调用和 Windows PowerShell 快速打包编码。历史 0.2.0 界面记录只适用于当时单独构建，不能替代本次联合包运行验证。

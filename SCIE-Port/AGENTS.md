@@ -24,6 +24,7 @@
 - 神器特效选型（2026-11-06 用户要求）：**新建神器、重做或升级神器技能特效前，必须先阅读 `docs/PIXELFX-DEVELOPMENT-STANDARD.md` 并检查 PixelFX 是否适用**。在神器专项md记录候选效果/来源提交、适用阶段、采用或不采用的原因，再开始实现；合适时优先复用离线PNG/JSON与通用播放器，不合适时写明立体视角/持续性/性能等原因。不得把二维精灵当作必要3D几何，或借特效改变伤害、冷却、权限、存档和网络协议；技能图标仍遵循image_gen规则，Android/真实联机单列待验证。
 - 新产物文件名固定为 `荒野探险家.netmod` 与字节一致的 `荒野探险家-<Version>.netmod`，内部 DLL/PackageName/AssemblyName/RootNamespace 保持 SCIEPort，禁止因展示改名改动已有 ID、DATA、GUID 或协议。历史 SCIEPort.netmod 仅可作为只读恢复来源，不得作为新发布名。
 - 新增方块必须先检查原版与本工作区全部 `Block.Index`，并在兼容性文档记录区间；同时安装其他 Mod 时仍需提示外部冲突风险。
+- 新增可放置家具、方块和装置默认支持触屏长按拆除并回收，遵循根规范“新增可放置物的回收”；容器与多方块先保证内容、状态及联机权限安全。
 - `.netmod` 品牌契约（自 v0.36.0 起，v0.40.3 起由构建前后各校验一次，v0.44.0 起增加独立 Tab/背景与中文产物命名，详见 `docs/PACKAGING-RULES.md`）：游戏内显示名固定为「荒野探险家」（英文 Wilderness Explorer，作者 zyan）；`SCIE-Port` 只作为仓库工作区目录名与内部标识保留，`PackageName`/`AssemblyName`/`RootNamespace` 一律保持 `SCIEPort`，方块索引、衣物数据索引、GUID、网络包 ID 与存档兼容逻辑不得随品牌改名。展示层可调整名称、分类键、槽位皮肤和外部产物名，不改上述内部身份。
 - 每项移植必须在构建脚本中校验必需资源、名称约束、CSV 类名唯一性、XDB 容器 GUID/继承关系和禁带二进制。
 - 先完成单人材料注册和加载验证，再逐模块移植；联机功能必须区分 Local、Server、Client 权限。
