@@ -17,6 +17,7 @@ namespace CelestialCodex.UI
         internal ComponentPlayer Player { get; private set; }
         internal bool Closed { get; private set; }
         private readonly ReaderSession session;
+        private BookImportDialog importer;
         private readonly CanvasWidget panel, viewport, settingsPanel;
         private readonly RectangleWidget paper, rule;
         private readonly ScrollPanelWidget scroll;
@@ -33,7 +34,7 @@ namespace CelestialCodex.UI
         private ReadingPosition saved = new ReadingPosition();
         private int page = 1, chapterPage, font = 2, theme;
         private int restoreScroll = -1, restoreFrames;
-        private bool busy, resume;
+        private bool busy, resume, local;
         private double lastSave;
 
         internal CodexDialog(ComponentPlayer player) : this(player, true) { }
@@ -109,12 +110,33 @@ namespace CelestialCodex.UI
             var row = new CodexButton(caption, true) { Margin = new Vector2(0, 4), Prominent = prominent, IsChecked = selected };
             row.Detail.Text = detail; entries.Children.Add(row); rows.Add(row); rowIds.Add(id);
         }
+        private void ToggleSource()
+        {
+            session.Cancel(); local = !local; session.SetLocal(local);
+            catalog = null; book = null; chapter = null; saved = new ReadingPosition();
+            page = 1; chapterPage = 0; view = View.Catalog;
+            Load(new Request(1));
+        }
+        private void OpenImporter()
+        {
+            if (!local || Closed || busy || Player == null || Player.GameWidget == null ||
+                Player.GameWidget.GuiWidget == null) return;
+            if (importer != null && !importer.Closed) return;
+            importer = new BookImportDialog(Player, session.ImportFile, () =>
+            {
+                // The import dialog only calls this from its game-thread Update.
+                if (!Closed && local) Load(new Request(1));
+            });
+            DialogsManager.ShowDialog(Player.GameWidget.GuiWidget, importer);
+        }
         private void Empty(string message)
         { var label = Label(.72f); label.Text = message; label.Size = new Vector2(-1, 100); label.TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter; label.Color = CodexButton.Rgb((theme == 0 ? ReaderTheme.Paper : ReaderTheme.Night).Muted); entries.Children.Add(label); }
         private void Load(Request request) { busy = true; feedback = ""; session.Begin(request); }
         private void ShowCatalog()
         {
-            view = View.Catalog; Clear(); heading = "云天书典";
+            view = View.Catalog; Clear(); heading = local ? "本地书库" : "云端书库";
+            Row(local ? "云端书库" : "本地书库", "", "@source");
+            if (local) Row("导入图书", "", "@import");
             if (Protocol.SafeSlug(saved.Slug))
             {
                 string name = "上次阅读的位置";
@@ -263,7 +285,7 @@ namespace CelestialCodex.UI
                 return;
             }
             for (int i = 0; i < rows.Count; i++) if (rows[i].IsClicked)
-            { if (view == View.Catalog) { if (rowIds[i] == "@resume") OpenBook(saved.Slug, true); else OpenBook(rowIds[i], false); } else OpenChapter(rowIds[i]); return; }
+            { if (view == View.Catalog) { if (rowIds[i] == "@source") ToggleSource(); else if (rowIds[i] == "@import") OpenImporter(); else if (rowIds[i] == "@resume") OpenBook(saved.Slug, true); else OpenBook(rowIds[i], false); } else OpenChapter(rowIds[i]); return; }
             bool reading = view == View.Reading; int index = ChapterIndex();
             if (previous.IsClicked) { if (reading) OpenChapter(book.Chapters[index - 1].Id); else if (view == View.Catalog) Load(new Request(page - 1)); else { chapterPage--; ShowChapters(); } }
             else if (next.IsClicked) { if (reading) OpenChapter(book.Chapters[index + 1].Id); else if (view == View.Catalog) Load(new Request(page + 1)); else { chapterPage++; ShowChapters(); } }

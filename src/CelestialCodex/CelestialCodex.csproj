@@ -17,5 +17,7 @@
     <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
 </Project>

@@ -1,3 +1,4 @@
+#pragma warning disable 1591 // SCNET loader-facing types inherit their contract from the game.
 using Engine;
 using Engine.Graphics;
 using Game;
@@ -19,6 +20,8 @@ namespace CelestialCodex.Mod
     }
     public sealed class CelestialCodexModLoader : ModLoader
     {
-        public override void __ModInitialize() { Log.Information("[CelestialCodex] 0.2.0; x25.01.17; literal reader UI; Android UI retest pending."); }
+        public override void __ModInitialize() { Log.Information("[CelestialCodex] reader UI and local TXT/EPUB import; Android verification pending."); }
     }
 }
+
+#pragma warning restore 1591

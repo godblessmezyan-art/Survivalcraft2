@@ -1,3 +1,4 @@
+#pragma warning disable 1591 // SCNET loader-facing types inherit their contract from the game.
 using System.Collections.Generic;
 using Engine;
 using Game;
@@ -37,3 +38,5 @@ namespace CelestialCodex.Mod
         }
     }
 }
+
+#pragma warning restore 1591

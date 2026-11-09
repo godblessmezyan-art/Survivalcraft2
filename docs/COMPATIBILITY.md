@@ -1,5 +1,27 @@
 # 兼容性矩阵
 
+## 2026-11-09 合并验证：书典阅读界面与本地图书导入
+
+合并新版阅读界面与云端/本地图书切换、导入入口；修复联合编译误收书典 obj/bin、缺失命名空间、Android 已知缺失的 List.Sort 调用和 Windows PowerShell 快速打包编码。历史 0.2.0 界面记录只适用于当时单独构建，不能替代本次联合包运行验证。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 编译和书典独立检查 | 已确认 | `scripts/Test-Environment.ps1` 通过；`scripts/Build-CelestialCodex.ps1 -GameDir E:\SCNET\SCNETx25.01.17`：443 离线检查、16306 目标检查及独立包校验通过。 |
+| 联合包编译与 ZIP 结构 | 已确认 | `scripts/Build-WildernessExplorerFast.ps1 -GameDir E:\SCNET\SCNETx25.01.17` 成功，175 条目、无重复路径、ZIP 完整性通过；不等于游戏加载通过。 |
+| 联合包 XDB 加载、Android 触屏/导入、Local/Server/Client | 待验证 | 尚未运行游戏或 Android，系统文件选择器与 content URI 支持也未确认。 |
+
+
+## 2026-11-09 荒野探险家 0.79.0：云天书典游戏内 TXT/EPUB 导入与单包源码接入（待验证）
+
+书典目录页增加「导入图书」入口；运行时反射尝试宿主 `Engine.Storage.ChooseFile`，若不可用则提供仅限游戏可访问 `app:/` 虚拟目录的游戏内浏览器。选中文件通过 `Storage.OpenFile` 复制到私有书库，8MiB限制、同名不覆盖、失败临时文件清理，导入成功自动刷新本地目录。**SCNET x25.01.17 Android 是否存在兼容的系统文件选择器、能否读取 `content://` URI 均未经过真实程序集确认**，公共 Downloads 选择能力暂为待验证。新版 Survivalcraft API 的 `ChooseFile` 不能当作 SCNET ABI 证据。
+
+统一工程 `SCIEPort.csproj` 已配置将 `src/CelestialCodex` 的 C# 源码编译进单个 `SCIEPort.dll`，快建和全量构建都在同一份 Assets 内合并原书典 CSV/XDB/PNG；只发布 SCIEPort modinfo、DLL 和 .netmod（不嵌套第二个包）。方块 956 与原神器图谱 955 不同，均保留。**真实 Windows net472 编译、SCNET 加载器、XDB 合并结果、Android7723、单机/主机/普通客户端行为均待验证**；本次仅有源码/构建配置变更，无新安装包验证证据。按用户要求，Release 快速流程不自动测试或包校验，故发布成功不能证明兼容。
+
+## Celestial Codex 0.2.0：本地 TXT/EPUB 与云端双书源（待验证）
+
+在0.1.3源码上增加 LocalBookLibrary；云端协议、缓存、安全限制、物品956/DATA0、模组身份均保持。TXT 严格 UTF-8，EPUB 为有界 ZIP + OPF/spine + XHTML 纯文本。导入方式为 app:/CelestialCodex/Imports 文件夹扫描；未接入 Android 系统文件选择器。代码已准备合入 main，但 Windows/net472 编译、Android7723、Local/Server/Client 均**待验证**。见 docs/CELESTIAL-CODEX-V0.2.md。
+
+
 ## 2026-11-07 Celestial Codex 0.2.0：原生阅读界面
 
 用户反馈此前书典测试成功，本轮仅据此记录阅读成功反馈；没有精确包指纹、完整缓存或房间角色证据，不改写下方历史取证。0.2.0新增独立原生ButtonWidget/ClickableWidget组合与literal Label：采用目标真实m_text/m_linesSize字段，绕过语言键翻译，并将Label测量限制在自身Size内，防止长书名覆盖相邻控件。双层列表、继续阅读、目录选中、正文标题/行距、纸页/夜读和收起的字号设置均在客户端；position.json新增可选theme，旧进度按纸页读取，网络/正文缓存格式不变。
