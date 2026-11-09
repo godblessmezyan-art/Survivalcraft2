@@ -49,17 +49,29 @@ namespace BuilderAssistant.Networking
         { if (page < 1 || page > 10000) throw new InvalidDataException("分页超出范围。"); return "?page=" + page.ToString(CultureInfo.InvariantCulture) + "&pageSize=20"; }
         internal string JsonPath(CloudBlueprintEntry entry)
         {
-            if (entry == null || !BlueprintCloudProtocol.Id(entry.Id) || entry.Revision < 1 || !BlueprintCloudProtocol.Hex(entry.Sha256, 64)) throw new InvalidDataException("蓝图版本信息无效。");
+            if (entry == null || !BlueprintCloudProtocol.Id(entry.Id) || entry.Revision < 1 || entry.Revision == int.MaxValue || !BlueprintCloudProtocol.Hex(entry.Sha256, 64)) throw new InvalidDataException("蓝图版本信息无效。");
             return "/" + entry.Id + "/json?revision=" + entry.Revision.ToString(CultureInfo.InvariantCulture);
+        }
+        private static bool PositiveDecimal(string text, int max, out int value)
+        {
+            value = 0;
+            if (string.IsNullOrEmpty(text) || text.Length > 10 || text[0] == '0') return false;
+            foreach (char c in text)
+            {
+                int digit = c - '0';
+                if (digit < 0 || digit > 9 || value > (max - digit) / 10) return false;
+                value = value * 10 + digit;
+            }
+            return value > 0 && value <= max;
         }
         internal async Task<byte[]> Get(string path, CancellationToken token)
         {
             // Only the two generated request shapes can reach HttpClient.
             bool valid = false;
             if (path != null && path.StartsWith("?page=", StringComparison.Ordinal))
-            { int page; int end = path.IndexOf('&'); valid = end > 6 && int.TryParse(path.Substring(6, end - 6), out page) && page >= 1 && page <= 10000 && path == ListPath(page); }
+            { int page; int end = path.IndexOf('&'); valid = end > 6 && PositiveDecimal(path.Substring(6, end - 6), 10000, out page) && path == ListPath(page); }
             else if (path != null && path.Length >= 53 && path[0] == '/' && path.Substring(37).StartsWith("/json?revision=", StringComparison.Ordinal))
-            { int revision; valid = BlueprintCloudProtocol.Id(path.Substring(1, 36)) && int.TryParse(path.Substring(52), out revision) && revision > 0 && path == "/" + path.Substring(1, 36) + "/json?revision=" + revision.ToString(CultureInfo.InvariantCulture); }
+            { int revision; valid = BlueprintCloudProtocol.Id(path.Substring(1, 36)) && PositiveDecimal(path.Substring(52), int.MaxValue - 1, out revision) && path == "/" + path.Substring(1, 36) + "/json?revision=" + revision.ToString(CultureInfo.InvariantCulture); }
             if (!valid) throw new InvalidDataException("蓝图库请求路径无效。");
             var deadline = new BlueprintRequestDeadline(token);
             try

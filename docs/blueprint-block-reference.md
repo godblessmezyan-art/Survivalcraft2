@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.24.0
 
+2026-11-09：Builder Assistant 0.25.1 仅替换云端路径/JSON 转义的数值解码并补充网络诊断；不改变支持材料、族/DATA、schema 1/2/3、81 种材料、10 个家具模板、10000 格/单轴 64 或施工/权限/撤销限制。原始云端蓝图仍经 BlueprintImportService.FromString；Android 刷新和实机流程待复测。
+
 2026-11-09：Builder Assistant 0.25.0 新增云端蓝图库 V1.0，下载复用原导入与材料校验；schema 1/2/3、81 种材料、10 个家具模板、族/DATA、10000 格/单轴 64 和施工/权限/撤销能力保持。新导出仍 schema 3，不因来自网站而允许额外材料。云端缓存/存储不写世界二进制存档；Android 与联机真实验收待验证。见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。
 
 2026-11-07：CelestialCodex 0.2.0只重做客户端阅读UI并为本机进度增加可选主题；956/DATA0、GUID、资源与分类不变。书典不可放置、不得用于蓝图；81材料、10家具模板、族/DATA/schema及施工限制保持。

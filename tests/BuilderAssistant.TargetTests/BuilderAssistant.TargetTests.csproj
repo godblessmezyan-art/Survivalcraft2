@@ -7,6 +7,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="TerrainMaterialTests.cs" />
+    <Compile Include="BlueprintCloudSurfaceTests.cs" />
     <Compile Include="../../src/BuilderAssistant/Features/WorldEdit/VanillaSupportRules.cs" />
     <Compile Include="../../src/BuilderAssistant/Core/Blueprints/VanillaBlockCapabilities.cs" />
     <Compile Include="../../src/BuilderAssistant/Core/Blueprints/BuildingMaterials.cs" />
@@ -15,5 +16,8 @@
     <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
     <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/BuilderAssistant/BuilderAssistant.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 </Project>

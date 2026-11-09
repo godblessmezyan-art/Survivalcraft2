@@ -1,5 +1,16 @@
 # 兼容性矩阵
 
+## 2026-11-09 Builder Assistant 0.25.1 / 云端刷新修复
+
+移除请求路径与共用 JSON 字符串解码中的三处 `Int32.TryParse`，补充有界异常日志和 BCL/TLS/TIME/NET/DATA 错误短码；请求白名单、证书校验、响应上限、缓存、导入与施工权限入口保持。无 Hook、身份、资源布局或世界存档变更。用户原始错误尚无手机堆栈，不能断言唯一根因。见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 环境、net472 编译与开发回归 | 已确认 | 三个登记 Windows 哈希匹配；Release 0 警告/0 错误；3292 项离线及 2024 项目标检查通过；实际新 DLL 的 47 个相关类型没有已知缺失接口，旧 DLL 负对照检出三处 TryParse。 |
+| 实际 Mod DLL 在 Windows 读取生产 HTTPS 目录 | 已确认 | List(1) 成功，apiVersion=1、total=0、非缓存；无游戏进程、无世界。公开下载本轮没有已发布样本。 |
+| Android/7723 点击刷新、下载、重启离线与桌面实际游戏 | 待验证 | 已移除已知风险调用；没有手机堆栈或设备复测，不以 Windows 成功代替 Android 兼容。 |
+| Local/Server/普通 Client 实机与触屏/多分辨率 | 待验证 | 沿用原权限和施工流程；普通客户端写地形仍不支持。 |
+
 ## 2026-11-09 Builder Assistant 0.25.0 / 云端蓝图库 V1.0
 
 只扩展 Builder Assistant 的网络、私有缓存与蓝图管理界面；不修改世界二进制存档、Hook、GUID、方块 ID、施工/撤销协议或 SCNET 权限管线。新增框架 `System.Net.Http` 引用，包仍只有 BuilderAssistant 自身 DLL/modinfo/Assets，不引用书典或 SCIEPort。详见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。
