@@ -64,7 +64,7 @@ namespace BuilderAssistant.Networking
             }
             return value > 0 && value <= max;
         }
-        internal async Task<byte[]> Get(string path, CancellationToken token)
+        internal async Task<byte[]> Get(string path, CancellationToken token, Action<string> progress = null)
         {
             // Only the two generated request shapes can reach HttpClient.
             bool valid = false;
@@ -73,21 +73,26 @@ namespace BuilderAssistant.Networking
             else if (path != null && path.Length >= 53 && path[0] == '/' && path.Substring(37).StartsWith("/json?revision=", StringComparison.Ordinal))
             { int revision; valid = BlueprintCloudProtocol.Id(path.Substring(1, 36)) && PositiveDecimal(path.Substring(52), int.MaxValue - 1, out revision) && path == "/" + path.Substring(1, 36) + "/json?revision=" + revision.ToString(CultureInfo.InvariantCulture); }
             if (!valid) throw new InvalidDataException("蓝图库请求路径无效。");
+            if (progress != null) progress("http/deadline");
             var deadline = new BlueprintRequestDeadline(token);
             try
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                using (HttpMessageHandler handler = handlerFactory == null ? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.None } : handlerFactory())
+                if (progress != null) progress("http/handler");
+                using (HttpMessageHandler handler = handlerFactory == null ? BlueprintHttpPolicy.Create() : handlerFactory())
                 using (var client = new HttpClient(handler))
                 {
+                    if (progress != null) progress("http/send");
                     client.DefaultRequestHeaders.Add("Accept", "application/json"); client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
                     using (HttpResponseMessage response = await client.GetAsync(new Uri(endpoint + path), HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
                     {
                         if (response.StatusCode != HttpStatusCode.OK) throw new BlueprintHttpException((int)response.StatusCode);
+                        if (progress != null) progress("http/headers");
                         var content = response.Content;
-                        if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("蓝图库返回了非 JSON 响应。");
+                        if (content == null || content.Headers.ContentType == null || !BlueprintHttpPolicy.IsJson(content.Headers.ContentType.ToString())) throw new InvalidDataException("蓝图库返回了非 JSON 响应。");
                         string charset = content.Headers.ContentType.CharSet;
                         if ((!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) || content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > BlueprintCloudProtocol.MaxBytes) throw new InvalidDataException("蓝图库响应编码或长度无效。");
+                        if (progress != null) progress("http/body");
                         using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
                         using (var output = new MemoryStream())
                         {

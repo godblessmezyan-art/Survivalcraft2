@@ -19,6 +19,7 @@
     <Compile Include="FurnitureTests.cs" />
     <Compile Include="BlueprintLibraryTests.cs" />
     <Compile Include="BlueprintCloudTests.cs" />
+    <Compile Include="BlueprintHttpPolicyTests.cs" />
     <Compile Include="..\..\src\BuilderAssistant\Networking\*.cs" />
     <Compile Include="FurnishedHomeTests.cs" />
     <Compile Include="TerrainMaterialTests.cs" />

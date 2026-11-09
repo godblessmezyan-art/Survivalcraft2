@@ -51,7 +51,7 @@ namespace BuilderAssistant.Core.Blueprints
                 string pending = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
                 try
                 {
-                    File.WriteAllText(pending, json, new UTF8Encoding(false));
+                    WriteUtf8(pending, json);
                     File.Move(pending, path); // fails rather than overwriting, including races
                 }
                 finally { if (File.Exists(pending)) File.Delete(pending); }
@@ -72,7 +72,7 @@ namespace BuilderAssistant.Core.Blueprints
                 // UTF-8 uses at most four bytes per character; reject oversized disk input before allocation.
                 if (new FileInfo(path).Length > BlueprintImportService.MaxImportChars * 4L)
                 { error = "蓝图文件过大。"; return null; }
-                return File.ReadAllText(path, Encoding.UTF8);
+                using (var input = new StreamReader(path, Encoding.UTF8)) return input.ReadToEnd();
             }
             catch (Exception e) { error = "读取蓝图失败：" + e.Message; return null; }
         }
@@ -95,7 +95,7 @@ namespace BuilderAssistant.Core.Blueprints
                 else
                 {
                     pending = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
-                    File.WriteAllText(pending, json, new UTF8Encoding(false)); File.Move(pending, path);
+                    WriteUtf8(pending, json); File.Move(pending, path);
                 }
                 filename = stem + ".json"; return null;
             }
@@ -114,6 +114,11 @@ namespace BuilderAssistant.Core.Blueprints
                 return null;
             }
             catch (Exception e) { return "删除蓝图失败：" + e.Message; }
+        }
+        private static void WriteUtf8(string path, string json)
+        {
+            using (var stream = File.Open(path, FileMode.CreateNew))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(json);
         }
     }
 }

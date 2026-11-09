@@ -1,5 +1,8 @@
 ﻿[CmdletBinding()]
-param([string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }))
+param(
+    [string]$GameDir = $(if ($env:SCNET_GAME_DIR) { $env:SCNET_GAME_DIR } else { 'E:\SCNET\SCNETx25.01.17' }),
+    [string]$AssemblyPath
+)
 $ErrorActionPreference = 'Stop'
 $GameDir = (Resolve-Path -LiteralPath $GameDir).Path
 $expected = '3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD'
@@ -10,5 +13,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $repoRoot 'tests\BuilderAssistant.TargetTests\BuilderAssistant.TargetTests.csproj'
 & dotnet build $project -c Release "-p:SCNetGameDir=$GameDir" --nologo -v minimal
 if ($LASTEXITCODE -ne 0) { throw 'Target state probe build failed.' }
-& (Join-Path $repoRoot 'tests\BuilderAssistant.TargetTests\bin\Release\net472\BuilderAssistant.TargetTests.exe') $GameDir
+$arguments = @($GameDir)
+if ($AssemblyPath) { $arguments += (Resolve-Path -LiteralPath $AssemblyPath).Path }
+& (Join-Path $repoRoot 'tests\BuilderAssistant.TargetTests\bin\Release\net472\BuilderAssistant.TargetTests.exe') @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Target state probe failed.' }

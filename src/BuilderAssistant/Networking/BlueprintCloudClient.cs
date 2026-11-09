@@ -14,7 +14,7 @@ namespace BuilderAssistant.Networking
         private static bool OfflineFailure(Exception error, string stage, string code)
         {
             var http = error as BlueprintHttpException;
-            return stage == "http" && (code == "NET" || code == "TIME" || (http != null && http.Status >= 500 && http.Status <= 599));
+            return (stage == "http" || stage.StartsWith("http/", StringComparison.Ordinal)) && (code == "NET" || code == "TIME" || (http != null && http.Status >= 500 && http.Status <= 599));
         }
         private static string Message(Exception error, string code)
         {
@@ -31,7 +31,7 @@ namespace BuilderAssistant.Networking
                 string stage = "http";
                 try
                 {
-                    byte[] bytes = await transport.Get(path, token).ConfigureAwait(false);
+                    byte[] bytes = await transport.Get(path, token, value => stage = value).ConfigureAwait(false);
                     stage = "decode";
                     result.Value = decode(bytes); token.ThrowIfCancellationRequested(); result.CacheFailed = !cache.Write(key, bytes); return result;
                 }

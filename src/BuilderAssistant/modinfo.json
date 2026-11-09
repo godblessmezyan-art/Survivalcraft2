@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.25.1",
+  "Version": "0.25.2",
   "ApiVersion": "1.42",
-  "Description": "建筑助手v0.25.1：修复云端刷新路径和JSON字符串解码中的Android风险接口，增加BCL/TLS/网络/格式错误分类与日志；沿用蓝图库缓存、预览、施工和权限流程。Android7723待复测。",
+  "Description": "建筑助手v0.25.2：适配Android裁剪的HTTP设置与JSON类型接口，保留禁跳转、无Cookie和严格响应校验，细化请求日志；沿用蓝图库缓存、预览、施工和权限流程。Android7723待复测。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

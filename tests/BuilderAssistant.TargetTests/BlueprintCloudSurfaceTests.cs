@@ -11,7 +11,7 @@ internal static partial class TargetTests
 {
     private static void TestBlueprintCloudRuntimeSurface()
     {
-        string dll = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../../src/BuilderAssistant/bin/Release/net472/BuilderAssistant.dll"));
+        string dll = Environment.GetEnvironmentVariable("BUILDER_CLOUD_DLL") ?? Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../../../src/BuilderAssistant/bin/Release/net472/BuilderAssistant.dll"));
         Assembly mod = Assembly.LoadFrom(dll);
         var selected = new List<Type>();
         foreach (Type type in mod.GetTypes())
@@ -23,6 +23,19 @@ internal static partial class TargetTests
         List<string> blocked = CloudForbiddenMembers(selected);
         Check(blocked.Count == 0, "shipping cloud path has no known missing Android members: " + string.Join("; ", blocked));
         Check(CloudForbiddenMembers(new[] { typeof(LegacyCloudParseProbe) }).Count > 0, "audit rejects the legacy Int32.TryParse pattern");
+        Check(CloudForbiddenMembers(new[] { typeof(LegacyCloudHttpProbe) }).Count == 4, "audit rejects all four trimmed HTTP members");
+        string oldHttp = Environment.GetEnvironmentVariable("BUILDER_CLOUD_HTTP_NEGATIVE_DLL");
+        if (!string.IsNullOrEmpty(oldHttp))
+        {
+            Assembly previous = Assembly.Load(File.ReadAllBytes(oldHttp));
+            var types = new List<Type>();
+            foreach (Type type in previous.GetTypes())
+            {
+                string ns = type.Namespace ?? "";
+                if (ns == "BuilderAssistant.Networking" || ns == "BuilderAssistant.Core.Json" || ns == "BuilderAssistant.Core.Blueprints" || ns == "BuilderAssistant.Core.Furniture" || type.FullName.StartsWith("BuilderAssistant.Infrastructure.BlueprintStorage", StringComparison.Ordinal)) types.Add(type);
+            }
+            Check(CloudForbiddenMembers(types).Count >= 11, "actual 0.25.1 DLL rejected for missing HTTP/file/format references");
+        }
         string legacy = Environment.GetEnvironmentVariable("BUILDER_CLOUD_LEGACY_DLL");
         if (!string.IsNullOrEmpty(legacy))
         {
@@ -33,7 +46,7 @@ internal static partial class TargetTests
             Check(oldBlocked.Count >= 3, "actual 0.25.0 DLL is rejected by the new Android guard");
             Console.WriteLine("Cloud legacy negative control: " + oldBlocked.Count + " forbidden references found.");
         }
-        Console.WriteLine("Cloud shipping IL audit: " + selected.Count + " types, no known missing System.TryParse/Guid.Parse/LINQ/List helpers.");
+        Console.WriteLine("Cloud shipping IL audit: " + selected.Count + " types, no known missing HTTP/System.TryParse/Guid.Parse/LINQ/List helpers. MVID=" + mod.ManifestModule.ModuleVersionId);
         if (Environment.GetEnvironmentVariable("BUILDER_CLOUD_LIVE") == "1") TestShippingCloudLive(mod);
     }
     private static List<string> CloudForbiddenMembers(IEnumerable<Type> types)
@@ -67,6 +80,14 @@ internal static partial class TargetTests
                         Type owner = member.DeclaringType ?? member as Type; string name = owner == null ? "" : owner.FullName ?? owner.Name;
                         bool forbidden = name.StartsWith("System.", StringComparison.Ordinal) && (member.Name.StartsWith("TryParse", StringComparison.Ordinal) || name.StartsWith("System.Linq.Enumerable", StringComparison.Ordinal));
                         if (owner == typeof(Guid) && member.Name.StartsWith("Parse", StringComparison.Ordinal)) forbidden = true;
+                        if (name == "System.Net.Http.HttpClientHandler" && (member.Name == "set_AllowAutoRedirect" || member.Name == "set_UseCookies" || member.Name == "set_AutomaticDecompression")) forbidden = true;
+                        if (name == "System.Net.Http.Headers.MediaTypeHeaderValue" && member.Name == "get_MediaType") forbidden = true;
+                        var called = member as MethodBase;
+                        int parameters = called == null ? -1 : called.GetParameters().Length;
+                        if (owner == typeof(File) && ((member.Name == "ReadAllText" && parameters == 2) || (member.Name == "WriteAllText" && parameters == 3) || member.Name == "WriteAllBytes" || member.Name == "Replace")) forbidden = true;
+                        if (name == "System.IO.FileSystemInfo" && member.Name == "Delete") forbidden = true;
+                        if (owner == typeof(DirectoryInfo) && member.Name == "GetFiles" && parameters == 1) forbidden = true;
+                        if (owner == typeof(uint) && member.Name == "ToString" && parameters == 1 && called.GetParameters()[0].ParameterType == typeof(string)) forbidden = true;
                         if (owner == typeof(CancellationTokenSource) && (member.Name == "CreateLinkedTokenSource" || member.Name == "CancelAfter")) forbidden = true;
                         if (owner != null && owner.IsGenericType && owner.GetGenericTypeDefinition() == typeof(List<>))
                             foreach (string helper in new[] { "Exists", "Find", "FindAll", "FindIndex", "FindLast", "FindLastIndex", "RemoveAll", "Sort", "TrueForAll", "ForEach", "ConvertAll", "BinarySearch" }) if (member.Name == helper) forbidden = true;
@@ -101,4 +122,14 @@ internal static partial class TargetTests
 internal static class LegacyCloudParseProbe
 {
     internal static bool Parse(string value, out int result) { return int.TryParse(value, out result); }
+}
+internal static class LegacyCloudHttpProbe
+{
+    internal static string Configure(System.Net.Http.HttpClientHandler handler, System.Net.Http.Headers.MediaTypeHeaderValue contentType)
+    {
+        handler.AllowAutoRedirect = false;
+        handler.UseCookies = false;
+        handler.AutomaticDecompression = System.Net.DecompressionMethods.None;
+        return contentType.MediaType;
+    }
 }

@@ -38,7 +38,9 @@ namespace BuilderAssistant.Networking
             {
                 string detail = error.ToString();
                 if (detail.Length > 8192) detail = detail.Substring(0, 8192);
-                diagnostics("[BuilderAssistant] Cloud " + code + " stage=" + stage + "\n" + detail);
+                string message = error.Message.Replace('\r', ' ').Replace('\n', ' ');
+                if (message.Length > 240) message = message.Substring(0, 240);
+                diagnostics("[BuilderAssistant] Cloud " + code + " stage=" + stage + " type=" + error.GetType().FullName + " message=" + message + "\n" + detail);
             }
             catch (Exception) { /* Logging must not replace the original failure. */ }
         }

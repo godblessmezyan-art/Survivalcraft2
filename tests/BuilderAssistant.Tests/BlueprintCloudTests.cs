@@ -37,10 +37,24 @@ namespace BuilderAssistant.Tests
         private static async Task TestCloudBlueprints()
         {
             Console.WriteLine("[Cloud blueprint protocol, transport, persistence and failure contracts]");
+            await TestBlueprintHttpPolicy();
             string root = Path.Combine(Path.GetTempPath(), "blueprint-cloud-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             try
             {
+                Check(BlueprintNamePolicy.StableHash("") == "811c9dc5" && BlueprintNamePolicy.StableHash("a") == "2b24d044", "portable filename hashes retain their historical eight-digit form");
+                string recoveryRoot = Path.Combine(root, "recovery");
+                var recovery = new BlueprintCloudCache(recoveryRoot);
+                Check(recovery.Write("page-1.cache", new byte[] { 1 }) && recovery.Write("page-1.cache", new byte[] { 2 }), "cache refresh publishes new completed bytes without File.Replace");
+                string cacheFile = Path.Combine(recoveryRoot, "page-1.cache");
+                File.Move(cacheFile, cacheFile + ".previous");
+                Check(new BlueprintCloudCache(recoveryRoot).Read("page-1.cache")[0] == 2, "restart between cache renames recovers completed predecessor");
+                File.WriteAllBytes(cacheFile + ".previous", new byte[] { 1 });
+                Check(recovery.Read("page-1.cache")[0] == 2 && !File.Exists(cacheFile + ".previous"), "committed cache wins over old predecessor");
+                File.Move(cacheFile, cacheFile + ".previous"); recovery.Delete("page-1.cache");
+                Check(recovery.Read("page-1.cache") == null && !File.Exists(cacheFile + ".previous"), "authoritative deletion cannot resurrect a predecessor");
+                for (int i = 0; i < 130; i++) Check(recovery.Write("page-" + (i + 1) + ".cache", new byte[] { 3 }), "bounded cache write");
+                Check(Directory.GetFiles(recoveryRoot, "*.cache").Length == 128 && recovery.Read("page-130.cache")[0] == 3, "cache eviction preserves refreshed key and 128-file cap");
                 string json = "{\"schemaVersion\":3,\"kind\":\"builderassistant.blueprint\",\"name\":\"云端木屋\",\"size\":{\"x\":1,\"y\":1,\"z\":1},\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"PlanksBlock\"}]}\n";
                 byte[] raw = Encoding.UTF8.GetBytes(json);
                 string meta = "{\"apiVersion\":1,\"id\":\"11111111-1111-4111-8111-111111111111\",\"revision\":1,\"sha256\":\"" + BlueprintCloudProtocol.Hash(raw) + "\",\"name\":\"云端木屋\",\"schemaVersion\":3,\"kind\":\"builderassistant.blueprint\",\"size\":{\"x\":1,\"y\":1,\"z\":1},\"blockCount\":1,\"byteLength\":" + raw.Length + ",\"status\":\"published\"}";
@@ -90,6 +104,7 @@ namespace BuilderAssistant.Tests
                 var downloaded = await client.Download(entry, CancellationToken.None); Check(downloaded.Value != null && downloaded.Value.Json == json && !downloaded.CacheFailed, "download checks SHA, schema, count and dimensions before success");
                 var library = new BlueprintFileLibrary(Path.Combine(root, "library")); string filename, filename2, error;
                 Check(library.SaveExact("cloud-" + entry.Id + "-r1", downloaded.Value.Json, out filename) == null, "download saved in original local file library");
+                Check(File.ReadAllBytes(Path.Combine(root, "library", filename))[0] == (byte)'{', "saved cloud JSON is UTF-8 without a BOM");
                 Check(library.SaveExact("cloud-" + entry.Id + "-r1", downloaded.Value.Json, out filename2) == null && filename2 == filename && library.ListNames(out error).Count == 1, "repeat download of same revision is idempotent");
                 Check(library.SaveExact("cloud-" + entry.Id + "-r1", "changed", out filename2) != null, "local modification is never overwritten by cloud save");
                 var restarted = new BlueprintCloudClient(new BlueprintCloudCache(root), transport); offline = true;
@@ -130,7 +145,7 @@ namespace BuilderAssistant.Tests
                 injected=new HttpRequestException("runtime failure", new MissingMethodException("System.Int32.TryParse"));
                 var missing=await client.List(1,CancellationToken.None);
                 Check(missing.Value==null&&missing.Error.Contains("[BCL]"),"wrapped runtime API failure reports BCL rather than adopting stale cache");
-                Check(logs[logs.Count-1].Contains("stage=http")&&logs[logs.Count-1].Contains("System.Int32.TryParse"),"runtime failure log retains stage, type and missing member");
+                Check(logs[logs.Count-1].Contains("stage=http/send")&&logs[logs.Count-1].Contains("type=System.Net.Http.HttpRequestException message=runtime failure")&&logs[logs.Count-1].Contains("System.Int32.TryParse"),"runtime failure log retains precise stage, type and missing member");
                 injected=new HttpRequestException("TLS",new System.Security.Authentication.AuthenticationException("certificate failure"));
                 Check((await client.List(1,CancellationToken.None)).Error.Contains("[TLS]"),"TLS error is distinguished from JSON and runtime errors");
                 injected=null;overrideBody=Encoding.UTF8.GetBytes("{");

@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-09 Builder Assistant 0.25.2：Android HTTP与云端保存接口
+
+用户明确日志来自建筑助手蓝图云端刷新，`AllowAutoRedirect` setter缺失。新增本工程独立HTTP策略适配，移除三个setter及MediaType getter直接调用；扩大留存Android BCL审计另修复七个文件/格式成员。保留net472/API1.42/SC2.4.10.6、加载器/Hook、ID/GUID、资源、蓝图能力与施工/撤销/权限；缓存改为可恢复两次重命名，不改世界存档。SCIE-Port保持本地0.81.0。
+
+固定Windows环境/Release、3443离线回归、2023最终DLL目标检查/负对照、286 Android快照成员解析及9条目包内容 **已确认**；最终net472 DLL生产目录total=0/非缓存 **已确认**。旧0.25.1源码重建DLL精确检出11缺失成员。Android7723刷新/下载/触屏/重启离线及真实Local/Server/Client **待验证**，不以元数据或Windows请求代替手机。包与精确指纹、命令、安装及待发布边界见[0.25.2专项](BUILDER-CLOUD-HTTP-0.25.2.md)。
+
 ## 2026-11-09 Builder Assistant 0.25.1 / 云端刷新修复
 
 移除请求路径与共用 JSON 字符串解码中的三处 `Int32.TryParse`，补充有界异常日志和 BCL/TLS/TIME/NET/DATA 错误短码；请求白名单、证书校验、响应上限、缓存、导入与施工权限入口保持。无 Hook、身份、资源布局或世界存档变更。用户原始错误尚无手机堆栈，不能断言唯一根因。见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。

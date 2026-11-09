@@ -30,7 +30,7 @@
 
 | 项目 | 简介 | 当前开发基线 | 入口 |
 |:--|:--|:--|:--|
-| 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.24.0** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
+| 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.25.2** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
 | 📚 **云天书典 · Celestial Codex** | 云库与本地TXT/EPUB、触屏阅读、离线缓存与本机续读 | **荒野探险家0.81.0内置；实机待验证** | [整合与使用](SCIE-Port/docs/CELESTIAL-CODEX.md) · [Android HTTP修复](docs/CELESTIAL-CODEX-HTTP-0.1.4.md) |
 | ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与云天书典 | **v0.81.0** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
 | 🏛️ **Survivalcraft Ruins · 遗迹探索** | 在新生成的地形中加入神殿、废墟、险境、守卫与战利品 | **SCNET 移植工程** | [移植说明](SurvivalcraftRuins-Port/README.md) · [独立仓库](https://github.com/godblessmezyan-art/SurvivalcraftRuins) |
@@ -45,7 +45,7 @@
 **从手动摆放数千方块，走向蓝图驱动的自动建造。**
 
 - **蓝图系统：**支持 JSON 蓝图、剪贴板导入、保存与载入本地蓝图库、旋转和落点预览。
-- **云端蓝图库 V1.0（Builder Assistant 0.25.1）：**网站管理员上传/发布，游戏切换本地或云端列表，刷新、下载、SHA-256/revision 校验与离线保存；修复刷新路径中的已知 Android 风险接口并增加错误诊断。沿用既有材料、预览、施工、撤销和权限流程；Windows 编译/公网列表检查与 Android、桌面游戏及联机实测分开记录，详见[专项说明](docs/BUILDER-ASSISTANT-CLOUD-V1.md)。
+- **云端蓝图库 V1.0（Builder Assistant 0.25.2）：**刷新和下载适配Android裁剪HTTP/文件接口，保留SHA-256/revision校验、离线缓存和原材料/预览/施工/撤销/权限流程。Release、离线回归、Android快照审计及Windows公网目录通过；Android/桌面游戏及联机实测待验证，详见[修复与安装](docs/BUILDER-CLOUD-HTTP-0.25.2.md)和[功能说明](docs/BUILDER-ASSISTANT-CLOUD-V1.md)。
 - **参数化生成：**使用建筑工作台生成小屋、两层住宅和自动布置家具的一室一厅住宅。
 - **建筑主题：**大型奇幻树屋「森之王庭」、猫头鹰树屋及其他蓝图示例。
 - **施工能力：**单事务最多 **10,000 方块**，分批施工、清障模式、撤销与回滚。

@@ -1,4 +1,6 @@
-# Builder Assistant 云端蓝图库 V1.0 / Mod 0.25.1
+# Builder Assistant 云端蓝图库 V1.0 / Mod 0.25.2
+
+0.25.2修复用户日志明确的Android HTTP缺失setter，并处理审计发现的文件/格式裁剪成员。最新构建、286成员审计、负对照、缓存恢复、产物与待验证边界见[0.25.2专项](BUILDER-CLOUD-HTTP-0.25.2.md)。下方0.25.1记录保留历史，不代表最新版本的验证范围。
 
 2026-11-09。只在 Builder Assistant 增量接入，书典网络客户端仅作只读参考，无跨工程源码/资源依赖，不改世界二进制存档。
 
@@ -26,7 +28,7 @@
 - 公开 wire `apiVersion=1`，列表 `{page,pageSize,total,items}`。条目包括 UUID v4、正整数 revision、原始字节 SHA-256、schemaVersion/kind、名称、尺寸、展开总格数及 byteLength。必须已发布；2 MiB 网络上限，单次 12 秒截止时间覆盖响应体，UTF-8 严格解码，未知版本、重复字段和过深嵌套均拒绝。
 - 原始蓝图经 `BlueprintImportService.FromString` 唯一解析入口，网络代码只做 JSON 安全守卫和元信息/哈希校验，不另写 cells/家具解析器。下载后在游戏主线程使用 `WorldEditRuntime.QuickValidate`/`QuickAdopt` 复核现有材料/状态，未通过不更新当前蓝图。
 - 请求与结构解析在 Task 后台执行。结果只在 `BlueprintToolDialog.Update` 消费；关闭、世界销毁、换工具、切源或导入剪贴板会取消/丢弃旧请求，后台没有 UI、玩家或地形引用。
-- 私有虚拟目录 `app:/BuilderAssistant/cloud-blueprints`，本地蓝图库为 `app:/BuilderAssistant/blueprints`。缓存只管理 `.cache`，最多 128 个完成文件、32 MiB；文件有界读取、同目录临时写入后原子替换。缓存失败不伪报已离线保存，原有蓝图库文件不受缓存回收影响。目标 `UserDataPath` 是 `app:/UserId.dat` 文件，先以 `Storage.GetDirectoryName` 取得父目录，再通过真实 ABI `Storage.GetSystemPath` 解析为当前平台物理目录；不把虚拟 URI 或该文件名直接交给 System.IO。旧代码拼出的 `app:/UserId.dat/BuilderAssistant/blueprints` 不是有效的游戏蓝图库路径；若曾由外部工具保存到其他位置，可保留原文件并用已有剪贴板导入，不自动移动未知路径。
+- 私有虚拟目录 `app:/BuilderAssistant/cloud-blueprints`，本地蓝图库为 `app:/BuilderAssistant/blueprints`。缓存只管理 `.cache`，最多128个完成文件、32MiB；文件有界读取。0.25.2用完整临时文件与可恢复的 `.previous` 两次重命名替换已裁剪的File.Replace，后续读写恢复中断，权威删除移除两份；不宣称单次原子替换。缓存失败不伪报已离线保存，原有蓝图库文件不受缓存回收影响。目标 `UserDataPath` 是 `app:/UserId.dat` 文件，先以 `Storage.GetDirectoryName` 取得父目录，再通过真实 ABI `Storage.GetSystemPath` 解析为当前平台物理目录；不把虚拟 URI 或该文件名直接交给 System.IO。旧代码拼出的 `app:/UserId.dat/BuilderAssistant/blueprints` 不是有效的游戏蓝图库路径；若曾由外部工具保存到其他位置，可保留原文件并用已有剪贴板导入，不自动移动未知路径。
 - 离线缓存以明确的 ID/revision/SHA 绑定；网络断开、超时或 HTTP 5xx 可回退到同版本已验证快照。HTTP 401/403/404/409、重定向、无效 JSON、哈希或版本不符不会回退旧缓存。玩家已保存的本地副本是独立文件，网站下架不会远程删除这些副本。
 - 网络客户端没有地形网关。原有转向、选点、预览、冲突确认、每批 32 格、每事务 10000 格/每轴 64、取消/撤销和 SCNET 权限入口沿用；远程普通客户端可浏览/下载，原有施工入口仍拒绝写入。
 - 本地目录排序和家具模板生成原有的两个 `List.Sort` 调用改用有界归并排序，保持原来的 Ordinal 名称顺序及 Y/X/Z 方块顺序，避开项目已经记录的 Android BCL 缺失接口；不改变模板形状或材料规则。

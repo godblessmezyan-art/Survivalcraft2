@@ -22,3 +22,6 @@ Place game-independent unit tests here. Tests that require a live SCNET client m
 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-BuilderAssistantStates.ps1 -GameDir <目标目录>`：净化输出的net472测试程序直接调用固定哈希x25.01.17的颜色/轴向/朝向静态API，与生产codec逐项交叉检查；不启动游戏，不加载世界，不复制或提交游戏DLL。此步骤已加入Release打包。
 
 `dotnet tests/BuilderAssistant.Tests/bin/Release/net8.0/BuilderAssistant.Tests.dll --capabilities docs/blueprint-block-capabilities.json`：从生产能力目录导出逐类型精确DATA集合和能力矩阵。Android的触屏/渲染/原生事件/存读档/联机验证仍须单独记录。
+## v0.25.2 云端Android接口
+
+`BlueprintHttpPolicyTests.cs`检查缺setter的后端替身、未知布局/无效设置拒绝、真实loopback禁跳转/无Cookie和JSON类型边界。云端测试覆盖下载/UTF-8无BOM保存/同版本保护、12秒超时、离线/缓存重命名恢复和128文件回收。目标检查显式检查实际打包DLL及旧0.25.1负对照；`scripts/Test-BlueprintCloudAndroidBcl.ps1`对本机提供的三份Android BCL做元数据解析，不允许桌面GAC兜底。实际命令/数量/边界见[0.25.2记录](../docs/BUILDER-CLOUD-HTTP-0.25.2.md)。

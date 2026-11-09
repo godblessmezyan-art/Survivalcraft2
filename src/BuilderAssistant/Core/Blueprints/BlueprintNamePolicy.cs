@@ -110,7 +110,10 @@ namespace BuilderAssistant.Core.Blueprints
                 h ^= (uint)((c >> 8) & 0xFF);
                 h *= 16777619u;
             }
-            return h.ToString("x8");
+            const string digits = "0123456789abcdef";
+            var text = new char[8];
+            for (int i = 7; i >= 0; i--) { text[i] = digits[(int)(h & 15)]; h >>= 4; }
+            return new string(text);
         }
     }
 }

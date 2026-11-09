@@ -21,7 +21,6 @@ $packagePath = Join-Path $artifactsDir 'BuilderAssistant.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Logic.ps1')
-& (Join-Path $PSScriptRoot 'Test-BuilderAssistantStates.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortableFortressWhitebox.ps1') -GameDir $GameDir
 
 New-Item -ItemType Directory -Force -Path $artifactsDir | Out-Null
@@ -47,7 +46,7 @@ if ($null -eq $sdkMsBuild) {
     throw "No installed .NET SDK MSBuild.dll found under $dotnetSdkRoot"
 }
 
-& $dotnetPath $sdkMsBuild.FullName $projectPath /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$buildDir\" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
+& $dotnetPath $sdkMsBuild.FullName $projectPath /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$buildDir/" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) {
     throw "MSBuild failed with exit code $LASTEXITCODE"
 }
@@ -57,6 +56,7 @@ $modInfo = Join-Path $projectDir 'modinfo.json'
 if (-not (Test-Path -LiteralPath $modDll)) {
     throw "Build output not found: $modDll"
 }
+& (Join-Path $PSScriptRoot 'Test-BuilderAssistantStates.ps1') -GameDir $GameDir -AssemblyPath $modDll
 
 Copy-Item -LiteralPath $modDll -Destination $stageDir
 Copy-Item -LiteralPath $modInfo -Destination $stageDir

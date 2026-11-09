@@ -5,6 +5,7 @@
     <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">$(SCNET_GAME_DIR)</SCNetGameDir>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System.Net.Http" />
     <Compile Include="Program.cs" />
     <Compile Include="TerrainMaterialTests.cs" />
     <Compile Include="BlueprintCloudSurfaceTests.cs" />

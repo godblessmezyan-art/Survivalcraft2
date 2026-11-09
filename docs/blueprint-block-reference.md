@@ -1,4 +1,6 @@
-# Builder Assistant 蓝图方块能力清单 v0.24.0
+# Builder Assistant 蓝图方块能力清单 v0.25.2
+
+2026-11-09：Builder Assistant 0.25.2适配Android裁剪HTTP及云端缓存/本地文件接口。无支持方块、族标签、DATA、schema或材料能力变更；仍81种材料、10家具模板、10000格/单轴64及原预算/取消/撤销/权限。云端下载仍通过原导入与材料校验，不能把SCIE-Port家具954/957–970加入蓝图JSON。手机/实际联机待验证，见[修复记录](BUILDER-CLOUD-HTTP-0.25.2.md)。
 
 2026-11-09：Builder Assistant 0.25.1 仅替换云端路径/JSON 转义的数值解码并补充网络诊断；不改变支持材料、族/DATA、schema 1/2/3、81 种材料、10 个家具模板、10000 格/单轴 64 或施工/权限/撤销限制。原始云端蓝图仍经 BlueprintImportService.FromString；Android 刷新和实机流程待复测。
 

@@ -15,6 +15,7 @@ internal static partial class TargetTests
     private static int Main(string[] args)
     {
         string gameDir = args[0];
+        if (args.Length > 1) Environment.SetEnvironmentVariable("BUILDER_CLOUD_DLL", args[1]);
         AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs e)
         {
             string name = new AssemblyName(e.Name).Name;
