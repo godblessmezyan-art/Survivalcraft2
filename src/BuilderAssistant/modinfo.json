@@ -1,8 +1,8 @@
 {
   "Name": "Builder Assistant 建筑助手",
-  "Version": "0.24.0",
+  "Version": "0.25.0",
   "ApiVersion": "1.42",
-  "Description": "建筑助手v0.24.0：新增18种基础地形和装饰材料，共81种；支持土沙、草地、耕地、冰雪、花草、落叶、地毯与石饰，包含精确DATA、支撑排序和施工复核。自然变化保留；Android7723待实测。",
+  "Description": "建筑助手v0.25.0：云端蓝图库V1.0，支持刷新、版本与SHA-256校验、离线缓存和本地保存；既有预览、施工、撤销及联机权限流程沿用。Android7723与游戏内验收待实测。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2",
   "Author": "godblessmezyan-art",

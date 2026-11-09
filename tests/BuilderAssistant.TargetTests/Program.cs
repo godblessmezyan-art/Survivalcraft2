@@ -28,6 +28,12 @@ internal static partial class TargetTests
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void Run()
     {
+        var dataField=typeof(ModsManager).GetField("UserDataPath",BindingFlags.Public|BindingFlags.Static);
+        Check(dataField!=null && dataField.FieldType==typeof(string),"runtime UserDataPath field ABI");
+        Check(Engine.Storage.GetDirectoryName("app:/UserId.dat")=="app:","UserDataPath parent is virtual app root");
+        Check(typeof(Engine.Storage).GetMethod("GetSystemPath",new[] {typeof(string)})!=null,"virtual-to-physical blueprint directory ABI");
+        string resolved=Engine.Storage.GetSystemPath(Engine.Storage.CombinePaths(Engine.Storage.GetDirectoryName("app:/UserId.dat"),"BuilderAssistant/blueprints"));
+        Check(Path.IsPathRooted(resolved) && resolved.IndexOf("UserId.dat",StringComparison.Ordinal)<0,"blueprint path resolves to a physical app directory, not the ID file");
         MethodInfo drawHook=typeof(ModLoader).GetMethod("GuiDraw",new[] { typeof(ComponentGui),typeof(Camera),typeof(int) });
         Check(drawHook!=null && drawHook.IsVirtual && drawHook.ReturnType==typeof(void),"placement GuiDraw loader ABI");
         Check(typeof(Camera).GetProperty("ViewProjectionMatrix").PropertyType==typeof(Engine.Matrix),"placement camera projection ABI");

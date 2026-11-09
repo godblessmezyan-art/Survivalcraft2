@@ -205,6 +205,7 @@ namespace BuilderAssistant.Tests
             TestFurnishedHomes();
             TestFurnitureTemplates();
             TestBlueprintLibraryAndPreview();
+            TestCloudBlueprints().GetAwaiter().GetResult();
             Blueprint blueprint = BuildingGeneratorRegistry.Default.Generate(new GenerationContext(0));
 
             TestCottageShape(blueprint);
