@@ -28,6 +28,7 @@ internal static partial class TargetTests
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private static void Run()
     {
+        TestBlueprintCloudRuntimeSurface();
         var dataField=typeof(ModsManager).GetField("UserDataPath",BindingFlags.Public|BindingFlags.Static);
         Check(dataField!=null && dataField.FieldType==typeof(string),"runtime UserDataPath field ABI");
         Check(Engine.Storage.GetDirectoryName("app:/UserId.dat")=="app:","UserDataPath parent is virtual app root");

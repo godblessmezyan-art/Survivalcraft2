@@ -347,10 +347,18 @@ namespace BuilderAssistant.Core.Json
                             case 't': sb.Append('\t'); break;
                             case 'u':
                                 if (_i + 4 > _s.Length) throw new JsonParseException("truncated \\u escape", _i);
-                                string hex = _s.Substring(_i, 4);
-                                int code;
-                                if (!int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out code))
-                                    throw new JsonParseException("invalid \\u escape '" + hex + "'", _i);
+                                // SCNET Android has known missing System.TryParse members.
+                                // Decode exactly four hexadecimal digits without calling the BCL parser.
+                                int code = 0;
+                                for (int digitIndex = 0; digitIndex < 4; digitIndex++)
+                                {
+                                    char h = _s[_i + digitIndex];
+                                    int digit = h >= '0' && h <= '9' ? h - '0' :
+                                        h >= 'a' && h <= 'f' ? h - 'a' + 10 :
+                                        h >= 'A' && h <= 'F' ? h - 'A' + 10 : -1;
+                                    if (digit < 0) throw new JsonParseException("invalid \\u escape", _i + digitIndex);
+                                    code = (code << 4) | digit;
+                                }
                                 sb.Append((char)code);
                                 _i += 4;
                                 break;

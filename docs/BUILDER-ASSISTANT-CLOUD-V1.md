@@ -1,6 +1,18 @@
-# Builder Assistant 云端蓝图库 V1.0 / Mod 0.25.0
+# Builder Assistant 云端蓝图库 V1.0 / Mod 0.25.1
 
 2026-11-09。只在 Builder Assistant 增量接入，书典网络客户端仅作只读参考，无跨工程源码/资源依赖，不改世界二进制存档。
+
+## 0.25.1：云端刷新修复与诊断
+
+用户反馈 0.25.0 点击云端「刷新」显示「蓝图库响应无效」。线上公开接口返回 HTTP 200、合法 `apiVersion=1` 空目录。旧 DLL 的请求路径校验有两处 `Int32.TryParse`，共用 JSON 字符串解码另有一处；项目已有 Android 缺失 System.TryParse 成员的历史证据，但本次尚无手机异常堆栈，不能据此断言用户故障的唯一根因。
+
+0.25.1 将这三处改为有界 ASCII 十进制/十六进制逐位解码，保留规范路径、溢出拒绝和原 JSON 导入入口。网络错误区分 `[BCL]`、`[TLS]`、`[TIME]`、`[NET]`、`[DATA]`、`[ERR]`，游戏日志以 `[BuilderAssistant] Cloud` 记录 http/decode/cache 阶段与最多 8192 字符异常；日志失败不替换原错。只有网络中断、超时或 HTTP 5xx 可自动回退快照，包在 HttpRequestException 内的运行库异常不会伪装为断网成功。
+
+本轮开发结果：Windows 固定目标环境检查通过；net472 Release 0 警告/0 错误；3292 项离线检查、2024 项目标检查通过。目标检查遍历实际 DLL 的云端/JSON/导入/家具/存储共 47 个类型及其异步状态机，未发现已知缺失 TryParse/Guid.Parse/LINQ/List 辅助接口；旧 0.25.0 DLL 负对照精确检出三处 TryParse 引用。此守卫只覆盖已知风险，不能证明所有 Android 运行库接口兼容。
+
+通过实际 0.25.1 Mod DLL 的 List 方法直连生产 HTTPS，得到 total=0、非缓存结果；没有运行游戏进程或加载世界。没有已发布样本，因此本轮公网验证仅覆盖列表读取，未验证公网下载、手机刷新、触屏、施工、联机或重启离线完整流程。原有模拟网络、schema 1/2/3、SHA、版本隔离、材料/预览/权限检查继续通过。
+
+开发检查可用 `BUILDER_CLOUD_LIVE=1` 启用真实 HTTPS 列表探针；`BUILDER_CLOUD_LEGACY_DLL` 可指定本地保留的旧 DLL 做负对照（均不提交二进制）。本地开发日志在 `artifacts/blueprint-cloud-0251-{environment,logic,target}.log`；完成开发检查后单独编译打包 `artifacts/BuilderAssistant-0.25.1.netmod`，未创建 GitHub Release，不运行发布路径的测试或安装包审计。手机需更新包并重启后再次点击「刷新」；如仍失败，记录错误短码和上述游戏日志，不能以 Windows 请求成功替代手机验收。
 
 ## 使用
 
@@ -34,7 +46,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-BuilderAssi
 dotnet run --project tests/BuilderAssistant.Tests/BuilderAssistant.Tests.csproj -c Release
 ```
 
-网络测试使用模拟 HttpMessageHandler；真实服务契约另由 Digital-Study 隔离 MySQL/Nest 响应文件交叉导入，不能将其称为游戏已联网测试。历史目标程序集证据只覆盖已登记哈希的 Windows 版本，不能自动套用于 7723 重新打包客户端。
+离线网络测试使用模拟 HttpMessageHandler；真实服务契约另由 Digital-Study 隔离 MySQL/Nest 响应文件交叉导入。0.25.1 新增实际 Mod DLL 的 Windows 公网列表探针，不能将其称为游戏或 Android 已联网测试。历史目标程序集证据只覆盖已登记哈希的 Windows 版本，不能自动套用于 7723 重新打包客户端。
 
 | 场景 | 自动/开发覆盖 | 实机状态 |
 |---|---|---|
@@ -47,4 +59,4 @@ dotnet run --project tests/BuilderAssistant.Tests/BuilderAssistant.Tests.csproj 
 
 实机使用新建可丢弃世界，分别记录目标安装包指纹、角色和实际结果。下载失败、无效 JSON、旧 revision、不支持材料时观察当前蓝图保持；断网重启从本地列表加载；重复下载查看仅有一份同版本文件；Client 可以浏览，但不能进入施工。此版本不能标为 Android 或联机兼容已确认。
 
-本轮结果：Windows 已登记的 x25.01.17 三程序集哈希匹配，net472 Release 0 警告/0 错误，2018 项目标静态检查通过（含虚拟路径到物理路径解析），3258 项离线检查通过（包含真实 Nest/MySQL 响应交叉导入）。本地编译后用 `python artifacts/package-cloud-blueprints.py` 仅打包 BuilderAssistant DLL、modinfo 和原 Assets，产出 `artifacts/BuilderAssistant-0.25.0.netmod`（2412144 字节），未创建 GitHub Release，未运行游戏或 Android。安装包生成与开发测试为分离步骤，没有调用荒野探险家发布流程或其旧全量构建脚本。
+0.25.0 历史开发结果：Windows 已登记的 x25.01.17 三程序集哈希匹配，net472 Release 0 警告/0 错误，2018 项目标静态检查通过（含虚拟路径到物理路径解析），3258 项离线检查通过（包含真实 Nest/MySQL 响应交叉导入）。本地编译后用 `python artifacts/package-cloud-blueprints.py` 仅打包 BuilderAssistant DLL、modinfo 和原 Assets，产出 `artifacts/BuilderAssistant-0.25.0.netmod`（2412144 字节），未创建 GitHub Release，未运行游戏或 Android。安装包生成与开发测试为分离步骤，没有调用荒野探险家发布流程或其旧全量构建脚本。

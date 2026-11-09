@@ -47,6 +47,11 @@ namespace BuilderAssistant.Tests
                 byte[] catalog = Encoding.UTF8.GetBytes("{\"apiVersion\":1,\"page\":1,\"pageSize\":20,\"total\":1,\"items\":[" + meta + "]}");
                 var entry = BlueprintCloudProtocol.Entry(JsonValue.Parse(meta));
                 Check(BlueprintCloudProtocol.Download(raw, entry).Blueprint.CellCount == 1, "cloud bytes use the existing BlueprintImportService");
+                byte[] escaped = Encoding.UTF8.GetBytes(json.Replace("云端木屋", "\\u4e91\\u7aef\\u6728\\u5C4B"));
+                var escapedEntry = BlueprintCloudProtocol.Entry(JsonValue.Parse(meta));escapedEntry.Sha256=BlueprintCloudProtocol.Hash(escaped);escapedEntry.ByteLength=escaped.Length;
+                Check(BlueprintCloudProtocol.Download(escaped,escapedEntry).Blueprint.Name==entry.Name,"Unicode escaped cloud JSON reuses importer without System.TryParse");
+                bool invalidEscape=false;try{JsonValue.Parse("{\"name\":\"\\uZZZZ\"}");}catch(JsonParseException){invalidEscape=true;}
+                Check(invalidEscape,"invalid hexadecimal escape remains rejected");
                 foreach (int schema in new[] { 1, 2, 3 })
                 {
                     byte[] legacy = Encoding.UTF8.GetBytes(json.Replace("\"schemaVersion\":3", "\"schemaVersion\":" + schema));
@@ -57,22 +62,31 @@ namespace BuilderAssistant.Tests
                 Check(rejected("{\"a\":1,\"a\":2}") && rejected("{\"a\":" + new string('[', 33) + "0" + new string(']', 33) + "}"), "duplicate keys and deep JSON rejected before canonical import");
                 foreach (string endpoint in new[] { "http://wxhappylife.top/api/game-blueprints/v1/blueprints", "https://evil.test/api/game-blueprints/v1/blueprints", BlueprintCloudTransport.DefaultEndpoint + "/../books", BlueprintCloudTransport.DefaultEndpoint + "?x=1" })
                 { bool failed = false; try { new BlueprintCloudTransport(endpoint); } catch (InvalidDataException) { failed = true; } Check(failed, "endpoint outside exact HTTPS allowlist rejected"); }
-                bool offline = false, block = false, streamed = false, slowBody = false; int status = 200, calls = 0; byte[] overrideBody = null; string type = "application/json";
+                bool offline = false, block = false, streamed = false, slowBody = false; int status = 200, calls = 0; byte[] overrideBody = null; string type = "application/json";Exception injected=null;
                 var transport = new BlueprintCloudTransport(BlueprintCloudTransport.DefaultEndpoint, () => new CloudTestHandler { Respond = async (request, token) =>
                 {
                     calls++;
                     Check(request.RequestUri.Host == "wxhappylife.top" && request.RequestUri.Scheme == "https", "request never leaves approved HTTPS source");
                     Check(request.Headers.AcceptEncoding.ToString() == "identity" && request.Headers.Authorization == null, "public mod request has no credentials and disables compression");
+                    if(injected!=null)throw injected;
                     if (offline) throw new HttpRequestException("offline");
                     if (block) await Task.Delay(30000, token);
                     byte[] bytes=overrideBody ?? (request.RequestUri.AbsolutePath.EndsWith("/json", StringComparison.Ordinal) ? raw : catalog);
                     var response = new HttpResponseMessage((HttpStatusCode)status) { Content = streamed ? (HttpContent)new CloudTestBody(bytes,slowBody) : new ByteArrayContent(bytes) };
                     response.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(type); return response;
                 } });
-                var cache = new BlueprintCloudCache(root); var client = new BlueprintCloudClient(cache, transport);
+                var logs=new System.Collections.Generic.List<string>();
+                var cache = new BlueprintCloudCache(root); var client = new BlueprintCloudClient(cache, transport, logs.Add);
                 bool badPath = false; try { await transport.Get("/../books", CancellationToken.None); } catch (InvalidDataException) { badPath = true; }
                 Check(badPath && calls == 0, "path traversal rejected before HTTP");
+                foreach(string path in new[]{"?page=01&pageSize=20","?page=0&pageSize=20","?page=10001&pageSize=20","?page=2147483648&pageSize=20","?page=+1&pageSize=20","?page=１&pageSize=20","/"+entry.Id+"/json?revision=01","/"+entry.Id+"/json?revision=2147483647","/"+entry.Id+"/json?revision=2147483648"})
+                {bool rejectedPath=false;try{await transport.Get(path,CancellationToken.None);}catch(InvalidDataException){rejectedPath=true;}Check(rejectedPath&&calls==0,"strict canonical numeric path rejected before HTTP: "+path);}
+                foreach (string path in new[] { "?page=10000&pageSize=20", "/" + entry.Id + "/json?revision=2147483646" })
+                    Check((await transport.Get(path, CancellationToken.None)).Length > 0, "canonical maximum numeric path remains supported");
                 var page = await client.List(1, CancellationToken.None); Check(page.Value != null && !page.Offline, "published paginated catalog decoded and cached");
+                injected = new IOException("connection reset during response body");
+                Check((await client.List(1, CancellationToken.None)).Offline, "interrupted response stream falls back to verified cache");
+                injected = null;
                 var downloaded = await client.Download(entry, CancellationToken.None); Check(downloaded.Value != null && downloaded.Value.Json == json && !downloaded.CacheFailed, "download checks SHA, schema, count and dimensions before success");
                 var library = new BlueprintFileLibrary(Path.Combine(root, "library")); string filename, filename2, error;
                 Check(library.SaveExact("cloud-" + entry.Id + "-r1", downloaded.Value.Json, out filename) == null, "download saved in original local file library");
@@ -112,6 +126,18 @@ namespace BuilderAssistant.Tests
                     Check(canceled, "dialog cancellation aborts request without cached adoption");
                 }
                 block = false;
+                await client.List(1, CancellationToken.None);
+                injected=new HttpRequestException("runtime failure", new MissingMethodException("System.Int32.TryParse"));
+                var missing=await client.List(1,CancellationToken.None);
+                Check(missing.Value==null&&missing.Error.Contains("[BCL]"),"wrapped runtime API failure reports BCL rather than adopting stale cache");
+                Check(logs[logs.Count-1].Contains("stage=http")&&logs[logs.Count-1].Contains("System.Int32.TryParse"),"runtime failure log retains stage, type and missing member");
+                injected=new HttpRequestException("TLS",new System.Security.Authentication.AuthenticationException("certificate failure"));
+                Check((await client.List(1,CancellationToken.None)).Error.Contains("[TLS]"),"TLS error is distinguished from JSON and runtime errors");
+                injected=null;overrideBody=Encoding.UTF8.GetBytes("{");
+                Check((await client.List(1,CancellationToken.None)).Error.Contains("[DATA]")&&logs[logs.Count-1].Contains("stage=decode"),"invalid JSON has DATA feedback and decode-stage diagnostics");
+                overrideBody=null;
+                var brokenSink=new BlueprintCloudClient(cache,transport,s=>{throw new IOException("log unavailable");});injected=new MissingMethodException("test");
+                Check((await brokenSink.List(1,CancellationToken.None)).Error.Contains("[BCL]"),"broken diagnostic sink cannot replace the underlying error");injected=null;
                 var unsupported = BlueprintImportService.FromString(json.Replace("PlanksBlock", "Nonexistent"), k => k != "Nonexistent");
                 Check(!unsupported.Success, "current material callback rejects unsupported cloud material");
                 var terrain = new FakeTerrain();

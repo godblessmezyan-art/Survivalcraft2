@@ -36,7 +36,7 @@ namespace BuilderAssistant.Infrastructure
         internal static BlueprintCloudClient CloudClient()
         {
             string root = BaseDirectory;
-            return new BlueprintCloudClient(new BlueprintCloudCache(string.IsNullOrEmpty(root) ? null : Path.Combine(Path.GetDirectoryName(root), "cloud-blueprints")));
+            return new BlueprintCloudClient(new BlueprintCloudCache(string.IsNullOrEmpty(root) ? null : Path.Combine(Path.GetDirectoryName(root), "cloud-blueprints")), null, message => Engine.Log.Error(message));
         }
         public static Blueprint LoadBlueprint(string stem, out string error)
         {
