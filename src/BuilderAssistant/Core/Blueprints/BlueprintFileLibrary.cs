@@ -29,7 +29,7 @@ namespace BuilderAssistant.Core.Blueprints
             {
                 if (Directory.Exists(directory))
                     foreach (string f in Directory.GetFiles(directory, "*.json")) names.Add(Path.GetFileNameWithoutExtension(f));
-                names.Sort(StringComparer.Ordinal);
+                BlueprintPortableSort.Sort(names, string.CompareOrdinal);
             }
             catch (Exception e) { error = "列举蓝图失败：" + e.Message; }
             return names;
@@ -75,6 +75,32 @@ namespace BuilderAssistant.Core.Blueprints
                 return File.ReadAllText(path, Encoding.UTF8);
             }
             catch (Exception e) { error = "读取蓝图失败：" + e.Message; return null; }
+        }
+
+        // Deterministic cloud names are idempotent. A changed local file is never overwritten.
+        internal string SaveExact(string stem, string json, out string filename)
+        {
+            filename = null;
+            if (string.IsNullOrEmpty(directory)) return "游戏尚未提供用户数据目录。";
+            string pending = null;
+            try
+            {
+                string path = FilePath(stem); Directory.CreateDirectory(directory);
+                if (File.Exists(path))
+                {
+                    string error; string saved = Load(stem, out error);
+                    if (error != null) return error;
+                    if (saved != json) return "同版本本地文件已被修改，请先重命名或移走该文件。";
+                }
+                else
+                {
+                    pending = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
+                    File.WriteAllText(pending, json, new UTF8Encoding(false)); File.Move(pending, path);
+                }
+                filename = stem + ".json"; return null;
+            }
+            catch (Exception e) { return "保存云端蓝图失败：" + e.Message; }
+            finally { if (pending != null) try { if (File.Exists(pending)) File.Delete(pending); } catch (Exception) { } }
         }
 
         public string Delete(string stem)

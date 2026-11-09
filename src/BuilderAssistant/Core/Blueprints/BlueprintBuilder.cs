@@ -140,7 +140,7 @@ namespace BuilderAssistant.Core.Blueprints
                 list.Add(new BlueprintCell(kv.Key, c.MaterialKey, c.Family, c.Data));
             }
             // Deterministic ordering so a blueprint rebuilds identically every time.
-            list.Sort(delegate(BlueprintCell a, BlueprintCell b)
+            BlueprintPortableSort.Sort(list, delegate(BlueprintCell a, BlueprintCell b)
             {
                 int byY = a.Relative.Y.CompareTo(b.Relative.Y);
                 if (byY != 0) return byY;

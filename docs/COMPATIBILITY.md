@@ -1,5 +1,16 @@
 # 兼容性矩阵
 
+## 2026-11-09 Builder Assistant 0.25.0 / 云端蓝图库 V1.0
+
+只扩展 Builder Assistant 的网络、私有缓存与蓝图管理界面；不修改世界二进制存档、Hook、GUID、方块 ID、施工/撤销协议或 SCNET 权限管线。新增框架 `System.Net.Http` 引用，包仍只有 BuilderAssistant 自身 DLL/modinfo/Assets，不引用书典或 SCIEPort。详见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 目标引用及 net472 Release 编译 | 已确认 | `Test-Environment.ps1` 三个登记 Windows 哈希匹配；0 警告、0 错误；目标静态 ABI 2018 项通过，含 app 虚拟目录转换；无游戏进程。 |
+| 云端协议、限流响应、12 秒响应体超时、断网缓存、版本隔离、重复下载与原有核心流程 | 已确认 | 开发离线/模拟 HTTP 检查通过；不代表游戏联网或设备兼容。 |
+| 桌面游戏及 Android SCNET x25.01.17/7723 | 待验证 | 下载、预览、施工、重启离线、运行时目录和原子文件替换未经过真实游戏/手机。 |
+| Local/Server/普通 Client 的实机行为和触屏/多分辨率 | 待验证 | 沿用权限入口；普通客户端写地形仍不支持。 |
+
 ## 2026-11-08 荒野探险家0.81.0：合并远端本地书库
 
 远端main `6a6f715` 的TXT/EPUB本地书库与PixelFX合入统一SCIEPort；保留本地0.80.1的家居和联机修复、书典Android HTTP修复、原有身份与进度。新增System.IO.Compression/System.Xml框架引用，手机端运行库、文件夹映射、触屏及真实Local/Server/Client **待验证**；固定Windows ABI/Release/离线回归与包内容 **已确认**。老独立书典同装 **不支持**。具体哈希、边界与安装参见[移植记录](../SCIE-Port/docs/TEST-RESULTS.md)。
