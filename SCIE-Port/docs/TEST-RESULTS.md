@@ -1,5 +1,18 @@
 # 测试结果
 
+## 2026-11-11 main 0.80.0：天工绘卷与普通玩家联机施工
+
+基线 `3b6b08e`，Builder Assistant 0.25.1 蓝图相关源码经本次用户专项授权独立适配到 SCIEPort；建筑助手工程及资产未改。功能、PixelFX选型、协议/存档边界和精确命令见[天工绘卷](TIANGONG-BLUEPRINT.md)。
+
+- `scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17` 通过，Windows三已知程序集哈希匹配，API1.42 / SC2.4.10.6 / net472。
+- `dotnet run --project SCIE-Port/tests/SCIEPort.Blueprints.Tests/SCIEPort.Blueprints.Tests.csproj -c Release -- E:/SCNET/SCNETx25.01.17 E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll`：最终 **750** 项通过。实际目标游戏类型/包编解码/ID碰撞、模拟非管理员普通玩家主机事务、按人撤销/变更保护/故障与断线回滚、未完成撤销锁、分片/超时/重放/边界/权限、文件库及只读分批复制、生成PNG原生解码与alpha/3D网格/属性、云端模拟HTTP与缓存检查；没有真实房间或Android设备。
+- `dotnet run --project SCIE-Port/tests/SCIEPort.Inventory.Tests -c Release --nologo`：**793** 项通过，包含957专属Tiangong主题及原有圣兽配色。
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll`：**439** 项原生图谱身份/权限/输入/存档检查、**1347** 项兼容解析、**27** 项GUID/API审计通过；扫描3801个编译方法/29780调用位点，没有已知BCL TryParse或Guid/UInt32 Parse调用。新掩码bit8保留旧八位和uint字段布局。
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WildernessExplorerFast.ps1 -GameDir E:/SCNET/SCNETx25.01.17`：编译 **0警告/0错误**，生成 `SCIE-Port/artifacts/荒野探险家-0.80.0.netmod`，11,633,555字节；复制正式名 `荒野探险家.netmod`。快建路径只编译和压包，未运行测试/安装包审计，未生成SHA附件，也未创建GitHub Release。上面的测试是发布流程外的手动开发验证。
+
+Android7723、实际触屏与多分辨率、真实Local/Server/普通Client/旁观及晚加入、房间延迟/同步、长时性能及跨世界释放均为**待验证**。原生ChangeCell发送SubsystemTerrainPackage的固定ABI取证和模拟权威格子成功，不代表真实客户端已接收结果。仅可按未经实机测试的开发包使用；不得宣传手机或联机兼容验收已完成。
+
+
 ## 2026-11-06 main 0.78.0：其它神器PixelFX与共用预算
 
 基线`db11fe8`/0.77.1。按开发规范先检查并记录候选，再为圣剑/昆古尼尔/波塞冬/阿比斯接入6种固定MIT效果；工具类双眼/图谱评估后不加召唤光柱。选型分别写入四神器专项与[本轮总记录](PIXELFX-ARTIFACTS-0.78.0.md)。九效果共用1024×2048/186帧/8MiB图集、单世界池/三档总预算，补晚包剩余帧与定长精灵事件门。原3D、伤害/冷却/默认属性、权限、存档、物品身份、Hook和240–254协议保持。

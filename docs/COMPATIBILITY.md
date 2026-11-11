@@ -1,5 +1,17 @@
 # 兼容性矩阵
 
+## 2026-11-11 荒野探险家 0.80.0：天工绘卷与普通玩家联机施工
+
+新增不可放置957/DATA0、CSV/XDB与独立蓝图模块；SCIEPort内部身份不变。新增 `GuiDraw(ComponentGui, Camera, int)` Hook（沿用已核对的建筑助手目标ABI），世界 `SubsystemBlueprintArtifact : SubsystemBlockBehavior, IUpdateable` 主线程推进；新增239号包（固定Windows实际原生+本模组类型取证无冲突）。既有240–254号包ID和字段布局不变；图谱254的原uint掩码追加bit8，旧八位及旧存档保持，合法掩码上限511。同房必须统一0.80.0，旧版混装不支持。原生 `SubsystemTerrain.ChangeCell(..., true, miner)` 在Server端调用并发送 `SubsystemTerrainPackage`；预览、确认、逐格执行及撤销校验原生领地权限。新包不能以仅本地预览证明同步已成功。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17三程序集、net472 Release编译 | 已确认 | Test-Environment通过、登记哈希匹配；0警告/0错误。 |
+| 原生包编解码、ID/ABI、模拟远端玩家主机事务、图谱旧位、蓝图库/云端失败与缓存 | 已确认 | 离线/原生隔离检查，详细命令见[专项](../SCIE-Port/docs/TIANGONG-BLUEPRINT.md)；未启动真实房间。 |
+| Android7723、触屏多分辨率、真实Local/Server/普通Client及晚加入 | 待验证 | 须使用新建可丢弃世界，记录各端精确程序集和同版本包；无实机结果。 |
+| 旧版混装及把957/其它模组物品写入蓝图 | 不支持 | 239通道和第九图谱位需要同版本；蓝图仍为原81种材料/10模板。 |
+
+
 ## 2026-11-09 Builder Assistant 0.25.1 / 云端刷新修复
 
 移除请求路径与共用 JSON 字符串解码中的三处 `Int32.TryParse`，补充有界异常日志和 BCL/TLS/TIME/NET/DATA 错误短码；请求白名单、证书校验、响应上限、缓存、导入与施工权限入口保持。无 Hook、身份、资源布局或世界存档变更。用户原始错误尚无手机堆栈，不能断言唯一根因。见 [专项记录](BUILDER-ASSISTANT-CLOUD-V1.md)。

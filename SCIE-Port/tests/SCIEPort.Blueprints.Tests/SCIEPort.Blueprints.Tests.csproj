@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net472</TargetFramework>
+    <AssemblyName>SCIEPort.Blueprints.Tests</AssemblyName>
+    <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SCIEPort/SCIEPort.csproj" Private="false"/>
+    <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
+    <Reference Include="System.Net.Http"/>
+    <Reference Include="Engine"><HintPath>$(SCNetGameDir)/Engine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="EntitySystem"><HintPath>$(SCNetGameDir)/EntitySystem.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>

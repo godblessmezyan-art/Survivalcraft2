@@ -1,5 +1,10 @@
 # SCIE-Port 移植工作区规范
 
+## 2026-11-11 天工绘卷蓝图移植专项授权
+
+用户明确要求将建筑助手的全部蓝图能力开发为荒野探险家神器，并要求普通联机玩家也可使用。本专项允许把蓝图、材料/家具契约、导入导出、云端库及安全施工相关原创源码**独立适配**至 `SCIE-Port/src/SCIEPort/Features/Blueprints/`；不跨工程 ProjectReference/源码 Link，不打包 BuilderAssistant.dll 或其它建筑助手资产，不合并快艇、房屋/巨树生成器及建筑工作台。建筑助手的原目录、独立包与发行边界保持。普通客户端通过主机鉴权、预览确认及分批事务施工，不直接写客户端地形。专项见 `SCIE-Port/docs/TIANGONG-BLUEPRINT.md`（本目录中见 `docs/TIANGONG-BLUEPRINT.md`）。
+
+
 > **2026-11-08 最新 Release 规则：**按用户要求，快速发布流程跳过测试及 .netmod 包校验，只进行编译、打包和上传；旧全量测试/资产检查保留供手动质量验证，但不由自动 Release 调用。此举不代表 Android 兼容或已完成书典合包。参见根 `AGENTS.md` 与 `docs/NETMOD-RELEASE.md`。
 
 ## 最新统一产品约定（优先执行）

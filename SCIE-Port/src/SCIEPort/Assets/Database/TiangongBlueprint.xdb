@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SCIEPortTiangongBlueprint>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortTiangongBlueprint" Guid="68d11fdd-4136-42f4-91bd-ebcb746a69b5" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="4199d57e-b884-49f3-a9dc-f3278bd70045" Value="SCIEPort.Features.Blueprints.SubsystemBlueprintArtifact" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortTiangongBlueprint" Guid="ff15327e-b5e6-4fd8-b9ce-3e6e5317081b" InheritanceParent="68d11fdd-4136-42f4-91bd-ebcb746a69b5"/>
+  </ProjectTemplate>
+</SCIEPortTiangongBlueprint>

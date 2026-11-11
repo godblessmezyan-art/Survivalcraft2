@@ -1,5 +1,17 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-11 荒野探险家 0.80.0：天工绘卷与普通玩家联机施工
+
+新增不可放置957/DATA0、CSV/XDB与独立蓝图模块；SCIEPort内部身份不变。新增 `GuiDraw(ComponentGui, Camera, int)` Hook（沿用已核对的建筑助手目标ABI），世界 `SubsystemBlueprintArtifact : SubsystemBlockBehavior, IUpdateable` 主线程推进；新增239号包（固定Windows实际原生+本模组类型取证无冲突）。既有240–254号包ID和字段布局不变；图谱254的原uint掩码追加bit8，旧八位及旧存档保持，合法掩码上限511。同房必须统一0.80.0，旧版混装不支持。原生 `SubsystemTerrain.ChangeCell(..., true, miner)` 在Server端调用并发送 `SubsystemTerrainPackage`；预览、确认、逐格执行及撤销校验原生领地权限。新包不能以仅本地预览证明同步已成功。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17三程序集、net472 Release编译 | 已确认 | Test-Environment通过、登记哈希匹配；0警告/0错误。 |
+| 原生包编解码、ID/ABI、模拟远端玩家主机事务、图谱旧位、蓝图库/云端失败与缓存 | 已确认 | 离线/原生隔离检查，详细命令见[专项](TIANGONG-BLUEPRINT.md)；未启动真实房间。 |
+| Android7723、触屏多分辨率、真实Local/Server/普通Client及晚加入 | 待验证 | 须使用新建可丢弃世界，记录各端精确程序集和同版本包；无实机结果。 |
+| 旧版混装及把957/其它模组物品写入蓝图 | 不支持 | 239通道和第九图谱位需要同版本；蓝图仍为原81种材料/10模板。 |
+
+
 ## 2026-11-06 SCIE-Port 0.78.0：PixelFX多神器共用场景
 
 圣剑/昆古尼尔/波塞冬/阿比斯增加6种圣光/水浪/暗影片段，与雷锤3种合并为186帧、单1024×2048图集/8MiB、单世界池/绘制预算。资源路径和176条目布局保持，JSON与生成帧表更新，原78帧RGBA不变。已接受施法/旧演出入口只加6行表现调用，32文件剥离这些行后匹配db11fe8；原35守卫仍匹配7b77b7c。原3D、伤害/冷却/默认属性、ID/DATA/GUID、存档、包与Hook均保持。
