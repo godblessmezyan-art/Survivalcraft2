@@ -1,0 +1,312 @@
+{
+  "baseline": "3b6b08e05f83049cec51d83866c9dc89b67075d0",
+  "module": "Builder Assistant 0.25.1 blueprint-only adaptation authorized 2026-11-11",
+  "project_reference": false,
+  "files": [
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/BlueprintCopier.cs",
+      "source_sha256": "3f87bd6ff0aabe141776fac6f389046bad1f755f440995f509f8796d86f4696d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/BlueprintCopier.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/BlueprintPlacementSession.cs",
+      "source_sha256": "58d6efc65f6fdfe3789d8a238972e6cf563babb9933528f2d4c263630d166a11",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/BlueprintPlacementSession.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/BlueprintPreviewControls.cs",
+      "source_sha256": "c716e39eb0cb0c45f4947a4c6a4d908ba60ed40adf97fbd7af320120d91bc8f7",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/BlueprintPreviewControls.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/BlueprintToolBlock.cs",
+      "source_sha256": "5b1c7f834d584bf846bcb43cb3aa2f36bfef6a3820cdf62bbed60930c213fc11",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/BlueprintToolBlock.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/BlueprintToolDialog.cs",
+      "source_sha256": "5bc47da1ebd034091ea2eee09b50e9819ef23408155f33bc7942cc7b8a5ef963",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/BlueprintToolDialog.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/GameInterop.cs",
+      "source_sha256": "acfe9241e84a1cb1bc85f8c9ee123cbff18b8ac6c2bcdb77831115965ee5e189",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/GameInterop.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/GameTerrainGateway.cs",
+      "source_sha256": "0fb3f8e83546048ce543df4be541684cb66b00a999e8b3c8013700b35564bcbe",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/GameTerrainGateway.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/VanillaBlockPalette.cs",
+      "source_sha256": "7b5e5545cb88002a15de5e94de29fe2938194b9876b8aefc8ce5dc68b8fbc89a",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/VanillaBlockPalette.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/VanillaBlockRegistry.cs",
+      "source_sha256": "235205fc7b5a8781c3113099131078c765c9398444723b0250d4ceaa72c06c8c",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/VanillaBlockRegistry.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/VanillaSupportRules.cs",
+      "source_sha256": "477dee808b9765a1b99ab882aa4b9b8e40572be3d1904932d8bce5c98fd23092",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/VanillaSupportRules.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Features/WorldEdit/WorldEditRuntime.cs",
+      "source_sha256": "7e0d2a85cde860d16a6384a59627e95b326a2c33005c91b6ac81eaab4e778503",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/WorldEditRuntime.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/CellPos.cs",
+      "source_sha256": "d7feba97a8d75b1249255dfa8b464b1ced8e419e5ab209bc67f6eb3ca3865b31",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/CellPos.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/AttachmentRules.cs",
+      "source_sha256": "f563ffa493586e33eee4179ce855cfd4b0b98ee9241ccb745acceecc98098e17",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/AttachmentRules.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlockOrientation.cs",
+      "source_sha256": "c052acdfb1070119dc4a336fee7d4e285970363bfc24302c6c3735290fefb767",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlockOrientation.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/Blueprint.cs",
+      "source_sha256": "9027a0ba715cb4ba8d869c93e45d25e8d67bb60dd41ff8fb528793e28aed333d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/Blueprint.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintBuilder.cs",
+      "source_sha256": "a6269f6655135110ac230d9cea9fb4baaecb8945da650f8371d4af9f9892ee8d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintBuilder.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintCell.cs",
+      "source_sha256": "f5fb1426066ac64f8bf878ffdd6955ef204073a9f84cc46d0a67f7ce2157564d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintCell.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintFileLibrary.cs",
+      "source_sha256": "aedac662af480cc470f4e287a75f8aaf3c82261fbb1ec097fba05557d26cbf3b",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintFileLibrary.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintImportService.cs",
+      "source_sha256": "aca48e2835a1b559ae76abba72c00c0d8fb75581f14a1b7b04c6526cbad963c4",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintImportService.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintJson.cs",
+      "source_sha256": "8d48778d37eb0e1b72658761648535fbef0221cb1fd1c03121cd9dc124be64df",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintJson.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintLibraryBrowser.cs",
+      "source_sha256": "2b83ed9c09e2721a6c9a20aca3c192773c87fe3e807d3b88f1e4ce7e91e04ddf",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintLibraryBrowser.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintNamePolicy.cs",
+      "source_sha256": "12ddae998a986b3dc9acb2eebbde3b09495fdde16f7d50e7797afa9ea1a65a32",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintNamePolicy.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BlueprintPortableSort.cs",
+      "source_sha256": "cf637c60aaf77058e1dc412647d15234cd7bac2da574c2e2c3d3459d0899fa4c",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintPortableSort.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/BuildingMaterials.cs",
+      "source_sha256": "5b74e0be88e3f8864b8e3c6435f6fb474140701ed8e161bad0da4152a3fac340",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BuildingMaterials.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Blueprints/VanillaBlockCapabilities.cs",
+      "source_sha256": "c19e70d8cf6b6260688d559c9dd2ef74ce9eb8a5421b25ecef5db9841e4e8f5d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/VanillaBlockCapabilities.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/BuildEngine/BuildPlan.cs",
+      "source_sha256": "dd10a7f4dd5862375fbf7133d3d0071230ec0ff00c8a0278fd81279cf5ba5807",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/BuildEngine/BuildPlan.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/BuildEngine/BuildPlanner.cs",
+      "source_sha256": "992aa8094d8fb8c7c4a6bf2f165bdc7cd563e7202becb6eaafc6e3c7d625d8aa",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/BuildEngine/BuildPlanner.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/BuildEngine/BuildTask.cs",
+      "source_sha256": "c593ce53ea845af5c4d5f297550aedb3bf18685eaf1edf63c7fad45aad153332",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/BuildEngine/BuildTask.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/BuildEngine/BuildTaskState.cs",
+      "source_sha256": "1e4d21637e6aaa634da833009205871707ccdf0bf30869b3a6e7b57c63d6d9ea",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/BuildEngine/BuildTaskState.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/BuildEngine/TransactionHistory.cs",
+      "source_sha256": "6df564cd193e2ed7eb2b6428f8706d0d341d8303fc31e14e63e1cbfb9fee941d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/BuildEngine/TransactionHistory.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Building/MaterialCatalog.cs",
+      "source_sha256": "4a7604a1f735f86b911e7ae8811ebdd94ba017d5c8c141042f7e40bd289a72bd",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Building/MaterialCatalog.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Furniture/FurniturePlacement.cs",
+      "source_sha256": "4c98ac69dd6fd593740a2c478b25434c0e60b8d188b0d44929e6704030005ca4",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Furniture/FurniturePlacement.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Furniture/FurniturePlacementResolver.cs",
+      "source_sha256": "c1781dda107d0ffa62fa19719f0d4973d3a3edf60322ff0db930f7eb6b28d759",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Furniture/FurniturePlacementResolver.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Furniture/FurnitureTemplate.cs",
+      "source_sha256": "c980354b5ed20126a5850fc42a9a52621346e5535c486668e8dbf7f49caa8d8d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Furniture/FurnitureTemplate.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Furniture/FurnitureTemplateRegistry.cs",
+      "source_sha256": "73befe990ba7fd00e67324d1fe4627ee91590541723b3f97c2e16bfb00a9744d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Furniture/FurnitureTemplateRegistry.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Json/Json.cs",
+      "source_sha256": "ef039b9149969f79fb3d93d8e9e960c7adf9177049430744a91cffd449374559",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Json/Json.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Safety/BuildSafetyLimits.cs",
+      "source_sha256": "0e1d9407b06e1f46bc4d5d606d48a8ccef798fd439f112499c73337b6b63f713",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Safety/BuildSafetyLimits.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Safety/TerrainAuthority.cs",
+      "source_sha256": "7a4c59c0fe168fa83f8af62775df189c303abd5cfe10256fc383e4a8098375d8",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Safety/TerrainAuthority.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Safety/WorldBounds.cs",
+      "source_sha256": "2048e3d9b8acb216c10aefb9a4db05c293d5e2bf627ad1745aabf058a768c8bd",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Safety/WorldBounds.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Transactions/BlockUndoRecord.cs",
+      "source_sha256": "9e7c8276acb0f56c21c308a7bd7cf85dcecda7cbbe99700f46808a7d2ed3b538",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Transactions/BlockUndoRecord.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Transactions/CellEditability.cs",
+      "source_sha256": "78179088a23714ecd40844245bfd576086cbe535f00918b92d7a135299280402",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Transactions/CellEditability.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Transactions/IBlockValueResolver.cs",
+      "source_sha256": "28572844a8343743025e5e28220f30240bf3beaf705508acdd71935eb79689fd",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Transactions/IBlockValueResolver.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Transactions/IConstructionTerrainGateway.cs",
+      "source_sha256": "b21f4e0e16a741e70660fac93254d247e09179c4c5935b13949919f0deb4a147",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Transactions/IConstructionTerrainGateway.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Transactions/ITerrainGateway.cs",
+      "source_sha256": "5f0fd26164ecb48d0da66ae5222974ce763b2e1003e0688e0c7c50e026031539",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Transactions/ITerrainGateway.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Core/Workbench/BlueprintPlacementPreview.cs",
+      "source_sha256": "36c17956685c65e6d19086b8c4b3d324f83a18a4a3ce3a380e68964d8f9b8513",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Workbench/BlueprintPlacementPreview.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Infrastructure/BlueprintStorage.cs",
+      "source_sha256": "9530729eac9528974275a90f2e4092970954f0d8bbd1aae7987f547591d1ab2d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Infrastructure/BlueprintStorage.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Networking/BlueprintCloudCache.cs",
+      "source_sha256": "43c5318efac4ce41481f8f0548016fa8360c3f45c333511dcfae7dcbd467da22",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudCache.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Networking/BlueprintCloudClient.cs",
+      "source_sha256": "50d6b40582165d94b192d22a8c3bbe356082286725c7321baea09bcda084f36e",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudClient.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Networking/BlueprintCloudModels.cs",
+      "source_sha256": "324a14764d1bc938c9ff06feb273308bf789d65d3bdbb5b9c7185bb8b2ae9fcb",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudModels.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Networking/BlueprintCloudTransport.cs",
+      "source_sha256": "c723b65d018a1a813bcc5b8a0301c93c9e51b79e2fdc282cdbd933c5abed857d",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudTransport.cs"
+    },
+    {
+      "source": "src/BuilderAssistant/Networking/BlueprintNetworkFailure.cs",
+      "source_sha256": "f0a0000d7a47c40a7de41de93ff0889a6850c1b8d7a65b1512b4233af6d4c2f3",
+      "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintNetworkFailure.cs"
+    }
+  ],
+  "runtime_compatibility_adaptation": {
+    "date": "2026-11-12",
+    "reference_commit": "a708c90",
+    "reference_version": "Builder Assistant 0.25.2",
+    "cross_project_reference": false,
+    "independent_copies": [
+      {
+        "source": "src/BuilderAssistant/Networking/BlueprintCloudCache.cs",
+        "source_sha256": "0bb9f9eefeed2fec384b0a7e890271cad7d8b8d58741b11baffd728e4263252f",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudCache.cs",
+        "adapted_sha256_lf": "1e0cf40b2382ea8802f2b50087e2be35cf81ee4e320fe2caae6506976cf62e5a"
+      },
+      {
+        "source": "src/BuilderAssistant/Networking/BlueprintCloudClient.cs",
+        "source_sha256": "69ec1a12b08f3cad1f7b0b214ff8620ab6c6403326f77c156b96054253404313",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudClient.cs",
+        "adapted_sha256_lf": "f9d5dd7e57f5828144bc8469a26853742aa87a2f096a871d14e9dca7e682545a"
+      },
+      {
+        "source": "src/BuilderAssistant/Networking/BlueprintCloudTransport.cs",
+        "source_sha256": "7bae3c1de460d1de78cd455732847ef2130149125096b46dc829ed238ccf708d",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintCloudTransport.cs",
+        "adapted_sha256_lf": "3eb3ecb9b3ad32bd3aac73338140ecd5ad8d7c564fa962a47826393408b969f3"
+      },
+      {
+        "source": "src/BuilderAssistant/Networking/BlueprintHttpPolicy.cs",
+        "source_sha256": "7476ed4a7ccf6de6fe84bc9175d55219397e9baa9abe8ec0c9e7577896667c62",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintHttpPolicy.cs",
+        "adapted_sha256_lf": "3fb12a7a3f13931bf7f099e608ef74602fc01dd7d14e9921c16563feea37a53c"
+      },
+      {
+        "source": "src/BuilderAssistant/Networking/BlueprintNetworkFailure.cs",
+        "source_sha256": "1135597979bbfd97f82aec50f3b37aa692f77a3de78b95baebf35332c83535a6",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Networking/BlueprintNetworkFailure.cs",
+        "adapted_sha256_lf": "1275e2e875e900035e527a6b65c47fc8ee9c386ccb207ad0f61fef2a4477a4c7"
+      },
+      {
+        "source": "src/BuilderAssistant/Core/Blueprints/BlueprintFileLibrary.cs",
+        "source_sha256": "90001af337864c23b1c8eaf6b816cf5920536c45f3638383a91bf5286556ba97",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintFileLibrary.cs",
+        "adapted_sha256_lf": "d4fd9e93390b4cbc29d7883c61f75cd0d839c7f0eae32966e688c1053a671305"
+      },
+      {
+        "source": "src/BuilderAssistant/Core/Blueprints/BlueprintNamePolicy.cs",
+        "source_sha256": "0c834e983df62b8af3de6ff3cf6df80b459f33553baa1a26568bf75ee420b339",
+        "adapted": "SCIE-Port/src/SCIEPort/Features/Blueprints/Core/Blueprints/BlueprintNamePolicy.cs",
+        "adapted_sha256_lf": "14be70e08310cd691b589124ee0bb8410863efcf0de6c51dee02bd017324cb36"
+      }
+    ]
+  }
+}

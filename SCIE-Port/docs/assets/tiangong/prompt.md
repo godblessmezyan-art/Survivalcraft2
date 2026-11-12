@@ -1,0 +1,5 @@
+# image_gen 原始提示词
+
+2026-11-11，内置 `image_gen.imagegen`，`transparent_background=true`。原始输出实际1254×1254，保留原图；运行图仅RGBA/Lanczos缩小到256×256，未以程序绘画代替生图。
+
+Create a final game UI skill icon for a Survivalcraft Android fantasy building artifact called Tiangong Blueprint Scroll. Single square 1024x1024 transparent PNG, one centered round medallion with deep midnight teal interior and restrained antique gold rim. A distinctly recognizable unrolled dark cyan blueprint parchment with short ivory scroll rollers, glowing mint isometric miniature block-built cottage wireframe and drafting compass motif, premium hand-painted voxel fantasy aesthetic, crisp strong silhouette readable at 72 pixels, elegant cyan turquoise and antique gold, slight dimensional shading, very restrained bloom. Icon fills central 85 percent of canvas, circle boundary clean and fully within frame. No text, no letters, no numbers, no watermark, no multiple icons, no mockup background. Outside circular medallion truly transparent. This is a usable production game UI bitmap, not concept art.

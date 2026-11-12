@@ -114,6 +114,11 @@ def main():
     baseline = json.loads((TOOLS / 'gameplay-baseline.json').read_text('utf-8'))
     for path, expected in baseline['files'].items():
         source = (PROJECT / path).read_bytes().replace(b'\r\n', b'\n')
+        if path == 'Features/Inventory/PortInventoryRules.cs':
+            # Only Tiangong's additive theme registration is excluded; all old themes stay frozen.
+            source = source.replace(b'Codex, CelestialCodex, Tiangong }', b'Codex, CelestialCodex }')
+            source = source.replace(b'                case 971:return Theme.Tiangong;\n', b'')
+            source = source.replace(b'                case Theme.Tiangong:return Pair(9,55,63,210,8,20,22,10,213,173,82,235,20,25,28,15,pulse);\n', b'')
         if path.startswith('Features/Stormhammer/') and path.endswith('.cs'):
             # Only the explicit additive integration lines are removable. All preexisting code stays frozen.
             source = source.replace(b'using SCIEPort.Features.PixelFx;\n', b'')

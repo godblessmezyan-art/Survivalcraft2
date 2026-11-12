@@ -9,7 +9,7 @@ namespace SCIEPort.Features.Inventory
         internal const string Tools = "SCIEPort.Tools", Home = "SCIEPort.Home";
         internal static readonly string[] Categories = { Artifacts, Vehicles, Saints, "SCIEPort.Plants", "SCIEPort.Food", "SCIEPort.Materials", "SCIEPort.Industry", "SCIEPort.Building", Home, "SCIEPort.Creatures", Tools, "SCIEPort.Misc" };
         internal static readonly string[] Labels = { "神器", "载具", "圣兽套装", "生态植物", "食材", "工业材料", "工业部件", "建筑装置", "家居", "生物生成", "实用工具", "移植杂项" };
-        internal enum Theme { None, Mjolnir, FalseHammer, Gungnir, Poseidon, OmniscientEye, DevouringEye, AbyssReaper, Qinglong, Xuanwu, Baihu, Zhuque, Artifact, Excalibur, Codex, CelestialCodex }
+        internal enum Theme { None, Mjolnir, FalseHammer, Gungnir, Poseidon, OmniscientEye, DevouringEye, AbyssReaper, Qinglong, Xuanwu, Baihu, Zhuque, Artifact, Excalibur, Codex, CelestialCodex, Tiangong }
         internal struct Rgba
         {
             internal byte R,G,B,A;
@@ -33,6 +33,7 @@ namespace SCIEPort.Features.Inventory
                 case 953:return Theme.Excalibur;
                 case 955:return Theme.Codex;
                 case 956:return Theme.CelestialCodex;
+                case 971:return Theme.Tiangong;
                 default:return category==Artifacts ? Theme.Artifact : Theme.None;
             }
         }
@@ -49,6 +50,7 @@ namespace SCIEPort.Features.Inventory
                 case Theme.OmniscientEye:return Pair(12,24,64,205,9,16,25,15,185,132,60,225,46,54,40,25,pulse);
                 case Theme.DevouringEye:return Pair(28,16,48,205,15,9,24,15,156,113,68,225,38,24,52,25,pulse);
                 case Theme.AbyssReaper:return Pair(36,18,65,205,16,9,27,15,166,125,216,225,34,32,30,25,pulse);
+                case Theme.Tiangong:return Pair(9,55,63,210,8,20,22,10,213,173,82,235,20,25,28,15,pulse);
                 case Theme.Codex:return Pair(35,26,65,210,10,10,20,10,221,181,91,235,15,20,25,15,pulse);
                 case Theme.CelestialCodex:return Pair(22,48,67,210,8,12,18,10,219,191,121,235,15,20,25,15,pulse);
                 case Theme.Excalibur:return Pair(167,126,48,210,20,22,12,15,247,220,139,235,8,20,32,20,pulse);

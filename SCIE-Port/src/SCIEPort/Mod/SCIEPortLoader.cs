@@ -5,6 +5,7 @@ using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
 using SCIEPort.Features.Excalibur;
 using SCIEPort.Features.Codex;
+using SCIEPort.Features.Blueprints;
 using SCIEPort.Features.Suspension;
 using SCIEPort.Features.Home;
 using SCIEPort.Features.Inventory;
@@ -50,6 +51,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new CodexPackage());
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
+                PackageManager.RegisterPackage(new BlueprintPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -64,6 +66,7 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("SubsystemUpdate", this);
             ModsManager.RegisterHook("GuiUpdate", this);
             ModsManager.RegisterHook("OnModelAnimate", this);
+            ModsManager.RegisterHook("GuiDraw", this);
             ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
             ModsManager.RegisterHook("ModelShaderParameter", this);
             ModsManager.RegisterHook("ChangeSkyColor", this);
@@ -103,7 +106,7 @@ namespace SCIEPort.Mod
             }
             float frequency = fourSaints != null ? fourSaints.AttackFrequency(player) : (contents == StormhammerAwakenedBlock.Index ? StormhammerEquipmentRules.AttackSpeedFactor : 1f);
             // Artifact default attack speed: the plain hammer and the trident each add their own 10%.
-            if (contents == ArtifactCodexBlock.Index || contents == OmniscientEyeBlock.Index || contents == DevouringEyeBlock.Index) frequency *= 1.1f;
+            if (contents == ArtifactCodexBlock.Index || contents == OmniscientEyeBlock.Index || contents == DevouringEyeBlock.Index || contents == BlueprintToolBlock.Index) frequency *= 1.1f;
             else if (contents == StormhammerBlock.Index) frequency *= StormhammerEquipmentRules.AttackSpeedFactor;
             else if (contents == PoseidonBlock.Index) frequency *= PoseidonRules.AttackSpeedFactor;
             else if (contents == AbyssReaperBlock.Index) frequency *= 1.1f;
@@ -203,6 +206,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void GuiUpdate(ComponentGui componentGui)
         {
+            componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemBlueprintArtifact>(false)?.TickGui(componentGui);
             SubsystemSuspendedItem.AdaptGui(componentGui);
             SubsystemHomeFurniture.AdaptGui(componentGui);
             componentGui?.m_componentPlayer?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.SeatGui(componentGui);
@@ -222,6 +226,12 @@ namespace SCIEPort.Mod
         public override void OnModelAnimate(ComponentCreatureModel model, out bool skip)
         {
             skip = model?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.AnimateSeat(model) == true;
+        }
+
+        /// <inheritdoc />
+        public override void GuiDraw(ComponentGui gui, Camera camera, int order)
+        {
+            gui?.m_componentPlayer?.Project.FindSubsystem<SubsystemBlueprintArtifact>(false)?.Draw(gui,camera,order);
         }
 
         /// <inheritdoc />

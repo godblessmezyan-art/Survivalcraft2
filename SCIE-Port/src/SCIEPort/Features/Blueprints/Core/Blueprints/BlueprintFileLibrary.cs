@@ -1,0 +1,124 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+
+namespace SCIEPort.Features.Blueprints.Core.Blueprints
+{
+    /// <summary>Game-independent file operations, scoped to one blueprint directory.</summary>
+    internal sealed class BlueprintFileLibrary
+    {
+        private readonly string directory;
+        public BlueprintFileLibrary(string directory) { this.directory = directory; }
+
+        private string FilePath(string stem)
+        {
+            // Never sanitize a selected name into a DIFFERENT file when loading/deleting.
+            if (string.IsNullOrEmpty(stem) || stem.IndexOfAny(new[] { '/', '\\', ':' }) >= 0 ||
+                stem == "." || stem == ".." || Path.GetFileName(stem) != stem)
+                throw new IOException("蓝图文件名无效。");
+            return Path.Combine(directory, stem + ".json");
+        }
+
+        public List<string> ListNames(out string error)
+        {
+            error = null;
+            var names = new List<string>();
+            if (string.IsNullOrEmpty(directory)) { error = "游戏尚未提供用户数据目录。"; return names; }
+            try
+            {
+                if (Directory.Exists(directory))
+                    foreach (string f in Directory.GetFiles(directory, "*.json")) names.Add(Path.GetFileNameWithoutExtension(f));
+                BlueprintPortableSort.Sort(names, string.CompareOrdinal);
+            }
+            catch (Exception e) { error = "列举蓝图失败：" + e.Message; }
+            return names;
+        }
+
+        public string Save(string name, string json, out string filename)
+        {
+            filename = null;
+            if (string.IsNullOrEmpty(directory)) return "游戏尚未提供用户数据目录。";
+            try
+            {
+                Directory.CreateDirectory(directory);
+                string error, collision;
+                var existing = ListNames(out error);
+                if (error != null) return error;
+                string stem = BlueprintNamePolicy.ResolveUnique(name, existing, out collision);
+                string path = FilePath(stem);
+                // Write fully before publishing the .json so interrupted saves cannot appear valid.
+                string pending = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
+                try
+                {
+                    WriteUtf8(pending, json);
+                    File.Move(pending, path); // fails rather than overwriting, including races
+                }
+                finally { if (File.Exists(pending)) File.Delete(pending); }
+                filename = stem + ".json";
+                return null;
+            }
+            catch (Exception e) { return "保存蓝图失败：" + e.Message; }
+        }
+
+        public string Load(string stem, out string error)
+        {
+            error = null;
+            if (string.IsNullOrEmpty(directory)) { error = "游戏尚未提供用户数据目录。"; return null; }
+            try
+            {
+                string path = FilePath(stem);
+                if (!File.Exists(path)) { error = "找不到蓝图文件：" + stem + ".json"; return null; }
+                // UTF-8 uses at most four bytes per character; reject oversized disk input before allocation.
+                if (new FileInfo(path).Length > BlueprintImportService.MaxImportChars * 4L)
+                { error = "蓝图文件过大。"; return null; }
+                using (var input = new StreamReader(path, Encoding.UTF8)) return input.ReadToEnd();
+            }
+            catch (Exception e) { error = "读取蓝图失败：" + e.Message; return null; }
+        }
+
+        // Deterministic cloud names are idempotent. A changed local file is never overwritten.
+        internal string SaveExact(string stem, string json, out string filename)
+        {
+            filename = null;
+            if (string.IsNullOrEmpty(directory)) return "游戏尚未提供用户数据目录。";
+            string pending = null;
+            try
+            {
+                string path = FilePath(stem); Directory.CreateDirectory(directory);
+                if (File.Exists(path))
+                {
+                    string error; string saved = Load(stem, out error);
+                    if (error != null) return error;
+                    if (saved != json) return "同版本本地文件已被修改，请先重命名或移走该文件。";
+                }
+                else
+                {
+                    pending = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
+                    WriteUtf8(pending, json); File.Move(pending, path);
+                }
+                filename = stem + ".json"; return null;
+            }
+            catch (Exception e) { return "保存云端蓝图失败：" + e.Message; }
+            finally { if (pending != null) try { if (File.Exists(pending)) File.Delete(pending); } catch (Exception) { } }
+        }
+
+        public string Delete(string stem)
+        {
+            if (string.IsNullOrEmpty(directory)) return "游戏尚未提供用户数据目录。";
+            try
+            {
+                string path = FilePath(stem);
+                if (!File.Exists(path)) return "找不到蓝图文件：" + stem + ".json";
+                File.Delete(path);
+                return null;
+            }
+            catch (Exception e) { return "删除蓝图失败：" + e.Message; }
+        }
+        private static void WriteUtf8(string path, string json)
+        {
+            using (var stream = File.Open(path, FileMode.CreateNew))
+            using (var writer = new StreamWriter(stream, new UTF8Encoding(false))) writer.Write(json);
+        }
+    }
+}

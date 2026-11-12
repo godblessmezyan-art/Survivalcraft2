@@ -1,0 +1,398 @@
+using System.Collections.Generic;
+using System.Text;
+using SCIEPort.Features.Blueprints.Core.Blueprints;
+using SCIEPort.Features.Blueprints.Core.Safety;
+using SCIEPort.Features.Blueprints.Core.Transactions;
+
+namespace SCIEPort.Features.Blueprints.Core.BuildEngine
+{
+    /// <summary>
+    /// Turns a blueprint + anchor into a validated list of absolute writes
+    /// WITHOUT touching the world. Every rule from AGENTS.md is enforced here
+    /// so the executor never has to re-check policy: hard block cap, per-axis
+    /// selection cap, world-height bounds, chunk-loaded checks, the "no default
+    /// overwrite of non-air" rule, and material resolvability.
+    /// </summary>
+    /// <remarks>
+    /// The editability pass used to short-circuit on the first bad cell and report
+    /// a single collapsed "目标区块未加载或越界", which could not distinguish a
+    /// height overflow from an extent error from a chunk the engine simply has not
+    /// streamed in yet. It now classifies EVERY target cell and aggregates the
+    /// result, so a failure states exactly which checks fired, on which chunks,
+    /// within which bounding box, and whether waiting for the engine could help.
+    /// Crucially the write list is still only ever returned when ALL cells pass, so
+    /// "no writes before full validation" is unchanged.
+    /// </remarks>
+    internal static class BuildPlanner
+    {
+        public static BuildPlan Plan(
+            Blueprint blueprint,
+            CellPos origin,
+            IBlockValueResolver resolver,
+            ITerrainGateway gateway,
+            bool allowOverride)
+        {
+            return Plan(blueprint, origin, resolver, gateway, allowOverride, false);
+        }
+
+        /// <summary>
+        /// Validates a blueprint at an anchor with no writes. <c>allowOverride</c> is the
+        /// full-overwrite mode (any non-air target may be replaced; unchanged v0.6.x opt-in).
+        /// <c>clearSoftObstructions</c> is v0.6.3 clear-soft: when NOT in full override it
+        /// still lets the plan replace walk-through plants/snow (non-collidable, non-fluid),
+        /// while solid terrain and player structures remain refused.
+        /// </summary>
+        public static BuildPlan Plan(
+            Blueprint blueprint,
+            CellPos origin,
+            IBlockValueResolver resolver,
+            ITerrainGateway gateway,
+            bool allowOverride,
+            bool clearSoftObstructions)
+        {
+            if (blueprint == null || blueprint.CellCount == 0)
+            {
+                return BuildPlan.Fail("蓝图空或无效");
+            }
+
+            if (blueprint.CellCount > BuildSafetyLimits.MaxBlocksPerOperation)
+            {
+                return BuildPlan.Fail(
+                    "方块数量 " + blueprint.CellCount + " 超过每事务上限 " + BuildSafetyLimits.MaxBlocksPerOperation);
+            }
+
+            if (blueprint.SizeX > BuildSafetyLimits.MaxSelectionAxisLength ||
+                blueprint.SizeY > BuildSafetyLimits.MaxSelectionAxisLength ||
+                blueprint.SizeZ > BuildSafetyLimits.MaxSelectionAxisLength)
+            {
+                return BuildPlan.Fail("蓝图尺寸超过单轴上限 " + BuildSafetyLimits.MaxSelectionAxisLength);
+            }
+
+            var changes = new List<PlannedChange>(blueprint.CellCount);
+            var editabilityFailures = new List<CellEditability>();
+
+            // Validate empty space inside furniture bounding boxes as well. These cells
+            // are reserved for clearance, never written or cleared by the template.
+            if (blueprint.FurniturePlacements.Count > 0)
+            {
+                var written = new HashSet<CellPos>();
+                foreach (BlueprintCell cell in blueprint.Cells) written.Add(cell.Relative);
+                foreach (CellPos relative in blueprint.FurnitureFootprint)
+                {
+                    if (written.Contains(relative)) continue;
+                    CellPos absolute = origin.Add(relative);
+                    CellEditability eco = gateway.InspectCell(absolute);
+                    if (!eco.IsEditable) editabilityFailures.Add(eco);
+                    else if (!allowOverride && !gateway.IsCellAir(absolute) &&
+                        !(clearSoftObstructions && gateway.IsCellSoftObstruction(absolute)))
+                        return BuildPlan.Fail(blueprint.FurnitureContext(relative) + "家具净空被占用: " + absolute);
+                }
+            }
+
+            // First-failure trackers for the two non-editability policies. We keep
+            // only the first of each so the reported reason stays concise, while
+            // still scanning every cell to collect the full editability breakdown.
+            bool sawHardBlocked = false;
+            CellPos firstHardBlocked = default(CellPos);
+            bool sawSoftBlocked = false;
+            CellPos firstSoftBlocked = default(CellPos);
+            int softBlockedCount = 0;
+            int softClearedCount = 0;
+            bool sawUnknownMaterial = false;
+            string firstUnknownMaterial = null;
+            string firstResolutionError = null;
+
+            int cellCount = blueprint.CellCount;
+            for (int i = 0; i < cellCount; i++)
+            {
+                BlueprintCell cell = blueprint.Cells[i];
+                CellPos absolute = origin.Add(cell.Relative);
+
+                CellEditability eco;
+                if (!WorldBounds.IsYValid(absolute.Y))
+                {
+                    eco = new CellEditability(absolute, CellEditabilityStatus.InvalidY);
+                }
+                else
+                {
+                    eco = gateway.InspectCell(absolute);
+                }
+
+                if (!eco.IsEditable)
+                {
+                    editabilityFailures.Add(eco);
+                    continue;
+                }
+
+                if (!allowOverride && !gateway.IsCellAir(absolute))
+                {
+                    bool soft = gateway.IsCellSoftObstruction(absolute);
+                    if (soft && clearSoftObstructions)
+                    {
+                        // Opt-in clear-soft: this walk-through plant/snow cell will be
+                        // replaced. Fall through to the material-resolve + write path.
+                        softClearedCount++;
+                    }
+                    else if (soft)
+                    {
+                        // A plant/snow is in the way but clear-soft is off: report it
+                        // separately so the UI can offer to enable clearing.
+                        if (!sawSoftBlocked)
+                        {
+                            sawSoftBlocked = true;
+                            firstSoftBlocked = absolute;
+                        }
+                        softBlockedCount++;
+                        continue;
+                    }
+                    else
+                    {
+                        // Solid terrain / player structure: never touched by default.
+                        if (!sawHardBlocked)
+                        {
+                            sawHardBlocked = true;
+                            firstHardBlocked = absolute;
+                        }
+                        continue;
+                    }
+                }
+
+                int value;
+                // Pass the cell's authored orientation (data 0 for plain cubes). Door
+                // cells are emitted bottom-first: blueprint cells are sorted by ascending
+                // Y, so the lower door half is always written before the upper, and the
+                // engine's SubsystemDoorBlockBehavior auto-creates the matching top cell.
+                string resolutionError;
+                if (!resolver.TryResolve(
+                        cell.MaterialKey, cell.Family, cell.Data, out value, out resolutionError))
+                {
+                    if (!sawUnknownMaterial)
+                    {
+                        sawUnknownMaterial = true;
+                        firstUnknownMaterial = cell.MaterialKey;
+                        firstResolutionError = resolutionError;
+                    }
+                    continue;
+                }
+
+                changes.Add(new PlannedChange(absolute, value, cell.Family, cell.Data, blueprint.FurnitureContext(cell.Relative)));
+            }
+
+            // Editability problems are reported first and with full detail: they are
+            // the historical "目标区块未加载或越界" class and the most actionable.
+            if (editabilityFailures.Count > 0)
+            {
+                bool allRecoverable = true;
+                for (int i = 0; i < editabilityFailures.Count; i++)
+                {
+                    if (!editabilityFailures[i].IsRecoverableByWaiting)
+                    {
+                        allRecoverable = false;
+                        break;
+                    }
+                }
+
+                string reason = ComposeEditabilityReason(
+                    blueprint, origin, cellCount, editabilityFailures, allRecoverable);
+                return BuildPlan.Fail(reason, editabilityFailures, allRecoverable);
+            }
+
+            if (sawHardBlocked)
+            {
+                return BuildPlan.Fail(blueprint.FurnitureContext(new CellPos(firstHardBlocked.X - origin.X, firstHardBlocked.Y - origin.Y, firstHardBlocked.Z - origin.Z)) + "目标为实心方块/玩家建筑，默认不覆盖: " + firstHardBlocked);
+            }
+
+            if (sawSoftBlocked)
+            {
+                return BuildPlan.FailSoftBlocked(
+                    "目标有 " + softBlockedCount + " 处植被/积雪覆盖（示例 " + firstSoftBlocked +
+                    "），默认不清理；开启「清理植被」后可重建。");
+            }
+
+            if (sawUnknownMaterial)
+            {
+                return BuildPlan.Fail(!string.IsNullOrEmpty(firstResolutionError)
+                    ? firstResolutionError
+                    : ("未知材料键: " + firstUnknownMaterial));
+            }
+
+            // Synchronously generated door tops belong to this transaction even though JSON stores only bottoms.
+            var footprint = new HashSet<CellPos>();
+            foreach (PlannedChange c in changes) footprint.Add(c.Absolute);
+            foreach (PlannedChange c in changes)
+            {
+                if (c.Family != BlockFamily.Door) continue;
+                CellPos top = c.Absolute.Add(new CellPos(0, 1, 0));
+                if (footprint.Contains(top)) return BuildPlan.Fail("门上半格与计划冲突: " + top);
+                if (!WorldBounds.IsYValid(top.Y) || top.Y - origin.Y >= BuildSafetyLimits.MaxSelectionAxisLength ||
+                    !gateway.IsCellEditable(top) || !gateway.IsCellAir(top))
+                    return BuildPlan.Fail("门关联上半格越界、未就绪或非空气: " + top);
+                footprint.Add(top);
+            }
+            if (footprint.Count > BuildSafetyLimits.MaxBlocksPerOperation)
+                return BuildPlan.Fail("含引擎关联格的事务超过上限 " + BuildSafetyLimits.MaxBlocksPerOperation);
+
+            string dependencyError;
+            if (!OrderByDependencies(changes, gateway, out dependencyError))
+                return BuildPlan.Fail(dependencyError);
+            return BuildPlan.Ok(changes, softClearedCount);
+        }
+
+        private static bool OrderByDependencies(List<PlannedChange> changes, ITerrainGateway gateway, out string error)
+        {
+            error = null;
+            var indices = new Dictionary<CellPos, int>();
+            for (int i = 0; i < changes.Count; i++)
+            {
+                if (indices.ContainsKey(changes[i].Absolute)) { error = "计划坐标重复"; return false; }
+                indices.Add(changes[i].Absolute, i);
+            }
+            var outgoing = new List<int>[changes.Count];
+            var indegree = new int[changes.Count];
+            var semantics = gateway as IConstructionTerrainGateway;
+            for (int i = 0; i < changes.Count; i++)
+            {
+                PlannedChange c = changes[i];
+                CellPos support;
+                int face;
+                if (!AttachmentRules.TryGetSupport(c.Absolute, c.Family, c.Data, out support, out face)) continue;
+                int parent, supportValue;
+                if (indices.TryGetValue(support, out parent))
+                {
+                    if (string.IsNullOrEmpty(c.Context) && !string.IsNullOrEmpty(changes[parent].Context))
+                    {
+                        error = "结构依附方块不能依赖后建家具: " + c.Absolute;
+                        return false;
+                    }
+                    supportValue = changes[parent].Value;
+                    if (outgoing[parent] == null) outgoing[parent] = new List<int>();
+                    outgoing[parent].Add(i);
+                    indegree[i]++;
+                }
+                else if (!gateway.TryGetCellValue(support, out supportValue))
+                {
+                    error = "依附方块支撑格不可读取: " + support;
+                    return false;
+                }
+                if (semantics == null || !semantics.SupportsAttachment(supportValue, c.Family, face))
+                {
+                    error = "依附方块缺少有效支撑: " + c.Absolute + " -> " + support;
+                    return false;
+                }
+            }
+            var ready = new Queue<int>();
+            for (int i = 0; i < changes.Count; i++) if (indegree[i] == 0) ready.Enqueue(i);
+            var ordered = new List<PlannedChange>(changes.Count);
+            while (ready.Count > 0)
+            {
+                int i = ready.Dequeue();
+                ordered.Add(changes[i]);
+                if (outgoing[i] == null) continue;
+                foreach (int child in outgoing[i]) if (--indegree[child] == 0) ready.Enqueue(child);
+            }
+            if (ordered.Count != changes.Count) { error = "依附方块存在循环支撑"; return false; }
+            changes.Clear();
+            // Keep the established dependency order within each phase. Structural
+            // attachments must finish before any furniture, even if queued later.
+            foreach (PlannedChange c in ordered) if (string.IsNullOrEmpty(c.Context)) changes.Add(c);
+            foreach (PlannedChange c in ordered) if (!string.IsNullOrEmpty(c.Context)) changes.Add(c);
+            return true;
+        }
+
+        private static string ComposeEditabilityReason(
+            Blueprint blueprint,
+            CellPos origin,
+            int cellCount,
+            List<CellEditability> failures,
+            bool allRecoverable)
+        {
+            var sb = new StringBuilder();
+            sb.Append("目标区块未就绪或越界：").Append(cellCount)
+              .Append(" 格中有 ").Append(failures.Count).Append(" 格不可编辑。");
+
+            sb.Append(" 落点原点=").Append(origin)
+              .Append("，包围盒 X[").Append(origin.X).Append("..").Append(origin.X + blueprint.SizeX - 1)
+              .Append("] Y[").Append(origin.Y).Append("..").Append(origin.Y + blueprint.SizeY - 1)
+              .Append("] Z[").Append(origin.Z).Append("..").Append(origin.Z + blueprint.SizeZ - 1)
+              .Append("]。");
+
+            sb.Append(" 分类统计：").Append(DescribeCounts(failures)).Append("。");
+
+            sb.Append(" 示例：").Append(DescribeExamples(failures)).Append("。");
+
+            if (allRecoverable)
+            {
+                sb.Append(" 结论：目标区块仍在生成中（State 未到 Valid 或方块数据尚未分配），并非坐标越界。无需改动落点；")
+                  .Append("请让角色靠近该区域（走/瞬移到目标点）等引擎把区块生成完成后重试即可。本次未改动任何方块。");
+            }
+            else
+            {
+                sb.Append(" 结论：含越界/无效格（高度或生成范围），等待无法解决，需调整落点或建筑尺寸。");
+            }
+
+            return sb.ToString();
+        }
+
+        private static string DescribeCounts(List<CellEditability> failures)
+        {
+            // Fixed order mirrors the enum so the log reads consistently.
+            int[] counts = new int[7]; // index == (int)CellEditabilityStatus
+            for (int i = 0; i < failures.Count; i++)
+            {
+                int idx = (int)failures[i].Status;
+                if (idx >= 0 && idx < counts.Length)
+                {
+                    counts[idx]++;
+                }
+            }
+
+            var sb = new StringBuilder();
+            AppendCount(sb, counts, (int)CellEditabilityStatus.InvalidY, "高度越界");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.InvalidCell, "超出有效范围");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.TerrainNull, "地形未就绪");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkMissing, "区块缺失");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkStateNotReady, "区块状态未就绪");
+            AppendCount(sb, counts, (int)CellEditabilityStatus.ChunkContentsNotReady, "区块内容未就绪");
+            if (sb.Length == 0)
+            {
+                sb.Append("无");
+            }
+            return sb.ToString();
+        }
+
+        private static void AppendCount(StringBuilder sb, int[] counts, int idx, string label)
+        {
+            if (counts[idx] <= 0)
+            {
+                return;
+            }
+            if (sb.Length > 0)
+            {
+                sb.Append("、");
+            }
+            sb.Append(label).Append(counts[idx]).Append("格");
+        }
+
+        private static string DescribeExamples(List<CellEditability> failures)
+        {
+            // Show up to 3 distinct-status examples so the caller sees the shape of
+            // the problem without a 470-line log.
+            var sb = new StringBuilder();
+            var seen = new HashSet<CellEditabilityStatus>();
+            for (int i = 0; i < failures.Count && seen.Count < 3; i++)
+            {
+                CellEditability f = failures[i];
+                if (!seen.Add(f.Status))
+                {
+                    continue;
+                }
+                if (sb.Length > 0)
+                {
+                    sb.Append("；");
+                }
+                sb.Append(f.Describe());
+            }
+            return sb.Length > 0 ? sb.ToString() : "无";
+        }
+    }
+}

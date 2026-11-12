@@ -32,7 +32,7 @@ namespace SCIEPort.Features.Codex
         internal void ReadRecords(ValuesDictionary values)
         {
             if(values==null)return;
-            foreach(var pair in values){Guid guid;uint mask;if(Records.Count>=4096)break;if(SCIEPort.Compatibility.LegacyGuid.TryParse(pair.Key,out guid)&&guid!=Guid.Empty&&SCIEPort.Compatibility.LegacyParsing.TryUInt32(Convert.ToString(pair.Value,System.Globalization.CultureInfo.InvariantCulture),out mask))Records[guid]=mask&255;}
+            foreach(var pair in values){Guid guid;uint mask;if(Records.Count>=4096)break;if(SCIEPort.Compatibility.LegacyGuid.TryParse(pair.Key,out guid)&&guid!=Guid.Empty&&SCIEPort.Compatibility.LegacyParsing.TryUInt32(Convert.ToString(pair.Value,System.Globalization.CultureInfo.InvariantCulture),out mask))Records[guid]=mask&CodexRules.AllMask;}
         }
         /// <inheritdoc/>
         public override void Save(ValuesDictionary values)
@@ -79,7 +79,7 @@ namespace SCIEPort.Features.Codex
         {if(CommonLib.WorkType==WorkType.Server)CommonLib.Net.QueuePackage(new CodexPackage{Kind=1,Caster=p.Entity.EntityId,Owner=p.PlayerGuid,Sequence=++revision,Mask=Mask(p)});}
         internal void Receive(CodexPackage packet)
         {
-            if(Authority||packet.Kind!=1||packet.Mask>255||packet.Owner==Guid.Empty)return;
+            if(Authority||packet.Kind!=1||packet.Mask>CodexRules.AllMask||packet.Owner==Guid.Empty)return;
             foreach(var p in players.ComponentPlayers)if(p.PlayerGuid==packet.Owner&&p.Entity.EntityId==packet.Caster){received.TryGetValue(packet.Owner,out var old);if(CodexRules.Newer(packet.Sequence,old)){received[packet.Owner]=packet.Sequence;Records[packet.Owner]=packet.Mask;}return;}
         }
         /// <inheritdoc/>
@@ -98,7 +98,7 @@ namespace SCIEPort.Features.Codex
                 bool book=Held(p,CodexRules.Book),locked=!MayHold(p);
                 if(book||((Held(p,949)||Held(p,950))&&!locked)){float delta=p.ComponentLocomotion.WalkSpeed*.2f;if(!float.IsNaN(delta)&&!float.IsInfinity(delta)){walk[p]=delta;p.ComponentLocomotion.WalkSpeed+=delta;}}
                 var input=p.ComponentInput;if(input==null)continue;
-                if(book) {input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;}
+                if(book||(Held(p,971)&&!locked)) {input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;}
                 else if(locked){if((input.m_playerInput.Hit.HasValue||input.m_playerInput.Aim.HasValue||input.m_playerInput.Interact.HasValue||input.m_playerInput.Dig.HasValue)&&p.PlayerData.IsMainPlayer&&clock.GameTime>=nextNotice){nextNotice=clock.GameTime+2;p.ComponentGui.DisplaySmallMessage("尚未解放真名，请先使用神器图谱。",Color.Yellow,false,false);}input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;input.m_playerInput.Interact=null;}
             }
             if(Authority&&clock.GameTime>=nextSync){nextSync=clock.GameTime+2;foreach(var p in players.ComponentPlayers)Publish(p);}

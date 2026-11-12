@@ -1,0 +1,9 @@
+{
+  "tool": "image_gen.imagegen",
+  "date": "2026-11-11",
+  "source": "skill-original.png",
+  "runtime": "../../../src/SCIEPort/Assets/Textures/TiangongBlueprintSkill.png",
+  "transform": "RGBA resize to 256x256 with Lanczos; preserve alpha",
+  "source_sha256": "b65dd13744832e9faf217c7daace1dfa277bb28ff8e01b46b5a7c2b9428f9a76",
+  "runtime_sha256": "f42c81aadf5bfa3227a6f94e47f86f083f5d1ddaddf3ac56f6052eb324e2e34e"
+}

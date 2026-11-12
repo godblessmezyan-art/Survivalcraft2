@@ -335,6 +335,7 @@ foreach ($evidence in @('m_hover.Update(', 'm_flightInput.Update(', 'grounded ? 
 # the closing quote and accidentally absorbing the following MSBuild arguments.
 & $dotnetPath $sdkMsBuild.FullName $projectFile /restore /t:Build "/p:Configuration=$Configuration" "/p:OutputPath=$build/" "/p:SCNetGameDir=$GameDir" /nologo /verbosity:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+& (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Integrated Celestial Codex reader tests failed.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-BoneDragonResources.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
@@ -2396,6 +2397,7 @@ finally { $archive.Dispose() }
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Integrated reader package validation failed.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PixelFx.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package

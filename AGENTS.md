@@ -1,5 +1,9 @@
 # Codex 长期开发规范
 
+## 2026-11-11 天工绘卷蓝图移植专项授权
+
+用户明确要求将建筑助手的全部蓝图能力开发为荒野探险家神器，并要求普通联机玩家也可使用。本专项允许把蓝图、材料/家具契约、导入导出、云端库及安全施工相关原创源码**独立适配**至 `SCIE-Port/src/SCIEPort/Features/Blueprints/`；不跨工程 ProjectReference/源码 Link，不打包 BuilderAssistant.dll 或其它建筑助手资产，不合并快艇、房屋/巨树生成器及建筑工作台。建筑助手的原目录、独立包与发行边界保持。普通客户端通过主机鉴权、预览确认及分批事务施工，不直接写客户端地形。专项见 `SCIE-Port/docs/TIANGONG-BLUEPRINT.md`（本目录中见 `docs/TIANGONG-BLUEPRINT.md`）。
+
 任何开发任务开始前必须先阅读本文件，并同时检查 `docs/COMPATIBILITY.md` 的当前结论。
 
 ## 固定项目上下文
@@ -113,7 +117,6 @@ Builder Assistant 与 `SCIE-Port` 必须保持独立的工程、`modinfo.json`�
 6. 若涉及联机：单机、主机、普通客户端分别记录行为。
 7. 更新 README、兼容性矩阵或测试记录；不要用计划状态冒充已测试状态。
 8. 更新 `docs/blueprint-block-reference.md`（AI 可读方块能力清单），确保新支持/移除/变更的方块、族标签、DATA 范围、限制和注意事项反映最新版本；与代码一并本地提交，由用户自行 push，使任何后续 AI 或工具读取该文件后即可生成合规蓝图 JSON、不会触发不支持拒绝。
-
 
 ## 默认提交与 Release（2026-11-08 用户要求更新）
 

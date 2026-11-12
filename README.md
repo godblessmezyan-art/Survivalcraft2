@@ -31,8 +31,8 @@
 | 项目 | 简介 | 当前开发基线 | 入口 |
 |:--|:--|:--|:--|
 | 🏡 **Builder Assistant · 建筑助手** | 蓝图导入、自动建筑、区域编辑、家具与生成工作台 | **v0.25.2** | [详细文档](docs/BUILDER-ASSISTANT.md) · [源码](src/BuilderAssistant/) |
-| 📚 **云天书典 · Celestial Codex** | 云库与本地TXT/EPUB、触屏阅读、离线缓存与本机续读 | **荒野探险家0.81.0内置；实机待验证** | [整合与使用](SCIE-Port/docs/CELESTIAL-CODEX.md) · [Android HTTP修复](docs/CELESTIAL-CODEX-HTTP-0.1.4.md) |
-| ⚔️ **荒野探险家 · Wilderness Explorer** | 工业移植、载具、神话神器、四圣兽、召唤物与云天书典 | **v0.81.0** | [项目介绍](SCIE-Port/README.md) · [源码](SCIE-Port/src/SCIEPort/) |
+| 📚 **云天书典 · Celestial Codex** | 云库与本地TXT/EPUB、触屏阅读、离线缓存与本机续读 | **荒野探险家0.82.0内置；实机待验证** | [整合与使用](SCIE-Port/docs/CELESTIAL-CODEX.md) · [Android HTTP修复](docs/CELESTIAL-CODEX-HTTP-0.1.4.md) |
+| ⚔️ **荒野探险家 · Wilderness Explorer** | 家居、载具、神话神器、天工绘卷与云天书典 | **v0.82.0** | [修复与安装](SCIE-Port/docs/TIANGONG-BCL-0.82.0.md) · [源码](SCIE-Port/src/SCIEPort/) |
 | 🏛️ **Survivalcraft Ruins · 遗迹探索** | 在新生成的地形中加入神殿、废墟、险境、守卫与战利品 | **SCNET 移植工程** | [移植说明](SurvivalcraftRuins-Port/README.md) · [独立仓库](https://github.com/godblessmezyan-art/SurvivalcraftRuins) |
 | 🌋 **World Expansion · 世界扩展** | 新地貌与生态、探索区域及模组共存策略 | **规划中，非已发布模组** | [开发规范](AGENTS.md) |
 

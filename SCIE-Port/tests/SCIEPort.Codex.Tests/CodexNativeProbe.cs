@@ -40,7 +40,7 @@ public static class CodexNativeProbe
             var q=Activator.CreateInstance(packetType);Put(q,"Owner",p.PlayerGuid);Put(q,"Caster",p.Entity.EntityId);Put(q,"Sequence",1u);Put(q,"Kind",(byte)2);Put(q,"Entry",(byte)0);Put(q,"Mask",255u);
             Call(runtime,"Accept",p,q);Check(records.Count==0,"unlock rejected without held book");
             inv.m_slots[0].Value=955;Put(q,"Owner",Guid.NewGuid());Call(runtime,"Accept",p,q);Check(records.Count==0,"spoofed player GUID rejected");Put(q,"Owner",p.PlayerGuid);
-            Put(q,"Entry",(byte)8);Call(runtime,"Accept",p,q);Check(records.Count==0,"unknown catalog index rejected");Put(q,"Entry",(byte)0);
+            Put(q,"Entry",(byte)9);Call(runtime,"Accept",p,q);Check(records.Count==0,"unknown catalog index rejected");Put(q,"Entry",(byte)0);
             CommonLib.WorkType=WorkType.Client;Call(runtime,"Accept",p,q);Check(records.Count==0,"Client cannot grant itself unlocks");CommonLib.WorkType=WorkType.Local;
             for(byte i=0;i<8;i++){clock.m_gameTime=i;Put(q,"Entry",i);Put(q,"Sequence",(uint)i+1);Call(runtime,"Accept",p,q);Check((bool)allowed.Invoke(null,new object[]{p,ids[i]}),"authority grants selected true name "+ids[i]);Check(records[p.PlayerGuid]==(uint)((1<<(i+1))-1),"packet mask cannot unlock unrelated entries");}
             var other=AbyssHostNativeProbe.Player(project,bodies,955);records.Remove(other.PlayerGuid);Check(!(bool)allowed.Invoke(null,new object[]{other,953}),"unlock does not leak to another player");
@@ -58,7 +58,7 @@ public static class CodexNativeProbe
             {
                 var data=new ValuesDictionary();data.SetValue(valid.ToString("N"),maskText);values.SetValue("TrueNames",data);var loadMask=Activator.CreateInstance(type);Put(loadMask,"m_project",project);Call(loadMask,"Load",values);
                 var loadedRecords=(Dictionary<Guid,uint>)Get(loadMask,"Records");uint expected;bool ok=uint.TryParse(maskText,out expected);
-                Check(ok?loadedRecords.Count==1&&loadedRecords[valid]==(expected&255):loadedRecords.Count==0,"actual world Load preserves/filters permission mask: "+maskText);
+                Check(ok?loadedRecords.Count==1&&loadedRecords[valid]==(expected&511):loadedRecords.Count==0,"actual world Load preserves/filters permission mask: "+maskText);
             }
             inv.m_slots[0].Value=955;for(int i=0;i<20;i++)Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==6,"book movement bonus no accumulation");inv.m_slots[0].Value=3;Call(runtime,"Update",.05f);Check(p.ComponentLocomotion.WalkSpeed==5,"book movement bonus fully restored on switch");
             p.ComponentHealth.Health=0;Check(records[p.PlayerGuid]==255,"death does not erase world progress");p.ComponentHealth.Health=1;
@@ -68,7 +68,7 @@ public static class CodexNativeProbe
             CommonLib.WorkType=WorkType.Server;records[p.PlayerGuid]=0;inv.m_slots[0].Value=955;clock.m_gameTime=20;Put(q,"Sequence",100u);Put(q,"Entry",(byte)7);Call(runtime,"Accept",p,q);
             var snapshots=(List<IPackage>)Get(CommonLib.Net,"PendingPackages");Check(records[p.PlayerGuid]==128&&snapshots.Count==1&&(uint)Get(snapshots[0],"Mask")==128,"Server grants one entry and publishes authoritative mask");
             CommonLib.WorkType=WorkType.Client;records.Clear();Call(runtime,"Receive",snapshots[0]);Check(records[p.PlayerGuid]==128,"late Client snapshot restores progress without local granting");
-            var snapshot=Activator.CreateInstance(packetType);Put(snapshot,"Kind",(byte)1);Put(snapshot,"Owner",p.PlayerGuid);Put(snapshot,"Caster",p.Entity.EntityId);Put(snapshot,"Sequence",200u);Put(snapshot,"Mask",256u);Call(runtime,"Receive",snapshot);Check(records[p.PlayerGuid]==128,"Client rejects unknown permission bits");
+            var snapshot=Activator.CreateInstance(packetType);Put(snapshot,"Kind",(byte)1);Put(snapshot,"Owner",p.PlayerGuid);Put(snapshot,"Caster",p.Entity.EntityId);Put(snapshot,"Sequence",200u);Put(snapshot,"Mask",512u);Call(runtime,"Receive",snapshot);Check(records[p.PlayerGuid]==128,"Client rejects unknown permission bits");
             Put(snapshot,"Mask",255u);Put(snapshot,"Owner",Guid.NewGuid());Call(runtime,"Receive",snapshot);Check(records[p.PlayerGuid]==128,"Client ignores state for an unbound player identity");
             Put(snapshot,"Owner",p.PlayerGuid);Put(snapshot,"Sequence",1u);Put(snapshot,"Mask",0u);Call(runtime,"Receive",snapshot);Check(records[p.PlayerGuid]==128,"replayed snapshots cannot roll back progress");
             var writer=new PackageStreamWriter();((IPackage)q).WriteData(writer);Check(writer.BaseStream.Length<=40,"bounded native compressed payload");var copy=(IPackage)Activator.CreateInstance(packetType);using(var reader=new PackageStreamReader(writer.Data()))copy.ReadData(reader);foreach(string field in new[]{"Kind","Entry","Caster","Owner","Sequence","Mask"})Check(Get(copy,field).Equals(Get(q,field)),"native package roundtrip "+field);writer.Dispose();

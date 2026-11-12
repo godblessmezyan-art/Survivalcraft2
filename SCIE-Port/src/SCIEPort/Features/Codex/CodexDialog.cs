@@ -6,14 +6,17 @@ namespace SCIEPort.Features.Codex
         private readonly SubsystemArtifactCodex runtime;private readonly ComponentPlayer player;
         private readonly CanvasWidget panel=new CanvasWidget{Size=new Vector2(660,460),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center};
         private readonly LabelWidget title,info,status;private readonly BlockIconWidget icon;private readonly BevelledButtonWidget release,close;
-        private readonly BevelledButtonWidget[] entries=new BevelledButtonWidget[8];private int selected;
+        private readonly BevelledButtonWidget[] entries=new BevelledButtonWidget[CodexRules.Items.Length];private int selected;
         internal CodexDialog(SubsystemArtifactCodex r,ComponentPlayer p)
         {
             runtime=r;player=p;Children.Add(panel);
             Add(new RectangleWidget{Size=panel.Size,FillColor=new Color(232,222,191,252),OutlineColor=new Color(149,111,48),OutlineThickness=3},0,0);
             Add(new RectangleWidget{Size=new Vector2(232,460),FillColor=new Color(24,31,59),OutlineThickness=0},0,0);
             Add(new LabelWidget{Text="神器图谱",Color=new Color(247,221,149),FontScale=1},24,18);
-            for(int i=0;i<entries.Length;i++)entries[i]=Button(CodexRules.Names[i],16,66+i*42,200);
+            var listFrame=new CanvasWidget{Size=new Vector2(216,374)};Add(listFrame,8,66);
+            var listScroll=new ScrollPanelWidget{Direction=LayoutDirection.Vertical,HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch};listFrame.Children.Add(listScroll);
+            var list=new CanvasWidget{Size=new Vector2(208,entries.Length*52),HorizontalAlignment=WidgetAlignment.Near,VerticalAlignment=WidgetAlignment.Near};listScroll.Children.Add(list);
+            for(int i=0;i<entries.Length;i++){var b=Button(CodexRules.Names[i],0,0,200);panel.Children.Remove(b);b.Size=new Vector2(200,44);list.Children.Add(b);list.SetWidgetPosition(b,new Vector2(4,i*52));entries[i]=b;}
             title=new LabelWidget{Size=new Vector2(388,38),FontScale=.9f,Color=new Color(53,39,30)};Add(title,252,20);
             icon=new BlockIconWidget{Size=new Vector2(116,116)};icon.DrawBlockEnvironmentData.SubsystemTerrain=p.Project.FindSubsystem<SubsystemTerrain>(true);Add(icon,382,65);
             var scrollFrame=new CanvasWidget{Size=new Vector2(376,142)};Add(scrollFrame,254,190);
