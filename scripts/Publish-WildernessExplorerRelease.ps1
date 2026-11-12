@@ -18,30 +18,32 @@ if($lookupExit-eq 0){
     $release=$existing | ConvertFrom-Json
     $tagCommit=(& gh api "repos/$repo/commits/$tag" --jq '.sha' | Out-String).Trim()
     if($LASTEXITCODE-ne 0 -or $tagCommit-ne $target){throw 'Existing version points to a different commit.'}
-    $asset=@($release.assets | Where-Object name -CEQ ([IO.Path]::GetFileName($package)))
+    $fileName=[IO.Path]::GetFileName($package)
+    $asset=@($release.assets | Where-Object { $_.name -ceq $fileName -or $_.label -ceq $fileName })
     if($asset.Count){
         if($asset.Count-ne 1 -or $asset[0].digest-notlike 'sha256:*'){throw 'Existing asset cannot be verified; not overwriting.'}
         $download=Join-Path $root 'SCIE-Port/artifacts/release-existing-check'
         New-Item -ItemType Directory -Force -Path $download | Out-Null
-        & gh release download $tag --repo $repo --pattern ([IO.Path]::GetFileName($package)) --dir $download --clobber
+        & gh release download $tag --repo $repo --pattern $asset[0].name --dir $download --clobber
         if($LASTEXITCODE-ne 0){throw 'Cannot verify existing asset bytes.'}
-        $downloadHash=(Get-FileHash -LiteralPath (Join-Path $download ([IO.Path]::GetFileName($package)))).Hash.ToLowerInvariant()
+        $downloadHash=(Get-FileHash -LiteralPath (Join-Path $download $asset[0].name)).Hash.ToLowerInvariant()
         if($asset[0].digest-ne ('sha256:'+$downloadHash)){throw 'Existing asset digest differs.'}
         Write-Host "Verified existing Release: $($release.html_url)";exit 0
     }
     & (Join-Path $root 'SCIE-Port/scripts/Build-NetMod.ps1') -GameDir $GameDir -Configuration Release
     $hash=(Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant()
-    & gh release upload $tag $package --repo $repo
+    & gh release upload $tag ($package+'#'+[IO.Path]::GetFileName($package)) --repo $repo
 }else{
     & (Join-Path $root 'SCIE-Port/scripts/Build-NetMod.ps1') -GameDir $GameDir -Configuration Release
     $hash=(Get-FileHash -LiteralPath $package).Hash.ToLowerInvariant()
     $notes="荒野探险家 $version：单一SCIEPort.dll，内置家居、天工绘卷、云天书典及现有优化。`n`nWindows环境、Release、自动回归和包校验通过；Android7723及真实联机待验证。`n`nSHA256: $hash`n构建提交: $target"
     $notesPath=Join-Path $root ('SCIE-Port/artifacts/release-'+$version+'.md')
     [IO.File]::WriteAllText($notesPath,$notes,(New-Object Text.UTF8Encoding($false)))
-    & gh release create $tag $package --repo $repo --target $target --title "荒野探险家 $version（Android待验证）" --notes-file $notesPath --prerelease --latest=false
+    & gh release create $tag ($package+'#'+[IO.Path]::GetFileName($package)) --repo $repo --target $target --title "荒野探险家 $version（Android待验证）" --notes-file $notesPath --prerelease --latest=false
 }
 if($LASTEXITCODE-ne 0){throw 'Release upload failed.'}
 $release=(& gh api "repos/$repo/releases/tags/$tag" | Out-String) | ConvertFrom-Json
-$asset=@($release.assets | Where-Object name -CEQ ([IO.Path]::GetFileName($package)))
+$fileName=[IO.Path]::GetFileName($package)
+$asset=@($release.assets | Where-Object { $_.name -ceq $fileName -or $_.label -ceq $fileName })
 if($asset.Count-ne 1 -or $asset[0].digest-ne ('sha256:'+$hash)){throw 'Uploaded asset hash differs.'}
 Write-Host "Verified Release: $($release.html_url)"
