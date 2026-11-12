@@ -1,5 +1,9 @@
 # SCIE-Port 移植工作区规范
 
+## 2026-11-12 绘卷直接施工（最新）
+
+本次用户明确要求去除绘卷客户端校验并整合main推送。绘卷不再使用237主机握手或真名门槛，客户端通过已核验的原生ID7/RequestChangeCell直接提交；保留原生游戏保护、施工预算和撤销。此条覆盖下方2026-11-11的绘卷客户端票据流程；仅本次授权正常push main，禁止force push。详见docs/TIANGONG-DIRECT-0.83.0.md。
+
 ## 2026-11-11 天工绘卷蓝图移植专项授权
 
 用户明确要求将建筑助手的全部蓝图能力开发为荒野探险家神器，并要求普通联机玩家也可使用。本专项允许把蓝图、材料/家具契约、导入导出、云端库及安全施工相关原创源码**独立适配**至 `SCIE-Port/src/SCIEPort/Features/Blueprints/`；不跨工程 ProjectReference/源码 Link，不打包 BuilderAssistant.dll 或其它建筑助手资产，不合并快艇、房屋/巨树生成器及建筑工作台。建筑助手的原目录、独立包与发行边界保持。普通客户端通过主机鉴权、预览确认及分批事务施工，不直接写客户端地形。专项见 `SCIE-Port/docs/TIANGONG-BLUEPRINT.md`（本目录中见 `docs/TIANGONG-BLUEPRINT.md`）。

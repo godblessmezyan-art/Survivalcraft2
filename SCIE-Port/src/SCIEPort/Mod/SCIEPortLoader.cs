@@ -51,7 +51,6 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new CodexPackage());
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
-                PackageManager.RegisterPackage(new BlueprintPackage());
                 s_networkPackageRegistered = true;
             }
 

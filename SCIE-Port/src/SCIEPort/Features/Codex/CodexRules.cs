@@ -20,6 +20,6 @@ namespace SCIEPort.Features.Codex
         };
         internal static uint Bit(int id){int i=Array.IndexOf(Items,id);return i<0?0:1u<<i;}
         internal static bool Newer(uint a,uint b)=>a!=b&&unchecked((int)(a-b))>0;
-        internal static bool Unlocked(uint mask,int id)=>Bit(id)!=0&&(mask&Bit(id))!=0;
+        internal static bool Unlocked(uint mask,int id)=>id==971||(Bit(id)!=0&&(mask&Bit(id))!=0);
     }
 }

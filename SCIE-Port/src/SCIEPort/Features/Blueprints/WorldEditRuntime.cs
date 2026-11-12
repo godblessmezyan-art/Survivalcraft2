@@ -11,7 +11,7 @@ using SCIEPort.Features.Blueprints.Infrastructure;
 
 namespace SCIEPort.Features.Blueprints
 {
-    /// <summary>Per-local-player library and preview. Terrain mutations are always server requests.</summary>
+    /// <summary>Per-local-player library and preview; confirmed builds start without a custom host handshake.</summary>
     internal sealed class WorldEditRuntime
     {
         private readonly SubsystemBlueprintArtifact host;
@@ -21,18 +21,10 @@ namespace SCIEPort.Features.Blueprints
         internal VanillaBlockPalette Palette { get { return host.Palette; } }
         internal Blueprint ClipboardBlueprint { get; private set; }
         internal string QuickBlueprintSource { get; private set; }
-        private BlueprintPackage awaiting;
-        private byte[] upload;
-        private Guid request;
-        private uint sequence;
-        private int acknowledged;
-        private double lastSend, began;
-        private int retries;
-        private Dialog confirmation;
         private bool copyMode, hasCorner;
         private CellPos corner;
         private BlueprintCopier.CopyJob copy;
-        internal bool IsBusy { get { return awaiting != null || confirmation != null || upload != null || copy != null || tracking != null || host.Busy; } }
+        internal bool IsBusy { get { return copy != null || host.Busy; } }
         internal WorldEditRuntime(SubsystemBlueprintArtifact host, ComponentPlayer player)
         { this.host = host; Player = player; Session = new BlueprintPlacementSession(this); hud = new BlueprintHud(this); }
         internal bool CanRequest() { return host.CanOperate(Player); }
@@ -81,82 +73,15 @@ namespace SCIEPort.Features.Blueprints
         internal CellPos WorkbenchOriginFor(Blueprint bp, CellPos surface)
         { return new CellPos(surface.X - (bp.SizeX - 1) / 2, surface.Y + 1, surface.Z - (bp.SizeZ - 1) / 2); }
         internal bool QuickStart(BuildPlan plan, Blueprint bp, GameTerrainGateway gateway, CellPos origin, bool clear, Func<CellPos, int, bool> guard)
-        {
-            if (!CanRequest() || IsBusy || plan == null || !plan.Success) return false;
-            upload = Encoding.UTF8.GetBytes(BlueprintJson.Serialize(bp));
-            if (upload.Length > BlueprintTransfer.MaxBytes) { upload = null; Message("蓝图文件过大。"); return false; }
-            request = Guid.NewGuid(); acknowledged = 0;
-            Send(new BlueprintPackage { Kind = BlueprintPackage.Begin, Request = request, X = origin.X, Y = origin.Y, Z = origin.Z, Clear = clear, Total = upload.Length });
-            Message("主机校验中。"); return true;
-        }
-        private void Send(BlueprintPackage command)
-        {
-            command.Sequence = ++sequence; awaiting = command; retries = 0;
-            began = lastSend = Player.Project.FindSubsystem<SubsystemTime>(true).GameTime;
-            host.Send(Player, command);
-        }
-        internal void Receive(BlueprintPackage reply)
-        {
-            if (reply.Owner != Player.PlayerGuid || reply.Caster != Player.Entity.EntityId) return;
-            if (awaiting == null || reply.Sequence != awaiting.Sequence || reply.Request != awaiting.Request) { ReceiveProgress(reply);return; }
-            var sent = awaiting; awaiting = null;
-            if (reply.Kind == BlueprintPackage.Ack)
-            {
-                if (upload == null || reply.Offset < acknowledged || reply.Offset > upload.Length ||
-                    (sent.Kind == BlueprintPackage.Chunk && reply.Offset != sent.Offset + sent.Payload.Length))
-                { upload = null; Message("传输状态无效。"); return; }
-                acknowledged = reply.Offset;
-                if (acknowledged == upload.Length) { Send(new BlueprintPackage { Kind = BlueprintPackage.Finish, Request = request }); return; }
-                int length = Math.Min(BlueprintTransfer.ChunkBytes, upload.Length - acknowledged);
-                var part = new byte[length]; Buffer.BlockCopy(upload, acknowledged, part, 0, length);
-                Send(new BlueprintPackage { Kind = BlueprintPackage.Chunk, Request = request, Offset = acknowledged, Payload = part }); return;
-            }
-            upload = null;
-            string message = new UTF8Encoding(false, true).GetString(reply.Payload);
-            if (reply.Kind == BlueprintPackage.Ready)
-            {
-                if (!CanRequest()) { Cancel(); return; }
-                string detail = message + "\n位置：" + reply.X + ", " + reply.Y + ", " + reply.Z + "\n" + reply.Total + " 格";
-                if (reply.Offset > 0) detail += "\n将覆盖 " + reply.Offset + " 格。";
-                confirmation = new MessageDialog(reply.Offset > 0 ? "确认清障建造？" : "确认建造？", detail, "建造", "取消", result =>
-                {
-                    confirmation = null;
-                    if (result == MessageDialogButton.Button1 && CanRequest()) Send(new BlueprintPackage { Kind = BlueprintPackage.Confirm, Request = reply.Request });
-                    else Cancel();
-                });
-                DialogsManager.ShowDialog(Player.GuiWidget, confirmation); return;
-            }
-            Message(message);
-            // Keep the command as the identity for final asynchronous progress, without retrying it.
-            if (reply.Offset==1) { tracking = sent; }
-        }
-        private BlueprintPackage tracking;
-        internal void ReceiveProgress(BlueprintPackage reply)
-        {
-            if (tracking == null || reply.Owner != Player.PlayerGuid || reply.Request != tracking.Request || reply.Sequence != tracking.Sequence) return;
-            string message = new UTF8Encoding(false, true).GetString(reply.Payload); Message(message);
-            if (reply.Offset!=1) tracking = null;
-        }
-        internal void TickNetwork(double now)
-        {
-            if (confirmation != null && !CanRequest()) { DialogsManager.HideDialog(confirmation); confirmation = null; Cancel(); }
-            if (awaiting == null) return;
-            if (now - began > 15 || retries >= 4) { awaiting = null; upload = null; Message("主机响应超时，请重试。"); return; }
-            if (now - lastSend >= 2) { lastSend = now; retries++; host.Send(Player, awaiting); }
-        }
+        { return host.StartDirect(Player, plan, bp, origin, clear, guard); }
         internal void Cancel()
-        {
-            Session.Reset(); copyMode = false; hasCorner = false; copy = null; upload = null; tracking=null;
-            if (confirmation != null) DialogsManager.HideDialog(confirmation); confirmation = null;
-            Send(new BlueprintPackage { Kind = BlueprintPackage.Cancel, Request = Guid.NewGuid() });
-        }
-        internal void Undo()
-        { if (awaiting != null) { Message("请稍候。"); return; } Send(new BlueprintPackage { Kind = BlueprintPackage.Undo, Request = Guid.NewGuid() }); }
+        { Session.Reset(); copyMode=false;hasCorner=false;copy=null;host.CancelDirect(Player); }
+        internal void Undo() { host.UndoDirect(Player); }
         internal void TickGui(ComponentGui gui)
         {
             if (!CanRequest())
             {
-                bool pending = copy != null || copyMode || upload != null || confirmation != null;
+                bool pending = copy != null || copyMode;
                 Session.Reset(); copy = null; copyMode = false; hasCorner = false;
                 if (pending) Cancel();
             }
@@ -176,6 +101,6 @@ namespace SCIEPort.Features.Blueprints
             Session.Tick(gui); hud.Tick(gui);
         }
         internal void Message(string message) { Player.ComponentGui.DisplaySmallMessage("[天工绘卷] " + message, Color.White, false, false); }
-        internal void Dispose() { Session.Reset(); hud.Dispose(); if (confirmation != null) DialogsManager.HideDialog(confirmation); confirmation = null; upload = null; awaiting = null; copy = null; ClipboardBlueprint = null; }
+        internal void Dispose() { Session.Reset();hud.Dispose();copy=null;ClipboardBlueprint=null; }
     }
 }

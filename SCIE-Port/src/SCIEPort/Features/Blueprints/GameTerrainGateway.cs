@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SCIEPort.Features.Blueprints.Core.Blueprints;
 using Game;
+using Game.NetWork;
 using SCIEPort.Features.Blueprints.Core;
 using SCIEPort.Features.Blueprints.Core.Safety;
 using SCIEPort.Features.Blueprints.Core.Transactions;
@@ -184,6 +185,16 @@ namespace SCIEPort.Features.Blueprints
             if (!IsCellEditable(cell))
             {
                 return false;
+            }
+            if(CommonLib.WorkType==WorkType.Client)
+            {
+                // Native ChangeCell ignores Client. Predict locally, then request the host
+                // through the target game's existing terrain channel (ID7, RequestChangeCell).
+                _subsystemTerrain.ChangeCellNet(cell.X,cell.Y,cell.Z,value,true,actor);
+                if(BlockById(Terrain.ExtractContents(value)) is DoorBlock && _terrain.GetCellContents(cell.X,cell.Y+1,cell.Z)==0)
+                    _subsystemTerrain.ChangeCellNet(cell.X,cell.Y+1,cell.Z,value,true,actor);
+                CommonLib.Net.QueuePackage(new Game.NetWork.Packages.SubsystemTerrainPackage(cell.X,cell.Y,cell.Z,value,true));
+                return PlacementMatches(_terrain.GetCellValue(cell.X,cell.Y,cell.Z),value);
             }
             Territoriy territory;
             if (actor != null && SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(cell.X,cell.Z,out territory) && !SubsystemBedrockBlockBehavior.AllowPlayerAction(actor.ComponentPlayer,territory)) return false;

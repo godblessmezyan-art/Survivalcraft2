@@ -1,5 +1,11 @@
 # `.netmod` 品牌与打包契约
 
+2026-11-12 / 0.83.0：所有入口统一构建SCIEPort，书典源码/资源在本工程内；Fast旧名称仅作转发，发布仍执行环境/回归/包校验。取消绘卷237包/注册，客户端直用原生ID7，不改变238/239及240–254协议。用户本次已授权合并并正常push main；已有Release核对提交和资产哈希后复用，不覆盖不同版本/资产。
+
+> **2026-11-08 最新发布覆盖规则：**用户要求自动 Release 不运行测试或包校验，改用 `scripts/Build-WildernessExplorerFast.ps1` 和 `scripts/Publish-WildernessExplorerRelease.ps1`。下文的完整打包验证只用于历史/手动的 `Build-NetMod.ps1`，不阻塞快速发布。快建可能跳过历史资源转换，且不证明 Android/联机兼容。详见根 `docs/NETMOD-RELEASE.md`。
+
+> **最新统一发布目标（2026-11-08）**：「荒野探险家」与「云天书典」未来合为**一个 .netmod**，保持原 SCIEPort 稳定内部身份、兼容性与物品映射。以下历史约束仍适用于当前荒野探险家现有包；**目前尚未实际整合书典源码、资源及注册**，旧单包规则不等于已经满足新统一产品要求。正式整合时，须验证 956/DATA0、CSV/XDB/GUID、模组加载和 Android/SCNET；统一发布规则见仓库 `docs/UNIFIED-MOD-POLICY.md`。
+
 2026-11-06 / 0.78.0 PixelFX：包内沿用`Assets/Textures/PixelFxStormhammer.png`（现为1024×2048、186帧）与同名JSON及`PixelFX-LICENSE.txt`，支持多神器共用，条目路径集合保持。`Test-PixelFx.ps1`在构建前/编译后/打包后验证native RGBA、JSON/C#表与包字节、原帧保留/来源许可；禁止离线JS/工具/源码进入运行包。外部中文包名、内部SCIEPort身份和原3D资源保持。
 
 本文件定义 SCIE-Port 产物（`.netmod`）的**强制**打包规则，自 v0.36.0 起生效，v0.40.3 起由
@@ -23,7 +29,7 @@
 | `AssemblyName` / `RootNamespace` | `SCIEPort` | 程序集名与命名空间，改动会破坏 ModLoader 反射加载 |
 | 方块索引 | 现有 903–952、995–1000（有预留空号） | 保留所有既有值；main 0.47.0 合入 950 吞噬之眼与 952 阿比斯，不按连续区间自动注册 |
 | 衣物 `ClothingData.Index` | 200–203 | 同上 |
-| 网络包 ID | 237（0.82天工绘卷）、238（座位）、239（家居）、240–254（既有） | 绘卷独立237，旧包布局保持；不挪用家居239 |
+| 网络包 ID | 238（座位）、239（家居）、240–254（既有）；绘卷使用原生7 | 绘卷237已停用，旧包布局保持；不挪用家居239 |
 | XDB 容器 / 模板 GUID | 现状 | 数据合并按 GUID 匹配 |
 | `THIRD-PARTY-NOTICES.md` | 必须随包 | 上游署名与授权范围 |
 

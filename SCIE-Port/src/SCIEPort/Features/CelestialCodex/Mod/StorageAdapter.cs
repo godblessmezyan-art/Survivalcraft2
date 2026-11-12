@@ -109,6 +109,20 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                 return result;
             });
         }
+        internal string ImportFile(string selectedPath, CancellationToken token)
+        {
+            // The source is explicitly chosen by the player or selected in the in-game browser.
+            // No server/network state and no world save state are accessed.
+            if (string.IsNullOrEmpty(selectedPath) || selectedPath.Length > 2048)
+                throw new InvalidDataException("文件路径无效");
+            string name = BookImportService.FileName(selectedPath);
+            token.ThrowIfCancellationRequested();
+            using (Stream input = Storage.OpenFile(selectedPath, OpenFileMode.Read))
+            {
+                var store = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
+                return BookImportService.Copy(name, input, store, token);
+            }
+        }
         internal ReaderResult Take() { return gate.Take(); }
         private static void LogNetwork(string message) { Log.Error(message); }
         internal void Cancel() { gate.Cancel(); }

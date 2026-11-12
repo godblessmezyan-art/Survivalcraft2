@@ -1,0 +1,40 @@
+name: Wilderness Explorer - verified unified netmod Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SCIE-Port/src/SCIEPort/modinfo.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wilderness-explorer-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, windows, scnet-x25]
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Build and verify unified .netmod and upload prerelease
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SCNET_GAME_DIR: ${{ vars.SCNET_GAME_DIR }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:SCNET_GAME_DIR)) {
+            throw 'Set repository Actions variable SCNET_GAME_DIR to runner-local game directory.'
+          }
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-WildernessExplorerRelease.ps1 -GameDir $env:SCNET_GAME_DIR
+          if ($LASTEXITCODE -ne 0) { throw 'Fast release failed.' }

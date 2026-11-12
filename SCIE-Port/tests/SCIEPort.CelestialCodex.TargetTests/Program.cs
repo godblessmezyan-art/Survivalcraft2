@@ -99,6 +99,7 @@ internal static class Program
         using (var zip = new System.IO.Compression.ZipArchive(decoded, ZipArchiveMode.Read))
         using (var reader = new StreamReader(zip.GetEntry("Assets/Database.xml").Open()))
         {
+            NativeUiChecks.Run(mod,zip,Check);
             XElement xml = XElement.Parse(reader.ReadToEnd());
             string ownXdb = Path.GetFullPath(Path.Combine(modRoot, "Assets/Database/CelestialCodex.xdb"));
             var xdb = XElement.Load(ownXdb);

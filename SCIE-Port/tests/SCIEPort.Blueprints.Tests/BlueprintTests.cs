@@ -63,8 +63,8 @@ internal static partial class BlueprintTests
             CommonLib.WorkType=WorkType.Server;CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();CommonLib.Net.Clients[0]=new Client(Guid.NewGuid(),null);
             Put(Players,"m_project",Project);Put(Host,"m_project",Project);Put(Codex,"m_project",Project);
             Project.m_subsystems.Add(Players);Project.m_subsystems.Add(Host);Project.m_subsystems.Add(Codex);
-            Put(Host,"players",Players);Put(Host,"clock",Clock);Put(Host,"terrain",Terrain);
-            var info=new SubsystemGameInfo();var settings=Bare<WorldSettings>();settings.GameMode=GameMode.Creative;Put(info,"WorldSettings",settings);Put(Host,"info",info);
+            Put(Host,"players",Players);Put(Host,"clock",Clock);Host.Feedback=(p,text)=>{};
+            var info=new SubsystemGameInfo();var settings=Bare<WorldSettings>();settings.GameMode=GameMode.Creative;Put(info,"WorldSettings",settings);
             Host.TerrainForPlayer=p=>Terrain;Clock.m_gameTime=10;Clock.m_gameTimeDelta=.05f;Host.Palette.Reset();
         }
         internal ComponentPlayer Player(byte id)
@@ -82,22 +82,10 @@ internal static partial class BlueprintTests
             Codex.Records[player.PlayerGuid]=511;return player;
         }
         internal void Tick() { Terrain.FrameWrites=0;Clock.m_gameTime+=.05;Host.Update(.05f);Check(Terrain.FrameWrites<=32,"world frame write budget"); }
-        internal BlueprintPackage Command(ComponentPlayer p,byte kind,Guid request)
-        { uint sequence;Sequences.TryGetValue(p.PlayerGuid,out sequence);Sequences[p.PlayerGuid]=++sequence;return new BlueprintPackage { Kind=kind,Request=request,Sequence=sequence,Owner=p.PlayerGuid,Caster=p.Entity.EntityId }; }
-        internal BlueprintPackage Send(ComponentPlayer p,BlueprintPackage command)
-        { Pending.Clear();Host.Enqueue(p,p.PlayerData.Client,command);Tick();return Pending.OfType<BlueprintPackage>().LastOrDefault(x=>x.Owner==p.PlayerGuid); }
-        internal BlueprintPackage Preview(ComponentPlayer p,Blueprint blueprint,int x=0,bool clear=false)
+        internal bool Start(ComponentPlayer p,Blueprint bp,int x=0,bool clear=false)
         {
-            byte[] json=Encoding.UTF8.GetBytes(BlueprintJson.Serialize(blueprint));Guid request=Guid.NewGuid();
-            var begin=Command(p,BlueprintPackage.Begin,request);begin.Total=json.Length;begin.X=x;begin.Y=64;begin.Clear=clear;
-            var reply=Send(p,begin);Check(reply!=null&&reply.Kind==BlueprintPackage.Ack,"ordinary remote player begin acknowledged");
-            for(int offset=0;offset<json.Length;offset+=BlueprintTransfer.ChunkBytes)
-            {
-                var chunk=Command(p,BlueprintPackage.Chunk,request);chunk.Offset=offset;chunk.Payload=json.Skip(offset).Take(BlueprintTransfer.ChunkBytes).ToArray();
-                reply=Send(p,chunk);Check(reply.Kind==BlueprintPackage.Ack&&reply.Offset==offset+chunk.Payload.Length,"chunk acknowledged at exact offset");
-                if(offset==0){int count=Terrain.Writes;var replay=Send(p,chunk);Check(replay.Offset==reply.Offset&&Terrain.Writes==count,"repeated chunk has no append/write side effects");}
-            }
-            return Send(p,Command(p,BlueprintPackage.Finish,request));
+            var origin=new CellPos(x,64,0);var plan=BuildPlanner.Plan(bp,origin,Host.Palette,Terrain,clear,false);
+            return Host.StartDirect(p,plan,bp,origin,clear,null);
         }
         internal void Drain() { for(int i=0;i<1200&&Host.Busy;i++)Tick();Check(!Host.Busy,"operation terminates"); }
         public void Dispose() { Host.Dispose(); }
@@ -115,71 +103,30 @@ internal static partial class BlueprintTests
         var expired=new BlueprintTransfer(Guid.NewGuid(),1,0);Check(!expired.Append(0,new byte[]{1},181),"expired upload rejected");Throws(()=>expired.Finish(0),"truncated upload refused");
         Check(BlueprintTransfer.Newer(1,uint.MaxValue)&&!BlueprintTransfer.Newer(uint.MaxValue,1),"sequence wrap and replay");Check(!BlueprintTransfer.ValidOrigin(int.MaxValue,64,0)&&!BlueprintTransfer.ValidOrigin(0,256,0),"coordinate bounds");
     }
-    private static void NetworkTests()
+    private static void DirectTests()
     {
-        using(var f=new Fixture())
+        foreach(var role in new[]{WorkType.Local,WorkType.Server,WorkType.Client})using(var f=new Fixture())
         {
-            var alice=f.Player(1);var bob=f.Player(2);
-            Check(alice.PlayerData.Client!=null&&!alice.PlayerData.IsMainPlayer&&!alice.PlayerData.ServerMaster&&!alice.PlayerData.ServerManager,"fixture is ordinary remote player");
-            int before=f.Terrain.Writes;var ready=f.Preview(alice,Blueprint(120));Check(ready.Kind==BlueprintPackage.Ready&&f.Terrain.Writes==before,"prepare never writes terrain: "+ready.Kind+" "+Encoding.UTF8.GetString(ready.Payload));
-            var confirm=f.Command(alice,BlueprintPackage.Confirm,ready.Request);f.Send(alice,confirm);Check(f.Host.Busy,"remote confirm starts authoritative task");
-            var busy=f.Send(bob,f.Command(bob,BlueprintPackage.Undo,Guid.NewGuid()));Check(busy.Kind==BlueprintPackage.Status,"other player cannot interleave undo");
-            f.Drain();Check(f.Terrain.Occupied==120,"remote build applied to authoritative terrain");before=f.Terrain.Writes;f.Send(alice,confirm);Check(f.Terrain.Writes==before,"replayed confirmation cannot build twice");
-            f.Send(bob,f.Command(bob,BlueprintPackage.Undo,Guid.NewGuid()));Check(f.Terrain.Occupied==120,"other player has no access to Alice history");
-            var changed=new CellPos(0,64,0);f.Terrain.Cells[changed]=21;f.Send(alice,f.Command(alice,BlueprintPackage.Undo,Guid.NewGuid()));f.Drain();Check(f.Terrain.Occupied==1&&f.Terrain.Cells[changed]==21,"undo preserves later edits and restores only own build");
-            ready=f.Preview(bob,Blueprint(2),40);Check(ready.Kind==BlueprintPackage.Ready,"Bob has same build permission");f.Terrain.Cells[new CellPos(40,64,0)]=3;before=f.Terrain.Writes;
-            f.Send(bob,f.Command(bob,BlueprintPackage.Confirm,ready.Request));Check(f.Terrain.Writes==before&&!f.Host.Busy,"changed server snapshot refused");
-            f.Clock.m_gameTime+=1;ready=f.Preview(alice,Blueprint(200),-40);f.Send(alice,f.Command(alice,BlueprintPackage.Confirm,ready.Request));f.Tick();
-            f.Send(bob,f.Command(bob,BlueprintPackage.Cancel,Guid.NewGuid()));Check(f.Host.Busy,"Bob cancel cannot cancel Alice");
-            f.Send(alice,f.Command(alice,BlueprintPackage.Cancel,Guid.NewGuid()));f.Drain();Check(f.Terrain.Occupied==2,"cancel rolls back partial build only");
-            f.Clock.m_gameTime+=1;ready=f.Preview(alice,Blueprint(100),-40);f.Send(alice,f.Command(alice,BlueprintPackage.Confirm,ready.Request));f.Players.m_componentPlayers.Remove(alice);f.Drain();Check(f.Terrain.Occupied==2,"disconnect cancels and rolls back");
-        }
-        using(var f=new Fixture())
-        {
-            var p=f.Player(1);var ready=f.Preview(p,Blueprint(100));f.Terrain.FailAt=10;f.Send(p,f.Command(p,BlueprintPackage.Confirm,ready.Request));f.Drain();Check(f.Terrain.Occupied==0,"failed native-style partial write is journaled and rolled back");
-            f.Clock.m_gameTime+=1;ready=f.Preview(p,Blueprint(100));f.Send(p,f.Command(p,BlueprintPackage.Confirm,ready.Request));f.Drain();
-            var block=new CellPos(3,64,0);f.Terrain.Blocked.Add(block);f.Send(p,f.Command(p,BlueprintPackage.Undo,Guid.NewGuid()));for(int i=0;i<5;i++)f.Tick();Check(f.Host.Busy,"unloaded undo cell pauses future restores");
-            f.Terrain.Blocked.Clear();f.Drain();Check(f.Terrain.Occupied==0,"deferred undo finishes after chunks return");
-        }
-    }
-    private static void SafetyTests()
-    {
-        using(var f=new Fixture())
-        {
-            var p=f.Player(1);var other=f.Player(2);int before=f.Terrain.Writes;
-            var forged=f.Command(p,BlueprintPackage.Undo,Guid.NewGuid());forged.Owner=other.PlayerGuid;
-            Check(f.Send(p,forged)==null&&f.Terrain.Writes==before,"spoofed GUID refused");
-            var wrong=f.Command(p,BlueprintPackage.Undo,Guid.NewGuid());wrong.Caster=other.Entity.EntityId;
-            Check(f.Send(p,wrong)==null,"spoofed entity refused");
-            Pending.Clear();f.Host.Enqueue(p,other.PlayerData.Client,f.Command(p,BlueprintPackage.Undo,Guid.NewGuid()));f.Tick();Check(Pending.Count==0,"spoofed connection refused");
-            f.Codex.Records[p.PlayerGuid]=255;var denied=f.Command(p,BlueprintPackage.Begin,Guid.NewGuid());denied.Total=1;denied.Y=64;
-            Check(f.Send(p,denied).Kind==BlueprintPackage.Status&&!f.Host.Busy,"sealed ninth artifact refused");f.Codex.Records[p.PlayerGuid]=511;
-            var bad=f.Command(p,BlueprintPackage.Begin,Guid.NewGuid());bad.Y=64;bad.Total=BlueprintTransfer.MaxBytes+1;Check(f.Send(p,bad).Kind==BlueprintPackage.Status,"oversized network declaration refused");
-            f.Clock.m_gameTime+=1;var ready=f.Preview(p,Blueprint());Check(ready.Kind==BlueprintPackage.Ready,"server preview available to ordinary player");f.Clock.m_gameTime+=31;
-            before=f.Terrain.Writes;f.Send(p,f.Command(p,BlueprintPackage.Confirm,ready.Request));Check(f.Terrain.Writes==before&&!f.Host.Busy,"expired ticket cannot mutate terrain");
-            f.Terrain.Cells[new CellPos(0,64,0)]=3;f.Clock.m_gameTime+=1;ready=f.Preview(p,Blueprint());Check(ready.Kind==BlueprintPackage.Status,"default no-overwrite refuses occupied cell");
-            f.Clock.m_gameTime+=1;ready=f.Preview(p,Blueprint(),0,true);Check(ready.Kind==BlueprintPackage.Ready&&ready.Offset==1,"explicit clear returns occupied count for second confirmation");
-            f.Terrain.Cells[new CellPos(0,64,0)]=45;f.Clock.m_gameTime+=1;ready=f.Preview(p,Blueprint(),0,true);Check(ready.Kind==BlueprintPackage.Status,"unknown container/state protected from clear");
-            f.Terrain.Cells.Clear();SubsystemBedrockBlockBehavior.Territories[Guid.NewGuid()]=new Territoriy { Origin=new Point2(0,0),OwnerGuid=other.PlayerData.PlayerGUID };
-            f.Clock.m_gameTime+=1;ready=f.Preview(p,Blueprint());Check(ready.Kind==BlueprintPackage.Status,"native territory denies non-owner non-admin remote player");
-            SubsystemBedrockBlockBehavior.Territories.Clear();
-            for(int i=0;i<40;i++)f.Tick();Check(Math.Abs(p.ComponentLocomotion.WalkSpeed-6)<.0001,"held movement +20 percent has no accumulation");
-            ((ComponentInventory)p.ComponentMiner.Inventory).m_slots[0].Value=3;f.Tick();Check(p.ComponentLocomotion.WalkSpeed==5,"unequip returns only own movement increment");
-            ((ComponentInventory)p.ComponentMiner.Inventory).m_slots[0].Value=971;
-            var loader=new SCIEPort.Mod.SCIEPortLoader();p.ComponentMiner.m_lastHitTime=5;float attack=1,probability=1,creature=1;bool hitted;
-            loader.OnMinerHit(p.ComponentMiner,null,Vector3.Zero,Vector3.UnitZ,ref attack,ref probability,ref creature,out hitted);
-            Check(Math.Abs(p.ComponentMiner.m_lastHitTime-(5-.66*(1-1/1.1)))<.000001,"native melee clock applies 10 percent artifact frequency");
-        }
-        using(var f=new Fixture())
-        {
-            var p=f.Player(1);var ready=f.Preview(p,Blueprint(100));f.Send(p,f.Command(p,BlueprintPackage.Confirm,ready.Request));f.Drain();
-            var other=f.Player(2);var pendingTicket=f.Preview(other,Blueprint(),40);Check(pendingTicket.Kind==BlueprintPackage.Ready,"second player can prepare before undo");
-            f.Terrain.Blocked.Add(new CellPos(3,64,0));f.Send(p,f.Command(p,BlueprintPackage.Undo,Guid.NewGuid()));
-            f.Send(p,f.Command(p,BlueprintPackage.Cancel,Guid.NewGuid()));Check(!f.Host.Busy,"user can pause an unfinished undo");
-            int writes=f.Terrain.Writes;f.Send(other,f.Command(other,BlueprintPackage.Confirm,pendingTicket.Request));Check(f.Terrain.Writes==writes&&!f.Host.Busy,"previously prepared tickets cannot bypass pending undo lock");
-            f.Clock.m_gameTime+=1;var begin=f.Command(p,BlueprintPackage.Begin,Guid.NewGuid());begin.Y=64;begin.Total=1;
-            Check(f.Send(p,begin).Kind==BlueprintPackage.Status&&!f.Host.Busy,"pending undo blocks later construction");
-            f.Terrain.Blocked.Clear();f.Send(p,f.Command(p,BlueprintPackage.Undo,Guid.NewGuid()));f.Drain();Check(f.Terrain.Occupied==0,"paused undo resumes without dropping journal");
+            CommonLib.WorkType=role;var alice=f.Player(1);var bob=f.Player(2);f.Codex.Records.Clear();
+            Check(f.Host.CanOperate(alice),"drawing works without a true-name record in "+role);
+            Check(f.Start(alice,Blueprint(120)),"direct build starts immediately in "+role);
+            Check(Pending.Count==0,"no custom host request or acknowledgement in "+role);
+            f.Drain();Check(f.Terrain.Occupied==120,"direct scheduled build completes in "+role);
+            f.Host.UndoDirect(bob);Check(!f.Host.Busy,"other player cannot undo own build");
+            f.Terrain.Cells[new CellPos(0,64,0)]=21;f.Host.UndoDirect(alice);f.Drain();
+            Check(f.Terrain.Occupied==1&&f.Terrain.Cells[new CellPos(0,64,0)]==21,"undo preserves subsequent edits in "+role);
+            Check(f.Start(alice,Blueprint(200),-40),"start cancellable direct build");f.Tick();f.Host.CancelDirect(bob);Check(f.Host.Busy,"other player cannot cancel");
+            f.Host.CancelDirect(alice);f.Drain();Check(f.Terrain.Occupied==1,"cancel restores partial direct build");
+            Check(f.Start(alice,Blueprint(100),-40),"start failure test");f.Terrain.FailAt=f.Terrain.Writes+10;f.Drain();Check(f.Terrain.Occupied==1,"failed partial writes are journaled and restored");
+            Check(f.Start(alice,Blueprint(100),-40),"start disconnect test");f.Tick();f.Players.m_componentPlayers.Remove(alice);f.Drain();Check(f.Terrain.Occupied==1,"disconnect restores partial build");
+            f.Players.m_componentPlayers.Add(alice);Check(f.Start(alice,Blueprint(100),-40),"start undo pause test");f.Drain();
+            var blocked=new CellPos(-37,64,0);f.Terrain.Blocked.Add(blocked);f.Host.UndoDirect(alice);for(int i=0;i<5;i++)f.Tick();Check(f.Host.Busy,"unloaded undo cell keeps restoration pending");
+            f.Host.CancelDirect(alice);Check(!f.Host.Busy,"own undo can pause");Check(!f.Start(bob,Blueprint(),40),"pending restore prevents losing the undo journal");
+            f.Terrain.Blocked.Clear();f.Host.UndoDirect(alice);f.Drain();Check(f.Terrain.Occupied==1,"resume restores remaining journal");
+            f.Terrain.Cells[new CellPos(40,64,0)]=3;Check(!f.Start(alice,Blueprint(),40),"default no-overwrite remains");Check(f.Start(alice,Blueprint(),40,true),"explicit clear can start directly");f.Drain();
+            for(int i=0;i<40;i++)f.Tick();Check(Math.Abs(alice.ComponentLocomotion.WalkSpeed-6)<.0001,"held movement stays +20 percent");
+            ((ComponentInventory)alice.ComponentMiner.Inventory).m_slots[0].Value=3;f.Tick();Check(alice.ComponentLocomotion.WalkSpeed==5,"unequip restores increment");
+            Check(Pending.Count==0,"direct scheduler never generates a custom packet");
         }
     }
     private static void LibraryAndCopyTests()
@@ -218,20 +165,13 @@ internal static partial class BlueprintTests
     }
     private static void IdentityAndCodecTests()
     {
-        foreach(var asm in new[]{typeof(Block).Assembly,typeof(BlueprintPackage).Assembly})foreach(var type in asm.GetTypes())
+        foreach(var asm in new[]{typeof(Block).Assembly,typeof(BlueprintToolBlock).Assembly})foreach(var type in asm.GetTypes())
         {
-            if(!type.IsAbstract&&typeof(IPackage).IsAssignableFrom(type)&&type!=typeof(BlueprintPackage))Check(((IPackage)FormatterServices.GetUninitializedObject(type)).ID!=237,"237 vacant against actual native/mod packets");
+            if(!type.IsAbstract&&typeof(IPackage).IsAssignableFrom(type))Check(((IPackage)FormatterServices.GetUninitializedObject(type)).ID!=237,"237 vacant against actual native/mod packets");
             if(type.IsSubclassOf(typeof(Block))&&type!=typeof(BlueprintToolBlock)){var id=type.GetField("Index",BindingFlags.Public|BindingFlags.Static|BindingFlags.FlattenHierarchy);if(id!=null&&id.IsLiteral)Check((int)id.GetRawConstantValue()!=971,"971 vacant against actual native/mod blocks");}
         }
-        var packet=new BlueprintPackage{Kind=BlueprintPackage.Chunk,Owner=Guid.NewGuid(),Request=Guid.NewGuid(),Caster=7,Sequence=uint.MaxValue,X=-10,Y=250,Z=42,Total=5000,Offset=4096,Clear=true,Payload=Encoding.UTF8.GetBytes("绘卷")};
-        using(var writer=new PackageStreamWriter())
-        {
-            packet.WriteData(writer);var bytes=writer.Data();using(var reader=new PackageStreamReader(bytes))
-            { var decoded=new BlueprintPackage();decoded.ReadData(reader);Check(decoded.Kind==packet.Kind&&decoded.Owner==packet.Owner&&decoded.Request==packet.Request&&decoded.Sequence==packet.Sequence&&decoded.X==-10&&decoded.Y==250&&decoded.Z==42&&decoded.Clear&&decoded.Total==5000&&decoded.Offset==4096&&decoded.Payload.SequenceEqual(packet.Payload),"actual native packet codec roundtrip"); }
-        }
-        packet.Payload=new byte[4097];Throws(()=>{using(var writer=new PackageStreamWriter())packet.WriteData(writer);},"native writer refuses oversized payload");
         Check(CodexRules.Bit(971)==256&&CodexRules.Bit(953)==128&&CodexRules.Bit(942)==1,"existing codex bits preserved and ninth appended");
-        Check(!CodexRules.Unlocked(255,971)&&CodexRules.Unlocked(511,971),"old worlds preserve locks until new artifact unsealed");
+        Check(CodexRules.Unlocked(0,971)&&CodexRules.Unlocked(511,971),"drawing is directly usable without true-name unlock");
         var json=BlueprintJson.Serialize(Blueprint(123));var bp=BlueprintImportService.FromString(json,null);Check(bp.Success&&bp.Blueprint.CellCount==123,"schema3 import export");
         var rotated=bp.Blueprint;for(int i=0;i<4;i++)rotated=rotated.Reorient(1,false);Check(BlueprintJson.Serialize(rotated)==json,"four rotations preserve blueprint");
         rotated=bp.Blueprint.Reorient(0,true).Reorient(0,true);Check(BlueprintJson.Serialize(rotated)==json,"double mirror preserves blueprint");
@@ -243,8 +183,8 @@ internal static partial class BlueprintTests
         {
             SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
             BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3};BlocksManager.Blocks[21]=new PlanksBlock{BlockIndex=21};
-            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();NetworkTests();SafetyTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
-            Console.WriteLine("Blueprint native API/codec + simulated authoritative multiplayer: "+checks+" checks passed. No actual game room or Android device.");
+            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();DirectTests();NativeDirectTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
+            Console.WriteLine("Blueprint direct Local/Server/Client, API/codec and terrain: "+checks+" checks passed. No actual game room or Android device.");
         }
         finally { CommonLib.WorkType=oldMode;CommonLib.Net=oldNet;SubsystemBedrockBlockBehavior.Territories=oldTerritories; }
     }

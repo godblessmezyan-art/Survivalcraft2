@@ -93,10 +93,10 @@ namespace SCIEPort.Features.CelestialCodex.Core
     internal sealed class ReadingPosition
     {
         internal string Slug = "", Revision = "", Chapter = "";
-        internal int Scroll, Font = 2;
+        internal int Scroll, Font = 2, Theme;
         internal byte[] Encode()
         {
-            return Encoding.UTF8.GetBytes("{\"slug\":" + StrictJson.Quote(Slug) + ",\"revision\":" + StrictJson.Quote(Revision) + ",\"chapter\":" + StrictJson.Quote(Chapter) + ",\"scroll\":" + Scroll + ",\"font\":" + Font + "}");
+            return Encoding.UTF8.GetBytes("{\"slug\":" + StrictJson.Quote(Slug) + ",\"revision\":" + StrictJson.Quote(Revision) + ",\"chapter\":" + StrictJson.Quote(Chapter) + ",\"scroll\":" + Scroll + ",\"font\":" + Font + ",\"theme\":" + Theme + "}");
         }
         internal static ReadingPosition Decode(byte[] bytes)
         {
@@ -105,6 +105,7 @@ namespace SCIEPort.Features.CelestialCodex.Core
             {
                 var o = Protocol.Object(StrictJson.Parse(bytes));
                 var p = new ReadingPosition { Slug = Protocol.String(o, "slug", 160), Revision = Protocol.String(o, "revision", 64), Chapter = Protocol.String(o, "chapter", 4), Scroll = Protocol.Integer(o, "scroll", 0, 1000000), Font = Protocol.Integer(o, "font", 0, 4) };
+                if (o.ContainsKey("theme")) p.Theme = Protocol.Integer(o, "theme", 0, 1);
                 if (!Protocol.SafeSlug(p.Slug) || !Protocol.Revision(p.Revision) || !Protocol.ChapterId(p.Chapter)) throw new InvalidDataException("Position");
                 return p;
             }
