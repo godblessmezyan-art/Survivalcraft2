@@ -1,5 +1,17 @@
 # 兼容性矩阵
 
+## 2026-11-12 天工绘卷云端刷新三次 BCL 修复（移除 WebRequest）
+
+18:10:28–18:10:32 用户手机日志确认上一修复 DLL（MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`）仍缺少 `System.Net.HttpWebRequest.set_AllowAutoRedirect(bool)`，请求尚未发出。该包云端刷新在此运行库为**不支持**；不能通过删除禁跳转设置解决。没有取得手机 BCL/程序集哈希，也不能断言裁剪等具体成因。
+
+蓝图生产通道改用 `TcpClient` 原生 APM + `TaskCompletionSource`、后台 `SslStream` 系统证书/主机名验证及有界 HTTP/1.1 JSON 读取，完全移除蓝图 `WebRequest`/`HttpWebRequest`。不执行跳转、认证、Cookie 或解压，不改全局 TLS；保留固定 HTTPS 白名单、12 秒截止/取消、2MiB 上限、缓存/哈希/导入及主机施工规则。新增累计32KiB头部/分块元数据与最多4个临时响应限制，拒绝重复/歧义长度、传输编码和截断正文。当前为同版本0.80.0本地开发包，不新建/覆盖 tag 或 Release。详见[专项及实际命令](../SCIE-Port/docs/TIANGONG-BLUEPRINT.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 固定 Windows x25.01.17、net472 编译与开发检查 | 已确认 | 三个登记哈希匹配；0警告/0错误；蓝图820项，含真实TCP/TLS与证书拒绝；27项GUID/IL、1347项解析、439项图谱检查通过。旧DLL负对照被新WebRequest守卫拒绝。 |
+| Windows 实际修复 DLL 生产 HTTPS 目录/下载 | 已确认 | apiVersion1、page1、total3、1529字节；下载154162字节，长度与SHA-256匹配。不代表Android可用。 |
+| Android7723新通道、刷新/下载/离线缓存；真实Local/Server/普通Client | 待验证 | TcpClient/SslStream在该手机的完整BCL/TLS仍无证据，桌面成功不可外推。替换旧开发包后复测。 |
+
 ## 2026-11-12 天工绘卷云端刷新二次 BCL 修复（TaskFactory.FromAsync）
 
 用户 15:33:20–15:33:22 连续报告 `Cloud BCL stage=http`：`System.MissingMethodException: System.Threading.Tasks.TaskFactory.FromAsync<!0>(...)`，Mod MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`，正是 14:14 首次修复产出的开发包。上次把 `HttpClientHandler` 换成 `HttpWebRequest` 时使用了 `Task.Factory.FromAsync<WebResponse>(BeginGetResponse, EndGetResponse, null)`；该泛型 APM 适配器在日志运行库同样缺失，异常发生在 `BlueprintCloudWebRequest.Get` 的 `AsyncTaskMethodBuilder.Start`，请求未发出即失败。**不能据 Windows 程序集推定其它 BCL 成员可用。**

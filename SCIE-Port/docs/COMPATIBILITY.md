@@ -1,5 +1,17 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-12 天工绘卷三次 BCL 修复（TCP/TLS）
+
+用户18:10手机日志在上一修复DLL MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac` 中报告 `HttpWebRequest.set_AllowAutoRedirect(bool)` 缺失。该包云端刷新在日志运行库为**不支持**，不能删除禁跳转设置绕过。蓝图生产网络现改为 `TcpClient` + 系统验证的 `SslStream` + 有界HTTP/1.1读取，移除全部蓝图WebRequest/HttpWebRequest引用；不执行跳转、Cookie、认证或解压。固定HTTPS白名单、12秒截止/取消、JSON/UTF-8/2MiB、缓存/哈希/导入及主机权限保持，新增响应头/分块元数据累计32KiB、4个临时响应及歧义/截断响应拒绝。未改ID、Hook、SCNET协议、存档、版本号和modinfo。MVID `9f6344be-8745-41d7-9241-efa765e8ef75`，仍为0.80.0本地开发包，不覆盖历史Release。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| Windows x25.01.17 / net472编译及开发检查 | 已确认 | 环境三哈希匹配；0警告/0错误；蓝图820项、27项GUID/IL、1347项解析和439项图谱通过；旧DLL被新增守卫拒绝。 |
+| Windows 实际 DLL 生产HTTPS | 已确认 | 目录page1/total3、1529字节；首份蓝图154162字节、长度/SHA-256匹配。 |
+| Android7723完整BCL/TLS、刷新/下载/离线；真实Local/Server/普通Client | 待验证 | 未取得手机程序集/哈希及新通道实测，不能以Windows代替手机。 |
+
+原始原因、证书测试夹具修正及实际命令见[天工绘卷](TIANGONG-BLUEPRINT.md)和[测试记录](TEST-RESULTS.md)。
+
 ## 2026-11-12 天工绘卷云端刷新 BCL 修复（0.80.0开发重打包）
 
 用户日志明确缺少 `HttpClientHandler.set_AllowAutoRedirect(bool)`，Mod MVID `938f9691-4277-43cb-8d7b-9b66f8f830af`。蓝图默认HTTP改用独立 `HttpWebRequest` 适配，保留禁跳转、系统证书验证、12秒取消/Abort、JSON/UTF-8/2MiB与原缓存/导入规则。身份、Hook、协议、包布局和存档不变，版本号不变，不新增GitHub Release。详见[修复与验收](TIANGONG-BLUEPRINT.md)。

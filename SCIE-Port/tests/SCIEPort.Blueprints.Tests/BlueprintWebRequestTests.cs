@@ -2,6 +2,10 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.Security;
+using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +16,9 @@ internal static partial class BlueprintTests
     // Exercises the production adapter, rather than just the injected HttpClient mocks.
     private static async Task TestBlueprintWebRequest()
     {
-        Console.WriteLine("[Production WebRequest transport against loopback HTTP]");
+        Console.WriteLine("[Production TCP/TLS transport against loopback HTTP]");
+        TestBlueprintHttpReader();
+        await TestBlueprintTls();
         var reserve = new TcpListener(IPAddress.Loopback, 0);
         reserve.Start();
         int port = ((IPEndPoint)reserve.LocalEndpoint).Port;
@@ -22,11 +28,6 @@ internal static partial class BlueprintTests
         {
             listener.Prefixes.Add(address);
             listener.Start();
-            var request = BlueprintCloudWebRequest.Create(new Uri(address));
-            Check(!request.AllowAutoRedirect && request.CookieContainer == null && request.Credentials == null && request.AutomaticDecompression == DecompressionMethods.None,
-                "production requests disable redirects and have no cookies, credentials or decompression");
-            Check(request.ServerCertificateValidationCallback == null, "production requests retain platform certificate validation");
-            request.Abort();
             byte[] json = Encoding.UTF8.GetBytes("{\"apiVersion\":1,\"page\":1,\"pageSize\":20,\"total\":0,\"items\":[]}");
             Func<HttpListenerResponse, Task> sendJson = async response =>
             {
@@ -37,7 +38,7 @@ internal static partial class BlueprintTests
             Func<Func<HttpListenerResponse, Task>, CancellationToken, Task<byte[]>> exchange = async (respond, token) =>
             {
                 Task<HttpListenerContext> accept = listener.GetContextAsync();
-                Task<byte[]> get = BlueprintCloudWebRequest.Get(new Uri(address), token);
+                Task<byte[]> get = BlueprintCloudConnection.Get(new Uri(address), token);
                 Task first = await Task.WhenAny(accept, get, Task.Delay(5000));
                 if (!accept.IsCompleted)
                 {
@@ -151,7 +152,7 @@ internal static partial class BlueprintTests
                         }, caller.Token);
                     }
                     catch (OperationCanceledException) { cancelled = true; }
-                    Check(cancelled && watch.Elapsed.TotalSeconds < 3, "Abort interrupts pending " + (body ? "body" : "headers") + " and preserves caller cancellation");
+                    Check(cancelled && watch.Elapsed.TotalSeconds < 3, "socket close interrupts pending " + (body ? "body" : "headers") + " and preserves caller cancellation");
                 }
             }
             var deadline = new BlueprintRequestDeadline(CancellationToken.None);
@@ -179,8 +180,110 @@ internal static partial class BlueprintTests
         }
         // A refused TCP connection must still be eligible for existing network cache fallback.
         bool networkFailure = false;
-        try { await BlueprintCloudWebRequest.Get(new Uri(address), CancellationToken.None); }
+        try { await BlueprintCloudConnection.Get(new Uri(address), CancellationToken.None); }
         catch (Exception error) { networkFailure = BlueprintNetworkFailure.Code(error) == "NET"; }
         Check(networkFailure, "production connection failure retains NET classification");
+    }
+
+    private static void TestBlueprintHttpReader()
+    {
+        Func<string, byte[]> read = text =>
+        {
+            using (var input = new MemoryStream(Encoding.ASCII.GetBytes(text)))
+                return BlueprintHttpReader.Read(input, CancellationToken.None);
+        };
+        string head = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n";
+        Check(Encoding.ASCII.GetString(read(head + "Content-Length: 2\r\n\r\n{}")) == "{}", "fixed-length JSON response");
+        Check(Encoding.ASCII.GetString(read(head + "\r\n{}")) == "{}", "close-delimited JSON response");
+        Check(Encoding.ASCII.GetString(read("HTTP/1.1 103 Early Hints\r\nLink: </ignore>\r\n\r\n" + head
+            + "Transfer-Encoding: chunked\r\n\r\n1;ext=yes\r\n{\r\n1\r\n}\r\n0\r\nX-Checksum: ignored\r\n\r\n")) == "{}", "bounded interim response, chunk extensions and harmless trailers");
+        foreach (string response in new[] {
+            "HTTP/1.1 abc OK\r\n\r\n", "HTTP/1.1 2000 OK\r\n\r\n", "HTTP/2 200 OK\r\n\r\n", "HTTP/1.1 200 OK\n\n",
+            head + "Content-Length: 2\r\nContent-Length: 2\r\n\r\n{}",
+            head + "Content-Length: 2\r\nTransfer-Encoding: chunked\r\n\r\n{}",
+            head + "Transfer-Encoding: gzip, chunked\r\n\r\n", head + "Transfer-Encoding: chunked\r\nTransfer-Encoding: chunked\r\n\r\n",
+            head + "Content-Length: +2\r\n\r\n{}", head + "Content-Length: -1\r\n\r\n", head + "Content-Length: 999999999999999999999\r\n\r\n",
+            head + "Content-Type: application/json\r\n\r\n{}", head + "Content-Encoding: gzip\r\nContent-Encoding: \r\n\r\n{}",
+            head + " Invalid: folded-header\r\n\r\n{}", head + "X-Test: " + new string('a', 32768) + "\r\n\r\n{}",
+            head + "Transfer-Encoding: chunked\r\n\r\n+2\r\n{}\r\n0\r\n\r\n",
+            head + "Transfer-Encoding: chunked\r\n\r\n2\r\n{}X\n0\r\n\r\n",
+            head + "Transfer-Encoding: chunked\r\n\r\n0\r\nContent-Length: 2\r\n\r\n",
+            "HTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 100 Continue\r\n\r\nHTTP/1.1 100 Continue\r\n\r\n" + head + "\r\n{}"
+        })
+        {
+            bool invalid = false;
+            try { read(response); } catch (InvalidDataException) { invalid = true; }
+            Check(invalid, "ambiguous, malformed or excessive HTTP framing rejected");
+        }
+        foreach (string response in new[] { head + "Content-Length: 3\r\n\r\n{}", head + "Transfer-Encoding: chunked\r\n\r\n3\r\n{}", head })
+        {
+            bool incomplete = false;
+            try { read(response); } catch (IOException) { incomplete = true; }
+            Check(incomplete, "truncated headers/body never become valid cached JSON");
+        }
+        foreach (int status in new[] { 101, 301, 302, 303, 307, 308, 401, 403, 404, 409, 429, 503 })
+        {
+            bool rejected = false;
+            try { read("HTTP/1.1 " + status + " Rejected\r\n"); }
+            catch (BlueprintHttpException error) { rejected = error.Status == status; }
+            Check(rejected, "HTTP " + status + " rejected before headers/body, preserving original status");
+        }
+        bool oversize = false;
+        try { read(head + "\r\n" + new string('x', BlueprintCloudProtocol.MaxBytes + 1)); } catch (InvalidDataException) { oversize = true; }
+        Check(oversize, "close-delimited body bounded without Content-Length");
+        Check(read(head + "Content-Length: " + BlueprintCloudProtocol.MaxBytes + "\r\n\r\n" + new string('x', BlueprintCloudProtocol.MaxBytes)).Length == BlueprintCloudProtocol.MaxBytes,
+            "exact 2MiB boundary accepted");
+    }
+
+    private static async Task TestBlueprintTls()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        string address = "https://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port + "/";
+        try
+        {
+            using (var rsa = RSA.Create(2048))
+            using (var generated = new CertificateRequest("CN=localhost", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1)
+                .CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1)))
+            // Schannel on net472 needs an imported private-key credential rather
+            // than CertificateRequest's ephemeral generated key.
+            using (var certificate = new X509Certificate2(generated.Export(X509ContentType.Pfx)))
+            {
+                Task<TcpClient> accept = listener.AcceptTcpClientAsync();
+                Task<byte[]> get = BlueprintCloudConnection.Get(new Uri(address), CancellationToken.None);
+                using (TcpClient server = await accept)
+                {
+                    bool sentGet = false;
+                    Task serve = Task.Run(() =>
+                    {
+                        using (var tls = new SslStream(server.GetStream(), false))
+                        {
+                            try { tls.AuthenticateAsServer(certificate, false, SslProtocols.Tls12, false); sentGet = tls.ReadByte() >= 0; }
+                            catch (AuthenticationException) { }
+                            catch (IOException) { }
+                        }
+                    });
+                    bool rejected = false;
+                    try { await get; } catch (Exception error) { rejected = BlueprintNetworkFailure.Code(error) == "TLS"; }
+                    await serve;
+                    Check(rejected && !sentGet, "untrusted/mismatched TLS certificate rejected before sending HTTP, without validation callbacks");
+                }
+            }
+            using (var caller = new CancellationTokenSource())
+            {
+                Task<TcpClient> accept = listener.AcceptTcpClientAsync();
+                Task<byte[]> get = BlueprintCloudConnection.Get(new Uri(address), caller.Token);
+                using (TcpClient server = await accept)
+                {
+                    await Task.Delay(150);
+                    var watch = System.Diagnostics.Stopwatch.StartNew();
+                    caller.Cancel();
+                    bool cancelled = false;
+                    try { await get; } catch (OperationCanceledException) { cancelled = true; }
+                    Check(cancelled && watch.Elapsed.TotalSeconds < 3, "cancellation interrupts a stalled TLS handshake");
+                }
+            }
+        }
+        finally { listener.Stop(); }
     }
 }

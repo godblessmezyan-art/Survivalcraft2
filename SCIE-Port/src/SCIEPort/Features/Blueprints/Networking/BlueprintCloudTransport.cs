@@ -79,7 +79,7 @@ namespace SCIEPort.Features.Blueprints.Networking
                 deadline.Token.ThrowIfCancellationRequested();
                 var uri = new Uri(endpoint + path);
                 if (handlerFactory == null)
-                    return await BlueprintCloudWebRequest.Get(uri, deadline.Token).ConfigureAwait(false);
+                    return await BlueprintCloudConnection.Get(uri, deadline.Token).ConfigureAwait(false);
                 using (HttpMessageHandler handler = handlerFactory())
                 using (var client = new HttpClient(handler))
                 {

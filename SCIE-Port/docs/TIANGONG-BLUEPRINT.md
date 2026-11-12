@@ -1,5 +1,17 @@
 # 天工绘卷
 
+## 2026-11-12 18:10 三次 BCL 修复：独立 TCP/TLS 通道
+
+用户已替换成上次修复包：手机日志MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac` 与产物一致。本次缺失的是 `HttpWebRequest.set_AllowAutoRedirect(bool)`，并非 `TaskFactory.FromAsync` 再次出现；异常在请求初始化即发生。此前Windows检查仅证明桌面行为，不能证明手机BCL。本次同时移除蓝图生产路径的 `WebRequest`/`HttpWebRequest`，避免在两个已报告缺成员的高层HTTP实现之间继续切换。未取得手机BCL，不能断言其具体成因为裁剪或推断新接口已被手机确认。
+
+`BlueprintCloudConnection` 通过 `TcpClient.BeginConnect`/`EndConnect` 与自有完成源连接，后台 `SslStream(Stream, false).AuthenticateAsClient(host)` 使用系统证书链、主机名验证和TLS协议选择，没有证书放行回调或全局TLS修改。关于该接口的契约见[Microsoft文档](https://learn.microsoft.com/en-us/dotnet/api/system.net.security.sslstream.authenticateasclient?view=netframework-4.7.2)。不复用游戏 `WebManager.Get`，因为固定Windows目标中的实现放行证书错误、吞异常且没有响应容量限制。APM仅适配连接，不使用 `TaskFactory.FromAsync`；同步TLS/HTTP读取在后台进行，观察器关闭socket以中止连接/握手/头部/正文。12秒统一预算与用户取消继续由原截止观察器提供，APM完成源在取消时一并结束等待。直连固定HTTPS来源，不经过HTTP代理或接受响应链接；HTTP仅供内部loopback检查，生产Transport仍先执行原精确HTTPS白名单和规范路径校验。
+
+HTTP/1.1仅发送一次GET/Host/JSON/identity/Connection: close，不处理Location、Cookie、认证挑战、压缩或重试。`BlueprintHttpReader`在最终非200状态行即拒绝并保留原状态；支持固定长度、chunked及连接关闭定界，沿用JSON/UTF-8与2MiB正文限额。新增头部、临时响应、chunk元数据与尾部累计32KiB上限、最多4个临时响应/16384块；拒绝重复关键头、Content-Length与Transfer-Encoding并存、未知传输编码、非法长度/CRLF、受保护尾字段与不完整正文。原目录缓存、HTTP撤回/权限策略、下载哈希/长度及原导入器保持；957、材料/家具/schema、施工/撤销、网络协议和书典源码均未改。
+
+Windows环境/编译与820项蓝图检查通过，真实生产HTTPS目录1529字节/total3和一份154162字节蓝图已读取，长度与SHA-256匹配。新增本地TLS检查确认自签名/主机名不匹配证书在发送GET前被拒绝，取消能中断停滞TLS握手；旧DLL负对照被新增WebRequest调用守卫拒绝。这些是桌面证据；Android7723完整TcpClient/SslStream/BCL/TLS与真实Local/Server/普通Client仍**待验证**。
+
+交付继续为0.80.0本地修复开发包，MVID `9f6344be-8745-41d7-9241-efa765e8ef75`，`荒野探险家-0.80.0.netmod` 11637037字节；正式名副本一并提供。不改modinfo，不触发或覆盖GitHub Release/tag。替换旧0.80.0包，避免同时安装相同PackageName的两份包，再测试刷新/下载；若还有BCL，须以新MVID及完整缺失成员堆栈继续定位。命令和夹具问题见[测试记录](TEST-RESULTS.md)。下面两轮记录保留为历史，已被本节替代。
+
 ## 2026-11-12 云端刷新 BCL 修复
 
 用户日志在14:14:05–14:14:06连续报告 `Cloud BCL stage=http`，缺少 `System.Net.Http.HttpClientHandler.set_AllowAutoRedirect(bool)`，Mod MVID 为 `938f9691-4277-43cb-8d7b-9b66f8f830af`。这证明该运行库不能执行旧请求初始化；尚未取得此Android/7723运行库的程序集/哈希，不能据Windows程序集推定其它成员可用。

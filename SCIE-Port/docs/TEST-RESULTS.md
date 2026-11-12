@@ -1,5 +1,35 @@
 # 测试结果
 
+## 2026-11-12 main 0.80.0 三次开发重打包：移除 HttpWebRequest
+
+基线 `da59299`；用户18:10日志缺失 `HttpWebRequest.set_AllowAutoRedirect(bool)`，MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`。本次替换蓝图生产HTTP实现为TCP/系统TLS和有界响应读取，不改版本、modinfo、游戏身份/协议、存档、施工或书典源码；不创建/覆盖Release。
+
+实际命令（仓库根，开发检查独立于快速打包）：
+
+```powershell
+$env:PATH = 'C:\Program Files\Python311;' + $env:PATH
+Remove-Item Env:\ACC_PRODUCT_CONFIG_V3 -ErrorAction SilentlyContinue
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet build SCIE-Port/tests/SCIEPort.Blueprints.Tests/SCIEPort.Blueprints.Tests.csproj -c Release --nologo
+dotnet run --project SCIE-Port/tests/SCIEPort.Blueprints.Tests/SCIEPort.Blueprints.Tests.csproj -c Release -- E:/SCNET/SCNETx25.01.17 E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/Probe-BlueprintBclAudit.ps1 -AssemblyPath artifacts/SCIEPort-before-bcl-redirect-fix.dll -ExpectRejection
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/Probe-BlueprintCloudConnection.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WildernessExplorerFast.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+```
+
+| 范围 | 实际结果 |
+|---|---|
+| 环境/Release编译 | 固定Windows三个登记哈希匹配，net472/API1.42/SC2.4.10.6；0警告/0错误。 |
+| 蓝图专项 | **820项通过**。含原主机/普通玩家模拟权限、事务/撤销、云端缓存/导入；真实loopback GET、302拒绝/HTTP原状态、JSON/UTF-8/gzip与声明/分块上限、头部/正文取消和实际12秒正文截止；新增HTTP歧义/重复/截断/头部超限/临时响应、close定界2MiB边界、自签名/错误主机名TLS证书拒绝和停滞TLS取消。 |
+| 已知缺失调用审计 | 27项GUID/IL、1347项解析、439项图谱通过；3830方法/30013调用位点，无既有已知缺失解析、蓝图HttpClientHandler/WebRequest/HttpWebRequest/TaskFactory.FromAsync引用。真实旧DLL负对照按预期以WebRequest.Create拒绝；不是完整Android BCL审计。 |
+| 生产HTTPS只读 | 实际编译DLL默认Transport：apiVersion1、page1、total3、1529字节，原协议解码成功；首份蓝图revision1、154162字节，SHA-256及byteLength匹配。未改动线上数据。 |
+| 快速打包 | `SCIE-Port/artifacts/荒野探险家-0.80.0.netmod`，**11637037字节**；复制正式名`荒野探险家.netmod`。最终DLL MVID `9f6344be-8745-41d7-9241-efa765e8ef75`。快建只编译/压包，没有测试、安装包内容校验或SHA附件，未创建Release。 |
+
+首次新增TLS夹具使用CertificateRequest临时私钥，Windows net472 Schannel服务端报“安全包中没有可用的凭证”；将生成证书导出PFX再导入为服务端凭据后重跑820项通过，没有调整生产证书验证。`artifacts/`只读探针、旧DLL和本地包为忽略的开发生成物，不提交游戏或其它专有DLL。
+
+**待验证**：Android7723该运行库的完整TcpClient/SslStream/BCL/TLS、刷新/下载/重启离线、触屏及真实Local/Server/普通Client。Windows成功不表示手机已兼容；须替换旧0.80.0开发包再试，记录新完整日志和MVID。单人/主机/客户端本轮均无新增实机证据。
+
 ## 2026-11-12 main 0.80.0 二次开发重打包：移除 TaskFactory.FromAsync 泛型 APM 适配器
 
 基线为 14:14 首次修复包（MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`）；用户 15:33 实机日志报 `MissingMethodException: TaskFactory.FromAsync<!0>(...)`。本轮只改 `BlueprintCloudWebRequest` 生产适配器与 IL 审计守卫，不改身份、协议、缓存规则、版本号、modinfo 或自动 Release 触发器。
