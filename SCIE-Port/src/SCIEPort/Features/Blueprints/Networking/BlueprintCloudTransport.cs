@@ -66,7 +66,7 @@ namespace SCIEPort.Features.Blueprints.Networking
         }
         internal async Task<byte[]> Get(string path, CancellationToken token)
         {
-            // Only the two generated request shapes can reach HttpClient.
+            // Only the two generated request shapes can reach the network.
             bool valid = false;
             if (path != null && path.StartsWith("?page=", StringComparison.Ordinal))
             { int page; int end = path.IndexOf('&'); valid = end > 6 && PositiveDecimal(path.Substring(6, end - 6), 10000, out page) && path == ListPath(page); }
@@ -77,29 +77,34 @@ namespace SCIEPort.Features.Blueprints.Networking
             try
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                using (HttpMessageHandler handler = handlerFactory == null ? new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, AutomaticDecompression = DecompressionMethods.None } : handlerFactory())
+                var uri = new Uri(endpoint + path);
+                if (handlerFactory == null)
+                    return await BlueprintCloudWebRequest.Get(uri, deadline.Token).ConfigureAwait(false);
+                using (HttpMessageHandler handler = handlerFactory())
                 using (var client = new HttpClient(handler))
                 {
                     client.DefaultRequestHeaders.Add("Accept", "application/json"); client.DefaultRequestHeaders.Add("Accept-Encoding", "identity");
-                    using (HttpResponseMessage response = await client.GetAsync(new Uri(endpoint + path), HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
-                    {
-                        if (response.StatusCode != HttpStatusCode.OK) throw new BlueprintHttpException((int)response.StatusCode);
-                        var content = response.Content;
-                        if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("蓝图库返回了非 JSON 响应。");
-                        string charset = content.Headers.ContentType.CharSet;
-                        if ((!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) || content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > BlueprintCloudProtocol.MaxBytes) throw new InvalidDataException("蓝图库响应编码或长度无效。");
-                        using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var output = new MemoryStream())
-                        {
-                            var buffer = new byte[4096]; int read;
-                            while ((read = await input.ReadAsync(buffer, 0, Math.Min(buffer.Length, BlueprintCloudProtocol.MaxBytes + 1 - (int)output.Length), deadline.Token).ConfigureAwait(false)) > 0)
-                            { output.Write(buffer, 0, read); if (output.Length > BlueprintCloudProtocol.MaxBytes) throw new InvalidDataException("蓝图库响应过大。"); }
-                            deadline.Token.ThrowIfCancellationRequested(); return output.ToArray();
-                        }
-                    }
+                    using (HttpResponseMessage response = await client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
+                        return await ReadResponse(response, deadline.Token).ConfigureAwait(false);
                 }
             }
             finally { await deadline.Stop().ConfigureAwait(false); }
+        }
+        internal static async Task<byte[]> ReadResponse(HttpResponseMessage response, CancellationToken token)
+        {
+            if (response.StatusCode != HttpStatusCode.OK) throw new BlueprintHttpException((int)response.StatusCode);
+            var content = response.Content;
+            if (content == null || content.Headers.ContentType == null || !string.Equals(content.Headers.ContentType.MediaType, "application/json", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("蓝图库返回了非 JSON 响应。");
+            string charset = content.Headers.ContentType.CharSet;
+            if ((!string.IsNullOrEmpty(charset) && !string.Equals(charset.Trim('"'), "utf-8", StringComparison.OrdinalIgnoreCase)) || content.Headers.ContentEncoding.Count != 0 || content.Headers.ContentLength > BlueprintCloudProtocol.MaxBytes) throw new InvalidDataException("蓝图库响应编码或长度无效。");
+            using (Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false))
+            using (var output = new MemoryStream())
+            {
+                var buffer = new byte[4096]; int read;
+                while ((read = await input.ReadAsync(buffer, 0, Math.Min(buffer.Length, BlueprintCloudProtocol.MaxBytes + 1 - (int)output.Length), token).ConfigureAwait(false)) > 0)
+                { output.Write(buffer, 0, read); if (output.Length > BlueprintCloudProtocol.MaxBytes) throw new InvalidDataException("蓝图库响应过大。"); }
+                token.ThrowIfCancellationRequested(); return output.ToArray();
+            }
         }
     }
 }

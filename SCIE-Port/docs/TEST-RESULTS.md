@@ -1,5 +1,31 @@
 # 测试结果
 
+## 2026-11-12 main 0.80.0开发重打包：天工绘卷云端 BCL 修复
+
+基线 `c3879c6`。用户日志提供缺失的 `HttpClientHandler.set_AllowAutoRedirect(bool)` 与Mod MVID `938f9691-4277-43cb-8d7b-9b66f8f830af`，请求在初始化即失败。本轮只为移植后的蓝图模块新增HttpWebRequest通道，共用原响应校验，保留缓存/导入/施工规则；不改建筑助手、书典源码、版本号、modinfo或自动Release触发器。修复的Android网络API仍须实机复测，不能由桌面编译推断兼容。
+
+实际命令（仓库根；开发检查独立于快速打包流程）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo
+dotnet run --project SCIE-Port/tests/SCIEPort.Blueprints.Tests/SCIEPort.Blueprints.Tests.csproj -c Release -- E:/SCNET/SCNETx25.01.17 E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WildernessExplorerFast.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+```
+
+| 范围 | 实际结果 |
+|---|---|
+| 环境/Release编译 | 登记Windows三程序集哈希匹配；net472 / API1.42 / SC2.4.10.6；0警告/0错误。 |
+| 蓝图专项 | **781项通过**，包含原750项与真实loopback HTTP适配：GET/JSON/identity、无凭据/Cookie/解压、默认系统证书回调、302禁止跳转、404/409/429/503原状态、HTML/UTF-16/压缩拒绝、声明过大与无Content-Length分块过大拒绝、等待头/正文取消、实际12秒正文截止及断网NET分类。原缓存、下载哈希、导入、权限、取消/撤销与模拟联机检查仍通过。 |
+| 实际DLL已知缺失接口审计 | 27项GUID/API审计、1347项解析、439项图谱原生检查通过；扫描3816个编译方法/29891个调用位点。守卫新增拒绝蓝图模块及异步状态机的任何HttpClientHandler成员引用；原BCL TryParse与Guid/UInt32 Parse守卫保持。不是完整Android BCL审计。 |
+| 实际生产HTTPS（只读） | Windows PowerShell5.1反射实际修复DLL，默认BlueprintCloudTransport.Get(`?page=1&pageSize=20`, None)成功；端点`https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints`，apiVersion1、page1、total3、1529字节。本轮未在生产发布/修改蓝图，没有以缓存代替网络。 |
+| 快速压包 | 生成`SCIE-Port/artifacts/荒野探险家-0.80.0.netmod`，**11,635,806字节**，另复制正式名`荒野探险家.netmod`。只编译/压包，不执行安装包内容校验或SHA附件，不新建/覆盖GitHub Release。 |
+
+修复DLL MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`（以此区别同版本旧开发包）。本轮首次新增HTTP测试的未完整正文夹具关闭时触发HttpListener异常，调整夹具为先发送响应头并在故意缺正文时Abort；有界重跑781项通过，没有因此放宽产品校验或跳过测试。
+
+**待验证**：Android7723上新请求通道的BCL/TLS、实际刷新/下载/离线重启、触屏与真实Local/Server/普通Client。用户应替换旧0.80.0开发包再刷新，不同时保留两份相同PackageName；若仍报错，以新完整缺失成员堆栈及MVID继续定位。没有运行完整游戏或真实房间，不能把本次网络修复视为施工/联机验收。
+
 ## 2026-11-11 main 0.80.0：天工绘卷与普通玩家联机施工
 
 基线 `3b6b08e`，Builder Assistant 0.25.1 蓝图相关源码经本次用户专项授权独立适配到 SCIEPort；建筑助手工程及资产未改。功能、PixelFX选型、协议/存档边界和精确命令见[天工绘卷](TIANGONG-BLUEPRINT.md)。

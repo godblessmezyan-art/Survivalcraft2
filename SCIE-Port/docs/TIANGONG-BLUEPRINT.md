@@ -1,5 +1,13 @@
 # 天工绘卷
 
+## 2026-11-12 云端刷新 BCL 修复
+
+用户日志在14:14:05–14:14:06连续报告 `Cloud BCL stage=http`，缺少 `System.Net.Http.HttpClientHandler.set_AllowAutoRedirect(bool)`，Mod MVID 为 `938f9691-4277-43cb-8d7b-9b66f8f830af`。这证明该运行库不能执行旧请求初始化；尚未取得此Android/7723运行库的程序集/哈希，不能据Windows程序集推定其它成员可用。
+
+天工绘卷默认请求改为 `HttpWebRequest` 的 Begin/End 异步接口，完全移除蓝图模块的 `HttpClientHandler` 引用。显式禁止重定向，新请求无Cookie容器/凭据/自动解压，不设置全局TLS或证书回调，沿用系统证书验证。12秒截止与用户取消均通过观察器调用 `Abort`，覆盖等待响应头和正文读取；响应仍经同一状态码、JSON/UTF-8、编码与2MiB校验。HTTP 4xx/5xx从WebException保留原状态，断网映射NET、证书/安全通道错误映射TLS；原缓存与下载哈希/导入校验保持。
+
+本轮保留0.80.0版本号，只提供本地修复开发包并提交main，不触发基于modinfo变化的自动Release，也不覆盖历史tag/Release。修复DLL以构建MVID区分。957/DATA0、Hook、239/254协议、材料/家具/schema、施工/撤销和书典源码均未改。Windows编译和生产HTTPS只读请求已成功；Android新通道及真实单机/主机/普通客户端仍**待验证**。原始日志环境的旧云端请求为**不支持**；不能把新接口在Windows可用写成手机兼容已确认。实际命令与结果见[测试记录](TEST-RESULTS.md)。
+
 2026-11-11；基线 Builder Assistant 0.25.1 / main `3b6b08e`。用户明确要求把蓝图全部功能移植为荒野探险家的神器，并要求普通联机玩家也能使用。因此本次允许将蓝图相关原创源码独立适配至 SCIEPort；不添加项目引用，不打包 BuilderAssistant.dll，不移植快艇、自动房屋/巨树生成器或建筑工作台。建筑助手原有包及文件保持独立。
 
 ## 功能与身份

@@ -1,5 +1,15 @@
 # 兼容性矩阵
 
+## 2026-11-12 天工绘卷云端刷新 BCL 修复（0.80.0开发重打包）
+
+用户日志明确缺少 `HttpClientHandler.set_AllowAutoRedirect(bool)`，Mod MVID `938f9691-4277-43cb-8d7b-9b66f8f830af`。蓝图默认HTTP改用独立 `HttpWebRequest` 适配，保留禁跳转、系统证书验证、12秒取消/Abort、JSON/UTF-8/2MiB与原缓存/导入规则。身份、Hook、协议、包布局和存档不变，版本号不变，不新增GitHub Release。详见[修复与验收](../SCIE-Port/docs/TIANGONG-BLUEPRINT.md)。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 日志运行库的旧云端请求 | 不支持 | 初始化阶段即缺失setter，无法发出该请求；没有Android程序集哈希。 |
+| 固定Windows x25.01.17环境、net472编译和生产HTTPS目录 | 已确认 | 三个登记哈希匹配；0警告/0错误；实际修复DLL读取page1，apiVersion1、total3、1529字节。 |
+| Android7723修复后刷新/下载/缓存与真实Local/Server/Client | 待验证 | 移除已知故障调用不代表新通道全部BCL成员已在手机确认；需安装修复包复测。 |
+
 ## 2026-11-11 荒野探险家 0.80.0：天工绘卷与普通玩家联机施工
 
 新增不可放置957/DATA0、CSV/XDB与独立蓝图模块；SCIEPort内部身份不变。新增 `GuiDraw(ComponentGui, Camera, int)` Hook（沿用已核对的建筑助手目标ABI），世界 `SubsystemBlueprintArtifact : SubsystemBlockBehavior, IUpdateable` 主线程推进；新增239号包（固定Windows实际原生+本模组类型取证无冲突）。既有240–254号包ID和字段布局不变；图谱254的原uint掩码追加bit8，旧八位及旧存档保持，合法掩码上限511。同房必须统一0.80.0，旧版混装不支持。原生 `SubsystemTerrain.ChangeCell(..., true, miner)` 在Server端调用并发送 `SubsystemTerrainPackage`；预览、确认、逐格执行及撤销校验原生领地权限。新包不能以仅本地预览证明同步已成功。
