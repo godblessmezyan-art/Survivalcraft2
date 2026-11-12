@@ -26,6 +26,8 @@
 
 > **最新约定：**「荒野探险家」与「云天书典」归为同一产品，未来只交付一份荒野探险家 `.netmod` 和对应一个 GitHub Release；**源码及构建接入处于过渡状态，完整联合包仍未完成实机验收**。建筑助手、遗迹等其他模块暂不纳入此次合并。任何模块均不可把未实测代码宣称为 Android 已兼容。
 
+2026-11-12（二次修复）：[天工绘卷云端 BCL 修复](SCIE-Port/docs/TIANGONG-BLUEPRINT.md)移除 Android 运行库同样缺失的 `TaskFactory.FromAsync<TResult>` 泛型 APM 适配器，改用 `HttpWebRequest` 原生 Begin/End 配对 + `TaskCompletionSource`，并直接读取 `HttpWebResponse` 避开 `HttpResponseMessage`/`StreamContent`/`ReadAsync` 等额外 BCL 面；禁跳转、系统证书、12 秒 Abort、JSON/UTF-8/2MiB、状态码与缓存策略全部保持。Windows net472 编译、781 项蓝图测试与 IL 调用审计通过；仍是 0.80.0 本地修复开发包（MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`），Android 刷新/下载待复测，不创建新 Release。
+
 2026-11-12：[天工绘卷云端修复](SCIE-Port/docs/TIANGONG-BLUEPRINT.md)移除日志中已确认缺失的HttpClientHandler属性调用，改用HttpWebRequest，保留禁跳转、系统证书、超时和容量限制。Windows编译及实际生产HTTPS目录读取成功；仍为0.80.0本地修复开发包，Android刷新/下载待复测，不创建新Release。
 
 2026-11-11：[天工绘卷](SCIE-Port/docs/TIANGONG-BLUEPRINT.md)将建筑助手蓝图能力独立适配为荒野探险家神器（957），支持普通玩家提交、主机校验并施工、按玩家撤销；旧JSON材料/家具契约保持。Windows编译和模拟联机检查通过，Android及真实房间待验证。建筑助手本体继续独立发布。

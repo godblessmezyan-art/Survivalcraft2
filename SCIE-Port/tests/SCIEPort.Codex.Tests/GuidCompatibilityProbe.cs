@@ -53,7 +53,14 @@ public static class GuidCompatibilityProbe
                         var info=method as MethodInfo;
                         var target=method.Module.ResolveMethod(BitConverter.ToInt32(bytes,i),owner.GetGenericArguments(),info!=null&&info.IsGenericMethod?info.GetGenericArguments():null);calls++;
                         string ns=target.DeclaringType==null?null:target.DeclaringType.Namespace;
-                        if(owner.FullName.StartsWith("SCIEPort.Features.Blueprints.",StringComparison.Ordinal)&&target.DeclaringType!=null&&target.DeclaringType.FullName=="System.Net.Http.HttpClientHandler")throw new Exception("Unsupported blueprint HTTP handler reference "+target.Name+" in "+owner.FullName+"."+method.Name);
+                        if(owner.FullName.StartsWith("SCIEPort.Features.Blueprints.",StringComparison.Ordinal)&&target.DeclaringType!=null)
+                        {
+                            string declaring=target.DeclaringType.FullName;
+                            if(declaring=="System.Net.Http.HttpClientHandler")throw new Exception("Unsupported blueprint HTTP handler reference "+target.Name+" in "+owner.FullName+"."+method.Name);
+                            // Android/7723 lacks TaskFactory.FromAsync<TResult>(Func<AsyncCallback,object,IAsyncResult>,Func<IAsyncResult,TResult>,object).
+                            if(declaring=="System.Threading.Tasks.TaskFactory"&&target.Name=="FromAsync")throw new Exception("Unsupported generic APM adapter TaskFactory.FromAsync in "+owner.FullName+"."+method.Name);
+                            if(owner.FullName.StartsWith("SCIEPort.Features.Blueprints.Networking.BlueprintCloudWebRequest",StringComparison.Ordinal)&&(declaring=="System.Net.Http.HttpResponseMessage"||declaring=="System.Net.Http.StreamContent"||declaring=="System.Net.Http.HttpContent"||target.Name=="ReadAsStreamAsync"||target.Name=="ReadAsync"))throw new Exception("Unsupported HTTP content adapter "+declaring+"."+target.Name+" in "+owner.FullName+"."+method.Name);
+                        }
                         if(ns!=null&&(ns=="System"||ns.StartsWith("System.",StringComparison.Ordinal))&&(target.Name=="TryParse"||target.Name=="TryParseExact")||target.DeclaringType==typeof(Guid)&&(target.Name=="Parse"||target.Name=="ParseExact")||target.DeclaringType==typeof(uint)&&target.Name=="Parse")throw new Exception("Unsupported parsing reference "+target.DeclaringType.FullName+"."+target.Name+" in "+owner.FullName+"."+method.Name);
                         if(target.DeclaringType==type&&target.Name=="TryParse")shimCalls++;
                         if(owner==type&&target.DeclaringType==typeof(Guid)&&target.IsConstructor&&target.GetParameters().Length==1&&target.GetParameters()[0].ParameterType==typeof(string))constructor=true;
@@ -63,6 +70,6 @@ public static class GuidCompatibilityProbe
             }
         }
         Check(methods>0&&calls>0,"entire compiled mod inspected");Check(shimCalls==5,"codex and all four portal identifier reads use the shim");Check(constructor,"shim binds to Guid(string), not the missing API");
-        Console.WriteLine("Runtime parsing compatibility: "+checks+" GUID/audit checks passed; "+methods+" compiled methods / "+calls+" call sites scanned, no BCL TryParse, Guid/UInt32 Parse or blueprint HttpClientHandler references. Android retest pending.");
+        Console.WriteLine("Runtime parsing compatibility: "+checks+" GUID/audit checks passed; "+methods+" compiled methods / "+calls+" call sites scanned, no BCL TryParse, Guid/UInt32 Parse, blueprint HttpClientHandler or TaskFactory.FromAsync references. Android retest pending.");
     }
 }

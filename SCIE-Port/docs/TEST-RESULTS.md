@@ -1,5 +1,28 @@
 # 测试结果
 
+## 2026-11-12 main 0.80.0 二次开发重打包：移除 TaskFactory.FromAsync 泛型 APM 适配器
+
+基线为 14:14 首次修复包（MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`）；用户 15:33 实机日志报 `MissingMethodException: TaskFactory.FromAsync<!0>(...)`。本轮只改 `BlueprintCloudWebRequest` 生产适配器与 IL 审计守卫，不改身份、协议、缓存规则、版本号、modinfo 或自动 Release 触发器。
+
+实际命令（仓库根；开发检查独立于快速打包流程）：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo
+dotnet run --project SCIE-Port/tests/SCIEPort.Blueprints.Tests/SCIEPort.Blueprints.Tests.csproj -c Release -- E:/SCNET/SCNETx25.01.17 E:/Survivalcraft2/SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Codex.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Build-WildernessExplorerFast.ps1 -GameDir E:/SCNET/SCNETx25.01.17
+```
+
+| 范围 | 实际结果 |
+|---|---|
+| 环境/Release 编译 | `Test-Environment.ps1` 通过：net472 引用程序集、API1.42 / SC2.4.10.6、登记 Windows 三程序集哈希匹配；`dotnet build` net472 Release **0 警告 / 0 错误**（4.2 秒）。构建前置 `C:\Program Files\Python311` 置 PATH 首位并移除 `ACC_PRODUCT_CONFIG_V3`。 |
+| 蓝图专项 | **781 项通过**，真实 loopback HTTP 全路径复验：GET/JSON/identity、无凭据/Cookie/解压、系统证书回调保持、302 禁跳转、404/409/429/503 原状态、HTML/UTF-16/gzip 拒绝、声明过大与分块过大拒绝、等待头/正文取消、实际 12 秒正文截止、断网 NET 分类。同步 `Stream.Read` + `Abort` 与原 `ReadAsync` 行为一致。 |
+| 实际 DLL 已知缺失接口审计 | 27 项 GUID/API 审计、1347 项解析、439 项图谱原生检查通过；扫描 **3819 个编译方法 / 29909 个调用位点**，无 `TryParse`/`Guid`/`UInt32.Parse`、`HttpClientHandler` 及新增的 `TaskFactory.FromAsync` 引用；守卫同时拒绝生产适配器对 `HttpResponseMessage`/`StreamContent`/`ReadAsStreamAsync`/`ReadAsync` 的引用。不是完整 Android BCL 审计。 |
+| 快速压包 | `SCIE-Port/artifacts/荒野探险家-0.80.0.netmod`，**11,635,954 字节**，SHA-256 `B23561F0828516D5D886261EF1CAC9A59EAC10E8453AACF3E05102624CE3B6EE`，正式名副本字节一致。修复 DLL MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`。只编译/压包，未跑测试或包校验、未建/覆盖 Release。 |
+
+**待验证**：Android 7723 上新通道 BCL/TLS、刷新/下载/离线重启、触屏与真实 Local/Server/普通 Client。须替换旧 0.80.0 开发包（MVID `e54e1e3c-...`）后复测，不要同时保留两份相同 PackageName；若仍报错，以新完整缺失成员堆栈及 MVID 继续定位。桌面编译、模拟 HTTP 与 IL 审计均不能推断 Android 兼容。
+
 ## 2026-11-12 main 0.80.0开发重打包：天工绘卷云端 BCL 修复
 
 基线 `c3879c6`。用户日志提供缺失的 `HttpClientHandler.set_AllowAutoRedirect(bool)` 与Mod MVID `938f9691-4277-43cb-8d7b-9b66f8f830af`，请求在初始化即失败。本轮只为移植后的蓝图模块新增HttpWebRequest通道，共用原响应校验，保留缓存/导入/施工规则；不改建筑助手、书典源码、版本号、modinfo或自动Release触发器。修复的Android网络API仍须实机复测，不能由桌面编译推断兼容。

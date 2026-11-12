@@ -8,6 +8,12 @@
 
 本轮保留0.80.0版本号，只提供本地修复开发包并提交main，不触发基于modinfo变化的自动Release，也不覆盖历史tag/Release。修复DLL以构建MVID区分。957/DATA0、Hook、239/254协议、材料/家具/schema、施工/撤销和书典源码均未改。Windows编译和生产HTTPS只读请求已成功；Android新通道及真实单机/主机/普通客户端仍**待验证**。原始日志环境的旧云端请求为**不支持**；不能把新接口在Windows可用写成手机兼容已确认。实际命令与结果见[测试记录](TEST-RESULTS.md)。
 
+### 15:33 二次 BCL 修复（同一 0.80.0 开发包）
+
+14:14 修复包（MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`）在 15:33 实机日志仍报 `Cloud BCL stage=http`，缺失 `System.Threading.Tasks.TaskFactory.FromAsync<!0>(...)`：该运行库没有 `TaskFactory.FromAsync<TResult>(Func<AsyncCallback,object,IAsyncResult>,Func<IAsyncResult,TResult>,object)` 泛型 APM 适配器，异常在 `BlueprintCloudWebRequest.Get` 的 `AsyncTaskMethodBuilder.Start` 抛出，请求未发出。本轮保留 `HttpWebRequest` 通道，改用原生 `BeginGetResponse`/`EndGetResponse` 配对 + `TaskCompletionSource<WebResponse>`，并让生产适配器直接读取 `HttpWebResponse`（不再包装 `HttpResponseMessage`/`StreamContent`，不再用 `ReadAsStreamAsync`/`Stream.ReadAsync`）；同步 `Stream.Read` 由观察器 `Abort` 中断，12 秒截止与用户取消语义不变。响应仍经同一状态码、JSON/UTF-8、Content-Encoding、2MiB 声明与分块上限校验；HTTP 4xx/5xx 保留原状态，断网 NET、TLS 错误映射 TLS，原缓存、下载哈希与导入校验保持。
+
+`GuidCompatibilityProbe` 的 IL 审计新增拒绝蓝图模块 `TaskFactory.FromAsync` 以及生产适配器对 HTTP 内容适配器的引用，防止回归。957/DATA0、Hook、239/254 协议、材料/家具/schema、施工/撤销、书典源码、版本号和 modinfo 均未改；修复 DLL MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`。Windows net472 编译、蓝图 781 项（含真实 loopback HTTP 全路径）与 27 项 GUID/IL 审计通过；Android 7723 的新通道、刷新/下载/离线缓存与真实 Local/Server/普通 Client 仍**待验证**。用户应替换旧 0.80.0 开发包（不要同时保留两份相同 PackageName）再刷新；若仍报错，以新完整缺失成员堆栈及日志 MVID 继续定位。实际命令与结果见[测试记录](TEST-RESULTS.md)。
+
 2026-11-11；基线 Builder Assistant 0.25.1 / main `3b6b08e`。用户明确要求把蓝图全部功能移植为荒野探险家的神器，并要求普通联机玩家也能使用。因此本次允许将蓝图相关原创源码独立适配至 SCIEPort；不添加项目引用，不打包 BuilderAssistant.dll，不移植快艇、自动房屋/巨树生成器或建筑工作台。建筑助手原有包及文件保持独立。
 
 ## 功能与身份

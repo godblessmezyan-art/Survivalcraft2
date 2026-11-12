@@ -1,5 +1,17 @@
 # 兼容性矩阵
 
+## 2026-11-12 天工绘卷云端刷新二次 BCL 修复（TaskFactory.FromAsync）
+
+用户 15:33:20–15:33:22 连续报告 `Cloud BCL stage=http`：`System.MissingMethodException: System.Threading.Tasks.TaskFactory.FromAsync<!0>(...)`，Mod MVID `e54e1e3c-33b2-4b33-880c-1f66b999db5f`，正是 14:14 首次修复产出的开发包。上次把 `HttpClientHandler` 换成 `HttpWebRequest` 时使用了 `Task.Factory.FromAsync<WebResponse>(BeginGetResponse, EndGetResponse, null)`；该泛型 APM 适配器在日志运行库同样缺失，异常发生在 `BlueprintCloudWebRequest.Get` 的 `AsyncTaskMethodBuilder.Start`，请求未发出即失败。**不能据 Windows 程序集推定其它 BCL 成员可用。**
+
+本轮改为 `BeginGetResponse`/`EndGetResponse` 原生 APM 配对 + `TaskCompletionSource<WebResponse>`，并直接读取 `HttpWebResponse`（避开 `HttpResponseMessage`、`StreamContent`、`ReadAsStreamAsync`、`Stream.ReadAsync`）；禁跳转、系统证书验证、12 秒观察器 Abort、JSON/UTF-8/2MiB 上限、HTTP 原状态、断网 NET、TLS 映射及缓存/下载哈希/导入规则全部保持。`GuidCompatibilityProbe` 的 IL 审计新增拒绝蓝图模块的 `TaskFactory.FromAsync` 与生产适配器的 HTTP 内容适配器引用。957/DATA0、Hook、239/254 协议、材料/家具/schema、施工/撤销、书典源码、版本号与 modinfo 均未改；修复 DLL MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`，包 `荒野探险家-0.80.0.netmod` 11,635,954 字节，SHA-256 `B23561F0828516D5D886261EF1CAC9A59EAC10E8453AACF3E05102624CE3B6EE`，不新建/覆盖 tag 或 Release。
+
+| 范围 | 状态 | 证据/限制 |
+|---|---|---|
+| 首次修复包的 `TaskFactory.FromAsync` 泛型重载 | 不支持 | 实机日志在 `AsyncTaskMethodBuilder.Start` 阶段抛 `MissingMethodException`，请求未发出；没有该 Android 程序集哈希。 |
+| 固定 Windows x25.01.17、net472 Release 编译、蓝图 781 项（含真实 loopback HTTP）、IL 调用审计 3819 方法/29909 调用位点 | 已确认 | 0 警告/0 错误；扫描无 `TaskFactory.FromAsync`、`HttpClientHandler` 引用；桌面/离线证据，不代表 Android BCL。 |
+| Android 7723 修复后刷新/下载/缓存、真实 Local/Server/普通 Client | 待验证 | 移除已知缺失调用不代表新通道全部成员已在手机确认；须替换旧 0.80.0 开发包后复测，以新完整缺失成员堆栈及 MVID 继续定位。 |
+
 ## 2026-11-12 天工绘卷云端刷新 BCL 修复（0.80.0开发重打包）
 
 用户日志明确缺少 `HttpClientHandler.set_AllowAutoRedirect(bool)`，Mod MVID `938f9691-4277-43cb-8d7b-9b66f8f830af`。蓝图默认HTTP改用独立 `HttpWebRequest` 适配，保留禁跳转、系统证书验证、12秒取消/Abort、JSON/UTF-8/2MiB与原缓存/导入规则。身份、Hook、协议、包布局和存档不变，版本号不变，不新增GitHub Release。详见[修复与验收](../SCIE-Port/docs/TIANGONG-BLUEPRINT.md)。
