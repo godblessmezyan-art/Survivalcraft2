@@ -1,5 +1,11 @@
 # 兼容性矩阵
 
+## 2026-11-12 18:31 真机回报：第三次云端修复包仍不支持
+
+用户日志确认 DLL MVID `9f6344be-8745-41d7-9241-efa765e8ef75` 在 `BlueprintCloudConnection.ConnectionObserver.Observe` 的异步方法初始化阶段缺少 `System.Net.Sockets.TcpClient.Close()`。因此上一节开发包的云端刷新在该手机运行库为**不支持**，其Windows验证结果不变，但不能作为手机兼容证据。
+
+用户确认同一手机的 **Builder Assistant 0.25.2** 可在线刷新并下载；其源码/包可能在另一台电脑。本机及当前远程全部分支仅有0.25.1，GitHub现有Release也无0.25.2；本地0.25.1包MVID `837e68cb-452b-4eb8-ac86-5bb80b94fcc0`，其请求源码与天工绘卷最初移植版本在替换命名空间并忽略空白后完全相同，不能冒充0.25.2成功实现。后续需取得0.25.2的`.netmod`（可只读反编译自有DLL）或联网源码/构建配置再独立适配。已撤回本轮未完成的替代通道草稿，未新编译、打包或发布修复版；最新待验证项为0.25.2差异核对及适配后的Android实测。材料、schema、ID、协议、施工权限不变。
+
 ## 2026-11-12 天工绘卷云端刷新三次 BCL 修复（移除 WebRequest）
 
 18:10:28–18:10:32 用户手机日志确认上一修复 DLL（MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac`）仍缺少 `System.Net.HttpWebRequest.set_AllowAutoRedirect(bool)`，请求尚未发出。该包云端刷新在此运行库为**不支持**；不能通过删除禁跳转设置解决。没有取得手机 BCL/程序集哈希，也不能断言裁剪等具体成因。

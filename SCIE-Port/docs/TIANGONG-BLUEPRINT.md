@@ -1,5 +1,13 @@
 # 天工绘卷
 
+## 2026-11-12 18:31 真机失败与0.25.2参考包缺失
+
+用户已安装第三次开发包，日志MVID `9f6344be-8745-41d7-9241-efa765e8ef75`；本次缺少 `System.Net.Sockets.TcpClient.Close()`，位于 `ConnectionObserver.Observe` 初始化，并非服务器响应错误。该包的云端刷新在此运行库为**不支持**。此前桌面编译、TLS、HTTP与820项检查保留其Windows范围，不能代表手机成功；不要通过继续替换单个未取证API宣称已兼容。
+
+用户明确同一手机可在线刷新并下载的参考是建筑助手 **0.25.2**，可能位于另一台电脑。当前本机及全部远程分支只有0.25.1；GitHub历史Release及本地相关开发记录中也未找到0.25.2。已只读检查本地`BuilderAssistant-0.25.1.netmod`：DLL MVID `837e68cb-452b-4eb8-ac86-5bb80b94fcc0`，引用System.Net.Http4.2.0.0；请求源码替换命名空间并忽略空白后与最初天工绘卷版本完全相同，仍含先前手机已报缺失的HttpClientHandler设置，不能当成0.25.2的成功实现。
+
+本轮撤回未完成的替代网络草稿，代码回到已提交基线，不生成新的猜测修复包。下一步需要0.25.2的`.netmod`即可只读提取自有DLL并对照联网实现，无须另一台电脑的完整工程；若提供源码则需联网文件和对应构建配置。适配仍须独立进入SCIEPort蓝图目录，不跨工程Link/ProjectReference、不打包BuilderAssistant.dll。957、原有材料/家具/schema、主机权限及事务/撤销规则保持。取得参考并适配后的Android/Local/Server/普通Client状态为**待验证**。
+
 ## 2026-11-12 18:10 三次 BCL 修复：独立 TCP/TLS 通道
 
 用户已替换成上次修复包：手机日志MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac` 与产物一致。本次缺失的是 `HttpWebRequest.set_AllowAutoRedirect(bool)`，并非 `TaskFactory.FromAsync` 再次出现；异常在请求初始化即发生。此前Windows检查仅证明桌面行为，不能证明手机BCL。本次同时移除蓝图生产路径的 `WebRequest`/`HttpWebRequest`，避免在两个已报告缺成员的高层HTTP实现之间继续切换。未取得手机BCL，不能断言其具体成因为裁剪或推断新接口已被手机确认。

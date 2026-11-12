@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-12 18:31 手机回报与参考版本更正
+
+第三次开发包（MVID `9f6344be-8745-41d7-9241-efa765e8ef75`）在手机上缺少 `TcpClient.Close()`，抛错于 `ConnectionObserver.Observe` 初始化；此包云端刷新在日志运行库为**不支持**。此前桌面820项与线上HTTPS成功仅是Windows证据。
+
+用户明确成功参考为同机 **Builder Assistant 0.25.2**（刷新与下载均成功），不是本机/当前远程分支中的0.25.1；已检查本地、全部远程分支、现有Release和相关开发记录，尚未取得0.25.2。0.25.1请求源码与天工绘卷最初移植代码仅命名空间/空白不同，不能据此推断0.25.2实现。等待0.25.2安装包或联网源码/构建配置后对照适配，手机修复后状态为**待验证**；本轮未生成或发布新包，未保留未完成代码草稿。详见[天工绘卷](TIANGONG-BLUEPRINT.md)。
+
 ## 2026-11-12 天工绘卷三次 BCL 修复（TCP/TLS）
 
 用户18:10手机日志在上一修复DLL MVID `94bc260d-014b-4110-bcb1-8e230d6fcfac` 中报告 `HttpWebRequest.set_AllowAutoRedirect(bool)` 缺失。该包云端刷新在日志运行库为**不支持**，不能删除禁跳转设置绕过。蓝图生产网络现改为 `TcpClient` + 系统验证的 `SslStream` + 有界HTTP/1.1读取，移除全部蓝图WebRequest/HttpWebRequest引用；不执行跳转、Cookie、认证或解压。固定HTTPS白名单、12秒截止/取消、JSON/UTF-8/2MiB、缓存/哈希/导入及主机权限保持，新增响应头/分块元数据累计32KiB、4个临时响应及歧义/截断响应拒绝。未改ID、Hook、SCNET协议、存档、版本号和modinfo。MVID `9f6344be-8745-41d7-9241-efa765e8ef75`，仍为0.80.0本地开发包，不覆盖历史Release。
