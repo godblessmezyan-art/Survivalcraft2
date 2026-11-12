@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-12 / 0.84.0 Blender骨龙优化
+
+用户要求用Blender skill优化现有骨龙。干净main基线`5f429e1`，官方Blender MCP / Blender5.1.1实际建模、分区UV、渲染、导出；未启动游戏或设备。本轮仅修改原创骨龙DAE及统一版本/来源声明，不改C#行为、XDB、贴图、Hook、协议、存档或玩法数值。
+
+结果：原7674→5862三角形（-23.61%），7骨/7网格不变。七网格全部0边界边、0非流形边、0零面积面且有向体积为正；逐面所有UV角点落在本面调色板区域；游戏Y_UP与BlenderZ_UP双向还原，完整保留7个轴心/父级/顺序、鞍座、`0,2.1,0.16`骑乘点和`2.1,2.7,5.8`碰撞。实际多角度渲染和现有振翅公式12相位检查通过，全模型预览无裁切；头部单列特写。两次导出DAE哈希一致。
+
+执行命令及结果：
+
+1. `scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`与`SCIE-Port/scripts/Test-Environment.ps1`均通过。首次SCIE检查缺FrameworkPathOverride，补上已有`D:/Dev/Tools/net472/build/.NETFramework/v4.7.2`后通过；DOTNET_ROOT指向本机Microsoft/dotnet、ROLL_FORWARD=Major，保持net472。
+2. `SCIE-Port/scripts/Read-BoneDragonResources.ps1 -GameDir D:/Games/SCNET-x25.01.17`：真实Engine导入7骨/7网格/5862三角形，原生32字节顶点、各轴心/骑乘/碰撞及XDB验证通过；新增预算与变换守卫。报告保留目标Game/Engine SHA，未创建实体/GPU。
+3. `SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release`：完整Release及内置回归通过（含家居494104条件撤销、24模型40232三角形、PixelFX1195资源/493播放器、神器/联机/书典及包检查）。更新来源声明后重新完整构建，退出码0；最终日志根`artifacts/bone-dragon-0.84.0-release-final.log`。
+4. `python SCIE-Port/scripts/Complete-BoneDragonDesign.py`：210条目无重复，中文规范包与版本副本完全一致。相对0.83.0仅`Assets/Models/AbyssBoneDragon.dae`、`SCIEPort.dll`、`modinfo.json`和`THIRD-PARTY-NOTICES.md`四条目变化，其余206条目（含书典、家居、模型贴图和所有其它资源）字节一致。没有加入Blender文件、脚本、游戏DLL或额外依赖。
+
+正式本地产物`SCIE-Port/artifacts/荒野探险家-0.84.0.netmod`，12733637字节，SHA-256 `602E935D1D9CCC0667903ED1D1B0F066469B48844FA520E6059792ECA357D72A`；DAE SHA-256 `52F7AFBF0E93D6857FC24C76E2EE96947CD4AAD2330F97BB3D06ECE5B2812141`。Blender工程与姿态原始帧在忽略目录`SCIE-Port/artifacts/bone-dragon-blender/`；原图集已打包进blend。源码/预览/坐标/UV/几何/视图/姿态/原生导入/包对比证据见[制作记录](../design/bone-dragon/BUILD_NOTES.md)。
+
+固定WindowsABI/构建/包 **已确认**。Android7723单人/主机/普通客户端、模型实际显示、低光与遮挡、人物/衣物骑姿、触屏升降/降落及保存重进 **待验证**；Blender渲染不作为游戏实测证据。现有翼尾装饰外伸和刚性头颈尾限制保留。没有方块/DATA/蓝图能力变化，已同步根能力清单。提交本地main后按项目规则由用户推送；GitHub提交可访问前不发布为其它提交的Release。
+
 ## 2026-11-12 main 0.83.0：直接建造与全部主线整合
 
 按用户指令取消绘卷自定义客户端/主机票据和真名门槛，确认即在本机分批执行；客户端预测并通过原生ID7请求同步，停用237。正常合并远端bdc1072与本地家居/优化/网络BCL修复，书典新版界面/导入迁至统一工程，并适配两个新裁剪接口。最终完整Release/全部旧回归和210条目包通过；842绘卷隔离/原生同步、461书典离线/21315目标检查，Android快照绘卷474/书典319成员均0缺失。最终DLL公网目录3项/154162字节下载/保存/离线通过。包SHA256 `76BDA701ADFA15903F4F25F83379B9D8A13D457703D542D156C9245C43AB753C`；Android与真实房间仍 **待验证**。命令、边界、全部指纹与本次推送授权见[0.83专项](TIANGONG-DIRECT-0.83.0.md)。

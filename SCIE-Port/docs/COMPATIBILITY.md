@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-12 0.84.0：Blender骨龙模型优化
+
+仅替换`Models/AbyssBoneDragon.dae`，七骨骼/七网格保持，7674→5862三角形。原生32字节顶点、Body/WingL/WingR/Leg1–4顺序/父级/轴心、Y_UP/单位、鞍座、`MountOffset=0,2.1,0.16`、碰撞盒、XDB/模板/GUID、运行逻辑及协议保持；不新增加载器Hook/物品ID/依赖或运行资源布局。
+
+固定x25.01.17 Windows环境/ABI、目标Engine实际导入及完整Release包检查 **已确认**；Blender 5.1.1闭合网格/法线/UV与多角度/12相位振翅预览已记录，但不替代游戏。Android7723模型显示、原生着色/人物衣物骑姿和真实单人/房主/客户端 **待验证**。原有翼尾伸出AABB的装饰部分仍不提供精细碰撞。证据见[制作记录](../design/bone-dragon/BUILD_NOTES.md)。
+
 ## 2026-11-12 0.83.0：直接施工与统一main
 
 取消绘卷237注册和票据/真名门槛，普通客户端本机分批预测并用目标原生ID7/RequestChangeCell同步，原生主机处理器应用及广播；不修改WorkType/管理员身份。971/DATA0、旧GUID/世界身份/书典956/家居957–970、238/239及其它旧协议保持，各端统一0.83。正常合并远端main，保留本地家居/优化/BCL，书典新UI/导入统一编入SCIEPort.dll。net472/API1.42/SC2.4.10.6保持。

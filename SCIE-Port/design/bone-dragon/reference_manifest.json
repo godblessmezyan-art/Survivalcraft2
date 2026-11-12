@@ -1,0 +1,23 @@
+{
+  "source": "original project-authored model at 5f429e1700c7ba44a0d823c8d237edfcc2caffe4",
+  "baseline_model_sha256": "D020CD9BA62B407D9FC3D127FB11E23B15D29AB123745AF71DB884929FD048BF",
+  "external_artwork": [],
+  "scale_source": "existing game bone pivots, saddle and unit scale",
+  "style": "Survivalcraft faceted skeletal dragon, existing ivory/cyan/purple palette",
+  "skills": [
+    "text-to-blender",
+    "blender-pro-workflow",
+    "blender-skill-harmonizer",
+    "blender-modeling",
+    "blender-uv-texturing",
+    "blender-lighting",
+    "blender-cameras",
+    "blender-rendering"
+  ],
+  "script_hash_encoding": "UTF-8 source bytes with LF newlines",
+  "scripts": {
+    "New-BoneDragonAssets.py": "703F88E325E597313CCF51C61CA2227B55A4AB24CCB5C87F2F92BFACF3E2115B",
+    "Optimize-BoneDragonBlender.py": "38DBD83D0D24F3F9639DAC116C8D98A462638A7B32DE0FA26FD7D3C640F7E819"
+  },
+  "previews_are_gameplay": false
+}

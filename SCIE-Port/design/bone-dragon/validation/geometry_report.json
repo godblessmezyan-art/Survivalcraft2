@@ -1,0 +1,91 @@
+{
+  "kind": "Blender geometry validation, not gameplay",
+  "blender": "5.1.1",
+  "meshes": [
+    {
+      "bone": "Body",
+      "vertices": 2133,
+      "triangles": 3822,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 1.1710874940495408
+    },
+    {
+      "bone": "WingL",
+      "vertices": 208,
+      "triangles": 368,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.25957493176420005
+    },
+    {
+      "bone": "WingR",
+      "vertices": 208,
+      "triangles": 368,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.2595686022569939
+    },
+    {
+      "bone": "Leg1",
+      "vertices": 183,
+      "triangles": 326,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.04047141130339231
+    },
+    {
+      "bone": "Leg2",
+      "vertices": 183,
+      "triangles": 326,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.04047141130339231
+    },
+    {
+      "bone": "Leg3",
+      "vertices": 183,
+      "triangles": 326,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.042199685906939205
+    },
+    {
+      "bone": "Leg4",
+      "vertices": 183,
+      "triangles": 326,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 0,
+      "zero_area_faces": 0,
+      "signed_volume": 0.042199685906939205
+    }
+  ],
+  "triangles": 5862,
+  "reduction_percent": 23.61,
+  "rest_bounds": {
+    "min": [
+      -4.03476619720459,
+      -0.004221320152282715,
+      -3.359999895095825
+    ],
+    "max": [
+      4.03476619720459,
+      2.7919585704803467,
+      3.9600000381469727
+    ]
+  },
+  "uv_faces_checked": 5862,
+  "palette_region_coverage": "all face corners, including caps/sides",
+  "rider_mount_offset": [
+    0,
+    2.1,
+    0.16
+  ],
+  "gameplay_changes": false
+}
