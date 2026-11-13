@@ -24,6 +24,14 @@ namespace SCIEPort.Features.Blueprints.Core.Safety
         public const int MaxSelectionAxisLength = 128;
 
         /// <summary>
+        /// Maximum clear-mode envelope volume scanned and cleared around a blueprint
+        /// (256x256x256 / 4). Clear mode walks every cell of the bounding box, so the
+        /// volume -- not just the non-air count -- needs its own cap to keep planning
+        /// bounded on the main thread. Larger footprints must be split by the player.
+        /// </summary>
+        public const int MaxClearEnvelopeVolume = 262144;
+
+        /// <summary>
         /// How many consecutive Advance calls (≈ frames) a running build may make zero
         /// forward progress while its target chunks are only transiently not-ready
         /// (recoverable) before it gives up and rolls back safely. v0.6.3: our own writes

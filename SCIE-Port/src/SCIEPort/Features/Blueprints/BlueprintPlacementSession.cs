@@ -130,7 +130,11 @@ namespace SCIEPort.Features.Blueprints
         private void UpdateStatus(string extra)
         {
             if(controls==null || preview==null)return;
-            string state=preview.Ready ? (preview.OccupiedCount>0 ? "将覆盖 "+preview.OccupiedCount+" 格，需确认清障" : "允许施工") : "不可施工："+preview.Plan.FailureReason;
+            BuildPlan plan=preview.Plan;
+            string state=preview.Ready
+                ? (plan.ClearedCount>0 ? "清障 "+plan.ClearedCount+" 格 · 放置 "+(plan.Changes.Count-plan.ClearedCount)+" 格"
+                    : (preview.OccupiedCount>0 ? "将覆盖 "+preview.OccupiedCount+" 格，需确认清障" : "允许施工"))
+                : "不可施工："+plan.FailureReason;
             controls.SetStatus(selected.Name+"  "+selected.SizeX+"×"+preview.EnvelopeHeight+"×"+selected.SizeZ+"  "+(rotation*90)+"°\n原点 "+origin+"；Y="+origin.Y+".."+(origin.Y+preview.EnvelopeHeight-1)+"\n"+(extra??state),preview.Ready);
         }
         private bool ValidateSnapshot()
@@ -153,9 +157,9 @@ namespace SCIEPort.Features.Blueprints
             if(!ValidateSnapshot())return;
             BuildPlan plan=BuildPlanner.Plan(selected,origin,runtime.Palette,gateway,clear,false);
             if(!plan.Success) { Prepare();Message("重新校验失败："+plan.FailureReason);return; }
-            var expected=preview.Snapshot;var g=gateway;
+            var expected=preview.Snapshot;var g=gateway;var cleared=plan.ClearedCells;
             bool started=runtime.QuickStart(plan,selected,g,origin,clear,
-                (pos,value) => { int old;return runtime.CanRequest() && expected.TryGetValue(pos,out old) && g.ValuesEquivalent(old,value); });
+                (pos,value) => { int old;return runtime.CanRequest() && (cleared.Contains(pos) || (expected.TryGetValue(pos,out old) && g.ValuesEquivalent(old,value))); });
             if(started)Cancel();
             if(!started)Message("无法开始施工。");
         }

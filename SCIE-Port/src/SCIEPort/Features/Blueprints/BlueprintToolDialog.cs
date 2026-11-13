@@ -37,7 +37,7 @@ namespace SCIEPort.Features.Blueprints
         private string chosen;
         private Dialog deletion;
         private int direction;
-        private bool clear, mirrored;
+        private bool clear = true, mirrored;
         internal BlueprintToolDialog(WorldEditRuntime runtime,ComponentPlayer player, Action<int,bool,bool> begin, Action close)
         {
             this.runtime=runtime; this.player=player; this.begin=begin; this.close=close;
@@ -50,7 +50,7 @@ namespace SCIEPort.Features.Blueprints
             body=new CanvasWidget { Size=new Vector2(420,900), HorizontalAlignment=WidgetAlignment.Near, VerticalAlignment=WidgetAlignment.Near }; scroll.Children.Add(body);
             current=new LabelWidget { Size=new Vector2(405,100), WordWrap=true, FontScale=.68f, Color=Color.White }; Add(body,current,0,0);
             import=Button("导入",0,105,400); name=new TextBoxWidget { Size=new Vector2(390,44), Title="保存蓝图名称", Description="输入名称", MaximumLength=80, FontScale=.7f }; Add(body,new RectangleWidget { Size=new Vector2(400,46),FillColor=new Color(48,55,65),OutlineColor=Color.White,OutlineThickness=1 },0,158); Add(body,name,5,159);
-            save=Button("保存",0,210,400); rotate=Button("朝向：0°",0,263,195); clearButton=Button("清障：关闭",205,263,195);
+            save=Button("保存",0,210,400); rotate=Button("朝向：0°",0,263,195); clearButton=Button("清障：开启",205,263,195);
             copy=Button("复制",0,320,126); undo=Button("撤销",136,320,126); stop=Button("取消施工",272,320,128);
             mirror=Button("镜像：关闭",0,374,400);
             start=Button("预览",0,428,400);
