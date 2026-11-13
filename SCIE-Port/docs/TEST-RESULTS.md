@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-14 main 0.86.1：钓鱼水位与手持模型修复
+
+按实测反馈修复两处：`FluidBlock.GetLevelHeight` 的参数是 0–15 流体等级而非整格方块值，改为 `GetLevelHeight(GetLevel(ExtractData(value)))` 后满水（level 0，高度0.875）可正常起竿；鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z（`Matrix.Forward = -(M31..M33)`），杆身伸向眼后并被近裁剪面裁掉，现整体翻转为沿 -Z 前伸并居中。物品/配方/包236/XDB/ID 均未改动。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/fishing-fix-build.log`：Fishing 原生API/资源/包检查与规则单测、全部旧回归通过，包212条目。产物 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.86.1.netmod` 字节一致：**12,762,667字节**，SHA256 `A16E26863F04BFA0A7D9D3EC9B4EBF054EA603D6D472D83A0BDA9BE9EF9348FA`；`SCIEPort.dll` 948,736字节/SHA256 `E2A2FE8F201886A2358CE1CA7629D37B1AFC0A9B4C1DE4ECCC15505EB46B2D50`，版本0.86.1。Windows编译/静态检查 **已确认**；Android7723 触屏实际垂钓与真实联机 **待验证**。
+
 ## 2026-11-14 main 0.86.0：钓鱼玩法
 
 新增不可放置物品「鱼竿」972/DATA0（`SCIEPort.Tools`），程序化2×2合成（木棍1+线2，运行时按 `GetCraftingId` 解析材料）。玩法为抛竿-咬钩-收竿时机判定：射线≤12格需命中表层水且下方仍是水，等待2–5秒，0.9秒窗口内再次点击成功；过早/超时失败并冷却1秒；奖励原版生鱼1–3条（70/25/5%）。联机走新包236（Request/Result，20字节负载），客户端判定时机、主机复验手持鱼竿/水格/距离≤16格及0.8秒与每分钟18次限流后写背包并回执，鱼获经原生槽位同步。新增 `FishingBehavior` XDB子系统与 `SubsystemFishing`；ID 972、包 236 经固定目标占用扫描确认空闲。

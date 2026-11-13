@@ -36,6 +36,7 @@
 ## 兼容性
 
 - 目标 `Net_x25.01.17`、net472、API1.42、SC2.4.10.6；方块 972 与包 236 经固定目标实际占用扫描确认空闲。
+- 0.86.1 修正：水位高度改用 `FluidBlock.GetLevelHeight(FluidBlock.GetLevel(Terrain.ExtractData(value)))`（原生等级0–15）；鱼竿网格改为沿第一人称前向（局部-Z）伸出并居中，避免杆身被近裁剪面裁掉。
 - 新增 XDB 子系统模板 `FishingBehavior`（GUID `cf650906-2631-4b53-9ab1-0ad87d4965e8`，容器 `14816d9f-b915-4677-bbfa-c53bbe1e03a4`，Project `85023bf8-1c90-4dd1-9442-e6c13691d078`）。
 - Windows 编译、静态 ABI 与包内容 **已确认**；Android7723、触屏实机、真实 Local/Server/Client 与鱼获同步 **待验证**。各端必须统一 0.86.0，旧版本混用 **不支持**。
 
