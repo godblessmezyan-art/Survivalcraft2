@@ -1,8 +1,8 @@
 {
   "Name": "荒野探险家",
-  "Version": "0.85.0",
+  "Version": "0.86.0",
   "ApiVersion": "1.42",
-  "Description": "荒野探险家 / Wilderness Explorer。家居、神器、冥界军势、悬浮陈列器、载具与生态扩展，内置云天书典阅读工具。",
+  "Description": "荒野探险家 / Wilderness Explorer。家居、神器、冥界军势、悬浮陈列器、载具、钓鱼与生态扩展，内置云天书典阅读工具。",
   "ScVersion": "2.4.10.6",
   "Link": "https://github.com/godblessmezyan-art/Survivalcraft2/tree/main/SCIE-Port",
   "Author": "zyan",

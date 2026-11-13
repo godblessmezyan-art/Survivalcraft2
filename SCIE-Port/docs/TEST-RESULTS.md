@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-14 main 0.86.0：钓鱼玩法
+
+新增不可放置物品「鱼竿」972/DATA0（`SCIEPort.Tools`），程序化2×2合成（木棍1+线2，运行时按 `GetCraftingId` 解析材料）。玩法为抛竿-咬钩-收竿时机判定：射线≤12格需命中表层水且下方仍是水，等待2–5秒，0.9秒窗口内再次点击成功；过早/超时失败并冷却1秒；奖励原版生鱼1–3条（70/25/5%）。联机走新包236（Request/Result，20字节负载），客户端判定时机、主机复验手持鱼竿/水格/距离≤16格及0.8秒与每分钟18次限流后写背包并回执，鱼获经原生槽位同步。新增 `FishingBehavior` XDB子系统与 `SubsystemFishing`；ID 972、包 236 经固定目标占用扫描确认空闲。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/fishing-build.log`：环境/ABI、Fishing 原生API/资源/包检查与规则单测、书典、PixelFX、家居、Poseidon、Excalibur、绘卷、军势、DeathAuthority 及全部旧回归通过；包212条目（新增 `Assets/Blocks/Fishing.csv`、`Assets/Database/Fishing.xdb`），CSV 30文件/75源行。产物 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.86.0.netmod` 字节一致：**12,762,705字节**，SHA256 `24E0E58F9A04441E5E1432B1CE5C738397480D08A38840AABEB995C293AD2DFA`；`SCIEPort.dll` 948,736字节/SHA256 `FC532266ED6CAAE7348329CC7D12C6DBF815B1D87FF047C934C693FC4D6A1A24`，版本0.86.0。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏垂钓与真实Local/Server/Client鱼获同步 **待验证**。
+
 ## 2026-11-14 main 0.85.0：回退刻尔柏洛斯24骨模型
 
 用户实测新三头犬外观不满意，按整提交`git revert 7646d10`恢复0.84.0之前版本：旧7骨`AbyssCerberus.dae`/旧贴图/旧XDB、旧`ComponentCerberusModel`与四足步态重新生效；移除`GetMaxInstancesCount()=24`重写、Kind 11/12/13与Action 19、6.5秒登场冻结/跳过暗幕、三段咬合、尾击、冥府怒吼与低血狂暴，删除24骨Blender设计源与生成脚本。0.84.1“图谱免真名”改动保留。冲突仅`SCIEPort.csproj`/`modinfo.json`/`TEST-RESULTS.md`，版本定为0.85.0；DAE/PNG/XDB与0.83.1包内逐字节一致。

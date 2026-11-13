@@ -23,7 +23,9 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.'
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir
-& (Join-Path $PSScriptRoot 'Test-OmniscientEye.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Fishing rules timing/reward/rate-limit tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
@@ -91,6 +93,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Abyss A3 geometry/runtime asset integrity fail
 if ($LASTEXITCODE -ne 0) { throw 'Abyss combat regression failed' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DevouringEye.ps1') -GameDir $GameDir
 if ($LASTEXITCODE -ne 0) { throw 'Devouring Eye native API/model checks failed.' }
+
+# 钓鱼：材料名运行时解析、主机权威校验与原生鱼获链路不得被替换成客户端直接发放。
+$fishingRodSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Fishing\FishingRodBlock.cs')
+foreach ($rule in @('StickBlock', 'StringBlock', 'GetCraftingId', 'GetProceduralCraftingRecipes')) {
+    if (-not $fishingRodSource.Contains($rule)) { throw "Fishing recipe rule missing: $rule" }
+}
+$fishingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Fishing\SubsystemFishing.cs')
+foreach ($rule in @('Authority', 'ValidateCatch', 'MaxCatchDistance', 'FindAcquireSlotForItem', 'RawFishBlock.Index', 'AddSlotItems')) {
+    if (-not $fishingSource.Contains($rule)) { throw "Fishing host-authority rule missing: $rule" }
+}
+$loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
+if (-not $loaderSource.Contains('new FishingCatchPackage()')) { throw 'Fishing protocol is not registered by the loader.' }
 
 New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
 $resolvedArtifacts = (Resolve-Path -LiteralPath $artifacts).Path
@@ -2397,6 +2411,7 @@ finally { $archive.Dispose() }
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Integrated reader package validation failed.' }

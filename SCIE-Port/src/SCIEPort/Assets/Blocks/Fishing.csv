@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;DefaultIconViewOffset;FirstPersonScale;FirstPersonOffset;FirstPersonRotation;InHandScale;IsCollidable;IsPlaceable;IsGatherable;IsAimable;MaxStacking;DefaultMeleePower;DefaultMeleeHitProbability;Durability;DefaultDescription
+FishingRodBlock;鱼竿;SCIEPort.Tools;;3;0;1.6;0,1,-1;0.9;0.1,-0.28,-0.55;10,-8,-16;0.8;FALSE;FALSE;TRUE;FALSE;1;0;1;-1;临水垂钓。

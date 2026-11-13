@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="FishingBehaviors" Guid="14816d9f-b915-4677-bbfa-c53bbe1e03a4">
+    <SubsystemTemplate Name="FishingBehavior" Guid="cf650906-2631-4b53-9ab1-0ad87d4965e8" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="02143aa3-045b-4c84-adc7-4ca46e5cc3be" Value="SCIEPort.Features.Fishing.SubsystemFishing" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="FishingBehavior" Guid="b083482c-943d-4c05-ac4a-5af627b1f6b5" InheritanceParent="cf650906-2631-4b53-9ab1-0ad87d4965e8" />
+  </ProjectTemplate>
+</DatabaseObjects>
