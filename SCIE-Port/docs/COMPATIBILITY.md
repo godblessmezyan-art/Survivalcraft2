@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-14 0.88.0：装饰书架与书籍方块
+
+新增纯装饰方块：书架973（3款）、高书架974（2款，上格复用隐藏块963并以bit7标识）、2×2大书柜975（977为隐藏占位）、书堆976（4款）。全部使用程序化`BlockMesh`与1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB资源、槽位主题或网络包；配方为2×2木板/木棍/棉絮，材料按`GetCraftingId`运行时解析。DATA低2位朝向、bit2保留、bit3–5款式；963的bit6仍为窗帘、bit7为高书架，两者互斥。书架不提供储物、阅读或交互，不改变ID/DATA/GUID/协议/存档键与net472/API1.42/SC2.4.10.6。各端统一0.88.0。
+
+Windows net472 Release、家居规则单测、`Test-Bookshelf`网格/碰撞/配方/包检查与全部旧回归 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期及真实Local/Server/Client **待验证**。详见[书架专项](BOOKSHELF.md)。
+
 ## 2026-11-14 0.87.0：创造栏合并为5个Tab
 
 按用户要求把11个创造栏分类合并为5个：神器（`SCIEPort.Artifacts`）、装备与工具（`SCIEPort.Gear`）、载具（`SCIEPort.Vehicles`）、建造与家居（`SCIEPort.Structures`）、自然与生物（`SCIEPort.Nature`）。旧键`SCIEPort.Saints/Tools/Home/Plants/Food/Materials/Industry/Building/Creatures`退休，所有CSV `DefaultCategory`、圣兽衣物/书典/鱼竿的`GetCategory`与验证脚本同步。物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均不变，`SCIEPort.Misc`仍仅作运行时兜底。各端统一0.87.0。

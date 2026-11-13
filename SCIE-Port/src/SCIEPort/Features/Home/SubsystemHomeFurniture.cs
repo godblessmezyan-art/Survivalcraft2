@@ -23,7 +23,8 @@ namespace SCIEPort.Features.Home
         private struct Request { internal ComponentPlayer Player; internal Point3 Point; internal int Expected; internal byte Action; internal Client Reply; }
         /// <inheritdoc/>
         public override int[] HandledBlocks => new[] { HomeRules.Fridge, HomeRules.Cabinet, HomeRules.Sink, HomeRules.Sofa, HomeRules.Table, HomeRules.Curtain, HomeRules.Upper,
-            HomeRules.Fireplace, HomeRules.Dining, HomeRules.Bed, HomeRules.Nightstand, HomeRules.WallArt, HomeRules.DiningPart, HomeRules.BedPart };
+            HomeRules.Fireplace, HomeRules.Dining, HomeRules.Bed, HomeRules.Nightstand, HomeRules.WallArt, HomeRules.DiningPart, HomeRules.BedPart,
+            HomeRules.Bookshelf, HomeRules.BookshelfTall, HomeRules.Bookcase, HomeRules.BookPile, HomeRules.BookcasePart };
         /// <inheritdoc/>
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
         internal bool MayPlace => !placementHalted && added.Count < 128;

@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-14 main 0.88.0：装饰书架与书籍方块
+
+新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）与隐藏占位977，全部归入`SCIEPort.Structures`。模型由`BookshelfGeometry`在运行时生成`BlockMesh`，使用1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB；高书架上格复用隐藏块963并新增bit7标识，bit6仍为窗帘；大书柜用977占位，沿用`SubsystemHomeFurniture`两格/2×2生命周期。四个2×2配方分别用木板/木棍/棉絮，运行时按`GetCraftingId`解析材料。ID 973–977经固定目标占用扫描确认空闲，无新网络包、GUID或存档键。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/bookshelf-build.log`：环境/ABI、家居496928项规则与两格回滚、`Bookshelf assembly: 40 meshes, 5 blocks, collision and four two-by-two recipes verified.`、Bookshelf包内CSV字节一致、31个CSV/80源行分类一致，以及Fishing、PixelFX、书典、绘卷、军势等全部旧回归通过。包213条目（新增`Assets/Blocks/Bookshelf.csv`）。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.88.0.netmod`字节一致：**12,767,136字节**，SHA256 `AA43B49F4A69370997ADA241FCFEB59B3CD3C606B3C6DE9CEA6A3A3588B2433D`；`SCIEPort.dll` 960,000字节/SHA256 `FE5B20C0B15E6A0E6B6AE49A89DF3AD70EF232BFAF3BC434C9765D833A0CBBA8`，版本0.88.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期与真实Local/Server/Client **待验证**。
+
 ## 2026-11-14 main 0.87.0：创造栏合并为5个Tab
 
 按用户要求把原11个分类合并为神器、装备与工具、载具、建造与家居、自然与生物5个Tab。`SCIEPort.Saints/Tools`并入`SCIEPort.Gear`，`SCIEPort.Home/Materials/Industry/Building`并入`SCIEPort.Structures`，`SCIEPort.Plants/Food/Creatures`并入`SCIEPort.Nature`；旧键退休，物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均未改动。同步更新30个CSV、圣兽衣物/书典/鱼竿`GetCategory`、分类单测、PortInventory/Fishing/Suspension/Codex脚本与文档。PixelFX冻结基线中仅`PortInventoryRules.cs`、`PortInventoryCatalog.cs`两项因本次分类合并按原归一化规则更新哈希，其余游戏机制原文不变。

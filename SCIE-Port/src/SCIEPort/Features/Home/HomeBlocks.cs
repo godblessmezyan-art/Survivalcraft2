@@ -15,19 +15,14 @@ namespace SCIEPort.Features.Home
         /// <inheritdoc/>
         public override void Initialize()
         {
-            texture = ContentManager.Get<Texture2D>("Textures/HomeFurniture");
+            texture = CreateTexture();
             for (int variant = 0; variant < HomeRules.VariantCount(BlockIndex); variant++)
             for (int state = 0; state < (HomeRules.IsSwitchable(BlockIndex) ? 2 : 1); state++)
             {
                 int data = (variant << 3) | (state << 2);
-                Model model = ContentManager.Get<Model>("Models/" + HomeRules.Model(BlockIndex, data));
                 for (int rotation = 0; rotation < 4; rotation++)
                 {
-                    var mesh = new BlockMesh();
-                    Matrix placement = Matrix.CreateRotationY(rotation * MathUtils.PI / 2f) * Matrix.CreateTranslation(.5f, 0, .5f);
-                    foreach (ModelMesh source in model.Meshes)
-                    foreach (ModelMeshPart part in source.MeshParts)
-                        mesh.AppendModelMeshPart(part, BlockMesh.GetBoneAbsoluteTransform(source.ParentBone) * placement, false, false, false, false, Color.White);
+                    BlockMesh mesh = CreateMesh(data, rotation);
                     mesh.GenerateSidesData();
                     meshes[data | rotation] = mesh;
                     if (state == 0 && rotation == 0)
@@ -40,9 +35,24 @@ namespace SCIEPort.Features.Home
             }
             base.Initialize();
         }
+        /// <summary>Texture shared by every variant of this block.</summary>
+        protected virtual Texture2D CreateTexture() => ContentManager.Get<Texture2D>("Textures/HomeFurniture");
+        /// <summary>Builds the already rotated mesh for one variant/state.</summary>
+        protected virtual BlockMesh CreateMesh(int data, int rotation)
+        {
+            Model model = ContentManager.Get<Model>("Models/" + HomeRules.Model(BlockIndex, data));
+            var mesh = new BlockMesh();
+            Matrix placement = Matrix.CreateRotationY(rotation * MathUtils.PI / 2f) * Matrix.CreateTranslation(.5f, 0, .5f);
+            foreach (ModelMesh source in model.Meshes)
+            foreach (ModelMeshPart part in source.MeshParts)
+                mesh.AppendModelMeshPart(part, BlockMesh.GetBoneAbsoluteTransform(source.ParentBone) * placement, false, false, false, false, Color.White);
+            return mesh;
+        }
         internal static BoundingBox[] Boxes(int id, int variant, int rotation, bool upper, bool open)
         {
-            if (id >= HomeRules.Fireplace && id <= HomeRules.WallArt) return HomeExtensionGeometry.Boxes(id, rotation, 0);
+            if (id == HomeRules.Bookcase) return BookshelfGeometry.CaseBoxes();
+            if (id >= HomeRules.Fireplace && id <= HomeRules.WallArt)
+                return HomeExtensionGeometry.Boxes(id, rotation, 0);
             var boxes = new List<BoundingBox>();
             if (id == HomeRules.Curtain)
             {
@@ -52,6 +62,9 @@ namespace SCIEPort.Features.Home
             if (id == HomeRules.Fridge) boxes.Add(new BoundingBox(new Vector3(.07f, 0, .12f), new Vector3(.93f, upper ? .90f : 1, .94f)));
             else if (id == HomeRules.Cabinet && variant == 2) boxes.Add(new BoundingBox(new Vector3(.02f, .32f, .42f), new Vector3(.98f, .85f, .97f)));
             else if (id == HomeRules.Cabinet || id == HomeRules.Sink) boxes.Add(new BoundingBox(new Vector3(.02f, 0, .04f), new Vector3(.98f, .85f, .97f)));
+            else if (id == HomeRules.Bookshelf) boxes.Add(new BoundingBox(new Vector3(.04f, 0, .28f), new Vector3(.96f, 1, .96f)));
+            else if (id == HomeRules.BookshelfTall) boxes.Add(new BoundingBox(new Vector3(.04f, 0, .28f), new Vector3(.96f, upper ? .92f : 1, .96f)));
+            else if (id == HomeRules.BookPile) boxes.Add(new BoundingBox(new Vector3(.10f, 0, .12f), new Vector3(.90f, .34f, .88f)));
             else if (id == HomeRules.Sofa)
             {
                 boxes.Add(new BoundingBox(new Vector3(.03f, .08f, .05f), new Vector3(.97f, .52f, .96f)));
@@ -131,6 +144,9 @@ namespace SCIEPort.Features.Home
             if (BlockIndex == HomeRules.Cabinet) return new[] { "橱柜", "转角橱柜", "吊柜", "抽屉柜" }[v];
             if (BlockIndex == HomeRules.Sofa) return new[] { "单人沙发", "沙发左座", "沙发中座", "沙发右座", "转角沙发" }[v];
             if (BlockIndex == HomeRules.WallArt) return new[] { "山月挂画", "山峦挂画", "轨迹挂画" }[v];
+            if (BlockIndex == HomeRules.Bookshelf) return new[] { "书架", "深色书架", "满书书架" }[v];
+            if (BlockIndex == HomeRules.BookshelfTall) return new[] { "高书架", "深色高书架" }[v];
+            if (BlockIndex == HomeRules.BookPile) return new[] { "书堆", "散书", "叠书", "摊开的书" }[v];
             return base.GetDisplayName(terrain, value);
         }
     }
@@ -161,7 +177,8 @@ namespace SCIEPort.Features.Home
         public override IEnumerable<int> GetCreativeValues() { yield break; }
         /// <inheritdoc/>
         public override string GetDisplayName(SubsystemTerrain terrain, int value)
-            => HomeRules.LowerId(Terrain.ExtractData(value)) == HomeRules.Curtain ? "窗帘" : "冰箱";
+            => HomeRules.LowerId(Terrain.ExtractData(value)) == HomeRules.Curtain ? "窗帘"
+                : HomeRules.LowerId(Terrain.ExtractData(value)) == HomeRules.BookshelfTall ? "高书架" : "冰箱";
         /// <inheritdoc/>
         public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
         {
