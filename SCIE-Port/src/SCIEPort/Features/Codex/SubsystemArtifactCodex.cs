@@ -6,7 +6,7 @@ using Game.NetWork;
 using TemplatesDatabase;
 namespace SCIEPort.Features.Codex
 {
-    /// <summary>World-owned, GUID-keyed true-name permissions. Requests are authenticated and applied on Update.</summary>
+    /// <summary>Informational artifact codex. Legacy true-name records remain for old worlds/clients but no longer gate usage.</summary>
     public sealed class SubsystemArtifactCodex:SubsystemBlockBehavior,IUpdateable
     {
         internal readonly Dictionary<Guid,uint> Records=new Dictionary<Guid,uint>();
@@ -39,18 +39,13 @@ namespace SCIEPort.Features.Codex
         {if(!Authority)return;var data=new ValuesDictionary();foreach(var pair in Records)data.SetValue(pair.Key.ToString("N"),pair.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));values.SetValue("TrueNames",data);}
         internal uint Mask(ComponentPlayer p)=>p!=null&&Records.TryGetValue(p.PlayerGuid,out var mask)?mask:0;
         internal static bool Held(ComponentPlayer p,int id)=>p!=null&&p.IsAddedToProject&&p.ComponentHealth.Health>0&&Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue)==id;
-        internal static bool Allowed(ComponentPlayer p,int id)
-        {
-            if(CodexRules.Bit(id)==0)return true;
-            return p!=null&&p.Project?.FindSubsystem<SubsystemArtifactCodex>(false)?.Has(p,id)==true;
-        }
-        internal bool Has(ComponentPlayer p,int id)=>CodexRules.Unlocked(Mask(p),id);
-        internal static bool MayHold(ComponentPlayer p)=>p!=null&&Allowed(p,Terrain.ExtractContents(p.ComponentMiner.ActiveBlockValue));
+        internal static bool Allowed(ComponentPlayer p,int id)=>p!=null;
+        internal static bool MayHold(ComponentPlayer p)=>p!=null;
         /// <inheritdoc/>
         public override bool OnUse(Ray3 ray,ComponentMiner miner)
         {
             var p=miner.ComponentPlayer;if(!Held(p,CodexRules.Book))return false;
-            if(p.GameWidget!=null&&p.PlayerData.IsMainPlayer&&!DialogsManager.HasDialogs(p.GuiWidget)){DialogsManager.ShowDialog(p.GuiWidget,new CodexDialog(this,p));Request(p,0,0);}
+            if(p.GameWidget!=null&&p.PlayerData.IsMainPlayer&&!DialogsManager.HasDialogs(p.GuiWidget)){DialogsManager.ShowDialog(p.GuiWidget,new CodexDialog(p));Request(p,0,0);}
             return true;
         }
         internal void Request(ComponentPlayer p,byte kind,byte entry)
@@ -95,15 +90,13 @@ namespace SCIEPort.Features.Codex
             retired.Clear();foreach(var pair in walk){pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;retired.Add(pair.Key);}foreach(var p in retired)walk.Remove(p);
             foreach(var p in players.ComponentPlayers)
             {
-                bool book=Held(p,CodexRules.Book),locked=!MayHold(p);
-                if(book||((Held(p,949)||Held(p,950))&&!locked)){float delta=p.ComponentLocomotion.WalkSpeed*.2f;if(!float.IsNaN(delta)&&!float.IsInfinity(delta)){walk[p]=delta;p.ComponentLocomotion.WalkSpeed+=delta;}}
+                bool book=Held(p,CodexRules.Book);
+                if(book||Held(p,949)||Held(p,950)||Held(p,971)){float delta=p.ComponentLocomotion.WalkSpeed*.2f;if(!float.IsNaN(delta)&&!float.IsInfinity(delta)){walk[p]=delta;p.ComponentLocomotion.WalkSpeed+=delta;}}
                 var input=p.ComponentInput;if(input==null)continue;
-                if(book||(Held(p,971)&&!locked)) {input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;}
-                else if(locked){if((input.m_playerInput.Hit.HasValue||input.m_playerInput.Aim.HasValue||input.m_playerInput.Interact.HasValue||input.m_playerInput.Dig.HasValue)&&p.PlayerData.IsMainPlayer&&clock.GameTime>=nextNotice){nextNotice=clock.GameTime+2;p.ComponentGui.DisplaySmallMessage("尚未解放真名，请先使用神器图谱。",Color.Yellow,false,false);}input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;input.m_playerInput.Interact=null;}
+                if(book||Held(p,971)) {input.m_playerInput.Interact=input.m_playerInput.Interact??input.m_playerInput.Hit??input.m_playerInput.Dig;input.m_playerInput.Hit=null;input.m_playerInput.Dig=null;input.m_playerInput.Aim=null;}
             }
             if(Authority&&clock.GameTime>=nextSync){nextSync=clock.GameTime+2;foreach(var p in players.ComponentPlayers)Publish(p);}
         }
-        private double nextNotice;
         /// <inheritdoc/>
         public override void Dispose(){lock(pending){disposed=true;pending.Clear();}foreach(var pair in walk)pair.Key.ComponentLocomotion.WalkSpeed-=pair.Value;walk.Clear();Records.Clear();received.Clear();accepted.Clear();sent.Clear();lastRequest.Clear();connections.Clear();base.Dispose();}
     }

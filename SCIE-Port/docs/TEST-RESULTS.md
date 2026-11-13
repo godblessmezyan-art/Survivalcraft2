@@ -1,5 +1,24 @@
 # 测试结果
 
+## 2026-11-14 main 0.84.1：神器图谱改为纯介绍，取消真名门槛
+
+按用户要求神器不再需要解放真名即可使用，图谱只保留介绍信息。`SubsystemArtifactCodex.Allowed/MayHold` 恒为可用，`Update` 不再清空 Hit/Dig/Aim/Interact，也不再显示“尚未解放真名”提示；图谱对话框移除“解放真名”按钮、封印状态和 ✓/◇ 标记，只显示条目、3D预览与资料文本。全知之眼/吞噬之眼及任意神器的持有移速+20%、近战攻速+10% 直接生效。`TrueNames` 存档键、254同步包与解锁请求处理保留，仅供旧客户端/旧世界使用，不再参与任何使用判定；ArtifactCodex/DevouringEye/OmniscientEye 物品描述与Codex资料文本同步改写。
+
+验证：`Test-Codex` 原生探针改为断言无真名时输入直通、原生挖掘/攻击钩子不削弱、任意玩家直接可用且解锁记录仍按玩家隔离；`AbyssMultiplayerNativeProbe` 改为断言普通客户端无真名仍可命中；蓝图测试原有“无需真名”断言继续通过。首次完整构建因两处旧门槛断言失败，均按新规则修正后重跑。
+
+实际命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/codex-open-build.log`：环境/ABI、书典461项、PixelFX、家居、星门、军势、DeathAuthority、24骨兼容与包内容全部通过。产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.84.1.netmod` 字节一致：**13,676,510字节**，SHA256 `5E7C503F8CC123B2AED64E4B09DC8B2864674F11F155F924DD8ED1FF0A8953B0`；`SCIEPort.dll` 953,856字节/SHA256 `908356C9056ECDE6B8F70AA5359E7E95A671AC4C1C06696BC77F5CE9498564A7`，版本0.84.1。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏图谱与真实联机 **待验证**。
+
 ## 2026-11-13 main 0.84.0：刻尔柏洛斯24骨史诗重构
 
 将7骨三头犬占位模型替换为24骨冥府守门巨兽：三套独立颈/头/颌、蛇鬃与背部蛇群、TailA–C蛇尾链+尾首/尾颌、胸腔呼吸、十态动画、6.5秒登场（主机冻结AI、主人可跳过、Action 19同步结束）、三段咬合18伤害/1.6秒、尾击30伤害/6秒、≤35%低血狂暴、Kind 8/11/12/13网络演出与重连补发。加载器注册并返回 `GetMaxInstancesCount()=24`；未注册时仍为7并会在24骨绘制时抛 `Invalid instances count.`。
