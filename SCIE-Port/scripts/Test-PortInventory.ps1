@@ -3,7 +3,7 @@ param([string]$GameDir='E:\SCNET\SCNETx25.01.17',[string]$BuiltAssembly,[string]
 $ErrorActionPreference='Stop'
 $inventoryRoot=Split-Path -Parent $PSScriptRoot
 $inventoryProject=Join-Path $inventoryRoot 'src\SCIEPort'
-$inventoryAllowed=@('Artifacts','Vehicles','Saints','Plants','Food','Materials','Industry','Building','Home','Creatures','Tools','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
+$inventoryAllowed=@('Artifacts','Gear','Vehicles','Structures','Nature','Misc') | ForEach-Object { 'SCIEPort.'+$_ }
 $inventoryRows=@(Get-ChildItem (Join-Path $inventoryProject 'Assets\Blocks') -Filter *.csv | ForEach-Object { Import-Csv -Delimiter ';' -Encoding UTF8 $_.FullName })
 foreach($row in $inventoryRows){
     if($inventoryAllowed -notcontains $row.DefaultCategory -or $row.DefaultCategory -eq 'SCIEPort.Misc'){throw "Release item must have a deliberate dedicated tab: $($row.'Class Name')"}
@@ -14,7 +14,7 @@ foreach($name in @('StormhammerBlock','StormhammerAwakenedBlock','GungnirBlock',
 foreach($name in @('TankBlock','TankShellBlock','HelicopterBlock','AtvBlock','OffroadCarBlock','SteamBoatBlock','AirshipBlock','TrainBlock','CarriageBlock')){
     if(@($inventoryRows | Where-Object {$_.'Class Name' -eq $name -and $_.DefaultCategory -eq 'SCIEPort.Vehicles'}).Count -ne 1){throw "Vehicle tab missing: $name"}
 }
-if(@($inventoryRows | Where-Object {$_.'Class Name' -eq 'CelestialCodexBlock' -and $_.DefaultCategory -eq 'SCIEPort.Tools'}).Count -ne 1){throw 'Celestial Codex must be a utility tool.'}
+if(@($inventoryRows | Where-Object {$_.'Class Name' -eq 'CelestialCodexBlock' -and $_.DefaultCategory -eq 'SCIEPort.Gear'}).Count -ne 1){throw 'Celestial Codex must be in the gear/tools tab.'}
 $inventoryBuild=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'Build-NetMod.ps1'))
 if(-not $inventoryBuild.Contains("Join-Path `$artifacts '荒野探险家.netmod'") -or -not $inventoryBuild.Contains('荒野探险家-')){throw 'Release filename contract missing.'}
 if($Package){
@@ -82,7 +82,7 @@ $inventoryClothes.DefaultCategory='Clothes';$inventoryClothes.BlockIndex=203;$in
 foreach($idx in @(0,200,201,202,203)) { foreach($color in @(0,5,15)){foreach($damage in @(0,8,15)){
     $data=[Game.ClothingBlock]::SetClothingColor([Game.ClothingBlock]::SetClothingIndex(0,$idx),$color)
     $value=$inventoryClothes.SetDamage([Game.Terrain]::MakeBlockValue(203,0,$data),$damage)
-    $expected=if($idx -ge 200){'SCIEPort.Saints'}elseif($color -eq 0){'Clothes'}else{'Dyed'}
+    $expected=if($idx -ge 200){'SCIEPort.Gear'}elseif($color -eq 0){'Clothes'}else{'Dyed'}
     if($inventoryClothes.GetCategory($value) -ne $expected){throw 'Saint DATA/damage/dye category isolation failed.'}
     $inventoryChecks++
 }}}

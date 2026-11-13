@@ -1,7 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$GameDir,[Parameter(Mandatory=$true)][string]$AssemblyPath,[string]$Package,[switch]$PackageOnly)
 $ErrorActionPreference='Stop';$root=Split-Path $PSScriptRoot
 $rows=@(Import-Csv (Join-Path $root 'src/SCIEPort/Assets/Blocks/SuspendedItem.csv') -Delimiter ';' -Encoding UTF8)
-if($rows.Count -ne 1 -or $rows[0].'Class Name' -ne 'SuspendedItemBlock' -or $rows[0].DefaultCategory -ne 'SCIEPort.Building' -or $rows[0].IsCollidable -ne 'FALSE' -or $rows[0].IsTransparent -ne 'TRUE' -or $rows[0].LightAttenuation -ne '0' -or $rows[0].DefaultShadowStrength -ne '0' -or $rows[0].DefaultDropContent -ne '954'){throw 'Suspension category/transparent/non-collidable/drop contract changed'}
+if($rows.Count -ne 1 -or $rows[0].'Class Name' -ne 'SuspendedItemBlock' -or $rows[0].DefaultCategory -ne 'SCIEPort.Structures' -or $rows[0].IsCollidable -ne 'FALSE' -or $rows[0].IsTransparent -ne 'TRUE' -or $rows[0].LightAttenuation -ne '0' -or $rows[0].DefaultShadowStrength -ne '0' -or $rows[0].DefaultDropContent -ne '954'){throw 'Suspension category/transparent/non-collidable/drop contract changed'}
 foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $f))}
 $mod=[Reflection.Assembly]::LoadFrom([IO.Path]::GetFullPath($AssemblyPath))
 if(!$PackageOnly){

@@ -25,8 +25,8 @@ internal static class Program
             Check(PortInventoryRules.Select(id,-1,PortInventoryRules.Artifacts)!=PortInventoryRules.Theme.Artifact,"current artifacts require authored themes");
         Check(PortInventoryRules.Select(952,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.AbyssReaper,"Abyss uses its own violet metal theme");
         Check(PortInventoryRules.Select(953,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Excalibur,"Excalibur owns a holy golden/ivory theme");
-        Check(PortInventoryRules.IsCategory(PortInventoryRules.Tools),"utility category registered");
-        Check(PortInventoryRules.Select(956,-1,PortInventoryRules.Tools)==PortInventoryRules.Theme.CelestialCodex,"reader owns a separate sky-blue/gold theme without artifact classification");
+        Check(PortInventoryRules.IsCategory(PortInventoryRules.Gear),"gear category registered");
+        Check(PortInventoryRules.Select(956,-1,PortInventoryRules.Gear)==PortInventoryRules.Theme.CelestialCodex,"reader owns a separate sky-blue/gold theme without artifact classification");
         Check(PortInventoryRules.Select(971,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Tiangong,"Tiangong has a dedicated jade/gold theme");
         Check(PortInventoryRules.Select(970,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.Artifact,"future artifact fallback");
         Check(PortInventoryRules.Select(943,-1,PortInventoryRules.Artifacts)==PortInventoryRules.Theme.FalseHammer,"fake hammer gets its own subdued skin, not the true hammer skin");

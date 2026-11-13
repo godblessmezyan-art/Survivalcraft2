@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-14 main 0.87.0：创造栏合并为5个Tab
+
+按用户要求把原11个分类合并为神器、装备与工具、载具、建造与家居、自然与生物5个Tab。`SCIEPort.Saints/Tools`并入`SCIEPort.Gear`，`SCIEPort.Home/Materials/Industry/Building`并入`SCIEPort.Structures`，`SCIEPort.Plants/Food/Creatures`并入`SCIEPort.Nature`；旧键退休，物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均未改动。同步更新30个CSV、圣兽衣物/书典/鱼竿`GetCategory`、分类单测、PortInventory/Fishing/Suspension/Codex脚本与文档。PixelFX冻结基线中仅`PortInventoryRules.cs`、`PortInventoryCatalog.cs`两项因本次分类合并按原归一化规则更新哈希，其余游戏机制原文不变。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/tab-merge-build.log`：Inventory分类/皮肤规则807项、目标API 206项/75个实际方块分类、圣兽DATA隔离与原生标签、30个CSV/75行打包一致性、Fishing、PixelFX 1195项、书典、家居、绘卷、军势等全部旧回归通过。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.87.0.netmod`字节一致：**12,762,541字节**，SHA256 `C6EEEEC15CC3434810C74B05FD5B7BDEA82AD99E8D227C6B5897713EDB91AD6A`；`SCIEPort.dll` 948,224字节/SHA256 `C7AE8232157BF695D05301EBE23921A26CB20D10916F0B8C687D231328EA535C`，版本0.87.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏分类列表与真实联机 **待验证**。
+
 ## 2026-11-14 main 0.86.1：钓鱼水位与手持模型修复
 
 按实测反馈修复两处：`FluidBlock.GetLevelHeight` 的参数是 0–15 流体等级而非整格方块值，改为 `GetLevelHeight(GetLevel(ExtractData(value)))` 后满水（level 0，高度0.875）可正常起竿；鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z（`Matrix.Forward = -(M31..M33)`），杆身伸向眼后并被近裁剪面裁掉，现整体翻转为沿 -Z 前伸并居中。物品/配方/包236/XDB/ID 均未改动。

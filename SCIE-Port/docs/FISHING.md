@@ -2,7 +2,7 @@
 
 ## 物品与获取
 
-- 「鱼竿」972/DATA0，不可放置，最大堆叠1，近战伤害0，归 `SCIEPort.Tools`（实用工具）。
+- 「鱼竿」972/DATA0，不可放置，最大堆叠1，近战伤害0，归 `SCIEPort.Gear`（装备与工具）。
 - 程序化2×2配方：木棍×1 + 线×2（`stick`+`line`+空+`line`）。材料名在运行时由 `BlocksManager.FindBlockByTypeName("StickBlock"/"StringBlock")` 的 `GetCraftingId(0)` 解析，不硬编码材料ID。
 - 无新增鱼类物品：产出原版生鱼 `RawFishBlock`，可直接走原版篝火/烤箱烹饪。
 

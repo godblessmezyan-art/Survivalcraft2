@@ -6,7 +6,7 @@
 
 2026-11-08 继续新增壁炉964、双人餐桌965、双人床966、床头柜967、挂画968及隐藏占位969/970；共享本页原图集和风格，旧物品不改号。床头柜8格可存，床/餐桌2×2，挂画3款；当前共20个创造外观、24个模型状态。新增源码及运行行为仍待验证，本轮也未构建/自动测试/启动游戏。[扩展实现与文件](HOME-EXTENSION.md)。下文13外观/16模型为原六类家具范围。
 
-基于本地 0.78.0 的冰箱、组合橱柜、水槽、沙发、茶几和窗帘进行 V2 美术重构。色板统一冰川白、钛银灰、石墨黑、深空蓝及少量冰蓝；仍属于独立“家居”Tab（`SCIEPort.Home`），没有神器属性。模型为项目原创，通过 Blender 5.1.1 与官方 Blender MCP 1.0.2 制作；V2 可编辑场景为 `artifacts/home-furniture-v2/ModernFurnitureV2.blend`，原 V1 场景保留。生成脚本为 `scripts/New-HomeFurnitureAssets.py`。本轮按用户要求未构建、未运行自动测试、未启动游戏；旧 0.78.0 包不包含这些修改。[文件清单、容量迁移和风险](HOME-FURNITURE-V2.md)。
+基于本地 0.78.0 的冰箱、组合橱柜、水槽、沙发、茶几和窗帘进行 V2 美术重构。色板统一冰川白、钛银灰、石墨黑、深空蓝及少量冰蓝；仍属于独立“建造与家居”Tab（`SCIEPort.Structures`，0.87.0前为 `SCIEPort.Home`），没有神器属性。模型为项目原创，通过 Blender 5.1.1 与官方 Blender MCP 1.0.2 制作；V2 可编辑场景为 `artifacts/home-furniture-v2/ModernFurnitureV2.blend`，原 V1 场景保留。生成脚本为 `scripts/New-HomeFurnitureAssets.py`。本轮按用户要求未构建、未运行自动测试、未启动游戏；旧 0.78.0 包不包含这些修改。[文件清单、容量迁移和风险](HOME-FURNITURE-V2.md)。
 
 ![家具模型预览](assets/home-furniture/overview.png)
 

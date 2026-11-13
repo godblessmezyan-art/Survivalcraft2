@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-14 0.87.0：创造栏合并为5个Tab
+
+按用户要求把11个创造栏分类合并为5个：神器（`SCIEPort.Artifacts`）、装备与工具（`SCIEPort.Gear`）、载具（`SCIEPort.Vehicles`）、建造与家居（`SCIEPort.Structures`）、自然与生物（`SCIEPort.Nature`）。旧键`SCIEPort.Saints/Tools/Home/Plants/Food/Materials/Industry/Building/Creatures`退休，所有CSV `DefaultCategory`、圣兽衣物/书典/鱼竿的`GetCategory`与验证脚本同步。物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均不变，`SCIEPort.Misc`仍仅作运行时兜底。各端统一0.87.0。
+
+Windows net472 Release、30个CSV/75方块分类、圣兽DATA隔离、分类标签和全部旧回归 **已确认**；Android7723 触屏分类列表与真实联机 **待验证**。详见[物品展示规范](INVENTORY-STANDARD.md)。
+
 ## 2026-11-14 0.86.1：钓鱼交互与手持模型修复
 
 修复两个实测问题。其一，抛竿取样把整格方块值直接传给 `FluidBlock.GetLevelHeight(int level)`，而该参数是 0–15 流体等级（原生用法为 `GetLevelHeight(GetLevel(ExtractData(value)))`），导致表层水判定失效/越界；现按原生等级换算，满水（level 0，高度0.875）可正常起竿。其二，鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z，杆身伸向眼后并被近裁剪面裁掉，只剩握把可见；现将网格整体翻转为向 -Z 前伸并居中。鱼竿972、包236、配方、XDB、net472/API1.42/SC2.4.10.6 与旧 ID/DATA/协议不变；各端统一0.86.1。

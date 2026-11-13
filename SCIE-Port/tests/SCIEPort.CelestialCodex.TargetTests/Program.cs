@@ -89,7 +89,7 @@ internal static class Program
         Check(!block.IsPlaceable && !block.IsCollidable && block.MaxStacking == 1, "Native CSV flags");
         Check(block.GetTextureSlotCount(956) == 1 && block.GetMeleePower(956) == 0 && block.GetProjectilePower(956) == 0, "Nonweapon/icon semantics");
         Check(block.GetCreativeValues().SequenceEqual(new[] { 956 }), "Native creative item DATA0");
-        Check(block.GetDisplayName(null, 956) == "云天书典" && block.GetCategory(956) == "SCIEPort.Tools", "Item/category");
+        Check(block.GetDisplayName(null, 956) == "云天书典" && block.GetCategory(956) == "SCIEPort.Gear", "Item/category");
         Check(new SubsystemCelestialCodexBehavior().HandledBlocks.SequenceEqual(new[] { 956 }), "Use route");
         using (Stream image = File.OpenRead(Path.Combine(modRoot, "Assets/Textures/CelestialCodex/Book.png"))) { Image icon = Image.Load(image); Check(icon.Width == 32 && icon.Height == 32, "Native PNG decoder"); }
 

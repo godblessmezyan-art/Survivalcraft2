@@ -18,7 +18,7 @@ namespace SCIEPort.Features.Inventory
             }
             json.Append("}}");
             using(var stream=new MemoryStream(Encoding.UTF8.GetBytes(json.ToString())))LanguageControl.loadJson(stream);
-            var used=new HashSet<string> {PortInventoryRules.Saints};
+            var used=new HashSet<string> {PortInventoryRules.Gear};
             foreach(Block block in BlocksManager.Blocks)
             {
                 if(block==null || block.GetType().Assembly!=typeof(PortInventoryCatalog).Assembly || block.BlockIndex==203)continue;
