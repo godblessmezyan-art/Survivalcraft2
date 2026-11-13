@@ -68,10 +68,23 @@ namespace SCIEPort.Mod
             ModsManager.RegisterHook("GuiDraw", this);
             ModsManager.RegisterHook("OnModelRendererDrawExtra", this);
             ModsManager.RegisterHook("ModelShaderParameter", this);
+            ModsManager.RegisterHook("GetMaxInstancesCount", this);
             ModsManager.RegisterHook("ChangeSkyColor", this);
             ModsManager.RegisterHook("ViewFogColor", this);
             ModsManager.RegisterHook("SaveSettings", this);
             ModsManager.RegisterHook("LoadSettings", this);
+        }
+
+        /// <summary>
+        /// Raise the native model matrix palette from seven to twenty-four so the
+        /// Cerberus can animate three necks, three jaws, a serpent tail and snake
+        /// groups. This sizes the shared ModelShader uniform arrays; models with
+        /// fewer bones still upload only their own transforms.
+        /// </summary>
+        public override int GetMaxInstancesCount()
+        {
+            Log.Information("[SCIEPort] Model bone capacity " + CerberusRules.BoneCapacity + ".");
+            return CerberusRules.BoneCapacity;
         }
 
         /// <inheritdoc />

@@ -1,5 +1,26 @@
 # 测试结果
 
+## 2026-11-13 main 0.84.0：刻尔柏洛斯24骨史诗重构
+
+将7骨三头犬占位模型替换为24骨冥府守门巨兽：三套独立颈/头/颌、蛇鬃与背部蛇群、TailA–C蛇尾链+尾首/尾颌、胸腔呼吸、十态动画、6.5秒登场（主机冻结AI、主人可跳过、Action 19同步结束）、三段咬合18伤害/1.6秒、尾击30伤害/6秒、≤35%低血狂暴、Kind 8/11/12/13网络演出与重连补发。加载器注册并返回 `GetMaxInstancesCount()=24`；未注册时仍为7并会在24骨绘制时抛 `Invalid instances count.`。
+
+资产最终版：DAE 4,722,277字节/SHA256 `2F62D2B4E6FB4276AE41A7D9C42283FA68C0CC107AF95ECCBE6C214D691B6BAB`，24骨/24闭网格/17,830三角/53,490导出顶点，包围3.43×3.16×5.67格；贴图1024×512 RGB/SHA256 `B4F2F3BABD4ECAA8A8C0FFBE2A13664D28CEC5781BE3509BEC15813D926941DE`。最终一轮修形（肋板贴合、TailA根部落臀、SnakeC舌内收、胸板融入、后腿肌与跗折、背部小蛇颈根）后重跑全部校验：0边界/0非流形/正体积。
+
+实际命令（仓库根；`git`/`node` 需在PATH）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/cerberus-final-build.log`：环境/ABI、家居325项、Poseidon、PixelFX 1195项、Excalibur 806项、DeathAuthority、24骨兼容检查（`design/cerberus/render-compatibility.json`，`fits_native_shader: true`）及最终包校验全部通过。首次运行因PATH缺node、第二次缺git失败，均为环境问题，不计为通过证据。
+
+产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.84.0.netmod` 字节一致：**13,676,964字节**，SHA256 `A48CAF5E0D72A9B1B5B3C0B11B3B7BAAAC42221B644A6BE147A071BFBC00165E`；包内 `SCIEPort.dll` 954,880字节/SHA256 `EDE72517D2DF89896406AC45F25F7DE1BEC97D9173D73295894823E5BEFFAAF2`，`AbyssCerberus.dae`/`.png`/`.xdb` 与源一致。Windows/包内容/静态ABI **已确认**；Android7723真机与GLES驱动、触屏暗幕按钮、真实Local/Server/Client的登场/跳过/三段命中/尾击/狂暴同步、骑姿贴合 **待验证**。
+
 ## 2026-11-13 main 0.83.1：清障默认开启与区域预清空
 
 按用户要求将天工绘卷清障开关默认开启，并把清障语义改为先清空蓝图包围盒内（含门上半格、家具占地）所有非空气方块，再按32格/帧放置。清空与放置共用逐格写前快照与撤销/失败回滚；新增包围盒≤262144格、清空≤32768格上限，超限拒绝。Build-NetMod（D:/Games/SCNET-x25.01.17，Release）退出0：853项蓝图直接施工/隔离检查（新增11项清障顺序、覆盖与内部空间测试）、全部旧回归和210条目包通过；Tiangong包内DLL/CSV/XDB/PNG与源字节一致。包`荒野探险家-0.83.1.netmod` 12757948字节/SHA256 `EB5B86588C6FD007B43EAC28D6A599BB34542CC8D0F5137ADCFE3BC332BB9052`；DLL SHA256 `6A526A2A93712F5040AAD8117CA4360A4E874F6922BD16D7D706A7D99E640906`，MVID `51fb42b1-bcc6-47af-9eaa-4b9e03281251`，版本0.83.1。Windows/包范围 **已确认**；Android7723、触屏与真实Local/Server/Client **待验证**。

@@ -1,801 +1,861 @@
 {
   "original": true,
-  "source": "scripts/New-CerberusAssets.py",
+  "asset": "AbyssCerberus",
+  "source": "scripts/New-CerberusBlender.py",
   "game_meshes_used": false,
-  "bounds": [
-    1.8,
-    2.5,
-    3.6
-  ],
+  "blender": "5.1.1",
+  "bone_count": 24,
+  "mesh_count": 24,
   "bones": {
     "Body": {
       "parent": null,
       "pivot": [
         0.0,
-        0.014970059880239642,
-        0.011851174413048502
-      ]
+        1.40557,
+        0.0837
+      ],
+      "local_pivot": [
+        0.0,
+        1.40557,
+        0.0837
+      ],
+      "mesh": "GEO-Body",
+      "geometry": "Cerberus_Body",
+      "vertices": 1293,
+      "triangles": 2382,
+      "signed_volume": 5.672117
     },
-    "Head": {
+    "Chest": {
       "parent": "Body",
       "pivot": [
         0.0,
-        1.646706586826347,
-        -0.8491209506977144
-      ]
+        1.50557,
+        -1.0863
+      ],
+      "local_pivot": [
+        0.0,
+        0.1,
+        -1.17
+      ],
+      "mesh": "GEO-Chest",
+      "geometry": "Cerberus_Chest",
+      "vertices": 654,
+      "triangles": 1172,
+      "signed_volume": 0.40048
     },
-    "Leg1": {
+    "NeckC": {
       "parent": "Body",
       "pivot": [
-        -0.5838078723608089,
-        1.1776447105788421,
-        -0.7292450517756841
-      ]
+        0.0,
+        1.82557,
+        -1.2663
+      ],
+      "local_pivot": [
+        0.0,
+        0.42,
+        -1.35
+      ],
+      "mesh": "GEO-NeckC",
+      "geometry": "Cerberus_NeckC",
+      "vertices": 154,
+      "triangles": 272,
+      "signed_volume": 0.143916
     },
-    "Leg2": {
+    "NeckL": {
       "parent": "Body",
       "pivot": [
-        0.5838078723608089,
-        1.1776447105788421,
-        -0.7292450517756841
-      ]
+        -0.66,
+        1.72557,
+        -1.1263
+      ],
+      "local_pivot": [
+        -0.66,
+        0.32,
+        -1.21
+      ],
+      "mesh": "GEO-NeckL",
+      "geometry": "Cerberus_NeckL",
+      "vertices": 154,
+      "triangles": 272,
+      "signed_volume": 0.162062
     },
-    "Leg3": {
+    "NeckR": {
       "parent": "Body",
       "pivot": [
-        -0.544887347536755,
-        1.1277445109780437,
-        0.9490175331327396
-      ]
+        0.66,
+        1.72557,
+        -1.1263
+      ],
+      "local_pivot": [
+        0.66,
+        0.32,
+        -1.21
+      ],
+      "mesh": "GEO-NeckR",
+      "geometry": "Cerberus_NeckR",
+      "vertices": 154,
+      "triangles": 272,
+      "signed_volume": 0.16206
     },
-    "Leg4": {
-      "parent": "Body",
+    "Head": {
+      "parent": "NeckC",
       "pivot": [
-        0.544887347536755,
-        1.1277445109780437,
-        0.9490175331327396
-      ]
+        0.0,
+        2.64557,
+        -1.8663
+      ],
+      "local_pivot": [
+        0.0,
+        0.82,
+        -0.6
+      ],
+      "mesh": "GEO-Head",
+      "geometry": "Cerberus_Head",
+      "vertices": 654,
+      "triangles": 1160,
+      "signed_volume": 0.243809
+    },
+    "HeadL": {
+      "parent": "NeckL",
+      "pivot": [
+        -1.3,
+        2.42557,
+        -1.6863
+      ],
+      "local_pivot": [
+        -0.64,
+        0.7,
+        -0.56
+      ],
+      "mesh": "GEO-HeadL",
+      "geometry": "Cerberus_HeadL",
+      "vertices": 654,
+      "triangles": 1160,
+      "signed_volume": 0.177695
+    },
+    "HeadR": {
+      "parent": "NeckR",
+      "pivot": [
+        1.3,
+        2.42557,
+        -1.6863
+      ],
+      "local_pivot": [
+        0.64,
+        0.7,
+        -0.56
+      ],
+      "mesh": "GEO-HeadR",
+      "geometry": "Cerberus_HeadR",
+      "vertices": 654,
+      "triangles": 1160,
+      "signed_volume": 0.177695
     },
     "Jaw": {
       "parent": "Head",
       "pivot": [
         0.0,
-        -0.099800399201597,
-        -0.27971043081807045
-      ]
+        2.52557,
+        -1.8463
+      ],
+      "local_pivot": [
+        0.0,
+        -0.12,
+        0.02
+      ],
+      "mesh": "GEO-Jaw",
+      "geometry": "Cerberus_Jaw",
+      "vertices": 302,
+      "triangles": 528,
+      "signed_volume": 0.03817
+    },
+    "JawL": {
+      "parent": "HeadL",
+      "pivot": [
+        -1.29537,
+        2.31757,
+        -1.6689
+      ],
+      "local_pivot": [
+        0.00463,
+        -0.108,
+        0.0174
+      ],
+      "mesh": "GEO-JawL",
+      "geometry": "Cerberus_JawL",
+      "vertices": 302,
+      "triangles": 528,
+      "signed_volume": 0.027826
+    },
+    "JawR": {
+      "parent": "HeadR",
+      "pivot": [
+        1.29537,
+        2.31757,
+        -1.6689
+      ],
+      "local_pivot": [
+        -0.00463,
+        -0.108,
+        0.0174
+      ],
+      "mesh": "GEO-JawR",
+      "geometry": "Cerberus_JawR",
+      "vertices": 302,
+      "triangles": 528,
+      "signed_volume": 0.027826
+    },
+    "Leg1": {
+      "parent": "Body",
+      "pivot": [
+        -0.6,
+        1.22557,
+        -0.8463
+      ],
+      "local_pivot": [
+        -0.6,
+        -0.18,
+        -0.93
+      ],
+      "mesh": "GEO-Leg1",
+      "geometry": "Cerberus_Leg1",
+      "vertices": 426,
+      "triangles": 776,
+      "signed_volume": 0.359869
+    },
+    "Leg2": {
+      "parent": "Body",
+      "pivot": [
+        0.6,
+        1.22557,
+        -0.8463
+      ],
+      "local_pivot": [
+        0.6,
+        -0.18,
+        -0.93
+      ],
+      "mesh": "GEO-Leg2",
+      "geometry": "Cerberus_Leg2",
+      "vertices": 426,
+      "triangles": 776,
+      "signed_volume": 0.359869
+    },
+    "Leg3": {
+      "parent": "Body",
+      "pivot": [
+        -0.56,
+        1.20557,
+        0.9137
+      ],
+      "local_pivot": [
+        -0.56,
+        -0.2,
+        0.83
+      ],
+      "mesh": "GEO-Leg3",
+      "geometry": "Cerberus_Leg3",
+      "vertices": 464,
+      "triangles": 844,
+      "signed_volume": 0.47764
+    },
+    "Leg4": {
+      "parent": "Body",
+      "pivot": [
+        0.56,
+        1.20557,
+        0.9137
+      ],
+      "local_pivot": [
+        0.56,
+        -0.2,
+        0.83
+      ],
+      "mesh": "GEO-Leg4",
+      "geometry": "Cerberus_Leg4",
+      "vertices": 464,
+      "triangles": 844,
+      "signed_volume": 0.47764
+    },
+    "TailA": {
+      "parent": "Body",
+      "pivot": [
+        0.0,
+        1.34557,
+        1.2737
+      ],
+      "local_pivot": [
+        0.0,
+        -0.06,
+        1.19
+      ],
+      "mesh": "GEO-TailA",
+      "geometry": "Cerberus_TailA",
+      "vertices": 60,
+      "triangles": 116,
+      "signed_volume": 0.124232
+    },
+    "TailB": {
+      "parent": "TailA",
+      "pivot": [
+        0.0,
+        1.23557,
+        1.7537
+      ],
+      "local_pivot": [
+        0.0,
+        -0.11,
+        0.48
+      ],
+      "mesh": "GEO-TailB",
+      "geometry": "Cerberus_TailB",
+      "vertices": 132,
+      "triangles": 204,
+      "signed_volume": 0.040328
+    },
+    "TailC": {
+      "parent": "TailB",
+      "pivot": [
+        0.0,
+        1.48557,
+        2.0937
+      ],
+      "local_pivot": [
+        0.0,
+        0.25,
+        0.34
+      ],
+      "mesh": "GEO-TailC",
+      "geometry": "Cerberus_TailC",
+      "vertices": 90,
+      "triangles": 136,
+      "signed_volume": 0.012861
+    },
+    "TailHead": {
+      "parent": "TailC",
+      "pivot": [
+        0.0,
+        1.74557,
+        2.2337
+      ],
+      "local_pivot": [
+        0.0,
+        0.26,
+        0.14
+      ],
+      "mesh": "GEO-TailHead",
+      "geometry": "Cerberus_TailHead",
+      "vertices": 368,
+      "triangles": 632,
+      "signed_volume": 0.034543
+    },
+    "TailJaw": {
+      "parent": "TailHead",
+      "pivot": [
+        0.0,
+        1.73597,
+        2.2621
+      ],
+      "local_pivot": [
+        0.0,
+        -0.0096,
+        0.0284
+      ],
+      "mesh": "GEO-TailJaw",
+      "geometry": "Cerberus_TailJaw",
+      "vertices": 250,
+      "triangles": 448,
+      "signed_volume": 0.007418
+    },
+    "SnakeC": {
+      "parent": "Body",
+      "pivot": [
+        0.0,
+        2.00557,
+        -0.1263
+      ],
+      "local_pivot": [
+        0.0,
+        0.6,
+        -0.21
+      ],
+      "mesh": "GEO-SnakeC",
+      "geometry": "Cerberus_SnakeC",
+      "vertices": 446,
+      "triangles": 764,
+      "signed_volume": 0.067191
+    },
+    "SnakeL": {
+      "parent": "Body",
+      "pivot": [
+        -0.54,
+        2.00557,
+        0.0337
+      ],
+      "local_pivot": [
+        -0.54,
+        0.6,
+        -0.05
+      ],
+      "mesh": "GEO-SnakeL",
+      "geometry": "Cerberus_SnakeL",
+      "vertices": 690,
+      "triangles": 1204,
+      "signed_volume": 0.046137
+    },
+    "SnakeR": {
+      "parent": "Body",
+      "pivot": [
+        0.54,
+        2.00557,
+        0.0337
+      ],
+      "local_pivot": [
+        0.54,
+        0.6,
+        -0.05
+      ],
+      "mesh": "GEO-SnakeR",
+      "geometry": "Cerberus_SnakeR",
+      "vertices": 690,
+      "triangles": 1204,
+      "signed_volume": 0.046137
+    },
+    "SnakeJaw": {
+      "parent": "SnakeC",
+      "pivot": [
+        0.0,
+        2.63117,
+        -0.9939
+      ],
+      "local_pivot": [
+        0.0,
+        0.6256,
+        -0.8676
+      ],
+      "mesh": "GEO-SnakeJaw",
+      "geometry": "Cerberus_SnakeJaw",
+      "vertices": 250,
+      "triangles": 448,
+      "signed_volume": 0.009061
     }
   },
-  "triangles": 6628,
-  "meshes": 7,
-  "parts": [
-    {
-      "name": "Thorax",
-      "bone": "Body",
-      "triangles": 140
-    },
-    {
-      "name": "Breastbone",
-      "bone": "Body",
-      "triangles": 12
-    },
-    {
-      "name": "ShoulderCuirass",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "HaunchPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "ShoulderCuirass",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "FlankRib",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "HaunchPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "BackSpur",
-      "bone": "Body",
-      "triangles": 10
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "BackSpur",
-      "bone": "Body",
-      "triangles": 10
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "BackSpur",
-      "bone": "Body",
-      "triangles": 10
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "BackSpur",
-      "bone": "Body",
-      "triangles": 10
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "SpinalPlate",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "PurpleFissure",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "ArmoredTail",
-      "bone": "Body",
-      "triangles": 60
-    },
-    {
-      "name": "Neck1",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Skull1",
-      "bone": "Head",
-      "triangles": 56
-    },
-    {
-      "name": "ForeheadShield1",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Muzzle1",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Nose1",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CrownGroove",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "LowerJaw",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "SoulMouth",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "Neck2",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Skull2",
-      "bone": "Head",
-      "triangles": 56
-    },
-    {
-      "name": "ForeheadShield2",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Muzzle2",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Nose2",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CrownGroove",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "LowerJaw",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "SoulMouth",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "Neck3",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Skull3",
-      "bone": "Head",
-      "triangles": 56
-    },
-    {
-      "name": "ForeheadShield3",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Muzzle3",
-      "bone": "Head",
-      "triangles": 44
-    },
-    {
-      "name": "Nose3",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekArmor",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "Brow",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "SoulEye",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "EarHorn",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CheekFang",
-      "bone": "Head",
-      "triangles": 10
-    },
-    {
-      "name": "CrownGroove",
-      "bone": "Head",
-      "triangles": 60
-    },
-    {
-      "name": "LowerJaw",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "SoulMouth",
-      "bone": "Jaw",
-      "triangles": 60
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "LowerFang",
-      "bone": "Jaw",
-      "triangles": 10
-    },
-    {
-      "name": "MuscularUpper",
-      "bone": "Leg1",
-      "triangles": 136
-    },
-    {
-      "name": "KneeArmor",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "Shin",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "Greave",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "HeavyPaw",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg1",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg1",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg1",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg1",
-      "triangles": 10
-    },
-    {
-      "name": "MuscularUpper",
-      "bone": "Leg2",
-      "triangles": 136
-    },
-    {
-      "name": "KneeArmor",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "Shin",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "Greave",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "HeavyPaw",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg2",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg2",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg2",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg2",
-      "triangles": 10
-    },
-    {
-      "name": "MuscularUpper",
-      "bone": "Leg3",
-      "triangles": 136
-    },
-    {
-      "name": "KneeArmor",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "Shin",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "Greave",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "HeavyPaw",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg3",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg3",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg3",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg3",
-      "triangles": 10
-    },
-    {
-      "name": "MuscularUpper",
-      "bone": "Leg4",
-      "triangles": 136
-    },
-    {
-      "name": "KneeArmor",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "Shin",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "Greave",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "HeavyPaw",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg4",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg4",
-      "triangles": 10
-    },
-    {
-      "name": "ToeArmor",
-      "bone": "Leg4",
-      "triangles": 60
-    },
-    {
-      "name": "Claw",
-      "bone": "Leg4",
-      "triangles": 10
-    }
+  "bone_order": [
+    "Body",
+    "Chest",
+    "NeckC",
+    "NeckL",
+    "NeckR",
+    "Head",
+    "HeadL",
+    "HeadR",
+    "Jaw",
+    "JawL",
+    "JawR",
+    "Leg1",
+    "Leg2",
+    "Leg3",
+    "Leg4",
+    "TailA",
+    "TailB",
+    "TailC",
+    "TailHead",
+    "TailJaw",
+    "SnakeC",
+    "SnakeL",
+    "SnakeR",
+    "SnakeJaw"
   ],
+  "triangles": 17830,
+  "export_vertices": 53490,
+  "bounds": {
+    "min": [
+      -1.7165,
+      0.0,
+      -2.8363
+    ],
+    "max": [
+      1.7165,
+      3.162,
+      2.8363
+    ]
+  },
+  "size": [
+    3.433,
+    3.162,
+    5.6726
+  ],
+  "uv": {
+    "size": [
+      1024,
+      512
+    ],
+    "regions": [
+      {
+        "index": 0,
+        "name": "obsidian-fur",
+        "color": [
+          22,
+          24,
+          29
+        ],
+        "pixel_rect": [
+          0,
+          0,
+          256,
+          128
+        ],
+        "game_uv_rect": [
+          0.0,
+          0.0,
+          0.25,
+          0.25
+        ]
+      },
+      {
+        "index": 1,
+        "name": "graphite-fur",
+        "color": [
+          52,
+          57,
+          66
+        ],
+        "pixel_rect": [
+          256,
+          0,
+          512,
+          128
+        ],
+        "game_uv_rect": [
+          0.25,
+          0.0,
+          0.5,
+          0.25
+        ]
+      },
+      {
+        "index": 2,
+        "name": "silver-fur",
+        "color": [
+          104,
+          115,
+          127
+        ],
+        "pixel_rect": [
+          512,
+          0,
+          768,
+          128
+        ],
+        "game_uv_rect": [
+          0.5,
+          0.0,
+          0.75,
+          0.25
+        ]
+      },
+      {
+        "index": 3,
+        "name": "highlight-fur",
+        "color": [
+          132,
+          143,
+          154
+        ],
+        "pixel_rect": [
+          768,
+          0,
+          1024,
+          128
+        ],
+        "game_uv_rect": [
+          0.75,
+          0.0,
+          1.0,
+          0.25
+        ]
+      },
+      {
+        "index": 4,
+        "name": "deep-scale",
+        "color": [
+          26,
+          31,
+          38
+        ],
+        "pixel_rect": [
+          0,
+          128,
+          256,
+          256
+        ],
+        "game_uv_rect": [
+          0.0,
+          0.25,
+          0.25,
+          0.5
+        ]
+      },
+      {
+        "index": 5,
+        "name": "teal-scale",
+        "color": [
+          44,
+          72,
+          78
+        ],
+        "pixel_rect": [
+          256,
+          128,
+          512,
+          256
+        ],
+        "game_uv_rect": [
+          0.25,
+          0.25,
+          0.5,
+          0.5
+        ]
+      },
+      {
+        "index": 6,
+        "name": "bone-belly",
+        "color": [
+          138,
+          136,
+          126
+        ],
+        "pixel_rect": [
+          512,
+          128,
+          768,
+          256
+        ],
+        "game_uv_rect": [
+          0.5,
+          0.25,
+          0.75,
+          0.5
+        ]
+      },
+      {
+        "index": 7,
+        "name": "dark-gold-eye",
+        "color": [
+          168,
+          130,
+          46
+        ],
+        "pixel_rect": [
+          768,
+          128,
+          1024,
+          256
+        ],
+        "game_uv_rect": [
+          0.75,
+          0.25,
+          1.0,
+          0.5
+        ]
+      },
+      {
+        "index": 8,
+        "name": "cyan-eye",
+        "color": [
+          190,
+          224,
+          236
+        ],
+        "pixel_rect": [
+          0,
+          256,
+          256,
+          384
+        ],
+        "game_uv_rect": [
+          0.0,
+          0.5,
+          0.25,
+          0.75
+        ]
+      },
+      {
+        "index": 9,
+        "name": "amber-eye",
+        "color": [
+          188,
+          112,
+          36
+        ],
+        "pixel_rect": [
+          256,
+          256,
+          512,
+          384
+        ],
+        "game_uv_rect": [
+          0.25,
+          0.5,
+          0.5,
+          0.75
+        ]
+      },
+      {
+        "index": 10,
+        "name": "mouth",
+        "color": [
+          56,
+          16,
+          20
+        ],
+        "pixel_rect": [
+          512,
+          256,
+          768,
+          384
+        ],
+        "game_uv_rect": [
+          0.5,
+          0.5,
+          0.75,
+          0.75
+        ]
+      },
+      {
+        "index": 11,
+        "name": "fang-ivory",
+        "color": [
+          208,
+          203,
+          188
+        ],
+        "pixel_rect": [
+          768,
+          256,
+          1024,
+          384
+        ],
+        "game_uv_rect": [
+          0.75,
+          0.5,
+          1.0,
+          0.75
+        ]
+      },
+      {
+        "index": 12,
+        "name": "tongue",
+        "color": [
+          84,
+          42,
+          76
+        ],
+        "pixel_rect": [
+          0,
+          384,
+          256,
+          512
+        ],
+        "game_uv_rect": [
+          0.0,
+          0.75,
+          0.25,
+          1.0
+        ]
+      },
+      {
+        "index": 13,
+        "name": "venom",
+        "color": [
+          206,
+          228,
+          230
+        ],
+        "pixel_rect": [
+          256,
+          384,
+          512,
+          512
+        ],
+        "game_uv_rect": [
+          0.25,
+          0.75,
+          0.5,
+          1.0
+        ]
+      },
+      {
+        "index": 14,
+        "name": "claw",
+        "color": [
+          56,
+          60,
+          68
+        ],
+        "pixel_rect": [
+          512,
+          384,
+          768,
+          512
+        ],
+        "game_uv_rect": [
+          0.5,
+          0.75,
+          0.75,
+          1.0
+        ]
+      },
+      {
+        "index": 15,
+        "name": "bone-armor",
+        "color": [
+          146,
+          142,
+          128
+        ],
+        "pixel_rect": [
+          768,
+          384,
+          1024,
+          512
+        ],
+        "game_uv_rect": [
+          0.75,
+          0.75,
+          1.0,
+          1.0
+        ]
+      }
+    ]
+  },
+  "texture": {
+    "path": "src/SCIEPort/Assets/Textures/AbyssCerberus.png",
+    "size": [
+      1024,
+      512
+    ],
+    "opaque": true,
+    "format": "PNG RGB8"
+  },
+  "validation": {
+    "geometry": "validation/geometry_report.json",
+    "dae": "validation/dae_report.json",
+    "multiview": "validation/multiview_fit_report.json",
+    "motion": "validation/motion_preview_report.json",
+    "conclusion": "24 closed manifold positive-volume meshes, UVs inside 16 palette tiles, DAE Y_UP LF Collada 1.4.1 with 24 nodes, all previews framed."
+  },
   "assets": {
-    "src/SCIEPort/Assets/Models/AbyssCerberus.dae": "914BCAFD910630AAA04E4D10AEE1BE24E4B95120855E1FF41D46AC68404F0AAE",
-    "src/SCIEPort/Assets/Textures/AbyssCerberus.png": "5C8FA360A92B129A8C3685AC1E739DA5C6D81C03FBDEBC95637B2E0A21EED3B0"
-  }
+    "src/SCIEPort/Assets/Models/AbyssCerberus.dae": "2F62D2B4E6FB4276AE41A7D9C42283FA68C0CC107AF95ECCBE6C214D691B6BAB",
+    "src/SCIEPort/Assets/Textures/AbyssCerberus.png": "B4F2F3BABD4ECAA8A8C0FFBE2A13664D28CEC5781BE3509BEC15813D926941DE"
+  },
+  "previews": {
+    "front": "blender-front.png",
+    "side": "blender-side.png",
+    "back": "blender-back.png",
+    "top": "blender-top.png",
+    "three-quarter": "blender-three-quarter.png",
+    "head": "blender-head.png"
+  },
+  "motion_previews": "validation/idle-*.png, validation/walk-*.png, validation/roar-*.png"
 }

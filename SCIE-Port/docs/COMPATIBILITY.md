@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-13 0.84.0：刻尔柏洛斯24骨重构
+
+加载器新增 `GetMaxInstancesCount` Hook 并返回24，替换原生默认7。目标 `SubsystemModelsRenderer.Load` 取所有已注册加载器最大值传给 `ModelShader`（`MAX_INSTANCES_COUNT`）与 `ShaderTransforms`；未注册该 Hook 的其它加载器仍可共存，模型少于24骨时只上传自身矩阵。`ComponentCerberusModel` 要求 `Chest/NeckC/L/R/Head(L/R)/Jaw(L/R)/TailA-C/TailHead/TailJaw/SnakeC/L/R/SnakeJaw` 共24骨，超限在实体加载阶段失败。252 Kind新增11尾击/12咆哮/13登场与狂暴，Kind0 Action19跳过登场；字节布局不变。
+
+Windows net472 Release编译 **已确认**；24骨DAE导入/三角面/着色器编译、Android7723真机、GLES2低端驱动及真实Local/Server/Client **待验证**。按目标 `Model.vsh` 估算24骨约204个顶点uniform向量，需GLES3最低256；GLES2(128) **不支持**。详见[刻尔柏洛斯专项](ABYSS-CERBERUS.md)。
+
 ## 2026-11-13 0.83.1：清障默认开启与区域预清空
 
 天工绘卷清障开关默认开启；确认后先清空蓝图包围盒内（含门上半格、家具占地）所有非空气方块，再按原32格/帧预算放置。清空与放置逐格写前快照并纳入撤销/失败回滚；包围盒≤262144格、清空≤32768格，超限拒绝。该默认开启是用户明确要求的例外，未开启清障时仍拒绝覆盖非空气目标。971/DATA0、ID7同步、旧GUID/书典/家居/协议、net472/API1.42/SC2.4.10.6均不变；各端统一0.83.1。

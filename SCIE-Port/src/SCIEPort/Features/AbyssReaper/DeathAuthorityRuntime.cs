@@ -89,6 +89,7 @@ namespace SCIEPort.Features.AbyssReaper
             var s=Get(p);if(s==null||!WorldCutRules.Newer(q.Sequence,s.Processed))return;s.Processed=q.Sequence;
             if(q.Action==DeathAuthorityRules.Sync){if(Now>=s.NextSync){s.NextSync=Now+1;StatePacket(p,null,q.Echo);SyncFriends(pending.Client);}return;}
             if(loadFailure!=null){StatePacket(p,"死亡契约存档版本不受支持，已保留原数据");return;}
+            if(q.Action==DeathAuthorityRules.SkipIntro){SkipCerberusIntro(p);return;}
             if(q.Action==DeathAuthorityRules.RiderInput)
             {var g=RiddenGuard(p);if(g!=null&&g.Key==q.Target&&g.RidingAuto)ManualRide(p,g);return;}
             if(q.Action==DeathAuthorityRules.RidingMode||q.Action==DeathAuthorityRules.DragonFlight)
@@ -139,7 +140,7 @@ namespace SCIEPort.Features.AbyssReaper
                 double rtt=Time.RealTime-q.Echo;if(DeathAuthorityRules.Finite(rtt)&&rtt>=0&&rtt<8&&q.World!=Guid.Empty){worldId=q.World;worldKnown=true;hasClock=true;clockOffset=q.Stamp+rtt*.5-Now;syncEchoes.Remove(q.Echo);}
             }
             if(!worldKnown||q.World!=worldId)return;
-            if(q.Kind==8){ReceiveBite(q);return;}
+            if(q.Kind==8||q.Kind==11||q.Kind==12||q.Kind==13){ReceiveCerberusEffect(q);return;}
             if(q.Kind==10){ReceiveKnightSwing(q);return;}
             if(q.Kind==9){ReceiveRidePlan(q);return;}
             if(q.Kind==3||q.Kind==4||q.Kind==6||q.Kind==7){ReceiveFriend(q);return;}

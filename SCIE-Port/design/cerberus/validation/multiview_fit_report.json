@@ -1,0 +1,83 @@
+{
+  "kind": "Blender preview frames, not gameplay",
+  "views": {
+    "front": {
+      "normalized_bounds": [
+        0.1586,
+        0.0763,
+        0.8414,
+        0.9237
+      ],
+      "minimum_margin": 0.0763,
+      "whole_model_in_frame": true,
+      "ortho_scale": 5.0282,
+      "render": "blender-front.png",
+      "scope": "whole model"
+    },
+    "side": {
+      "normalized_bounds": [
+        0.0763,
+        0.1738,
+        0.9237,
+        0.8262
+      ],
+      "minimum_margin": 0.0763,
+      "whole_model_in_frame": true,
+      "ortho_scale": 6.6937,
+      "render": "blender-side.png",
+      "scope": "whole model"
+    },
+    "back": {
+      "normalized_bounds": [
+        0.1721,
+        0.0763,
+        0.8279,
+        0.9237
+      ],
+      "minimum_margin": 0.0763,
+      "whole_model_in_frame": true,
+      "ortho_scale": 5.2346,
+      "render": "blender-back.png",
+      "scope": "whole model"
+    },
+    "top": {
+      "normalized_bounds": [
+        0.3018,
+        0.0536,
+        0.6982,
+        0.9464
+      ],
+      "minimum_margin": 0.0536,
+      "whole_model_in_frame": true,
+      "ortho_scale": 8.6617,
+      "render": "blender-top.png",
+      "scope": "whole model"
+    },
+    "three-quarter": {
+      "normalized_bounds": [
+        0.0763,
+        0.118,
+        0.9237,
+        0.882
+      ],
+      "minimum_margin": 0.0763,
+      "whole_model_in_frame": true,
+      "ortho_scale": 5.6655,
+      "render": "blender-three-quarter.png",
+      "scope": "whole model"
+    },
+    "head": {
+      "normalized_bounds": [
+        0.0902,
+        0.2252,
+        0.9098,
+        0.7748
+      ],
+      "minimum_margin": 0.0902,
+      "whole_model_in_frame": true,
+      "ortho_scale": 3.883,
+      "render": "blender-head.png",
+      "scope": "head close-up"
+    }
+  }
+}

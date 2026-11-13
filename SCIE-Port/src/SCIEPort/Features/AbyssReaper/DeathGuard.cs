@@ -13,7 +13,10 @@ namespace SCIEPort.Features.AbyssReaper
         internal bool Dragon=>Template==BoneDragonRules.Template;
         internal bool Knight=>Template==NightmareKnightRules.Template;
         internal bool Charging;internal ComponentCreature SwordTarget;internal double SwordStarted=-100,SwordImpactAt;
-        internal ComponentCreature BiteTarget;internal double BiteStarted=-100,BiteImpactAt;
+        internal ComponentCreature BiteTarget;internal double BiteStarted=-100;internal byte BiteLayers;
+        internal double TailStarted=-100,TailImpactAt,NextTail;internal bool TailImpacted;
+        internal double RoarStarted=-100,NextRoar;internal bool RoarEntered;internal byte RoarStage;
+        internal double IntroStarted=-100,IntroUntil;internal bool Rage;
         internal bool RidingAuto,Following;internal double PursuitUntil,ManualUntil,NextPlan;internal bool AutoDriving;
         internal DeathGuardMode Mode;internal Vector3 RoamCenter;internal double NextRoam;internal int RoamStep;
         internal bool Ridden=>Creature?.Entity.FindComponent<ComponentMount>(false)?.Rider!=null;
