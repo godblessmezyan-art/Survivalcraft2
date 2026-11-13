@@ -9,20 +9,19 @@ namespace SCIEPort.Features.Blueprints.Core.Safety
         /// <summary>
         /// Maximum number of cells in one operation (BuildTask transaction).
         /// Raised 1024 -&gt; 2756 (2026-10-20, to fit the giant treehouse in 1-2 phases),
-        /// then 2756 -&gt; 10000 (2026-10-20) per project-owner decision that a single
-        /// transaction of up to ~10k blocks is acceptable. This is only an aggregate
-        /// per-transaction ceiling; the actual per-frame write cost is STILL governed by
-        /// MaxBlocksPerBatch (32) so a large build streams in small batches rather than
-        /// stalling a single frame, and spatial scope is STILL bounded by
-        /// MaxSelectionAxisLength (64) per axis.
+        /// then 2756 -&gt; 10000 (2026-10-20), then 10000 -&gt; 32768 (2026-11-13, per the
+        /// project-owner request that the blueprint artifact stay as unrestricted as possible).
+        /// This is only an aggregate per-transaction ceiling; the actual per-frame write cost is
+        /// STILL governed by MaxBlocksPerBatch (32) so a large build streams in small batches
+        /// rather than stalling a single frame.
         /// </summary>
-        public const int MaxBlocksPerOperation = 10000;
+        public const int MaxBlocksPerOperation = 32768;
 
         /// <summary>Maximum number of cells applied by one future update batch.</summary>
         public const int MaxBlocksPerBatch = 32;
 
-        /// <summary>Maximum length of any axis in a future selection.</summary>
-        public const int MaxSelectionAxisLength = 64;
+        /// <summary>Maximum length of any axis in a future selection (raised 64 -&gt; 128 on 2026-11-13).</summary>
+        public const int MaxSelectionAxisLength = 128;
 
         /// <summary>
         /// How many consecutive Advance calls (≈ frames) a running build may make zero
