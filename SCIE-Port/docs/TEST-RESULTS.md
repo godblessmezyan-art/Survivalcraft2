@@ -1,5 +1,22 @@
 # 测试结果
 
+## 2026-11-14 main 0.85.0：回退刻尔柏洛斯24骨模型
+
+用户实测新三头犬外观不满意，按整提交`git revert 7646d10`恢复0.84.0之前版本：旧7骨`AbyssCerberus.dae`/旧贴图/旧XDB、旧`ComponentCerberusModel`与四足步态重新生效；移除`GetMaxInstancesCount()=24`重写、Kind 11/12/13与Action 19、6.5秒登场冻结/跳过暗幕、三段咬合、尾击、冥府怒吼与低血狂暴，删除24骨Blender设计源与生成脚本。0.84.1“图谱免真名”改动保留。冲突仅`SCIEPort.csproj`/`modinfo.json`/`TEST-RESULTS.md`，版本定为0.85.0；DAE/PNG/XDB与0.83.1包内逐字节一致。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/cerberus-revert-build.log`：环境/ABI、书典461项、PixelFX、家居、星门、军势、DeathAuthority、7骨Cerberus兼容检查与210条目包全部通过。产物`artifacts/荒野探险家.netmod`与`artifacts/荒野探险家-0.85.0.netmod`字节一致：**12,757,365字节**，SHA256 `3891FDDD8015139348263E1414D68147A0FB47F19DFDD000B6E6219296BFCCCC`；`SCIEPort.dll` 939,520字节/SHA256 `860CD3827A71E8A2FA5CD8E14BFC43ACAC7E41CEF39FA647FA9FBCC9BAD0B32E`，版本0.85.0。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏与真实Local/Server/Client **待验证**。
+
 ## 2026-11-14 main 0.84.1：神器图谱改为纯介绍，取消真名门槛
 
 按用户要求神器不再需要解放真名即可使用，图谱只保留介绍信息。`SubsystemArtifactCodex.Allowed/MayHold` 恒为可用，`Update` 不再清空 Hit/Dig/Aim/Interact，也不再显示“尚未解放真名”提示；图谱对话框移除“解放真名”按钮、封印状态和 ✓/◇ 标记，只显示条目、3D预览与资料文本。全知之眼/吞噬之眼及任意神器的持有移速+20%、近战攻速+10% 直接生效。`TrueNames` 存档键、254同步包与解锁请求处理保留，仅供旧客户端/旧世界使用，不再参与任何使用判定；ArtifactCodex/DevouringEye/OmniscientEye 物品描述与Codex资料文本同步改写。

@@ -1,10 +1,10 @@
 # SCIE-Port 兼容性记录
 
-## 2026-11-13 0.84.0：刻尔柏洛斯24骨重构
+## 2026-11-14 0.85.0：回退刻尔柏洛斯24骨模型
 
-加载器新增 `GetMaxInstancesCount` Hook 并返回24，替换原生默认7。目标 `SubsystemModelsRenderer.Load` 取所有已注册加载器最大值传给 `ModelShader`（`MAX_INSTANCES_COUNT`）与 `ShaderTransforms`；未注册该 Hook 的其它加载器仍可共存，模型少于24骨时只上传自身矩阵。`ComponentCerberusModel` 要求 `Chest/NeckC/L/R/Head(L/R)/Jaw(L/R)/TailA-C/TailHead/TailJaw/SnakeC/L/R/SnakeJaw` 共24骨，超限在实体加载阶段失败。252 Kind新增11尾击/12咆哮/13登场与狂暴，Kind0 Action19跳过登场；字节布局不变。
+用户实测新模型外观不满意，整体回退0.84.0的24骨重构：恢复7骨占位模型、原模型组件与四足动画，移除`GetMaxInstancesCount()=24`重写、Kind 11/12/13与Action 19、6.5秒登场/跳过暗幕、三段咬合/尾击/狂暴及其资产与Blender设计源。0.84.1神器图谱取消真名门槛的改动保留；`TrueNames`存档键与254同步路径不变。回退后包内Cerberus DAE/PNG/XDB与0.83.1包逐字节一致（DAE `914BCAFD910630AAA04E4D10AEE1BE24E4B95120855E1FF41D46AC68404F0AAE`、PNG `5C8FA360A92B129A8C3685AC1E739DA5C6D81C03FBDEBC95637B2E0A21EED3B0`、XDB `2F1D9C1975D1A2F95B3C99A33E01B58753EE3635CC824C2343EC9D64480E9571`）。net472/API1.42/SC2.4.10.6不变；各端统一0.85.0。
 
-Windows net472 Release编译 **已确认**；24骨DAE导入/三角面/着色器编译、Android7723真机、GLES2低端驱动及真实Local/Server/Client **待验证**。按目标 `Model.vsh` 估算24骨约204个顶点uniform向量，需GLES3最低256；GLES2(128) **不支持**。详见[刻尔柏洛斯专项](ABYSS-CERBERUS.md)。
+Windows net472 Release、全部隔离回归与210条目包 **已确认**；Android7723、触屏与真实Local/Server/Client **待验证**。
 
 ## 2026-11-13 0.83.1：清障默认开启与区域预清空
 

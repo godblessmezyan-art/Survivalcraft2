@@ -30,24 +30,10 @@ function Read-Model([IO.Stream]$stream){
     [ordered]@{bone_count=$model.Bones.Count;mesh_count=$model.Meshes.Count;triangles=$indices/3;bones=$bones;meshes=$meshes;buffers=$buffers;fits_native_shader=($model.Bones.Count -le $limit)}
 }
 $asset=Join-Path $root 'src/SCIEPort/Assets/Models/AbyssCerberus.dae'
-$manifestPath=Join-Path $root 'design/cerberus/manifest.json'
-$manifest=$null
-if(Test-Path -LiteralPath $manifestPath){$manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json}
 $stream=[IO.File]::OpenRead($asset)
 try{$current=Read-Model $stream}finally{$stream.Dispose()}
 if(!$current.fits_native_shader){throw "Model uses $($current.bone_count) bones, native shader supports $limit."}
-if($current.bone_count -ne $limit){throw "Cerberus must use the raised $limit-bone palette, found $($current.bone_count)."}
-if($current.mesh_count -ne $current.bone_count){throw "Rigid renderer expects one mesh per bone: $($current.mesh_count) meshes / $($current.bone_count) bones."}
-if($current.triangles -gt 19000){throw "Cerberus exceeds the 19000 triangle budget: $($current.triangles)."}
-foreach($required in @('Body','Chest','NeckC','NeckL','NeckR','Head','HeadL','HeadR','Jaw','JawL','JawR','Leg1','Leg2','Leg3','Leg4','TailA','TailB','TailC','TailHead','TailJaw','SnakeC','SnakeL','SnakeR','SnakeJaw')){
-    $matchesBone=@($current.bones|Where-Object{[string]$_['name'] -eq $required})
-    if($matchesBone.Count -ne 1){throw "Missing or duplicate required bone: $required"}
-}
-if($manifest){
-    $names=$manifest.PSObject.Properties.Name
-    if($names -contains 'bones' -and @($manifest.bones.PSObject.Properties).Count -ne $current.bone_count){throw 'Manifest bone count does not match the exported DAE.'}
-    if($names -contains 'triangles' -and $manifest.triangles -ne $current.triangles){throw 'Manifest triangle count does not match the exported DAE.'}
-}
+if($current.bone_count -ne 7 -or $current.mesh_count -ne 7 -or $current.triangles -ne 6628){throw 'Unexpected Cerberus model structure.'}
 foreach($mesh in $current.meshes){if($mesh.bone_index -lt 0 -or $mesh.bone_index -ge $limit){throw 'Mesh bone index exceeds shader capacity.'}}
 foreach($buffer in $current.buffers){
     if($buffer.stride -ne 32 -or $buffer.elements.Count -ne 3 -or $buffer.elements[0].offset -ne 0 -or $buffer.elements[0].semantic -ne 'POSITION' -or $buffer.elements[1].offset -ne 12 -or $buffer.elements[1].semantic -ne 'NORMAL' -or $buffer.elements[2].offset -ne 24 -or $buffer.elements[2].semantic -ne 'TEXCOORD'){throw 'Native instanced renderer vertex format mismatch.'}

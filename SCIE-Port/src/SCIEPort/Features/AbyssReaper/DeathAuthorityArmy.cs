@@ -55,14 +55,7 @@ namespace SCIEPort.Features.AbyssReaper
         {
             if(to==null)return;var start=new DeathAuthorityPackage{Kind=6,Target=(ushort)ArmyCount};Send(start,to);foreach(var g in guards.Values)FriendPacket(Row(g),to,start.Revision);foreach(var f in saved.Values)if(!f.Discard)FriendPacket(f,to,start.Revision);foreach(var f in hidden.Values)FriendPacket(f,to,start.Revision);Send(new DeathAuthorityPackage{Kind=7,Sequence=start.Revision},to);
             foreach(var w in waves)if(Now-w.Started<1.6)Send(new DeathAuthorityPackage{Kind=2,Caster=w.Owner.Entity.EntityId,Owner=w.Guid,Sequence=w.Sequence,Position=w.Center,A=(float)(Now-w.Started)},to);
-            foreach(var g in guards.Values)if(g.Cerberus)
-            {
-                if(g.BiteTarget!=null&&Now-g.BiteStarted<CerberusRules.AnimationDuration)Send(BitePacket(g),to);
-                if(Now-g.TailStarted<CerberusRules.TailDuration)Send(TailPacket(g),to);
-                if(Now-g.RoarStarted<CerberusRules.RoarDuration)Send(RoarPacket(g),to);
-                if(Now<g.IntroUntil)Send(IntroPacket(g),to);
-                if(g.Rage)Send(CerberusPacket(g,13,Now,3,1f),to);
-            }
+            foreach(var g in guards.Values)if(g.Cerberus&&Now-g.BiteStarted<CerberusRules.AnimationDuration)Send(BitePacket(g),to);
             foreach(var g in guards.Values)if(g.Knight&&Now-g.SwordStarted<NightmareKnightRules.SwingDuration)Send(KnightSwingPacket(g),to);
         }
         private void ReceiveFriend(DeathAuthorityPackage q)
@@ -99,7 +92,6 @@ namespace SCIEPort.Features.AbyssReaper
             {
                 entity=DatabaseManager.CreateEntity(terrain.Project,kind==NightmareKnightRules.SummonKind?NightmareKnightRules.Template:kind==BoneDragonRules.SummonKind?BoneDragonRules.Template:kind==CerberusRules.SummonKind?CerberusRules.Template:kind==1?DeathAuthorityRules.MountTemplate:DeathAuthorityRules.HoundTemplate,true);var c=entity.FindComponent<ComponentCreature>(true);if(kind==1&&entity.FindComponent<ComponentMount>(false)==null)throw new InvalidOperationException("Mount component missing");if(!FindFree(p.ComponentBody.Position,c.ComponentBody.BoxSize,out at)){entity.Dispose();reason="没有容纳召唤生物的安全位置";return false;}c.ComponentBody.Position=at;c.ComponentSpawn.SpawnDuration=0;
                 terrain.Project.AddEntity(entity);if(!Adopt(c,p.PlayerGuid,true)){terrain.Project.RemoveEntity(entity,true);reason="召唤生物AI接管失败，已回收";return false;}
-                if(kind==CerberusRules.SummonKind){DeathGuard intro;if(guards.TryGetValue(c.Entity.EntityId,out intro))BeginCerberusIntro(intro,Now);}
                 reason=kind==NightmareKnightRules.SummonKind?"夜魇骑士已召唤":kind==BoneDragonRules.SummonKind?"骨龙已召唤":kind==CerberusRules.SummonKind?"刻尔柏洛斯已召唤":kind==1?"夜魇战马已召唤":"冥界猎犬已召唤";return true;
             }
             catch(Exception e){if(entity?.IsAddedToProject==true)terrain.Project.RemoveEntity(entity,true);else entity?.Dispose();Log.Warning("[SCIEPort:Death] Summon failed: "+e.GetType().Name);reason="召唤失败";return false;}
@@ -147,9 +139,6 @@ namespace SCIEPort.Features.AbyssReaper
                 var pair=guardOrder[(index+guardCursor)%guardOrder.Count];var g=pair.Value;var c=g.Creature;
                 if(!c.IsAddedToProject||c.ComponentHealth.Health<=0){g.Charge(false);retired.Add(pair.Key);continue;}
                 c.ComponentCreatureModel.AttackOrder=false;
-                // The host freezes the newly summoned beast while the awakening plays; every
-                // client runs the same timeline and the owner may end it early.
-                if(g.Cerberus&&Now<g.IntroUntil){g.Target=g.BiteTarget=null;g.BiteLayers=0;g.Path.Stop();c.ComponentLocomotion.WalkOrder=null;c.ComponentLocomotion.TurnOrder=Vector2.Zero;c.ComponentBody.Velocity=new Vector3(0,c.ComponentBody.Velocity.Y,0);continue;}
                 var owner=OwnerPlayer(g.Owner);
                 bool mounted=g.Ridden;
                 bool riderOwns=mounted&&c.Entity.FindComponent<ComponentMount>(false)?.Rider?.ComponentCreature==owner;

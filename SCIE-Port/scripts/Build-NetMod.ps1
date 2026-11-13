@@ -367,8 +367,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Abyss Space V2 native authority/landing/damage
 if ($LASTEXITCODE -ne 0) { throw 'Abyss host targeting/input/portal regression failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-DeathAuthority.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Death authority native combat/army/network regression failed.' }
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Read-CerberusRenderCompatibility.ps1') -GameDir $GameDir -ModAssembly (Join-Path $build 'SCIEPort.dll')
-if ($LASTEXITCODE -ne 0) { throw 'Cerberus 24-bone model/renderer ABI checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidPrototype.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Void prototype API/safety regression failed' }
 
