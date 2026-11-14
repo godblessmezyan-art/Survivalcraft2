@@ -1,5 +1,7 @@
 ﻿# Builder Assistant 蓝图方块能力清单 v0.25.2
 
+2026-11-15：用户要求蓝图生成并验证后默认发布到数字书房。遵循[生成/发布技能](../skills/survivalcraft-blueprints/SKILL.md)及[发布契约与记录](BLUEPRINT-PUBLISHING.md)。网站当前仍最多10000格/每轴64，仅认识旧10模板；新古建模板需用实际绘卷解析器展开成cells上传副本，不能篡改family或DATA。此条不改变两工程的方块能力。
+
 2026-11-15：荒野探险家0.89.0的独立绘卷新增古建部件978–984、28外观与`detail`族，`d=rotation|(mirrorX?4:0)|(variant<<3)`按材料限制款式；支持复制、旋转、镜像、保存和分批施工/撤销。精确key/DATA见[专项](../SCIE-Port/docs/ANCIENT-ARCHITECTURE.md)和[机器矩阵](../SCIE-Port/docs/architecture-block-capabilities.json)。**Builder Assistant不支持这些部件或detail族**，本页81原版材料矩阵不变；973–977及963 bit7仍不支持绘卷cells。
 
 2026-11-15：荒野探险家0.88.1完整合入书柜与五分类，保留钓鱼优化。973–977及963 bit7仍不支持蓝图cells，972仍不可放置；Builder Assistant独立版本与材料能力不变。

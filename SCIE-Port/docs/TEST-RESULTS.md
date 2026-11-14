@@ -1,5 +1,24 @@
 ﻿# 测试结果
 
+## 2026-11-15：数字书房蓝图发布与可复用技能
+
+用户要求以后生成建筑JSON后默认上传数字书房，并明确授权保存现有管理员登录到技能。已创建仓库技能skills/survivalcraft-blueprints并安装到当前用户Codex skills目录；正常自动选用开启。既有登录以Windows DPAPI CurrentUser加密保存在安装技能private/credentials.dpapi.json，正文、源码、Git和报告均没有明文凭据，private/被忽略。
+
+新增SCIE-Port/scripts/Test-BlueprintJson.ps1，调用实际0.89.0 SCIEPort.dll的BlueprintImportService/BlueprintJson及能力目录，拒绝不支持的key/f/DATA。PortableOutput由实际已展开的Cells构造独立schema3文件，再导入后逐格比较坐标、材料、族、DATA，避免网站缺少新模板时伪造family或丢弃状态。原文件不改。本次没有改游戏运行代码、ABI或版本；沿用上一条已校验0.89.0 netmod，不重新生成安装包或创建新Release。
+
+验证：
+
+- 根scripts/Test-Environment.ps1针对D:/Games/SCNET-x25.01.17通过，固定哈希/ABI保持。
+- 展台原文件406格/18×2×21、组合源文件经解析器展开109格/12×3×8通过，报告保存在artifacts/digital-study。未知材料、非法古建款式与BOM三个负例全部拒绝且不产生成功报告。
+- python -m unittest discover -s tests -p test_blueprint_publishing.py：8项服务替身测试通过，覆盖草稿→发布→公开回读、原字节SHA、重复同内容无额外创建、保存后超时恢复、元信息不符停止、公开文件损坏失败、无身份零上传、禁止重定向与文件变更使旧报告失效。
+- skill-creator的quick_validate.py对仓库/已安装两份技能通过；公共5文件逐字节同步，安装时保留加密凭据。临时PyYAML仅安装在忽略的artifacts/skill-validation-deps，不改项目依赖。
+- 生产通过既有网站正常管理员API上传、保存草稿、按expectedRevision发布；公开列表/详情与版本化文件回读通过。未改网站源码、鉴权、生产数据库结构、原有三条蓝图或书籍数据。浏览器控制连续超时后采用已核对契约的HTTPS API，并未绕过管理员鉴权。
+
+已发布：古建细节展台ID 0c1e35c3-acbc-4e12-82bc-190fabe1adff / revision1 / SHA256 3e0136ee932c89b684f5f7af171ee369e736a45d757e2abf3ef0f8b7e878cb1b；书屋细节组合ID f0bf100e-c524-480d-b468-c0da6edd983a / revision1 / SHA256 337d5ffdadcc1b466e6871a3e01e14d3e0a9e90615c260b8fc7dee7cbb74424d。完整公开链接见根docs/BLUEPRINT-PUBLISHING.md；认证令牌不落盘。
+
+实际发布命令为python skills/survivalcraft-blueprints/scripts/publish_blueprints.py，加两组--item（JSON/验证报告）、--report artifacts/digital-study/publication.json和仅指向本机加密文件的--credential-file；没有口令命令行参数。后续技能默认发现同一加密配置。云端HTTP交付已确认；手机7723、游戏内云端刷新/下载与实际施工/联机仍待验证。未提交的骨龙工作保持原样，源码仅本地提交，不push。
+
+
 ## 2026-11-15 / 0.89.0：古建细节套件
 
 本地main基线7bac34b，开始时fetch origin/main（5f429e1），无遗漏远端main更新；6ba0cc7书柜、20c9879五分类及cb88081钓鱼优化均为main祖先。已知git worktree只有当前工作区，旁边同名目录为空、不是另一git仓库。保留未提交骨龙文件，构建使用git索引导出的干净源码快照（无新分支/worktree）；快照DAE的git对象8d759730655a94e4a787e908a7a1e98dbcb2f765与HEAD一致，没有把未完成模型改动纳入产物。四项已授权上游只读资产从本机提供给该快照，未提交专有程序集/上游快照。

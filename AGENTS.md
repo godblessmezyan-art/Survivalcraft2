@@ -10,6 +10,14 @@
 
 任何开发任务开始前必须先阅读本文件，并同时检查 `docs/COMPATIBILITY.md` 的当前结论。
 
+## 2026-11-15 蓝图默认生成后发布到数字书房
+
+- 用户要求以后建筑蓝图JSON生成、校验后，默认上传并发布到数字书房蓝图下载界面：`https://wxhappylife.top/digital-study/index.html#blueprints`，供网页或天工绘卷云端下载。
+- 使用仓库内及已安装的 [survivalcraft-blueprints](skills/survivalcraft-blueprints/SKILL.md) 技能；按当前实际Mod材料表、DATA、模板与导入器验证，不凭网站结构校验宣称可以施工。
+- 上传后核对公开列表、ID/revision、元信息及原始下载字节/SHA256；仅保存草稿不算发布完成。网站仍有独立限额/旧模板范围，需要时由实际解析器导出等效cells作为上传副本，保留原蓝图。
+- 用户已授权将现有管理员登录保存在本机技能目录，用Windows DPAPI CurrentUser加密；私有凭据文件不入库、不写明文到源码/技能说明/报告。身份失效时使用正常登录，不绕过鉴权。
+- 此授权不扩大源码push、Mod Release、站点权限修改、删除/覆盖无关蓝图或网站部署范围；当前明确要求仅保留本地或不发布时以当次指令为准。
+
 ## 固定项目上下文
 
 - 游戏：Survivalcraft 2.4 / 生存战争 2.4。
