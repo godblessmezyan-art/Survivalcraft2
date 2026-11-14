@@ -19,6 +19,7 @@ using SCIEPort.Features.PortableFortress;
 using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.Gungnir;
 using SCIEPort.Features.FourSaints;
+using SCIEPort.Features.Fishing;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -51,6 +52,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new CodexPackage());
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
+                PackageManager.RegisterPackage(new FishingCatchPackage());
                 s_networkPackageRegistered = true;
             }
 

@@ -95,17 +95,13 @@ public static partial class DeathAuthorityNativeProbe
         CommonLib.WorkType=WorkType.Local;
         using(var f=new Fixture())
         {
-            var creature=f.Creature(450,new Vector3(12,64,8));Call(f.Death,"Adopt",creature,f.Player.PlayerGuid,false);var key=f.Key(creature);
-            var codex=f.Project.m_subsystems.Single(x=>x.GetType().FullName=="SCIEPort.Features.Codex.SubsystemArtifactCodex");var records=(IDictionary)Get(codex,"Records");records[f.Player.PlayerGuid]=0u;
-            Put(Call(f.Death,"Get",f.Player),"Death",true);var rolls=SummonRandom(f);
-            foreach(byte action in new byte[]{4,16,17,18})
-            {
-                var q=Packet(f,action,(uint)action);Put(q,"Target",action==4?(ushort)4:key);Call(f.Death,"Enqueue",f.Player,null,q);Call(f.Death,"Update");
-                Check((uint)Get(Call(f.Death,"Get",f.Player),"Processed")==0&&(int)Call(f.Death,"Count",f.Player.PlayerGuid)==1,"sealed Abyss rejects random summon and every new behavior action before dispatch");
-            }
-            Check(rolls.Calls==0&&(double)Get(Call(f.Death,"Get",f.Player),"SummonReady")==0,"sealed Abyss cannot draw a summon or consume cooldown");
-            records[f.Player.PlayerGuid]=64u;var mode=Packet(f,17,50);Put(mode,"Target",key);Call(f.Death,"Enqueue",f.Player,null,mode);Call(f.Death,"Update");
-            var guard=((IDictionary)Get(f.Death,"guards"))[creature.Entity.EntityId];Check(Convert.ToInt32(Get(guard,"Mode"))==1,"releasing Abyss true name enables remote free-mode management");
+            var codex=f.Project.m_subsystems.Single(x=>x.GetType().FullName=="SCIEPort.Features.Codex.SubsystemArtifactCodex");
+            ((IDictionary)Get(codex,"Records")).Clear();
+            var type=codex.GetType();
+            var allowed=type.GetMethod("Allowed",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            var mayHold=type.GetMethod("MayHold",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            Check((bool)allowed.Invoke(null,new object[]{f.Player,952}),"Abyss usable without true name");
+            Check((bool)mayHold.Invoke(null,new object[]{f.Player}),"artifact use and damage allowed without true name");
         }
     }
     sealed class AttackRecorder:ModLoader

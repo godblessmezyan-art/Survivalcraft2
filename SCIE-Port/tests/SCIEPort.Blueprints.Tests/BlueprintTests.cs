@@ -129,6 +129,29 @@ internal static partial class BlueprintTests
             Check(Pending.Count==0,"direct scheduler never generates a custom packet");
         }
     }
+    private static void ClearModeTests()
+    {
+        using(var f=new Fixture())
+        {
+            var alice=f.Player(1);
+            var builder=new BlueprintBuilder();
+            builder.Set(new CellPos(0,0,0),"GraniteBlock");
+            builder.Set(new CellPos(1,0,0),"GraniteBlock");
+            builder.Set(new CellPos(0,1,0),"GraniteBlock");
+            var bp=builder.ToBlueprint("清障",3);
+            f.Terrain.Cells[new CellPos(0,64,0)]=21;
+            f.Terrain.Cells[new CellPos(1,65,0)]=22;
+            var plan=BuildPlanner.Plan(bp,new CellPos(0,64,0),f.Host.Palette,f.Terrain,true,false);
+            Check(plan.Success,"clear plan validates");
+            Check(plan.ClearedCount==2,"clear pass counts target and interior non-air cells");
+            Check(plan.Changes.Count==5,"clear writes precede every blueprint write");
+            Check(Terrain.ExtractContents(plan.Changes[0].Value)==0&&Terrain.ExtractContents(plan.Changes[1].Value)==0,"first writes empty the envelope");
+            for(int i=2;i<plan.Changes.Count;i++)Check(Terrain.ExtractContents(plan.Changes[i].Value)!=0,"blueprint writes follow the clear pass");
+            Check(f.Start(alice,bp,0,true),"clear mode starts directly");
+            f.Drain();
+            Check(f.Terrain.Occupied==3,"clear mode removes the interior obstruction and builds the blueprint");
+        }
+    }
     private static void LibraryAndCopyTests()
     {
         string root=Path.Combine(Path.GetTempPath(),"scie-blueprints-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
@@ -183,7 +206,7 @@ internal static partial class BlueprintTests
         {
             SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
             BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3};BlocksManager.Blocks[21]=new PlanksBlock{BlockIndex=21};
-            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();DirectTests();NativeDirectTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
+            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();DirectTests();ClearModeTests();NativeDirectTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
             Console.WriteLine("Blueprint direct Local/Server/Client, API/codec and terrain: "+checks+" checks passed. No actual game room or Android device.");
         }
         finally { CommonLib.WorkType=oldMode;CommonLib.Net=oldNet;SubsystemBedrockBlockBehavior.Territories=oldTerritories; }

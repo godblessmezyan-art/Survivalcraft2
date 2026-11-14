@@ -37,6 +37,17 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
         public int SoftClearedCount { get; private set; }
 
         /// <summary>
+        /// Clear mode: how many non-air cells this plan empties before the blueprint is
+        /// written. Includes blueprint target cells, so a cell that held a door or any
+        /// other blocked block is cleared first and then rebuilt (the door transaction
+        /// only accepts an air target).
+        /// </summary>
+        public int ClearedCount { get { return ClearedCells.Count; } }
+
+        /// <summary>Absolute cells the clear pass empties; empty when clear mode is off.</summary>
+        public HashSet<CellPos> ClearedCells { get; private set; }
+
+        /// <summary>
         /// v0.6.3: true when the ONLY thing blocking the plan is soft obstructions
         /// (grass/flowers/tall grass/dead bushes/snow layers) that clear-soft mode could
         /// replace. Hard conflicts (solid terrain, player structures) and unknown
@@ -52,7 +63,8 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
             List<CellEditability> editabilityFailures,
             bool allRecoverable,
             int softClearedCount,
-            bool softFail)
+            bool softFail,
+            HashSet<CellPos> clearedCells)
         {
             Success = success;
             FailureReason = reason;
@@ -61,11 +73,12 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
             AllEditabilityFailuresRecoverable = allRecoverable;
             SoftClearedCount = softClearedCount;
             FailedBySoftObstruction = softFail;
+            ClearedCells = clearedCells ?? new HashSet<CellPos>();
         }
 
         public static BuildPlan Fail(string reason)
         {
-            return new BuildPlan(false, reason, null, null, false, 0, false);
+            return new BuildPlan(false, reason, null, null, false, 0, false, null);
         }
 
         /// <summary>
@@ -78,7 +91,7 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
             List<CellEditability> editabilityFailures,
             bool allRecoverable)
         {
-            return new BuildPlan(false, reason, null, editabilityFailures, allRecoverable, 0, false);
+            return new BuildPlan(false, reason, null, editabilityFailures, allRecoverable, 0, false, null);
         }
 
         /// <summary>
@@ -88,17 +101,22 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
         /// </summary>
         public static BuildPlan FailSoftBlocked(string reason)
         {
-            return new BuildPlan(false, reason, null, null, false, 0, true);
+            return new BuildPlan(false, reason, null, null, false, 0, true, null);
         }
 
         public static BuildPlan Ok(List<PlannedChange> changes)
         {
-            return Ok(changes, 0);
+            return Ok(changes, 0, null);
         }
 
         public static BuildPlan Ok(List<PlannedChange> changes, int softClearedCount)
         {
-            return new BuildPlan(true, null, changes, null, false, softClearedCount, false);
+            return Ok(changes, softClearedCount, null);
+        }
+
+        public static BuildPlan Ok(List<PlannedChange> changes, int softClearedCount, HashSet<CellPos> clearedCells)
+        {
+            return new BuildPlan(true, null, changes, null, false, softClearedCount, false, clearedCells);
         }
     }
 

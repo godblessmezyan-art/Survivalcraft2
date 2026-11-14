@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using SCIEPort.Features.Blueprints.Core.Blueprints;
@@ -70,9 +71,19 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
 
             var changes = new List<PlannedChange>(blueprint.CellCount);
             var editabilityFailures = new List<CellEditability>();
+            var clearedCells = new HashSet<CellPos>();
+            string clearError = null;
+            var clearChanges = allowOverride
+                ? PlanClearPass(blueprint, origin, gateway, editabilityFailures, clearedCells, out clearError)
+                : new List<PlannedChange>();
+            if (clearError != null)
+            {
+                return BuildPlan.Fail(clearError);
+            }
 
-            // Validate empty space inside furniture bounding boxes as well. These cells
-            // are reserved for clearance, never written or cleared by the template.
+            // Validate empty space inside furniture bounding boxes as well. In clear
+            // mode the clear pass empties any non-air cell here; without clear mode
+            // these reserved cells must already be air (or soft-clearable).
             if (blueprint.FurniturePlacements.Count > 0)
             {
                 var written = new HashSet<CellPos>();
@@ -225,7 +236,7 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
                 CellPos top = c.Absolute.Add(new CellPos(0, 1, 0));
                 if (footprint.Contains(top)) return BuildPlan.Fail("门上半格与计划冲突: " + top);
                 if (!WorldBounds.IsYValid(top.Y) || top.Y - origin.Y >= BuildSafetyLimits.MaxSelectionAxisLength ||
-                    !gateway.IsCellEditable(top) || !gateway.IsCellAir(top))
+                    !gateway.IsCellEditable(top) || (!allowOverride && !gateway.IsCellAir(top)))
                     return BuildPlan.Fail("门关联上半格越界、未就绪或非空气: " + top);
                 footprint.Add(top);
             }
@@ -235,7 +246,85 @@ namespace SCIEPort.Features.Blueprints.Core.BuildEngine
             string dependencyError;
             if (!OrderByDependencies(changes, gateway, out dependencyError))
                 return BuildPlan.Fail(dependencyError);
-            return BuildPlan.Ok(changes, softClearedCount);
+            if (clearChanges.Count > 0)
+            {
+                // Clear pass first: the region is emptied before any blueprint block is
+                // placed, and a door may only be built on an air target.
+                clearChanges.AddRange(changes);
+                changes = clearChanges;
+            }
+            return BuildPlan.Ok(changes, softClearedCount, clearedCells);
+        }
+
+        /// <summary>
+        /// Clear mode: every non-air cell in the blueprint envelope (including furniture
+        /// footprints and door upper halves) becomes an air write placed before the
+        /// blueprint changes. The envelope is walked in ascending Y so a door's bottom
+        /// half is cleared first and the engine's companion top removal is naturally
+        /// absorbed by the later, already-air cell.
+        /// </summary>
+        private static List<PlannedChange> PlanClearPass(
+            Blueprint blueprint,
+            CellPos origin,
+            ITerrainGateway gateway,
+            List<CellEditability> editabilityFailures,
+            HashSet<CellPos> clearedCells,
+            out string error)
+        {
+            error = null;
+            int minX = 0, minY = 0, minZ = 0;
+            int maxX = blueprint.SizeX - 1, maxY = blueprint.SizeY - 1, maxZ = blueprint.SizeZ - 1;
+            foreach (BlueprintCell cell in blueprint.Cells)
+            {
+                if (cell.Family != BlockFamily.Door) continue;
+                maxY = Math.Max(maxY, cell.Relative.Y + 1);
+            }
+            foreach (CellPos relative in blueprint.FurnitureFootprint)
+            {
+                minX = Math.Min(minX, relative.X);
+                minY = Math.Min(minY, relative.Y);
+                minZ = Math.Min(minZ, relative.Z);
+                maxX = Math.Max(maxX, relative.X);
+                maxY = Math.Max(maxY, relative.Y);
+                maxZ = Math.Max(maxZ, relative.Z);
+            }
+
+            long width = maxX - minX + 1L, height = maxY - minY + 1L, depth = maxZ - minZ + 1L;
+            if (width * height * depth > BuildSafetyLimits.MaxClearEnvelopeVolume)
+            {
+                error = "清障区域 " + width + "×" + height + "×" + depth + " 超过上限 " +
+                    BuildSafetyLimits.MaxClearEnvelopeVolume + " 格，请缩小蓝图。";
+                return new List<PlannedChange>();
+            }
+
+            var clearChanges = new List<PlannedChange>();
+            for (int y = minY; y <= maxY; y++)
+            for (int x = minX; x <= maxX; x++)
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                CellPos absolute = origin.Add(new CellPos(x, y, z));
+                CellEditability eco = WorldBounds.IsYValid(absolute.Y)
+                    ? gateway.InspectCell(absolute)
+                    : new CellEditability(absolute, CellEditabilityStatus.InvalidY);
+                if (!eco.IsEditable)
+                {
+                    editabilityFailures.Add(eco);
+                    continue;
+                }
+                if (gateway.IsCellAir(absolute))
+                {
+                    continue;
+                }
+                if (clearChanges.Count >= BuildSafetyLimits.MaxBlocksPerOperation)
+                {
+                    error = "清障需要清空的方块超过每事务上限 " +
+                        BuildSafetyLimits.MaxBlocksPerOperation + "，请缩小蓝图。";
+                    return new List<PlannedChange>();
+                }
+                clearChanges.Add(new PlannedChange(absolute, 0, BlockFamily.Cube, 0, "清障: "));
+                clearedCells.Add(absolute);
+            }
+            return clearChanges;
         }
 
         private static bool OrderByDependencies(List<PlannedChange> changes, ITerrainGateway gateway, out string error)

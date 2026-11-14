@@ -1,4 +1,134 @@
-# 测试结果
+﻿# 测试结果
+
+## 2026-11-14 / 0.86.2 钓鱼水面、浮标与主机轮次优化
+
+基线：本地main e5ad427与同仓库钓鱼修复87e36fa（包含远端55e77f0的0.86.0）正常合并，保留原骨龙模型优化和两端已有功能；未纳入另一工作副本随后独立的创造栏/书架任务。文档冲突保留双方历史，统一版本0.86.2。原有三项未提交骨龙文件单独字节备份，构建时使用索引中的已提交版本，结束后逐文件SHA核验恢复；本次不提交这三项用户改动。
+
+修改：修正完整水格值的水位解码，DDA真实水面交点/有限向下辅助/遮挡/区块与数值预算；允许一格深水，持续8三角形浮标、鱼线与水纹，每相机最多8个/64格，收竿窗口1.35秒。主机记录随机等待/连接/序号/水格，收竿前再次校验并一次消费，早/晚失败也不能重放；连接身份复用ServerConnection。新增包236的Start/Started/Cancel语义，保持20字节布局，旧钓鱼版本混用不支持。网络回调有界入队，所有世界与背包副作用在Update，背包按容量分槽后只掉落余量。等待随机数改用已存在于留存Android Engine快照的Engine.Random构造/Float/Int；原System.Random.NextDouble在BCL快照缺失。
+
+实际命令（Windows，仓库根；日志artifacts/fishing-0.86.2-build.log）：
+
+```powershell
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:PATH=$env:DOTNET_ROOT+';D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+dotnet run --project SCIE-Port/tests/SCIEPort.Fishing.Tests -c Release --nologo
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir SCIE-Port/artifacts/fishing-0.86.2
+./SCIE-Port/scripts/Test-FishingAndroidBcl.ps1 -AndroidBclDir artifacts/celestial-audit/android-bcl -CecilPath D:/Dev/Tools/ilspy/.store/ilspycmd/9.1.0.7988/ilspycmd/9.1.0.7988/tools/net8.0/any/Mono.Cecil.dll -ModDll SCIE-Port/artifacts/fishing-0.86.2/build/SCIEPort.dll -NegativeDll artifacts/fishing-0.86.2-negative.dll
+```
+
+环境：两个环境入口通过，Windows固定目标Survivalcraft.exe SHA256 3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD、Engine.dll 98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694、EntitySystem.dll 7A87E6435DBC81652D610D26934BBD7594314C3D4A7DD7C765DF4F5BB67ED19C，仍net472/API1.42/SC2.4.10.6。Python子进程首次继承PowerShell7模块路径，Windows PowerShell缺Get-FileHash而失败；只在构建子进程恢复标准WindowsPowerShell模块路径后完整通过，不修改开发机配置。第一次BCL快照审计准确检出NextDouble缺失，修复后重建再审计。前两次中间包已被最终产物替代，不交付。
+
+结果（已确认的范围）：
+
+- 最终net472 Release编译0警告0错误；完整Build-NetMod入口退出0，旧家居/工业家具/神器/联机隔离/绘卷/书典/PixelFX与资源/包回归通过。绘卷855项隔离检查不代表真实联机。
+- 钓鱼3554项检查全部通过，包括1000组解析水面交点、浅水/薄流体/负坐标/精确网格角点、非单位射线/平视辅助、遮挡/水下/超距/未加载/无效输入、每射线64格上限、主机轮次边界/单次消费/序号回绕/有界网络迟到与限流。
+- 最终DLL原生探针：64组完整水格值（DATA 0–31、light 0/15）实际解码；5种语义均通过目标原生包读写器20字节往返；真实队列200次入队封顶128、消息字段复制与Dispose后拒绝入队通过。IDrawable/106注册、972分类/CSV/XDB和包内资源通过。
+- 留存Android BCL三程序集内72个钓鱼系统成员解析、0缺失，最终DLL MVID 546a92bd-573d-485e-97ec-49a95eca3971。负对照DLL SHA256 6578B0AB08AAA61D84FB474EE8546D4B97B70899E0261F7E3833A0C01EF31386精确检出System.Double System.Random::NextDouble()。mscorlib SHA256 C51F1D8E4F5701F3D3DBFF9A98658D5F74B387BF5911B0F061527BE16ACAA3A3；System A109C9C23A34DA847B08771475469FF2FFD3BF6FF7CB5DBDE0B48FB82245F75E；System.Net.Http 7C42DDD0D9DD231E343C08876F8D925150B0BA4D34A7B9CF602AE55D28713132。Android Engine快照SHA256 8811109FDA2EF14AAA97DE537A686A355F32784996181C5A9FE9416ECBF314A7存在Random无参构造、Int(int,int)、Float(float,float)；全部仅元数据证据。
+- 正式包与版本副本字节一致，12742214字节、212条目、无重复、唯一SCIEPort.dll。包SHA256 `26CE8E62167184EB015D24B5CEBF952896FDD7FCDC0B7E3066F75FEE20D20250`；DLL SHA256 `5A24F82A4A675E3F06B0C3DB8F57A235120843665837485B57D29D6E708D2555`。已核验书典XDB/CSV、鱼竿资源与已提交骨龙DAE；未纳入用户未提交模型、专有程序集或额外DLL。产物复制至SCIE-Port/artifacts/荒野探险家.netmod及荒野探险家-0.86.2.netmod。
+
+待验证：未启动游戏或Android7723设备；真实Local/Server/Client端到端奖励/背包余量、触屏/不同分辨率、浮标水面遮挡/第三人称/左右手、暂停/切物品/死亡/水体改变、断线重连及高延迟/丢包仍需可丢弃新世界验证。无全房间浮标广播。上述隔离/快照检查不能标为实机兼容。
+
+本地main提交后由用户自行push，未执行源码推送；对应提交在GitHub可访问前保留已校验包，不绑定到其它提交创建Release。
+
+
+## 2026-11-14 main 0.86.1：钓鱼水位与手持模型修复
+
+按实测反馈修复两处：`FluidBlock.GetLevelHeight` 的参数是 0–15 流体等级而非整格方块值，改为 `GetLevelHeight(GetLevel(ExtractData(value)))` 后满水（level 0，高度0.875）可正常起竿；鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z（`Matrix.Forward = -(M31..M33)`），杆身伸向眼后并被近裁剪面裁掉，现整体翻转为沿 -Z 前伸并居中。物品/配方/包236/XDB/ID 均未改动。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/fishing-fix-build.log`：Fishing 原生API/资源/包检查与规则单测、全部旧回归通过，包212条目。产物 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.86.1.netmod` 字节一致：**12,762,667字节**，SHA256 `A16E26863F04BFA0A7D9D3EC9B4EBF054EA603D6D472D83A0BDA9BE9EF9348FA`；`SCIEPort.dll` 948,736字节/SHA256 `E2A2FE8F201886A2358CE1CA7629D37B1AFC0A9B4C1DE4ECCC15505EB46B2D50`，版本0.86.1。Windows编译/静态检查 **已确认**；Android7723 触屏实际垂钓与真实联机 **待验证**。
+
+## 2026-11-14 main 0.86.0：钓鱼玩法
+
+新增不可放置物品「鱼竿」972/DATA0（`SCIEPort.Tools`），程序化2×2合成（木棍1+线2，运行时按 `GetCraftingId` 解析材料）。玩法为抛竿-咬钩-收竿时机判定：射线≤12格需命中表层水且下方仍是水，等待2–5秒，0.9秒窗口内再次点击成功；过早/超时失败并冷却1秒；奖励原版生鱼1–3条（70/25/5%）。联机走新包236（Request/Result，20字节负载），客户端判定时机、主机复验手持鱼竿/水格/距离≤16格及0.8秒与每分钟18次限流后写背包并回执，鱼获经原生槽位同步。新增 `FishingBehavior` XDB子系统与 `SubsystemFishing`；ID 972、包 236 经固定目标占用扫描确认空闲。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/fishing-build.log`：环境/ABI、Fishing 原生API/资源/包检查与规则单测、书典、PixelFX、家居、Poseidon、Excalibur、绘卷、军势、DeathAuthority 及全部旧回归通过；包212条目（新增 `Assets/Blocks/Fishing.csv`、`Assets/Database/Fishing.xdb`），CSV 30文件/75源行。产物 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.86.0.netmod` 字节一致：**12,762,705字节**，SHA256 `24E0E58F9A04441E5E1432B1CE5C738397480D08A38840AABEB995C293AD2DFA`；`SCIEPort.dll` 948,736字节/SHA256 `FC532266ED6CAAE7348329CC7D12C6DBF815B1D87FF047C934C693FC4D6A1A24`，版本0.86.0。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏垂钓与真实Local/Server/Client鱼获同步 **待验证**。
+
+## 2026-11-14 main 0.85.0：回退刻尔柏洛斯24骨模型
+
+用户实测新三头犬外观不满意，按整提交`git revert 7646d10`恢复0.84.0之前版本：旧7骨`AbyssCerberus.dae`/旧贴图/旧XDB、旧`ComponentCerberusModel`与四足步态重新生效；移除`GetMaxInstancesCount()=24`重写、Kind 11/12/13与Action 19、6.5秒登场冻结/跳过暗幕、三段咬合、尾击、冥府怒吼与低血狂暴，删除24骨Blender设计源与生成脚本。0.84.1“图谱免真名”改动保留。冲突仅`SCIEPort.csproj`/`modinfo.json`/`TEST-RESULTS.md`，版本定为0.85.0；DAE/PNG/XDB与0.83.1包内逐字节一致。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/cerberus-revert-build.log`：环境/ABI、书典461项、PixelFX、家居、星门、军势、DeathAuthority、7骨Cerberus兼容检查与210条目包全部通过。产物`artifacts/荒野探险家.netmod`与`artifacts/荒野探险家-0.85.0.netmod`字节一致：**12,757,365字节**，SHA256 `3891FDDD8015139348263E1414D68147A0FB47F19DFDD000B6E6219296BFCCCC`；`SCIEPort.dll` 939,520字节/SHA256 `860CD3827A71E8A2FA5CD8E14BFC43ACAC7E41CEF39FA647FA9FBCC9BAD0B32E`，版本0.85.0。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏与真实Local/Server/Client **待验证**。
+
+## 2026-11-14 main 0.84.1：神器图谱改为纯介绍，取消真名门槛
+
+按用户要求神器不再需要解放真名即可使用，图谱只保留介绍信息。`SubsystemArtifactCodex.Allowed/MayHold` 恒为可用，`Update` 不再清空 Hit/Dig/Aim/Interact，也不再显示“尚未解放真名”提示；图谱对话框移除“解放真名”按钮、封印状态和 ✓/◇ 标记，只显示条目、3D预览与资料文本。全知之眼/吞噬之眼及任意神器的持有移速+20%、近战攻速+10% 直接生效。`TrueNames` 存档键、254同步包与解锁请求处理保留，仅供旧客户端/旧世界使用，不再参与任何使用判定；ArtifactCodex/DevouringEye/OmniscientEye 物品描述与Codex资料文本同步改写。
+
+验证：`Test-Codex` 原生探针改为断言无真名时输入直通、原生挖掘/攻击钩子不削弱、任意玩家直接可用且解锁记录仍按玩家隔离；`AbyssMultiplayerNativeProbe` 改为断言普通客户端无真名仍可命中；蓝图测试原有“无需真名”断言继续通过。首次完整构建因两处旧门槛断言失败，均按新规则修正后重跑。
+
+实际命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/codex-open-build.log`：环境/ABI、书典461项、PixelFX、家居、星门、军势、DeathAuthority、24骨兼容与包内容全部通过。产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.84.1.netmod` 字节一致：**13,676,510字节**，SHA256 `5E7C503F8CC123B2AED64E4B09DC8B2864674F11F155F924DD8ED1FF0A8953B0`；`SCIEPort.dll` 953,856字节/SHA256 `908356C9056ECDE6B8F70AA5359E7E95A671AC4C1C06696BC77F5CE9498564A7`，版本0.84.1。Windows编译/静态行为/包内容 **已确认**；Android7723真机、触屏图谱与真实联机 **待验证**。
+
+## 2026-11-13 main 0.84.0：刻尔柏洛斯24骨史诗重构
+
+将7骨三头犬占位模型替换为24骨冥府守门巨兽：三套独立颈/头/颌、蛇鬃与背部蛇群、TailA–C蛇尾链+尾首/尾颌、胸腔呼吸、十态动画、6.5秒登场（主机冻结AI、主人可跳过、Action 19同步结束）、三段咬合18伤害/1.6秒、尾击30伤害/6秒、≤35%低血狂暴、Kind 8/11/12/13网络演出与重连补发。加载器注册并返回 `GetMaxInstancesCount()=24`；未注册时仍为7并会在24骨绘制时抛 `Invalid instances count.`。
+
+资产最终版：DAE 4,722,277字节/SHA256 `2F62D2B4E6FB4276AE41A7D9C42283FA68C0CC107AF95ECCBE6C214D691B6BAB`，24骨/24闭网格/17,830三角/53,490导出顶点，包围3.43×3.16×5.67格；贴图1024×512 RGB/SHA256 `B4F2F3BABD4ECAA8A8C0FFBE2A13664D28CEC5781BE3509BEC15813D926941DE`。最终一轮修形（肋板贴合、TailA根部落臀、SnakeC舌内收、胸板融入、后腿肌与跗折、背部小蛇颈根）后重跑全部校验：0边界/0非流形/正体积。
+
+实际命令（仓库根；`git`/`node` 需在PATH）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/cerberus-final-build.log`：环境/ABI、家居325项、Poseidon、PixelFX 1195项、Excalibur 806项、DeathAuthority、24骨兼容检查（`design/cerberus/render-compatibility.json`，`fits_native_shader: true`）及最终包校验全部通过。首次运行因PATH缺node、第二次缺git失败，均为环境问题，不计为通过证据。
+
+产物 `artifacts/荒野探险家.netmod` 与 `artifacts/荒野探险家-0.84.0.netmod` 字节一致：**13,676,964字节**，SHA256 `A48CAF5E0D72A9B1B5B3C0B11B3B7BAAAC42221B644A6BE147A071BFBC00165E`；包内 `SCIEPort.dll` 954,880字节/SHA256 `EDE72517D2DF89896406AC45F25F7DE1BEC97D9173D73295894823E5BEFFAAF2`，`AbyssCerberus.dae`/`.png`/`.xdb` 与源一致。Windows/包内容/静态ABI **已确认**；Android7723真机与GLES驱动、触屏暗幕按钮、真实Local/Server/Client的登场/跳过/三段命中/尾击/狂暴同步、骑姿贴合 **待验证**。
+
+## 2026-11-13 main 0.83.1：清障默认开启与区域预清空
+
+按用户要求将天工绘卷清障开关默认开启，并把清障语义改为先清空蓝图包围盒内（含门上半格、家具占地）所有非空气方块，再按32格/帧放置。清空与放置共用逐格写前快照与撤销/失败回滚；新增包围盒≤262144格、清空≤32768格上限，超限拒绝。Build-NetMod（D:/Games/SCNET-x25.01.17，Release）退出0：853项蓝图直接施工/隔离检查（新增11项清障顺序、覆盖与内部空间测试）、全部旧回归和210条目包通过；Tiangong包内DLL/CSV/XDB/PNG与源字节一致。包`荒野探险家-0.83.1.netmod` 12757948字节/SHA256 `EB5B86588C6FD007B43EAC28D6A599BB34542CC8D0F5137ADCFE3BC332BB9052`；DLL SHA256 `6A526A2A93712F5040AAD8117CA4360A4E874F6922BD16D7D706A7D99E640906`，MVID `51fb42b1-bcc6-47af-9eaa-4b9e03281251`，版本0.83.1。Windows/包范围 **已确认**；Android7723、触屏与真实Local/Server/Client **待验证**。
 
 ## 2026-11-12 / 0.84.0 Blender骨龙优化
 

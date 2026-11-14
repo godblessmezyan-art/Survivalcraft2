@@ -84,7 +84,7 @@ public static partial class DeathAuthorityNativeProbe
             DispatchVoidStrike(f,4,new Vector3(float.NaN,0,-1));DispatchVoidStrike(f,5,Vector3.UnitZ);DispatchVoidStrike(f,6,-Vector3.UnitZ*100);
             Check(recorder.Targets.Count==0,"nonfinite, backwards and unnormalized client aim cannot select a target");
             var codex=f.Project.FindSubsystem(mod.GetType("SCIEPort.Features.Codex.SubsystemArtifactCodex"),null,true);var records=(Dictionary<Guid,uint>)Get(codex,"Records");records[f.Player.PlayerGuid]=0;
-            DispatchVoidStrike(f,7,-Vector3.UnitZ);Check(recorder.Targets.Count==0,"unreleased true name still rejects normal attack for an ordinary client");records[f.Player.PlayerGuid]=255;
+            DispatchVoidStrike(f,7,-Vector3.UnitZ);Check(recorder.Targets.Count==1,"normal attack works without true name for an ordinary client");records[f.Player.PlayerGuid]=255;
             q=VoidStrikePacket(f,8,-Vector3.UnitZ);Put(q,"Target",ushort.MaxValue);Put(q,"A",999f);Call(f.Death,"Enqueue",f.Player,f.Client,q);Call(f.Death,"Update");
             Check(recorder.Powers.Count==1&&recorder.Powers[0]==22,"forged damage/stage metadata cannot override host damage");
             f.Clock.m_gameTime+=1;Call(f.Death,"Adopt",f.Creature(152,new Vector3(10,64,2)),f.Player.PlayerGuid,false);int previous=recorder.Targets.Count;

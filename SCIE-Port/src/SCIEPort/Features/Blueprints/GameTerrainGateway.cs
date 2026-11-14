@@ -238,7 +238,7 @@ namespace SCIEPort.Features.Blueprints
             Block previous = BlockById(Terrain.ExtractContents(old));
             if (next is DoorBlock && Terrain.ExtractContents(old) != 0)
             { error = "门事务目前只允许空气落点，以保证关联半格可完整回滚"; return false; }
-            if (previous is DoorBlock)
+            if (previous is DoorBlock && Terrain.ExtractContents(value) != 0)
             { error = "覆盖已有门需要跨电路事务，目前不支持"; return false; }
             if (next is DoorBlock)
             {

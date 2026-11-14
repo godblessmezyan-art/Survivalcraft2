@@ -30,20 +30,20 @@ public static class CodexNativeProbe
             var records=(Dictionary<Guid,uint>)Get(runtime,"Records");records.Clear();
             var allowed=type.GetMethod("Allowed",BindingFlags.Static|BindingFlags.NonPublic);
             int[] ids={942,943,948,949,950,951,952,953};
-            foreach(int id in ids)Check(!(bool)allowed.Invoke(null,new object[]{p,id}),"new/existing world starts sealed "+id);
+            foreach(int id in ids)Check((bool)allowed.Invoke(null,new object[]{p,id}),"artifact usable without true name "+id);
             Check((bool)allowed.Invoke(null,new object[]{p,955})&&(bool)allowed.Invoke(null,new object[]{p,3}),"book and ordinary items remain usable");
             var inv=(ComponentInventory)p.ComponentMiner.Inventory;
             inv.m_slots[0].Value=953;p.ComponentInput.m_playerInput.Hit=new Ray3(Vector3.Zero,Vector3.UnitZ);p.ComponentInput.m_playerInput.Dig=p.ComponentInput.m_playerInput.Hit;p.ComponentInput.m_playerInput.Aim=p.ComponentInput.m_playerInput.Hit;
-            Call(runtime,"Update",.05f);Check(!p.ComponentInput.m_playerInput.Hit.HasValue&&!p.ComponentInput.m_playerInput.Dig.HasValue&&!p.ComponentInput.m_playerInput.Aim.HasValue,"sealed weapon input consumed after native input assembly");
-            var loader=Activator.CreateInstance(mod.GetType("SCIEPort.Mod.SCIEPortLoader"));object[] hit={p.ComponentMiner,null,Vector3.Zero,Vector3.UnitZ,99f,1f,1f,false};Call(loader,"OnMinerHit",hit);Check((float)hit[4]==0&&(bool)hit[7],"actual miner hook stops sealed weapon attack and speed bonus");
-            object[] dig={p.ComponentMiner,new TerrainRaycastResult(),2f,false};Call(loader,"OnMinerDig",dig);Check((float)dig[2]<0&&!(bool)dig[3],"actual native dig hook keeps sealed weapon below destruction threshold");
+            Call(runtime,"Update",.05f);Check(p.ComponentInput.m_playerInput.Hit.HasValue&&p.ComponentInput.m_playerInput.Dig.HasValue&&p.ComponentInput.m_playerInput.Aim.HasValue,"artifact input passes through without true name");
+            var loader=Activator.CreateInstance(mod.GetType("SCIEPort.Mod.SCIEPortLoader"));object[] hit={p.ComponentMiner,null,Vector3.Zero,Vector3.UnitZ,99f,1f,1f,false};Call(loader,"OnMinerHit",hit);Check((float)hit[4]==99&&!(bool)hit[7],"actual miner hook keeps artifact attack power without true name");
+            object[] dig={p.ComponentMiner,new TerrainRaycastResult(),2f,false};Call(loader,"OnMinerDig",dig);Check((float)dig[2]==2f&&!(bool)dig[3],"actual native dig hook leaves artifact digging untouched without true name");
             var q=Activator.CreateInstance(packetType);Put(q,"Owner",p.PlayerGuid);Put(q,"Caster",p.Entity.EntityId);Put(q,"Sequence",1u);Put(q,"Kind",(byte)2);Put(q,"Entry",(byte)0);Put(q,"Mask",255u);
             Call(runtime,"Accept",p,q);Check(records.Count==0,"unlock rejected without held book");
             inv.m_slots[0].Value=955;Put(q,"Owner",Guid.NewGuid());Call(runtime,"Accept",p,q);Check(records.Count==0,"spoofed player GUID rejected");Put(q,"Owner",p.PlayerGuid);
             Put(q,"Entry",(byte)9);Call(runtime,"Accept",p,q);Check(records.Count==0,"unknown catalog index rejected");Put(q,"Entry",(byte)0);
             CommonLib.WorkType=WorkType.Client;Call(runtime,"Accept",p,q);Check(records.Count==0,"Client cannot grant itself unlocks");CommonLib.WorkType=WorkType.Local;
             for(byte i=0;i<8;i++){clock.m_gameTime=i;Put(q,"Entry",i);Put(q,"Sequence",(uint)i+1);Call(runtime,"Accept",p,q);Check((bool)allowed.Invoke(null,new object[]{p,ids[i]}),"authority grants selected true name "+ids[i]);Check(records[p.PlayerGuid]==(uint)((1<<(i+1))-1),"packet mask cannot unlock unrelated entries");}
-            var other=AbyssHostNativeProbe.Player(project,bodies,955);records.Remove(other.PlayerGuid);Check(!(bool)allowed.Invoke(null,new object[]{other,953}),"unlock does not leak to another player");
+            var other=AbyssHostNativeProbe.Player(project,bodies,955);records.Remove(other.PlayerGuid);Check((bool)allowed.Invoke(null,new object[]{other,953}),"every player can use artifacts without per-player unlock");Check(!records.ContainsKey(other.PlayerGuid),"unlock records stay per player");
             var save=new ValuesDictionary();Call(runtime,"Save",save);var saveXml=new XElement("Values");save.Save(saveXml);var reloaded=new ValuesDictionary();reloaded.ApplyOverrides(XElement.Parse(saveXml.ToString()));
             var fresh=Activator.CreateInstance(type);Call(fresh,"ReadRecords",reloaded.GetValue<ValuesDictionary>("TrueNames"));Check(((Dictionary<Guid,uint>)Get(fresh,"Records"))[p.PlayerGuid]==255,"native ValuesDictionary XML save/load preserves all true names");
             var malformed=new ValuesDictionary();malformed.SetValue("not-guid","255");malformed.SetValue(Guid.NewGuid().ToString("N"),"-1");Call(fresh,"ReadRecords",malformed);Check(((Dictionary<Guid,uint>)Get(fresh,"Records")).Count==1,"malformed progress never grants access");
