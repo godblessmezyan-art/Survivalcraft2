@@ -24,7 +24,7 @@ namespace SCIEPort.Features.Fishing
 
         public override string GetCategory(int value)
         {
-            return Inventory.PortInventoryRules.Tools;
+            return Inventory.PortInventoryRules.Gear;
         }
 
         public override IEnumerable<CraftingRecipe> GetProceduralCraftingRecipes()

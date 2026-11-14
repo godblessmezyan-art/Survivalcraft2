@@ -18,7 +18,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
         /// <inheritdoc/>
         public override string GetDisplayName(SubsystemTerrain terrain, int value) { return "云天书典"; }
         /// <inheritdoc/>
-        public override string GetCategory(int value) { return Inventory.PortInventoryRules.Tools; }
+        public override string GetCategory(int value) { return Inventory.PortInventoryRules.Gear; }
         /// <inheritdoc/>
         public override int GetTextureSlotCount(int value) { return 1; }
         /// <inheritdoc/>

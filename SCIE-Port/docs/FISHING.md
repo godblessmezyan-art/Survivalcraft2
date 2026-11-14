@@ -2,7 +2,7 @@
 
 ## 物品与获取
 
-鱼竿972/DATA0为普通实用工具（非神器），不可放置、堆叠1、近战伤害0，归SCIEPort.Tools；不增加神器被动。保留木棍1+线2的2×2程序化配方，按实际Block.GetCraftingId解析材料，产出原版RawFishBlock，原生烹饪保持。
+鱼竿972/DATA0为普通实用工具（非神器），不可放置、堆叠1、近战伤害0，归SCIEPort.Gear（装备与工具）；不增加神器被动。保留木棍1+线2的2×2程序化配方，按实际Block.GetCraftingId解析材料，产出原版RawFishBlock，原生烹饪保持。
 
 ## 触屏与水面
 
@@ -14,7 +14,7 @@
 
 ## 联机
 
-各端须统一0.86.2；旧版本混用不支持。仍使用包236和20字节布局（Kind/Caster/Cell/Sequence/Count），新增语义如下：
+各端须统一0.88.1；旧版本混用不支持。仍使用包236和20字节布局（Kind/Caster/Cell/Sequence/Count），新增语义如下：
 
 | Kind | 含义 | Count |
 |---|---|---|

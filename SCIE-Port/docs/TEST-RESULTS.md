@@ -1,8 +1,40 @@
 ﻿# 测试结果
 
+## 2026-11-15 / 0.88.1：恢复完整 main，并固定多 agent 整合规范
+
+原因：0.86.2的cb88081仅合入另一工作副本main的87e36fa，错误地把后续20c9879五分类、6ba0cc7书柜视为独立任务排除，导致交付遗漏。原提交仍在；本轮通过本地fetch并正常合并完整6ba0cc7修复，保留cb88081钓鱼优化、骨龙已提交模型、书典及双方其它已有功能，统一0.88.1。旧0.86.2交付已由本包替代。
+
+用户要求已落实到根AGENTS.md及SCIE-Port/AGENTS.md：其他agent的main成果是共同主线，必须核对已知工作副本/可访问远端的完整历史并合入，交付检查继承关系、功能注册/资源和最终包；未完成改动保留并核对状态，不覆盖或冒充已验证成果。原有三项未提交骨龙改动经独立备份，构建仅使用索引中的已提交内容，完成后逐文件SHA256确认原样恢复，未纳入本次提交或产物。
+
+实际命令（仓库根；完整日志artifacts/main-0.88.1-build.log）：
+
+```powershell
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:PATH=$env:DOTNET_ROOT+';D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir SCIE-Port/artifacts/main-0.88.1
+./SCIE-Port/scripts/Test-FishingAndroidBcl.ps1 -AndroidBclDir artifacts/celestial-audit/android-bcl -CecilPath D:/Dev/Tools/ilspy/.store/ilspycmd/9.1.0.7988/ilspycmd/9.1.0.7988/tools/net8.0/any/Mono.Cecil.dll -ModDll SCIE-Port/artifacts/main-0.88.1/build/SCIEPort.dll -NegativeDll artifacts/fishing-0.86.2-negative.dll
+```
+
+环境与上一条0.86.2相同固定Windows三程序集哈希，net472/API1.42/SC2.4.10.6；两个环境检查入口通过，完整构建退出0，Release 0警告0错误。本次未修改游戏ABI/加载器Hook。
+
+- 书柜最终DLL：40组网格、5方块、碰撞与4张2×2配方通过；包内Bookshelf.csv与源码字节一致，973–977全部注册。家居496928项规则、条件回滚及325项原生保存/容量/掉落/占地隔离检查通过。
+- 五分类：807项规则、221项目标API及80个实际方块分类检查通过；最终包31个CSV/80源行一致。鱼竿为Gear，书柜为Structures，普通衣物/圣兽DATA隔离与主题保留。
+- 钓鱼3554项检查通过；最终DLL完整水格64组解码、5种20字节包往返、有界队列/释放检查通过。Android BCL快照72成员解析0缺失，MVID=f918cb31-0ff4-4f59-a752-6b880f46d9a2；旧NextDouble负对照正确拒绝。快照哈希与0.86.2相同，日志artifacts/main-0.88.1-android-bcl.log。
+- 书典461项离线、21325项目标/494成员解析，绘卷860项直接施工/协议/撤销检查及完整旧回归通过，均为Windows/隔离检查。
+- 最终包213条目、无重复、唯一SCIEPort.dll；206项被打包的已跟踪资产与实际构建源码字节逐一一致（骨龙为已提交索引版本）。原0.86.2包的180项非CSV资源逐一保持字节一致，新增Bookshelf.csv；书典CSV/XDB/纹理、家居、绘卷与旧模型资源保留，无额外DLL或专有文件。
+
+产物：SCIE-Port/artifacts/main-0.88.1/荒野探险家.netmod及荒野探险家-0.88.1.netmod，并复制到SCIE-Port/artifacts同名正式路径，四份字节一致。包 **12,746,863字节** / SHA256 `B9B9E68AB5447F03C53C467B1B01106CAE1AD99D3FAE46A2BDD32522E18F9D54`；DLL SHA256 `8096A66C37EB35BB37A73E47C072E11A7B8AC7872227E97B13A5BFF6316770F5`。机器可读核验记录位于输出目录verification.json。
+
+已确认仅限上述Windows环境/编译/静态与隔离检查/包内容。Android7723触屏、分辨率、书柜四朝向/多格放置拆除/并发掉落、钓鱼体验与真实Local/Server/Client仍待验证，首测须用可丢弃新世界与备份。0.88.0及更早包缺主机钓鱼轮次语义，不支持混用。
+
+完整main合并及规范默认本地提交；源码不由助手push，实际构建提交尚未发布到GitHub前不创建或冒用其它提交的Release。
+
 ## 2026-11-14 / 0.86.2 钓鱼水面、浮标与主机轮次优化
 
-基线：本地main e5ad427与同仓库钓鱼修复87e36fa（包含远端55e77f0的0.86.0）正常合并，保留原骨龙模型优化和两端已有功能；未纳入另一工作副本随后独立的创造栏/书架任务。文档冲突保留双方历史，统一版本0.86.2。原有三项未提交骨龙文件单独字节备份，构建时使用索引中的已提交版本，结束后逐文件SHA核验恢复；本次不提交这三项用户改动。
+基线：本地main e5ad427与同仓库钓鱼修复87e36fa（包含远端55e77f0的0.86.0）正常合并，保留原骨龙模型优化和两端已有功能；当时错误地排除了同一main后续已有的0.87.0五分类和0.88.0书柜，导致0.86.2交付遗漏；此问题由0.88.1完整合并修正（见最新记录）。文档冲突保留双方历史，统一版本0.86.2。原有三项未提交骨龙文件单独字节备份，构建时使用索引中的已提交版本，结束后逐文件SHA核验恢复；本次不提交这三项用户改动。
 
 修改：修正完整水格值的水位解码，DDA真实水面交点/有限向下辅助/遮挡/区块与数值预算；允许一格深水，持续8三角形浮标、鱼线与水纹，每相机最多8个/64格，收竿窗口1.35秒。主机记录随机等待/连接/序号/水格，收竿前再次校验并一次消费，早/晚失败也不能重放；连接身份复用ServerConnection。新增包236的Start/Started/Cancel语义，保持20字节布局，旧钓鱼版本混用不支持。网络回调有界入队，所有世界与背包副作用在Update，背包按容量分槽后只掉落余量。等待随机数改用已存在于留存Android Engine快照的Engine.Random构造/Float/Int；原System.Random.NextDouble在BCL快照缺失。
 
@@ -34,6 +66,40 @@ powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetM
 
 本地main提交后由用户自行push，未执行源码推送；对应提交在GitHub可访问前保留已校验包，不绑定到其它提交创建Release。
 
+
+## 2026-11-14 main 0.88.0：装饰书架与书籍方块
+
+新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）与隐藏占位977，全部归入`SCIEPort.Structures`。模型由`BookshelfGeometry`在运行时生成`BlockMesh`，使用1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB；高书架上格复用隐藏块963并新增bit7标识，bit6仍为窗帘；大书柜用977占位，沿用`SubsystemHomeFurniture`两格/2×2生命周期。四个2×2配方分别用木板/木棍/棉絮，运行时按`GetCraftingId`解析材料。ID 973–977经固定目标占用扫描确认空闲，无新网络包、GUID或存档键。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/bookshelf-build.log`：环境/ABI、家居496928项规则与两格回滚、`Bookshelf assembly: 40 meshes, 5 blocks, collision and four two-by-two recipes verified.`、Bookshelf包内CSV字节一致、31个CSV/80源行分类一致，以及Fishing、PixelFX、书典、绘卷、军势等全部旧回归通过。包213条目（新增`Assets/Blocks/Bookshelf.csv`）。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.88.0.netmod`字节一致：**12,767,136字节**，SHA256 `AA43B49F4A69370997ADA241FCFEB59B3CD3C606B3C6DE9CEA6A3A3588B2433D`；`SCIEPort.dll` 960,000字节/SHA256 `FE5B20C0B15E6A0E6B6AE49A89DF3AD70EF232BFAF3BC434C9765D833A0CBBA8`，版本0.88.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期与真实Local/Server/Client **待验证**。
+
+## 2026-11-14 main 0.87.0：创造栏合并为5个Tab
+
+按用户要求把原11个分类合并为神器、装备与工具、载具、建造与家居、自然与生物5个Tab。`SCIEPort.Saints/Tools`并入`SCIEPort.Gear`，`SCIEPort.Home/Materials/Industry/Building`并入`SCIEPort.Structures`，`SCIEPort.Plants/Food/Creatures`并入`SCIEPort.Nature`；旧键退休，物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均未改动。同步更新30个CSV、圣兽衣物/书典/鱼竿`GetCategory`、分类单测、PortInventory/Fishing/Suspension/Codex脚本与文档。PixelFX冻结基线中仅`PortInventoryRules.cs`、`PortInventoryCatalog.cs`两项因本次分类合并按原归一化规则更新哈希，其余游戏机制原文不变。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/tab-merge-build.log`：Inventory分类/皮肤规则807项、目标API 206项/75个实际方块分类、圣兽DATA隔离与原生标签、30个CSV/75行打包一致性、Fishing、PixelFX 1195项、书典、家居、绘卷、军势等全部旧回归通过。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.87.0.netmod`字节一致：**12,762,541字节**，SHA256 `C6EEEEC15CC3434810C74B05FD5B7BDEA82AD99E8D227C6B5897713EDB91AD6A`；`SCIEPort.dll` 948,224字节/SHA256 `C7AE8232157BF695D05301EBE23921A26CB20D10916F0B8C687D231328EA535C`，版本0.87.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏分类列表与真实联机 **待验证**。
 
 ## 2026-11-14 main 0.86.1：钓鱼水位与手持模型修复
 

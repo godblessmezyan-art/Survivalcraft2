@@ -1,11 +1,31 @@
 ﻿# SCIE-Port 兼容性记录
 
+## 2026-11-15 / 0.88.1：补齐 main 书柜、五分类与钓鱼优化
+
+纠正0.86.2整合时只取87e36fa、遗漏同仓库main后续功能的错误：完整合并6ba0cc7（含20c9879五分类和0.88.0书柜），保留cb88081的钓鱼优化、本地骨龙模型与统一云天书典。书架973、高书架974、2×2大书柜975、书堆976、隐藏占位977及963 bit7保持原实现；五分类、原ID/DATA/配方/存档与主机权限保留。沿用钓鱼包236的0.86.2轮次语义和20字节布局，同房统一0.88.1；0.88.0及更早钓鱼版本混用不支持。未新增加载器Hook/依赖/运行资源布局，仍net472/API1.42/SC2.4.10.6/单SCIEPort.dll。
+
+固定Windows环境/ABI、完整Release、书柜40网格/5方块/碰撞/4配方、家居496928规则/325原生隔离检查、五分类807规则/221目标检查/31个CSV及80行、钓鱼3554检查和Android BCL快照72成员解析、213条目统一包内容已确认。Android7723触屏、多分辨率、实际放置/拆除及真实Local/Server/Client待验证，不以元数据或隔离测试代替实机。多agent成果保留要求已写入根与SCIE-Port的AGENTS.md。
+
+精确命令与产物指纹见[测试记录](TEST-RESULTS.md)。
+
 ## 2026-11-14 荒野探险家0.86.2：钓鱼水面与主机会话优化
 
 保留0.86.1水位/鱼竿方向修复及本地main骨龙优化；水面交点逐格追踪、有限向下辅助、浅水允许、持续几何浮标/鱼线和1.35秒收竿窗口。包236仍20字节，新增Start/Started/Cancel语义，主机记录并一次消费轮次、复验遮挡/水面、限流与有界迟到；原生连接身份复用ServerConnection，全部世界/背包操作入更新线程。新增IDrawable DrawOrders106，未新增加载器Hook、ID、资源、配方、XDB/GUID或存档键，统一net472/API1.42/SC2.4.10.6/SCIEPort.dll保持。
 
 旧0.86.0/0.86.1钓鱼协议混版不支持，同房统一0.86.2。Windows环境/ABI、完整Release、3554项钓鱼检查、原生64组水格/五类包/队列检查、212条目统一包及Android BCL快照72成员解析已确认；Android7723、触屏/分辨率与真实Local/Server/Client待验证。本条不自动继承旧功能实机结论，详见钓鱼专项及测试记录。
 
+
+## 2026-11-14 0.88.0：装饰书架与书籍方块
+
+新增纯装饰方块：书架973（3款）、高书架974（2款，上格复用隐藏块963并以bit7标识）、2×2大书柜975（977为隐藏占位）、书堆976（4款）。全部使用程序化`BlockMesh`与1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB资源、槽位主题或网络包；配方为2×2木板/木棍/棉絮，材料按`GetCraftingId`运行时解析。DATA低2位朝向、bit2保留、bit3–5款式；963的bit6仍为窗帘、bit7为高书架，两者互斥。书架不提供储物、阅读或交互，不改变ID/DATA/GUID/协议/存档键与net472/API1.42/SC2.4.10.6。各端统一0.88.0。
+
+Windows net472 Release、家居规则单测、`Test-Bookshelf`网格/碰撞/配方/包检查与全部旧回归 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期及真实Local/Server/Client **待验证**。详见[书架专项](BOOKSHELF.md)。
+
+## 2026-11-14 0.87.0：创造栏合并为5个Tab
+
+按用户要求把11个创造栏分类合并为5个：神器（`SCIEPort.Artifacts`）、装备与工具（`SCIEPort.Gear`）、载具（`SCIEPort.Vehicles`）、建造与家居（`SCIEPort.Structures`）、自然与生物（`SCIEPort.Nature`）。旧键`SCIEPort.Saints/Tools/Home/Plants/Food/Materials/Industry/Building/Creatures`退休，所有CSV `DefaultCategory`、圣兽衣物/书典/鱼竿的`GetCategory`与验证脚本同步。物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均不变，`SCIEPort.Misc`仍仅作运行时兜底。各端统一0.87.0。
+
+Windows net472 Release、30个CSV/75方块分类、圣兽DATA隔离、分类标签和全部旧回归 **已确认**；Android7723 触屏分类列表与真实联机 **待验证**。详见[物品展示规范](INVENTORY-STANDARD.md)。
 
 ## 2026-11-14 0.86.1：钓鱼交互与手持模型修复
 
