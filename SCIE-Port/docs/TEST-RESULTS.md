@@ -1,5 +1,39 @@
 ﻿# 测试结果
 
+## 2026-11-15 / 0.89.0：古建细节套件
+
+本地main基线7bac34b，开始时fetch origin/main（5f429e1），无遗漏远端main更新；6ba0cc7书柜、20c9879五分类及cb88081钓鱼优化均为main祖先。已知git worktree只有当前工作区，旁边同名目录为空、不是另一git仓库。保留未提交骨龙文件，构建使用git索引导出的干净源码快照（无新分支/worktree）；快照DAE的git对象8d759730655a94e4a787e908a7a1e98dbcb2f765与HEAD一致，没有把未完成模型改动纳入产物。四项已授权上游只读资产从本机提供给该快照，未提交专有程序集/上游快照。
+
+实际命令（仓库根；日志artifacts/architecture-kit/full-build.log、android-bcl.log、package-check.json）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:PATH=$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+./SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+# git add仅本任务文件；checkout-index导出索引，未更改原工作区文件
+powershell -NoProfile -ExecutionPolicy Bypass -File artifacts/architecture-kit/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir SCIE-Port/artifacts/ancient-0.89.0
+./SCIE-Port/scripts/Test-BlueprintAndroidBcl.ps1 -AndroidBclDir artifacts/celestial-audit/android-bcl -CecilPath D:/Dev/Tools/ilspy/.store/ilspycmd/9.1.0.7988/ilspycmd/9.1.0.7988/tools/net8.0/any/Mono.Cecil.dll -ModDll SCIE-Port/artifacts/ancient-0.89.0/build/SCIEPort.dll
+./SCIE-Port/scripts/Test-Architecture.ps1 -GameDir D:/Games/SCNET-x25.01.17 -AssemblyPath SCIE-Port/src/SCIEPort/bin/Release/net472/SCIEPort.dll -MeshOutput artifacts/architecture-meshes.json
+python SCIE-Port/scripts/Preview-Architecture.py --meshes artifacts/architecture-meshes.json --output artifacts/architecture-kit
+```
+
+- 两个环境入口固定Windows哈希/ABI通过；完整Release退出0、0警告0错误。首次编译发现缺参/不存在的TwoPi常量与测试fixture引用，改正后重新编译；几何检查发现光照面法线及樱花枝底部越界，修正后224状态全部通过。失败结果未算作通过。
+- 古建28外观/224状态：全部顶点和碰撞在单格，有限索引/UV/面向/无退化三角形，镜像保持正确绕序，最大480三角形。每状态8组几何旋转/镜像与DATA一致。玻璃只进独立透明网格，灯笼实际GetEmittedLightAmount=12及亮芯IsEmissive检查通过。
+- 绘卷346710检查：新材料/非法款式/保留位、JSON往返、所有状态原生复制、3模板与2交付示例×8朝向、Local/Server/Client队列、32格预算、取消和写入失败回滚、完整撤销通过。7种部件的镜像DATA实际走原生ID7编码/主机Handle/广播及清除请求，仍是隔离场景，不是真实房间。
+- Android留存快照审计扩大到Architecture，486个BCL成员解析0缺失；mscorlib MVID=9d0f885b-9255-4f54-bb3f-fdcb8916ab03，快照哈希沿用0.88.1；不等于APK指纹或Android运行验证。
+- 共同主线：书柜40网格/5块/碰撞/4配方；家居496928规则/325原生检查；五分类807规则及32 CSV/87源行；钓鱼规则/最终DLL水格64组/队列/协议；书典461离线/16404目标检查/494成员；其余完整旧回归通过。
+- 最终包214条目、无重复、唯一SCIEPort.dll；比0.88.1仅新增Architecture.csv，原213条目全部保留。206项原文件逐字节一致，TiangongBlueprint.csv、ArtifactCodex.xdb、HomeFurniture.xdb、SuspendedItem.xdb、AbyssBoneDragon.dae五项仅LF/CRLF差别，逐文件去CRLF后字节一致；其它变化仅modinfo版本和DLL。不能把换行差别说成丢失资源或未提交模型被打包。
+
+产物SCIE-Port/artifacts/ancient-0.89.0/及SCIE-Port/artifacts/下正式/版本副本四份同哈希。12754763字节；包SHA256 `7CB1735674F2503CA61CA1B1989F33598235CCF48080A04094B22A7A15BF1EC5`；DLL SHA256 `D7A1CDA384312BE471E7530EF85204B108C85578A2C19A286EF1367244FF90F0`；DLL MVID `c0e5f9a7-c448-4f0e-8cff-4962dce4e2d0`，AssemblyVersion=0.89.0.0。
+
+预览由实际C#网格导出并保留于docs/assets/architecture/overview.png，非游戏截图。部件只在创造栏提供，没有新增合成配方；坐垫/茶具/望远镜/植物为装饰。Android7723触屏、分辨率、玻璃内外排序、地形照明、帧耗时、存读档和真实Local/Server/Client均**待验证**。原9670格云崖书屋保持原样，交付另附部件展台和组合示例。
+
+源码按默认规则本地main提交，由用户push；提交未到GitHub前不发布指向旧提交的Release，安装包保留待推送后发布。
+
+
 ## 2026-11-15 / 0.88.1：恢复完整 main，并固定多 agent 整合规范
 
 原因：0.86.2的cb88081仅合入另一工作副本main的87e36fa，错误地把后续20c9879五分类、6ba0cc7书柜视为独立任务排除，导致交付遗漏。原提交仍在；本轮通过本地fetch并正常合并完整6ba0cc7修复，保留cb88081钓鱼优化、骨龙已提交模型、书典及双方其它已有功能，统一0.88.1。旧0.86.2交付已由本包替代。

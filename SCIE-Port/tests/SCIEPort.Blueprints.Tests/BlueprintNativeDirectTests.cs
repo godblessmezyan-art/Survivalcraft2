@@ -20,7 +20,7 @@ internal static partial class BlueprintTests
         for(int i=0;i<BlocksManager.Blocks.Length;i++)native.m_subsystemBlockBehaviors.m_blockBehaviorsByContents[i]=new SubsystemBlockBehavior[0];
         return native;
     }
-    private static void NativeDirectTests()
+    private static void NativeDirectTests(int[] values = null)
     {
         var mode=CommonLib.WorkType;var net=CommonLib.Net;
         using(var clientCells=new Terrain())using(var serverCells=new Terrain())
@@ -33,7 +33,7 @@ internal static partial class BlueprintTests
                 var proxy=Bare<ProjectNet>();foreach(var field in typeof(Project).GetFields(Fields))field.SetValue(proxy,field.GetValue(project));
                 CommonLib.Net=Bare<NetNode>();Put(CommonLib.Net,"PendingPackages",new List<IPackage>());
                 var gateway=new GameTerrainGateway(client);var cell=new CellPos(8,64,8);
-                foreach(int value in new[]{3,0})
+                foreach(int value in values ?? new[]{3,0})
                 {
                     CommonLib.WorkType=WorkType.Client;clientCells.GetChunkAtCell(8,8).State=TerrainChunkState.Valid;
                     Check(gateway.SetCellValue(cell,value),"native client prediction updates the local terrain");

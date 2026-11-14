@@ -48,8 +48,11 @@ namespace SCIEPort.Features.Blueprints
             foreach (VanillaBlockCapability capability in VanillaBlockCapabilities.All)
             {
                 Block block=null;
+                bool detail = capability.Family == BlockFamily.Detail;
+                System.Reflection.Assembly owner = detail ? typeof(SCIEPort.Features.Architecture.ArchitectureBlock).Assembly : typeof(Block).Assembly;
+                string fullName = (detail ? "SCIEPort.Features.Architecture." : "Game.") + capability.TypeName;
                 foreach(var candidate in BlocksManager.Blocks)
-                    if(candidate!=null && candidate.GetType().Assembly==typeof(Block).Assembly && candidate.GetType().FullName=="Game."+capability.TypeName) { block=candidate;break; }
+                    if(candidate!=null && candidate.GetType().Assembly==owner && candidate.GetType().FullName==fullName) { block=candidate;break; }
                 if (block != null &&
                     string.Equals(block.GetType().Name, capability.TypeName, StringComparison.Ordinal) &&
                     MatchesRuntimeFamily(block, capability.Family) &&
@@ -65,6 +68,7 @@ namespace SCIEPort.Features.Blueprints
         {
             switch (family)
             {
+                case BlockFamily.Detail: return block is SCIEPort.Features.Architecture.ArchitectureBlock && block.BlockIndex == SCIEPort.Features.Architecture.ArchitectureRules.Id(block.GetType().Name);
                 case BlockFamily.Cube: return block is CubeBlock;
                 case BlockFamily.Stairs: return block is StairsBlock;
                 case BlockFamily.Slab: return block is SlabBlock;

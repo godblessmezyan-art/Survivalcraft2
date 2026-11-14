@@ -1,4 +1,6 @@
-# 移植工程物品展示规范（0.44.0 起强制）
+﻿# 移植工程物品展示规范（0.44.0 起强制）
+
+2026-11-15 / 0.89.0：古建978–984共28外观全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或神器主题。DefaultCreativeData=0，运行枚举款式；类别/注册/DATA与包字节由Test-Architecture和Test-PortInventory检查。见[古建专项](ANCIENT-ARCHITECTURE.md)。
 
 2026-11-14 / 0.88.0：新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）及隐藏占位977，全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或槽位主题；高书架上格复用隐藏块963的bit7，977固定`DefaultCreativeData=-1`。详见[书架专项](BOOKSHELF.md)。
 

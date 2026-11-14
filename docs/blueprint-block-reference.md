@@ -1,5 +1,7 @@
 ﻿# Builder Assistant 蓝图方块能力清单 v0.25.2
 
+2026-11-15：荒野探险家0.89.0的独立绘卷新增古建部件978–984、28外观与`detail`族，`d=rotation|(mirrorX?4:0)|(variant<<3)`按材料限制款式；支持复制、旋转、镜像、保存和分批施工/撤销。精确key/DATA见[专项](../SCIE-Port/docs/ANCIENT-ARCHITECTURE.md)和[机器矩阵](../SCIE-Port/docs/architecture-block-capabilities.json)。**Builder Assistant不支持这些部件或detail族**，本页81原版材料矩阵不变；973–977及963 bit7仍不支持绘卷cells。
+
 2026-11-15：荒野探险家0.88.1完整合入书柜与五分类，保留钓鱼优化。973–977及963 bit7仍不支持蓝图cells，972仍不可放置；Builder Assistant独立版本与材料能力不变。
 
 2026-11-14：荒野探险家0.88.0新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）及隐藏占位977。它们**不支持**作为蓝图材料，禁止写入蓝图JSON的cells；963仅bit6窗帘有效，新增的bit7高书架上格同样不得写入。Builder Assistant仍独立0.25.2，81材料/10模板、schema1/2/3及施工限制保持。书架不提供储物或交互，蓝图也不能通过直接写ID创建2×2占位。

@@ -82,6 +82,24 @@ namespace SCIEPort.Features.Blueprints.Core.Furniture
                 }
                 registry.Register(new FurnitureTemplate(ids[i], names[i], b.ToBlueprint(ids[i], 2)));
             }
+            var moon = new BlueprintBuilder();
+            moon.SetOriented(0,1,0,"AncientWindowBlock",BlockFamily.Detail,16);
+            moon.SetOriented(1,1,0,"AncientWindowBlock",BlockFamily.Detail,24);
+            moon.SetOriented(0,0,0,"AncientWindowBlock",BlockFamily.Detail,32);
+            moon.SetOriented(1,0,0,"AncientWindowBlock",BlockFamily.Detail,40);
+            registry.Register(new FurnitureTemplate("AncientMoonWindow_A","月窗",moon.ToBlueprint("月窗",3)));
+            var tea = new BlueprintBuilder();
+            tea.SetOriented(1,0,0,"AncientTeaBlock",BlockFamily.Detail,0);
+            tea.SetOriented(0,0,0,"AncientTeaBlock",BlockFamily.Detail,8);
+            tea.SetOriented(2,0,0,"AncientTeaBlock",BlockFamily.Detail,8);
+            registry.Register(new FurnitureTemplate("AncientTeaCorner_A","茶席",tea.ToBlueprint("茶席",3)));
+            var balcony = new BlueprintBuilder();
+            balcony.FillBox(0,0,0,2,0,2,"PlanksBlock");
+            for(int x=0;x<3;x++)balcony.SetOriented(x,1,2,"AncientTimberBlock",BlockFamily.Detail,32);
+            balcony.SetOriented(0,1,1,"AncientTimberBlock",BlockFamily.Detail,33);
+            balcony.SetOriented(2,1,1,"AncientTimberBlock",BlockFamily.Detail,33);
+            balcony.SetOriented(1,1,1,"AncientTelescopeBlock",BlockFamily.Detail,0);
+            registry.Register(new FurnitureTemplate("AncientObservatory_A","观景台",balcony.ToBlueprint("观景台",3)));
             return registry;
         }
     }

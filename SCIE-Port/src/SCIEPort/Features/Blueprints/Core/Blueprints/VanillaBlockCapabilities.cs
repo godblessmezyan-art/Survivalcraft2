@@ -40,6 +40,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
 
         public bool IsValidData(int data)
         {
+            if (Family == BlockFamily.Detail)
+                return SCIEPort.Features.Architecture.ArchitectureRules.Valid(SCIEPort.Features.Architecture.ArchitectureRules.Id(TypeName), data);
             return BlockOrientation.IsValidAuthoredData(Family, data) &&
                 (!(TypeName == "DryBushBlock" || TypeName == "LargeDryBushBlock") || data == 0) &&
                 (Family != BlockFamily.Plant || (TypeName == "TallGrassBlock" ? data == 0 || data == 8 : data <= 1)) &&
@@ -188,6 +190,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             AddMany(d, BlockFamily.Lantern, BlockCapabilityKind.Attached, new[] { "JackOLanternBlock" });
             // Only authored DATA=0 is exposed; native loot variants are deliberately not recreated.
             AddMany(d, BlockFamily.Cairn, BlockCapabilityKind.Attached, new[] { "CairnBlock" });
+            // SCIEPort-owned stateless parts. Runtime registry verifies their exact owning assembly.
+            AddMany(d, BlockFamily.Detail, BlockCapabilityKind.Oriented, SCIEPort.Features.Architecture.ArchitectureRules.Types);
             return d;
         }
 

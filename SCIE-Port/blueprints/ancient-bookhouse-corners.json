@@ -1,0 +1,552 @@
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "书屋细节组合",
+  "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    }
+  ],
+  "furniturePlacements": [
+    {
+      "templateId": "AncientMoonWindow_A",
+      "x": 1,
+      "y": 1,
+      "z": 5,
+      "rotation": 0
+    },
+    {
+      "templateId": "AncientTeaCorner_A",
+      "x": 4,
+      "y": 1,
+      "z": 2,
+      "rotation": 0
+    },
+    {
+      "templateId": "AncientObservatory_A",
+      "x": 8,
+      "y": 0,
+      "z": 4,
+      "rotation": 0
+    }
+  ]
+}

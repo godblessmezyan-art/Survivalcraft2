@@ -1,0 +1,2499 @@
+{
+  "schemaVersion": 3,
+  "kind": "builderassistant.blueprint",
+  "name": "古建细节展台",
+  "cells": [
+    {
+      "x": 0,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 2,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 3,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 4,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 5,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 6,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 7,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 8,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 9,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 10,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 11,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 12,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 13,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 14,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 15,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 16,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 0,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 1,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 2,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 3,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 4,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 5,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 6,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 7,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 8,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 9,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 10,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 11,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 12,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 13,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 14,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 15,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 16,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 17,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 18,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 19,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 17,
+      "y": 0,
+      "z": 20,
+      "key": "PlanksBlock"
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 1,
+      "key": "AncientRoofBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 1,
+      "key": "AncientRoofBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 1,
+      "key": "AncientRoofBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 1,
+      "key": "AncientRoofBlock",
+      "f": "detail",
+      "d": 24
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 1,
+      "key": "AncientRoofBlock",
+      "f": "detail",
+      "d": 32
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 4,
+      "key": "AncientTimberBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 4,
+      "key": "AncientTimberBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 4,
+      "key": "AncientTimberBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 4,
+      "key": "AncientTimberBlock",
+      "f": "detail",
+      "d": 24
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 4,
+      "key": "AncientTimberBlock",
+      "f": "detail",
+      "d": 32
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 24
+    },
+    {
+      "x": 13,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 32
+    },
+    {
+      "x": 16,
+      "y": 1,
+      "z": 7,
+      "key": "AncientWindowBlock",
+      "f": "detail",
+      "d": 40
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 10,
+      "key": "AncientLanternBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 10,
+      "key": "AncientLanternBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 10,
+      "key": "AncientLanternBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 13,
+      "key": "AncientTeaBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 13,
+      "key": "AncientTeaBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 13,
+      "key": "AncientTeaBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 13,
+      "key": "AncientTeaBlock",
+      "f": "detail",
+      "d": 24
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 16,
+      "key": "AncientGardenBlock",
+      "f": "detail",
+      "d": 0
+    },
+    {
+      "x": 4,
+      "y": 1,
+      "z": 16,
+      "key": "AncientGardenBlock",
+      "f": "detail",
+      "d": 8
+    },
+    {
+      "x": 7,
+      "y": 1,
+      "z": 16,
+      "key": "AncientGardenBlock",
+      "f": "detail",
+      "d": 16
+    },
+    {
+      "x": 10,
+      "y": 1,
+      "z": 16,
+      "key": "AncientGardenBlock",
+      "f": "detail",
+      "d": 24
+    },
+    {
+      "x": 1,
+      "y": 1,
+      "z": 19,
+      "key": "AncientTelescopeBlock",
+      "f": "detail",
+      "d": 0
+    }
+  ]
+}

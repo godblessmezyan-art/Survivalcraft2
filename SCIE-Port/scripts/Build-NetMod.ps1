@@ -24,6 +24,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.'
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Architecture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Fishing rules timing/reward/rate-limit tests failed.' }
@@ -2412,6 +2413,7 @@ finally { $archive.Dispose() }
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
+& (Join-Path $PSScriptRoot 'Test-Architecture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
