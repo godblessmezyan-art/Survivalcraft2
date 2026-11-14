@@ -1,5 +1,17 @@
 ﻿# 测试结果
 
+## 2026-11-15：云崖书屋整屋精修V1
+
+在本地main的12b13b5之后独立生成SCIE-Port/blueprints/yunya-refined-v1.json：5372格，38×34×36，277347字节，SHA256 f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79。原生/古建材料组合，没有新增运行时代码、Mod版本或安装包。重生成字节一致；六处房间目标的两格净空通路均可从石阶到达。首次草稿预览后修正脊端悬空、半砖错层、窗格密度和后树根基，最终预览绑定同一SHA。
+
+根Test-Environment.ps1固定Windows程序集哈希/ABI通过。net472测试工程Release构建0警告/0错误，执行时加载先前校验0.89.0 DLL（d7a1cda384312be471e7530ef85204b108c85578a2c19a286ef1367244ff90f0），没有把未提交骨龙模型用于交付。Test-BlueprintJson.ps1真实导入/目录逐格校验通过；新增--blueprint模式对Local/Server/Client × 4旋转 × 2镜像共24组完整施工/撤销通过，每帧最多32次写入。另验证24处原生花卉支撑、取消/写入后失败回滚、默认非空气零写入、显式清障/建造撤销恢复原值、超高拒绝、四旋转/双镜像还原。地形与房间为既有内存替身，非手机或真实联机验收。
+
+官方Blender MCP只读查询确认5.1.1且当前场景未改；后台CLI工具超时后确认无输出，用同一本机可执行文件独立factory-startup后台渲染。C#导出28个真实古建网格；原生形状/纹理和照明为评审近似。最终外观5372格、东立面与去顶/去阁楼/去树的主层剖视均查看并核对JSON SHA，没有用概念图替代蓝图。
+
+正常管理员API创建新蓝图并发布：dbd55e9b-baf6-483b-8a3f-5fd6bc355d49 / revision1；匿名目录可见、published详情、下载原始字节与本地一致。未覆盖现有蓝图、未改网站或数据库结构，使用既有本机技能DPAPI登录配置；公开回执不含口令/令牌。完整命令、设计边界与机器回执见[YUNYA-REFINED-V1.md](YUNYA-REFINED-V1.md)。Android7723触屏、游戏内下载/施工/通行和真实房间待验证。
+
+交付前再次fetch origin/main，无遗漏提交；已知worktree仍只有当前。书柜/五分类/钓鱼/书典共同主线保持继承，三个骨龙未提交文件原样保留，不纳入本次提交；源码只本地提交，不push，不生成新netmod或GitHub Release。
+
 ## 2026-11-15：数字书房蓝图发布与可复用技能
 
 用户要求以后生成建筑JSON后默认上传数字书房，并明确授权保存现有管理员登录到技能。已创建仓库技能skills/survivalcraft-blueprints并安装到当前用户Codex skills目录；正常自动选用开启。既有登录以Windows DPAPI CurrentUser加密保存在安装技能private/credentials.dpapi.json，正文、源码、Git和报告均没有明文凭据，private/被忽略。

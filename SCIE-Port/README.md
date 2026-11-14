@@ -4,6 +4,8 @@
 
 蓝图现默认发布到[数字书房蓝图库](https://wxhappylife.top/digital-study/index.html#blueprints)，本次展台与组合示例已发布并核验下载；[生成与发布技能](../skills/survivalcraft-blueprints/SKILL.md)、[发布记录](../docs/BLUEPRINT-PUBLISHING.md)。
 
+整屋示例「云崖书屋·整屋精修 V1」已发布：5372格/38×34×36，含石基藏书室、偏屋、茶廊、玻璃书阁、阁楼和悬挑露台，带可复现生成器、外观/主层剖视及24组实际管线离线施工/撤销检查。[设计与下载](docs/YUNYA-REFINED-V1.md)。需要0.89.0及以上；预览非游戏截图，Android与真实房间仍待验证。本次没有新Mod安装包。
+
 # 0.88.1：恢复 main 书柜与分类，保留钓鱼优化
 
 完整合入 main 的 0.88.0 书架/高书架/大书柜/书堆与 0.87.0 五分类，保留钓鱼水面、浮标、主机会话优化及骨龙模型。此前 0.86.2 整合遗漏这两项，此版本补齐；方块 973–977 与原 DATA/配方保持。统一包仍内置云天书典。验证结果见[测试记录](docs/TEST-RESULTS.md)，Android7723与真实联机待验证。

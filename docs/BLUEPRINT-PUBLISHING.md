@@ -12,7 +12,10 @@
 |---|---|---|---|
 | [古建细节展台](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/0c1e35c3-acbc-4e12-82bc-190fabe1adff/json?revision=1) | 406格，18×2×21，完整28外观 | 0c1e35c3-acbc-4e12-82bc-190fabe1adff / 1 | 3e0136ee932c89b684f5f7af171ee369e736a45d757e2abf3ef0f8b7e878cb1b |
 | [书屋细节组合](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/f0bf100e-c524-480d-b468-c0da6edd983a/json?revision=1) | 109格，12×3×8，月窗/茶席/观景台 | f0bf100e-c524-480d-b468-c0da6edd983a / 1 | 337d5ffdadcc1b466e6871a3e01e14d3e0a9e90615c260b8fc7dee7cbb74424d |
+| [云崖书屋·整屋精修 V1](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/dbd55e9b-baf6-483b-8a3f-5fd6bc355d49/json?revision=1) | 5372格，38×34×36，完整屋体/石基/园景 | dbd55e9b-baf6-483b-8a3f-5fd6bc355d49 / 1 | f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79 |
 
 两项需要荒野探险家0.89.0及以上的古建部件。展台上传原文件；组合示例用实际解析器展开为cells上传，原模板JSON保留。公开列表可见、published状态、回读文件逐字节和SHA与本地报告一致，发布回执位于`artifacts/digital-study/publication.json`。游戏内可在绘卷“云端→刷新”后下载；Android与真实房间施工仍待验证。
 
 本次没有修改网站、生产数据库结构、游戏运行代码或Mod版本，没有生成新netmod或源码push。现有0.89.0构建/包验证记录继续适用。
+
+整屋V1使用原生与detail平铺cells，无模板展开，仍需要荒野探险家0.89.0及以上。生成、实际导入/24组施工/撤销与最终预览SHA、生产公开回读证据见[整屋记录](../SCIE-Port/docs/YUNYA-REFINED-V1.md)及[机器回执](../SCIE-Port/docs/YUNYA-REFINED-V1.json)。全新条目，原有展台/组合及其他蓝图保持。
