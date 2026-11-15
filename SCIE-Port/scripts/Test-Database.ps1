@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$ProjectRoot,
     [string]$DatabaseDir
@@ -48,6 +48,8 @@ $VanillaFolders = @{
 # them here means any NEW or unknown parent is flagged instead of silently failing
 # at in-game load time. Friendly names are for diagnostics only.
 $KnownVanillaParents = @{
+    '3942e891-6b50-467c-8da5-a15bc63e59e0' = 'AvoidPlayerBehavior (ComponentTemplate)'
+    '9c8f236d-7a27-4cf4-b223-47a87cad977d' = 'LayEggBehavior (ComponentTemplate)'
     '7312ec8c-10c7-4133-85b4-4a35bd44c956' = 'Chest (ComponentTemplate)'
     '09a85cba-d94e-41b8-9497-f20ed942c17e' = 'BlockEntity (ComponentTemplate)'
     '472b36f3-6ee6-442a-900f-b4caba94be39' = 'Boat (ComponentTemplate)'

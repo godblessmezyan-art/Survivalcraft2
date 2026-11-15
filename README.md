@@ -1,4 +1,6 @@
-﻿<div align="center">
+<div align="center">
+
+荒野探险家0.91.0：Blender优化狐狸/兔子/鸡、新增猫，原生自然生成与鸡蛋/觅食行为；[生态说明](SCIE-Port/docs/WILDLIFE-0.91.0.md)。Android/真实联机待验证。
 
 # 🌌 Survivalcraft 2.4 · 生存战争模组开发计划
 

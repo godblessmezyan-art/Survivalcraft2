@@ -1,4 +1,6 @@
-﻿# 移植工程物品展示规范（0.44.0 起强制）
+# 移植工程物品展示规范（0.44.0 起强制）
+
+2026-11-15 / 0.91.0：猫生成器985/DATA0归入SCIEPort.Nature（自然与生物）。狐狸/兔子/鸡生成器原ID与分类保持；原生鸡蛋118类型50隐藏创造蛋列表，玩家由鸡产蛋获得，不移动原版蛋分类。本轮无新神器/特殊套装主题。
 
 2026-11-15 / 0.89.0：古建978–984共28外观全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或神器主题。DefaultCreativeData=0，运行枚举款式；类别/注册/DATA与包字节由Test-Architecture和Test-PortInventory检查。见[古建专项](ANCIENT-ARCHITECTURE.md)。
 

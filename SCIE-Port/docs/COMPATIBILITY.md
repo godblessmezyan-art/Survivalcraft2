@@ -1,4 +1,8 @@
-﻿# SCIE-Port 兼容性记录
+# SCIE-Port 兼容性记录
+
+## 2026-11-15 / 0.91.0：四种动物与原生生态
+
+新增猫生成器985/DATA0、原生蛋118类型50（原生0–49后首个空闲）、共享WildlifePalette；狐狸/兔子原六骨保持，鸡用七骨ComponentBirdModel，原实体GUID保持。自然生成由原生更新线程完成，移除旧区块队列/禁用开关。无新Hook/网络包/依赖，net472/API1.42/单SCIEPort.dll保持。固定Windows目标原生模型导入、有效数据库/蛋/食品与客户端拒绝检查已确认；Android7723和真实Local/Server/Client、旧鸡实体存读档待验证。各端统一0.91.0。[专项](WILDLIFE-0.91.0.md)。
 
 ## 2026-11-15 / 0.89.0：古建细节套件与绘卷detail族
 

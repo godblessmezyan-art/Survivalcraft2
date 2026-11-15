@@ -7,6 +7,8 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="WildlifeNativeProbe.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\Creatures\WildlifeRules.cs" Link="WildlifeRules.cs" />
     <Compile Include="..\..\src\SCIEPort\Features\Ecology\EcologyRules.cs" Link="EcologyRules.cs" />
   </ItemGroup>
 </Project>

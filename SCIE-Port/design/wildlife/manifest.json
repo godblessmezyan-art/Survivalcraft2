@@ -1,0 +1,22 @@
+{
+  "Fox": {
+    "triangles": 762,
+    "bones": 6,
+    "sha256": "26d4d08575f832b25e78d6cc21c9640ddf42bf723f07b563c3a01fb22c016ce9"
+  },
+  "Rabbit": {
+    "triangles": 624,
+    "bones": 6,
+    "sha256": "327a2de30a1258eda3007c05943283154d4230da5b9fd74464bfe0e26f327c64"
+  },
+  "Chicken": {
+    "triangles": 604,
+    "bones": 7,
+    "sha256": "c96d92236f8cdbc0f77c740f455090e782cdee4cfc379fb692c36238c10937bc"
+  },
+  "Cat": {
+    "triangles": 722,
+    "bones": 6,
+    "sha256": "bc6abdf609ef369546a4bb141a8d7304bec9a6624833cd668417ddab9428f4bc"
+  }
+}

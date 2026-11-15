@@ -13,7 +13,7 @@ namespace SCIEPort.Features.Creatures
         private readonly BlockMesh m_mesh = new BlockMesh();
         private static Texture2D s_texture;
 
-        internal static Texture2D Texture => s_texture ?? (s_texture = ContentManager.Get<Texture2D>("Textures/Rabbit"));
+        internal static Texture2D Texture => s_texture ?? (s_texture = ContentManager.Get<Texture2D>("Textures/WildlifePalette"));
 
         /// <inheritdoc />
         public override void Initialize()

@@ -47,7 +47,7 @@ try {
             $types = [Collections.Generic.List[Mono.Cecil.TypeDefinition]]::new()
             function Visit($items) {
                 foreach ($type in $items) {
-                    if ($type.FullName -match '^SCIEPort\.Features\.(Blueprints|Architecture)\.') { $types.Add($type) }
+                    if ($type.FullName -match '^SCIEPort\.Features\.(Blueprints|Architecture|Creatures)\.') { $types.Add($type) }
                     Visit $type.NestedTypes
                 }
             }

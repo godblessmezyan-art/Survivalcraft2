@@ -1,4 +1,31 @@
-﻿# 测试结果
+# 测试结果
+
+## 2026-11-15 / 0.91.0：Blender动物与原生生态
+
+官方Blender MCP/5.1.1独立场景：狐狸762/兔子624/鸡604/猫722三角形，分别6/6/7/6骨与同数网格；保存Blend设计源与三面评审。没有把Blender图称作游戏截图。新猫985、鸡蛋118类型50、共享128×8色板；原实体GUID和生成器927/928/938保持。自然生成从关闭的旧区块队列切换为原生SubsystemCreatureSpawn的Surface注册；更新线程、双客户端拒绝、活体计数与合计2只/帧预算。鸡原生鸟类动画/下蛋，兔子吃草类和果蔬掉落物，猫吃鱼肉并避人，狐狸原生捕猎。
+
+实际环境/命令（根目录；源码快照仅来自本任务索引，未纳入未完成骨龙工作）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:PATH=$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17
+powershell -NoProfile -ExecutionPolicy Bypass -File artifacts/creature-0.91/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir SCIE-Port/artifacts/wildlife-0.91.0
+pwsh -NoProfile -File SCIE-Port/scripts/Test-BlueprintAndroidBcl.ps1 -AndroidBclDir artifacts/celestial-audit/android-bcl -CecilPath D:/Dev/Tools/ilspy/.store/ilspycmd/9.1.0.7988/ilspycmd/9.1.0.7988/tools/net8.0/any/Mono.Cecil.dll -ModDll SCIE-Port/artifacts/wildlife-0.91.0/build/SCIEPort.dll
+```
+
+根/SCIE环境固定Windows哈希及ABI通过；完整最终Release退出0，全部旧回归和包检查通过，三个编译阶段均0警告0错误。日志 `artifacts/creature-0.91/full-build-portable.log`。2712三角形UV/法线/有限数值/绕序/非退化检查，11123生态规则断言；目标Engine.Media.ModelData.Load四模型实际导入；原生Database.xml与全部XDB实际合并后96项有效模型Class/食物/蛋/幂等注册/客户端拒绝检查。蛋表按原生有效继承树遍历，0–50无空洞，类型50恰好为鸡；原生蛋查询和IsLaid DATA往返通过。书柜40网格/五分类807规则及259目标检查/88源行、钓鱼、家居、蓝图、统一书典与其他完整旧回归通过。
+
+初次测试发现继承的鸡蛋营养为0，补0.2后通过；旧发布脚本仍要求废弃的区块队列和立方体面数，升级为当前原生注册/导入/几何检查后重新完整构建。首次Android快照无法解析List.Exists，改普通遍历后最终DLL496个BCL成员0缺失；MVID `6262fe40-a0e0-45bb-8ea9-7a4e78042631`。mscorlib/System/System.Net.Http的哈希与0.90.0快照保持。这是元数据审计，未在Android执行，不把前述失败算通过。
+
+最终包12805659字节、216条目、唯一SCIEPort.dll。相对0.90.0全部214旧条目保留，207逐字节相同；仅modinfo、DLL、Creatures.csv/xdb和三份动物DAE共7项变化，新增Cat.dae和WildlifePalette.png。书柜CSV、钓鱼CSV、书典XDB和已提交骨龙DAE逐字节相同；未完成骨龙改动未打包。原始/0.91.0副本及artifacts根副本四份字节一致。
+
+包SHA256 `2cda9d8e3a039c315222091559d0b1b57a01a5cc0edf8d1495ef4ea36f7eb54b`；DLL SHA256 `1f8673f68fc0416a4bc73b1f3b4761dc43f7a3d2410523aebae665e14337d999`。独立比对记录 `artifacts/creature-0.91/package-check.json`，最终BCL记录 `android-bcl-final.log`。版本0.91.0.0/net472/API1.42保持。
+
+交付前再次fetch origin/main，origin/main、6ba0cc7书柜、20c9879五分类及cb88081钓鱼均为当前main祖先；未覆盖共享工作。源码按规则仅本地main提交，不push；提交尚未到GitHub前不能发布指向旧提交的Release，安装包保留待用户推送。
+
+Android7723画面、触屏图标/分辨率、真实Local/Server/Client、鸡蛋实际产出/孵化、旧鸡重载/存读档与四种动物步态仍**待验证**。兔子低头觅食和吃掉落草/果蔬，不移除地形草皮；未实现专门兔式跳跃。完整生成阈值、权重、自然/手动上限边界见[生态专项](WILDLIFE-0.91.0.md)。
 
 ## 2026-11-15：云崖书屋观景阁楼版V4（运行时仍0.90.0）
 

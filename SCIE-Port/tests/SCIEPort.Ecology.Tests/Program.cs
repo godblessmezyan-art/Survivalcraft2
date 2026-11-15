@@ -12,6 +12,7 @@ namespace SCIEPort.Ecology.Tests
             try
             {
                 TestChunkSeedDeterminism();
+                TestWildlife();
                 TestChunkSeedUsesWorldSeedAndCoordinates();
                 TestSpawnDemandRespectsCeilingAndBudget();
                 TestClampPreventsOverpopulation();
@@ -29,6 +30,30 @@ namespace SCIEPort.Ecology.Tests
                 Console.Error.WriteLine(exception);
                 return 1;
             }
+        }
+
+        private static void TestWildlife()
+        {
+            for (int species=0;species<4;species++)
+            {
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.Habitat(species,8,8,65,true,true),"Mild open grassland accepted");
+                Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(species,8,8,65,false,true),"Buildings rejected");
+                Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(species,8,8,65,true,false),"Buried/wet/obstructed point rejected");
+                Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(species,0,0,65,true,true),"Frozen desert rejected");
+                Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(species,8,8,253,true,true),"Height boundary rejected");
+                for(int alive=0;alive<=45;alive++) for(int frame=0;frame<=3;frame++) for(int request=1;request<=5;request++)
+                {
+                    int count=SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species,alive,frame,request);
+                    Assert(count>=0 && count<=request,"Finite group");
+                    Assert(count==0 || count+alive<=SCIEPort.Features.Creatures.WildlifeRules.Caps[species],"Alive population ceiling");
+                    Assert(count==0 || count+frame<=2,"Shared two-per-frame budget");
+                }
+                int cap=SCIEPort.Features.Creatures.WildlifeRules.Caps[species];
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species,cap,0,1)==0,"Full population stops");
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species,cap-1,0,1)==1,"Removal/death makes room");
+            }
+            Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(-1,8,8,65,true,true),"Unknown species rejected");
+            Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(4,0,0,1)==0,"Unknown spawn rejected");
         }
 
         private static void TestChunkSeedDeterminism()
