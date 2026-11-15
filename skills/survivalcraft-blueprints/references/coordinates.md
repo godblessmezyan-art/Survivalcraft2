@@ -1,0 +1,13 @@
+# Target-game front and preview parity
+
+The 2026-11-15 Yunya V1 preview accidentally reflected the house by mapping game(x,y,z) to Blender(x,z,y), a determinant -1 axis swap. Its small-X annex appeared on the preview's left, but on the right in the game. The importer was faithful: zero rotation/no mirror is identity, then BuildPlanner adds the anchor.
+
+For a facade facing -Z, view it from outside -Z toward +Z with up +Y. The actual target Engine.Matrix.CreateLookAt returns view-right -X. Therefore **screen-left is larger game X**, screen-right is smaller X. Use an explicit viewer-local U axis if convenient, then map increasing U to game -X when exporting. Transform directional DATA with positions; never negate just one geometry coordinate and ignore door hinges, roof/window quarter pieces or furniture facing.
+
+A proper game-to-Blender rotation is `(x,-z,y)`, determinant +1. Apply the same map to vertices, object positions, cameras, targets and lights. Convert winding appropriately (game meshes use clockwise front faces; native Blender/DAE conventions differ). Do not repair a wrong preview by flipping only the camera or delivered PNG.
+
+For asymmetric houses, test independent semantic landmarks with the actual Engine view matrix, then compare their projected order in the actual preview camera: for Yunya compact, tea < main < right platform in screen X. Compare the actual imported cells/plan, not just four-rotation or double-mirror round trips, which pass even when the author's left/right convention is wrong.
+
+SCIE-Port/scripts/New-YunyaCompact.py is the compact-house authoring example; Render-YunyaRefined.py now uses the proper rotation and records camera/projection checks. Existing V1 pictures are historical and do not establish game orientation. Preserve scope decisions: the compact version has no stairs or scenery, a recessed left tea room with front moon window and aligned rear wall, an interior wooden door, a glazed main front without a door, and connected front-right/side platforms.
+
+The `home` codec added in 0.90.0 covers only the audited types/DATA in SCIE-Port/docs/home-blueprint-capabilities.json. It reflects canonical facing; intrinsic book arrangements and atlas graphics retain their existing variant. Storage, paired/2x2 furniture, hidden occupancy cells and asymmetric sofa modules remain excluded. Use actual single-cell custom shelves rather than faking unsupported big-bookcase roots or IDs.

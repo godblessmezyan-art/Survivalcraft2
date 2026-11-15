@@ -1,5 +1,9 @@
 # 书架与书籍方块：0.88.0
 
+## 2026-11-15 / 0.90.0绘卷适配
+
+单格BookshelfBlock973和BookPileBlock976现可作为home族导入、复制、旋转、保存及分批施工/撤销。使用原模型、款式和朝向，不冒充原生cube。高书架974、大书柜975、隐藏963/977仍不可用于蓝图cells。精确DATA见[home能力矩阵](home-blueprint-capabilities.json)；实际建筑示例和验证见[YUNYA-COMPACT-V2.md](YUNYA-COMPACT-V2.md)。
+
 2026-11-14 新增纯装饰书架系列：单格书架、两格高书架、2×2 大书柜和地面书堆。四类根方块均可合成并在创造栏「建造与家居」（`SCIEPort.Structures`）取得；没有储物、坐姿、睡眠、照明或交互，不改变任何旧 ID/DATA/配方/网络包。
 
 ![说明：本页没有外部美术资源；模型为运行时程序化网格，尚未在 Android 实机截图]

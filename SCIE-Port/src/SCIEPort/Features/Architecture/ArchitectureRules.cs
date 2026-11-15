@@ -6,7 +6,7 @@ namespace SCIEPort.Features.Architecture
         internal const int Roof = 978, Timber = 979, Window = 980, Lantern = 981, Tea = 982, Garden = 983, Telescope = 984;
         internal static readonly string[] Types = { "AncientRoofBlock", "AncientTimberBlock", "AncientWindowBlock", "AncientLanternBlock", "AncientTeaBlock", "AncientGardenBlock", "AncientTelescopeBlock" };
         private static readonly string[][] Names = {
-            new[] { "叠瓦坡面", "屋脊", "平檐", "翘檐", "转角檐" },
+            new[] { "叠瓦坡面", "屋脊", "平檐", "翘檐", "转角檐", "封边坡面" },
             new[] { "木柱", "横梁", "檐下托木", "木斜撑", "木栏" },
             new[] { "格栅玻璃窗", "木格窗", "月窗左上", "月窗右上", "月窗左下", "月窗右下" },
             new[] { "吊灯笼", "壁灯笼", "座灯笼" },

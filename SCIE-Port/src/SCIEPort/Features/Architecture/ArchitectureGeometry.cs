@@ -34,7 +34,7 @@ namespace SCIEPort.Features.Architecture
         }
         private static void Roof(Builder b, int v)
         {
-            if (v == 0)
+            if (v == 0 || v == 5)
             {
                 // A 1:1 rise, with thin, overlapping tile courses rather than a solid stair.
                 for (int i = 0; i < 8; i++)
@@ -44,6 +44,7 @@ namespace SCIEPort.Features.Architecture
                     for (int j = 0; j < 4; j++)
                         b.Slope(j * .25f + .012f, j * .25f + .032f, z0, z1, .092f + .88f * z0, .092f + .88f * z1, .016f, Dark, false);
                 }
+                if (v == 5) b.Wedge(Wood);
             }
             else if (v == 1)
             {
@@ -98,7 +99,7 @@ namespace SCIEPort.Features.Architecture
                 b.Box(.38f, .08f, .36f, .62f, .8f, .64f, Wood);
                 for (int i = 0; i < 3; i++) b.Box(.28f - .1f * i, .36f + .17f * i, .18f - .07f * i, .72f + .1f * i, .5f + .17f * i, .82f + .07f * i, i == 1 ? Trim : Wood);
             }
-            else if (v == 3) b.Beam(new Vector3(.5f, .1f, .1f), new Vector3(.5f, .9f, .9f), .15f, Wood);
+            else if (v == 3) b.Beam(new Vector3(.5f, .05f, .05f), new Vector3(.5f, .95f, .95f), .14f, Wood);
             else
             {
                 b.Box(.03f, 0, .43f, .15f, .92f, .57f, Wood);
@@ -282,6 +283,8 @@ namespace SCIEPort.Features.Architecture
                 => Solid(new[] { new Vector3(x0,y0,z0),new Vector3(x1,y0,z0),new Vector3(x1,y1,z0),new Vector3(x0,y1,z0),new Vector3(x0,y0,z1),new Vector3(x1,y0,z1),new Vector3(x1,y1,z1),new Vector3(x0,y1,z1) },color,collision,glass,glow);
             internal void Slope(float x0, float x1, float z0, float z1, float y0, float y1, float thick, Color color, bool collision = true)
                 => Solid(new[] { new Vector3(x0,y0,z0),new Vector3(x1,y0,z0),new Vector3(x1,y0+thick,z0),new Vector3(x0,y0+thick,z0),new Vector3(x0,y1,z1),new Vector3(x1,y1,z1),new Vector3(x1,y1+thick,z1),new Vector3(x0,y1+thick,z1) },color,collision,false,false);
+            internal void Wedge(Color color)
+                => Solid(new[] { new Vector3(0,0,0),new Vector3(1,0,0),new Vector3(1,.035f,0),new Vector3(0,.035f,0),new Vector3(0,0,1),new Vector3(1,0,1),new Vector3(1,.915f,1),new Vector3(0,.915f,1) },color,true,false,false);
             internal void Extrude(Vector2 a, Vector2 b, Vector2 c, Vector2 d, float z0, float z1, Color color)
                 => Solid(new[] { new Vector3(a.X,a.Y,z0),new Vector3(b.X,b.Y,z0),new Vector3(c.X,c.Y,z0),new Vector3(d.X,d.Y,z0),new Vector3(a.X,a.Y,z1),new Vector3(b.X,b.Y,z1),new Vector3(c.X,c.Y,z1),new Vector3(d.X,d.Y,z1) },color,true,false,false);
             internal void Beam(Vector3 a, Vector3 b, float width, Color color, bool collision = true)

@@ -19,3 +19,7 @@
 本次没有修改网站、生产数据库结构、游戏运行代码或Mod版本，没有生成新netmod或源码push。现有0.89.0构建/包验证记录继续适用。
 
 整屋V1使用原生与detail平铺cells，无模板展开，仍需要荒野探险家0.89.0及以上。生成、实际导入/24组施工/撤销与最终预览SHA、生产公开回读证据见[整屋记录](../SCIE-Port/docs/YUNYA-REFINED-V1.md)及[机器回执](../SCIE-Port/docs/YUNYA-REFINED-V1.json)。全新条目，原有展台/组合及其他蓝图保持。
+
+## 2026-11-15：紧凑书屋V2
+
+[云崖书屋·紧凑版 V2](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/a68aa002-ed37-4057-bb15-820768212628/json?revision=1)：1175根格，20×16×15，需要荒野探险家0.90.0；ID a68aa002-ed37-4057-bb15-820768212628 / revision1 / SHA256 a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25。正常管理员API新建并发布，匿名目录/详情/文件字节回读通过，保留V1和所有旧蓝图。方向与家具能力、包指纹见[紧凑版记录](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。

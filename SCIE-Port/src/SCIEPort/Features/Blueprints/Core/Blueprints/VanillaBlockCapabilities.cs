@@ -40,6 +40,7 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
 
         public bool IsValidData(int data)
         {
+            if (Family == BlockFamily.Home) return SCIEPort.Features.Blueprints.HomeBlueprintRules.Valid(TypeName, data);
             if (Family == BlockFamily.Detail)
                 return SCIEPort.Features.Architecture.ArchitectureRules.Valid(SCIEPort.Features.Architecture.ArchitectureRules.Id(TypeName), data);
             return BlockOrientation.IsValidAuthoredData(Family, data) &&
@@ -192,6 +193,7 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             AddMany(d, BlockFamily.Cairn, BlockCapabilityKind.Attached, new[] { "CairnBlock" });
             // SCIEPort-owned stateless parts. Runtime registry verifies their exact owning assembly.
             AddMany(d, BlockFamily.Detail, BlockCapabilityKind.Oriented, SCIEPort.Features.Architecture.ArchitectureRules.Types);
+            AddMany(d, BlockFamily.Home, BlockCapabilityKind.Oriented, SCIEPort.Features.Blueprints.HomeBlueprintRules.Types);
             return d;
         }
 

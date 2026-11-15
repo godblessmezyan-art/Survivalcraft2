@@ -49,8 +49,9 @@ namespace SCIEPort.Features.Blueprints
             {
                 Block block=null;
                 bool detail = capability.Family == BlockFamily.Detail;
-                System.Reflection.Assembly owner = detail ? typeof(SCIEPort.Features.Architecture.ArchitectureBlock).Assembly : typeof(Block).Assembly;
-                string fullName = (detail ? "SCIEPort.Features.Architecture." : "Game.") + capability.TypeName;
+                bool home = capability.Family == BlockFamily.Home;
+                System.Reflection.Assembly owner = detail || home ? typeof(SCIEPort.Features.Architecture.ArchitectureBlock).Assembly : typeof(Block).Assembly;
+                string fullName = (detail ? "SCIEPort.Features.Architecture." : home ? "SCIEPort.Features.Home." : "Game.") + capability.TypeName;
                 foreach(var candidate in BlocksManager.Blocks)
                     if(candidate!=null && candidate.GetType().Assembly==owner && candidate.GetType().FullName==fullName) { block=candidate;break; }
                 if (block != null &&
@@ -68,6 +69,7 @@ namespace SCIEPort.Features.Blueprints
         {
             switch (family)
             {
+                case BlockFamily.Home: return block is SCIEPort.Features.Home.HomeBlock && block.BlockIndex == HomeBlueprintRules.Id(block.GetType().Name);
                 case BlockFamily.Detail: return block is SCIEPort.Features.Architecture.ArchitectureBlock && block.BlockIndex == SCIEPort.Features.Architecture.ArchitectureRules.Id(block.GetType().Name);
                 case BlockFamily.Cube: return block is CubeBlock;
                 case BlockFamily.Stairs: return block is StairsBlock;

@@ -1,6 +1,6 @@
 {
   "mod": "SCIEPort",
-  "minVersion": "0.89.0",
+  "minVersion": "0.90.0",
   "schemaVersion": 3,
   "family": "detail",
   "data": "rotation | (mirrorX ? 4 : 0) | (variant << 3)",
@@ -29,6 +29,10 @@
         {
           "variant": 4,
           "name": "转角檐"
+        },
+        {
+          "variant": 5,
+          "name": "封边坡面"
         }
       ],
       "allowedData": [
@@ -71,7 +75,15 @@
         36,
         37,
         38,
-        39
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
       ]
     },
     {
@@ -398,5 +410,6 @@
         7
       ]
     }
-  ]
+  ],
+  "modVersion": "0.90.0"
 }

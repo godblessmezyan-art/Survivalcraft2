@@ -22,7 +22,7 @@ internal static partial class BlueprintTests
             BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0};
             foreach(var cap in VanillaBlockCapabilities.All)
             {
-                Type type=cap.Family==BlockFamily.Detail?typeof(ArchitectureBlock).Assembly.GetType("SCIEPort.Features.Architecture."+cap.TypeName,true):typeof(Block).Assembly.GetType("Game."+cap.TypeName,true);
+                Type type=cap.Family==BlockFamily.Detail?typeof(ArchitectureBlock).Assembly.GetType("SCIEPort.Features.Architecture."+cap.TypeName,true):cap.Family==BlockFamily.Home?typeof(ArchitectureBlock).Assembly.GetType("SCIEPort.Features.Home."+cap.TypeName,true):typeof(Block).Assembly.GetType("Game."+cap.TypeName,true);
                 int id=(int)type.GetField("Index",BindingFlags.Public|BindingFlags.Static|BindingFlags.FlattenHierarchy).GetRawConstantValue();
                 var block=(Block)Activator.CreateInstance(type);block.BlockIndex=id;BlocksManager.Blocks[id]=block;
             }
@@ -30,6 +30,7 @@ internal static partial class BlueprintTests
             var parsed=BlueprintImportService.FromString(File.ReadAllText(path),palette.IsResolvableKey);
             Check(parsed.Success,parsed.Detail??"actual blueprint import");
             var bp=parsed.Blueprint;var original=BlueprintJson.Serialize(bp);
+            if(bp.Name.Contains("紧凑版"))CompactFacingAudit(bp);
             var byPosition=new Dictionary<CellPos,BlueprintCell>();foreach(var cell in bp.Cells)byPosition.Add(cell.Relative,cell);
             foreach(var cell in bp.Cells)
             {

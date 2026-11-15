@@ -94,7 +94,7 @@ internal static partial class BlueprintTests
             var bp = SCIEPort.Features.Blueprints.Core.Blueprints.Blueprint.Normalize("古建细节套件", 3, cells);
             var imported = BlueprintImportService.FromString(BlueprintJson.Serialize(bp), null);
             Check(imported.Success && imported.Blueprint.CellCount == cells.Count, "detail JSON serialization and import");
-            Check(!BlueprintImportService.FromString("{\"schemaVersion\":3,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"AncientRoofBlock\",\"f\":\"detail\",\"d\":40}]}", null).Success, "undefined roof variant rejected at import");
+            Check(!BlueprintImportService.FromString("{\"schemaVersion\":3,\"cells\":[{\"x\":0,\"y\":0,\"z\":0,\"key\":\"AncientRoofBlock\",\"f\":\"detail\",\"d\":48}]}", null).Success, "undefined roof variant rejected at import");
             foreach (BlueprintCell cell in cells) { string error; Check(palette.TryValidateCell(cell, out error), "exact owned CLR type activates material"); }
             foreach (var role in new[] { WorkType.Local, WorkType.Server, WorkType.Client })
             {

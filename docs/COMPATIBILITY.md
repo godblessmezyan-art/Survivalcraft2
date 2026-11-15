@@ -1,5 +1,9 @@
 ﻿# 兼容性矩阵
 
+## 2026-11-15 / 0.90.0：紧凑书屋与家具蓝图
+
+新增home族，仅960/961/973/976精确类型与允许DATA，均为单格非储物；不新增ID、Hook、XDB或协议。978新增variant5封边坡面/DATA40–47，979斜撑接缝调整，古建29外观/232状态。net472/API1.42/单SCIEPort.dll保持。固定Windows环境、完整Release/214条目统一包、实际导入/施工/撤销、原生ID7与相机左右、Android BCL快照检查已确认；Android7723与真实Local/Server/Client待验证。Builder Assistant不支持home/detail。完整指纹及命令见[紧凑版记录](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。
+
 ## 2026-11-15：云崖书屋整屋蓝图V1（运行时仍0.89.0）
 
 5372格/38×34×36的原生+detail平铺蓝图，未改运行时代码、方块、ABI、Hook、包布局或版本。固定Windows哈希/环境、实际0.89.0 DLL导入/逐格能力校验、24组朝向/三角色内存地形施工/撤销、每帧32写入及取消/异常回滚/非空气保护/高度边界、生产公开JSON字节回读**已确认**。Android7723画面、碰撞/通行、游戏内云端下载及真实Local/Server/Client**待验证**。预览为实际古建网格与原生方块近似材质的Blender评审图，不能代替游戏证据。无新netmod/Release，既有0.89.0包结论保持，Builder Assistant不支持本蓝图detail材料。见[设计和精确指纹](../SCIE-Port/docs/YUNYA-REFINED-V1.md)。

@@ -1,5 +1,9 @@
 ﻿# Builder Assistant 蓝图方块能力清单 v0.25.2
 
+## 2026-11-15 / 荒野探险家0.90.0
+
+独立绘卷新增home族，只允许BookshelfBlock973三款、BookPileBlock976四款、HomeSofaBlock960款式0/2、HomeCoffeeTableBlock961；DATA=variant×8+rotation，rotation0..3、bit2禁止，严格按材料矩阵。只有973/976由原禁止转为支持；974/975/977及963 bit7、储物/多格家居仍禁止。978 variant5/DATA40–47为新增封边坡面，旧0..4保持；979斜撑接缝改变。详见[home精确能力](../SCIE-Port/docs/home-blueprint-capabilities.json)、[古建矩阵](../SCIE-Port/docs/architecture-block-capabilities.json)和[紧凑版](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。Builder Assistant原版能力表与版本不变。-Z正面看左侧为较大游戏X；预览必须用(x,-z,y)而不是交换YZ。
+
 2026-11-15：新增荒野探险家整屋示例[云崖书屋V1](../SCIE-Port/docs/YUNYA-REFINED-V1.md)：5372格/38×34×36，schema3平铺cells，0.89.0真实导入/材料校验、24组朝向/三角色模拟施工/撤销和数字书房字节回读通过。仅组合现有原生与detail能力，无新key/族/DATA/模板；Builder Assistant不支持detail，973–977及963 bit7仍禁止写入。Android及真实房间待验证。
 
 2026-11-15：用户要求蓝图生成并验证后默认发布到数字书房。遵循[生成/发布技能](../skills/survivalcraft-blueprints/SKILL.md)及[发布契约与记录](BLUEPRINT-PUBLISHING.md)。网站当前仍最多10000格/每轴64，仅认识旧10模板；新古建模板需用实际绘卷解析器展开成cells上传副本，不能篡改family或DATA。此条不改变两工程的方块能力。

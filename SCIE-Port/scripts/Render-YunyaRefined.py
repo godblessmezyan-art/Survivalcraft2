@@ -6,20 +6,24 @@ import json
 import math
 from pathlib import Path
 import sys
+import xml.etree.ElementTree as ET
 import bpy
 from mathutils import Vector
 
-p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--parts',type=Path,required=True)
+p=argparse.ArgumentParser();p.add_argument('--source',type=Path,required=True);p.add_argument('--parts',type=Path,required=True);p.add_argument('--home-parts',type=Path)
 p.add_argument('--view',choices=['hero','front','east','interior'],default='hero');p.add_argument('--draft',action='store_true')
 args=p.parse_args(sys.argv[sys.argv.index('--')+1:])
-folder=args.source.resolve();source=folder/'yunya-refined-v1.json'
-blueprint=json.loads(source.read_text(encoding='utf-8'));manifest=json.loads((folder/'manifest.json').read_text(encoding='utf-8'))
+folder=args.source.resolve();manifest=json.loads((folder/'manifest.json').read_text(encoding='utf-8'))
+source=folder/manifest.get('sourceFile','yunya-refined-v1.json')
+blueprint=json.loads(source.read_text(encoding='utf-8'))
 parts={(s['id'],s['data']>>3):s for s in json.loads(args.parts.read_text(encoding='utf-8-sig'))}
+if args.home_parts:parts.update({(s['id'],s['data']>>3):s for s in json.loads(args.home_parts.read_text(encoding='utf-8-sig'))})
 types=['Roof','Timber','Window','Lantern','Tea','Garden','Telescope']
 part_ids={'Ancient'+name+'Block':978+i for i,name in enumerate(types)}
+part_ids.update({'BookshelfBlock':973,'BookPileBlock':976})
 def visible(c):
     group=manifest['cellGroups'][f"{c['x']},{c['y']},{c['z']}"]
-    return not (args.view=='interior' and (group in ('roof','veranda_roof','eave_brackets','snow_pines','attic') or (group=='west_annex' and c['y']>=17) or (group=='timber_plaster' and c['y']>=18)))
+    return not (args.view=='interior' and (group in ('roof','tea_roof','brackets','veranda_roof','eave_brackets','snow_pines','attic') or (group=='west_annex' and c['y']>=17) or (group=='timber_plaster' and c['y']>=18)))
 cells={(c['x'],c['y'],c['z']):c for c in blueprint['cells'] if visible(c)}
 scene=bpy.data.scenes.new('YunyaRefined_'+args.view)
 if bpy.context.window:bpy.context.window.scene=scene
@@ -97,7 +101,7 @@ def material(key,d=0,vertex=False,glass=False):
 
 
 native=defaultdict(lambda:[[],[]]);detail_cache={};lamps=[];rendered=0
-def game_point(v):return (v[0],v[2],v[1])
+def game_point(v):return (v[0],-v[2],v[1]) # Proper +90 X rotation, determinant +1, never an axis swap.
 
 
 def cube(c,bounds=(0,0,0,1,1,1),full=False):
@@ -121,16 +125,53 @@ def part_mesh(key,d,index):
         x,y,z=v[:3]
         if d&4:x=1-x
         for _ in range(d&3):x,z=z,1-x
-        vertices.append((x,z,y))
+        vertices.append(game_point((x,y,z)))
     polys=[]
     for i in range(0,len(sample['indices']),3):
-        a,b,c=sample['indices'][i:i+3];polys.append((a,c,b) if d&4 else (a,b,c))
+        a,b,c=sample['indices'][i:i+3];polys.append((a,b,c) if d&4 else (a,c,b))
     mesh=bpy.data.meshes.new('CSharp_'+key+'_'+str(d)+'_'+str(index));mesh.from_pydata(vertices,[],polys);mesh.update()
     attr=mesh.color_attributes.new(name='GameVertexColor',type='FLOAT_COLOR',domain='CORNER');glow=mesh.color_attributes.new(name='GameGlow',type='FLOAT_COLOR',domain='CORNER')
     for i,loop in enumerate(mesh.loops):
         v=sample['vertices'][loop.vertex_index];rgb=tuple(map(linear,v[3:6]));attr.data[i].color=(*rgb,v[6]/255)
         glow.data[i].color=(*rgb,1) if key=='AncientLanternBlock' and v[3]>240 and v[4]>160 else (0,0,0,1)
     mesh.materials.append(material(key,vertex=True,glass=index==1));detail_cache[cache]=mesh;return mesh
+
+
+home_cache={}
+def home_mesh(key,d):
+    if key in part_ids:return part_mesh(key,d,0)
+    if (key,d) in home_cache:return home_cache[(key,d)]
+    asset_root=Path(__file__).resolve().parents[1]/'src/SCIEPort/Assets'
+    model='HomeSofa'+str(d>>3) if key=='HomeSofaBlock' else 'HomeCoffeeTable'
+    root=ET.parse(asset_root/'Models'/(model+'.dae')).getroot();ns={'c':root.tag.split('}')[0][1:]}
+    vertices=[];polys=[];uvs=[]
+    for geo in root.findall('.//c:mesh',ns):
+        sources={}
+        for source_node in geo.findall('c:source',ns):
+            values=list(map(float,source_node.find('c:float_array',ns).text.split()))
+            stride=int(source_node.find('.//c:accessor',ns).get('stride'))
+            sources[source_node.get('id')]=[values[i:i+stride] for i in range(0,len(values),stride)]
+        aliases={v.get('id'):v.find('c:input',ns).get('source')[1:] for v in geo.findall('c:vertices',ns)}
+        for triangles in geo.findall('c:triangles',ns):
+            inputs={i.get('semantic'):(int(i.get('offset')),i.get('source')[1:]) for i in triangles.findall('c:input',ns)}
+            stride=max(i[0] for i in inputs.values())+1;indices=list(map(int,triangles.find('c:p',ns).text.split()))
+            vo,vs=inputs['VERTEX'];uo,us=inputs['TEXCOORD'];vs=aliases.get(vs,vs)
+            for start in range(0,len(indices),stride*3):
+                face=[]
+                for corner in range(3):
+                    offset=start+corner*stride;x,y,z=sources[vs][indices[offset+vo]]
+                    for _ in range(d&3):x,z=z,-x
+                    face.append(len(vertices));vertices.append(game_point((x+.5,y,z+.5)))
+                    u,v=sources[us][indices[offset+uo]];uvs.append((u,1-v))
+                polys.append(tuple(face))
+    mesh=bpy.data.meshes.new('ActualDAE_'+model+'_'+str(d));mesh.from_pydata(vertices,[],polys);mesh.update()
+    uv=mesh.uv_layers.new(name='HomeUV')
+    for loop in mesh.loops:uv.data[loop.index].uv=uvs[loop.vertex_index]
+    mat=bpy.data.materials.new('ActualAtlas_'+model);mat.use_nodes=True
+    tex=mat.node_tree.nodes.new('ShaderNodeTexImage');tex.image=bpy.data.images.load(str(asset_root/'Textures/HomeFurniture.png'),check_existing=True)
+    shader=mat.node_tree.nodes.get('Principled BSDF');shader.inputs['Roughness'].default_value=.75
+    mat.node_tree.links.new(tex.outputs['Color'],shader.inputs['Base Color']);mesh.materials.append(mat)
+    home_cache[(key,d)]=mesh;return mesh
 
 
 for c in blueprint['cells']:
@@ -140,9 +181,12 @@ for c in blueprint['cells']:
     if f=='detail':
         for index in (0,1):
             if not parts[(part_ids[key],d>>3)]['parts'][index]['vertices']:continue
-            obj=bpy.data.objects.new('GEO_'+group+'_'+str(rendered)+'_'+str(index),part_mesh(key,d,index));collection.objects.link(obj);obj.location=(c['x'],c['z'],c['y'])
+            obj=bpy.data.objects.new('GEO_'+group+'_'+str(rendered)+'_'+str(index),part_mesh(key,d,index));collection.objects.link(obj);obj.location=game_point((c['x'],c['y'],c['z']))
         # Keep the review light outside the opaque luminous mesh so it can illuminate the room.
-        if key=='AncientLanternBlock':lamps.append((c['x']+.5,c['z']+.5,c['y']+(.10 if d>>3 in (0,1) else .9)))
+        if key=='AncientLanternBlock':lamps.append(game_point((c['x']+.5,c['y']+(.10 if d>>3 in (0,1) else .9),c['z']+.5)))
+    elif f=='home':
+        mesh=home_mesh(key,d);obj=bpy.data.objects.new('GEO_home_'+str(rendered),mesh);collection.objects.link(obj);obj.location=game_point((c['x'],c['y'],c['z']))
+    elif f=='door':cube(c,(.43,0,0,.57,2,1) if d&1 else (0,0,.43,1,2,.57))
     elif f=='slab':cube(c,(0,.5 if d&1 else 0,0,1,1 if d&1 else .5,1))
     elif f=='stairs':
         cube(c,(0,0,0,1,.5,1));bounds=((0,.5,0,1,1,.5),(0,.5,0,.5,1,1),(0,.5,.5,1,1,1),(.5,.5,0,1,1,1))[d&3];cube(c,bounds)
@@ -152,7 +196,7 @@ for c in blueprint['cells']:
         cube(c,(.46,0,.46,.54,.7,.54));cube(c,(.20,.6,.35,.80,.75,.65));cube(c,(.35,.6,.20,.65,.75,.80))
     else:
         cube(c,full=True)
-        if key=='WickerLampBlock':lamps.append((c['x']+.5,c['z']+.5,c['y']+1.15))
+        if key=='WickerLampBlock':lamps.append(game_point((c['x']+.5,c['y']+1.15,c['z']+.5)))
 
 for (key,d),(verts,polys) in native.items():
     if not polys:continue
@@ -162,14 +206,16 @@ for i,location in enumerate(lamps):
     data=bpy.data.lights.new('LGT_practical_'+str(i),'POINT');data.energy=280;data.color=(1,.53,.19);data.shadow_soft_size=.25
     obj=bpy.data.objects.new(data.name,data);collection.objects.link(obj);obj.location=location
 
-target=Vector((20,17,16));sun=bpy.data.lights.new('LGT_sunset','SUN');sun.energy=2.4;sun.angle=math.radians(8);sun.color=(1,.83,.65)
+sx,sy,sz=(manifest['size'][a] for a in 'xyz');target=Vector(game_point((sx/2,sy*.43,sz/2)))
+sun=bpy.data.lights.new('LGT_sunset','SUN');sun.energy=2.4;sun.angle=math.radians(8);sun.color=(1,.83,.65)
 obj=bpy.data.objects.new(sun.name,sun);collection.objects.link(obj);obj.rotation_euler=(.55,-.35,-.65)
-for name,pos,energy,tint in [('key',(60,-45,55),24000,(1,.83,.63)),('fill',(-30,-8,38),7000,(.78,.86,1))]:
+for name,pos,energy,tint in [('key',(-30,35,-25),12000,(1,.83,.63)),('fill',(35,25,-10),5000,(.78,.86,1))]:
     data=bpy.data.lights.new('LGT_'+name,'AREA');data.energy=energy;data.size=30;data.color=tint
-    obj=bpy.data.objects.new(data.name,data);collection.objects.link(obj);obj.location=pos;obj.rotation_euler=(target-obj.location).to_track_quat('-Z','Y').to_euler()
-camdata=bpy.data.cameras.new('CAM_'+args.view);camdata.type='ORTHO';camdata.ortho_scale=54 if args.view=='hero' else 49
+    obj=bpy.data.objects.new(data.name,data);collection.objects.link(obj);obj.location=game_point(pos);obj.rotation_euler=(target-obj.location).to_track_quat('-Z','Y').to_euler()
+camdata=bpy.data.cameras.new('CAM_'+args.view);camdata.type='ORTHO';camdata.ortho_scale=max(sx,sz,sy)*1.55
 cam=bpy.data.objects.new(camdata.name,camdata);collection.objects.link(cam);scene.camera=cam
-cam.location={'hero':(100,-85,53),'front':(20,-115,19),'east':(135,17,20),'interior':(90,-80,115)}[args.view]
+camera_game={'hero':(-sx*2,sy*1.8,-sz*3),'front':(sx/2,sy*.45,-sz*5),'east':(-sx*5,sy*.45,sz/2),'interior':(-sx*1.8,sy*4,-sz*3)}[args.view]
+cam.location=game_point(camera_game)
 cam.rotation_euler=(target-cam.location).to_track_quat('-Z','Y').to_euler()
 scene.render.engine='CYCLES';scene.cycles.samples=16 if args.draft else 48;scene.cycles.use_denoising=True;scene.cycles.max_bounces=6;scene.cycles.transparent_max_bounces=20
 scene.render.resolution_x=1000 if args.draft else 1800;scene.render.resolution_y=950 if args.draft else 1600;scene.render.resolution_percentage=100
@@ -177,7 +223,15 @@ scene.view_settings.view_transform='AgX';scene.render.image_settings.file_format
 assert scene.camera is not None
 bpy.ops.wm.save_as_mainfile(filepath=str(folder/('yunya-'+args.view+'.blend')))
 report={'blueprintSha256':hashlib.sha256(source.read_bytes()).hexdigest(),'blenderVersion':bpy.app.version_string,'renderedCells':rendered,'view':args.view,
-        'source':'final JSON; C# detail meshes, approximate native block shapes/materials; no render-only geometry',
+        'source':'final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials',
+        'gameToBlender':'(x,-z,y); determinant +1; native Engine screen-left/right preserved','cameraGame':camera_game,
         'partsSha256':hashlib.sha256(args.parts.read_bytes()).hexdigest(),'camera':{'location':list(cam.location),'target':list(target),'orthoScale':camdata.ortho_scale}}
+if manifest.get('landmarks') and args.view in ('hero','front','interior'):
+    from bpy_extras.object_utils import world_to_camera_view
+    bpy.context.view_layer.update()
+    screen={name:list(world_to_camera_view(scene,cam,Vector(game_point(position)))) for name,position in manifest['landmarks'].items()}
+    assert screen['tea'][0]<screen['main'][0]<screen['rightPlatform'][0],screen
+    report['landmarkScreenCoordinates']=screen
+    report['frontLeftRightAudit']='PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit'
 (folder/(args.view+'-render.json')).write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
 bpy.ops.render.render(write_still=True,scene=scene.name)
