@@ -1,0 +1,73 @@
+{
+  "fox": {
+    "vertices": 264,
+    "triangles": 132,
+    "mesh_chunks": 1,
+    "nodes": 10,
+    "weighted_bones": 8,
+    "animated_nodes": 9,
+    "bone_names": [
+      "Torso",
+      "Neck",
+      "Head",
+      "Leg.Rear.R",
+      "Leg.Front.R",
+      "Leg.Rear.L",
+      "Leg.Front.L",
+      "Tail"
+    ],
+    "texture_size": [
+      64,
+      64
+    ],
+    "unique_uv_coordinates_rounded_6dp": 135,
+    "max_positive_weights_per_vertex": 1
+  },
+  "cat": {
+    "vertices": 312,
+    "triangles": 156,
+    "mesh_chunks": 1,
+    "nodes": 15,
+    "weighted_bones": 8,
+    "animated_nodes": 14,
+    "bone_names": [
+      "Torso",
+      "Neck",
+      "Head",
+      "Tail",
+      "Leg.R",
+      "Arm.R",
+      "Leg.L",
+      "Arm.L"
+    ],
+    "texture_size": [
+      64,
+      64
+    ],
+    "unique_uv_coordinates_rounded_6dp": 141,
+    "max_positive_weights_per_vertex": 1
+  },
+  "chicken": {
+    "vertices": 408,
+    "triangles": 204,
+    "mesh_chunks": 1,
+    "nodes": 9,
+    "weighted_bones": 7,
+    "animated_nodes": 8,
+    "bone_names": [
+      "Torso",
+      "Tail",
+      "Wing.R",
+      "Wing.L",
+      "Leg.R",
+      "Leg.L",
+      "Head"
+    ],
+    "texture_size": [
+      64,
+      64
+    ],
+    "unique_uv_coordinates_rounded_6dp": 117,
+    "max_positive_weights_per_vertex": 1
+  }
+}

@@ -1,5 +1,7 @@
 # 荒野探险家 0.91.0：狐狸、鸡、兔子与猫
 
+2026-11-16：按用户反馈完成[Animalia开源生物设计拆解与后续美术规范](CREATURE-ART-GUIDE.md)，含实际B3D/UV/权重统计和同条件研究图。后续重做按该规范开展；当前0.91.0运行资源保持原状。
+
 本轮使用 text-to-blender、blender-skill-harmonizer、blender-pro-workflow、modeling/materials/UV/cameras/lighting/rendering 技能。官方 Blender MCP，Blender 5.1.1；启动本机已有的官方后台服务，不改变插件配置。保留原场景，在 Wildlife-0.91 独立场景制作。源脚本 `scripts/New-WildlifeBlender.py`，原创几何和128×8共享色板，无第三方模型/贴图。游戏(x,y,z)到Blender(x,-z,y)，行列式+1；按原生骨骼局部坐标导出DAE。模型、UV、三面评审、原生导入、数据库/规则、统一构建依次验收；Blender图不代表游戏截图。
 
 | 动物 | 三角形 | 骨骼/网格 | 改进 |
