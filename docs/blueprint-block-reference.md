@@ -1,5 +1,9 @@
 ﻿# Builder Assistant 蓝图方块能力清单 v0.25.2
 
+## 2026-11-15：观景阁楼版示例V4
+
+新增[观景阁楼版书屋](../SCIE-Port/docs/YUNYA-VIEW-LOFT-V4.md)：1249根格、原20×16×15规模。右侧局部观景窗用AncientWindowBlock款式0的侧向玻璃窗，保留门和书架；屋边改现有WoodenSlabBlock上半砖DATA51，茶室屋顶复用平檐/封边坡面，阁楼转身区加宽。仍需荒野探险家0.90.0，无新key/族/DATA范围/生命周期；Builder Assistant仍不支持home/detail，多格/储物/隐藏家居仍禁止。
+
 ## 2026-11-15：阁楼版示例V3
 
 新增[阁楼版书屋](../SCIE-Port/docs/YUNYA-LOFT-V3.md)：20×16×15、1248根格，复用0.90.0的WoodenDoorBlock、WoodenStairsBlock（直梯DATA2按原生镜像/旋转编码）和既有detail/home材料，未新增/移除key、族或DATA范围。仅将右侧玻璃替换为门/墙/书架并在既有屋顶内加阁楼；保留V2字节和外包围盒。Builder Assistant仍不支持home/detail，储物/多格家居和隐藏占位仍未开放。

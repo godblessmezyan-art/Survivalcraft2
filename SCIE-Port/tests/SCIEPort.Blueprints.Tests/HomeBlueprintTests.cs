@@ -70,7 +70,25 @@ internal static partial class BlueprintTests
         if(loft)
         {
             Check(bp.SizeX==20&&bp.SizeY==16&&bp.SizeZ==15,"loft preserves approved V2 envelope");
-            Check(!bp.Cells.Any(c=>c.Relative.X==3&&c.Relative.Z>=4&&c.Relative.Z<=10&&(c.MaterialKey=="GlassBlock"||(c.MaterialKey=="AncientWindowBlock"&&(c.Data>>3)==0))),"right wall has no glass");
+            bool viewLoft=bp.Name.Contains("观景阁楼版");
+            if(viewLoft)
+            {
+                var sideGlass=bp.Cells.Where(c=>c.Relative.X==3&&(c.MaterialKey=="GlassBlock"||(c.MaterialKey=="AncientWindowBlock"&&(c.Data>>3)==0))).ToArray();
+                Check(sideGlass.Length==4&&sideGlass.All(c=>c.Relative.Y>=5&&c.Relative.Y<=6&&c.Relative.Z>=5&&c.Relative.Z<=6),"small 2x2 right view window, separate from platform door");
+                foreach(var pane in sideGlass)
+                    Check(!bp.Cells.Any(c=>c.Relative==new CellPos(4,pane.Relative.Y,pane.Relative.Z)),"right view window not blocked by shelves inside");
+                foreach(int x in new[]{9,10})foreach(int z in new[]{8,9})
+                {
+                    Check(bp.Cells.Any(c=>c.Relative==new CellPos(x,8,z)&&(c.MaterialKey=="PlanksBlock"||c.Family==BlockFamily.Stairs)),"2x2 stair-top turn has supported floor");
+                    foreach(int y in new[]{9,10})Check(!bp.Cells.Any(c=>c.Relative==new CellPos(x,y,z)),"loft turn retains two full clear cells");
+                }
+                foreach(int z in new[]{9,10})
+                    Check(bp.Cells.Any(c=>c.Relative==new CellPos(11,9,z)&&c.MaterialKey=="AncientTimberBlock"&&(c.Data>>3)==4),"widened loft edge retains guardrail");
+                Check(bp.Cells.Count(c=>c.MaterialKey=="BookshelfBlock"&&c.Relative.X==4&&c.Relative.Y>=4&&c.Relative.Y<=6&&new[]{4,9,10}.Contains(c.Relative.Z))==9,"right shelves retained beside view window and behind door");
+                Check(bp.Cells.Any(c=>c.Relative==new CellPos(19,8,5)&&c.MaterialKey=="AncientRoofBlock"),"tea eaves use thin actual tile geometry");
+                Check(bp.Cells.Any(c=>c.Relative==new CellPos(8,14,1)&&c.MaterialKey=="WoodenSlabBlock"&&(c.Data&1)==1),"roof leading edge has half-thickness backing");
+            }
+            else Check(!bp.Cells.Any(c=>c.Relative.X==3&&c.Relative.Z>=4&&c.Relative.Z<=10&&(c.MaterialKey=="GlassBlock"||(c.MaterialKey=="AncientWindowBlock"&&(c.Data>>3)==0))),"V3 right wall has no glass");
             Check(bp.Cells.Any(c=>c.Family==BlockFamily.Door&&c.Relative==new CellPos(3,4,8)),"right door opens onto side platform");
             var stairs=bp.Cells.Where(c=>c.Family==BlockFamily.Stairs).ToArray();
             Check(stairs.Length==10&&stairs.All(c=>c.Relative.X>=10&&c.Relative.X<=11&&c.Relative.Y>=4&&c.Relative.Y<=8&&c.Relative.Z>=4&&c.Relative.Z<=8),"five-rise two-wide staircase remains inside main room");

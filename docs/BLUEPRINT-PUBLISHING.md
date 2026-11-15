@@ -27,3 +27,7 @@
 ## 2026-11-15：阁楼版V3
 
 [云崖书屋·阁楼版 V3](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/8d9ea9e5-4a09-440c-b3fd-54b5b67617e9/json?revision=1)：1248根格、20×16×15，现有0.90.0可用。ID 8d9ea9e5-4a09-440c-b3fd-54b5b67617e9 / revision1 / SHA256 fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6。已发布并匿名回读验证原始文件，V2保留；[设计与验证](../SCIE-Port/docs/YUNYA-LOFT-V3.md)。
+
+## 2026-11-15：观景阁楼版V4
+
+[云崖书屋·观景阁楼版 V4](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/872df173-2101-4636-b7a3-a3b926273948/json?revision=1)：1249根格、20×16×15，仍用0.90.0；右侧局部玻璃观景窗、原木门/书架，屋檐及阁楼转身区细化。ID 872df173-2101-4636-b7a3-a3b926273948 / revision1 / SHA256 816a07f319962b17055befd60ae1d2921f9facc05099ef13a09696d7c83e69a0。正常管理员API新建发布，published、匿名目录/详情及原始下载字节一致，旧V2/V3保持。[设计、测试和机器回执](../SCIE-Port/docs/YUNYA-VIEW-LOFT-V4.md)。
