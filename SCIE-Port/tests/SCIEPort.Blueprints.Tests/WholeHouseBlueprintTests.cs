@@ -30,7 +30,7 @@ internal static partial class BlueprintTests
             var parsed=BlueprintImportService.FromString(File.ReadAllText(path),palette.IsResolvableKey);
             Check(parsed.Success,parsed.Detail??"actual blueprint import");
             var bp=parsed.Blueprint;var original=BlueprintJson.Serialize(bp);
-            if(bp.Name.Contains("紧凑版"))CompactFacingAudit(bp);
+            if(bp.Name.Contains("紧凑版")||bp.Name.Contains("阁楼版"))CompactFacingAudit(bp);
             var byPosition=new Dictionary<CellPos,BlueprintCell>();foreach(var cell in bp.Cells)byPosition.Add(cell.Relative,cell);
             foreach(var cell in bp.Cells)
             {

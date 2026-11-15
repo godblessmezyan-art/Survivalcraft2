@@ -65,9 +65,19 @@ internal static partial class BlueprintTests
         float platformScreen=Vector3.Transform(new Vector3(.5f,5,front),view).X;
         Check(teaScreen<mainScreen&&mainScreen<platformScreen,"NATIVE ENGINE CAMERA: tea on screen-left, main center, side platform on screen-right");
         Check(!bp.Cells.Any(c=>c.Family==BlockFamily.Door&&c.Relative.Z==front),"main glass front contains no door");
-        Check(bp.Cells.Count(c=>c.Family==BlockFamily.Door)==2,"shared-wall door plus tea-side entrance only");
-        Check(!bp.Cells.Any(c=>c.Family==BlockFamily.Stairs),"no stairs in building-only blueprint");
+        bool loft=bp.Name.Contains("阁楼版");
+        Check(bp.Cells.Count(c=>c.Family==BlockFamily.Door)==(loft?3:2),"shared/tea doors and optional right platform door");
+        if(loft)
+        {
+            Check(bp.SizeX==20&&bp.SizeY==16&&bp.SizeZ==15,"loft preserves approved V2 envelope");
+            Check(!bp.Cells.Any(c=>c.Relative.X==3&&c.Relative.Z>=4&&c.Relative.Z<=10&&(c.MaterialKey=="GlassBlock"||(c.MaterialKey=="AncientWindowBlock"&&(c.Data>>3)==0))),"right wall has no glass");
+            Check(bp.Cells.Any(c=>c.Family==BlockFamily.Door&&c.Relative==new CellPos(3,4,8)),"right door opens onto side platform");
+            var stairs=bp.Cells.Where(c=>c.Family==BlockFamily.Stairs).ToArray();
+            Check(stairs.Length==10&&stairs.All(c=>c.Relative.X>=10&&c.Relative.X<=11&&c.Relative.Y>=4&&c.Relative.Y<=8&&c.Relative.Z>=4&&c.Relative.Z<=8),"five-rise two-wide staircase remains inside main room");
+            Check(bp.Cells.Any(c=>c.MaterialKey=="PlanksBlock"&&c.Relative==new CellPos(9,8,8)),"usable rear loft landing");
+        }
+        else Check(!bp.Cells.Any(c=>c.Family==BlockFamily.Stairs),"no exterior stairs in V2 blueprint");
         Check(bp.Cells.Count(c=>c.Family==BlockFamily.Home)>0,"actual custom furniture authored");
-        Console.WriteLine("Native Engine camera facing audit PASS: tea="+teaScreen+", main="+mainScreen+", right-platform="+platformScreen+" (screen X, ascending left to right). Main front glazed/no door; no stairs.");
+        Console.WriteLine("Native Engine camera facing audit PASS: tea="+teaScreen+", main="+mainScreen+", right-platform="+platformScreen+" (screen X, ascending left to right). Main front glazed/no door; "+(loft?"right wall/door, loft and internal stairs verified.":"no stairs."));
     }
 }

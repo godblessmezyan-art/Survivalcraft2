@@ -23,7 +23,8 @@ part_ids={'Ancient'+name+'Block':978+i for i,name in enumerate(types)}
 part_ids.update({'BookshelfBlock':973,'BookPileBlock':976})
 def visible(c):
     group=manifest['cellGroups'][f"{c['x']},{c['y']},{c['z']}"]
-    return not (args.view=='interior' and (group in ('roof','tea_roof','brackets','veranda_roof','eave_brackets','snow_pines','attic') or (group=='west_annex' and c['y']>=17) or (group=='timber_plaster' and c['y']>=18)))
+    if args.view=='interior' and group=='right_wall' and c['y']>=manifest['mainFloorY']+2:return False
+    return not (args.view=='interior' and (group in ('roof','tea_roof','brackets','veranda_roof','eave_brackets','snow_pines','attic','loft_window') or (group=='west_annex' and c['y']>=17) or (group=='timber_plaster' and c['y']>=18)))
 cells={(c['x'],c['y'],c['z']):c for c in blueprint['cells'] if visible(c)}
 scene=bpy.data.scenes.new('YunyaRefined_'+args.view)
 if bpy.context.window:bpy.context.window.scene=scene

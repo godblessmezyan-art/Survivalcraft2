@@ -23,3 +23,7 @@
 ## 2026-11-15：紧凑书屋V2
 
 [云崖书屋·紧凑版 V2](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/a68aa002-ed37-4057-bb15-820768212628/json?revision=1)：1175根格，20×16×15，需要荒野探险家0.90.0；ID a68aa002-ed37-4057-bb15-820768212628 / revision1 / SHA256 a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25。正常管理员API新建并发布，匿名目录/详情/文件字节回读通过，保留V1和所有旧蓝图。方向与家具能力、包指纹见[紧凑版记录](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。
+
+## 2026-11-15：阁楼版V3
+
+[云崖书屋·阁楼版 V3](https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/8d9ea9e5-4a09-440c-b3fd-54b5b67617e9/json?revision=1)：1248根格、20×16×15，现有0.90.0可用。ID 8d9ea9e5-4a09-440c-b3fd-54b5b67617e9 / revision1 / SHA256 fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6。已发布并匿名回读验证原始文件，V2保留；[设计与验证](../SCIE-Port/docs/YUNYA-LOFT-V3.md)。

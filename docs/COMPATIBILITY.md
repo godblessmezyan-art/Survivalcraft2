@@ -1,5 +1,9 @@
 ﻿# 兼容性矩阵
 
+## 2026-11-15：阁楼版蓝图V3（0.90.0能力不变）
+
+20×16×15、1248根格，右侧实墙/木门/书架与内部阁楼/楼梯，均复用0.90.0现有native/detail/home能力。无运行时、ID、族、DATA、ABI或版本变化。Windows真实导入、V2/V3各24组内存地形施工/撤销/边界/预算、原生相机左右及生产公开字节回读已确认；Android7723和真实房间的新几何、门/楼梯碰撞与通行待验证。继续使用已验证0.90.0安装包，不生成新netmod。[设计与指纹](../SCIE-Port/docs/YUNYA-LOFT-V3.md)。
+
 ## 2026-11-15 / 0.90.0：紧凑书屋与家具蓝图
 
 新增home族，仅960/961/973/976精确类型与允许DATA，均为单格非储物；不新增ID、Hook、XDB或协议。978新增variant5封边坡面/DATA40–47，979斜撑接缝调整，古建29外观/232状态。net472/API1.42/单SCIEPort.dll保持。固定Windows环境、完整Release/214条目统一包、实际导入/施工/撤销、原生ID7与相机左右、Android BCL快照检查已确认；Android7723与真实Local/Server/Client待验证。Builder Assistant不支持home/detail。完整指纹及命令见[紧凑版记录](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。

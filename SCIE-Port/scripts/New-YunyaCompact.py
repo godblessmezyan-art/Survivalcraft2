@@ -19,6 +19,7 @@ def mirror_data(f,data):
     if f=='detail':return ((data&~3)|((-data)&3))^4
     if f=='home':return (data&~3)|((-data)&3)
     if f=='door':return ((data&~3)|((-data)&3))^8
+    if f=='stairs':return (data&~3)|(((1-data) if data&24 else -data)&3)
     if f in ('cube','log','slab','grass'):return data
     raise ValueError(('unreviewed reflection',f,data))
 
@@ -119,7 +120,7 @@ def build():
     return h
 
 
-def write(h,folder):
+def write(h,folder,*,name=NAME,filename='yunya-compact-v2.json',additional_landmarks=None,floor_levels=(0,),scope=None,glass_side='-X'):
     folder.mkdir(parents=True,exist_ok=True)
     lo=tuple(min(p[a] for p in h.cells) for a in range(3));hi=tuple(max(p[a] for p in h.cells) for a in range(3))
     size=tuple(hi[a]-lo[a]+1 for a in range(3))
@@ -131,11 +132,12 @@ def write(h,folder):
         if d:c['d']=d
         cells.append(c);groups[f'{x},{y},{z}']=h.groups[p]
     cells.sort(key=lambda c:(c['y'],c['z'],c['x']))
-    bp={'schemaVersion':3,'kind':'builderassistant.blueprint','name':NAME,'cells':cells}
+    bp={'schemaVersion':3,'kind':'builderassistant.blueprint','name':name,'cells':cells}
     raw=(json.dumps(bp,ensure_ascii=False,separators=(',',':'))+'\n').encode('utf-8')
     assert len(cells)<10000 and max(size)<64 and len(raw)<2*1024**2
-    (folder/'yunya-compact-v2.json').write_bytes(raw)
+    (folder/filename).write_bytes(raw)
     landmarks={k:point(p) for k,p in {'tea':(5,0,10),'main':(12,0,10),'frontPlatform':(16,0,4),'rightPlatform':(19,0,11),'internalDoor':(8,1,10),'sideEntry':(2,1,10)}.items()}
+    landmarks.update({k:point(p) for k,p in (additional_landmarks or {}).items()})
     assert landmarks['tea'][0]>landmarks['main'][0]>landmarks['rightPlatform'][0]
     deck={(c['x'],c['z']) for c in cells if c['y']==-lo[1] and groups[f"{c['x']},{c['y']},{c['z']}"]=='platform'}
     found={next(iter(deck))};q=list(found)
@@ -149,22 +151,26 @@ def write(h,folder):
     walk=set()
     for c in cells:
         x,y,z=c['x'],c['y'],c['z']
-        if y==floor_y and c['key'] in ('PlanksBlock','StoneBrickBlock') and all(clear_for_walk((x,y+dy,z)) for dy in (1,2)):walk.add((x,z))
-    start=point((1,0,10));visited={(start[0],start[2])};todo=list(visited)
+        floor=(c['key'] in ('PlanksBlock','StoneBrickBlock') and y+lo[1] in floor_levels) or c.get('f')=='stairs'
+        if floor and all(clear_for_walk((x,y+dy,z)) for dy in (1,2)):walk.add((x,y,z))
+    start=point((1,0,10));visited={tuple(start)};todo=list(visited)
     assert next(iter(visited)) in walk
     while todo:
-        x,z=todo.pop()
-        for p in ((x-1,z),(x+1,z),(x,z-1),(x,z+1)):
-            if p in walk and p not in visited:visited.add(p);todo.append(p)
-    reachable={name:(p[0],p[2]) in visited for name,p in landmarks.items() if name in ('tea','main','frontPlatform','rightPlatform')}
+        x,y,z=todo.pop()
+        for dx,dz in ((-1,0),(1,0),(0,-1),(0,1)):
+            for dy in (-1,0,1):
+                p=(x+dx,y+dy,z+dz)
+                if p in walk and p not in visited:visited.add(p);todo.append(p)
+    targets={'tea','main','frontPlatform','rightPlatform'}|set(additional_landmarks or {})
+    reachable={key:tuple(p) in visited for key,p in landmarks.items() if key in targets}
     assert all(reachable.values()),reachable
-    metadata={'name':NAME,'minModVersion':'0.90.0','size':dict(zip('xyz',size)),'cells':len(cells),'sha256':hashlib.sha256(raw).hexdigest(),
-      'sourceFile':'yunya-compact-v2.json','mainFloorY':-lo[1],'facade':'-Z','glassSide':'-X','designOrigin':lo,'cellGroups':groups,
+    metadata={'name':name,'minModVersion':'0.90.0','size':dict(zip('xyz',size)),'cells':len(cells),'sha256':hashlib.sha256(raw).hexdigest(),
+      'sourceFile':filename,'mainFloorY':-lo[1],'facade':'-Z','glassSide':glass_side,'designOrigin':lo,'cellGroups':groups,
       'landmarks':landmarks,'platformConnected':True,'teaFrontRecess':1,'rearWallsAligned':True,
-      'circulation':{'method':'two clear cells over continuous floor; wooden doors considered open; exterior threshold connects platform','reachable':reachable},
+      'circulation':{'method':'two clear cells over cube/stair floor; cardinal steps with at most one-cell rise; wooden doors considered open','reachable':reachable},
       'materials':dict(Counter(c['key'] for c in cells)),'groups':dict(Counter(groups.values())),
       'coordinateConvention':'Viewer-right U maps to game -X. For a camera outside -Z, native view-right is -X. Blender maps game(x,y,z) to (x,-z,y), determinant +1.',
-      'scope':'Building and connected platforms only; no stairs, trees, mountain, cellar or attic; tea-side entry reserved for user stairs.',
+      'scope':scope or 'Building and connected platforms only; no stairs, trees, mountain, cellar or attic; tea-side entry reserved for user stairs.',
       'furniturePolicy':'Actual single-cell custom Bookshelf, BookPile, Sofa and CoffeeTable; tall/multicell/storage furniture remains excluded.'}
     (folder/'manifest.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({k:v for k,v in metadata.items() if k not in ('cellGroups','groups','materials')},ensure_ascii=True,indent=2))

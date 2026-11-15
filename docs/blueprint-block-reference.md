@@ -1,5 +1,9 @@
 ﻿# Builder Assistant 蓝图方块能力清单 v0.25.2
 
+## 2026-11-15：阁楼版示例V3
+
+新增[阁楼版书屋](../SCIE-Port/docs/YUNYA-LOFT-V3.md)：20×16×15、1248根格，复用0.90.0的WoodenDoorBlock、WoodenStairsBlock（直梯DATA2按原生镜像/旋转编码）和既有detail/home材料，未新增/移除key、族或DATA范围。仅将右侧玻璃替换为门/墙/书架并在既有屋顶内加阁楼；保留V2字节和外包围盒。Builder Assistant仍不支持home/detail，储物/多格家居和隐藏占位仍未开放。
+
 ## 2026-11-15 / 荒野探险家0.90.0
 
 独立绘卷新增home族，只允许BookshelfBlock973三款、BookPileBlock976四款、HomeSofaBlock960款式0/2、HomeCoffeeTableBlock961；DATA=variant×8+rotation，rotation0..3、bit2禁止，严格按材料矩阵。只有973/976由原禁止转为支持；974/975/977及963 bit7、储物/多格家居仍禁止。978 variant5/DATA40–47为新增封边坡面，旧0..4保持；979斜撑接缝改变。详见[home精确能力](../SCIE-Port/docs/home-blueprint-capabilities.json)、[古建矩阵](../SCIE-Port/docs/architecture-block-capabilities.json)和[紧凑版](../SCIE-Port/docs/YUNYA-COMPACT-V2.md)。Builder Assistant原版能力表与版本不变。-Z正面看左侧为较大游戏X；预览必须用(x,-z,y)而不是交换YZ。
