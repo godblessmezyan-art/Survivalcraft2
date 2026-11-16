@@ -127,6 +127,36 @@ namespace SCIEPort.Features.Home
         }
         private void TrySleep(ComponentPlayer player, Point3 root, int data, Client reply)
         {
+            try
+            {
+                // A queued tap may outlive death, a world transition, mounting or sitting.
+                if (player == null || !player.IsAddedToProject || player.Project != Project
+                    || player.PlayerData == null || !player.PlayerData.IsReadyForPlaying
+                    || player.ComponentSleep == null || player.ComponentHealth == null || player.ComponentHealth.Health <= 0
+                    || player.ComponentBody == null || player.ComponentVitalStats == null) return;
+                if (player.ComponentSleep.IsSleeping) return;
+                if (HasSeat(player) || player.ComponentBody.ParentBody != null || player.ComponentRider?.Mount != null)
+                { SleepFailure(player, reply, "请先起身"); return; }
+                TrySleepNative(player, root, data, reply);
+            }
+            catch (Exception error)
+            {
+                // Native validation/packet creation can fail on a repackaged runtime.
+                // Keep that failure out of the main update loop and retain its full stack.
+                Log.Error("[SCIEPort:Home] Bed sleep failed at " + root + " role=" + CommonLib.WorkType + ": " + error);
+                try { SleepFailure(player, reply, "暂时无法入睡"); }
+                catch (Exception feedbackError) { Log.Error("[SCIEPort:Home] Sleep feedback failed: " + feedbackError); }
+            }
+        }
+        private static void SleepFailure(ComponentPlayer player, Client reply, string reason)
+        {
+            reason = string.IsNullOrEmpty(reason) ? "暂时无法入睡" : reason;
+            if (reply != null) CommonLib.Net.QueuePackage(new ComponentSleepPackage(player.ComponentSleep, ComponentSleepPackage.EventType.Sleep, false, false, reason) { To = reply });
+            else if (player?.PlayerData?.IsMainPlayer == true && player.ComponentGui != null)
+                player.ComponentGui.DisplaySmallMessage(reason, Color.White, false, false);
+        }
+        private void TrySleepNative(ComponentPlayer player, Point3 root, int data, Client reply)
+        {
             // Use native Sleep/CanSleep and its existing packet; no teleport, private
             // sleep-state editing, new protocol, or blanket bypass of wetness/shelter.
             var body = player.ComponentBody; Vector3 position = body.Position;
@@ -142,9 +172,13 @@ namespace SCIEPort.Features.Home
                 }
             }
             string reason = "请站到床上";
-            if (standingOnThisBed && player.ComponentSleep.CanSleep(out reason)) { player.ComponentSleep.Sleep(true); return; }
-            if (reply != null) CommonLib.Net.QueuePackage(new ComponentSleepPackage(player.ComponentSleep, ComponentSleepPackage.EventType.Sleep, false, false, reason) { To = reply });
-            else if (player.PlayerData.IsMainPlayer) player.ComponentGui.DisplaySmallMessage(reason, Color.White, false, false);
+            if (standingOnThisBed && player.ComponentSleep.CanSleep(out reason))
+            {
+                player.ComponentSleep.Sleep(true);
+                if (player.ComponentSleep.IsSleeping) BedComfort(player);
+                return;
+            }
+            SleepFailure(player, reply, reason);
         }
     }
 }

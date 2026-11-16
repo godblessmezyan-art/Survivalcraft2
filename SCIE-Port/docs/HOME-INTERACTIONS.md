@@ -37,7 +37,7 @@
 
 ## 壁炉
 
-使用既有DATA bit2作为开关，`GetHeat(value)` 开启返回0.35、关闭返回0；交给原生 SubsystemMetersBlockBehavior/玩家温度系统计算，不直接加减玩家体温。`GetEmittedLightAmount(value)` 开启8、关闭0，沿用原生方块光照传播，无额外光源实体、PBR、着色器或玻璃透明渲染。
+使用既有DATA bit2作为开关，`GetHeat(value)` 自0.86.1起开启返回1（旧0.35）、关闭返回0；交给原生 SubsystemMetersBlockBehavior/玩家温度系统计算，不直接加减玩家体温。`GetEmittedLightAmount(value)` 开启8、关闭0，沿用原生方块光照传播。火焰网格独立使用红橙自发光顶点，外壳/图集不变，无额外光源实体、PBR、着色器或玻璃透明渲染。[0.86.1原生射线与温度验证](HOME-SLEEP-FIREPLACE-0.86.1.md)。
 
 继续使用原HomeFireplace/HomeFireplaceOn模型、图集与239主机开关入口，不添加燃料、烹饪、火伤或烟雾。0.35是原生热量参数，不是固定体温增量；实际效果受距离、环境和遮蔽影响。原生方块光照为亮度，不能保证冰蓝染色；冰蓝外观仍由仿焰几何和图集提供。
 

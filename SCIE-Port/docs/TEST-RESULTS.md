@@ -1,5 +1,32 @@
 # 测试结果
 
+## 2026-11-16 main 0.86.1：睡眠射线、恒温床与壁炉
+
+`git pull --ff-only origin main` 已是最新，开发起点 `55e77f0`。用户反馈床在单人、房主均闪退，随后追加“床自带保温，无论温度多少都能睡着”；其它设备制作的书架按用户后续要求不处理。
+
+修复窗帘962/963、悬浮陈列器954及非法占位DATA返回空碰撞数组，触发实际目标 `Block.Raycast` 无条件取索引0的越界。保留非实心行为。床使用原生CanSleep/Sleep，并增加失效/重复请求保护；966/970范围睡眠维持体温12，准确拦截原生低温/过热三种伤害，醒来/拆床/离开立即停止。使用世界内提前更新器及既有SubsystemUpdate/OnCreatureInjure，每睡眠加速子步更新；不改环境/衣物/湿度、其它伤害、协议或存档键。壁炉火焰按真实Engine导入顺序独立红橙自发光，点燃GetHeat=1、熄灭0，原生发光8/0；全部家居DAE/PNG不变。详细边界见[专项](HOME-SLEEP-FIREPLACE-0.86.1.md)。
+
+实际命令（仓库根）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo -o SCIE-Port/artifacts/home-fixes-build
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-HomeNative.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/home-fixes-build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+```
+
+固定Windows四程序集哈希/ABI通过，net472 Release为0警告/0错误。LiteNetLib哈希正确但原带下载区域标记，首次.NET Framework加载拒绝；移除该文件区域标记后复检通过，程序集字节不变。最终完整入口退出0，日志 `artifacts/home-fixes/final-insulation-build.log`；家居911项（含原生空数组越界负对照、各4朝向×4格Local/Server原生入睡/醒来、-1000/+1000环境保温、三温度伤害拦截及其它伤害放行、解除及客户端隔离、温度求解器点燃升温/熄灭恢复、实际Engine火焰几何顺序/材质）、悬浮陈列器667项、书典、绘卷、钓鱼、PixelFX、神器/四圣兽、载具及全部旧回归通过。床脚下用具备相同SleepSuitability的原生块代替GPU模型初始化；未运行完整游戏或设备。
+
+最终包212条目、30个CSV/75源行，包内SCIEPort.dll与最终Release DLL哈希一致、元数据0.86.1/程序集0.86.1.0；书典资源/类型保留，正式包与版本副本字节一致：
+
+| 产物 | 字节 | SHA-256 |
+|---|---:|---|
+| `荒野探险家.netmod` / `荒野探险家-0.86.1.netmod` | 12763842 | `E4BDB48EFE21C2A7E9B074F97691395FB5770CF83B0A4CCEE0DB7C192895D040` |
+| `SCIEPort.dll` | 951296 | `6EB2DD89FBCDC1E3D7C58530BCA49441F16BB03621010628F9481925F85D712A` |
+
+Windows编译、原生隔离行为、整包校验 **已确认**；Android7723原闪退是否完全消失、旧世界、触屏/分辨率、完整单人/房主/普通客户端睡眠和恒温 **待验证**。未取得手机原堆栈，不把可复现的原生越界视为所有手机闪退的唯一原因。源码仅本地main提交，未执行git push；本次提交未到GitHub，故保留包，待用户推送后再发布对应预发布Release。
+
 ## 2026-11-14 main 0.86.0：钓鱼玩法
 
 新增不可放置物品「鱼竿」972/DATA0（`SCIEPort.Tools`），程序化2×2合成（木棍1+线2，运行时按 `GetCraftingId` 解析材料）。玩法为抛竿-咬钩-收竿时机判定：射线≤12格需命中表层水且下方仍是水，等待2–5秒，0.9秒窗口内再次点击成功；过早/超时失败并冷却1秒；奖励原版生鱼1–3条（70/25/5%）。联机走新包236（Request/Result，20字节负载），客户端判定时机、主机复验手持鱼竿/水格/距离≤16格及0.8秒与每分钟18次限流后写背包并回执，鱼获经原生槽位同步。新增 `FishingBehavior` XDB子系统与 `SubsystemFishing`；ID 972、包 236 经固定目标占用扫描确认空闲。

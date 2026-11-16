@@ -146,6 +146,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            if (componentHealth?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.ProtectBedTemperature(componentHealth, attacker, ignoreInvulnerability, cause) == true) { Skip=true; return; }
             var death=componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;
             if(death?.FriendlyDamage(componentHealth.Entity.FindComponent<ComponentBody>(false),attacker)==true){Skip=true;return;}
             death?.NoteAttack(componentHealth,attacker);
@@ -202,6 +203,7 @@ namespace SCIEPort.Mod
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
+            GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.UpdateBedInsulation();
         }
 
         /// <inheritdoc />

@@ -25,9 +25,15 @@ namespace SCIEPort.Features.Home
                 {
                     var mesh = new BlockMesh();
                     Matrix placement = Matrix.CreateRotationY(rotation * MathUtils.PI / 2f) * Matrix.CreateTranslation(.5f, 0, .5f);
+                    int sectionIndex = 0;
                     foreach (ModelMesh source in model.Meshes)
-                    foreach (ModelMeshPart part in source.MeshParts)
-                        mesh.AppendModelMeshPart(part, BlockMesh.GetBoneAbsoluteTransform(source.ParentBone) * placement, false, false, false, false, Color.White);
+                    {
+                        var section = new BlockMesh();
+                        foreach (ModelMeshPart part in source.MeshParts)
+                            section.AppendModelMeshPart(part, BlockMesh.GetBoneAbsoluteTransform(source.ParentBone) * placement, false, false, false, false, Color.White);
+                        PrepareSection(data, sectionIndex++, section);
+                        mesh.AppendBlockMesh(section);
+                    }
                     mesh.GenerateSidesData();
                     meshes[data | rotation] = mesh;
                     if (state == 0 && rotation == 0)
@@ -40,14 +46,16 @@ namespace SCIEPort.Features.Home
             }
             base.Initialize();
         }
+        /// <summary>Applies material corrections in the verified native import order.</summary>
+        protected virtual void PrepareSection(int data, int sectionIndex, BlockMesh section) { }
         internal static BoundingBox[] Boxes(int id, int variant, int rotation, bool upper, bool open)
         {
             if (id >= HomeRules.Fireplace && id <= HomeRules.WallArt) return HomeExtensionGeometry.Boxes(id, rotation, 0);
             var boxes = new List<BoundingBox>();
             if (id == HomeRules.Curtain)
             {
-                // Fabric is traversable. The raycast still selects the top rail/panels.
-                return new BoundingBox[0];
+                // The fixed target's Block.Raycast still reads boxes[0] on a miss.
+                return Compatibility.BlockRaycastSafety.NonSolid;
             }
             if (id == HomeRules.Fridge) boxes.Add(new BoundingBox(new Vector3(.07f, 0, .12f), new Vector3(.93f, upper ? .90f : 1, .94f)));
             else if (id == HomeRules.Cabinet && variant == 2) boxes.Add(new BoundingBox(new Vector3(.02f, .32f, .42f), new Vector3(.98f, .85f, .97f)));
@@ -151,12 +159,16 @@ namespace SCIEPort.Features.Home
         public const int Index = HomeRules.Table; }
     /// <summary>Two-cell fabric curtain with open and closed models.</summary>
     public sealed class HomeCurtainBlock : HomeBlock { /// <summary>Reserved content index.</summary>
-        public const int Index = HomeRules.Curtain; }
+        public const int Index = HomeRules.Curtain;
+        /// <inheritdoc/>
+        public override bool IsCollidable_(int value) => false; }
     /// <summary>Hidden upper occupancy cell; never an inventory item or independent drop.</summary>
     public sealed class HomeUpperBlock : Block
     {
         /// <summary>Reserved content index.</summary>
         public const int Index = HomeRules.Upper;
+        /// <inheritdoc/>
+        public override bool IsCollidable_(int value) => HomeRules.LowerId(Terrain.ExtractData(value)) != HomeRules.Curtain && base.IsCollidable_(value);
         /// <inheritdoc/>
         public override IEnumerable<int> GetCreativeValues() { yield break; }
         /// <inheritdoc/>

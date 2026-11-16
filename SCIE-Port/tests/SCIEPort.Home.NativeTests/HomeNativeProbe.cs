@@ -19,7 +19,7 @@ public static class HomeNativeProbe
     static void Put(object obj, string name, object value)
     {
         for (Type t = obj.GetType(); t != null; t = t.BaseType)
-        { FieldInfo field = t.GetField(name, F); if (field != null) { field.SetValue(obj, value); return; } }
+        { FieldInfo field = t.GetField(name, F) ?? t.GetField("<"+name+">k__BackingField", F); if (field != null) { field.SetValue(obj, value); return; } }
         throw new Exception(name);
     }
     static void Add(Project project, Subsystem subsystem) { Put(subsystem, "m_project", project); project.m_subsystems.Add(subsystem); }
@@ -69,6 +69,179 @@ public static class HomeNativeProbe
         args = new object[] { new Point3(int.MinValue,64,0),2,1,new Point3() };
         Check(!(bool)cell.Invoke(null,args), "negative coordinate overflow rejected");
     }
+    static void SleepAndFire(Assembly mod, Project project, Subsystem runtime, SubsystemGameInfo info)
+    {
+        // Exact native regression: the original zero-length array crashes on a miss.
+        var ray=new Ray3(new Vector3(.5f,-1,.5f),Vector3.UnitY);int boxIndex;BoundingBox hitBox;
+        bool nativeBug=false;try{new EmptyCollisionBlock().Raycast(ray,null,0,false,out boxIndex,out hitBox);}catch(IndexOutOfRangeException){nativeBug=true;}
+        Check(nativeBug,"negative control reproduces native empty-box raycast crash");
+        foreach(string typeName in new[]{"HomeCurtainBlock","HomeUpperBlock","HomeDiningPartBlock","HomeBedPartBlock"})
+        {
+            var b=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Home."+typeName,true));
+            int id=typeName=="HomeCurtainBlock"?962:typeName=="HomeUpperBlock"?963:typeName=="HomeDiningPartBlock"?969:970;
+            b.BlockIndex=id;BlocksManager.Blocks[id]=b;
+            if(id==962)
+            {
+                var dataBoxes=new Dictionary<int,BoundingBox[]>();
+                MethodInfo shape=b.GetType().BaseType.GetMethod("Boxes",BindingFlags.Static|BindingFlags.NonPublic);
+                for(int d=0;d<8;d++)dataBoxes[d]=(BoundingBox[])shape.Invoke(null,new object[]{962,0,d&3,false,(d&4)!=0});
+                Put(b,"collisions",dataBoxes);
+            }
+            foreach(int rotation in new[]{0,1,2,3})foreach(int state in new[]{0,4})
+            {
+                int value=Terrain.MakeBlockValue(id,0,rotation|state|(id==963?64:0));
+                // Occupancy DATA0 is invalid; valid dining/bed DATA4 has real collision.
+                b.Raycast(ray,null,value,false,out boxIndex,out hitBox);
+                Check(b.GetCustomCollisionBoxes(null,value).Length>0,"native raycast safely handles curtain/upper/proxy DATA");
+            }
+        }
+        var suspended=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Suspension.SuspendedItemBlock",true));
+        Check(!suspended.Raycast(ray,null,954,false,out boxIndex,out hitBox).HasValue&&!suspended.IsCollidable_(954),"suspended display stays traversable and native rays do not crash");
+        var fireplace=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Home.HomeFireplaceBlock",true));
+        fireplace.BlockIndex=964; BlocksManager.Blocks[964]=fireplace;
+        var collisionData=new Dictionary<int,BoundingBox[]>();
+        MethodInfo boxes=mod.GetType("SCIEPort.Features.Home.HomeExtensionGeometry",true).GetMethod("Boxes",BindingFlags.Static|BindingFlags.NonPublic);
+        for(int d=0;d<8;d++)collisionData[d]=(BoundingBox[])boxes.Invoke(null,new object[]{964,d&3,0});
+        Put(fireplace,"collisions",collisionData);
+        foreach(int rotation in new[]{0,1,2,3})
+        {
+            Check(SubsystemMetersBlockBehavior.GetHeat(Terrain.MakeBlockValue(964,0,rotation))==0,"native meter sees extinguished fireplace as cold");
+            Check(SubsystemMetersBlockBehavior.GetHeat(Terrain.MakeBlockValue(964,0,rotation|4))==1,"native meter sees lit fireplace as a full warmth source");
+            Check(fireplace.GetEmittedLightAmount(Terrain.MakeBlockValue(964,0,rotation|4))==8,"lit fireplace keeps native light");
+            Check(fireplace.GetEmittedLightAmount(Terrain.MakeBlockValue(964,0,rotation))==0,"extinguishing removes light");
+        }
+        MethodInfo prepare=fireplace.GetType().GetMethod("PrepareSection",F);
+        var assetRoot=System.IO.Path.Combine(System.IO.Path.GetDirectoryName(mod.Location),"Assets/Models");
+        foreach(int state in new[]{0,4})
+        {
+            string path=System.IO.Path.Combine(assetRoot,state==0?"HomeFireplace.dae":"HomeFireplaceOn.dae");
+            Engine.Media.ModelData imported;using(var stream=System.IO.File.OpenRead(path))imported=Engine.Media.ModelData.Load(stream);
+            var dae=XElement.Load(path);XNamespace ns="http://www.collada.org/2005/11/COLLADASchema";
+            var geometry=new List<XElement>(dae.Element(ns+"library_geometries").Elements(ns+"geometry"));
+            Check(imported.Meshes.Count==geometry.Count&&geometry.Count==(state==0?21:36),"target Engine imports expected fireplace section order/count");
+            for(int index=0;index<geometry.Count;index++)
+            {
+                string name=(string)geometry[index].Attribute("name");
+                var coordinates=geometry[index].Element(ns+"mesh").Element(ns+"source").Element(ns+"float_array").Value.Split((char[])null,StringSplitOptions.RemoveEmptyEntries);
+                Vector3 minimum=new Vector3(float.MaxValue),maximum=new Vector3(float.MinValue);
+                for(int vindex=0;vindex<coordinates.Length;vindex+=3)
+                {
+                    var position=new Vector3(float.Parse(coordinates[vindex],System.Globalization.CultureInfo.InvariantCulture),float.Parse(coordinates[vindex+1],System.Globalization.CultureInfo.InvariantCulture),float.Parse(coordinates[vindex+2],System.Globalization.CultureInfo.InvariantCulture));
+                    minimum=Vector3.Min(minimum,position);maximum=Vector3.Max(maximum,position);
+                }
+                Check(Vector3.DistanceSquared(minimum,imported.Meshes[index].BoundingBox.Min)<.000001f
+                    &&Vector3.DistanceSquared(maximum,imported.Meshes[index].BoundingBox.Max)<.000001f,"actual Engine mesh order matches each named source geometry's bounds");
+                bool warm=name.Contains("flame")||name.Contains("ember");
+                Check(warm==(state==4&&index>=19&&index<=33),"fixed material ordinals match actual packaged DAE geometry");
+                var mesh=new BlockMesh();mesh.Vertices.Add(new BlockMeshVertex{Color=Color.White,TextureCoordinates=new Vector2(.3f,.3f)});
+                prepare.Invoke(fireplace,new object[]{state,index,mesh}); var v=mesh.Vertices.Array[0];
+                if(!warm) Check(v.Color==Color.White&&!v.IsEmissive&&v.TextureCoordinates==new Vector2(.3f,.3f),"housing/control/off model retains original material");
+                else Check(v.IsEmissive&&v.Color.R>v.Color.G&&v.Color.G>v.Color.B&&v.TextureCoordinates==new Vector2(.125f,.875f),"flame/core/ember uses neutral UV and warm emissive color");
+            }
+        }
+        using(var cells=new Terrain())
+        {
+            cells.AllocateChunk(0,0).State=TerrainChunkState.Valid;
+            var terrain=(SubsystemTerrain)FormatterServices.GetUninitializedObject(typeof(SubsystemTerrain));Put(terrain,"Terrain",cells);
+            Put(runtime,"SubsystemTerrain",terrain);
+            BlocksManager.Blocks[0]=new AirBlock();
+            BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3,IsCollidable=true};
+            BlocksManager.Blocks[966]=new GraniteBlock{BlockIndex=966,SleepSuitability=1,IsCollidable=true};
+            BlocksManager.Blocks[970]=new GraniteBlock{BlockIndex=970,SleepSuitability=1,IsCollidable=true};
+            for(int x=4;x<=12;x++)for(int z=4;z<=12;z++)cells.SetCellValueFast(x,68,z,3);
+            // Each shelter ray encounters one of the previously empty-box blocks
+            // before reaching the roof. This reproduces the bed's real CanSleep path.
+            BlocksManager.Blocks[954]=suspended;
+            cells.SetCellValueFast(8,67,8,Terrain.MakeBlockValue(962));
+            cells.SetCellValueFast(9,67,8,Terrain.MakeBlockValue(963,0,64));
+            cells.SetCellValueFast(8,67,9,Terrain.MakeBlockValue(954));
+            Entity entity=BareEntity(project);Put(entity,"m_isAddedToProject",true);
+            var p=new ComponentPlayer();p.m_entity=entity;
+            p.ComponentBody=new ComponentBody();p.ComponentBody.m_entity=entity;
+            p.ComponentMiner=new ComponentMiner();p.ComponentMiner.m_entity=entity;
+            var held=new ComponentInventory();held.m_slots.Add(new ComponentInventoryBase.Slot());p.ComponentMiner.Inventory=held;
+            p.ComponentHealth=new ComponentHealth();p.ComponentHealth.m_entity=entity;p.ComponentHealth.Health=1;
+            p.ComponentVitalStats=new ComponentVitalStats();p.ComponentVitalStats.Sleep=.5f;
+            p.ComponentSleep=new ComponentSleep();p.ComponentSleep.m_entity=entity;
+            p.m_subsystemPlayerStats=new SubsystemPlayerStats();
+            var data=(PlayerData)FormatterServices.GetUninitializedObject(typeof(PlayerData));
+            data.m_stateMachine=new StateMachine();data.m_stateMachine.m_currentState=new StateMachine.State{Name="Playing"};p.PlayerData=data;
+            var sleep=p.ComponentSleep;sleep.m_componentPlayer=p;sleep.m_subsystemTerrain=terrain;sleep.m_subsystemGameInfo=info;
+            Put(entity,"m_components",new List<Component>{p,p.ComponentHealth,p.ComponentBody,p.ComponentSleep,p.ComponentVitalStats});
+            var players=project.FindSubsystem<SubsystemPlayers>(true);players.m_componentPlayers.Add(p);
+            var loader=(ModLoader)Activator.CreateInstance(mod.GetType("SCIEPort.Mod.SCIEPortLoader",true));
+            MethodInfo comfort=runtime.GetType().GetMethod("UpdateBedInsulation",F);
+            var early=(IUpdateable)Activator.CreateInstance(runtime.GetType().GetNestedType("BedInsulationUpdate",BindingFlags.NonPublic),F,null,new object[]{runtime},null);
+            Check(early.UpdateOrder<sleep.UpdateOrder,"bed comfort is scheduled before native default updates, including accelerated substeps");
+            MethodInfo attempt=runtime.GetType().GetMethod("TrySleep",F);
+            MethodInfo offset=mod.GetType("SCIEPort.Features.Home.HomeExtensionGeometry",true).GetMethod("Offset",BindingFlags.Static|BindingFlags.NonPublic);
+            foreach(WorkType role in new[]{WorkType.Local,WorkType.Server})
+            {
+                CommonLib.WorkType=role;
+                for(int rotation=0;rotation<4;rotation++)for(int part=0;part<4;part++)
+                {
+                    for(int x=7;x<=9;x++)for(int z=7;z<=9;z++)cells.SetCellValueFast(x,64,z,0);
+                    for(int n=0;n<4;n++)
+                    {
+                        Point3 relative=(Point3)offset.Invoke(null,new object[]{rotation,n});
+                        cells.SetCellValueFast(8+relative.X,64,8+relative.Z,Terrain.MakeBlockValue(n==0?966:970,0,rotation|(n<<2)));
+                    }
+                    Point3 d=(Point3)offset.Invoke(null,new object[]{rotation,part});
+                    p.ComponentBody.Position=new Vector3(8.5f+d.X,64.65f,8.5f+d.Z);
+                    p.ComponentBody.StandingOnValue=Terrain.MakeBlockValue(part==0?966:970);
+                    attempt.Invoke(runtime,new object[]{p,new Point3(8,64,8),rotation,null});
+                    Check(sleep.IsSleeping,"native Local/Server sleep starts on all four bed cells and rotations");
+                    double? started=sleep.m_sleepStartTime;
+                    attempt.Invoke(runtime,new object[]{p,new Point3(8,64,8),rotation,null});
+                    Check(sleep.m_sleepStartTime==started,"duplicate queued sleep tap is harmless");
+                    foreach(float ambient in new[]{-1000f,1000f})
+                    {
+                        p.ComponentVitalStats.Temperature=ambient<0?0:24;p.ComponentVitalStats.m_environmentTemperature=ambient;
+                        early.Update(.05f);comfort.Invoke(runtime,null);
+                        Check(p.ComponentVitalStats.Temperature==12&&p.ComponentVitalStats.m_environmentTemperature==ambient,"sleep on each bed cell keeps comfort at extreme temperatures without changing native ambient cache");
+                    }
+                    foreach(int causeId in new[]{25,26,35})
+                    { bool skip;loader.OnCreatureInjure(p.ComponentHealth,.05f,null,false,LanguageControl.Get(ComponentVitalStats.fName,causeId),out skip);Check(skip,"only native cold/heat injuries are blocked during bed sleep"); }
+                    bool otherSkip;loader.OnCreatureInjure(p.ComponentHealth,.1f,null,false,"lava",out otherSkip);Check(!otherSkip,"bed is not general environmental invulnerability");
+                    sleep.NetWakeUp();Check(!sleep.IsSleeping,"native wake clears sleeping state");
+                    p.ComponentVitalStats.Temperature=0;early.Update(.05f);
+                    Check(p.ComponentVitalStats.Temperature==0,"waking immediately releases bed temperature override");
+                    loader.OnCreatureInjure(p.ComponentHealth,.05f,null,false,LanguageControl.Get(ComponentVitalStats.fName,25),out otherSkip);Check(!otherSkip,"cold injury is native again after waking");
+                }
+                p.ComponentBody.Position=new Vector3(8.5f,64.65f,8.5f);
+                sleep.m_subsystemTerrain=null; // Inject a failure from inside native CanSleep.
+                bool failed=false;try{string reason;sleep.CanSleep(out reason);}catch(NullReferenceException){failed=true;}
+                Check(failed,"injected exception reaches native shelter validation");
+                attempt.Invoke(runtime,new object[]{p,new Point3(8,64,8),0,null});
+                Check(!sleep.IsSleeping,"native validation exception stays out of the update loop");sleep.m_subsystemTerrain=terrain;
+                p.ComponentHealth.Health=0;attempt.Invoke(runtime,new object[]{p,new Point3(8,64,8),0,null});
+                Check(!sleep.IsSleeping,"queued tap after death does not start sleep");p.ComponentHealth.Health=1;
+            }
+            sleep.NetSleep(true);cells.SetCellValueFast(8,64,8,Terrain.MakeBlockValue(966));p.ComponentVitalStats.Temperature=0;
+            cells.SetCellValueFast(8,64,8,0);early.Update(.05f);Check(p.ComponentVitalStats.Temperature==0,"removing bed immediately ends insulation");
+            cells.SetCellValueFast(8,64,8,Terrain.MakeBlockValue(966));
+            CommonLib.WorkType=WorkType.Client;Put(data,"m_isMainPlayer",true);early.Update(.05f);Check(p.ComponentVitalStats.Temperature==12,"ordinary client applies comfort to its own sleeping player");
+            Put(data,"m_isMainPlayer",false);p.ComponentVitalStats.Temperature=0;early.Update(.05f);Check(p.ComponentVitalStats.Temperature==0,"client never edits remote player's temperature");
+            sleep.NetWakeUp();players.m_componentPlayers.Remove(p);
+            CommonLib.WorkType=WorkType.Local;
+            // An enclosed cold fixture avoids weather services and exercises the actual
+            // temperature solver, rather than only checking our GetHeat override.
+            for(int x=7;x<=10;x++)for(int y=64;y<=66;y++)for(int z=7;z<=9;z++)cells.SetCellValueFast(x,y,z,3);
+            cells.SetCellValueFast(8,65,8,0);cells.SetCellValueFast(9,65,8,Terrain.MakeBlockValue(964));
+            cells.GetChunkAtCell(8,8).SetTopHeightFast(8,8,68);
+            var meter=new SubsystemMetersBlockBehavior();Put(meter,"SubsystemTerrain",terrain);
+            float cold,hot,cooled,flux;meter.CalculateTemperature(8,65,8,12,0,out cold,out flux);
+            cells.SetCellValueFast(9,65,8,Terrain.MakeBlockValue(964,0,4));
+            meter.CalculateTemperature(8,65,8,12,0,out hot,out flux);
+            cells.SetCellValueFast(9,65,8,Terrain.MakeBlockValue(964));
+            meter.CalculateTemperature(8,65,8,12,0,out cooled,out flux);
+            Check(hot>cold+1&&Math.Abs(cooled-cold)<.001f,"native temperature rises beside lit fireplace and returns after extinguishing");
+        }
+    }
+    sealed class EmptyCollisionBlock : GraniteBlock
+    {
+        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain,int value) { return new BoundingBox[0]; }
+    }
     public static void Run(Assembly mod, XElement xml)
     {
         Geometry(mod);
@@ -88,6 +261,7 @@ public static class HomeNativeProbe
             info.WorldSettings.DisableBlocks=string.Empty; Add(project,info);
             var pickables=new SubsystemPickables { m_subsystemGameInfo=info }; Add(project,pickables);
             var runtime=(Subsystem)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Home.SubsystemHomeFurniture",true)); Add(project,runtime); Put(runtime,"m_subsystemBlockEntities",entities);
+            SleepAndFire(mod,project,runtime,info);
             var initial=new ValuesDictionary(); initial.PopulateFromDatabaseObject(db.FindDatabaseObject("SCIEPortHomeStorage",gd.EntityTemplateType,true));
             Check(initial.GetValue<ValuesDictionary>("Chest").GetValue<int>("SlotsCount")==16,"merged template retains all sixteen physical slots");
             initial.GetValue<ValuesDictionary>("BlockEntity").SetValue("Coordinates",new Point3(8,65,8));

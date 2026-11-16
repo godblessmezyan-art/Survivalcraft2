@@ -131,7 +131,10 @@ public static class SuspensionNativeProbe
             Call(runtime, "OnBlockRemoved", Terrain.MakeBlockValue(954), 0, 10, 65, 10);
             Check(pickables.Pickables.Count == 1 && p.Entities.Count == 0, "removing an empty display creates no content drops");
             var block = (Block)Activator.CreateInstance(blockType);
-            Check(block.GetCustomCollisionBoxes(null, 0).Length == 0 && block.GetCustomInteractionBoxes(null, 0).Length == 1, "walk-through but selectable");
+            int hitIndex; BoundingBox hitBox;
+            Check(!block.IsCollidable_(0) && block.GetCustomInteractionBoxes(null, 0).Length == 1
+                && !block.Raycast(new Ray3(new Vector3(.5f,-1,.5f),Vector3.UnitY),null,0,false,out hitIndex,out hitBox).HasValue,
+                "walk-through and selectable; native non-interaction ray misses without crashing");
             var mesh = new BlockMesh(); blockType.GetMethod("BuildMarker", BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { mesh });
             Check(mesh.Indices.Count / 3 == 72, "empty-marker mesh bounded to 72 triangles");
             var displayMatrix = runtimeType.GetMethod("DisplayMatrix", BindingFlags.Static | BindingFlags.NonPublic);
