@@ -1,0 +1,6 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;IsCollidable;IsPlaceable;IsPlacementTransparent;IsTransparent;LightAttenuation;DefaultShadowStrength;DefaultIsInteractive;IsGatherable;MaxStacking;DefaultDropContent;DefaultDescription
+BookshelfBlock;书架;SCIEPort.Structures;SCIEPortHomeFurniture;973;0;1;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;973;
+BookshelfTallBlock;高书架;SCIEPort.Structures;SCIEPortHomeFurniture;974;0;0.6;TRUE;TRUE;FALSE;TRUE;1;5;TRUE;TRUE;40;974;
+BookcaseBlock;大书柜;SCIEPort.Structures;SCIEPortHomeFurniture;975;0;0.5;TRUE;TRUE;FALSE;TRUE;1;4;TRUE;TRUE;40;975;
+BookPileBlock;书堆;SCIEPort.Structures;SCIEPortHomeFurniture;976;0;1.3;TRUE;TRUE;FALSE;TRUE;1;4;TRUE;TRUE;40;976;
+BookcasePartBlock;大书柜;SCIEPort.Structures;SCIEPortHomeFurniture;977;-1;1;TRUE;FALSE;FALSE;TRUE;0;0;TRUE;FALSE;0;0;

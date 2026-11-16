@@ -12,7 +12,7 @@
   "block": {
     "id": 954,
     "creativeData": 0,
-    "category": "SCIEPort.Building",
+    "category": "SCIEPort.Structures",
     "entity": "SCIEPortSuspendedItem",
     "slots": 1,
     "capacity": 1,

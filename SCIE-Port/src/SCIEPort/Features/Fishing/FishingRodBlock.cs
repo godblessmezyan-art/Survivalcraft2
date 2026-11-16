@@ -24,7 +24,7 @@ namespace SCIEPort.Features.Fishing
 
         public override string GetCategory(int value)
         {
-            return Inventory.PortInventoryRules.Tools;
+            return Inventory.PortInventoryRules.Gear;
         }
 
         public override IEnumerable<CraftingRecipe> GetProceduralCraftingRecipes()
@@ -61,21 +61,21 @@ namespace SCIEPort.Features.Fishing
 
         private static void BuildMesh(BlockMesh mesh)
         {
-            Matrix tilt = Matrix.CreateRotationY(0.5f) * Matrix.CreateRotationX(0.18f);
-            Box(mesh, tilt, new Vector3(0f, 0f, -0.03f), new Vector3(0.13f, 0.13f, 0.06f), new Color(48, 33, 24));
-            Box(mesh, tilt, new Vector3(0f, 0f, 0.16f), new Vector3(0.105f, 0.105f, 0.32f), new Color(166, 121, 74));
-            Box(mesh, tilt, new Vector3(0f, 0f, 0.34f), new Vector3(0.115f, 0.115f, 0.05f), new Color(206, 170, 112));
-            Box(mesh, tilt, new Vector3(0f, 0f, 0.48f), new Vector3(0.08f, 0.08f, 0.26f), new Color(62, 41, 27));
-            Box(mesh, tilt, new Vector3(0f, 0f, 0.70f), new Vector3(0.058f, 0.058f, 0.24f), new Color(48, 33, 22));
-            Box(mesh, tilt, new Vector3(0f, 0f, 0.90f), new Vector3(0.04f, 0.04f, 0.2f), new Color(37, 27, 19));
-            Box(mesh, tilt, new Vector3(0f, 0f, 1.01f), new Vector3(0.02f, 0.02f, 0.08f), new Color(222, 212, 184));
-            Box(mesh, tilt, new Vector3(0f, -0.10f, 0.44f), new Vector3(0.15f, 0.075f, 0.15f), new Color(138, 144, 152));
-            Box(mesh, tilt, new Vector3(0f, -0.15f, 0.44f), new Vector3(0.08f, 0.03f, 0.11f), new Color(198, 168, 92));
-            Box(mesh, tilt, new Vector3(0.10f, -0.10f, 0.41f), new Vector3(0.035f, 0.06f, 0.035f), new Color(70, 70, 76));
+            Matrix tilt = Matrix.CreateRotationY(0.4f) * Matrix.CreateRotationX(0.12f);
+            Box(mesh, tilt, new Vector3(0f, 0f, 0.36f), new Vector3(0.14f, 0.14f, 0.07f), new Color(48, 33, 24));
+            Box(mesh, tilt, new Vector3(0f, 0f, 0.20f), new Vector3(0.115f, 0.115f, 0.30f), new Color(166, 121, 74));
+            Box(mesh, tilt, new Vector3(0f, 0f, 0.04f), new Vector3(0.125f, 0.125f, 0.05f), new Color(206, 170, 112));
+            Box(mesh, tilt, new Vector3(0f, 0f, -0.13f), new Vector3(0.09f, 0.09f, 0.30f), new Color(62, 41, 27));
+            Box(mesh, tilt, new Vector3(0f, 0f, -0.32f), new Vector3(0.065f, 0.065f, 0.26f), new Color(48, 33, 22));
+            Box(mesh, tilt, new Vector3(0f, 0f, -0.49f), new Vector3(0.045f, 0.045f, 0.20f), new Color(37, 27, 19));
+            Box(mesh, tilt, new Vector3(0f, 0f, -0.59f), new Vector3(0.022f, 0.022f, 0.09f), new Color(222, 212, 184));
+            Box(mesh, tilt, new Vector3(0f, -0.10f, 0.06f), new Vector3(0.16f, 0.08f, 0.16f), new Color(138, 144, 152));
+            Box(mesh, tilt, new Vector3(0f, -0.15f, 0.06f), new Vector3(0.085f, 0.03f, 0.12f), new Color(198, 168, 92));
+            Box(mesh, tilt, new Vector3(0.10f, -0.10f, 0.09f), new Vector3(0.04f, 0.065f, 0.04f), new Color(70, 70, 76));
             for (int i = 0; i < 3; i++)
             {
-                float z = 0.58f + i * 0.17f;
-                Box(mesh, tilt, new Vector3(0f, -0.045f, z), new Vector3(0.075f - i * 0.015f, 0.012f, 0.012f), new Color(198, 168, 92));
+                float z = -0.10f - i * 0.16f;
+                Box(mesh, tilt, new Vector3(0f, -0.048f, z), new Vector3(0.078f - i * 0.014f, 0.014f, 0.014f), new Color(198, 168, 92));
             }
         }
 

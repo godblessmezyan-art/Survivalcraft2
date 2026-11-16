@@ -42,7 +42,7 @@ $csv=Import-Csv -LiteralPath (Join-Path $root 'src/SCIEPort/Assets/Blocks/Fishin
 $row=$csv | Where-Object { $_.'Class Name' -eq 'FishingRodBlock' }
 if($null -eq $row){throw 'Fishing CSV row missing'}
 if($row.DefaultDisplayName -ne '鱼竿'){throw 'Fishing rod display name changed'}
-if($row.DefaultCategory -ne 'SCIEPort.Tools'){throw 'Fishing rod category must stay SCIEPort.Tools'}
+if($row.DefaultCategory -ne 'SCIEPort.Gear'){throw 'Fishing rod category must stay SCIEPort.Gear'}
 if($row.IsPlaceable -ne 'FALSE' -or $row.MaxStacking -ne '1'){throw 'Fishing rod placement/stack rules changed'}
 if([int]$row.DefaultMeleePower -ne 0){throw 'Fishing rod must not deal melee damage'}
 $xdb=Get-Content -Raw -Encoding UTF8 (Join-Path $root 'src/SCIEPort/Assets/Database/Fishing.xdb')
@@ -52,7 +52,7 @@ if($AssemblyPath){
     $assembly=[Reflection.Assembly]::LoadFrom($AssemblyPath)
     $rod=[Activator]::CreateInstance($assembly.GetType('SCIEPort.Features.Fishing.FishingRodBlock',$true))
     if([int]$rod.GetType().GetField('Index').GetRawConstantValue() -ne 972){throw 'Fishing rod block ID changed'}
-    if($rod.GetCategory(0) -ne 'SCIEPort.Tools'){throw 'Fishing rod runtime category changed'}
+    if($rod.GetCategory(0) -ne 'SCIEPort.Gear'){throw 'Fishing rod runtime category changed'}
     $subsystemType=$assembly.GetType('SCIEPort.Features.Fishing.SubsystemFishing',$true)
     if(-not $subsystemType.IsSubclassOf([Game.SubsystemBlockBehavior])){throw 'Fishing subsystem type changed'}
     $subsystem=[Activator]::CreateInstance($subsystemType)

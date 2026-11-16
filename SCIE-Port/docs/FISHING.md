@@ -2,7 +2,7 @@
 
 ## 物品与获取
 
-- 「鱼竿」972/DATA0，不可放置，最大堆叠1，近战伤害0，归 `SCIEPort.Tools`（实用工具）。
+- 「鱼竿」972/DATA0，不可放置，最大堆叠1，近战伤害0，归 `SCIEPort.Gear`（装备与工具）。
 - 程序化2×2配方：木棍×1 + 线×2（`stick`+`line`+空+`line`）。材料名在运行时由 `BlocksManager.FindBlockByTypeName("StickBlock"/"StringBlock")` 的 `GetCraftingId(0)` 解析，不硬编码材料ID。
 - 无新增鱼类物品：产出原版生鱼 `RawFishBlock`，可直接走原版篝火/烤箱烹饪。
 
@@ -36,6 +36,7 @@
 ## 兼容性
 
 - 目标 `Net_x25.01.17`、net472、API1.42、SC2.4.10.6；方块 972 与包 236 经固定目标实际占用扫描确认空闲。
+- 0.86.1 修正：水位高度改用 `FluidBlock.GetLevelHeight(FluidBlock.GetLevel(Terrain.ExtractData(value)))`（原生等级0–15）；鱼竿网格改为沿第一人称前向（局部-Z）伸出并居中，避免杆身被近裁剪面裁掉。
 - 新增 XDB 子系统模板 `FishingBehavior`（GUID `cf650906-2631-4b53-9ab1-0ad87d4965e8`，容器 `14816d9f-b915-4677-bbfa-c53bbe1e03a4`，Project `85023bf8-1c90-4dd1-9442-e6c13691d078`）。
 - Windows 编译、静态 ABI 与包内容 **已确认**；Android7723、触屏实机、真实 Local/Server/Client 与鱼获同步 **待验证**。各端必须统一 0.86.0，旧版本混用 **不支持**。
 

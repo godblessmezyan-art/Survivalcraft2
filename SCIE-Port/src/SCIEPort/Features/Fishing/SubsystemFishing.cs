@@ -129,7 +129,7 @@ namespace SCIEPort.Features.Fishing
                 int contents = Terrain.ExtractContents(value);
                 if (contents == 0) continue;
                 if (contents != WaterBlock.Index || y <= 0) break;
-                float surface = water.GetLevelHeight(value);
+                float surface = water.GetLevelHeight(FluidBlock.GetLevel(Terrain.ExtractData(value)));
                 if (surface < 0.5f) break;
                 if (terrain.GetCellContents(x, y - 1, z) != WaterBlock.Index) break;
                 Session session = new Session

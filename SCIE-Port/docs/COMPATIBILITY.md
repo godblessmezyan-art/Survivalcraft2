@@ -1,10 +1,32 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-16 0.88.1：远端主线与睡眠修复合并
+
+合并本地80b9f1b与远端6ba0cc7（含87e36fa钓鱼修复、20c9879五类Tab、6ba0cc7装饰书架）。保留973–977/963 bit7、程序化书架网格/白纹理与原生家居模型的分段火焰材质；保留恒温床及空碰撞射线修复。net472/API1.42/SC2.4.10.6、既有GUID/协议/存档保持。统一版本0.88.1，未用冲突一侧整体覆盖另一侧。合并后的环境、Release与包验证见[合并记录](MERGE-0.88.1.md)；Android7723及真实Local/Server/Client **待验证**。
+
 ## 2026-11-16 0.86.1：睡眠射线与壁炉
 
 修复固定目标 `Block.Raycast` 对模组空碰撞数组读取索引0导致的越界：窗帘962/963、悬浮陈列器954与非法占位DATA改用零体积哨兵盒，窗帘与陈列器保持不可碰撞。床仍使用原生CanSleep/Sleep/23，增加失效请求检查及异常边界。964火焰独立红橙自发光，点燃GetHeat从0.35改为1，熄灭0、发光8/0。无新ID/DATA/GUID/Hook/协议/资源布局或存档更改；net472/API1.42/SC2.4.10.6与书典保持。
 
 用户追加恒温床：966/970范围睡眠中体温12，复用既有伤害Hook拦截三种原生低温/过热伤害；注册Input顺序提前更新器及现有更新后回调，每睡眠加速子步保持。醒来/拆床/离开即停止，不改衣物、环境缓存、其它伤害及原生同步；Dispose注销。固定Windows环境/ABI、Release编译、911项目标原生隔离检查（含空数组负对照、入睡/醒来、极端温度/解除/客户端隔离、温度点燃/熄灭）**已确认**。完整包结果见测试记录；Android7723、用户原闪退是否完全消失、真实Local/Server/Client及触屏 **待验证**。用户书架来自其它设备，按用户后续要求本轮不处理。见[专项](HOME-SLEEP-FIREPLACE-0.86.1.md)。
+
+## 2026-11-14 0.88.0：装饰书架与书籍方块
+
+新增纯装饰方块：书架973（3款）、高书架974（2款，上格复用隐藏块963并以bit7标识）、2×2大书柜975（977为隐藏占位）、书堆976（4款）。全部使用程序化`BlockMesh`与1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB资源、槽位主题或网络包；配方为2×2木板/木棍/棉絮，材料按`GetCraftingId`运行时解析。DATA低2位朝向、bit2保留、bit3–5款式；963的bit6仍为窗帘、bit7为高书架，两者互斥。书架不提供储物、阅读或交互，不改变ID/DATA/GUID/协议/存档键与net472/API1.42/SC2.4.10.6。各端统一0.88.0。
+
+Windows net472 Release、家居规则单测、`Test-Bookshelf`网格/碰撞/配方/包检查与全部旧回归 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期及真实Local/Server/Client **待验证**。详见[书架专项](BOOKSHELF.md)。
+
+## 2026-11-14 0.87.0：创造栏合并为5个Tab
+
+按用户要求把11个创造栏分类合并为5个：神器（`SCIEPort.Artifacts`）、装备与工具（`SCIEPort.Gear`）、载具（`SCIEPort.Vehicles`）、建造与家居（`SCIEPort.Structures`）、自然与生物（`SCIEPort.Nature`）。旧键`SCIEPort.Saints/Tools/Home/Plants/Food/Materials/Industry/Building/Creatures`退休，所有CSV `DefaultCategory`、圣兽衣物/书典/鱼竿的`GetCategory`与验证脚本同步。物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均不变，`SCIEPort.Misc`仍仅作运行时兜底。各端统一0.87.0。
+
+Windows net472 Release、30个CSV/75方块分类、圣兽DATA隔离、分类标签和全部旧回归 **已确认**；Android7723 触屏分类列表与真实联机 **待验证**。详见[物品展示规范](INVENTORY-STANDARD.md)。
+
+## 2026-11-14 0.86.1：钓鱼交互与手持模型修复
+
+修复两个实测问题。其一，抛竿取样把整格方块值直接传给 `FluidBlock.GetLevelHeight(int level)`，而该参数是 0–15 流体等级（原生用法为 `GetLevelHeight(GetLevel(ExtractData(value)))`），导致表层水判定失效/越界；现按原生等级换算，满水（level 0，高度0.875）可正常起竿。其二，鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z，杆身伸向眼后并被近裁剪面裁掉，只剩握把可见；现将网格整体翻转为向 -Z 前伸并居中。鱼竿972、包236、配方、XDB、net472/API1.42/SC2.4.10.6 与旧 ID/DATA/协议不变；各端统一0.86.1。
+
+Windows net472 Release、Fishing 单测/原生检查与全部旧回归 **已确认**；Android7723 触屏实际垂钓与真实联机 **待验证**。详见[钓鱼专项](FISHING.md)。
 
 ## 2026-11-14 0.86.0：钓鱼玩法
 

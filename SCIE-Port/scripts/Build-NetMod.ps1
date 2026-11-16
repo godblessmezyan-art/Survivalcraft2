@@ -23,6 +23,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.'
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Fishing rules timing/reward/rate-limit tests failed.' }
@@ -1237,8 +1238,8 @@ try {
     $foxRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Creatures.csv'))
     $foxSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'FoxSpawnBlock' })
     if ($foxSpawnerRow.Count -ne 1 -or $foxSpawnerRow[0].Behaviors -ne 'SCIEPortFoxSpawnBehavior' -or
-        $foxSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
-        throw 'FoxSpawnBlock must use SCIEPort.Creatures and only SCIEPortFoxSpawnBehavior.'
+        $foxSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
+        throw 'FoxSpawnBlock must use SCIEPort.Nature and only SCIEPortFoxSpawnBehavior.'
     }
     $rabbitEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortRabbit']")
     if ($null -eq $rabbitEntity -or $rabbitEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
@@ -1265,8 +1266,8 @@ try {
     }
     $rabbitSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'RabbitSpawnBlock' })
     if ($rabbitSpawnerRow.Count -ne 1 -or $rabbitSpawnerRow[0].Behaviors -ne 'SCIEPortRabbitSpawnBehavior' -or
-        $rabbitSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
-        throw 'RabbitSpawnBlock must use SCIEPort.Creatures and only SCIEPortRabbitSpawnBehavior.'
+        $rabbitSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
+        throw 'RabbitSpawnBlock must use SCIEPort.Nature and only SCIEPortRabbitSpawnBehavior.'
     }
     $chickenEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortChicken']")
     if ($null -eq $chickenEntity -or $chickenEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
@@ -1293,8 +1294,8 @@ try {
     }
     $chickenSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'ChickenSpawnBlock' })
     if ($chickenSpawnerRow.Count -ne 1 -or $chickenSpawnerRow[0].Behaviors -ne 'SCIEPortChickenSpawnBehavior' -or
-        $chickenSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Creatures') {
-        throw 'ChickenSpawnBlock must use SCIEPort.Creatures and only SCIEPortChickenSpawnBehavior.'
+        $chickenSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
+        throw 'ChickenSpawnBlock must use SCIEPort.Nature and only SCIEPortChickenSpawnBehavior.'
     }
     [xml]$cropsDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Crops.xdb')
     $cornBehavior = $cropsDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortCornBehavior']")
@@ -1317,7 +1318,7 @@ try {
         throw 'Crops.csv must contain exactly one row for CornStalkBlock, CornSeedBlock and CornEarBlock.'
     }
     foreach ($cropRow in @($cornStalkRow[0], $cornSeedRow[0], $cornEarRow[0])) {
-        if ($cropRow.DefaultCategory -ne $(if ($cropRow.'Class Name' -eq 'CornEarBlock') {'SCIEPort.Food'} else {'SCIEPort.Plants'}) -or $cropRow.IsPlaceable -ne 'TRUE') {
+        if ($cropRow.DefaultCategory -ne 'SCIEPort.Nature' -or $cropRow.IsPlaceable -ne 'TRUE') {
             throw "Crops row $($cropRow.'Class Name') must be a placeable item in the Crops category."
         }
     }
@@ -1344,7 +1345,7 @@ try {
     if ($bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1) {
         throw 'Bamboo.csv must contain exactly one row for BambooPlantBlock and BambooBlock.'
     }
-    if ($bambooPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($bambooPlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $bambooPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'BambooPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
@@ -1371,11 +1372,11 @@ try {
     if ($flaxPlantRow.Count -ne 1 -or $flaxFiberRow.Count -ne 1) {
         throw 'Flax.csv must contain exactly one row for FlaxPlantBlock and FlaxFiberBlock.'
     }
-    if ($flaxPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $flaxPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($flaxPlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $flaxPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $flaxPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'FlaxPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
-    if ($flaxFiberRow[0].DefaultCategory -ne 'SCIEPort.Materials' -or $flaxFiberRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($flaxFiberRow[0].DefaultCategory -ne 'SCIEPort.Structures' -or $flaxFiberRow[0].IsPlaceable -ne 'TRUE' -or
         $flaxFiberRow[0].DefaultTextureSlot -ne '8') {
         throw 'FlaxFiberBlock must be a placeable Crops item drawn on atlas slot 8.'
     }
@@ -1398,12 +1399,12 @@ try {
     if ($sunflowerPlantRow.Count -ne 1 -or $sunflowerSeedRow.Count -ne 1) {
         throw 'Sunflower.csv must contain exactly one row for SunflowerPlantBlock and SunflowerSeedBlock.'
     }
-    if ($sunflowerPlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $sunflowerPlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($sunflowerPlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $sunflowerPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $sunflowerPlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'SunflowerPlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $sunflowerSeedNutrition = 0.0
-    if ($sunflowerSeedRow[0].DefaultCategory -ne 'SCIEPort.Food' -or $sunflowerSeedRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($sunflowerSeedRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $sunflowerSeedRow[0].IsPlaceable -ne 'TRUE' -or
         $sunflowerSeedRow[0].DefaultTextureSlot -ne '8' -or
         -not [double]::TryParse($sunflowerSeedRow[0].DefaultNutritionalValue, [ref] $sunflowerSeedNutrition) -or $sunflowerSeedNutrition -le 0.0) {
         throw 'SunflowerSeedBlock must be a placeable Food item drawn on atlas slot 8 with a positive nutritional value.'
@@ -1427,12 +1428,12 @@ try {
     if ($applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
         throw 'Apple.csv must contain exactly one row for ApplePlantBlock and AppleBlock.'
     }
-    if ($applePlantRow[0].DefaultCategory -ne 'SCIEPort.Plants' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($applePlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
         $applePlantRow[0].DefaultTextureSlot -ne '0') {
         throw 'ApplePlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $appleFruitNutrition = 0.0
-    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Food' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
         $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
         throw 'AppleBlock must be a placeable Food item drawn on atlas slot 9 with a positive nutritional value.'
@@ -2410,6 +2411,7 @@ finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
+& (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly

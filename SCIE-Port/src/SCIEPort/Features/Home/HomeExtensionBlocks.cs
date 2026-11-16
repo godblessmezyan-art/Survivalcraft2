@@ -49,10 +49,11 @@ namespace SCIEPort.Features.Home
         public override IEnumerable<int> GetCreativeValues() { yield break; }
         /// <inheritdoc/>
         public override string GetDisplayName(SubsystemTerrain terrain, int value)
-            => BlockIndex == HomeRules.BedPart ? "双人床" : "双人餐桌";
+            => BlockIndex == HomeRules.BedPart ? "双人床" : BlockIndex == HomeRules.BookcasePart ? "大书柜" : "双人餐桌";
         /// <inheritdoc/>
         public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
         {
+            if (BlockIndex == HomeRules.BookcasePart) return BookshelfGeometry.CaseBoxes();
             int data = Terrain.ExtractData(value), part = (data >> 2) & 3;
             if (part == 0 || data != ((part << 2) | (data & 3))) return Compatibility.BlockRaycastSafety.NonSolid;
             return HomeExtensionGeometry.Boxes(HomeRules.PartRootId(BlockIndex), data & 3, part);

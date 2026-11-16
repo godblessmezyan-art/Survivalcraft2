@@ -42,7 +42,29 @@ internal static class Program
                 models.Add(HomeRules.Model(id, clean));
             }
         }
-        Check(models.Count == 24, "all original and extension states are addressable");
+        foreach (int id in new[] { HomeRules.Bookshelf, HomeRules.BookshelfTall, HomeRules.Bookcase, HomeRules.BookPile })
+        {
+            Check(HomeRules.IsHome(id), "book furniture participates in furniture lifecycle");
+            for (int data = 0; data < 256; data++)
+            {
+                int clean = HomeRules.Normalize(id, data);
+                Check(HomeRules.Normalize(id, clean) == clean, "book DATA normalization is idempotent");
+                Check(HomeRules.ItemData(id, data) == (HomeRules.Variant(clean) << 3), "book drops preserve art variant only");
+                models.Add(HomeRules.Model(id, clean));
+                if (HomeRules.IsTall(id))
+                {
+                    int upper = HomeRules.UpperData(id, clean);
+                    Check(HomeRules.LowerId(upper) == id, "tall book upper cell identifies its lower block");
+                    Check(HomeRules.Pair(id, clean, HomeRules.Upper, upper), "tall book upper kind/state/rotation roundtrip");
+                    Check(!HomeRules.Pair(id, clean, HomeRules.Upper, upper ^ HomeRules.ShelfUpperBit), "foreign tall book upper kind rejected");
+                }
+            }
+        }
+        Check(!HomeRules.IsHome(HomeRules.BookcasePart) && HomeRules.IsFootprintPart(HomeRules.BookcasePart), "bookcase part is hidden occupancy, not a root item");
+        Check(HomeRules.PartId(HomeRules.Bookcase) == HomeRules.BookcasePart && HomeRules.PartRootId(HomeRules.BookcasePart) == HomeRules.Bookcase, "bookcase footprint maps to a distinct stable root");
+        Check(HomeRules.HasFootprint(HomeRules.Bookcase) && !HomeRules.HasFootprint(HomeRules.BookPile), "only the large bookcase reserves a two-by-two footprint");
+        Check(HomeRules.VariantCount(HomeRules.Bookshelf) == 3 && HomeRules.VariantCount(HomeRules.BookshelfTall) == 2 && HomeRules.VariantCount(HomeRules.Bookcase) == 1 && HomeRules.VariantCount(HomeRules.BookPile) == 4, "book furniture variant counts stay authored");
+        Check(models.Count == 34, "all original, extension and book states are addressable");
         Check(HomeRules.IsStorage(HomeRules.Nightstand) && HomeRules.UsableSlots == 8 && HomeRules.Slots == 16, "nightstand uses eight writable slots without truncating legacy persistence");
         Check(!HomeRules.IsHome(HomeRules.DiningPart) && !HomeRules.IsHome(HomeRules.BedPart), "footprint cells are not root items");
         Check(HomeRules.PartRootId(HomeRules.PartId(HomeRules.Bed)) == HomeRules.Bed && HomeRules.PartRootId(HomeRules.PartId(HomeRules.Dining)) == HomeRules.Dining, "new footprints have distinct stable root identities");

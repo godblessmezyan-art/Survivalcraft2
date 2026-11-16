@@ -31,7 +31,7 @@ namespace SCIEPort.Features.FourSaints
         public override string GetCategory(int value)
         {
             int clothingIndex=GetClothingIndex(Terrain.ExtractData(value));
-            return PortInventoryRules.IsSaint(Terrain.ExtractContents(value),clothingIndex) ? PortInventoryRules.Saints : base.GetCategory(value);
+            return PortInventoryRules.IsSaint(Terrain.ExtractContents(value),clothingIndex) ? PortInventoryRules.Gear : base.GetCategory(value);
         }
 
         /// <summary>Enumerates native and mod clothing without dereferencing sparse null slots.</summary>

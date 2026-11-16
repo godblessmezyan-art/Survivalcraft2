@@ -1,5 +1,27 @@
 # 测试结果
 
+## 2026-11-16 main 0.88.1：合并钓鱼/创造栏/书架与睡眠修复
+
+接手时已处于合并中，本地80b9f1b与远端6ba0cc7各保留；重新fetch确认远端三次提交为87e36fa、20c9879、6ba0cc7。解决7个冲突文件，HomeBlocks同时保留书架CreateTexture/CreateMesh与普通家居PrepareSection，保留恒温床、睡眠射线及壁炉修复；版本统一0.88.1。双方README/兼容性/测试/蓝图记录保留，新增[合并记录](MERGE-0.88.1.md)。
+
+实际验证：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/merge-0.88.1/build.log`；环境/固定目标ABI、net472 Release 0警告/0错误、家居911/陈列器672检查、书架40网格/5方块/碰撞/4套2×2配方及包检查、五类Tab/31个CSV/80源行、钓鱼、书典、绘卷、PixelFX与全部旧回归通过。没有Android或真实游戏房间证据。
+
+最终213条目包中SCIEPort.dll与Release DLL逐字节一致，版本0.88.1，正式包及版本副本一致：
+
+| 产物 | 字节 | SHA-256 |
+|---|---:|---|
+| `荒野探险家.netmod` / `荒野探险家-0.88.1.netmod` | 12768213 | `A3579B77E8C9246F51D44D132941C14CF8432FE9BE228384C3814E83CF2F40F0` |
+| `SCIEPort.dll` | 962560 | `D061B490FD78A25C3AF55563B222CD756808F983F8406B336DEC3B2C24D945A1` |
+
+Windows环境/编译/隔离回归/包内容 **已确认**，Android7723、触屏及真实Local/Server/Client **待验证**。本轮用户明确授权普通推送main；先保留双亲合并提交并正常push，确认提交可从GitHub访问后发布同提交0.88.1预发布包，不强推、不移动旧标签、不覆盖其它资产。
+
 ## 2026-11-16 main 0.86.1：睡眠射线、恒温床与壁炉
 
 `git pull --ff-only origin main` 已是最新，开发起点 `55e77f0`。用户反馈床在单人、房主均闪退，随后追加“床自带保温，无论温度多少都能睡着”；其它设备制作的书架按用户后续要求不处理。
@@ -26,6 +48,57 @@ powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetM
 | `SCIEPort.dll` | 951296 | `6EB2DD89FBCDC1E3D7C58530BCA49441F16BB03621010628F9481925F85D712A` |
 
 Windows编译、原生隔离行为、整包校验 **已确认**；Android7723原闪退是否完全消失、旧世界、触屏/分辨率、完整单人/房主/普通客户端睡眠和恒温 **待验证**。未取得手机原堆栈，不把可复现的原生越界视为所有手机闪退的唯一原因。源码仅本地main提交，未执行git push；本次提交未到GitHub，故保留包，待用户推送后再发布对应预发布Release。
+
+## 2026-11-14 main 0.88.0：装饰书架与书籍方块
+
+新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）与隐藏占位977，全部归入`SCIEPort.Structures`。模型由`BookshelfGeometry`在运行时生成`BlockMesh`，使用1×1白色`Rgba8888`纹理，不新增PNG/DAE/XDB；高书架上格复用隐藏块963并新增bit7标识，bit6仍为窗帘；大书柜用977占位，沿用`SubsystemHomeFurniture`两格/2×2生命周期。四个2×2配方分别用木板/木棍/棉絮，运行时按`GetCraftingId`解析材料。ID 973–977经固定目标占用扫描确认空闲，无新网络包、GUID或存档键。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/bookshelf-build.log`：环境/ABI、家居496928项规则与两格回滚、`Bookshelf assembly: 40 meshes, 5 blocks, collision and four two-by-two recipes verified.`、Bookshelf包内CSV字节一致、31个CSV/80源行分类一致，以及Fishing、PixelFX、书典、绘卷、军势等全部旧回归通过。包213条目（新增`Assets/Blocks/Bookshelf.csv`）。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.88.0.netmod`字节一致：**12,767,136字节**，SHA256 `AA43B49F4A69370997ADA241FCFEB59B3CD3C606B3C6DE9CEA6A3A3588B2433D`；`SCIEPort.dll` 960,000字节/SHA256 `FE5B20C0B15E6A0E6B6AE49A89DF3AD70EF232BFAF3BC434C9765D833A0CBBA8`，版本0.88.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏放置/旋转/破坏、2×2占地生命周期与真实Local/Server/Client **待验证**。
+
+## 2026-11-14 main 0.87.0：创造栏合并为5个Tab
+
+按用户要求把原11个分类合并为神器、装备与工具、载具、建造与家居、自然与生物5个Tab。`SCIEPort.Saints/Tools`并入`SCIEPort.Gear`，`SCIEPort.Home/Materials/Industry/Building`并入`SCIEPort.Structures`，`SCIEPort.Plants/Food/Creatures`并入`SCIEPort.Nature`；旧键退休，物品ID/DATA/创造可见性/模型/配方/槽位主题/网络包均未改动。同步更新30个CSV、圣兽衣物/书典/鱼竿`GetCategory`、分类单测、PortInventory/Fishing/Suspension/Codex脚本与文档。PixelFX冻结基线中仅`PortInventoryRules.cs`、`PortInventoryCatalog.cs`两项因本次分类合并按原归一化规则更新哈希，其余游戏机制原文不变。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志`artifacts/tab-merge-build.log`：Inventory分类/皮肤规则807项、目标API 206项/75个实际方块分类、圣兽DATA隔离与原生标签、30个CSV/75行打包一致性、Fishing、PixelFX 1195项、书典、家居、绘卷、军势等全部旧回归通过。产物`SCIE-Port/artifacts/荒野探险家.netmod`与`荒野探险家-0.87.0.netmod`字节一致：**12,762,541字节**，SHA256 `C6EEEEC15CC3434810C74B05FD5B7BDEA82AD99E8D227C6B5897713EDB91AD6A`；`SCIEPort.dll` 948,224字节/SHA256 `C7AE8232157BF695D05301EBE23921A26CB20D10916F0B8C687D231328EA535C`，版本0.87.0。Windows编译/静态检查/包内容 **已确认**；Android7723触屏分类列表与真实联机 **待验证**。
+
+## 2026-11-14 main 0.86.1：钓鱼水位与手持模型修复
+
+按实测反馈修复两处：`FluidBlock.GetLevelHeight` 的参数是 0–15 流体等级而非整格方块值，改为 `GetLevelHeight(GetLevel(ExtractData(value)))` 后满水（level 0，高度0.875）可正常起竿；鱼竿网格原沿局部 +Z 延伸，而第一人称相机前向为局部 -Z（`Matrix.Forward = -(M31..M33)`），杆身伸向眼后并被近裁剪面裁掉，现整体翻转为沿 -Z 前伸并居中。物品/配方/包236/XDB/ID 均未改动。
+
+验证命令（仓库根）：
+
+```powershell
+$env:FrameworkPathOverride='D:/Dev/Tools/net472/build/.NETFramework/v4.7.2'
+$env:DOTNET_ROOT='C:/Users/85196/AppData/Local/Microsoft/dotnet'
+$env:DOTNET_ROLL_FORWARD='Major'
+$env:NuGetAudit='false'
+$env:PATH='D:/Dev/Tools/MinGit/cmd;D:/Dev/Tools/node-portable/node-v20.18.0-win-x64;'+$env:DOTNET_ROOT+';'+$env:PATH
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/fishing-fix-build.log`：Fishing 原生API/资源/包检查与规则单测、全部旧回归通过，包212条目。产物 `SCIE-Port/artifacts/荒野探险家.netmod` 与 `荒野探险家-0.86.1.netmod` 字节一致：**12,762,667字节**，SHA256 `A16E26863F04BFA0A7D9D3EC9B4EBF054EA603D6D472D83A0BDA9BE9EF9348FA`；`SCIEPort.dll` 948,736字节/SHA256 `E2A2FE8F201886A2358CE1CA7629D37B1AFC0A9B4C1DE4ECCC15505EB46B2D50`，版本0.86.1。Windows编译/静态检查 **已确认**；Android7723 触屏实际垂钓与真实联机 **待验证**。
 
 ## 2026-11-14 main 0.86.0：钓鱼玩法
 
