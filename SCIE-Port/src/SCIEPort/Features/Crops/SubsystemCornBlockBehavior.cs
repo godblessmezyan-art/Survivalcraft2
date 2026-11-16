@@ -2,6 +2,7 @@
 
 using Engine;
 using Game;
+using SCIEPort.Features.Plants;
 using Game.NetWork;
 using TemplatesDatabase;
 
@@ -22,6 +23,7 @@ namespace SCIEPort.Features.Crops
                 return;
             }
 
+            if(y<=0||y>=254) return;
             Terrain terrain = SubsystemTerrain.Terrain;
             if (Terrain.ExtractLight(terrain.GetCellValueFast(x, y + 1, z)) < CropRules.MinLightToGrow)
             {
@@ -55,6 +57,7 @@ namespace SCIEPort.Features.Crops
                 return;
             }
 
+            if(!PlantGrowthBudget.Take(2)) return;
             SubsystemTerrain.ChangeCell(
                 x,
                 y,

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
 using Game;
+using SCIEPort.Features.Plants;
 
 namespace SCIEPort.Features.Apple
 {
@@ -50,6 +51,15 @@ namespace SCIEPort.Features.Apple
 
     public sealed class ApplePlantBlock : CrossBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+        private static readonly BoundingBox[] s_trunkBoxes={new BoundingBox(new Vector3(.35f,0,.35f),new Vector3(.65f,1,.65f))};
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public const int Index = 939;
 
         public override int GetFaceTextureSlot(int face, int value)
@@ -67,6 +77,14 @@ namespace SCIEPort.Features.Apple
             return AppleRules.GetSize(Terrain.ExtractData(value)) + 1;
         }
 
+        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain,int value)
+        {
+            int data=Terrain.ExtractData(value),part=AppleTreeRules.Part(data);
+            if(part==AppleTreeRules.Root||part==AppleTreeRules.Trunk)
+                return s_trunkBoxes;
+            return m_plantModel.Boxes(this,value);
+        }
+
         public override void GenerateTerrainVertices(
             BlockGeometryGenerator generator,
             TerrainGeometry geometry,
@@ -75,15 +93,7 @@ namespace SCIEPort.Features.Apple
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(AppleTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -94,15 +104,7 @@ namespace SCIEPort.Features.Apple
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                AppleTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -116,8 +118,7 @@ namespace SCIEPort.Features.Apple
 
         public override IEnumerable<int> GetCreativeValues()
         {
-            int mature = AppleRules.SetSize(0, AppleRules.MaxAppleSize);
-            yield return Terrain.MakeBlockValue(Index, 0, AppleRules.SetFruiting(mature, true));
+            yield return Terrain.MakeBlockValue(Index);
         }
 
         public override BlockPlacementData GetPlacementValue(
@@ -142,7 +143,7 @@ namespace SCIEPort.Features.Apple
 
             // A ripe, fruiting plant yields edible apples; this mirrors the audited
             // WildBerry behaviour where breaking a fruiting bush hands you the fruit.
-            if (AppleRules.GetFruiting(data))
+            if (AppleRules.GetFruiting(data) && (AppleTreeRules.Part(data) == AppleTreeRules.Leaf || AppleTreeRules.Part(data) == 0))
             {
                 dropValues.Add(new BlockDropValue
                 {
@@ -153,7 +154,7 @@ namespace SCIEPort.Features.Apple
 
             // A mature plant also yields one replantable young plant (the stage-zero
             // item) so harvesting a stand does not strip the field bare.
-            if (AppleRules.IsMature(data))
+            if (AppleTreeRules.Part(data) == 0 || AppleTreeRules.Part(data) == AppleTreeRules.Root)
             {
                 dropValues.Add(new BlockDropValue
                 {
@@ -166,6 +167,14 @@ namespace SCIEPort.Features.Apple
 
     public sealed class AppleBlock : FlatBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public const int Index = 940;
 
         public override int GetFaceTextureSlot(int face, int value)
@@ -181,15 +190,7 @@ namespace SCIEPort.Features.Apple
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(AppleTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -200,15 +201,7 @@ namespace SCIEPort.Features.Apple
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                AppleTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -234,8 +227,8 @@ namespace SCIEPort.Features.Apple
         {
             CellFace target = raycastResult.CellFace;
             Point3 direction = CellFace.FaceToPoint3(target.Face);
-            bool isSoil = Terrain.ExtractContents(
-                subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z)) == SoilBlock.Index;
+            bool isSoil = SubsystemAppleBlockBehavior.IsGround(Terrain.ExtractContents(
+                subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z)));
             if (AppleRules.CanPlaceApple(direction.Y == 1, isSoil))
             {
                 return new BlockPlacementData

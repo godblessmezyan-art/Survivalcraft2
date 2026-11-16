@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
 using Game;
+using SCIEPort.Features.Plants;
 
 namespace SCIEPort.Features.KellyPlants
 {
@@ -43,6 +44,14 @@ namespace SCIEPort.Features.KellyPlants
 
     public abstract class KellyCrossBlock : CrossBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public override void GenerateTerrainVertices(
             BlockGeometryGenerator generator,
             TerrainGeometry geometry,
@@ -51,15 +60,7 @@ namespace SCIEPort.Features.KellyPlants
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(KellyPlantTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -70,15 +71,7 @@ namespace SCIEPort.Features.KellyPlants
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                KellyPlantTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -93,35 +86,12 @@ namespace SCIEPort.Features.KellyPlants
 
     public abstract class KellyFruitBlock : Block
     {
-        private static readonly BoundingBox[] s_boxes =
-        {
-            new BoundingBox(new Vector3(0.33f, 0f, 0.33f), new Vector3(0.67f, 0.42f, 0.67f))
-        };
-
-        private readonly BlockMesh m_worldMesh = new BlockMesh();
-        private readonly BlockMesh m_iconMesh = new BlockMesh();
-
-        protected abstract string MeshName { get; }
-
-        protected virtual Matrix IconTransform
-        {
-            get { return Matrix.CreateScale(1.5f) * Matrix.CreateTranslation(0f, -0.3f, 0f); }
-        }
+        private readonly PlantModel m_plantModel = new PlantModel();
 
         public override void Initialize()
         {
-            Model model = ContentManager.Get<Model>("Models/KellyFruits");
-            AppendMesh(m_worldMesh, model, MeshName, Matrix.CreateTranslation(0.5f, 0f, 0.5f));
-            AppendMesh(m_iconMesh, model, MeshName, IconTransform);
+            m_plantModel.Initialize(BlockIndex);
             base.Initialize();
-        }
-
-        private static void AppendMesh(BlockMesh target, Model model, string meshName, Matrix transform)
-        {
-            ModelMesh mesh = model.FindMesh(meshName, true);
-            Matrix boneTransform = BlockMesh.GetBoneAbsoluteTransform(mesh.ParentBone);
-            target.AppendModelMeshPart(
-                mesh.MeshParts[0], boneTransform * transform, false, false, false, false, Color.White);
         }
 
         public override bool IsFaceTransparent(SubsystemTerrain subsystemTerrain, int face, int value)
@@ -131,7 +101,7 @@ namespace SCIEPort.Features.KellyPlants
 
         public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
         {
-            return s_boxes;
+            return m_plantModel.Boxes(this,value);
         }
 
         public override void GenerateTerrainVertices(
@@ -142,9 +112,7 @@ namespace SCIEPort.Features.KellyPlants
             int y,
             int z)
         {
-            TerrainGeometrySubset subset = geometry.GetGeometry(KellyPlantTextures.Atlas).SubsetAlphaTest;
-            generator.GenerateShadedMeshVertices(
-                this, x, y, z, m_worldMesh, Color.White, null, null, subset);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -155,14 +123,7 @@ namespace SCIEPort.Features.KellyPlants
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawMeshBlock(
-                primitivesRenderer,
-                m_iconMesh,
-                KellyPlantTextures.Atlas,
-                color,
-                size,
-                ref matrix,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -193,19 +154,9 @@ namespace SCIEPort.Features.KellyPlants
 
     public abstract class KellyMushroomPatchBlock : KellyFruitBlock
     {
-        private static readonly BoundingBox[] s_boxes =
-        {
-            new BoundingBox(new Vector3(0.22f, 0f, 0.22f), new Vector3(0.78f, 0.34f, 0.78f))
-        };
-
         private readonly Game.Random m_random = new Game.Random();
 
         protected abstract int DropContents { get; }
-
-        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
-        {
-            return s_boxes;
-        }
 
         public override void GetDropValues(
             SubsystemTerrain subsystemTerrain,
@@ -243,10 +194,7 @@ namespace SCIEPort.Features.KellyPlants
             int y,
             int z)
         {
-            if (GetFruiting(Terrain.ExtractData(value)))
-            {
-                base.GenerateTerrainVertices(generator, geometry, value, x, y, z);
-            }
+            base.GenerateTerrainVertices(generator, geometry, value, x, y, z);
         }
 
         public override void GetDropValues(
@@ -277,7 +225,6 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class WildBerryBlock : KellyFruitBlock
     {
         public const int Index = 904;
-        protected override string MeshName { get { return "WildBerry"; } }
     }
 
     public sealed class CattailBlock : KellyCrossBlock
@@ -304,32 +251,27 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class CattailShootBlock : KellyFruitBlock
     {
         public const int Index = 906;
-        protected override string MeshName { get { return "CattailShoot"; } }
     }
 
     public sealed class CactusFruitBlock : KellyFruitBlock
     {
         public const int Index = 907;
-        protected override string MeshName { get { return "CactusFruit"; } }
     }
 
     public sealed class AcornBlock : KellyFruitBlock
     {
         public const int Index = 908;
-        protected override string MeshName { get { return "Acorn"; } }
     }
 
     public sealed class MushroomPatchBlock : KellyMushroomPatchBlock
     {
         public const int Index = 909;
-        protected override string MeshName { get { return "MushroomPatch"; } }
         protected override int DropContents { get { return WildMushroomBlock.Index; } }
     }
 
     public sealed class WildMushroomBlock : KellyFruitBlock
     {
         public const int Index = 910;
-        protected override string MeshName { get { return "WildMushroom"; } }
     }
 
     public sealed class SoybeanBlock : KellyCrossBlock
@@ -475,14 +417,12 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class FlyAgaricPatchBlock : KellyMushroomPatchBlock
     {
         public const int Index = 913;
-        protected override string MeshName { get { return "FlyAgaricPatch"; } }
         protected override int DropContents { get { return FlyAgaricBlock.Index; } }
     }
 
     public sealed class FlyAgaricBlock : KellyFruitBlock
     {
         public const int Index = 914;
-        protected override string MeshName { get { return "FlyAgaric"; } }
     }
 
     public sealed class CloudberryPlantBlock : KellyCrossBlock
@@ -498,6 +438,7 @@ namespace SCIEPort.Features.KellyPlants
             out bool showDebris)
         {
             showDebris = true;
+            if((Terrain.ExtractData(oldValue)&3)!=0) return;
             dropValues.Add(new BlockDropValue
             {
                 Value = Terrain.MakeBlockValue(CloudberryBlock.Index),
@@ -509,6 +450,5 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class CloudberryBlock : KellyFruitBlock
     {
         public const int Index = 916;
-        protected override string MeshName { get { return "Cloudberry"; } }
     }
 }

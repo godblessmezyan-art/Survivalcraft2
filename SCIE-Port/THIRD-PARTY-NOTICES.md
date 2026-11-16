@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original plant geometry and apple-tree adaptation (2026-11-16)
+
+The replacement stems, branches, folded leaves, flowers, pods, kernels, mushroom caps and fruit meshes are original procedural C# geometry in `src/SCIEPort/Features/Plants/PlantGeometry.cs`. The native-target apple-tree growth/fruit/transaction code is an independent adaptation within this project; it imports no native sapling implementation, Blender asset, third-party mesh, photo, font, texture, game DLL or proprietary content. Colors use an original one-pixel runtime texture. Existing authorized Kelly metadata and legacy resource files retain their original notices and package checks. `design/plants-v1/previews` contains original-geometry renders made with the locally supplied target Engine; these are synthetic QA images, not gameplay/Android evidence and are not included in the mod package.
+
 ## Original cozy furniture (2026-11-08)
 
 The six Home furniture families (13 creative appearances, 16 runtime COLLADA variants) and `HomeFurniture.png` are original project geometry and procedural color textures. The editable source is `scripts/New-HomeFurnitureAssets.py`; per-asset SHA-256 and the generator fingerprint are recorded in `docs/assets/home-furniture/manifest.json`. No external furniture model, photo, texture pack, logo, game DLL or proprietary game content was added for this feature. Blender 5.1.1 and the official Blender MCP 1.0.2 were used as local authoring tools; their installers, source checkout and Python environment are not included in the `.netmod`. Proof renders are Blender previews, not Android/game screenshots, and are not packaged.

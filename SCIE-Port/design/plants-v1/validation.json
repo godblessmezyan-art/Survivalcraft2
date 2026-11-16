@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-16",
+  "version": "0.89.0",
+  "authoring": "Original project C# procedural BlockMesh geometry",
+  "preview": "Exact Windows target Engine/OpenGL synthetic scene; not gameplay or Android",
+  "sources": {
+    "SCIE-Port/src/SCIEPort/Features/Plants/PlantGeometry.cs": "5665B8996B495F819F5C89419AD483F6A09682B2677258409838C5A82DA47148",
+    "SCIE-Port/src/SCIEPort/Features/Plants/PlantGrowthBudget.cs": "12F8357E134841B2E7CD20D721EC9753DF9A85AC32645D2B58FD98C632F163D4",
+    "SCIE-Port/src/SCIEPort/Features/Apple/AppleTreeRules.cs": "F22985DAFC3F61B20D22823CDBF38E8B8510B92D0AA0DA1534E26103FFCF8838",
+    "SCIE-Port/src/SCIEPort/Features/Apple/SubsystemAppleBlockBehavior.cs": "031579087708AF647B75440FDDCDE33BDBE9A2261498D2278BB95F74EF2AF5B6",
+    "SCIE-Port/tests/SCIEPort.Plants.NativeTests/PlantGpuProbe.cs": "08D42C0F97684FFDD1A4774182B611A49970ED93A6A3C76BDD01B891A944ACBE"
+  },
+  "previews": {
+    "crops.png": "7EEF2B8DDE9BF15E72E1E2735A6905C625631C6AE1913B1A868861623AB7695B",
+    "apple-ripe.png": "F0971A4B3F992A4F8A1C82649F2DE4BA0DE3DDBF0F161D1268C4804A558BA599",
+    "apple-blossom.png": "336DD7F5F581E4478E1B9FC931BD192E64F41D517F55DDC33EEAF638E1A25BDD",
+    "apple-green.png": "43763ED3FB9BDA200D35BB905BA9767E5D0F8405D9A2598D4BEAE0E855FC1382",
+    "corn-stages.png": "4CAD31AE1D8E5EDC45EE3199F7DF5656470C4F346C27CDED966AD7135269E336",
+    "native-items.png": "7701518E4253E2ABD22369FE0F4993AD1A294A29CE49BF580B99376F4F5A1796"
+  },
+  "package": {
+    "version": "0.89.0",
+    "packageBytes": 12776267,
+    "entries": 213,
+    "packageSha256": "B69B82111C1998FB60833F6E0D3A8BB57A2966C31FE6174D4715953D7E2C67C7",
+    "dllBytes": 980480,
+    "dllSha256": "CC8E73CEE7EF9C8E7081FF4B45774536C105086BB9847AA48F1599038E20EC41",
+    "changesFrom0881": [
+      "modinfo.json",
+      "SCIEPort.dll",
+      "THIRD-PARTY-NOTICES.md",
+      "Assets/Blocks/Apple.csv"
+    ],
+    "nativeChecks": 999952,
+    "ruleChecks": 725,
+    "android": "待验证",
+    "liveMultiplayer": "待验证",
+    "dllMvid": "786311c7-8352-4e0f-b446-e7e17110851d"
+  }
+}

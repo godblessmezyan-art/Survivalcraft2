@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
 using Game;
+using SCIEPort.Features.Plants;
 
 namespace SCIEPort.Features.Sunflower
 {
@@ -48,6 +49,14 @@ namespace SCIEPort.Features.Sunflower
 
     public sealed class SunflowerPlantBlock : CrossBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public const int Index = 936;
 
         public override int GetFaceTextureSlot(int face, int value)
@@ -68,15 +77,7 @@ namespace SCIEPort.Features.Sunflower
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(SunflowerTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -87,15 +88,7 @@ namespace SCIEPort.Features.Sunflower
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                SunflowerTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(

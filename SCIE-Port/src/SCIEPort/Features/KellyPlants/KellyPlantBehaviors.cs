@@ -3,6 +3,8 @@
 using System.Collections.Generic;
 using Engine;
 using Game;
+using SCIEPort.Features.Plants;
+using Game.NetWork;
 using GameEntitySystem;
 using TemplatesDatabase;
 
@@ -22,6 +24,7 @@ namespace SCIEPort.Features.KellyPlants
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
             Terrain terrain = SubsystemTerrain.Terrain;
             if (Terrain.ExtractLight(terrain.GetCellValueFast(x, y + 1, z)) < 9)
             {
@@ -55,6 +58,7 @@ namespace SCIEPort.Features.KellyPlants
                 return;
             }
 
+            if(!PlantGrowthBudget.Take(2)) return;
             SubsystemTerrain.ChangeCell(
                 x,
                 y,
@@ -84,6 +88,7 @@ namespace SCIEPort.Features.KellyPlants
             int neighborY,
             int neighborZ)
         {
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
             Terrain terrain = SubsystemTerrain.Terrain;
             int value = terrain.GetCellValue(x, y, z);
             if (Terrain.ExtractContents(value) != SoybeanBlock.Index || y <= 0)
@@ -99,7 +104,7 @@ namespace SCIEPort.Features.KellyPlants
 
     public sealed class SubsystemWildBerryBlockBehavior : SubsystemPollableBlockBehavior
     {
-        private static readonly int[] s_handledBlocks = { WildBerryPlantBlock.Index };
+        private static readonly int[] s_handledBlocks = { WildBerryPlantBlock.Index,CloudberryPlantBlock.Index,WildBerryBlock.Index,CloudberryBlock.Index };
         private SubsystemSeasons m_seasons;
 
         public override int[] HandledBlocks { get { return s_handledBlocks; } }
@@ -113,20 +118,41 @@ namespace SCIEPort.Features.KellyPlants
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
-            bool fruiting = m_seasons == null ||
-                m_seasons.Season == Season.Spring ||
-                m_seasons.Season == Season.Summer;
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
+            Terrain terrain=SubsystemTerrain.Terrain;
+            value=terrain.GetCellValue(x,y,z);
+            int id=Terrain.ExtractContents(value);
+            if(id!=WildBerryPlantBlock.Index&&id!=CloudberryPlantBlock.Index) return;
+            bool cloud=id==CloudberryPlantBlock.Index;
+            int ground=Terrain.ExtractContents(terrain.GetCellValue(x,y-1,z));
+            if(ground!=GrassBlock.Index&&ground!=DirtBlock.Index&&ground!=SoilBlock.Index)
+            {
+                SubsystemTerrain.DestroyCell(0,x,y,z,0,true,true,null);return;
+            }
+            bool fruiting=m_seasons==null||m_seasons.Season==Season.Summer||(!cloud&&m_seasons.Season==Season.Spring);
             int data = Terrain.ExtractData(value);
-            if (WildBerryPlantBlock.GetFruiting(data) != fruiting)
+            bool suitable=Terrain.ExtractLight(terrain.GetCellValue(x,y+1,z))>=8&&terrain.GetSeasonalTemperature(x,z)+SubsystemWeather.GetTemperatureAdjustmentAtHeight(y)>2;
+            int next=KellyPlantRules.NextBerry(data,cloud,fruiting,suitable,pollPass%3==0);
+            if (next != data && PlantGrowthBudget.Take(1))
             {
                 SubsystemTerrain.ChangeCell(
                     x,
                     y,
                     z,
-                    Terrain.ReplaceData(value, WildBerryPlantBlock.SetFruiting(data, fruiting)),
+                    Terrain.ReplaceData(value, next),
                     true,
                     null);
             }
+        }
+
+        public override void OnItemHarvested(int x,int y,int z,int oldValue,ref BlockDropValue dropValue,ref int newValue)
+        {
+            if(CommonLib.WorkType==WorkType.Client||Terrain.ExtractContents(newValue)!=0) return;
+            int id=Terrain.ExtractContents(oldValue),fruit=Terrain.ExtractContents(dropValue.Value),data=Terrain.ExtractData(oldValue);
+            if(id==WildBerryPlantBlock.Index&&fruit==WildBerryBlock.Index&&(data&1)!=0)
+                newValue=Terrain.ReplaceData(oldValue,data&~15);
+            else if(id==CloudberryPlantBlock.Index&&fruit==CloudberryBlock.Index&&(data&3)==0)
+                newValue=Terrain.ReplaceData(oldValue,(data&~3)|1);
         }
     }
 
@@ -149,7 +175,7 @@ namespace SCIEPort.Features.KellyPlants
 
         public override void OnBlockRemoved(int value, int newValue, int x, int y, int z)
         {
-            if (Terrain.ExtractContents(value) != OakLeavesBlock.Index)
+            if (CommonLib.WorkType==WorkType.Client || Terrain.ExtractContents(value) != OakLeavesBlock.Index)
             {
                 return;
             }
@@ -174,6 +200,7 @@ namespace SCIEPort.Features.KellyPlants
             int neighborY,
             int neighborZ)
         {
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
             Terrain terrain = SubsystemTerrain.Terrain;
             if (Terrain.ExtractContents(terrain.GetCellValue(x, y, z)) == CactusFruitBlock.Index &&
                 Terrain.ExtractContents(terrain.GetCellValue(x, y - 1, z)) != CactusBlock.Index)
@@ -374,6 +401,7 @@ namespace SCIEPort.Features.KellyPlants
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
             if (!IsNaturalGround(Terrain.ExtractContents(SubsystemTerrain.Terrain.GetCellValue(x, y - 1, z))))
             {
                 SubsystemTerrain.DestroyCell(0, x, y, z, 0, false, false, null);

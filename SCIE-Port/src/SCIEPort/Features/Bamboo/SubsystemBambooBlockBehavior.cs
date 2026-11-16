@@ -2,6 +2,7 @@
 
 using Engine;
 using Game;
+using SCIEPort.Features.Plants;
 using Game.NetWork;
 using TemplatesDatabase;
 
@@ -31,6 +32,7 @@ namespace SCIEPort.Features.Bamboo
                 return;
             }
 
+            if(y<=0||y>=254) return;
             Terrain terrain = SubsystemTerrain.Terrain;
 
             int belowValue = terrain.GetCellValueFast(x, y - 1, z);
@@ -81,6 +83,7 @@ namespace SCIEPort.Features.Bamboo
             }
 
             // Add a plain upper segment (base flag cleared) on top of the column.
+            if(!PlantGrowthBudget.Take(1)) return;
             SubsystemTerrain.ChangeCell(
                 x,
                 topY + 1,
