@@ -29,11 +29,13 @@ namespace SCIEPort.Features.CelestialCodex.UI
         private readonly List<string> rowNames = new List<string>();
         private readonly List<bool> rowDirectories = new List<bool>();
         private readonly object choiceGate = new object();
+        private readonly Action<string> choiceCallback;
         private readonly CancellationTokenSource cancellation = new CancellationTokenSource();
         private string directory = BookFilePicker.Root;
         private string pendingPath;
         private bool pendingChoice, nativeChoosing, importing;
         private bool closed;
+        private bool launchRequested=true;
         private Task<string> importTask;
 
         internal bool Closed { get { return closed; } }
@@ -44,6 +46,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
             this.player = player;
             this.importFile = importFile;
             this.imported = imported;
+            choiceCallback=ReceiveChoice;
             panel = new CanvasWidget { HorizontalAlignment = WidgetAlignment.Center, VerticalAlignment = WidgetAlignment.Center };
             Children.Add(panel);
             panel.Children.Add(new RectangleWidget
@@ -143,16 +146,22 @@ namespace SCIEPort.Features.CelestialCodex.UI
         {
             if (nativeChoosing || importing) return;
             nativeChoosing = true;
-            bool started = BookFilePicker.TryChoose(path =>
-            {
-                // A platform callback may occur on a different thread. Never touch widgets here.
-                lock (choiceGate) { pendingPath = path; pendingChoice = true; }
-            });
+            bool started = BookFilePicker.TryChoose(choiceCallback);
             if (started) status.Text = "请选择 TXT 或 EPUB";
             else
             {
                 nativeChoosing = false;
-                status.Text = "系统选书不可用，请浏览游戏可访问的文件";
+                status.Text = BookFilePicker.LastError??"系统选书不可用";
+            }
+        }
+
+        private void ReceiveChoice(string path)
+        {
+            // Native result callbacks never change widgets directly.
+            lock(choiceGate)
+            {
+                if(closed){BookFilePicker.Release(path);return;}
+                pendingPath=path;pendingChoice=true;
             }
         }
 
@@ -176,7 +185,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
             if (ready)
             {
                 nativeChoosing = false;
-                if (string.IsNullOrEmpty(chosen)) status.Text = "已取消选择";
+                if (string.IsNullOrEmpty(chosen)) status.Text = BookFilePicker.LastError??"已取消选择";
                 else BeginImport(chosen);
             }
             Task<string> task = importTask;
@@ -202,11 +211,13 @@ namespace SCIEPort.Features.CelestialCodex.UI
             if (closed) return;
             closed = true;
             cancellation.Cancel();
+            BookFilePicker.Cancel(choiceCallback);
+            lock(choiceGate){BookFilePicker.Release(pendingPath);pendingPath=null;pendingChoice=false;}
             if (ParentWidget != null) DialogsManager.HideDialog(this);
             if (success && imported != null) imported();
         }
 
-        public override void UpdateCeases() { Close(false); base.UpdateCeases(); }
+        public override void UpdateCeases() { if(!nativeChoosing) Close(false); base.UpdateCeases(); }
         public override void Dispose() { Close(false); base.Dispose(); }
 
         public override void Update()
@@ -219,6 +230,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
                 Layout();
                 ProcessPending();
                 if (closed) return;
+                if(launchRequested){launchRequested=false;BeginSystemPicker();}
                 bool ready = !importing && !nativeChoosing;
                 system.IsEnabled = ready;
                 up.IsEnabled = ready && directory != BookFilePicker.Root;

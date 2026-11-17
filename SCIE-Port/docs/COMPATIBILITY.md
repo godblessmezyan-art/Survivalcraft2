@@ -1,5 +1,11 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-17 0.89.1：系统文件导入与苹果禁放
+
+书典在Android通过Window.Activity和已核验JNI入口加载同一SCIEPort.dll内的原创文档选择Fragment，调用系统OPEN_DOCUMENT；用ContentResolver读显示名与输入流，最多8 MiB复制到私有临时目录，再沿原Imports事务导入。新增嵌入资源SCIEPort.CelestialCodex.DocumentPicker.dex，无额外DLL/APK/AndroidX、Manifest活动或网络包；根956/DATA0、三GUID、阅读缓存/续读、net472/API1.42/SC2.4.10.6保持。苹果940 CSV改IsPlaceable=false/IsTransparent=true，并显式拒放/允许全部邻面/旧格回收；树939不变。各端统一0.89.1。
+
+固定Windows环境/Release与旧回归、书典读入/嵌入资源/原生邻面负对照、25项Java流/文件名/取消、DEX源/校验和及官方x25 APK内16个JNI/Activity签名、Android BCL解析 **已确认**。Android7723系统UI、授权、URI供应方、切回/旋转/进程重建、旧苹果世界与真实Local/Server/Client **待验证**，不能用元数据替代实机。[精确指纹与验收](CODEX-PICKER-APPLE-0.89.1.md)。
+
 ## 2026-11-16 0.89.0：植物模型与果树生长
 
 939/940等既有植物ID保持；新增939 DATA中的树根/树干/树冠、根相对坐标及采后标记，既有0–15仍按旧树苗读取并在满足条件时生长。苹果可种在耕地、泥土或草地，成熟为3×3、5格高、21格的小型果树；野莓903/云莓915加入再生阶段。19类植物/果实使用原创程序化BlockMesh和1×1 Rgba8888白纹理，初始化时预热、缓存并发保护；Apple CSV启用树干/树冠碰撞。沿用原Poll/Update、OnItemHarvested与原生ChangeCell，不加Hook名、网络包、XDB GUID或外部资产。Apple子系统HandledBlocks增加940；野莓子系统增加915/904/916。net472/API1.42/SC2.4.10.6、书典956/GUID/缓存、家居及其它旧功能保持，各端统一0.89.0。

@@ -115,13 +115,17 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             // No server/network state and no world save state are accessed.
             if (string.IsNullOrEmpty(selectedPath) || selectedPath.Length > 2048)
                 throw new InvalidDataException("文件路径无效");
-            string name = BookImportService.FileName(selectedPath);
-            token.ThrowIfCancellationRequested();
-            using (Stream input = Storage.OpenFile(selectedPath, OpenFileMode.Read))
+            try
             {
-                var store = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
-                return BookImportService.Copy(name, input, store, token);
+                string name = BookImportService.FileName(selectedPath);
+                token.ThrowIfCancellationRequested();
+                using (Stream input = BookFilePicker.OpenSelected(selectedPath))
+                {
+                    var store = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
+                    return BookImportService.Copy(name, input, store, token);
+                }
             }
+            finally { BookFilePicker.Release(selectedPath); }
         }
         internal ReaderResult Take() { return gate.Take(); }
         private static void LogNetwork(string message) { Log.Error(message); }

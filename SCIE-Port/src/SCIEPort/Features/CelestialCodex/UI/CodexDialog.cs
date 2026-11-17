@@ -231,8 +231,8 @@ namespace SCIEPort.Features.CelestialCodex.UI
             else if (view == View.Chapters) ShowCatalog(); else Close();
         }
         internal void Close()
-        { if (Closed) return; SavePosition(); Closed = true; session.Dispose(); if (ParentWidget != null) DialogsManager.HideDialog(this); Player = null; }
-        public override void UpdateCeases() { Close(); base.UpdateCeases(); }
+        { if (Closed) return; SavePosition(); Closed = true; if(importer!=null) importer.Dispose(); session.Dispose(); if (ParentWidget != null) DialogsManager.HideDialog(this); Player = null; }
+        public override void UpdateCeases() { if(importer==null||importer.Closed) Close(); base.UpdateCeases(); }
         public override void Dispose() { Close(); base.Dispose(); }
         public override void Update()
         {

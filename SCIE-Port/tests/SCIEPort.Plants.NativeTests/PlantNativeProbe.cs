@@ -97,7 +97,22 @@ public static class PlantNativeProbe
         var results=new BoundingBox[1024][];
         Parallel.For(0,results.Length,i=>results[i]=concurrent.GetCustomCollisionBoxes(null,Terrain.MakeBlockValue(939,0,48|((i%3)<<6)|((i%3)<<8)|(3<<10)|(i%8))));
         for(int i=0;i<results.Length;i++)Check(results[i].Length==1&&results[i][0].Min.Y<results[i][0].Max.Y,"concurrent cold collision/model cache access is safe");
+        var food=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Apple.AppleBlock",true));food.BlockIndex=940;
+        var oldFood=BlocksManager.Blocks[940];
+        try
+        {
+            var ground=new GraniteBlock();BlocksManager.Blocks[940]=food;
+            for(int face=0;face<6;face++) Check(ground.ShouldGenerateFace(null,face,Terrain.MakeBlockValue(3),Terrain.MakeBlockValue(940)),"legacy placed apple never culls any neighboring cube face");
+            Check(food.GetPlacementValue(null,null,Terrain.MakeBlockValue(940),new TerrainRaycastResult()).Value==0,"edible apple rejects placement independently of CSV");
+            var recovered=new List<BlockDropValue>();bool debris;
+            food.GetDropValues(null,Terrain.MakeBlockValue(940),0,0,recovered,out debris);
+            Check(recovered.Count==1&&recovered[0].Value==Terrain.MakeBlockValue(940)&&recovered[0].Count==1,"legacy placed apple can be recovered as one food item");
+            BlocksManager.Blocks[940]=new OpaqueFoodFixture();
+            Check(!ground.ShouldGenerateFace(null,4,Terrain.MakeBlockValue(3),Terrain.MakeBlockValue(940)),"negative control reproduces the old opaque-food xray face hole");
+        }
+        finally{BlocksManager.Blocks[940]=oldFood;}
     }
+    private sealed class OpaqueFoodFixture:FlatBlock { }
     static void Runtime(Assembly mod,WorkType mode)
     {
         CommonLib.WorkType=mode;

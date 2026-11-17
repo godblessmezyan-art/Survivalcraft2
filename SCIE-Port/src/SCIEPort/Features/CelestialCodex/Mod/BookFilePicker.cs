@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.IO;
 using System.Threading.Tasks;
 using SCIEPort.Features.CelestialCodex.Core;
 using Engine;
@@ -15,11 +16,14 @@ namespace SCIEPort.Features.CelestialCodex.Mod
     /// </summary>
     internal static class BookFilePicker
     {
+        internal static string LastError;
         private static readonly string[] Extensions = { ".txt", ".epub" };
 
         internal static bool TryChoose(Action<string> onChosen)
         {
             if (onChosen == null) return false;
+            LastError=null;
+            if(AndroidBookPicker.Available) return AndroidBookPicker.TryChoose(onChosen);
             // Run on the game/UI thread: a native picker must not start from Task.Run.
             foreach (MethodInfo method in typeof(Storage).GetMethods(BindingFlags.Public | BindingFlags.Static))
             {
@@ -66,6 +70,15 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             return false;
         }
 
+        internal static void Cancel(Action<string> callback) { AndroidBookPicker.Cancel(callback); }
+        internal static void Release(string path) { AndroidBookPicker.Release(path); }
+        internal static Stream OpenSelected(string path)
+        {
+            // The native picker returns a private copied file; the game browser returns a Storage URI.
+            if(Path.IsPathRooted(path)) return new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read);
+            return Storage.OpenFile(path,OpenFileMode.Read);
+        }
+
         private static async void CompleteSelection(Task<string> task,Action<string> onChosen)
         {
             string path=null;
@@ -73,7 +86,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             try { onChosen(path); } catch(Exception) { }
         }
 
-        internal static string Root { get { return "app:/"; } }
+        internal static string Root { get { return AndroidBookPicker.Available?"android:/":"app:/"; } }
 
         internal static string Parent(string path)
         {

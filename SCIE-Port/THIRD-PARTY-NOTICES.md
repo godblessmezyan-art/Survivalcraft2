@@ -1,5 +1,9 @@
 # Third-party notices
 
+## Original Android document picker (2026-11-17)
+
+`tools/codex-picker/CodexDocumentPicker.java` and its 5-class DEX are original project code. The DEX is embedded in the existing SCIEPort.dll solely to bridge the trimmed Android host to the platform document picker; no game assembly, APK, Android SDK class, AndroidX or second managed DLL is included. The compiler-only Android API jar and R8 are pinned in `tools/codex-picker/manifest.json` and are not redistributed. Source, executable resource hashes, reproduction command and checks are recorded there and in `docs/CODEX-PICKER-APPLE-0.89.1.md`.
+
 ## Original plant geometry and apple-tree adaptation (2026-11-16)
 
 The replacement stems, branches, folded leaves, flowers, pods, kernels, mushroom caps and fruit meshes are original procedural C# geometry in `src/SCIEPort/Features/Plants/PlantGeometry.cs`. The native-target apple-tree growth/fruit/transaction code is an independent adaptation within this project; it imports no native sapling implementation, Blender asset, third-party mesh, photo, font, texture, game DLL or proprietary content. Colors use an original one-pixel runtime texture. Existing authorized Kelly metadata and legacy resource files retain their original notices and package checks. `design/plants-v1/previews` contains original-geometry renders made with the locally supplied target Engine; these are synthetic QA images, not gameplay/Android evidence and are not included in the mod package.

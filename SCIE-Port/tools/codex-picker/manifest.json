@@ -1,0 +1,20 @@
+{
+  "source": "tools/codex-picker/CodexDocumentPicker.java",
+  "sourceSha256": "ae83bf1cc95c5b81934a0b506d99647f1a881ad661689345a4b5cb35c98ef40a",
+  "dexSha256": "ddf03bdc0fbd3ccd5ee3dff98590e0c1b26d97215cb78a647df1a43a1fdf621d",
+  "dexBytes": 11088,
+  "minApi": 23,
+  "javaRelease": 8,
+  "compiler": "javac 17.0.19",
+  "tools": {
+    "android-4.1.1.4.jar": {
+      "sha256": "84072541cbb711eff89f7277100ff854929a446dba7ceb1b195c340e0b4fd3cb",
+      "url": "https://repo.maven.apache.org/maven2/com/google/android/android/4.1.1.4/android-4.1.1.4.jar"
+    },
+    "r8-8.3.37.jar": {
+      "sha256": "59753e70a74f918389cc87f1b7d66b5c0862932559167425708ded159e3de439",
+      "url": "https://dl.google.com/dl/android/maven2/com/android/tools/r8/8.3.37/r8-8.3.37.jar"
+    }
+  },
+  "scope": "Original project Fragment and bounded stream copy. No game/Android SDK/AndroidX classes embedded."
+}

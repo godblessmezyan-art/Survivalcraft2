@@ -18,6 +18,8 @@ $zip = Join-Path $artifacts '荒野探险家.zip'
 $package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& python (Join-Path $PSScriptRoot 'Test-CodexPicker.py')
+if ($LASTEXITCODE -ne 0) { throw 'Original Android document picker source/DEX checks failed.' }
 & python (Join-Path $PSScriptRoot 'Test-HomeGeometry.py')
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.' }
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo
@@ -1435,10 +1437,10 @@ try {
         throw 'ApplePlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $appleFruitNutrition = 0.0
-    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
+    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'FALSE' -or $appleFruitRow[0].IsTransparent -ne 'TRUE' -or
         $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
-        throw 'AppleBlock must be a placeable Food item drawn on atlas slot 9 with a positive nutritional value.'
+        throw 'AppleBlock must be an unplaceable Food item with transparent legacy terrain faces, slot 9 and positive nutrition.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")

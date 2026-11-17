@@ -177,6 +177,17 @@ namespace SCIEPort.Features.Apple
 
         public const int Index = 940;
 
+        public override bool IsFaceTransparent(SubsystemTerrain terrain,int face,int value) => true;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain,ComponentMiner miner,int value,TerrainRaycastResult hit)
+            => new BlockPlacementData { Value=0,CellFace=hit.CellFace };
+
+        public override void GetDropValues(SubsystemTerrain terrain,int oldValue,int newValue,int toolLevel,List<BlockDropValue> drops,out bool debris)
+        {
+            debris=true;
+            drops.Add(new BlockDropValue {Value=Terrain.MakeBlockValue(Index),Count=1});
+        }
+
         public override int GetFaceTextureSlot(int face, int value)
         {
             return AppleTextures.AppleSlot;
