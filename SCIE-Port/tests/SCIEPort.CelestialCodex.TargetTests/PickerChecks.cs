@@ -8,6 +8,7 @@ internal static class PickerChecks
     const BindingFlags F=BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static;
     internal static void Run(Assembly mod,string repo,Action<bool,string> check)
     {
+        PickerJniChecks.Run(mod,check);
         byte[] expected=File.ReadAllBytes(Path.Combine(repo,"SCIE-Port/src/SCIEPort/Features/CelestialCodex/Android/DocumentPicker.dex"));
         using(Stream input=mod.GetManifestResourceStream("SCIEPort.CelestialCodex.DocumentPicker.dex"))
         using(var actual=new MemoryStream())

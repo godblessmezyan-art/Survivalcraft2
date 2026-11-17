@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-17 0.89.2：本地导入无日志退出
+
+固定Android Mono.Android的FindClass(string)方法体实际返回NewGlobalRef；修正0.89.1将该结果传给DeleteLocalRef的两处错误。补齐失败清理/原生空句柄防护，独立保存最后阶段。没有新Hook/包布局/协议/方块或资产变化，沿用net472/API1.42/SC2.4.10.6、956/三GUID/缓存/续读。Windows环境/Release/回归、17个JNI签名及FindClass全局引用IL证据 **已确认**；用户原闪退设备、7723选书/生命周期/触屏与真实联机 **待验证**，没有设备logcat不能断言唯一根因。[证据与验收](CODEX-PICKER-CRASH-0.89.2.md)。
+
 ## 2026-11-17 0.89.1：系统文件导入与苹果禁放
 
 书典在Android通过Window.Activity和已核验JNI入口加载同一SCIEPort.dll内的原创文档选择Fragment，调用系统OPEN_DOCUMENT；用ContentResolver读显示名与输入流，最多8 MiB复制到私有临时目录，再沿原Imports事务导入。新增嵌入资源SCIEPort.CelestialCodex.DocumentPicker.dex，无额外DLL/APK/AndroidX、Manifest活动或网络包；根956/DATA0、三GUID、阅读缓存/续读、net472/API1.42/SC2.4.10.6保持。苹果940 CSV改IsPlaceable=false/IsTransparent=true，并显式拒放/允许全部邻面/旧格回收；树939不变。各端统一0.89.1。

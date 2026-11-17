@@ -27,14 +27,18 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             AndroidBookPicker operation=null;
             try
             {
+                PickerDiagnostic.Write("activity");
                 object activity=typeof(Window).GetProperty("Activity").GetValue(null,null);
                 if(activity==null) throw new InvalidOperationException("Android Activity is unavailable");
                 IntPtr handle=(IntPtr)activity.GetType().GetProperty("Handle").GetValue(activity,null);
+                if(handle==IntPtr.Zero) throw new InvalidOperationException("Android Activity handle is unavailable");
                 if(jni==null) jni=new Jni();
                 if(bridge==IntPtr.Zero) Load(handle);
                 operation=new AndroidBookPicker(completed);active=operation;
                 Window.Frame+=operation.Poll;
+                PickerDiagnostic.Write("start");
                 jni.StaticVoid(bridge,"start","(Landroid/app/Activity;)V",handle);
+                PickerDiagnostic.Write("waiting");
                 return true;
             }
             catch(Exception error)
@@ -45,12 +49,14 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                     try{jni.StaticVoid(bridge,"cancel","()V");}catch(Exception){}
                 }
                 BookFilePicker.LastError="系统选书启动失败";
+                PickerDiagnostic.Write("launch-failed",error);
                 Log.Warning("[CelestialCodex] Android picker: "+error);
                 return false;
             }
         }
         private static void Load(IntPtr activity)
         {
+            PickerDiagnostic.Write("cache-paths");
             string directory=jni.Path(activity,"getCodeCacheDir");
             cacheRoot=jni.Path(activity,"getCacheDir")+"/CelestialCodexPicker/";
             byte[] dex;
@@ -69,6 +75,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                 {
                     using(var output=new FileStream(path,FileMode.CreateNew,FileAccess.Write,FileShare.Read))
                     {
+                        PickerDiagnostic.Write("protect-new-dex");
                         jni.ReadOnly(path);
                         output.Write(dex,0,dex.Length);
                     }
@@ -80,26 +87,37 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                 using(var input=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))
                 using(SHA256 sha=SHA256.Create())
                     if(BitConverter.ToString(sha.ComputeHash(Core.BoundedCache.ReadLimited(input,128*1024))).Replace("-","")!=hash) throw new InvalidDataException("Picker code cache mismatch");
+                PickerDiagnostic.Write("protect-cached-dex");
                 jni.ReadOnly(path);
             }
-            IntPtr loader=IntPtr.Zero,parent=IntPtr.Zero,dexPath=IntPtr.Zero,optPath=IntPtr.Zero,kind=IntPtr.Zero,name=IntPtr.Zero,local=IntPtr.Zero;
+            IntPtr loader=IntPtr.Zero,parent=IntPtr.Zero,dexPath=IntPtr.Zero,optPath=IntPtr.Zero,kind=IntPtr.Zero,name=IntPtr.Zero,local=IntPtr.Zero,candidate=IntPtr.Zero;
             try
             {
+                PickerDiagnostic.Write("dex-loader");
                 parent=jni.Object(activity,"getClassLoader","()Ljava/lang/ClassLoader;");
                 kind=jni.Find("dalvik/system/DexClassLoader");dexPath=jni.Text(path);optPath=jni.Text(directory);
                 loader=jni.New(kind,"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V",dexPath,optPath,IntPtr.Zero,parent);
                 name=jni.Text("org.scieport.codex.CodexDocumentPicker");
+                PickerDiagnostic.Write("load-picker-class");
                 local=jni.Object(loader,"loadClass","(Ljava/lang/String;)Ljava/lang/Class;",name);
-                bridge=jni.Global(local);
+                candidate=jni.Global(local);
                 // Validate all callback surfaces before opening the system UI.
-                jni.StaticMethod(bridge,"getState","()I");jni.StaticMethod(bridge,"getPath","()Ljava/lang/String;");
-                jni.StaticMethod(bridge,"getError","()Ljava/lang/String;");jni.StaticMethod(bridge,"cancel","()V");
+                PickerDiagnostic.Write("validate-picker-methods");
+                jni.StaticMethod(candidate,"start","(Landroid/app/Activity;)V");
+                jni.StaticMethod(candidate,"getState","()I");jni.StaticMethod(candidate,"getPath","()Ljava/lang/String;");
+                jni.StaticMethod(candidate,"getError","()Ljava/lang/String;");jni.StaticMethod(candidate,"cancel","()V");
+                bridge=candidate;candidate=IntPtr.Zero;
             }
-            finally{jni.Delete(loader);jni.Delete(parent);jni.Delete(dexPath);jni.Delete(optPath);jni.Delete(kind);jni.Delete(name);jni.Delete(local);}
+            finally
+            {
+                jni.DeleteLocal(loader);jni.DeleteLocal(parent);jni.DeleteLocal(dexPath);jni.DeleteLocal(optPath);
+                jni.DeleteGlobal(kind);jni.DeleteLocal(name);jni.DeleteLocal(local);jni.DeleteGlobal(candidate);
+            }
         }
         private void Poll()
         {
             string selected=null;
+            Exception failure=null;
             try
             {
                 int state=jni.StaticInt(bridge,"getState");
@@ -117,10 +135,12 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             }
             catch(Exception error)
             {
+                failure=error;
                 selected=null;
                 BookFilePicker.LastError="选书失败，请重试";Log.Warning("[CelestialCodex] Picker result: "+error);
                 try{jni.StaticVoid(bridge,"cancel","()V");}catch(Exception){}
             }
+            PickerDiagnostic.Write(selected!=null?"selected":"finished-without-file",failure);
             Stop();completed(selected);
         }
         private void Stop(){Window.Frame-=Poll;if(active==this) active=null;}
@@ -129,6 +149,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             AndroidBookPicker operation=active;
             if(operation==null||!ReferenceEquals(operation.completed,callback)) return;
             operation.Stop();
+            PickerDiagnostic.Write("cancel");
             try{jni.StaticVoid(bridge,"cancel","()V");}catch(Exception error){Log.Warning("[CelestialCodex] Picker cancel: "+error.Message);}
         }
         internal static void Release(string path)
@@ -147,12 +168,18 @@ namespace SCIEPort.Features.CelestialCodex.Mod
         {
             private readonly Type api,values,ownership;
             private readonly Dictionary<string,MethodInfo> methods=new Dictionary<string,MethodInfo>();
-            internal Jni()
+            internal Jni() : this(Type.GetType("Android.Runtime.JNIEnv, Mono.Android",true),
+                Type.GetType("Android.Runtime.JValue, Mono.Android",true),
+                Type.GetType("Android.Runtime.JniHandleOwnership, Mono.Android",true)) { }
+            internal Jni(Type api,Type values,Type ownership)
             {
-                api=Type.GetType("Android.Runtime.JNIEnv, Mono.Android",true);
-                values=Type.GetType("Android.Runtime.JValue, Mono.Android",true);
-                ownership=Type.GetType("Android.Runtime.JniHandleOwnership, Mono.Android",true);
+                this.api=api;this.values=values;this.ownership=ownership;
                 // Refuse a changed or stripped managed bridge before any external UI is started.
+                Method("FindClass",typeof(string));Method("NewString",typeof(string));
+                Method("NewGlobalRef",typeof(IntPtr));Method("DeleteGlobalRef",typeof(IntPtr));
+                Method("DeleteLocalRef",typeof(IntPtr));Method("GetObjectClass",typeof(IntPtr));
+                Method("GetMethodID",typeof(IntPtr),typeof(string),typeof(string));
+                Method("GetStaticMethodID",typeof(IntPtr),typeof(string),typeof(string));
                 Method("CallObjectMethod",typeof(IntPtr),typeof(IntPtr),values.MakeArrayType());
                 Method("CallStaticVoidMethod",typeof(IntPtr),typeof(IntPtr),values.MakeArrayType());
                 Method("CallStaticIntMethod",typeof(IntPtr),typeof(IntPtr),values.MakeArrayType());
@@ -179,42 +206,51 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                 for(int i=0;i<handles.Length;i++) array.SetValue(Activator.CreateInstance(values,new object[]{handles[i]}),i);
                 return array;
             }
-            internal IntPtr Find(string name) => (IntPtr)Invoke("FindClass",new[]{typeof(string)},name);
-            internal IntPtr Text(string text) => (IntPtr)Invoke("NewString",new[]{typeof(string)},text);
-            internal IntPtr Global(IntPtr value) => (IntPtr)Invoke("NewGlobalRef",new[]{typeof(IntPtr)},value);
-            internal void Delete(IntPtr value){if(value!=IntPtr.Zero) Invoke("DeleteLocalRef",new[]{typeof(IntPtr)},value);}
-            internal IntPtr StaticMethod(IntPtr type,string name,string signature) => (IntPtr)Invoke("GetStaticMethodID",new[]{typeof(IntPtr),typeof(string),typeof(string)},type,name,signature);
-            private IntPtr Member(IntPtr type,string name,string signature) => (IntPtr)Invoke("GetMethodID",new[]{typeof(IntPtr),typeof(string),typeof(string)},type,name,signature);
+            private static IntPtr Required(IntPtr value)
+            {
+                if(value==IntPtr.Zero) throw new InvalidOperationException("Null JNI handle");
+                return value;
+            }
+            // Xamarin's retained FindClass(string) promotes the class to a GLOBAL ref.
+            // This differs from native JNI FindClass; GetObjectClass still returns LOCAL.
+            internal IntPtr Find(string name) => Required((IntPtr)Invoke("FindClass",new[]{typeof(string)},name));
+            internal IntPtr Text(string text) => Required((IntPtr)Invoke("NewString",new[]{typeof(string)},text));
+            internal IntPtr Global(IntPtr value) => Required((IntPtr)Invoke("NewGlobalRef",new[]{typeof(IntPtr)},Required(value)));
+            internal void DeleteLocal(IntPtr value){if(value!=IntPtr.Zero) Invoke("DeleteLocalRef",new[]{typeof(IntPtr)},value);}
+            internal void DeleteGlobal(IntPtr value){if(value!=IntPtr.Zero) Invoke("DeleteGlobalRef",new[]{typeof(IntPtr)},value);}
+            internal IntPtr StaticMethod(IntPtr type,string name,string signature) => Required((IntPtr)Invoke("GetStaticMethodID",new[]{typeof(IntPtr),typeof(string),typeof(string)},Required(type),name,signature));
+            private IntPtr Member(IntPtr type,string name,string signature) => Required((IntPtr)Invoke("GetMethodID",new[]{typeof(IntPtr),typeof(string),typeof(string)},Required(type),name,signature));
             private object Call(string name,IntPtr target,IntPtr method,IntPtr[] args)
-                => Invoke(name,new[]{typeof(IntPtr),typeof(IntPtr),values.MakeArrayType()},target,method,Args(args));
-            internal IntPtr New(IntPtr type,string signature,params IntPtr[] args) => (IntPtr)Call("NewObject",type,Member(type,"<init>",signature),args);
+                => Invoke(name,new[]{typeof(IntPtr),typeof(IntPtr),values.MakeArrayType()},Required(target),Required(method),Args(args));
+            internal IntPtr New(IntPtr type,string signature,params IntPtr[] args) => Required((IntPtr)Call("NewObject",type,Member(type,"<init>",signature),args));
             internal IntPtr Object(IntPtr target,string name,string signature,params IntPtr[] args)
             {
-                IntPtr type=(IntPtr)Invoke("GetObjectClass",new[]{typeof(IntPtr)},target);
-                try{return (IntPtr)Call("CallObjectMethod",target,Member(type,name,signature),args);}finally{Delete(type);}
+                IntPtr type=Required((IntPtr)Invoke("GetObjectClass",new[]{typeof(IntPtr)},Required(target)));
+                try{return (IntPtr)Call("CallObjectMethod",target,Member(type,name,signature),args);}finally{DeleteLocal(type);}
             }
             internal void StaticVoid(IntPtr type,string name,string signature,params IntPtr[] args) => Call("CallStaticVoidMethod",type,StaticMethod(type,name,signature),args);
             internal int StaticInt(IntPtr type,string name) => (int)Call("CallStaticIntMethod",type,StaticMethod(type,name,"()I"),new IntPtr[0]);
             private string String(IntPtr value)
             {
                 try{return value==IntPtr.Zero?null:(string)Invoke("GetString",new[]{typeof(IntPtr),ownership},value,Enum.ToObject(ownership,0));}
-                finally{Delete(value);}
+                finally{DeleteLocal(value);}
             }
             internal string StaticText(IntPtr type,string name) => String((IntPtr)Call("CallStaticObjectMethod",type,StaticMethod(type,name,"()Ljava/lang/String;"),new IntPtr[0]));
             internal string Path(IntPtr activity,string name)
             {
                 IntPtr file=Object(activity,name,"()Ljava/io/File;");
-                try{return String(Object(file,"getAbsolutePath","()Ljava/lang/String;"));}finally{Delete(file);}
+                try{return String(Object(file,"getAbsolutePath","()Ljava/lang/String;"));}finally{DeleteLocal(file);}
             }
             internal void ReadOnly(string path)
             {
-                IntPtr kind=Find("java/io/File"),text=Text(path),file=IntPtr.Zero;
+                IntPtr kind=IntPtr.Zero,text=IntPtr.Zero,file=IntPtr.Zero;
                 try
                 {
+                    kind=Find("java/io/File");text=Text(path);
                     file=New(kind,"(Ljava/lang/String;)V",text);
                     if(!(bool)Call("CallBooleanMethod",file,Member(kind,"setReadOnly","()Z"),new IntPtr[0])) throw new IOException("Cannot protect picker code");
                 }
-                finally{Delete(file);Delete(text);Delete(kind);}
+                finally{DeleteLocal(file);DeleteLocal(text);DeleteGlobal(kind);}
             }
         }
     }
