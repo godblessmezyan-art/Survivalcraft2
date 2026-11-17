@@ -9,6 +9,8 @@ internal static class ReaderPresentationChecks
         foreach (var size in new[] { new[] { 320f, 240f }, new[] { 375f, 812f }, new[] { 812f, 375f }, new[] { 1280f, 720f }, new[] { 2340f, 1080f }, new[] { 768f, 1024f } })
         {
             var l = new ReaderLayout(size[0], size[1]);
+            var reading=new ReaderLayout(size[0],size[1],true);
+            check(reading.ContentY<=l.ContentY&&reading.ContentHeight>=l.ContentHeight,"reading reclaims decorative header space");
             check(l.ButtonWidth >= 48 && l.ContentHeight >= 48, "48 logical-unit touch and content minimum");
             check(l.ContentY >= 80 && l.ContentY + l.ContentHeight + 16 <= l.FooterY, "content clears header/status/footer");
             check(l.FooterY + 48 <= l.Height - 16 && l.ContentX >= 16, "footer and side gutters");

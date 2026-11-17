@@ -1,0 +1,8 @@
+{
+  "tool": "image_gen.imagegen (built-in)",
+  "generated": "2026-11-17",
+  "prompts": {
+    "paper": "Use case: illustration-story. Asset type: game UI parchment texture, square 1024 by 1024. Create an empty warm ivory handmade rag-paper surface viewed perfectly flat from directly above. Very fine natural fibers and delicate watercolor paper grain, subtle warm cream tone with extremely low contrast and no dark flecks, clean enough for long-form dark text. Uniform illumination and evenly distributed material, seamless/tile-friendly edges. No border, no vignette, no creases, no stains, no objects, no artwork, no letters or symbols, no shadows. This is a lightweight reading-background texture, not a mockup.",
+    "botanical": "Use case: illustration-story. Asset type: transparent decorative corner illustration for a warm handmade book UI, square 1024 by 1024. An elegant small botanical field-journal illustration: a gently curved sprig of sage-green fern and delicate wildflower stems, a few tiny muted terracotta berries and warm ochre buds. Fine sepia pencil contours with translucent watercolor washes, refined natural irregularity, quiet storybook artistry. Composition concentrated along the left and lower edges in an airy L-shaped corner flourish, leaves reaching diagonally upward, generous fully transparent negative space toward the upper right, all painted parts contained within the canvas with ample padding. Flat 2D scanned illustration appearance. Actual transparent background. No paper, no rectangular background, no text, no labels, no frame, no logo, no photorealism, no 3D effects or cast shadows."
+  }
+}

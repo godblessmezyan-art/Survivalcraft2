@@ -340,6 +340,10 @@ Four original icons generated separately with the built-in OpenAI image_gen tool
 
 `Assets/Models/AbyssNightmareKnight.dae` and `Assets/Textures/AbyssNightmareKnight.png` are original project-authored geometry and UV artwork, generated reproducibly by `scripts/New-NightmareKnightAssets.py`. The horse anatomy, tack, armored rider and sword share seven rigid bones and 4924 triangles; no game or third-party mesh, character skin, weapon model or texture is copied. Primitive/export helpers originate in this project's own bone-dragon generator. `scripts/New-NightmareKnightTemplate.py` authors mod-owned overrides and references the installed Rhino component defaults and `Audio/Creatures/Horse` sounds at runtime; these installed assets/database are not redistributed. Asset SHA-256, native-import evidence and clearly labelled software previews are retained in `design/nightmare-knight/`. This original artwork may be distributed with the mod; Android/gameplay acceptance remains pending.
 
+## Celestial Codex paper UI / 2026-11-17
+
+`Assets/Textures/CelestialCodex/Paper.png` and `Botanical.png` are original artwork created with the built-in OpenAI image_gen tool for this repository. Prompts, original generated PNGs, SHA-256 provenance and the reproducible 256px packing script are retained in `design/codex-paper-ui/`. Botanical alpha is retained and RGB is premultiplied for the target game's native blending; no outside illustration, font, shader or UI library is bundled. Hand-drawn borders are original native 2D strokes. Existing game fonts are referenced at runtime and are not redistributed.
+
 ## Celestial Codex integration / 2026-11-04
 
 The owner explicitly authorized integration of this repository's Celestial Codex 0.1.4 (commit 7eb3ddf) into Wilderness Explorer. The reader C# implementation, mod-owned CSV/XDB and original 32x32 book PNG are moved into SCIE-Port and compiled from source, without bundling the standalone DLL or any proprietary game/BCL content. No Digital-Study book text is distributed in the package; the client reads the public API under its existing source/size/cache rules.

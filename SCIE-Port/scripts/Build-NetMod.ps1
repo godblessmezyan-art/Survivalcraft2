@@ -20,6 +20,8 @@ $package = Join-Path $artifacts '荒野探险家.netmod'
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & python (Join-Path $PSScriptRoot 'Test-CodexPicker.py')
 if ($LASTEXITCODE -ne 0) { throw 'Original Android document picker source/DEX checks failed.' }
+& python (Join-Path $PSScriptRoot 'Test-CodexPaper.py')
+if ($LASTEXITCODE -ne 0) { throw 'Codex paper UI artwork/budget checks failed.' }
 & python (Join-Path $PSScriptRoot 'Test-HomeGeometry.py')
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.' }
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo

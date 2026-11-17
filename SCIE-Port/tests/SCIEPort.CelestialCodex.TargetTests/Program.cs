@@ -25,7 +25,11 @@ internal static class Program
             if (new AssemblyName(e.Name).Name == "SCIEPort") path = args[2];
             return File.Exists(path) ? Assembly.LoadFrom(path) : null;
         };
-        try { Run(args[0], args[1]); if (args.Length > 3 && args[3] == "--https-probe") HttpsProbe(); }
+        try
+        {
+            if(args.Length>3&&args[3]=="--render-ui"){NativeUiChecks.Render(args[0],args[1]);return;}
+            Run(args[0], args[1]); if (args.Length > 3 && args[3] == "--https-probe") HttpsProbe();
+        }
         catch (Exception e) { Console.Error.WriteLine(e); Environment.ExitCode = 1; }
     }
     private static void Run(string gameDir, string repo)

@@ -23,9 +23,12 @@ namespace SCIEPort.Features.CelestialCodex.UI
         private readonly CanvasWidget panel, viewport;
         private readonly ScrollPanelWidget scroll;
         private readonly StackPanelWidget entries;
-        private readonly LabelWidget title, status;
-        private readonly BevelledButtonWidget back, close, system, up, refresh;
-        private readonly List<BevelledButtonWidget> rowButtons = new List<BevelledButtonWidget>();
+        private readonly CodexLabel title,status,eyebrow;
+        private readonly CodexSheet paper;
+        private readonly CodexInk rule;
+        private readonly ReaderTheme theme;
+        private readonly CodexButton back,close,system,up,refresh;
+        private readonly List<CodexButton> rowButtons = new List<CodexButton>();
         private readonly List<string> rowNames = new List<string>();
         private readonly List<bool> rowDirectories = new List<bool>();
         private readonly object choiceGate = new object();
@@ -41,26 +44,25 @@ namespace SCIEPort.Features.CelestialCodex.UI
         internal bool Closed { get { return closed; } }
 
         internal BookImportDialog(ComponentPlayer player,
-            Func<string, CancellationToken, string> importFile, Action imported)
+            Func<string, CancellationToken, string> importFile, Action imported,ReaderTheme theme=null,bool populate=true)
         {
             this.player = player;
             this.importFile = importFile;
             this.imported = imported;
+            this.theme=theme??ReaderTheme.Paper;
             choiceCallback=ReceiveChoice;
             panel = new CanvasWidget { HorizontalAlignment = WidgetAlignment.Center, VerticalAlignment = WidgetAlignment.Center };
             Children.Add(panel);
-            panel.Children.Add(new RectangleWidget
+            paper=new CodexSheet();panel.Children.Add(paper);
+            rule=new CodexInk(CodexStroke.Rule) {OutlineColor=CodexButton.Rgb(this.theme.Border)};panel.Children.Add(rule);
+            eyebrow=new CodexLabel {Text="云 天 书 典",FontScale=.45f,MaxLines=1,TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter,Color=CodexButton.Rgb(this.theme.Muted)};panel.Children.Add(eyebrow);
+            title = new CodexLabel
             {
-                FillColor = new Color(239, 222, 181),
-                OutlineColor = new Color(112, 78, 39), OutlineThickness = 3
-            });
-            title = new LabelWidget
-            {
-                Color = new Color(63, 41, 24), FontScale = .75f,
+                Color=CodexButton.Rgb(this.theme.Ink),FontScale=.82f,MaxLines=1,Ellipsis=true,
                 TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter,
                 Text = "导入图书"
             };
-            status = new LabelWidget { Color = new Color(99, 65, 34), FontScale = .57f, Text = "请选择 TXT / EPUB" };
+            status = new CodexLabel { Color=CodexButton.Rgb(this.theme.Muted),FontScale=.56f,Text="TXT · EPUB",MaxLines=1,Ellipsis=true,TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter };
             panel.Children.Add(title);
             panel.Children.Add(status);
             back = Button("返回"); close = Button("关闭");
@@ -70,58 +72,48 @@ namespace SCIEPort.Features.CelestialCodex.UI
             viewport.Children.Add(scroll);
             entries = new StackPanelWidget { Direction = LayoutDirection.Vertical };
             scroll.Children.Add(entries);
-            Refresh();
+            if(populate)Refresh();
         }
 
-        private BevelledButtonWidget Button(string label)
+        private CodexButton Button(string label)
         {
-            var b = new BevelledButtonWidget
-            {
-                Text = label, FontScale = .64f, Color = new Color(62, 41, 23),
-                BevelColor = new Color(183, 151, 102), CenterColor = new Color(222, 200, 156),
-                Size = new Vector2(84, 44)
-            };
+            var b=new CodexButton(label) {Theme=theme,Size=new Vector2(84,48)};
             panel.Children.Add(b);
             return b;
         }
 
         private void Place(Widget widget, float x, float y, float w, float h)
         {
-            var button = widget as BevelledButtonWidget;
+            var button = widget as CodexButton;
             if (button != null) button.Size = new Vector2(w, h);
             var label = widget as LabelWidget;
             if (label != null) label.Size = new Vector2(w, h);
             panel.SetWidgetPosition(widget, new Vector2(x, y));
         }
 
-        private void Layout()
+        private void Layout(Vector2 available)
         {
-            Vector2 available = player.GameWidget.GuiWidget.ActualSize;
             var l = new ReaderLayout(available.X, available.Y);
             float w = l.Width, h = l.Height;
             panel.Size = new Vector2(w, h);
-            Place(back, 12, 10, 70, 44);
-            Place(close, w - 82, 10, 70, 44);
-            Place(title, 86, 10, MathUtils.Max(1, w - 172), 44);
-            Place(system, 12, 62, MathUtils.Max(1, (w - 36) / 2), 44);
-            Place(up, 24 + MathUtils.Max(1, (w - 36) / 2), 62, MathUtils.Max(1, (w - 36) / 2), 44);
-            Place(status, 16, 108, MathUtils.Max(1, w - 32), 34);
-            viewport.Size = new Vector2(MathUtils.Max(1, w - 36), MathUtils.Max(1, h - 205));
-            panel.SetWidgetPosition(viewport, new Vector2(18, 148));
-            Place(refresh, 12, h - 50, MathUtils.Max(1, w - 24), 44);
-            foreach (BevelledButtonWidget button in rowButtons)
-                button.Size = new Vector2(MathUtils.Max(1, w - 40), 52);
+            paper.Arrange(w,h,theme,false,l.Compact);
+            Place(back,18,12,64,48);Place(close,w-82,12,64,48);
+            eyebrow.IsVisible=!l.Compact;Place(eyebrow,88,20,MathUtils.Max(1,w-176),18);
+            Place(title,88,l.Compact?4:42,MathUtils.Max(1,w-176),l.Compact?40:36);
+            Place(status,l.ContentX,l.Compact?48:92,l.ContentWidth,l.Compact?16:24);
+            rule.Size=new Vector2(l.ContentWidth,2);panel.SetWidgetPosition(rule,new Vector2(l.ContentX,l.ContentY-9));
+            viewport.Size=new Vector2(l.ContentWidth,l.ContentHeight);panel.SetWidgetPosition(viewport,new Vector2(l.ContentX,l.ContentY));
+            float bw=(l.ContentWidth-16)/3;
+            Place(system,l.ContentX,l.FooterY,bw,48);Place(up,l.ContentX+bw+8,l.FooterY,bw,48);Place(refresh,l.ContentX+2*(bw+8),l.FooterY,bw,48);
+            foreach(CodexButton button in rowButtons)button.Size=new Vector2(l.ContentWidth,64);
         }
 
         private void Row(string name, bool isDirectory)
         {
             if (rowNames.Count >= 80) return;
-            var button = new BevelledButtonWidget
+            var button = new CodexButton((isDirectory?"目录 · ":"图书 · ")+(name.Length>45?name.Substring(0,44)+"…":name),true)
             {
-                Text = (isDirectory ? "目录 · " : "图书 · ") + (name.Length > 45 ? name.Substring(0, 44) + "…" : name),
-                FontScale = .66f, Color = new Color(62, 41, 23),
-                BevelColor = new Color(183, 151, 102), CenterColor = new Color(222, 200, 156),
-                Size = new Vector2(400, 52), Margin = new Vector2(0, 3)
+                Theme=theme,CompactRow=true,Size=new Vector2(400,64),Margin=new Vector2(0,6)
             };
             entries.Children.Add(button);
             rowButtons.Add(button); rowNames.Add(name); rowDirectories.Add(isDirectory);
@@ -227,7 +219,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
             {
                 if (player == null || player.GameWidget == null || player.GameWidget.GuiWidget == null)
                 { Close(false); return; }
-                Layout();
+                Layout(player.GameWidget.GuiWidget.ActualSize);
                 ProcessPending();
                 if (closed) return;
                 if(launchRequested){launchRequested=false;BeginSystemPicker();}
@@ -235,7 +227,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
                 system.IsEnabled = ready;
                 up.IsEnabled = ready && directory != BookFilePicker.Root;
                 refresh.IsEnabled = ready;
-                foreach (BevelledButtonWidget b in rowButtons) b.IsEnabled = ready;
+                foreach(CodexButton b in rowButtons)b.IsEnabled=ready;
 
                 if (ready)
                 {

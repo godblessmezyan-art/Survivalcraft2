@@ -1,0 +1,31 @@
+{
+  "version": "0.90.0",
+  "origin": "Original image_gen artwork, 2026-11-17; prompts.json",
+  "processing": "RGBA 256px Lanczos conversion; Botanical RGB premultiplied, alpha retained. Target Texture2DReader loads unchanged; PrimitivesRenderer2D uses Blend.One/InverseSourceAlpha.",
+  "assets": [
+    {
+      "name": "Paper",
+      "source": "source/Paper.png",
+      "sourceSha256": "a7114ae0774974bab7173fa03f732c1806e00946d255bad9ec660fed66ed4b8d",
+      "runtime": "Assets/Textures/CelestialCodex/Paper.png",
+      "runtimeSha256": "2135ea3eb666ca82b9054119cc05b72ee24c6de566cd06cf45fce3a6a98738a1",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 76402
+    },
+    {
+      "name": "Botanical",
+      "source": "source/Botanical.png",
+      "sourceSha256": "df274422a9fe157984b53f41fb28a95e304273b68f6f7202fb29449653e9911e",
+      "runtime": "Assets/Textures/CelestialCodex/Botanical.png",
+      "runtimeSha256": "04f6116cd33c5fef9f5ad7ae4430bdb27c4343fb642da32dc69220e56c41cab4",
+      "size": [
+        256,
+        256
+      ],
+      "bytes": 74808
+    }
+  ]
+}

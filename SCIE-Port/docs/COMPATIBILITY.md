@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-17 0.90.0：云天书典纸质 UI
+
+基于最新main `72ec090`，仅改原生控件/阅读排版/ReaderLayout与主题，新增两张256px UI PNG；旧读取/导入/网络/缓存/存档、956/三GUID/原图标和JNI DEX逐文件保持。沿用net472/API1.42/SC2.4.10.6、同一Loader/Hook/SCIEPort.dll，不引入程序集或shader；包仅扩展两张纹理。固定Windows环境/Release与回归、原生横竖屏测量/命中/字体重排、36张GPU示例与Android快照成员解析 **已确认**；7723手机/不同系统UI缩放与真实Local/Server/Client **待验证**。[证据和验收](CODEX-PAPER-UI-0.90.0.md)。
+
 ## 2026-11-17 0.89.3：导入EPUB读取依赖
 
 移除目标APK缺失的System.IO.Compression程序集引用，采用保留的System.dll DeflateStream与原创有界ZIP读取；用DOM遍历替换被裁剪的两项XPath调用。保留Imports/slug/revision/续读、原系统选书、956/DATA0/三GUID、统一包及旧功能；不加Hook/协议/资产。环境/Windows Release与回归、完整Android程序集引用/书典外部成员解析及旧0.89.2真实DLL八项负对照 **已确认**；用户反馈系统选书现可导入，原EPUB/7723手机阅读与真实联机 **待验证**。[指纹、命令与验收](CODEX-EPUB-READ-0.89.3.md)。
