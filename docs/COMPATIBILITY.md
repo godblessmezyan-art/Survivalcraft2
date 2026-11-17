@@ -1,5 +1,9 @@
 # 兼容性矩阵
 
+## 2026-11-17 荒野探险家0.89.3：EPUB打开
+
+移除目标Android缺失的System.IO.Compression依赖，替换被裁剪XPath接口；新增有界EPUB ZIP读取并保留原目录/章节/正文及Imports/缓存/续读。系统选书JNI修复、植物/苹果及家居保持，无Hook/包布局/身份/蓝图能力变更。环境、Windows Release/回归、Android依赖解析及旧DLL负对照 **已确认**；用户已反馈选书导入可用，原EPUB/7723手机阅读与真实联机 **待验证**。[修复证据与验收](../SCIE-Port/docs/CODEX-EPUB-READ-0.89.3.md)。
+
 ## 2026-11-17 荒野探险家0.89.2：本地导入闪退
 
 修正系统选书桥接将目标Xamarin FindClass全局引用错误按局部引用释放的问题，补齐失败清理与空句柄拦截，并保存原生调用最后阶段。沿用已有系统选择、Imports/缓存/续读、苹果食物及植物生长，不新增Hook/包布局/方块/蓝图能力。固定目标环境、Windows Release/回归及Android引用契约取证 **已确认**；7723原闪退设备、系统窗口/生命周期/触屏及真实联机 **待验证**。[根因证据、命令与限制](../SCIE-Port/docs/CODEX-PICKER-CRASH-0.89.2.md)。

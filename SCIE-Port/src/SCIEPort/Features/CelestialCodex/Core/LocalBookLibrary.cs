@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,8 +19,9 @@ namespace SCIEPort.Features.CelestialCodex.Core
         internal const int MaxEntries = 256;
         internal const int MaxBooks = 64;
         private readonly IFileStore files;
+        private readonly Action<Exception> report;
 
-        internal LocalBookLibrary(IFileStore files) { this.files = files; }
+        internal LocalBookLibrary(IFileStore files, Action<Exception> report = null) { this.files = files; this.report = report; }
 
         internal ReaderResult Read(Request request, CancellationToken cancellation)
         {
@@ -48,6 +48,7 @@ namespace SCIEPort.Features.CelestialCodex.Core
             catch (OperationCanceledException) { throw; }
             catch (Exception e)
             {
+                try { if (report != null) report(e); } catch (Exception) { }
                 result.Error = "本地文件不可读: " + e.GetType().Name;
                 return result;
             }
@@ -157,66 +158,65 @@ namespace SCIEPort.Features.CelestialCodex.Core
 
         private static void ReadEpub(byte[] bytes, ImportedBook imported, CancellationToken cancellation)
         {
-            using (var archive = new ZipArchive(new MemoryStream(bytes, false), ZipArchiveMode.Read, false))
+            var archive = new EpubArchive(bytes, cancellation);
+            if (archive.Entries.Count > MaxEntries) throw new InvalidDataException("EPUB entry count");
+            long unpacked = 0;
+            int actualReadBudget = MaxUnpackedBytes;
+            var entries = new Dictionary<string, EpubArchive.Entry>(StringComparer.Ordinal);
+            foreach (EpubArchive.Entry e in archive.Entries)
             {
-                if (archive.Entries.Count > MaxEntries) throw new InvalidDataException("EPUB entry count");
-                long unpacked = 0;
-                int actualReadBudget = MaxUnpackedBytes;
-                var entries = new Dictionary<string, ZipArchiveEntry>(StringComparer.Ordinal);
-                foreach (ZipArchiveEntry e in archive.Entries)
+                cancellation.ThrowIfCancellationRequested();
+                if (e.FullName.EndsWith("/", StringComparison.Ordinal)) continue;
+                string path = ValidPath(e.FullName);
+                if (e.Length < 0 || e.Length > MaxUnpackedBytes || unpacked + e.Length > MaxUnpackedBytes)
+                    throw new InvalidDataException("EPUB decompression limit");
+                unpacked += e.Length;
+                if (!entries.ContainsKey(path)) entries.Add(path, e);
+                else throw new InvalidDataException("EPUB duplicate entry");
+            }
+            EpubArchive.Entry container;
+            if (!entries.TryGetValue("META-INF/container.xml", out container)) throw new InvalidDataException("EPUB container missing");
+            XmlDocument rootDoc = SafeXml(ReadEntry(container, 256 * 1024, ref actualReadBudget, cancellation));
+            XmlNode rootfile = FindElement(rootDoc, "rootfile");
+            if (rootfile == null || rootfile.Attributes == null || rootfile.Attributes["full-path"] == null)
+                throw new InvalidDataException("EPUB package missing");
+            string packagePath = ValidPath(rootfile.Attributes["full-path"].Value);
+            EpubArchive.Entry package;
+            if (!entries.TryGetValue(packagePath, out package)) throw new InvalidDataException("EPUB package not found");
+            XmlDocument opf = SafeXml(ReadEntry(package, 512 * 1024, ref actualReadBudget, cancellation));
+            XmlNode metadata = FindElement(opf, "metadata");
+            XmlNode title = ChildElement(metadata, "title");
+            XmlNode creator = ChildElement(metadata, "creator");
+            if (title != null && !string.IsNullOrWhiteSpace(title.InnerText)) imported.Book.Title = Truncate(title.InnerText.Trim(), 120);
+            if (creator != null) imported.Book.Author = Truncate(creator.InnerText.Trim(), 120);
+            string parent = packagePath.LastIndexOf('/') >= 0 ? packagePath.Substring(0, packagePath.LastIndexOf('/') + 1) : "";
+            var resources = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (XmlNode item in ChildElements(FindElement(opf, "manifest"), "item"))
+            {
+                if (item.Attributes == null) continue;
+                XmlAttribute id = item.Attributes["id"], href = item.Attributes["href"], type = item.Attributes["media-type"];
+                if (id == null || href == null || type == null) continue;
+                if (type.Value != "application/xhtml+xml") continue;
+                string relative = Uri.UnescapeDataString(href.Value.Split('#')[0]);
+                string path = ResolvePath(parent, relative);
+                if (!resources.ContainsKey(id.Value)) resources[id.Value] = path;
+            }
+            int chapterIndex = 1;
+            foreach (XmlNode itemref in ChildElements(FindElement(opf, "spine"), "itemref"))
+            {
+                cancellation.ThrowIfCancellationRequested();
+                if (itemref.Attributes == null || itemref.Attributes["idref"] == null) continue;
+                string href;
+                if (!resources.TryGetValue(itemref.Attributes["idref"].Value, out href)) continue;
+                EpubArchive.Entry entry;
+                if (!entries.TryGetValue(href, out entry)) throw new InvalidDataException("EPUB chapter missing");
+                string chapterText = ExtractXhtml(ReadEntry(entry, 2 * 1024 * 1024, ref actualReadBudget, cancellation));
+                if (chapterText.Trim().Length > 0)
                 {
-                    cancellation.ThrowIfCancellationRequested();
-                    if (e.FullName.EndsWith("/", StringComparison.Ordinal)) continue;
-                    string path = ValidPath(e.FullName);
-                    if (e.Length < 0 || e.Length > MaxUnpackedBytes || unpacked + e.Length > MaxUnpackedBytes)
-                        throw new InvalidDataException("EPUB decompression limit");
-                    unpacked += e.Length;
-                    if (!entries.ContainsKey(path)) entries.Add(path, e);
-                    else throw new InvalidDataException("EPUB duplicate entry");
+                    AppendParts(imported, "第" + chapterIndex + "节", chapterText);
+                    chapterIndex++;
                 }
-                ZipArchiveEntry container;
-                if (!entries.TryGetValue("META-INF/container.xml", out container)) throw new InvalidDataException("EPUB container missing");
-                XmlDocument rootDoc = SafeXml(ReadEntry(container, 256 * 1024, ref actualReadBudget, cancellation));
-                XmlNode rootfile = rootDoc.SelectSingleNode("//*[local-name()='rootfile']");
-                if (rootfile == null || rootfile.Attributes == null || rootfile.Attributes["full-path"] == null)
-                    throw new InvalidDataException("EPUB package missing");
-                string packagePath = ValidPath(rootfile.Attributes["full-path"].Value);
-                ZipArchiveEntry package;
-                if (!entries.TryGetValue(packagePath, out package)) throw new InvalidDataException("EPUB package not found");
-                XmlDocument opf = SafeXml(ReadEntry(package, 512 * 1024, ref actualReadBudget, cancellation));
-                XmlNode title = opf.SelectSingleNode("//*[local-name()='metadata']/*[local-name()='title']");
-                XmlNode creator = opf.SelectSingleNode("//*[local-name()='metadata']/*[local-name()='creator']");
-                if (title != null && !string.IsNullOrWhiteSpace(title.InnerText)) imported.Book.Title = Truncate(title.InnerText.Trim(), 120);
-                if (creator != null) imported.Book.Author = Truncate(creator.InnerText.Trim(), 120);
-                string parent = packagePath.LastIndexOf('/') >= 0 ? packagePath.Substring(0, packagePath.LastIndexOf('/') + 1) : "";
-                var resources = new Dictionary<string, string>(StringComparer.Ordinal);
-                foreach (XmlNode item in opf.SelectNodes("//*[local-name()='manifest']/*[local-name()='item']"))
-                {
-                    if (item.Attributes == null) continue;
-                    XmlAttribute id = item.Attributes["id"], href = item.Attributes["href"], type = item.Attributes["media-type"];
-                    if (id == null || href == null || type == null) continue;
-                    if (type.Value != "application/xhtml+xml") continue;
-                    string relative = Uri.UnescapeDataString(href.Value.Split('#')[0]);
-                    string path = ResolvePath(parent, relative);
-                    if (!resources.ContainsKey(id.Value)) resources[id.Value] = path;
-                }
-                int chapterIndex = 1;
-                foreach (XmlNode itemref in opf.SelectNodes("//*[local-name()='spine']/*[local-name()='itemref']"))
-                {
-                    cancellation.ThrowIfCancellationRequested();
-                    if (itemref.Attributes == null || itemref.Attributes["idref"] == null) continue;
-                    string href;
-                    if (!resources.TryGetValue(itemref.Attributes["idref"].Value, out href)) continue;
-                    ZipArchiveEntry entry;
-                    if (!entries.TryGetValue(href, out entry)) throw new InvalidDataException("EPUB chapter missing");
-                    string chapterText = ExtractXhtml(ReadEntry(entry, 2 * 1024 * 1024, ref actualReadBudget, cancellation));
-                    if (chapterText.Trim().Length > 0)
-                    {
-                        AppendParts(imported, "第" + chapterIndex + "节", chapterText);
-                        chapterIndex++;
-                    }
-                    if (imported.Parts.Count > 512) throw new InvalidDataException("Too many book sections");
-                }
+                if (imported.Parts.Count > 512) throw new InvalidDataException("Too many book sections");
             }
         }
 
@@ -238,7 +238,7 @@ namespace SCIEPort.Features.CelestialCodex.Core
         {
             XmlDocument doc = SafeXml(data);
             var result = new StringBuilder();
-            var body = doc.SelectSingleNode("//*[local-name()='body']");
+            var body = FindElement(doc, "body");
             if (body == null) return "";
             Walk(body, result, 0);
             return result.ToString().Trim();
@@ -254,6 +254,28 @@ namespace SCIEPort.Features.CelestialCodex.Core
             if (newline && output.Length > 0) output.Append('\n');
             foreach (XmlNode child in node.ChildNodes) Walk(child, output, depth + 1);
             if (newline) output.Append('\n');
+        }
+
+        // XPath helpers are trimmed out of the target System.Xml. Match element local
+        // names directly so EPUB namespace prefixes/default namespaces remain supported.
+        private static XmlNode FindElement(XmlNode node, string name, int depth = 0)
+        {
+            if (node == null) return null;
+            if (depth > 64) throw new InvalidDataException("EPUB XML depth");
+            if (node.NodeType == XmlNodeType.Element && node.LocalName == name) return node;
+            foreach (XmlNode child in node.ChildNodes)
+            {
+                XmlNode found = FindElement(child, name, depth + 1);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        private static XmlNode ChildElement(XmlNode parent, string name)
+        { foreach (XmlNode node in ChildElements(parent, name)) return node; return null; }
+        private static IEnumerable<XmlNode> ChildElements(XmlNode parent, string name)
+        {
+            if (parent != null) foreach (XmlNode node in parent.ChildNodes)
+                if (node.NodeType == XmlNodeType.Element && node.LocalName == name) yield return node;
         }
 
         private static void AppendParts(ImportedBook imported, string title, string text)
@@ -275,11 +297,11 @@ namespace SCIEPort.Features.CelestialCodex.Core
             }
         }
 
-        private static byte[] ReadEntry(ZipArchiveEntry entry, int limit, ref int remaining, CancellationToken cancellation)
+        private static byte[] ReadEntry(EpubArchive.Entry entry, int limit, ref int remaining, CancellationToken cancellation)
         {
             if (remaining <= 0) throw new InvalidDataException("EPUB actual expansion budget");
             byte[] bytes;
-            using (Stream input = entry.Open()) bytes = ReadBounded(input, Math.Min(limit, remaining), cancellation);
+            bytes = entry.Read(Math.Min(limit, remaining), cancellation);
             remaining -= bytes.Length;
             return bytes;
         }

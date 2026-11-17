@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-17 0.89.3：导入EPUB读取依赖
+
+移除目标APK缺失的System.IO.Compression程序集引用，采用保留的System.dll DeflateStream与原创有界ZIP读取；用DOM遍历替换被裁剪的两项XPath调用。保留Imports/slug/revision/续读、原系统选书、956/DATA0/三GUID、统一包及旧功能；不加Hook/协议/资产。环境/Windows Release与回归、完整Android程序集引用/书典外部成员解析及旧0.89.2真实DLL八项负对照 **已确认**；用户反馈系统选书现可导入，原EPUB/7723手机阅读与真实联机 **待验证**。[指纹、命令与验收](CODEX-EPUB-READ-0.89.3.md)。
+
 ## 2026-11-17 0.89.2：本地导入无日志退出
 
 固定Android Mono.Android的FindClass(string)方法体实际返回NewGlobalRef；修正0.89.1将该结果传给DeleteLocalRef的两处错误。补齐失败清理/原生空句柄防护，独立保存最后阶段。没有新Hook/包布局/协议/方块或资产变化，沿用net472/API1.42/SC2.4.10.6、956/三GUID/缓存/续读。Windows环境/Release/回归、17个JNI签名及FindClass全局引用IL证据 **已确认**；用户原闪退设备、7723选书/生命周期/触屏与真实联机 **待验证**，没有设备logcat不能断言唯一根因。[证据与验收](CODEX-PICKER-CRASH-0.89.2.md)。

@@ -16,10 +16,12 @@ $parameters = [Mono.Cecil.ReaderParameters]::new()
 $parameters.AssemblyResolver = $resolver
 $snapshots = @{}
 try {
-    foreach ($name in @('mscorlib', 'System', 'System.Net.Http')) {
-        $path = Join-Path $bclRoot ($name + '.dll')
-        $snapshots[$name] = [Mono.Cecil.AssemblyDefinition]::ReadAssembly($path, $parameters)
-        Write-Output "$name SHA256=$((Get-FileHash -LiteralPath $path).Hash) MVID=$($snapshots[$name].MainModule.Mvid)"
+    foreach ($file in Get-ChildItem -LiteralPath $bclRoot -Filter '*.dll') {
+        $snapshot=[Mono.Cecil.AssemblyDefinition]::ReadAssembly($file.FullName, $parameters)
+        $name=$snapshot.Name.Name
+        if($snapshots.ContainsKey($name)){throw "Duplicate Android assembly: $name"}
+        $snapshots[$name]=$snapshot
+        Write-Output "$name SHA256=$((Get-FileHash -LiteralPath $file.FullName).Hash) MVID=$($snapshot.MainModule.Mvid)"
     }
     $http = $snapshots['System.Net.Http']
     $handler = $http.MainModule.GetType('System.Net.Http.HttpClientHandler')
@@ -48,6 +50,10 @@ try {
         try {
             $count = 0
             $missing = [Collections.Generic.List[string]]::new()
+            # Missing assemblies must fail BEFORE member checks; never skip an unknown scope.
+            foreach($reference in $mod.MainModule.AssemblyReferences){
+                if(-not $snapshots.ContainsKey($reference.Name)){$missing.Add("Assembly unavailable in target APK: $($reference.FullName)")}
+            }
             $readerTypes = [Collections.Generic.List[Mono.Cecil.TypeDefinition]]::new()
             function Add-ReaderTypes($types) {
                 foreach ($type in $types) {
@@ -66,9 +72,11 @@ try {
                 }
             } }
             foreach ($member in $members.Values) {
-                if (-not $snapshots.ContainsKey($member.DeclaringType.Scope.Name)) { continue }
+                $scope=$member.DeclaringType.Scope
+                if($scope -isnot [Mono.Cecil.AssemblyNameReference]){continue}
                 $count++
-                $resolved = $member.Resolve()
+                if(-not $snapshots.ContainsKey($scope.Name)){$missing.Add("Member assembly unavailable: $member");continue}
+                try {$resolved = $member.Resolve()}catch{$missing.Add("Unresolved: $member");continue}
                 if (-not $resolved) { $missing.Add($member.FullName); continue }
                 # A desktop/GAC fallback must never make this Android audit pass.
                 $expected = Join-Path $bclRoot ($resolved.Module.Assembly.Name.Name + '.dll')
@@ -79,7 +87,7 @@ try {
     }
     $audit = Find-MissingMembers $ModDll
     if ($audit.Missing.Count -gt 0) { throw ("Android missing members:`n" + ($audit.Missing -join "`n")) }
-    Write-Output "Android snapshot member audit: $($audit.Count) resolved, 0 missing; Mod MVID=$($audit.Mvid). Metadata only, no device execution."
+    Write-Output "Android snapshot member audit: $($audit.Count) resolved, 0 missing; all assembly references available in supplied APK; Mod MVID=$($audit.Mvid). Metadata only, no device execution."
     if ($NegativeDll) {
         $negative = Find-MissingMembers $NegativeDll
         if ($negative.Missing.Count -eq 0) { throw 'Negative DLL unexpectedly passed.' }
