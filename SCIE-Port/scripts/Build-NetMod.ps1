@@ -1424,6 +1424,10 @@ try {
     if ($null -eq $appleBehaviorClass -or $appleBehaviorClass.Value -ne 'SCIEPort.Features.Apple.SubsystemAppleBlockBehavior') {
         throw 'SCIEPortAppleBehavior must bind the apple pollable subsystem class.'
     }
+    $appleTerrainDependency = $appleBehavior.SelectSingleNode("./Parameter[@Name='Dependencies']")
+    if ($null -eq $appleTerrainDependency -or $appleTerrainDependency.Value -ne 'Terrain') {
+        throw 'Apple ecology must register after the native terrain generator is loaded.'
+    }
     $appleBehaviorMember = $appleDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortAppleBehavior']")
     if ($null -eq $appleBehaviorMember -or $appleBehaviorMember.InheritanceParent -ne $appleBehavior.Guid) {
         throw 'Apple growth behavior is missing or not attached to Project.'
@@ -1440,7 +1444,7 @@ try {
     }
     $appleFruitNutrition = 0.0
     if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'FALSE' -or $appleFruitRow[0].IsTransparent -ne 'TRUE' -or
-        $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
+        $appleFruitRow[0].DefaultTextureSlot -ne '9' -or $appleFruitRow[0].FirstPersonScale -ne '0.3' -or $appleFruitRow[0].InHandScale -ne '0.3' -or
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
         throw 'AppleBlock must be an unplaceable Food item with transparent legacy terrain faces, slot 9 and positive nutrition.'
     }

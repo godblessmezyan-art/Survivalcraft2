@@ -20,6 +20,9 @@ namespace SCIEPort.Features.Apple
         public const int FrameWrites = 64;
         /// <summary>Reads the structural role; zero is the legacy sapling.</summary>
         public static int Part(int data) => data & 48;
+        /// <summary>The four exposed lower branches bear fruit.</summary>
+        public static bool BearsFruit(int data) => Part(data) == Leaf && OffsetY(data) == 2 &&
+            Math.Abs(OffsetX(data)) + Math.Abs(OffsetZ(data)) == 1;
         /// <summary>Reads a part's horizontal offset from its own root.</summary>
         public static int OffsetX(int data) => ((data >> 6) & 3) - 1;
         /// <summary>Reads a part's horizontal offset from its own root.</summary>
@@ -43,7 +46,7 @@ namespace SCIEPort.Features.Apple
         {
             if(season==0) return AppleRules.SetFruiting(AppleRules.SetSize(data,0),false);
             if(season==1) return (data&~(Harvested|15))|(suitable?1:0);
-            if(season<0&&suitable&&step) data&=~Harvested;
+            if ((season < 0 || season == 2) && suitable && step) data &= ~Harvested;
             if((data&Harvested)!=0||!suitable||!step) return data;
             int stage=AppleRules.GetSize(data);
             if(season==2) return AppleRules.SetFruiting(AppleRules.SetSize(data,Math.Min(6,Math.Max(2,stage+1))),false);

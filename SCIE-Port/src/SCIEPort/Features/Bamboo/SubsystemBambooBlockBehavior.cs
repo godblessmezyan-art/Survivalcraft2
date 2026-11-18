@@ -18,7 +18,7 @@ namespace SCIEPort.Features.Bamboo
         {
             // Ordinary clients must not drive column growth that will not
             // synchronize back from the authoritative host.
-            if (CommonLib.WorkType == WorkType.Client)
+            if (CommonLib.WorkType == WorkType.Client || !PlantGrowthSite.IsLiving(SubsystemTerrain))
             {
                 return;
             }
@@ -27,12 +27,11 @@ namespace SCIEPort.Features.Bamboo
 
             // Only the planted base advances the column so a single culm has one
             // grower. Upper segments are inert with respect to growth.
-            if (!BambooRules.IsBase(data) || y <= 0)
+            if (!BambooRules.IsBase(data) || y <= 0 || y >= 254)
             {
                 return;
             }
 
-            if(y<=0||y>=254) return;
             Terrain terrain = SubsystemTerrain.Terrain;
 
             int belowValue = terrain.GetCellValueFast(x, y - 1, z);
@@ -44,14 +43,14 @@ namespace SCIEPort.Features.Bamboo
             // Count the contiguous column already standing above the base.
             int topY = y;
             int height = 1;
-            while (height < BambooRules.MaxHeight + 1
+            while (topY < 254 && height < BambooRules.MaxHeight
                 && Terrain.ExtractContents(terrain.GetCellValueFast(x, topY + 1, z)) == BambooPlantBlock.Index)
             {
                 topY++;
                 height++;
             }
 
-            if (!BambooRules.CanExtend(height))
+            if (topY >= 254 || !BambooRules.CanExtend(height))
             {
                 return;
             }
@@ -77,7 +76,8 @@ namespace SCIEPort.Features.Bamboo
                 + SubsystemWeather.GetTemperatureAdjustmentAtHeight(topY + 1);
             int interval = BambooRules.GetGrowthInterval(hydrated, temperature);
 
-            if (pollPass % interval != 0)
+            if (!PlantHabitat.For(BambooPlantBlock.Index).AllowsGrowth(temperature, terrain.GetSeasonalHumidity(x, z),
+                terrain.GetCellLight(x, topY + 2, z), hydrated) || pollPass % interval != 0)
             {
                 return;
             }
@@ -134,9 +134,7 @@ namespace SCIEPort.Features.Bamboo
 
         private static bool HasValidSubstrate(int contents)
         {
-            return contents == SoilBlock.Index
-                || contents == SandBlock.Index
-                || contents == DirtBlock.Index;
+            return PlantHabitat.IsRootingSoil(contents) || contents == SandBlock.Index;
         }
     }
 }

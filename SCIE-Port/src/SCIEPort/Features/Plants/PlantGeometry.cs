@@ -21,9 +21,9 @@ namespace SCIEPort.Features.Plants
             if (id == 939) Apple(m, data);
             else if (id == 929 || id == 934 || id == 936 || id == 911) Crop(m, id, stage);
             else if (id == 932) Bamboo(m);
-            else if (id == 905) Cattail(m);
+            else if (id == 905) Cattail(m, data);
             else if (id == 903 || id == 915) BerryBush(m, id, data);
-            else Item(m, id);
+            else Item(m, id, id == 909 || id == 913 ? (data >> 6) & 3 : data);
             return m;
         }
 
@@ -40,7 +40,8 @@ namespace SCIEPort.Features.Plants
                 return (data&63)|(part==AppleTreeRules.Trunk?data&7168:0);
             }
             if (id == 903) return data & 15;
-            if (id == 915) return data & 3;
+            if (id == 905 || id == 907 || id == 915) return data & 3;
+            if (id == 909 || id == 913) return data & (3 << 6);
             if (id == 911 || id == 929 || id == 934 || id == 936) return data & 7;
             return 0;
         }
@@ -128,16 +129,17 @@ namespace SCIEPort.Features.Plants
             }
         }
 
-        private static void Cattail(BlockMesh m)
+        private static void Cattail(BlockMesh m, int stage)
         {
             for(int i=0;i<3;i++)
             {
                 Vector3 root = new Vector3(.40f+i*.10f,0,.46f+(i%2)*.08f);
-                float h=.70f+i*.09f;
+                float growth = stage == 0 ? 1f : .25f * stage;
+                float h = (.70f + i * .09f) * growth;
                 Tube(m,root,root+new Vector3(0,h,0),.012f,.009f,Stem);
-                Tube(m,root+new Vector3(0,h-.24f,0),root+new Vector3(0,h-.03f,0),.043f,.036f,new Color(108+i*9,69,38),8);
-                Leaf(m,root+new Vector3(0,.03f,0),root+new Vector3(-.22f,.68f,.11f),.033f,LeafGreen);
-                Leaf(m,root+new Vector3(0,.06f,0),root+new Vector3(.20f,.57f,-.16f),.029f,Stem);
+                if (stage == 0 || stage == 3) Tube(m,root+new Vector3(0,h-.24f,0),root+new Vector3(0,h-.03f,0),.043f,.036f,new Color(108+i*9,69,38),8);
+                Leaf(m,root+new Vector3(0,.03f,0),root+new Vector3(-.22f,.68f * growth,.11f),.033f,LeafGreen);
+                Leaf(m,root+new Vector3(0,.06f,0),root+new Vector3(.20f,.57f * growth,-.16f),.029f,Stem);
             }
         }
 
@@ -192,7 +194,17 @@ namespace SCIEPort.Features.Plants
                     Tube(m,new Vector3(.5f,.50f,0),new Vector3(.5f,.50f,1),.022f,.022f,Bark);
                 }
                 if(AppleRules.GetFruiting(data)||AppleRules.GetSize(data)>=3)
-                    for(int f=0;f<3;f++) AppleFruit(m,new Vector3(.23f+f*.26f,.19f+f%2*.15f,.08f+(oy+f)%2*.84f),.077f,AppleRules.GetFruiting(data));
+                    for (int f = 0; f < 2; f++)
+                    {
+                        float spacing = f == 0 ? -.19f : .19f;
+                        Vector3 fruit = new Vector3(.5f + ox * .417f + (ox == 0 ? spacing : 0f), .14f + f * .09f,
+                            .5f + oz * .417f + (oz == 0 && ox != 0 ? spacing : 0f));
+                        bool ripe = AppleRules.GetFruiting(data);
+                        float radius = ripe ? .065f : .046f;
+                        Tube(m, fruit + Vector3.UnitY * radius, fruit + new Vector3(-ox * .16f, .23f, -oz * .16f),
+                            .009f, .013f, Bark, 5);
+                        AppleFruit(m, fruit, radius, ripe);
+                    }
                 else if(AppleRules.GetSize(data)==1)
                     for(int f=0;f<4;f++) Flower(m,new Vector3(.23f+f%2*.54f,.39f+f/2*.30f,f<2?.94f:.06f),new Color(249,218,222),.075f,Vector3.UnitZ);
                 return;
@@ -226,9 +238,49 @@ namespace SCIEPort.Features.Plants
             }
         }
 
-        private static void Item(BlockMesh m,int id)
+        private static void Item(BlockMesh m, int id, int stage)
         {
-            if(id==940){AppleFruit(m,new Vector3(.5f,.17f,.5f),.15f,true);return;}
+            if (id == 940) { AppleFruit(m, new Vector3(.5f, .205f, .5f), .218f, true); return; }
+            if (id == 931)
+            {
+                Vector3 tip = new Vector3(.5f, .62f, .5f);
+                Tube(m, new Vector3(.5f, .08f, .5f), tip, .088f, .05f, new Color(217, 161, 49), 8);
+                for (int row = 0; row < 7; row++)
+                for (int kernel = 0; kernel < 6; kernel++)
+                {
+                    float a = kernel * MathUtils.PI / 3f;
+                    float radius = .08f - row * .004f;
+                    Ellipsoid(m, new Vector3(.5f + radius * (float)Math.Cos(a), .13f + row * .066f,
+                        .5f + radius * (float)Math.Sin(a)), new Vector3(.034f, .038f, .034f),
+                        new Color(235, 184 + row * 4, 45), 5);
+                }
+                Leaf(m, new Vector3(.5f, .08f, .5f), new Vector3(.36f, .42f, .47f), .058f, LeafGreen);
+                Leaf(m, new Vector3(.5f, .08f, .5f), new Vector3(.62f, .37f, .54f), .058f, LeafGreen);
+                return;
+            }
+            if (id == 935)
+            {
+                for (int i = 0; i < 5; i++)
+                    Tube(m, new Vector3(.43f + .035f * i, .03f, .51f),
+                        new Vector3(.40f + .05f * i, .50f - .025f * i, .48f), .013f, .008f,
+                        new Color(172 + i * 6, 147 + i * 5, 96), 5);
+                Tube(m, new Vector3(.5f, .22f, .50f), new Vector3(.5f, .27f, .50f), .086f, .086f, Bark, 7);
+                return;
+            }
+            if (id == 912 || id == 930 || id == 937)
+            {
+                Color seed = id == 912 ? new Color(153, 172, 76) :
+                    id == 930 ? new Color(221, 178, 55) : new Color(88, 75, 61);
+                for (int i = 0; i < 3; i++)
+                {
+                    float angle = i * 2.39996f;
+                    Vector3 center = new Vector3(.5f + .06f * (float)Math.Cos(angle), .09f + i * .019f,
+                        .5f + .06f * (float)Math.Sin(angle));
+                    Ellipsoid(m, center, id == 937 ? new Vector3(.035f, .080f, .025f) :
+                        new Vector3(.053f, .045f, .046f), seed, 8);
+                }
+                return;
+            }
             if(id==906)
             {
                 Tube(m,new Vector3(.5f,.015f,.5f),new Vector3(.5f,.42f,.5f),.045f,.027f,new Color(211,217,155),8);
@@ -242,10 +294,20 @@ namespace SCIEPort.Features.Plants
                     float a=i*2.39996f,r=id==916?.075f:.065f;
                     Ellipsoid(m,new Vector3(.5f+r*(float)Math.Cos(a),.11f+i%3*.045f,.5f+r*(float)Math.Sin(a)),new Vector3(.052f,.052f,.052f),id==916?new Color(235,151+i*5,37):new Color(131+i*12,36,69),6);
                 }
-                Leaf(m,new Vector3(.5f,.25f,.5f),new Vector3(.66f,.32f,.53f),.06f,LeafGreen);return;
+                Leaf(m,new Vector3(.5f,.25f,.5f),new Vector3(.66f,.32f,.53f),.06f,LeafGreen);
+                m.TransformPositions(Matrix.CreateTranslation(-.5f, 0f, -.5f) * Matrix.CreateScale(.8f) * Matrix.CreateTranslation(.5f, 0f, .5f));
+                return;
             }
             if(id==907)
             {
+                if (stage != 0)
+                {
+                    float radius = .025f + stage * .021f;
+                    Ellipsoid(m, new Vector3(.5f, radius, .5f), new Vector3(radius, radius, radius),
+                        new Color(126, 157, 62), 8);
+                    if (stage == 2) Flower(m, new Vector3(.5f, .14f, .5f), new Color(236, 170, 155), .06f);
+                    return;
+                }
                 Ellipsoid(m,new Vector3(.5f,.19f,.5f),new Vector3(.13f,.18f,.13f),new Color(184,66,85));
                 for(int i=0;i<8;i++)
                 {
@@ -257,13 +319,15 @@ namespace SCIEPort.Features.Plants
             if(id==909||id==910||id==913||id==914)
             {
                 bool red=id==913||id==914;
-                for(int i=0;i<(id==909||id==913?4:1);i++)
+                int count = id == 909 || id == 913 ? (stage == 0 ? 4 : stage) : 1;
+                float growth = stage == 0 ? 1f : .30f + .18f * stage;
+                for(int i=0;i<count;i++)
                 {
                     Vector3 p=new Vector3(.38f+i%2*.25f,.02f,.38f+i/2*.23f);
-                    float h=.16f+i%3*.05f;
+                    float h = (.16f + i % 3 * .05f) * growth;
                     Tube(m,p,p+new Vector3(0,h,0),.028f,.019f,new Color(219,204,166));
-                    Ellipsoid(m,p+new Vector3(0,h,0),new Vector3(.12f,.065f,.12f),red?new Color(189,48,36):new Color(153,110,66));
-                    if(red) for(int j=0;j<5;j++)
+                    Ellipsoid(m,p+new Vector3(0,h,0),new Vector3(.12f,.065f,.12f) * growth,red?new Color(189,48,36):new Color(153,110,66));
+                    if(red && stage == 0) for(int j=0;j<5;j++)
                     {
                         float a=j*2.4f;
                         Ellipsoid(m,p+new Vector3(.067f*(float)Math.Cos(a),h+.05f,.067f*(float)Math.Sin(a)),new Vector3(.017f,.008f,.016f),new Color(242,225,188),5);
@@ -409,12 +473,21 @@ namespace SCIEPort.Features.Plants
             }
             return bounds;
         }
-        internal void Generate(Block block,BlockGeometryGenerator generator,TerrainGeometry geometry,int value,int x,int y,int z)
-            =>generator.GenerateShadedMeshVertices(block,x,y,z,Mesh(block.BlockIndex,Terrain.ExtractData(value)),Color.White,null,null,geometry.GetGeometry(Texture).SubsetOpaque);
+        internal void Generate(Block block, BlockGeometryGenerator generator, TerrainGeometry geometry, int value, int x, int y, int z)
+        {
+            // Loose legacy apple cells use the same size as the native dropped-food renderer.
+            Matrix? transform = block.BlockIndex == AppleBlock.Index
+                ? Matrix.CreateTranslation(-.5f, 0f, -.5f) * Matrix.CreateScale(.3f) * Matrix.CreateTranslation(.5f, 0f, .5f)
+                : (Matrix?)null;
+            generator.GenerateShadedMeshVertices(block, x, y, z, Mesh(block.BlockIndex, Terrain.ExtractData(value)),
+                Color.White, transform, null, geometry.GetGeometry(Texture).SubsetOpaque);
+        }
         internal void Draw(Block block,PrimitivesRenderer3D renderer,int value,Color color,float size,ref Matrix matrix,DrawBlockEnvironmentData environment)
         {
             BlockMesh mesh=Mesh(block.BlockIndex,Terrain.ExtractData(value));
-            Matrix centered=Matrix.CreateTranslation(-.5f,-.45f,-.5f)*Matrix.CreateScale(size)*matrix;
+            BoundingBox bounds = Boxes(block, value)[0];
+            Vector3 center = (bounds.Min + bounds.Max) * .5f;
+            Matrix centered = Matrix.CreateTranslation(-center) * Matrix.CreateScale(size) * matrix;
             BlocksManager.DrawMeshBlock(renderer,mesh,Texture,color,1f,ref centered,environment);
         }
     }

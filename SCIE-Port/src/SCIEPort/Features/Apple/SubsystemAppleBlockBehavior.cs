@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using Game.NetWork;
+using SCIEPort.Features.Plants;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Apple
@@ -12,6 +13,7 @@ namespace SCIEPort.Features.Apple
     {
         private static readonly int[] s_handledBlocks={ApplePlantBlock.Index,AppleBlock.Index};
         private SubsystemSeasons m_seasons;
+        private SubsystemGameInfo m_gameInfo;
         private int m_budget=AppleTreeRules.FrameWrites;
         private bool m_faulted;
         private bool m_applying;
@@ -21,10 +23,17 @@ namespace SCIEPort.Features.Apple
         public override void Load(ValuesDictionary valuesDictionary)
         {
             base.Load(valuesDictionary);
-            m_seasons=Project.FindSubsystem<SubsystemSeasons>(false);
+            m_seasons = Project.FindSubsystem<SubsystemSeasons>(false);
+            m_gameInfo = Project.FindSubsystem<SubsystemGameInfo>(true);
+            if (SubsystemTerrain.TerrainContentsGenerator != null &&
+                !(SubsystemTerrain.TerrainContentsGenerator is PlantTerrainGenerator))
+            {
+                SubsystemTerrain.TerrainContentsGenerator =
+                    new PlantTerrainGenerator(SubsystemTerrain.TerrainContentsGenerator, m_gameInfo);
+            }
         }
-        private int SeasonCode => m_seasons==null?-1:m_seasons.Season==Season.Winter?0:m_seasons.Season==Season.Spring?1:m_seasons.Season==Season.Summer?2:3;
-        internal static bool IsGround(int id) => id==SoilBlock.Index||id==DirtBlock.Index||id==GrassBlock.Index;
+        private int SeasonCode => m_seasons==null || (m_gameInfo != null && !m_gameInfo.WorldSettings.AreSeasonsChanging) ? -1:m_seasons.Season==Season.Winter?0:m_seasons.Season==Season.Spring?1:m_seasons.Season==Season.Summer?2:3;
+        internal static bool IsGround(int id) => PlantHabitat.IsRootingSoil(id);
         private int Read(Point3 p) => Terrain.ReplaceLight(SubsystemTerrain.Terrain.GetCellValue(p.X,p.Y,p.Z),0);
         private bool Loaded(Point3 p)
         {
@@ -33,7 +42,7 @@ namespace SCIEPort.Features.Apple
         }
         private bool Apply(List<Point3> cells,List<int> after)
         {
-            if(m_faulted||CommonLib.WorkType==WorkType.Client||cells.Count==0||cells.Count>AppleTreeRules.MaxChanges||m_budget<cells.Count*2) return false;
+            if(m_faulted||m_applying||CommonLib.WorkType==WorkType.Client||cells.Count==0||cells.Count>AppleTreeRules.MaxChanges||m_budget<cells.Count*2) return false;
             int[] before=new int[cells.Count];
             int[] normalizedAfter=after.ToArray();
             for(int i=0;i<before.Length;i++)
@@ -64,7 +73,15 @@ namespace SCIEPort.Features.Apple
             Terrain terrain=SubsystemTerrain.Terrain;
             if(part==AppleTreeRules.Trunk||part==AppleTreeRules.Leaf)
             {
-                Point3 root=new Point3(x-AppleTreeRules.OffsetX(data),y-AppleTreeRules.OffsetY(data),z-AppleTreeRules.OffsetZ(data));
+                int dx = AppleTreeRules.OffsetX(data);
+                int dz = AppleTreeRules.OffsetZ(data);
+                int height = AppleTreeRules.OffsetY(data);
+                if (Math.Abs(dx) > 1 || Math.Abs(dz) > 1 || height < 1 || height > 4)
+                {
+                    Change(p, 0);
+                    return;
+                }
+                var root = new Point3(x - dx, y - height, z - dz);
                 if(!Loaded(root)) return;
                 int rootValue=Read(root);
                 if(Terrain.ExtractContents(rootValue)!=ApplePlantBlock.Index||AppleTreeRules.Part(Terrain.ExtractData(rootValue))!=AppleTreeRules.Root)
@@ -73,31 +90,46 @@ namespace SCIEPort.Features.Apple
                 {
                     Point3 support=new Point3(root.X,root.Y+h,root.Z);
                     int sv=Read(support),sd=Terrain.ExtractData(sv);
-                    if(Terrain.ExtractContents(sv)!=ApplePlantBlock.Index||AppleTreeRules.Part(sd)!=AppleTreeRules.Trunk||AppleTreeRules.OffsetY(sd)!=h)
+                    if(Terrain.ExtractContents(sv)!=ApplePlantBlock.Index||AppleTreeRules.Part(sd)!=AppleTreeRules.Trunk||AppleTreeRules.OffsetY(sd)!=h||AppleTreeRules.OffsetX(sd)!=0||AppleTreeRules.OffsetZ(sd)!=0)
                     {Change(p,0);return;}
                 }
-                if(part==AppleTreeRules.Leaf)
+                if (part == AppleTreeRules.Leaf && PlantGrowthSite.IsLiving(SubsystemTerrain))
                 {
-                    int temperature=terrain.GetSeasonalTemperature(x,z)+SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
-                    bool suitable=AppleTreeRules.CanGrow(Terrain.ExtractLight(terrain.GetCellValue(x,y+1,z)),temperature,false);
-                    int next=AppleTreeRules.NextFruit(data,SeasonCode,suitable,pollPass%4==0);
+                    int branchLight = terrain.GetCellLight(x, y + 1, z);
+                    int sideX = x + dx;
+                    int sideZ = z + dz;
+                    if (Loaded(new Point3(sideX, y, sideZ)))
+                        branchLight = Math.Max(branchLight, terrain.GetCellLight(sideX, y, sideZ));
+                    int temperature = PlantHabitat.TemperatureAt(terrain, x, y, z);
+                    int rootSoil = terrain.GetCellValue(root.X, root.Y - 1, root.Z);
+                    bool watered = Terrain.ExtractContents(rootSoil) == SoilBlock.Index && SoilBlock.GetHydration(Terrain.ExtractData(rootSoil));
+                    bool suitable = PlantHabitat.For(ApplePlantBlock.Index)
+                        .AllowsGrowth(temperature, terrain.GetSeasonalHumidity(x, z), branchLight, watered);
+                    // Old saves can still contain ripe fruit on the upper crown.
+                    int next = AppleTreeRules.BearsFruit(data)
+                        ? AppleTreeRules.NextFruit(data, SeasonCode, suitable, pollPass % 4 == 0)
+                        : SeasonCode == 0 || SeasonCode == 1 || !AppleRules.GetFruiting(data)
+                            ? data & ~15 : data;
                     if(next!=data) Change(p,Terrain.ReplaceData(value,next));
                 }
                 return;
             }
             int soilValue=terrain.GetCellValue(x,y-1,z),soil=Terrain.ExtractContents(soilValue);
             if(!IsGround(soil)){Change(p,0);return;}
+            if (!PlantGrowthSite.IsLiving(SubsystemTerrain)) return;
             if(part==AppleTreeRules.Root)
             {
-                if(SeasonCode==1) RestoreCanopy(p);
+                if (SeasonCode == 1 || SeasonCode < 0 && pollPass % 8 == 0) RestoreCanopy(p);
                 return;
             }
             if(y>250) return;
             int light=Terrain.ExtractLight(terrain.GetCellValue(x,y+1,z));
             int temp=terrain.GetSeasonalTemperature(x,z)+SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
-            if(!AppleTreeRules.CanGrow(light,temp,SeasonCode==0)) return;
-            int soilData=Terrain.ExtractData(soilValue);
-            int interval=AppleRules.GetAppleGrowthInterval(soil==SoilBlock.Index&&SoilBlock.GetHydration(soilData),soil==SoilBlock.Index?SoilBlock.GetNitrogen(soilData):0,temp);
+            int soilData = Terrain.ExtractData(soilValue);
+            bool hydrated = soil == SoilBlock.Index && SoilBlock.GetHydration(soilData);
+            if (!AppleTreeRules.CanGrow(light, temp, SeasonCode == 0) ||
+                !PlantHabitat.For(ApplePlantBlock.Index).AllowsGrowth(temp, terrain.GetSeasonalHumidity(x, z), light, hydrated)) return;
+            int interval = AppleRules.GetAppleGrowthInterval(hydrated, soil == SoilBlock.Index ? SoilBlock.GetNitrogen(soilData) : 0, temp);
             if(pollPass%interval!=0) return;
             int size=AppleRules.GetSize(data);
             if(size<6){Change(p,Terrain.ReplaceData(value,AppleRules.SetFruiting(AppleRules.SetSize(data,size+1),false)));return;}
@@ -107,15 +139,17 @@ namespace SCIEPort.Features.Apple
         {
             if(!AppleTreeRules.CanFitTree(root.X,root.Y,root.Z)) return;
             var cells=new List<Point3>();var values=new List<int>();
-            foreach(int[] d in AppleTreeRules.Parts())
+            foreach (TerrainBrush.Cell part in AppleTreeLayout.ForStage(SeasonCode == 1 ? 1 : 0).Cells)
             {
-                Point3 p=new Point3(root.X+d[0],root.Y+d[1],root.Z+d[2]);
-                if(!Loaded(p)||Terrain.ExtractContents(Read(p))!=0) return;
-                int data=AppleTreeRules.Encode(d[3],d[0],d[1],d[2]);
-                if(d[3]==AppleTreeRules.Leaf) data=AppleTreeRules.NextFruit(data,SeasonCode,true,false);
-                cells.Add(p);values.Add(Terrain.MakeBlockValue(ApplePlantBlock.Index,0,data));
+                if (part.Y == 0) continue;
+                var p = new Point3(root.X + part.X, root.Y + part.Y, root.Z + part.Z);
+                if (!Loaded(p) || Read(p) != 0) return;
+                cells.Add(p);
+                values.Add(part.Value);
             }
-            cells.Add(root);values.Add(Terrain.ReplaceData(rootValue,AppleTreeRules.Root|7));
+            if (Read(root) != rootValue) return;
+            cells.Add(root);
+            values.Add(Terrain.ReplaceData(rootValue, AppleTreeRules.Root | 7));
             if(Terrain.ExtractContents(soilValue)==SoilBlock.Index&&SoilBlock.GetNitrogen(Terrain.ExtractData(soilValue))>0)
             {
                 cells.Add(new Point3(root.X,root.Y-1,root.Z));
@@ -134,18 +168,20 @@ namespace SCIEPort.Features.Apple
         private void RestoreCanopy(Point3 root)
         {
             if(!AppleTreeRules.CanFitTree(root.X,root.Y,root.Z)) return;
-            for(int h=1;h<=2;h++)
+            for (int h = 1; h <= 2; h++)
             {
-                int v=Read(new Point3(root.X,root.Y+h,root.Z));
-                if(Terrain.ExtractContents(v)!=ApplePlantBlock.Index||AppleTreeRules.Part(Terrain.ExtractData(v))!=AppleTreeRules.Trunk) return;
+                int expected = Terrain.MakeBlockValue(ApplePlantBlock.Index, 0, AppleTreeRules.Encode(AppleTreeRules.Trunk, 0, h, 0));
+                if (Read(new Point3(root.X, root.Y + h, root.Z)) != expected) return;
             }
-            var cells=new List<Point3>();var values=new List<int>();
-            foreach(int[] d in AppleTreeRules.Parts())
+            var cells = new List<Point3>();
+            var values = new List<int>();
+            foreach (TerrainBrush.Cell part in AppleTreeLayout.ForStage(SeasonCode == 1 ? 1 : 0).Cells)
             {
-                if(d[3]!=AppleTreeRules.Leaf) continue;
-                Point3 p=new Point3(root.X+d[0],root.Y+d[1],root.Z+d[2]);
-                if(!Loaded(p)||Terrain.ExtractContents(Read(p))!=0) continue;
-                cells.Add(p);values.Add(Terrain.MakeBlockValue(ApplePlantBlock.Index,0,AppleTreeRules.Encode(d[3],d[0],d[1],d[2])|1));
+                if (AppleTreeRules.Part(Terrain.ExtractData(part.Value)) != AppleTreeRules.Leaf) continue;
+                var p = new Point3(root.X + part.X, root.Y + part.Y, root.Z + part.Z);
+                if (!Loaded(p) || Read(p) != 0) continue;
+                cells.Add(p);
+                values.Add(part.Value);
             }
             Apply(cells,values);
         }

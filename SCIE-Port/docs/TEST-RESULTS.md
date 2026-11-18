@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-18 · 0.93.0 物品尺寸与植物生态
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/plants-0.93.0`。三份固定 Windows 程序集指纹、Release 构建和完整包检查通过。编译报告 0 警告、0 错误。
+- 725 项苹果规则检查和 1,052,680 项固定目标检查通过。使用原生内存 Terrain 覆盖五类合成栖息地、640 个新区块、同种子重现和单区块上限。128 个温湿草地样本生成 27 棵完整苹果树。另检查旧 DATA、支持块、阻塞、主机和客户端隔离、采后空枝、再生和掉落比例。
+- 对包内同字节的 DLL 运行 `Test-PlantsGpu.ps1`，得到六组固定 Windows Engine/OpenGL 预览。对固定 Android APK 快照解析植物相关代码的 210 个外部成员，0 缺失。日志和预览在 `artifacts/plants-0.93.0`。
+- 双份统一安装包字节一致，共 215 个条目、12,954,800 字节。与 0.92.2 逐项比较，更新了 DLL、版本元数据、六份植物 CSV 和 Apple XDB。SHA-256 为 `ED0F637E27372AF65869752DA8B5CF52CC29BDBDC6292A9EB0C392751AB94F5D`。
+- Android 7723 实机、现有世界中的触屏种植与采摘、长期分布及真实联机同步 **待验证**。[完整种植与分布规则](PLANTS-0.93.0.md)
+
 ## 2026-11-18 · 0.92.2 云天书典段落间距
 
 - EPUB 的 XHTML 提取会在段落和容器前后插入换行，嵌套容器和占位段落可能叠出多行空白。进入阅读页时把连续空行缩成一行，移除首尾空行，保留正文字符及普通断行。已有 EPUB、云端和缓存章节走同一显示路径。

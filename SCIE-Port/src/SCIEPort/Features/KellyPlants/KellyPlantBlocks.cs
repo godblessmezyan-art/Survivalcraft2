@@ -158,6 +158,10 @@ namespace SCIEPort.Features.KellyPlants
 
         protected abstract int DropContents { get; }
 
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, BlockIndex,
+                SubsystemKellyMushroomBlockBehavior.Established | SubsystemKellyMushroomBlockBehavior.Immature);
+
         public override void GetDropValues(
             SubsystemTerrain subsystemTerrain,
             int oldValue,
@@ -167,6 +171,7 @@ namespace SCIEPort.Features.KellyPlants
             out bool showDebris)
         {
             showDebris = true;
+            if ((Terrain.ExtractData(oldValue) & SubsystemKellyMushroomBlockBehavior.StageMask) != 0) return;
             dropValues.Add(new BlockDropValue
             {
                 Value = Terrain.MakeBlockValue(DropContents),
@@ -178,6 +183,9 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class WildBerryPlantBlock : KellyCrossBlock
     {
         public const int Index = 903;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, Index, 0);
 
         public static bool GetFruiting(int data) { return (data & 1) != 0; }
 
@@ -218,49 +226,62 @@ namespace SCIEPort.Features.KellyPlants
 
         public override IEnumerable<int> GetCreativeValues()
         {
-            yield return Terrain.MakeBlockValue(Index, 0, SetFruiting(0, true));
+            yield return Terrain.MakeBlockValue(Index);
         }
     }
 
     public sealed class WildBerryBlock : KellyFruitBlock
     {
         public const int Index = 904;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, WildBerryPlantBlock.Index, 0);
     }
 
     public sealed class CattailBlock : KellyCrossBlock
     {
         public const int Index = 905;
 
-        public override void GetDropValues(
-            SubsystemTerrain subsystemTerrain,
-            int oldValue,
-            int newValue,
-            int toolLevel,
-            List<BlockDropValue> dropValues,
-            out bool showDebris)
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, Index, 1);
+
+        public override void GetDropValues(SubsystemTerrain terrain, int oldValue, int newValue, int toolLevel, List<BlockDropValue> drops, out bool debris)
         {
-            showDebris = true;
-            dropValues.Add(new BlockDropValue
-            {
-                Value = Terrain.MakeBlockValue(CattailShootBlock.Index),
-                Count = 1
-            });
+            debris = true;
+            if ((Terrain.ExtractData(oldValue) & 3) == 0)
+                drops.Add(new BlockDropValue { Value = Terrain.MakeBlockValue(CattailShootBlock.Index), Count = 1 });
         }
     }
 
     public sealed class CattailShootBlock : KellyFruitBlock
     {
         public const int Index = 906;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, CattailBlock.Index, 1);
     }
 
     public sealed class CactusFruitBlock : KellyFruitBlock
     {
         public const int Index = 907;
+
+        public override void GetDropValues(SubsystemTerrain terrain, int oldValue, int newValue, int toolLevel, List<BlockDropValue> drops, out bool debris)
+        {
+            debris = true;
+            if ((Terrain.ExtractData(oldValue) & 3) == 0)
+                drops.Add(new BlockDropValue { Value = Terrain.MakeBlockValue(Index), Count = 1 });
+        }
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, Index, 1);
     }
 
     public sealed class AcornBlock : KellyFruitBlock
     {
         public const int Index = 908;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, SaplingBlock.Index, 0);
     }
 
     public sealed class MushroomPatchBlock : KellyMushroomPatchBlock
@@ -272,6 +293,9 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class WildMushroomBlock : KellyFruitBlock
     {
         public const int Index = 910;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, MushroomPatchBlock.Index, SubsystemKellyMushroomBlockBehavior.Established | SubsystemKellyMushroomBlockBehavior.Immature);
     }
 
     public sealed class SoybeanBlock : KellyCrossBlock
@@ -332,6 +356,14 @@ namespace SCIEPort.Features.KellyPlants
 
     public sealed class SoybeanFruitBlock : FlatBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public const int Index = 912;
 
         public override void GenerateTerrainVertices(
@@ -342,15 +374,7 @@ namespace SCIEPort.Features.KellyPlants
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(KellyPlantTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -361,15 +385,7 @@ namespace SCIEPort.Features.KellyPlants
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                KellyPlantTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -423,11 +439,22 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class FlyAgaricBlock : KellyFruitBlock
     {
         public const int Index = 914;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, FlyAgaricPatchBlock.Index, SubsystemKellyMushroomBlockBehavior.Established | SubsystemKellyMushroomBlockBehavior.Immature);
     }
 
     public sealed class CloudberryPlantBlock : KellyCrossBlock
     {
         public const int Index = 915;
+
+        public override IEnumerable<int> GetCreativeValues()
+        {
+            yield return Terrain.MakeBlockValue(Index, 0, 1);
+        }
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, Index, 1);
 
         public override void GetDropValues(
             SubsystemTerrain subsystemTerrain,
@@ -450,5 +477,35 @@ namespace SCIEPort.Features.KellyPlants
     public sealed class CloudberryBlock : KellyFruitBlock
     {
         public const int Index = 916;
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner, int value, TerrainRaycastResult hit)
+            => KellyPlantPlacement.Place(terrain, hit.CellFace, CloudberryPlantBlock.Index, 1);
+    }
+
+    internal static class KellyPlantPlacement
+    {
+        internal static BlockPlacementData Place(SubsystemTerrain subsystem, CellFace target, int plant, int data)
+        {
+            var placement = new BlockPlacementData { CellFace = target };
+            if (CellFace.FaceToPoint3(target.Face).Y != 1 || target.Y < 1 || target.Y >= 254) return placement;
+
+            Terrain terrain = subsystem.Terrain;
+            int ground = terrain.GetCellContents(target.X, target.Y, target.Z);
+            bool supported;
+            if (plant == CactusFruitBlock.Index || plant == CattailBlock.Index)
+            {
+                supported = SubsystemKellyFruitBlockBehavior.HasSupport(plant, ground);
+                if (supported && plant == CattailBlock.Index)
+                {
+                    supported = PlantGrowthSite.HasWater(target.X, target.Y + 1, target.Z, terrain.GetCellContents);
+                }
+            }
+            else
+            {
+                supported = plant == SaplingBlock.Index ? PlantHabitat.IsNaturalSoil(ground) : PlantHabitat.IsRootingSoil(ground);
+            }
+            if (supported) placement.Value = Terrain.MakeBlockValue(plant, 0, data);
+            return placement;
+        }
     }
 }

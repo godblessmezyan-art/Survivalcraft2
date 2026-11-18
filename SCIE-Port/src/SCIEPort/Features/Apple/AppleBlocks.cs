@@ -62,6 +62,17 @@ namespace SCIEPort.Features.Apple
 
         public const int Index = 939;
 
+        public override string GetDisplayName(SubsystemTerrain terrain, int value)
+        {
+            switch (AppleTreeRules.Part(Terrain.ExtractData(value)))
+            {
+                case AppleTreeRules.Root:
+                case AppleTreeRules.Trunk: return "苹果树干";
+                case AppleTreeRules.Leaf: return "苹果树叶";
+                default: return base.GetDisplayName(terrain, value);
+            }
+        }
+
         public override int GetFaceTextureSlot(int face, int value)
         {
             int data = Terrain.ExtractData(value);

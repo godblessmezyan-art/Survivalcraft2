@@ -222,9 +222,7 @@ namespace SCIEPort.Features.Bamboo
             Point3 direction = CellFace.FaceToPoint3(target.Face);
             int below = subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z);
             int substrate = Terrain.ExtractContents(below);
-            bool hasSubstrate = substrate == SoilBlock.Index
-                || substrate == SandBlock.Index
-                || substrate == DirtBlock.Index;
+            bool hasSubstrate = PlantHabitat.IsRootingSoil(substrate) || substrate == SandBlock.Index;
             if (BambooRules.CanPlaceBase(direction.Y == 1, hasSubstrate))
             {
                 return new BlockPlacementData

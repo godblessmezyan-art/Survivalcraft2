@@ -50,7 +50,9 @@ public static class PlantGpuProbe
         foreach(int[] d in parts)
         {
             if(d[3]!=48)continue;
-            Add(939,48|((d[0]+1)<<6)|((d[2]+1)<<8)|(d[1]<<10)|phase,offset+new Vector3(d[0],d[1],d[2]));
+            int data = 48 | ((d[0] + 1) << 6) | ((d[2] + 1) << 8) | (d[1] << 10);
+            if ((bool)rules.GetMethod("BearsFruit").Invoke(null, new object[] { data })) data |= phase;
+            Add(939, data, offset + new Vector3(d[0], d[1], d[2]));
         }
     }
     static void Begin()
@@ -86,16 +88,20 @@ public static class PlantGpuProbe
             Begin();for(int stage=0;stage<8;stage++)Add(929,stage,new Vector3(-3.5f+stage,0,0));
             Save("corn-stages",new Vector3(.3f,2.9f,8.7f),new Vector3(.3f,.35f,.5f),45);
             Begin();
-            string[] classes={"Apple.ApplePlantBlock","Apple.AppleBlock","Crops.CornStalkBlock","Flax.FlaxPlantBlock","Sunflower.SunflowerPlantBlock","Bamboo.BambooPlantBlock","KellyPlants.WildBerryPlantBlock","KellyPlants.CloudberryPlantBlock","KellyPlants.CattailBlock","KellyPlants.WildBerryBlock","KellyPlants.CloudberryBlock","KellyPlants.CattailShootBlock","KellyPlants.CactusFruitBlock","KellyPlants.AcornBlock","KellyPlants.MushroomPatchBlock","KellyPlants.FlyAgaricPatchBlock"};
+            string[] classes={"Apple.ApplePlantBlock","Apple.AppleBlock","Crops.CornStalkBlock","Flax.FlaxPlantBlock","Sunflower.SunflowerPlantBlock","Bamboo.BambooPlantBlock","KellyPlants.WildBerryPlantBlock","KellyPlants.CloudberryPlantBlock","KellyPlants.CattailBlock","KellyPlants.WildBerryBlock","KellyPlants.CloudberryBlock","KellyPlants.CattailShootBlock","KellyPlants.CactusFruitBlock","KellyPlants.AcornBlock","KellyPlants.MushroomPatchBlock","KellyPlants.FlyAgaricPatchBlock",
+                "Crops.CornSeedBlock","Crops.CornEarBlock","Flax.FlaxFiberBlock","Sunflower.SunflowerSeedBlock","KellyPlants.SoybeanFruitBlock"};
             for(int i=0;i<classes.Length;i++)
             {
                 Block block=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features."+classes[i],true));
                 block.BlockIndex=(int)block.GetType().GetField("Index").GetRawConstantValue();block.Initialize();
                 Matrix position=Matrix.CreateTranslation(-2.0f+i%4*1.4f,.5f,.8f-i/4*1.2f);
-                block.DrawBlock(renderer,Terrain.MakeBlockValue(block.BlockIndex,0,block.BlockIndex==903?1:block.BlockIndex==915?0:7),Color.White,1f,ref position,new DrawBlockEnvironmentData());
-                triangles+=Mesh(block.BlockIndex,block.BlockIndex==903?1:block.BlockIndex==915?0:7).Indices.Count/3;
+                int data = block.BlockIndex == 903 ? 1 :
+                    block.BlockIndex == 939 || block.BlockIndex == 929 || block.BlockIndex == 934 || block.BlockIndex == 936 ? 7 : 0;
+                block.DrawBlock(renderer, Terrain.MakeBlockValue(block.BlockIndex, 0, data), Color.White, 1f,
+                    ref position, new DrawBlockEnvironmentData { DrawBlockMode = DrawBlockMode.UI, Light = 15 });
+                triangles += Mesh(block.BlockIndex, data).Indices.Count / 3;
             }
-            Save("native-items",new Vector3(5.1f,4.0f,7.8f),new Vector3(.4f,.30f,-.5f),42);
+            Save("native-items",new Vector3(5.1f,4.0f,7.8f),new Vector3(.2f,.30f,-1.3f),42);
         }
         finally{Display.RenderTarget=null;target.Dispose();}
     }
