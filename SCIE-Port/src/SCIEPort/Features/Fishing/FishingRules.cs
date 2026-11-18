@@ -4,8 +4,8 @@ namespace SCIEPort.Features.Fishing
 {
     internal static class FishingRules
     {
-        internal const float MaxCastDistance = 12f;
-        internal const float MaxSessionDistance = 16f;
+        internal const float MaxCastDistance = 18f;
+        internal const float MaxSessionDistance = 22f;
         internal const int RequiredWaterColumns = 4;
         internal const float BiteWindow = 3f;
         internal const float RemoteBiteGrace = 0.65f;

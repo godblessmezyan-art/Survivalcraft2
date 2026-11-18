@@ -17,7 +17,15 @@ namespace SCIEPort.Features.Fishing
             internal Vector3 Bobber;
             internal double Seen;
             internal double PhaseAt;
-            internal bool WasHeld;
+            internal bool Drawing;
+            internal Vector3 Aim;
+            internal FishingCastArc Preview;
+            internal bool PreviewWater;
+            internal double NextPreview;
+            internal FishingCastArc Flight;
+            internal double FlightAt;
+            internal double CastAt = double.NegativeInfinity;
+            internal float CastForce;
             internal bool HookSent;
             internal bool SentHeld;
             internal double NextHold;
@@ -36,7 +44,7 @@ namespace SCIEPort.Features.Fishing
             internal double Time;
         }
 
-        private static readonly int[] s_drawOrders = { 115 };
+        private static readonly int[] s_drawOrders = { 205 };
         private readonly Dictionary<ushort, View> m_views = new Dictionary<ushort, View>();
         private readonly List<ushort> m_stale = new List<ushort>();
         private readonly List<Landing> m_landings = new List<Landing>();
@@ -68,14 +76,20 @@ namespace SCIEPort.Features.Fishing
             byte kind = packet.Kind;
             if (view != null && view.Sequence != packet.Sequence)
             {
-                if (local || kind >= FishingCatchPackage.Landed) return;
+                if (local || FishingCatchPackage.IsTerminal(kind)) return;
                 view = null;
             }
 
-            if (kind >= FishingCatchPackage.Landed)
+            if (FishingCatchPackage.IsTerminal(kind))
             {
                 if (view == null) return;
-                m_views.Remove(id);
+                if (kind == FishingCatchPackage.InvalidWater && Now - view.CastAt < FollowThroughDuration)
+                {
+                    view.Kind = kind;
+                    view.Seen = Now;
+                }
+                else
+                    m_views.Remove(id);
                 if (kind == FishingCatchPackage.Landed)
                     ShowLanded(player, view, packet.Count);
                 else if (local && kind == FishingCatchPackage.Escaped)
@@ -93,16 +107,22 @@ namespace SCIEPort.Features.Fishing
                 m_views[id] = view;
             }
             double now = Now;
+            if (kind >= FishingCatchPackage.Windup)
+            {
+                ApplyCastView(player, view, packet, now);
+                return;
+            }
             bool changed = view.Kind != kind;
             if (changed) view.PhaseAt = now;
             view.PreviousProgress = view.DrawProgress(now);
             view.Seen = now;
             view.Kind = kind;
-            view.Bobber = m_water.Surface(packet.Cell);
+            view.Bobber = m_water.Surface(packet.Cell,
+                view.Flight.Duration > 0f ? (Vector3?)view.Flight.End : null);
 
             if (kind == FishingCatchPackage.Waiting && changed)
             {
-                Splash(view.Bobber, false);
+                Splash(view.Bobber, true);
                 if (local && packet.Count == 1) Message(player, "已挂饵");
             }
             else if (kind == FishingCatchPackage.Bite && changed)
@@ -140,11 +160,20 @@ namespace SCIEPort.Features.Fishing
             m_stale.Clear();
             foreach (var pair in m_views)
             {
-                double timeout = pair.Value.Kind == FishingCatchPackage.Waiting ? 27f : FishingRules.ClientTimeout;
-                if (now - pair.Value.Seen > timeout) m_stale.Add(pair.Key);
+                View view = pair.Value;
+                double timeout = FishingRules.ClientTimeout;
+                if (view.Kind == FishingCatchPackage.Waiting) timeout = 27f;
+                else if (view.Kind == FishingCatchPackage.Windup) timeout = FishingCastArc.ChargeTimeout + 1f;
+                if (now - view.Seen > timeout || (FishingCatchPackage.IsTerminal(view.Kind) && now - view.CastAt >= FollowThroughDuration))
+                    m_stale.Add(pair.Key);
             }
             foreach (ushort id in m_stale) m_views.Remove(id);
             m_landings.RemoveAll(landing => now - landing.Time > 0.55);
+            foreach (ComponentPlayer player in m_players.ComponentPlayers)
+            {
+                if (m_views.TryGetValue(player.Entity.EntityId, out View view))
+                    ApplyRodPose(player, view, now);
+            }
         }
 
         public void Draw(Camera camera, int drawOrder)
@@ -156,9 +185,17 @@ namespace SCIEPort.Features.Fishing
 
             foreach (ComponentPlayer player in m_players.ComponentPlayers)
             {
-                if (!m_views.TryGetValue(player.Entity.EntityId, out View view) || view.Kind == 0 ||
-                    Vector3.DistanceSquared(camera.ViewPosition, view.Bobber) > 34f * 34f) continue;
-                DrawLine(camera, batch, player, view, now);
+                if (!m_views.TryGetValue(player.Entity.EntityId, out View view)) continue;
+                if (view.Drawing && camera.GameWidget.PlayerData.ComponentPlayer == player)
+                    DrawPreview(batch, view.Preview, view.PreviewWater);
+                if (view.Kind == FishingCatchPackage.Flight)
+                {
+                    if (Vector3.DistanceSquared(camera.ViewPosition, view.Flight.Origin) <= 34f * 34f)
+                        DrawFlight(camera, batch, player, view, now);
+                }
+                else if (view.Kind >= FishingCatchPackage.Waiting && view.Kind <= FishingCatchPackage.Reeling &&
+                    Vector3.DistanceSquared(camera.ViewPosition, view.Bobber) <= 34f * 34f)
+                    DrawLine(camera, batch, player, view, now);
             }
 
             m_fishLight.SubsystemTerrain = m_terrain;
@@ -168,7 +205,7 @@ namespace SCIEPort.Features.Fishing
                 if (!landing.Player.IsAddedToProject ||
                     Vector3.DistanceSquared(camera.ViewPosition, landing.Start) > 34f * 34f) continue;
                 float progress = MathUtils.Saturate((float)(now - landing.Time) / 0.55f);
-                Vector3 end = RodTip(landing.Player) + new Vector3(0, -0.2f, 0);
+                Vector3 end = RodTip(camera, landing.Player) + new Vector3(0, -0.2f, 0);
                 Vector3 position = Vector3.Lerp(landing.Start, end, 0.55f + progress * 0.45f);
                 position.Y += (float)Math.Sin(progress * Math.PI) * 0.75f;
                 var matrix = Matrix.CreateFromYawPitchRoll(4f * progress, -0.45f, 0.5f * MathUtils.Sin(progress * 24f));
@@ -182,7 +219,7 @@ namespace SCIEPort.Features.Fishing
 
         private static void DrawLine(Camera camera, FlatBatch3D batch, ComponentPlayer player, View view, double now)
         {
-            Vector3 tip = RodTip(player);
+            Vector3 tip = RodTip(camera, player);
             float age = (float)(now - view.PhaseAt);
             float progress = view.DrawProgress(now);
             Vector3 position = view.Bobber;
@@ -196,31 +233,21 @@ namespace SCIEPort.Features.Fishing
             else
                 position.Y += 0.025f * MathUtils.Sin(age * 4.5f);
 
-            if (view.Kind == FishingCatchPackage.Waiting && age < 0.32f)
-            {
-                float cast = MathUtils.Saturate(age / 0.32f);
-                position = Vector3.Lerp(tip, position, cast);
-                position.Y += 0.65f * MathUtils.Sin(cast * (float)Math.PI);
-            }
-
             Vector3 middle = (tip + position) * 0.5f;
             middle.Y -= view.Tense ? 0.025f : 0.19f;
             Color line = view.Tense ? new Color(245, 164, 109, 235) : new Color(229, 229, 204, 200);
             batch.QueueLine(tip, middle, line);
             batch.QueueLine(middle, position, line);
 
-            Vector3 right = Vector3.Cross(Vector3.UnitY, camera.ViewPosition - position);
-            right = right.LengthSquared() > 0.001f ? Vector3.Normalize(right) * 0.062f : new Vector3(0.062f, 0, 0);
-            BobberBand(batch, position, right, -0.045f, 0.036f, new Color(244, 223, 182));
-            BobberBand(batch, position, right, 0.036f, 0.12f, new Color(215, 70, 49));
+            DrawBobber(camera, batch, position);
             if (view.Kind == FishingCatchPackage.Approach)
                 DrawApproach(batch, position, tip, age);
         }
 
-        private static void BobberBand(FlatBatch3D batch, Vector3 position, Vector3 side, float bottom, float top, Color color)
+        private static void BobberBand(FlatBatch3D batch, Vector3 position, Vector3 side, Vector3 up, float bottom, float top, Color color)
         {
-            Vector3 a = position + new Vector3(0, bottom, 0);
-            Vector3 b = position + new Vector3(0, top, 0);
+            Vector3 a = position + up * bottom;
+            Vector3 b = position + up * top;
             batch.QueueQuad(a - side, a + side, b + side * 0.85f, b - side * 0.85f, color);
         }
 
@@ -236,16 +263,6 @@ namespace SCIEPort.Features.Fishing
             Color water = new Color(203, 233, 231, 210);
             batch.QueueLine(center + side + direction * 0.23f, center, water);
             batch.QueueLine(center, center - side + direction * 0.23f, water);
-        }
-
-        private static Vector3 RodTip(ComponentPlayer player)
-        {
-            ComponentCreatureModel model = player.ComponentCreatureModel;
-            Vector3 rotation = BlocksManager.Blocks[FishingRodBlock.Index].GetFirstPersonRotation(0) * ((float)Math.PI / 180f);
-            Matrix hand = Matrix.CreateFromYawPitchRoll(rotation.Y, rotation.X, rotation.Z);
-            Vector3 end = Vector3.Transform(new Vector3(-0.22f, 0.06f, -0.54f), hand)
-                + BlocksManager.Blocks[FishingRodBlock.Index].GetFirstPersonOffset(0);
-            return model.EyePosition + Vector3.Transform(end, model.EyeRotation);
         }
 
         private void Splash(Vector3 position, bool sound)

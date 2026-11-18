@@ -7,11 +7,15 @@ namespace SCIEPort.Features.Fishing
     /// <summary>Native reliable transport for fishing inputs and authoritative world presentation.</summary>
     public sealed class FishingCatchPackage : IPackage
     {
-        // 0 and 1 belong to the retired result-claim protocol.
-        internal const byte Cast = 2, Hook = 3, Hold = 4, Release = 5, Cancel = 6;
+        // Kinds 0–2 belong to the retired cast protocols.
+        internal const byte Hook = 3, Hold = 4, Release = 5, Cancel = 6;
         internal const byte Waiting = 7, Approach = 8, Bite = 9, Reeling = 10;
         internal const byte Landed = 11, Escaped = 12, Closed = 13, InvalidWater = 14, LostBait = 15;
+        internal const byte Charge = 16, Cast = 17, AbortCharge = 18;
+        internal const byte Windup = 19, FlightOrigin = 20, Flight = 21;
         internal const byte TenseBit = 128;
+
+        internal static bool IsTerminal(byte kind) => kind >= Landed && kind <= LostBait;
 
         public byte ID => 236;
         public Client To { get; set; }
@@ -52,10 +56,11 @@ namespace SCIEPort.Features.Fishing
             if (isServer)
             {
                 var player = From?.SubsystemPlayers != null ? From.PlayerData?.ComponentPlayer : null;
-                if (Kind >= Cast && Kind <= Cancel && player != null && player.Entity.EntityId == Caster)
+                if (((Kind >= Hook && Kind <= Cancel) || (Kind >= Charge && Kind <= AbortCharge))
+                    && player != null && player.Entity.EntityId == Caster)
                     runtime.AcceptInput(player, this, From);
             }
-            else if (From != null && ReferenceEquals(From, node.Server) && Kind >= Waiting && Kind <= LostBait)
+            else if (From != null && ReferenceEquals(From, node.Server) && ((Kind >= Waiting && Kind <= LostBait) || (Kind >= Windup && Kind <= Flight)))
                 runtime.ReceiveState(this);
         }
     }

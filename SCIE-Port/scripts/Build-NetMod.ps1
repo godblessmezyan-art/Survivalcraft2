@@ -105,7 +105,7 @@ foreach ($rule in @('StickBlock', 'StringBlock', 'GetCraftingId', 'GetProcedural
     if (-not $fishingRodSource.Contains($rule)) { throw "Fishing recipe rule missing: $rule" }
 }
 $fishingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Fishing\SubsystemFishing.cs')
-foreach ($rule in @('Authority', 'ValidSession', 'ValidateTarget', 'RawFishBlock.Index', 'AcquireItems', 'm_sessions.Remove')) {
+foreach ($rule in @('Authority', 'ValidSession', 'AcceptCastInput', 'RawFishBlock.Index', 'AcquireItems', 'm_sessions.Remove')) {
     if (-not $fishingSource.Contains($rule)) { throw "Fishing host-authority rule missing: $rule" }
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')

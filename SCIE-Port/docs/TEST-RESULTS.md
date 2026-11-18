@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-18 · 0.92.0 蓄力抛竿
+
+- 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、全量回归和统一包校验 **已确认**。仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.92.0`，退出 0。日志为输出目录中的 `build-final.log`。
+- 2526 项钓鱼规则和 40 项固定目标隔离检查通过。固定目标原生水域上，同一平视角轻抛 3.28 格、满力 8.49 格，满力抬高视角后 14.14 格。覆盖方位变化、水面亚格落点、岩墙拦截、浅水、遮盖水面、原生输入抬臂与甩竿、主机计时、原生掉落和背包同步。测试使用两个独立的主客实例和实际包序列化。
+- 用固定 Windows Engine/OpenGL 离屏渲染实际鱼竿模型与本次姿态和鱼线代码。抬竿、出手、空中飞行三个阶段在 960×540 画面可区分，恢复后几何与基线相同。截图在输出目录的 `gpu` 中，使用合成水岸。系统无音频输出设备，声音播放效果 **待验证**。
+- 对最终 DLL 执行 `Test-CelestialCodexAndroidBcl.ps1 -FeaturePrefix SCIEPort.Features.Fishing.`，Android 目标快照解析 286 个外部成员，0 缺失。结果见 `android-final.log`。Android 7723 的触屏和真实双端房间 **待验证**。
+- 统一包和版本副本字节一致，共 215 条目，12,951,877 字节。SHA-256 为 `A1CC1DE2488ED1D0E6BCAFC2E1F1E2E5E92C55670AB8CA8BD76D677306097F5E`。
+
 ## 2026-11-18：0.91.0 钓鱼
 
 - 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、完整回归及统一包校验 **已确认**。从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.91.0`，退出 0。日志在该输出目录 `build-final.log`。

@@ -18,18 +18,15 @@ namespace SCIEPort.Features.Fishing
             internal Point3 Cell;
             internal int RodSlot;
             internal int BaitSlot;
+            internal Vector3 CastEye;
+            internal FishingCastArc Arc;
+            internal Point3? Water;
+            internal double ImpactAt;
             internal FishingCycle Cycle;
             internal double NextSnapshot;
         }
 
-        private sealed class CastAttempt
-        {
-            internal uint Sequence;
-            internal double NextCast;
-        }
-
         private readonly Dictionary<ushort, Session> m_sessions = new Dictionary<ushort, Session>();
-        private readonly Dictionary<ushort, CastAttempt> m_castAttempts = new Dictionary<ushort, CastAttempt>();
         private readonly List<Session> m_updating = new List<Session>();
         private readonly System.Random m_random = new System.Random();
         private SubsystemTerrain m_terrain;
@@ -42,7 +39,7 @@ namespace SCIEPort.Features.Fishing
         private uint m_sequence;
 
         public override int[] HandledBlocks => new[] { FishingRodBlock.Index };
-        // Sample the native touch hold after ComponentInput and before ComponentPlayer handles digging.
+        // Sample the native aim input after ComponentInput and before ComponentPlayer can mine or interact.
         public UpdateOrder UpdateOrder => (UpdateOrder)(-5);
         private static bool Authority => CommonLib.WorkType != WorkType.Client;
         private double Now => m_time.GameTime;
@@ -56,7 +53,7 @@ namespace SCIEPort.Features.Fishing
             m_pickables = Project.FindSubsystem<SubsystemPickables>(true);
             m_players = Project.FindSubsystem<SubsystemPlayers>(true);
             m_time = Project.FindSubsystem<SubsystemTime>(true);
-            m_water = new FishingWater(m_terrain.Terrain);
+            m_water = new FishingWater(m_terrain);
         }
 
         public override void OnEntityRemoved(Entity entity)
@@ -65,6 +62,7 @@ namespace SCIEPort.Features.Fishing
             if (m_sessions.TryGetValue(entity.EntityId, out Session session))
                 Finish(session, FishingCatchPackage.Closed);
             m_castAttempts.Remove(entity.EntityId);
+            m_heldInput.Remove(entity.EntityId);
             m_views.Remove(entity.EntityId);
         }
 
@@ -72,6 +70,7 @@ namespace SCIEPort.Features.Fishing
         {
             m_sessions.Clear();
             m_castAttempts.Clear();
+            m_heldInput.Clear();
             m_updating.Clear();
             m_views.Clear();
             m_landings.Clear();
@@ -81,38 +80,19 @@ namespace SCIEPort.Features.Fishing
 
         public override bool OnUse(Ray3 ray, ComponentMiner miner)
         {
-            if (Terrain.ExtractContents(miner.ActiveBlockValue) != FishingRodBlock.Index) return false;
-            ComponentPlayer player = miner.ComponentPlayer;
-            if (!IsLocal(player) || m_views.ContainsKey(player.Entity.EntityId)) return true;
-            if (!m_water.TryCast(player.ComponentCreatureModel.EyePosition, ray.Direction,
-                FishingRules.MaxCastDistance, out Point3 cell))
-            {
-                Message(player, "此处无鱼");
-                return true;
-            }
-
-            var view = new View
-            {
-                Sequence = ++m_sequence,
-                Slot = miner.Inventory.ActiveSlotIndex,
-                WasHeld = player.ComponentInput.PlayerInput.Aim.HasValue,
-                Seen = Now
-            };
-            m_views.Add(player.Entity.EntityId, view);
-            Submit(player, view, FishingCatchPackage.Cast, cell);
-            return true;
+            return Terrain.ExtractContents(miner.ActiveBlockValue) == FishingRodBlock.Index;
         }
 
         public void Update(float dt)
         {
             foreach (ComponentPlayer player in m_players.ComponentPlayers)
             {
-                if (IsLocal(player) && m_views.TryGetValue(player.Entity.EntityId, out View view))
-                    ReadInput(player, view);
+                if (IsLocal(player)) ReadInput(player);
             }
 
             if (Authority)
             {
+                ExpireCharges();
                 m_updating.AddRange(m_sessions.Values);
                 foreach (Session session in m_updating)
                     Advance(session, Now);
@@ -121,27 +101,41 @@ namespace SCIEPort.Features.Fishing
             UpdateViews();
         }
 
-        private void ReadInput(ComponentPlayer player, View view)
+        private void ReadInput(ComponentPlayer player)
         {
-            if (!Equipped(player, view.Slot))
+            ushort id = player.Entity.EntityId;
+            ComponentInput component = player.ComponentInput;
+            PlayerInput input = component.PlayerInput;
+            bool held = input.Aim.HasValue;
+            bool pressed = held ? m_heldInput.Add(id) : false;
+            if (!held) m_heldInput.Remove(id);
+            int slot = player.ComponentMiner.Inventory?.ActiveSlotIndex ?? -1;
+
+            if (!m_views.TryGetValue(id, out View view))
             {
-                Submit(player, view, FishingCatchPackage.Cancel);
-                m_views.Remove(player.Entity.EntityId);
+                if (!Equipped(player, slot) || !CanAim(player)) return;
+                if (held) ConsumeRodInput(component);
+                if (pressed && FishingCastArc.TryDirection(input.Aim.Value.Direction, out Vector3 direction))
+                    BeginLocalCharge(player, slot, direction);
                 return;
             }
 
-            ComponentInput component = player.ComponentInput;
-            PlayerInput input = component.PlayerInput;
-            bool tapped = input.Interact.HasValue;
-            bool held = input.Aim.HasValue;
-            bool pressed = held && !view.WasHeld;
-            view.WasHeld = held;
-            if (tapped || held)
+            if (!Equipped(player, view.Slot))
             {
-                component.m_playerInput.Interact = null;
-                component.m_playerInput.Hit = null;
-                component.m_playerInput.Dig = null;
+                Submit(player, view, view.Drawing ? FishingCatchPackage.AbortCharge : FishingCatchPackage.Cancel);
+                m_views.Remove(id);
+                return;
             }
+
+            bool tapped = input.Interact.HasValue;
+            if (tapped || held) ConsumeRodInput(component);
+            if (view.Drawing)
+            {
+                ReadCharge(player, view, input.Aim);
+                return;
+            }
+            if (view.Kind >= FishingCatchPackage.Windup || FishingCatchPackage.IsTerminal(view.Kind))
+                return;
 
             if (view.Kind == FishingCatchPackage.Reeling || view.HookSent)
             {
@@ -159,10 +153,17 @@ namespace SCIEPort.Features.Fishing
                 view.NextHold = Now + FishingRules.UpdateInterval;
                 Submit(player, view, FishingCatchPackage.Hook, count: held ? (byte)1 : (byte)0);
             }
-            else if (tapped && view.Kind != 0)
+            else if (tapped)
             {
                 Submit(player, view, FishingCatchPackage.Cancel);
             }
+        }
+
+        private static void ConsumeRodInput(ComponentInput component)
+        {
+            component.m_playerInput.Interact = null;
+            component.m_playerInput.Hit = null;
+            component.m_playerInput.Dig = null;
         }
 
         private void Submit(ComponentPlayer player, View view, byte kind, Point3 cell = default(Point3), byte count = 0)
@@ -186,24 +187,20 @@ namespace SCIEPort.Features.Fishing
             if (!Authority || packet.Sequence == 0) return;
             double now = Now;
             ushort id = player.Entity.EntityId;
-            if (packet.Kind == FishingCatchPackage.Cast)
+            if (packet.Kind >= FishingCatchPackage.Charge && packet.Kind <= FishingCatchPackage.AbortCharge)
             {
-                StartCast(player, packet, client, now);
+                AcceptCastInput(player, packet, client, now);
                 return;
             }
             if (!m_sessions.TryGetValue(id, out Session session) || session.Player != player ||
                 !ReferenceEquals(session.Client, client) || session.Sequence != packet.Sequence) return;
-            if (packet.Kind == FishingCatchPackage.Cancel)
+            if (packet.Kind == FishingCatchPackage.Cancel || !ValidSession(session))
             {
                 Finish(session, FishingCatchPackage.Closed);
                 return;
             }
 
-            if (!ValidSession(session))
-            {
-                Finish(session, FishingCatchPackage.Closed);
-                return;
-            }
+            if (session.Cycle == null) return;
             if (packet.Kind == FishingCatchPackage.Hook && session.Cycle.Hook(now, packet.Count == 1))
             {
                 Snapshot(session, now);
@@ -213,56 +210,16 @@ namespace SCIEPort.Features.Fishing
                 session.Cycle.SetHeld(now, packet.Kind == FishingCatchPackage.Hold);
         }
 
-        private void StartCast(ComponentPlayer player, FishingCatchPackage packet, Client client, double now)
-        {
-            ushort id = player.Entity.EntityId;
-            if (!m_castAttempts.TryGetValue(id, out CastAttempt attempt))
-                m_castAttempts.Add(id, attempt = new CastAttempt());
-            if (packet.Sequence <= attempt.Sequence) return;
-            attempt.Sequence = packet.Sequence;
-            if (now < attempt.NextCast)
-            {
-                Reject(packet, client, FishingCatchPackage.Closed);
-                return;
-            }
-            attempt.NextCast = now + FishingRules.CastInterval;
-
-            IInventory inventory = player.ComponentMiner.Inventory;
-            int slot = inventory?.ActiveSlotIndex ?? -1;
-            if (m_sessions.ContainsKey(id) || !Equipped(player, slot))
-            {
-                Reject(packet, client, FishingCatchPackage.Closed);
-                return;
-            }
-            if (!m_water.ValidateTarget(player.ComponentCreatureModel.EyePosition, packet.Cell))
-            {
-                Reject(packet, client, FishingCatchPackage.InvalidWater);
-                return;
-            }
-
-            int baitSlot = slot + 1;
-            bool baited = HasBait(inventory, baitSlot);
-            bool large = FishingRules.IsLarge(m_random, baited);
-            var session = new Session
-            {
-                Player = player,
-                Client = client,
-                Sequence = packet.Sequence,
-                Cell = packet.Cell,
-                RodSlot = slot,
-                BaitSlot = baited ? baitSlot : -1,
-                Cycle = new FishingCycle(now, FishingRules.WaitDuration(m_random, baited),
-                    FishingRules.ReelDuration(m_random, large), large, client != null)
-            };
-            m_sessions.Add(id, session);
-            Publish(session, FishingCatchPackage.Waiting, baited ? (byte)1 : (byte)0);
-        }
-
         private void Advance(Session session, double now)
         {
             if (!ValidSession(session))
             {
                 Finish(session, FishingCatchPackage.Closed);
+                return;
+            }
+            if (session.Cycle == null)
+            {
+                if (now >= session.ImpactAt) Impact(session, now);
                 return;
             }
 
@@ -304,9 +261,15 @@ namespace SCIEPort.Features.Fishing
 
         private bool ValidSession(Session session)
         {
-            return Equipped(session.Player, session.RodSlot) && m_water.IsDeep(session.Cell) &&
-                Vector3.Distance(session.Player.ComponentCreatureModel.EyePosition, m_water.Surface(session.Cell))
-                    <= FishingRules.MaxSessionDistance;
+            if (!Equipped(session.Player, session.RodSlot)) return false;
+            Vector3 target = session.Arc.Origin;
+            if (session.Cycle != null)
+            {
+                if (!m_water.IsDeep(session.Cell)) return false;
+                target = m_water.Surface(session.Cell, session.Arc.End);
+            }
+            return Vector3.DistanceSquared(session.Player.ComponentCreatureModel.EyePosition, target)
+                <= FishingRules.MaxSessionDistance * FishingRules.MaxSessionDistance;
         }
 
         private static bool Equipped(ComponentPlayer player, int slot)
@@ -357,17 +320,22 @@ namespace SCIEPort.Features.Fishing
 
         private void Publish(Session session, byte kind, byte count = 0)
         {
+            Broadcast(session.Player, session.Sequence, kind, session.Cell, count);
+        }
+
+        private void Broadcast(ComponentPlayer player, uint sequence, byte kind, Point3 position = default(Point3), byte count = 0)
+        {
             var packet = new FishingCatchPackage
             {
                 Kind = kind,
-                Caster = session.Player.Entity.EntityId,
-                Cell = session.Cell,
-                Sequence = session.Sequence,
+                Caster = player.Entity.EntityId,
+                Cell = position,
+                Sequence = sequence,
                 Count = count
             };
             if (CommonLib.WorkType == WorkType.Server)
                 CommonLib.Net.QueuePackage(packet);
-            ApplyState(packet, session.Player);
+            ApplyState(packet, player);
         }
 
         private void Reject(FishingCatchPackage request, Client client, byte reason)

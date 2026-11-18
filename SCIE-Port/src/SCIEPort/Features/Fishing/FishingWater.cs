@@ -1,3 +1,4 @@
+using System;
 using Engine;
 using Game;
 
@@ -5,64 +6,70 @@ namespace SCIEPort.Features.Fishing
 {
     internal sealed class FishingWater
     {
+        private static readonly Func<int, float, bool> s_hit = (value, distance) =>
+        {
+            Block block = BlocksManager.Blocks[Terrain.ExtractContents(value)];
+            return block.IsCollidable || block is FluidBlock;
+        };
+
+        private readonly SubsystemTerrain m_subsystem;
         private readonly Terrain m_terrain;
         private readonly Point3[] m_columns = new Point3[FishingRules.RequiredWaterColumns];
 
-        internal FishingWater(Terrain terrain) => m_terrain = terrain;
-
-        internal bool TryCast(Vector3 origin, Vector3 direction, float distance, out Point3 cell)
+        internal FishingWater(SubsystemTerrain subsystem)
         {
-            cell = default(Point3);
-            float length = direction.Length();
-            if (float.IsNaN(length) || float.IsInfinity(length) || length < 0.001f) return false;
-            Vector3 step = direction * (0.125f / length);
-            Vector3 point = origin;
-            for (int i = 0; i <= distance * 8f; i++, point += step)
-            {
-                int x = Terrain.ToCell(point.X);
-                int y = Terrain.ToCell(point.Y);
-                int z = Terrain.ToCell(point.Z);
-                if (!m_terrain.IsCellValid(x, y, z)) return false;
-                int value = m_terrain.GetCellValue(x, y, z);
-                int contents = Terrain.ExtractContents(value);
-                if (contents == 0) continue;
-                if (contents != WaterBlock.Index) return false;
-                float surface = Height(value);
-                if (point.Y > y + surface + 0.005f) continue;
-                cell = new Point3(x, y, z);
-                return IsDeep(cell) && HasArea(cell);
-            }
-            return false;
+            m_subsystem = subsystem;
+            m_terrain = subsystem.Terrain;
         }
 
-        internal Vector3 Surface(Point3 cell)
+        internal FishingCastArc Trace(Vector3 eye, FishingCastArc arc, out Point3? water)
+        {
+            const int steps = 50;
+            const float step = FishingCastArc.MaxDuration / steps;
+            water = null;
+            if (m_subsystem.Raycast(eye, arc.Origin, false, true, s_hit).HasValue)
+            {
+                arc.Origin = eye;
+            }
+
+            Vector3 previous = arc.Origin;
+            for (int i = 1; i <= steps; i++)
+            {
+                float time = i * step;
+                Vector3 next = arc.At(time);
+                TerrainRaycastResult? hit = m_subsystem.Raycast(previous, next, false, true, s_hit);
+                if (hit.HasValue)
+                {
+                    TerrainRaycastResult contact = hit.Value;
+                    float fraction = MathUtils.Saturate(contact.Distance / Vector3.Distance(previous, next));
+                    arc.Duration = time - step * (1f - fraction);
+                    Point3 cell = contact.CellFace.Point;
+                    if (contact.CellFace.Face == 4 && Terrain.ExtractContents(contact.Value) == WaterBlock.Index &&
+                        Vector3.DistanceSquared(eye, arc.End) <= FishingRules.MaxCastDistance * FishingRules.MaxCastDistance &&
+                        IsFishable(cell))
+                        water = cell;
+                    return arc;
+                }
+
+                if (Vector3.DistanceSquared(eye, next) >= FishingRules.MaxCastDistance * FishingRules.MaxCastDistance)
+                {
+                    arc.Duration = time;
+                    return arc;
+                }
+                previous = next;
+            }
+            return arc;
+        }
+
+        internal Vector3 Surface(Point3 cell, Vector3? landing = null)
         {
             int value = m_terrain.GetCellValue(cell.X, cell.Y, cell.Z);
             float height = Terrain.ExtractContents(value) == WaterBlock.Index ? Height(value) : 0.875f;
-            return new Vector3(cell.X + 0.5f, cell.Y + height, cell.Z + 0.5f);
+            return new Vector3(landing.HasValue ? MathUtils.Clamp(landing.Value.X, cell.X + 0.01f, cell.X + 0.99f) : cell.X + 0.5f,
+                cell.Y + height, landing.HasValue ? MathUtils.Clamp(landing.Value.Z, cell.Z + 0.01f, cell.Z + 0.99f) : cell.Z + 0.5f);
         }
 
-        internal bool ValidateTarget(Vector3 eye, Point3 cell)
-        {
-            if (!IsDeep(cell) || !HasArea(cell)) return false;
-            Vector3 delta = Surface(cell) + new Vector3(0, 0.02f, 0) - eye;
-            float distance = delta.Length();
-            if (!(distance <= FishingRules.MaxCastDistance + 0.6f) || distance < 0.001f) return false;
-
-            Vector3 step = delta * (0.125f / distance);
-            Vector3 point = eye;
-            for (int i = 0; i <= distance * 8f; i++, point += step)
-            {
-                int x = Terrain.ToCell(point.X);
-                int y = Terrain.ToCell(point.Y);
-                int z = Terrain.ToCell(point.Z);
-                if (!m_terrain.IsCellValid(x, y, z)) return false;
-                int value = m_terrain.GetCellValue(x, y, z);
-                int contents = Terrain.ExtractContents(value);
-                if (contents != 0 && (contents != WaterBlock.Index || point.Y < y + Height(value))) return false;
-            }
-            return true;
-        }
+        internal bool IsFishable(Point3 cell) => IsDeep(cell) && HasArea(cell);
 
         internal bool IsDeep(Point3 cell)
         {

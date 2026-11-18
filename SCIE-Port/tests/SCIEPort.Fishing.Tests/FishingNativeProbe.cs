@@ -13,7 +13,6 @@ using GameEntitySystem;
 public static class FishingNativeProbe
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-    private static readonly Point3 Target = new Point3(8, 64, 8);
     private static readonly Vector3 Eye = new Vector3(8.5f, 66f, 4.5f);
     private const int Rod = 972;
     private static int s_checks;
@@ -39,8 +38,9 @@ public static class FishingNativeProbe
         public Fixture(Assembly mod, Guid playerId, bool isMain)
         {
             Cells.AllocateChunk(0, 0).State = TerrainChunkState.Valid;
-            for (int x = 7; x <= 9; x++)
-                for (int z = 7; z <= 9; z++)
+            Cells.AllocateChunk(0, 1).State = TerrainChunkState.Valid;
+            for (int x = 2; x <= 14; x++)
+                for (int z = 7; z <= 20; z++)
                 {
                     Cells.SetCellValueFast(x, 63, z, WaterBlock.Index);
                     Cells.SetCellValueFast(x, 64, z, WaterBlock.Index);
@@ -58,7 +58,7 @@ public static class FishingNativeProbe
             Put(Runtime, "m_time", Clock);
             Put(Runtime, "m_random", new FixedRandom());
             object water = Activator.CreateInstance(mod.GetType("SCIEPort.Features.Fishing.FishingWater", true),
-                Members, null, new object[] { Cells }, null);
+                Members, null, new object[] { nativeTerrain }, null);
             Put(Runtime, "m_water", water);
 
             var entity = Bare<Entity>();
@@ -134,7 +134,7 @@ public static class FishingNativeProbe
                 Check((int)UpdateOrder.Input < (int)((IUpdateable)host.Runtime).UpdateOrder
                     && (int)((IUpdateable)host.Runtime).UpdateOrder < (int)UpdateOrder.Default,
                     "input samples run between native input and player");
-                ValidateWater(host);
+                ValidateWater(host, mod);
                 SimulateRoom(host, guest, hostIdentity, mod);
                 TestLocal(host, mod);
             }
@@ -153,23 +153,51 @@ public static class FishingNativeProbe
         Console.WriteLine("Fishing exact-target terrain, packet, native inventory and pickable checks passed (" + s_checks + ").");
     }
 
-    private static void ValidateWater(Fixture host)
+    private static void ValidateWater(Fixture host, Assembly mod)
     {
         object water = Get(host.Runtime, "m_water");
-        Check((bool)Call(water, "ValidateTarget", Eye, Target), "normal lake passes server ray");
-        host.Cells.SetCellValueFast(8, 65, 6, GraniteBlock.Index);
-        Check(!(bool)Call(water, "ValidateTarget", Eye, Target), "wall occludes cast");
-        host.Cells.SetCellValueFast(8, 65, 6, 0);
-        host.Cells.SetCellValueFast(8, 63, 8, 0);
-        Check(!(bool)Call(water, "ValidateTarget", Eye, Target), "one block of water is too shallow");
-        host.Cells.SetCellValueFast(8, 63, 8, WaterBlock.Index);
-        host.Cells.SetCellValueFast(8, 65, 8, GraniteBlock.Index);
-        Check(!(bool)Call(water, "ValidateTarget", Eye, Target), "covered water cannot be used");
-        host.Cells.SetCellValueFast(8, 65, 8, 0);
-        Point3 tiny = new Point3(12, 64, 12);
-        host.Cells.SetCellValueFast(12, 63, 12, WaterBlock.Index);
-        host.Cells.SetCellValueFast(12, 64, 12, WaterBlock.Index);
-        Check(!(bool)Call(water, "ValidateTarget", Eye, tiny), "isolated column is too small");
+        Point3? nearCell, farCell, highCell, sideCell;
+        Vector3 near = Trace(mod, water, Vector3.UnitZ, 0f, out nearCell);
+        Vector3 far = Trace(mod, water, Vector3.UnitZ, 1f, out farCell);
+        Vector3 high = Trace(mod, water, Vector3.Normalize(new Vector3(0, 0.35f, 1f)), 1f, out highCell);
+        Vector3 side = Trace(mod, water, Vector3.Normalize(new Vector3(0.24f, 0, 1f)), 1f, out sideCell);
+        Check(nearCell.HasValue && farCell.HasValue && highCell.HasValue && sideCell.HasValue, "different casts reach real native water");
+        Check(far.Z > near.Z + 4f, "charge determines horizontal reach");
+        Check(high.Z > far.Z + 2f, "elevation changes range");
+        Check(side.X > far.X + 1.5f, "yaw changes lateral landing point");
+        Check(Math.Abs(far.Y - 64.875f) < 0.01f && Math.Abs(far.X - farCell.Value.X - 0.5f) > .1f,
+            "surface height and fractional landing are preserved");
+        Console.WriteLine("Native cast distances from shore: near {0:F2}, full {1:F2}, lofted {2:F2} blocks.",
+            near.Z - Eye.Z, far.Z - Eye.Z, high.Z - Eye.Z);
+
+        for (int y = 64; y <= 68; y++) host.Cells.SetCellValueFast(8, y, 6, GraniteBlock.Index);
+        Point3? blocked;
+        Vector3 stop = Trace(mod, water, Vector3.UnitZ, 1f, out blocked);
+        Check(!blocked.HasValue && stop.Z < 6.05f, "first solid contact stops the flight");
+        for (int y = 64; y <= 68; y++) host.Cells.SetCellValueFast(8, y, 6, 0);
+
+        Point3 cell = nearCell.Value;
+        host.Cells.SetCellValueFast(cell.X, 63, cell.Z, 0);
+        Check(!(bool)Call(water, "IsFishable", cell), "one block of water is too shallow");
+        host.Cells.SetCellValueFast(cell.X, 63, cell.Z, WaterBlock.Index);
+        host.Cells.SetCellValueFast(cell.X, 65, cell.Z, GraniteBlock.Index);
+        Check(!(bool)Call(water, "IsFishable", cell), "covered water cannot be used");
+        host.Cells.SetCellValueFast(cell.X, 65, cell.Z, 0);
+        Point3 tiny = new Point3(0, 64, 4);
+        host.Cells.SetCellValueFast(0, 63, 4, WaterBlock.Index);
+        host.Cells.SetCellValueFast(0, 64, 4, WaterBlock.Index);
+        Check(!(bool)Call(water, "IsFishable", tiny), "isolated column is too small");
+    }
+
+    private static Vector3 Trace(Assembly mod, object water, Vector3 direction, float force, out Point3? cell)
+    {
+        Type type = mod.GetType("SCIEPort.Features.Fishing.FishingCastArc", true);
+        object arc = type.GetMethod("Launch", BindingFlags.NonPublic | BindingFlags.Static)
+            .Invoke(null, new object[] { Eye, direction, force });
+        object[] args = { Eye, arc, null };
+        object traced = Call(water, "Trace", args);
+        cell = (Point3?)args[2];
+        return (Vector3)type.GetProperty("End", Members).GetValue(traced, null);
     }
 
     private static void SimulateRoom(Fixture host, Fixture guest, Client hostIdentity, Assembly mod)
@@ -183,24 +211,57 @@ public static class FishingNativeProbe
             side.Inventory.AddSlotItems(2, fish, 11);
         }
 
+        CommonLib.WorkType = WorkType.Server;
+        host.Advance(48);
+        Deliver(Input(mod, 17, 1), host, host.Peer, true);
+        Deliver(Input(mod, 2, 1), host, host.Peer, true);
+        Check(host.Sessions == 0 && Pending().Count == 0, "a release requires a matching host charge");
+
         CommonLib.WorkType = WorkType.Client;
         guest.Advance(50);
-        var ray = new Ray3(Eye, new Vector3(0, -1.4f, 4f));
-        Check(guest.Runtime.OnUse(ray, guest.Player.ComponentMiner), "native guest OnUse consumes rod tap");
-        IPackage cast = Pending().Single();
-        Check((byte)Get(cast, "Kind") == 2 && guest.Sessions == 0, "guest sends cast, creates no authority session");
+        var ray = new Ray3(Eye, Vector3.UnitZ);
+        Check(guest.Runtime.OnUse(ray, guest.Player.ComponentMiner) && Pending().Count == 0,
+            "tap alone does not cast the rod");
+        guest.Player.ComponentInput.m_playerInput.Aim = ray;
+        guest.Player.ComponentInput.m_playerInput.Dig = ray;
+        guest.Advance(50);
+        IPackage charge = Pending().Single();
+        Check((byte)Get(charge, "Kind") == 16 && guest.Sessions == 0 &&
+            !guest.Player.ComponentInput.m_playerInput.Dig.HasValue, "native hold begins charging and consumes mining");
         Pending().Clear();
+        guest.Advance(50.45);
+        Check(guest.Player.ComponentCreatureModel.AimHandAngleOrder > 1f,
+            "hold visibly pulls the native arm back");
+        guest.Player.ComponentInput.m_playerInput.Aim = null;
+        guest.Advance(50.65);
+        IPackage cast = Pending().Single();
+        Check((byte)Get(cast, "Kind") == 17, "release sends aim direction");
+        Pending().Clear();
+        guest.Advance(50.80);
+        Check(guest.Player.ComponentCreatureModel.AimHandAngleOrder < 0f,
+            "release moves the native arm into follow-through");
 
         CommonLib.WorkType = WorkType.Server;
-        host.Advance(50);
+        host.Advance(50.04);
+        Deliver(charge, host, host.Peer, true);
+        Check(host.Sessions == 0 && Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 19),
+            "host broadcasts wind-up before any projectile exists");
+        host.Advance(50.69);
         Deliver(cast, host, host.Peer, true);
-        Check(host.Sessions == 1 && host.Inventory.GetSlotCount(1) == 2, "host authorizes cast without spending bait");
-        Check(Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 7), "cast is broadcast");
-        host.Advance(62.5);
+        Check(host.Sessions == 1 && host.Inventory.GetSlotCount(1) == 2, "host launches without spending bait");
+        Check(Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 20) &&
+              Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 21),
+            "the host publishes origin, velocity and time of flight");
+        Check(!Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 7),
+            "waiting starts only after water impact");
+        host.Advance(52);
+        Check(Pending().Any(p => p.ID == 236 && (byte)Get(p, "Kind") == 7),
+            "flight into water transitions into waiting");
+        host.Advance(64.5);
         Check(host.Inventory.GetSlotCount(1) == 2, "bait stays during approach");
-        host.Advance(63);
+        host.Advance(65);
         Check(host.Inventory.GetSlotCount(1) == 1, "only bite spends bait");
-        host.Advance(63.04);
+        host.Advance(65.04);
         Check(host.Inventory.GetSlotCount(1) == 1, "bite ticks do not spend more bait");
 
         // The guest fixture bypasses the HUD, while using the actual packet and player-input handlers.
@@ -211,14 +272,14 @@ public static class FishingNativeProbe
         foreach (IPackage packet in phasePackets) Deliver(packet, guest, hostIdentity, false);
         Put(guest.Player.PlayerData, "m_isMainPlayer", true);
         guest.Player.ComponentInput.m_playerInput.Interact = ray;
-        guest.Advance(63.25);
+        guest.Advance(65.25);
         Check(!guest.Player.ComponentInput.m_playerInput.Interact.HasValue, "fishing intercepts tap before native item use");
         IPackage hook = Pending().Single();
         Check((byte)Get(hook, "Kind") == 3, "guest bite tap sends a hook action");
         Pending().Clear();
 
         CommonLib.WorkType = WorkType.Server;
-        host.Advance(63.25);
+        host.Advance(65.25);
         Deliver(hook, host, host.Peer, true);
         IPackage started = Pending().Single(p => p.ID == 236 && (byte)Get(p, "Kind") == 10);
         Check(host.Inventory.GetSlotCount(2) == 11, "hook alone grants no fish");
@@ -230,14 +291,14 @@ public static class FishingNativeProbe
         Put(guest.Player.PlayerData, "m_isMainPlayer", true);
         guest.Player.ComponentInput.m_playerInput.Aim = ray;
         guest.Player.ComponentInput.m_playerInput.Dig = ray;
-        guest.Advance(63.5);
+        guest.Advance(65.5);
         IPackage hold = Pending().Single();
         Check((byte)Get(hold, "Kind") == 4 && !guest.Player.ComponentInput.m_playerInput.Dig.HasValue,
             "native touch hold drives reel and suppresses mining");
         Pending().Clear();
 
         CommonLib.WorkType = WorkType.Server;
-        host.Advance(63.5);
+        host.Advance(65.5);
         Deliver(hold, host, host.Peer, true);
         uint sequence = (uint)Get(cast, "Sequence");
         // Simulate the guest's held keepalive and release at each of the two tension transitions.
@@ -246,7 +307,7 @@ public static class FishingNativeProbe
         double releaseUntil = 0;
         for (int i = 1; i <= 130 && host.Sessions > 0; i++)
         {
-            double now = 63.5 + i * 0.1;
+            double now = 65.5 + i * 0.1;
             host.Advance(now);
             var snapshot = Pending().LastOrDefault(p => p.ID == 236 && (byte)Get(p, "Kind") == 10);
             bool tense = snapshot != null && ((byte)Get(snapshot, "Count") & 128) != 0;
@@ -277,7 +338,9 @@ public static class FishingNativeProbe
 
         CommonLib.WorkType = WorkType.Server;
         host.Advance(100);
-        Deliver(Input(mod, 2, sequence + 1), host, host.Peer, true);
+        Deliver(Input(mod, 16, sequence + 1), host, host.Peer, true);
+        host.Advance(100.45);
+        Deliver(Input(mod, 17, sequence + 1), host, host.Peer, true);
         Check(host.Sessions == 1, "second cast is independent");
         host.Runtime.OnEntityRemoved(host.Player.Entity);
         host.Advance(145);
@@ -290,11 +353,19 @@ public static class FishingNativeProbe
         world.Inventory.RemoveSlotItems(1, 1);
         world.Inventory.RemoveSlotItems(2, 4);
         world.Advance(200);
-        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 2, 1), null);
-        world.Advance(217);
-        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 3, 1, 1), null);
-        world.Advance(221.1);
-        Check(world.Sessions == 0 && world.Inventory.GetSlotCount(2) == 9, "same native loop grants one fish offline");
+        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 16, 1), null);
+        world.Advance(200.1);
+        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 18, 1), null);
+        Check(world.Sessions == 0, "interrupted wind-up leaves no flight");
+        world.Advance(201);
+        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 16, 2), null);
+        world.Advance(201.65);
+        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 17, 2), null);
+        world.Advance(203);
+        world.Advance(220);
+        Call(world.Runtime, "AcceptInput", world.Player, Input(mod, 3, 2, 1), null);
+        world.Advance(224.1);
+        Check(world.Sessions == 0 && world.Inventory.GetSlotCount(2) == 9, "same native release and fishing loop grants one fish offline");
     }
 
     private static IPackage Input(Assembly mod, byte kind, uint sequence, byte count = 0)
@@ -302,7 +373,7 @@ public static class FishingNativeProbe
         var packet = (IPackage)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Fishing.FishingCatchPackage", true));
         Put(packet, "Kind", kind);
         Put(packet, "Caster", (ushort)33);
-        Put(packet, "Cell", Target);
+        Put(packet, "Cell", new Point3(0, 0, 256));
         Put(packet, "Sequence", sequence);
         Put(packet, "Count", count);
         return packet;
