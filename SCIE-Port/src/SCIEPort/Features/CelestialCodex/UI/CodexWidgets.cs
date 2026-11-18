@@ -21,7 +21,61 @@ namespace SCIEPort.Features.CelestialCodex.UI
             // Cap measurement to the actual label box so long headings cannot cover neighboring buttons.
             if (Size.X >= 0) available.X = MathUtils.Min(available.X, Size.X);
             if (Size.Y >= 0) available.Y = MathUtils.Min(available.Y, Size.Y);
-            base.MeasureOverride(available);
+            if (!WordWrap || !Ellipsis)
+            {
+                base.MeasureOverride(available);
+                return;
+            }
+
+            IsDrawRequired = Text.Length > 0 && Color.A != 0;
+            if (!m_linesSize.HasValue || m_linesAvailableWidth != available.X || m_linesAvailableHeight != available.Y)
+                MeasureWrappedCaption(available);
+            Vector2 measured = m_linesSize.Value;
+            DesiredSize = new Vector2(Size.X < 0 ? measured.X : Size.X, Size.Y < 0 ? measured.Y : Size.Y);
+        }
+
+        private void MeasureWrappedCaption(Vector2 available)
+        {
+            // Native wrapped ellipsis can retry the same glyph forever when it fits zero characters.
+            const string ellipsis = "...";
+            m_lines.Clear();
+            float lineHeight = CalculateLineHeight();
+            int lineLimit = available.Y >= lineHeight * MaxLines ? MaxLines : (int)(available.Y / lineHeight);
+            var scale = new Vector2(FontScale);
+            string remaining = Text.TrimEnd();
+            float width = 0;
+            while (m_lines.Count < lineLimit && remaining.Length > 0)
+            {
+                int newline = remaining.IndexOf('\n');
+                int length = newline < 0 ? remaining.Length : newline;
+                int fit = Font.FitText(available.X, remaining, 0, length, FontScale, FontSpacing.X);
+                bool truncated = (m_lines.Count + 1 == lineLimit && fit < remaining.Length) || (fit == 0 && length > 0);
+                if (truncated)
+                {
+                    float ellipsisWidth = Font.MeasureText(ellipsis, scale, FontSpacing).X;
+                    if (ellipsisWidth > available.X) break;
+                    fit = Font.FitText(available.X - ellipsisWidth, remaining, 0, length, FontScale, FontSpacing.X);
+                }
+                else if (fit < length)
+                {
+                    int wordEnd = fit;
+                    while (wordEnd > 0 && !char.IsWhiteSpace(remaining[wordEnd - 1]) && !char.IsPunctuation(remaining[wordEnd - 1]))
+                        wordEnd--;
+                    if (wordEnd > 0) fit = wordEnd;
+                }
+                if (fit > 0 && fit < length && char.IsHighSurrogate(remaining[fit - 1]) && char.IsLowSurrogate(remaining[fit]))
+                    fit--;
+                string line = remaining.Substring(0, fit).TrimEnd();
+                if (truncated) line += ellipsis;
+                m_lines.Add(line);
+                width = MathUtils.Max(width, Font.MeasureText(line, scale, FontSpacing).X);
+                if (truncated || fit == remaining.Length) break;
+                remaining = remaining.Substring(fit == length ? fit + 1 : fit).TrimStart(' ', '\t');
+            }
+            float height = m_lines.Count == 0 ? 0 : Font.GlyphHeight * FontScale * Font.Scale + (m_lines.Count - 1) * lineHeight;
+            m_linesSize = new Vector2(width, height);
+            m_linesAvailableWidth = available.X;
+            m_linesAvailableHeight = available.Y;
         }
     }
 

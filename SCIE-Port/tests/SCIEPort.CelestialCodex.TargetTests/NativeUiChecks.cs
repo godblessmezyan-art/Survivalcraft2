@@ -6,6 +6,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.Serialization;
 using SCIEPort.Features.CelestialCodex.Mod;
 using Engine;
 using Engine.Graphics;
@@ -72,12 +73,79 @@ internal static class NativeUiChecks
         if (name == "ShowSettings") Set(dialog, "view", Enum.Parse(mod.GetType("SCIEPort.Features.CelestialCodex.UI.CodexDialog+View"), "Catalog"));
         Call(dialog, name);
     }
+    static void CheckReturnToCatalog(Vector2 size, Action<bool, string> check)
+    {
+        var dialog = Fixture();
+        var gui = new CanvasWidget();
+        Widget.LayoutWidgetsHierarchy(gui, size);
+        var game = (GameWidget)FormatterServices.GetUninitializedObject(typeof(GameWidget));
+        game.GuiWidget = gui;
+        var player = (ComponentPlayer)FormatterServices.GetUninitializedObject(typeof(ComponentPlayer));
+        player.PlayerData = (PlayerData)FormatterServices.GetUninitializedObject(typeof(PlayerData));
+        player.PlayerData.GameWidget = game;
+        dialog.GetType().GetProperty("Player", F).SetValue(dialog, player, null);
+
+        try
+        {
+            object catalog = Field(dialog, "catalog");
+            object book = Field(dialog, "book");
+            Set(book, "Title", "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW 山海之间的超长书名");
+            Set(catalog, "Page", 2);
+            Set(dialog, "page", 2);
+            Set(dialog, "local", true);
+            Set(dialog, "theme", 1);
+            var back = (ButtonWidget)Field(dialog, "back");
+            var click = (ClickableWidget)Field(back, "click");
+            var area = (ScrollPanelWidget)Field(dialog, "scroll");
+            for (int i = 0; i < 2; i++)
+            {
+                Call(dialog, "ShowChapters");
+                Layout(dialog, size);
+                click.IsClicked = true;
+                dialog.Update();
+                click.IsClicked = false;
+                // The game measures and draws straight after Update, with no second reader update.
+                if (i == 0) Console.WriteLine("Measuring first catalog frame after Back at " + size);
+                Widget.LayoutWidgetsHierarchy(dialog, size);
+                var rows = (IList)Field(dialog, "rows");
+                var ids = (IList)Field(dialog, "rowIds");
+                var bookRow = (CanvasWidget)rows[ids.IndexOf("test")];
+                var caption = (LabelWidget)Field(bookRow, "Caption");
+                check(!back.IsVisible && (int)Field(dialog, "page") == 2 && !((bool)Field(dialog, "busy")),
+                    "Back displays the same catalog page and clears loading on its first frame");
+                check(ids.Contains("@import") && ids.Contains("@resume") && rows.Count == 6,
+                    "Back retains the local book list and its import and resume entries");
+                check(Math.Abs(bookRow.ActualSize.X - area.ActualSize.X) < 1 && caption.m_lines.Count <= 2,
+                    "Rebuilt catalog rows receive their final layout before the first native measure");
+            }
+        }
+        finally { dialog.Dispose(); }
+    }
+    static void CheckNarrowCaption(Type literal, PropertyInfo text, Action<bool, string> check)
+    {
+        var label = (LabelWidget)Activator.CreateInstance(literal, true);
+        label.WordWrap = true;
+        label.Ellipsis = true;
+        label.MaxLines = 2;
+        const string title = "山海之间的漫游者 WWWWW";
+        text.SetValue(label, title, null);
+        foreach (float width in new[] { 0f, 1f, 26f, 120f, 500f })
+        {
+            label.MeasureOverride(new Vector2(width, 80));
+            check(label.Text == title && label.m_lines.Count <= 2, "Caption reflow is bounded and preserves the source title");
+            check(label.m_linesSize.Value.X <= width + .1f, "Caption fits even when there is no room for an ellipsis");
+        }
+        check(label.m_lines.SequenceEqual(new[] { title }), "Caption at full width shows the entire book title");
+    }
     internal static void Run(Assembly assembly, ZipArchive zip, Action<bool, string> check)
     {
         mod = assembly; CacheFont(Metrics(zip));
         using (Stream language = zip.GetEntry("Assets/Lang/zh-CN.json").Open()) LanguageControl.loadJson(language);
         Type literal = mod.GetType("SCIEPort.Features.CelestialCodex.UI.CodexLabel"); var label = (LabelWidget)Activator.CreateInstance(literal, true);
         PropertyInfo text = literal.GetProperty("Text", F | BindingFlags.DeclaredOnly);
+        foreach (Vector2 size in new[] { new Vector2(320, 240), new Vector2(375, 812), new Vector2(812, 375) })
+            CheckReturnToCatalog(size, check);
+        CheckNarrowCaption(literal, text, check);
         foreach (string value in new[] { "1", "2", "on", "[Usual:1]", "皮肤颜色", "中文书名\n\n正文😀" })
         { label.m_linesSize = new Vector2(1, 1); text.SetValue(label, value, null); check(label.Text == value && label.m_linesSize == null, "literal text survives native localization and invalidates measurement"); }
         var native = new LabelWidget { Text = "on" }; text.SetValue(label, "on", null);

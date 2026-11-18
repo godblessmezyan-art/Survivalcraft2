@@ -279,9 +279,16 @@ namespace SCIEPort.Features.CelestialCodex.UI
         {
             if (Player == null || Player.GameWidget == null || Player.GameWidget.GuiWidget == null) { Close(); return; }
             ReaderResult result = session.Take(); if (result != null) Apply(result);
-            Chrome(); Layout(Player.GameWidget.GuiWidget.ActualSize);
             RestoreAfterLayout();
             if (view == View.Reading && Time.RealTime - lastSave > 5) SavePosition();
+            HandleInput();
+            // Navigation can replace the rows. Size them before the engine measures this frame.
+            if (Closed) return;
+            Chrome();
+            Layout(Player.GameWidget.GuiWidget.ActualSize);
+        }
+        private void HandleInput()
+        {
             if (close.IsClicked) { Close(); return; }
             if (back.IsClicked || Input.Back || Input.Cancel) { Input.Clear(); GoBack(); return; }
             if (busy) return;

@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-18 · 0.92.1 云天书典返回书库
+
+- 用固定 Windows SCNET Net_x25.01.17 的原生控件复现。0.92.0 在点击返回后的第一帧以临时宽度测量新建书目。原生 `LabelWidget.UpdateLines` 的省略分支在字体量得 0 个可放入字符时反复处理同一段文本。旧 DLL 在 320×240 复现，夹具等待 8 秒后终止进程。
+- 修复版在同一帧完成新书目布局，根据实际宽高测量最多两行标题。原生回归覆盖 320×240、375×812、812×375 下重复返回到原书库分页，保留导入和续读入口，并覆盖 0、1、26 逻辑单位等窄宽度上的标题测量。测试只使用合成书目，无需联网或读取玩家存档。
+- 从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/codex-back-0.92.1`。环境检查、Release 构建（0 警告、0 错误）、完整回归和统一包校验通过。书典 623 项核心检查、35,748 项固定目标检查通过。对最终 DLL 执行 `Test-CelestialCodexAndroidBcl.ps1`，固定 Android 快照解析 533 个外部成员，0 缺失。日志在同一输出目录的 `full-build.log` 与 `android-final.log`。
+- 正式包和版本副本字节一致，共 215 个条目、12,952,290 字节。相对 0.92.0 仅 `SCIEPort.dll` 与 `modinfo.json` 有字节差异。SHA-256 为 `F18C6988B9F0B3A7352C16027B0E3C37E40DF5B0A3BBD2A6C9ED8287DC29577B`。
+- Android 7723 实机、用户报告的闪退及真实联机 **待验证**。手机复测路径为打开书典，点击书籍进入目录，再点返回，确认书目可见且可继续操作。联机各端使用同一版本。
+
 ## 2026-11-18 · 0.92.0 蓄力抛竿
 
 - 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、全量回归和统一包校验 **已确认**。仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.92.0`，退出 0。日志为输出目录中的 `build-final.log`。
