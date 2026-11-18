@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using SCIEPort.Features.Apple;
+using SCIEPort.Features.KellyPlants;
 
 namespace SCIEPort.Apple.Tests
 {
@@ -23,6 +25,8 @@ namespace SCIEPort.Apple.Tests
                 TestApplePlacementRule();
                 TestHarvestYields();
                 TestAuthorityGate();
+                TreeAndFruit();
+                Transactions();
                 Console.WriteLine("Apple plant rule tests passed: " + s_assertions);
                 return 0;
             }
@@ -150,6 +154,85 @@ namespace SCIEPort.Apple.Tests
         {
             Assert(AppleRules.CanAuthoritativeWorldMutation(false), "The authoritative side may advance apple growth and fruiting.");
             Assert(!AppleRules.CanAuthoritativeWorldMutation(true), "An ordinary client must never advance apple growth or fruiting.");
+        }
+
+        private static void TreeAndFruit()
+        {
+            var seen=new HashSet<string>();
+            foreach(int[] p in AppleTreeRules.Parts())
+            {
+                Assert(seen.Add(p[0]+","+p[1]+","+p[2]),"No overlapping tree parts");
+                int data=AppleTreeRules.Encode(p[3],p[0],p[1],p[2]);
+                Assert(AppleTreeRules.Part(data)==p[3]&&AppleTreeRules.OffsetX(data)==p[0]&&AppleTreeRules.OffsetY(data)==p[1]&&AppleTreeRules.OffsetZ(data)==p[2],"Owned part data round trip");
+                Assert(data<8192,"Structural bits do not overlap harvest state");
+                int next=AppleTreeRules.NextFruit(data,1,true,true);
+                Assert((next&~15)==(data&~15),"Season does not damage ownership");
+            }
+            Assert(seen.Count==20&&seen.Count+2<=AppleTreeRules.MaxChanges,"Tree and soil fit the bounded transaction");
+            Assert(AppleTreeRules.InBounds(0,1,0)&&AppleTreeRules.InBounds(0,254,0),"Valid world height extremes");
+            Assert(!AppleTreeRules.InBounds(0,0,0)&&!AppleTreeRules.InBounds(0,255,0)&&!AppleTreeRules.InBounds(int.MaxValue,64,0)&&!AppleTreeRules.InBounds(int.MinValue,64,0),"Height and overflow bounds");
+            Assert(!AppleTreeRules.CanFitTree(int.MaxValue-1,64,0)&&!AppleTreeRules.CanFitTree(int.MinValue+1,64,0)&&!AppleTreeRules.CanFitTree(0,251,0)&&AppleTreeRules.CanFitTree(0,250,0),"Entire crown and light sample fit the world without overflow");
+            Assert(!AppleTreeRules.CanGrow(15,2,false)&&!AppleTreeRules.CanGrow(9,10,false)&&!AppleTreeRules.CanGrow(15,10,true),"Frost, shade, and winter stop tree growth");
+            int leaf=AppleTreeRules.Encode(AppleTreeRules.Leaf,1,3,-1);
+            int blossom=AppleTreeRules.NextFruit(leaf,1,true,false);
+            Assert(AppleRules.GetSize(blossom)==1&&!AppleRules.GetFruiting(blossom),"Spring flowers");
+            int fruit=blossom;
+            for(int i=0;i<8;i++) fruit=AppleTreeRules.NextFruit(fruit,2,true,true);
+            Assert(AppleRules.GetSize(fruit)==6&&!AppleRules.GetFruiting(fruit),"Summer fruit stays green");
+            fruit=AppleTreeRules.NextFruit(fruit,3,true,true);
+            Assert(AppleRules.GetFruiting(fruit),"Autumn ripens fruit");
+            int harvested=(fruit&~15)|AppleTreeRules.Harvested;
+            for(int i=0;i<40;i++) harvested=AppleTreeRules.NextFruit(harvested,3,true,true);
+            Assert(!AppleRules.GetFruiting(harvested),"Repeated harvest cannot regenerate fruit in the same autumn");
+            Assert((AppleTreeRules.NextFruit(harvested,0,false,false)&AppleTreeRules.Harvested)!=0,"Winter preserves the harvest lock even in darkness");
+            Assert((AppleTreeRules.NextFruit(harvested,1,true,false)&AppleTreeRules.Harvested)==0,"Following spring clears the lock");
+            Assert(AppleTreeRules.NextFruit(fruit,3,false,true)==fruit,"Cold or shade does not advance fruit");
+            for(int i=0;i<7;i++) harvested=AppleTreeRules.NextFruit(harvested,-1,true,true);
+            Assert(AppleRules.GetFruiting(harvested),"Worlds without seasons retain a regrowth cycle");
+            int berry=0;
+            for(int i=0;i<3;i++) berry=KellyPlantRules.NextBerry(berry,false,true,true,true);
+            Assert((berry&1)==0,"Wildberries need several growth steps");
+            berry=KellyPlantRules.NextBerry(berry,false,true,true,true);
+            Assert((berry&1)!=0,"Wildberries ripen after the cooldown");
+            Assert((KellyPlantRules.NextBerry(berry,false,false,false,false)&1)==0,"Out-of-season fruit resets without light");
+            int cloud=1;
+            for(int i=0;i<3;i++) cloud=KellyPlantRules.NextBerry(cloud,true,true,true,true);
+            Assert(cloud==0,"Cloudberries progress bare, flower, green, ripe");
+            Assert(KellyPlantRules.NextBerry(0,true,false,true,true)==1,"Winter removes legacy cloudberry fruit");
+        }
+        private static void Transactions()
+        {
+            const int n=22;
+            int[] before=new int[n],after=new int[n];
+            for(int i=0;i<n;i++){before[i]=i;after[i]=100+i;}
+            for(int failure=0;failure<n;failure++)
+            {
+                int fail=failure,writes=0;bool thrown=false,undoFailed;Exception error;
+                int[] cells=(int[])before.Clone();
+                bool ok=AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>
+                {
+                    writes++;cells[i]=v;
+                    if(i==fail&&!thrown){thrown=true;throw new Exception("Injected write failure after mutation");}
+                },out undoFailed,out error);
+                Assert(!ok&&!undoFailed&&error!=null,"Every partial failure rolls back");
+                Assert(writes<=2*n,"Undo stays inside its reserved frame budget");
+                for(int i=0;i<n;i++) Assert(cells[i]==before[i],"Pre-write snapshots restore every cell");
+            }
+            {
+                bool undo;Exception error;int writes=0;int[] cells=(int[])before.Clone();cells[n-1]=999;
+                Assert(!AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>{writes++;cells[i]=v;},out undo,out error)&&writes==0,"Cancellation or root replacement before commit writes nothing");
+                cells=(int[])before.Clone();
+                Assert(!AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>{if(i==2) return;cells[i]=v;},out undo,out error)&&!undo,"Native protection rejection undoes earlier cells");
+                for(int i=0;i<n;i++) Assert(cells[i]==before[i],"Protection rejection is atomic");
+                cells=(int[])before.Clone();
+                Assert(!AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>{cells[i]=v;if(i==2){cells[0]=999;throw new Exception();}},out undo,out error)&&undo&&cells[0]==999,"Foreign changes are preserved and stop future growth");
+                cells=(int[])before.Clone();bool injected=false;
+                Assert(!AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>{if(injected&&v==before[i]) return;cells[i]=v;if(i==2){injected=true;throw new Exception();}},out undo,out error)&&undo,"Failed undo is reported");
+                Assert(!AppleTreeTransaction.Apply(new int[25],new int[25],i=>0,(i,v)=>{throw new Exception();},out undo,out error),"Oversized plans rejected before writing");
+                cells=(int[])before.Clone();
+                Assert(AppleTreeTransaction.Apply(before,after,i=>cells[i],(i,v)=>cells[i]=v,out undo,out error),"Complete plan succeeds");
+                for(int i=0;i<n;i++) Assert(cells[i]==after[i],"All committed values match");
+            }
         }
 
         private static void Assert(bool condition, string message)

@@ -20,6 +20,10 @@ $package = Join-Path $artifacts '荒野探险家.netmod'
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
 & python (Join-Path $PSScriptRoot 'Test-WildlifeAssets.py')
 if ($LASTEXITCODE -ne 0) { throw 'Wildlife geometry validation failed.' }
+& python (Join-Path $PSScriptRoot 'Test-CodexPicker.py')
+if ($LASTEXITCODE -ne 0) { throw 'Original Android document picker source/DEX checks failed.' }
+& python (Join-Path $PSScriptRoot 'Test-CodexPaper.py')
+if ($LASTEXITCODE -ne 0) { throw 'Codex paper UI artwork/budget checks failed.' }
 & python (Join-Path $PSScriptRoot 'Test-HomeGeometry.py')
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.' }
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Home.Tests') -c Release --nologo
@@ -29,7 +33,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests fai
 & (Join-Path $PSScriptRoot 'Test-Architecture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
-if ($LASTEXITCODE -ne 0) { throw 'Fishing rules timing/reward/rate-limit tests failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Fishing authority-cycle timing and reward tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
@@ -104,7 +108,7 @@ foreach ($rule in @('StickBlock', 'StringBlock', 'GetCraftingId', 'GetProcedural
     if (-not $fishingRodSource.Contains($rule)) { throw "Fishing recipe rule missing: $rule" }
 }
 $fishingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Fishing\SubsystemFishing.cs')
-foreach ($rule in @('Authority', 'Reachable', 'ValidWater', 'TryReel', 'NewerSequence', 'MaxCatchDistance', 'FindAcquireSlotForItem', 'RawFishBlock.Index', 'AddSlotItems')) {
+foreach ($rule in @('Authority', 'ValidSession', 'AcceptCastInput', 'RawFishBlock.Index', 'AcquireItems', 'm_sessions.Remove')) {
     if (-not $fishingSource.Contains($rule)) { throw "Fishing host-authority rule missing: $rule" }
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
@@ -367,6 +371,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Plants.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Plant target-native geometry, growth, authority and harvest checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Artifact Codex native permissions/storage checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
@@ -1324,6 +1330,10 @@ try {
     if ($null -eq $appleBehaviorClass -or $appleBehaviorClass.Value -ne 'SCIEPort.Features.Apple.SubsystemAppleBlockBehavior') {
         throw 'SCIEPortAppleBehavior must bind the apple pollable subsystem class.'
     }
+    $appleTerrainDependency = $appleBehavior.SelectSingleNode("./Parameter[@Name='Dependencies']")
+    if ($null -eq $appleTerrainDependency -or $appleTerrainDependency.Value -ne 'Terrain') {
+        throw 'Apple ecology must register after the native terrain generator is loaded.'
+    }
     $appleBehaviorMember = $appleDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortAppleBehavior']")
     if ($null -eq $appleBehaviorMember -or $appleBehaviorMember.InheritanceParent -ne $appleBehavior.Guid) {
         throw 'Apple growth behavior is missing or not attached to Project.'
@@ -1339,10 +1349,10 @@ try {
         throw 'ApplePlantBlock must be a placeable Crops item drawn on atlas slot 0.'
     }
     $appleFruitNutrition = 0.0
-    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'TRUE' -or
-        $appleFruitRow[0].DefaultTextureSlot -ne '9' -or
+    if ($appleFruitRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $appleFruitRow[0].IsPlaceable -ne 'FALSE' -or $appleFruitRow[0].IsTransparent -ne 'TRUE' -or
+        $appleFruitRow[0].DefaultTextureSlot -ne '9' -or $appleFruitRow[0].FirstPersonScale -ne '0.3' -or $appleFruitRow[0].InHandScale -ne '0.3' -or
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
-        throw 'AppleBlock must be a placeable Food item drawn on atlas slot 9 with a positive nutritional value.'
+        throw 'AppleBlock must be an unplaceable Food item with transparent legacy terrain faces, slot 9 and positive nutrition.'
     }
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")

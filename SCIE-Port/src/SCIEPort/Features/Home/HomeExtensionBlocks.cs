@@ -11,7 +11,21 @@ namespace SCIEPort.Features.Home
         /// <summary>Content index.</summary>
         public const int Index = HomeRules.Fireplace;
         /// <inheritdoc/>
-        public override float GetHeat(int value) => HomeRules.IsOpen(Terrain.ExtractData(value)) ? .35f : 0f;
+        protected override void PrepareSection(int data, int sectionIndex, BlockMesh section)
+        {
+            // The fixed Engine importer replaces every mesh name with the root node
+            // name. Use its tested order in the hash-pinned HomeFireplaceOn asset:
+            // 19 ember, 20/21 .. 32/33 outer flame/core; 34/35 controls stay unchanged.
+            if (!HomeRules.IsOpen(data) || sectionIndex < 19 || sectionIndex > 33) return;
+            bool core = sectionIndex >= 21 && (sectionIndex & 1) != 0;
+            // Sample the neutral Glacier tile instead of multiplying red by cyan.
+            // Keep the housing, hearth and all other furniture materials untouched.
+            section.TransformTextureCoordinates(Matrix.CreateScale(0f, 0f, 1f) * Matrix.CreateTranslation(.125f, .875f, 0f));
+            section.SetColor(core ? new Color(255, 150, 30) : new Color(255, 55, 12));
+            for (int i = 0; i < section.Vertices.Count; i++) section.Vertices.Array[i].IsEmissive = true;
+        }
+        /// <inheritdoc/>
+        public override float GetHeat(int value) => HomeRules.IsOpen(Terrain.ExtractData(value)) ? 1f : 0f;
         /// <inheritdoc/>
         public override int GetEmittedLightAmount(int value) => HomeRules.IsOpen(Terrain.ExtractData(value)) ? 8 : 0;
     }
@@ -41,7 +55,7 @@ namespace SCIEPort.Features.Home
         {
             if (BlockIndex == HomeRules.BookcasePart) return BookshelfGeometry.CaseBoxes();
             int data = Terrain.ExtractData(value), part = (data >> 2) & 3;
-            if (part == 0 || data != ((part << 2) | (data & 3))) return new BoundingBox[0];
+            if (part == 0 || data != ((part << 2) | (data & 3))) return Compatibility.BlockRaycastSafety.NonSolid;
             return HomeExtensionGeometry.Boxes(HomeRules.PartRootId(BlockIndex), data & 3, part);
         }
         /// <inheritdoc/>

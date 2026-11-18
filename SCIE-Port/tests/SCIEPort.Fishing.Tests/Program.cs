@@ -3,116 +3,98 @@ using SCIEPort.Features.Fishing;
 
 internal static class Program
 {
-    private static int s_failures;
     private static int s_checks;
 
     private static void Check(bool condition, string name)
     {
         s_checks++;
-        if (condition) return;
-        s_failures++;
-        Console.WriteLine("FAIL " + name);
+        if (!condition) throw new InvalidOperationException(name);
     }
+
+    private static bool InRange(float value, float min, float max) => value >= min && value <= max;
 
     private static int Main()
     {
-        var random = new Random(20261114);
+        var random = new Random(20261118);
         for (int i = 0; i < 500; i++)
         {
-            float wait = FishingRules.WaitDuration((float)random.NextDouble());
-            Check(wait >= FishingRules.MinWaitDuration && wait <= FishingRules.MaxWaitDuration, "wait duration range");
+            Check(InRange(FishingRules.WaitDuration(random, false), 12f, 22f), "unbaited wait");
+            Check(InRange(FishingRules.WaitDuration(random, true), 9f, 17f), "baited wait");
+            Check(InRange(FishingRules.ReelDuration(random, false), 3f, 5f), "ordinary fight");
+            Check(InRange(FishingRules.ReelDuration(random, true), 6f, 8f), "large fight");
+            Check(!FishingRules.IsLarge(random, false), "unbaited only catches ordinary fish");
         }
 
-        Check(FishingRules.Reel(1.99f, 2f, 0.9f) == FishingRules.ReelResult.Early, "reel before bite");
-        Check(FishingRules.WaitDuration(-1f)==2f && FishingRules.WaitDuration(2f)==5f, "wait input clamped");
-        Check(FishingRules.WaitDuration(float.NaN)==2f, "invalid wait input safe");
-        Check(FishingRules.Reel(2f, 2f, 0.9f) == FishingRules.ReelResult.Success, "reel at bite start");
-        Check(FishingRules.Reel(2.9f, 2f, 0.9f) == FishingRules.ReelResult.Success, "reel at window end");
-        Check(FishingRules.Reel(2.91f, 2f, 0.9f) == FishingRules.ReelResult.Late, "reel after window");
+        var local = new FishingCycle(10, 12, 4, false, false);
+        Check(!local.Hook(10, true), "cannot hook right after cast");
+        local.Advance(21.5);
+        Check(local.Phase == FishingPhase.Approach && !local.Hook(22, true), "approach is not a bite");
+        local.Advance(22);
+        Check(local.Phase == FishingPhase.Bite && local.Hook(25, true), "local last instant of bite");
+        Check(!local.Hook(25.5, true), "duplicate hook cannot restart a fight");
+        local.SetHeld(26, false);
+        local.Advance(28);
+        Check(local.Progress == 0.25f, "release pauses progress");
+        local.SetHeld(28, true);
+        local.Advance(31);
+        Check(local.Phase == FishingPhase.Landed && local.Reward == 1, "ordinary catch closes once");
+        local.SetHeld(32, true);
+        Check(!local.Hook(33, true) && local.Phase == FishingPhase.Landed, "terminal catch cannot reopen");
 
-        Check(FishingRules.RewardCount(0) == 1, "reward roll 0");
-        Check(FishingRules.RewardCount(69) == 1, "reward roll 69");
-        Check(FishingRules.RewardCount(70) == 2, "reward roll 70");
-        Check(FishingRules.RewardCount(94) == 2, "reward roll 94");
-        Check(FishingRules.RewardCount(95) == 3, "reward roll 95");
-        Check(FishingRules.RewardCount(99) == 3, "reward roll 99");
+        var missed = new FishingCycle(0, 12, 4, false, false);
+        missed.Advance(12);
+        Check(!missed.Hook(15.01, true), "late input cannot resurrect the bite");
+        missed.Advance(15.01);
+        Check(missed.Phase == FishingPhase.Escaped, "inactive bite escapes");
 
-        Check(!FishingRules.IsWaterDepthValid(0), "dry cell");
-        Check(FishingRules.IsWaterDepthValid(1), "one-cell-deep water is fishable");
-        Check(FishingRules.IsWaterDepthValid(2), "surface water");
-        Check(FishingRules.IsWaterDepthValid(8), "deep water");
+        var remote = new FishingCycle(0, 12, 4, false, true);
+        remote.Advance(12);
+        Check(remote.Hook(15.5, true), "bounded relay allowance");
+        for (int i = 0; i < 100; i++) remote.SetHeld(15.5, true);
+        Check(remote.Progress == 0f, "network repeats do not advance same-time progress");
+        remote.Advance(17);
+        Check(Math.Abs(remote.Progress - FishingRules.HeldLease / 4f) < 0.001f, "remote lease stops on loss of input");
+        remote.Advance(32);
+        Check(remote.Phase == FishingPhase.Escaped, "remote pause expires");
 
-        Check(!FishingRules.ShouldEndSession(20f), "session at limit");
-        Check(FishingRules.ShouldEndSession(20.01f), "session beyond limit");
+        var independent = new FishingCycle(0, 12, 3, false, true);
+        independent.Advance(12);
+        Check(independent.Hook(12.25, false), "remote touch tap sets the hook without pulling");
+        independent.Advance(12.5);
+        Check(independent.Progress == 0f, "remote touch hold is a separate signal");
+        for (int i = 0; i <= 17; i++) independent.SetHeld(12.5 + i * 0.2, true);
+        Check(independent.Phase == FishingPhase.Landed && remote.Phase == FishingPhase.Escaped, "independent remote sessions");
 
-        var limiter = new FishingRateLimiter();
-        Check(limiter.TryAccept(100d), "first catch");
-        Check(!limiter.TryAccept(100.5d), "spam rejected");
-        Check(limiter.TryAccept(100.81d), "cooldown elapsed");
-        for (int i = 0; i < 28; i++) limiter.TryAccept(102d + i * 1d);
-        Check(!limiter.TryAccept(140d), "minute cap reached");
-        Check(limiter.TryAccept(161d), "minute window reset");
+        var trophy = new FishingCycle(0, 12, 6, true, false);
+        trophy.Advance(12);
+        Check(trophy.Hook(12, true), "large fish hooks");
+        trophy.Advance(14);
+        Check(trophy.Tense, "first large fish surge");
+        trophy.SetHeld(14.1, false);
+        trophy.Advance(14.7);
+        Check(!trophy.Tense, "slack clears first surge");
+        trophy.SetHeld(14.7, true);
+        trophy.Advance(16.7);
+        Check(trophy.Tense, "second large fish surge");
+        trophy.SetHeld(16.8, false);
+        trophy.Advance(17.4);
+        Check(!trophy.Tense, "slack clears second surge");
+        trophy.SetHeld(17.4, true);
+        trophy.Advance(19.6);
+        Check(trophy.Phase == FishingPhase.Landed && trophy.Reward == 2, "large fish lands with two portions");
 
-        limiter.Reset();
-        Check(limiter.TryAccept(0d), "reset allows catch");
+        var snapped = new FishingCycle(0, 12, 6, true, false);
+        snapped.Advance(12);
+        Check(snapped.Hook(12, true), "hook for strain test");
+        snapped.Advance(14);
+        snapped.Advance(15.81);
+        Check(snapped.Phase == FishingPhase.Escaped, "holding through a surge loses the fish");
 
-        Check(!limiter.TryAccept(double.NaN), "invalid limiter clock rejected");
-        Check(FishingRules.NewerSequence(8, 7), "new cast accepted");
-        Check(!FishingRules.NewerSequence(7, 7), "replayed cast rejected");
-        Check(!FishingRules.NewerSequence(6, 7), "older cast rejected");
-        Check(FishingRules.NewerSequence(1, uint.MaxValue), "sequence wraps safely");
-        Check(!FishingRules.NewerSequence(0, uint.MaxValue), "zero reserved");
-        var round = new FishingRound(7, 100, 2);
-        Check(!round.TryReel(6, 102, 0), "wrong round rejected");
-        Check(!round.Consumed, "wrong sequence cannot consume current round");
-        Check(round.TryReel(7, 102, 0), "host round succeeds at bite");
-        Check(!round.TryReel(7, 102.1, 0), "host round grants once");
-        round = new FishingRound(8, 100, 2);
-        Check(!round.TryReel(8, 101.99, 1), "host rejects early reel even with grace");
-        Check(!round.TryReel(8, 102.2, 1), "failed reel also consumed");
-        round = new FishingRound(9, 100, 2);
-        Check(round.TryReel(9, 104, 1), "bounded network lateness accepted");
-        Check(new FishingRound(10, 100, 2).Expired(104.36, 1), "network grace has a limit");
-        Check(!new FishingRound(10, 100, 2).TryReel(10, 105, 1), "very late host reel fails");
-        Check(!new FishingRound(11, 100, 2).TryReel(11, double.NaN, 0), "invalid reel clock rejected");
-        CastTests(random);
-        Console.WriteLine("Fishing checks=" + s_checks + ", failures=" + s_failures);
-        return s_failures == 0 ? 0 : 1;
-    }
-
-    private static void CastTests(Random random)
-    {
-        FishingLanding hit;
-        Func<int,int,int,FishingCell> lake = (x,y,z) => y < 10 ? new FishingCell(2) : y == 10 ? new FishingCell(1,.875f) : new FishingCell(0);
-        Check(FishingCastResolver.Resolve(new FishingPoint(.5f,12,.5f),new FishingPoint(0,-1,0),lake,out hit)==FishingCastFailure.None, "shallow lake casts");
-        Check(Math.Abs(hit.Position.Y-10.875f)<.00001f, "actual fluid height used");
-        Check(FishingCastResolver.Resolve(new FishingPoint(.5f,12,.5f),new FishingPoint(0,0,1),lake,out hit)==FishingCastFailure.None, "level touch aim assisted downward");
-        Check(hit.Position.Z>.5f && hit.Position.Z<12.5f, "assisted landing stays ahead within range");
-        float assistedZ=hit.Position.Z;
-        Check(FishingCastResolver.Resolve(new FishingPoint(.5f,12,.5f),new FishingPoint(0,0,100),lake,out hit)==FishingCastFailure.None && Math.Abs(hit.Position.Z-assistedZ)<.00001f, "non-unit touch ray keeps the same assistance");
-        Check(FishingCastResolver.Trace(new FishingPoint(0,12,0),new FishingPoint(-1,-1,-1),12,lake,out hit)==FishingCastFailure.None, "negative ray on exact voxel corner");
-        Func<int,int,int,FishingCell> wall = (x,y,z) => z==2 ? new FishingCell(2) : lake(x,y,z);
-        Check(FishingCastResolver.Resolve(new FishingPoint(.5f,12,.5f),new FishingPoint(0,0,1),wall,out hit)==FishingCastFailure.Blocked, "assistance never bypasses first wall");
-        Check(FishingCastResolver.Trace(new FishingPoint(.5f,10.5f,.5f),new FishingPoint(0,-1,0),12,lake,out hit)==FishingCastFailure.Blocked, "submerged origin rejected");
-        Check(FishingCastResolver.Resolve(new FishingPoint(.5f,12,.5f),new FishingPoint(0,1,0),lake,out hit)==FishingCastFailure.NoWater, "sky aim not redirected into lake");
-        Check(FishingCastResolver.Trace(new FishingPoint(.5f,25,.5f),new FishingPoint(0,-1,0),12,lake,out hit)==FishingCastFailure.NoWater, "distant water rejected");
-        Check(FishingCastResolver.Resolve(new FishingPoint(float.NaN,12,0),new FishingPoint(0,-1,0),lake,out hit)==FishingCastFailure.Invalid, "invalid origin rejected");
-        Check(FishingCastResolver.Resolve(new FishingPoint(0,12,0),new FishingPoint(),lake,out hit)==FishingCastFailure.Invalid, "zero ray rejected");
-        Check(FishingCastResolver.Resolve(new FishingPoint(0,12,0),new FishingPoint(0,-1,0),(x,y,z)=>new FishingCell(3),out hit)==FishingCastFailure.Unavailable, "unloaded terrain distinct from no water");
-        int reads=0;
-        FishingCastResolver.Resolve(new FishingPoint(-.2f,12,-.2f),new FishingPoint(.2f,0,1),(x,y,z)=>{reads++;return new FishingCell(0);},out hit);
-        Check(reads<=FishingCastResolver.MaxVisitedCells*3, "all aim attempts bounded");
-        // Analytic flat surfaces, including negative coordinates, thin water and exact grid seams.
-        for(int i=0;i<1000;i++)
-        {
-            float height=.125f+(i%7)*.125f;
-            float ox=(float)random.NextDouble()*20-10, oz=(float)random.NextDouble()*20-10;
-            float dx=(float)random.NextDouble()-.5f, dz=(float)random.NextDouble()-.5f;
-            var result=FishingCastResolver.Trace(new FishingPoint(ox,12,oz),new FishingPoint(dx,-1,dz),12,
-                (x,y,z)=>y==10?new FishingCell(1,height):y<10?new FishingCell(2):new FishingCell(0),out hit);
-            Check(result==FishingCastFailure.None,"analytic lake hit "+i);
-            Check(Math.Abs(hit.Position.Y-(10+height))<.00001,"thin/deep height "+i);
-            Check(Math.Abs(hit.Position.X-(ox+dx*(2-height)))<.0001 && Math.Abs(hit.Position.Z-(oz+dz*(2-height)))<.0001,"surface intersection coordinates "+i);
-        }
+        var slow = new FishingCycle(0, 12, 4, false, true);
+        slow.Advance(13);
+        Check(slow.Hook(16.5, false), "server hitch leaves a full displayed bite window");
+        Check(FishingRules.PackReward(2, 1) == 0x12, "reward reports one stored and one dropped");
+        Console.WriteLine($"Fishing timing, holding, reward and authority-cycle checks passed ({s_checks}).");
+        return 0;
     }
 }

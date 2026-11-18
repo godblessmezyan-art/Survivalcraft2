@@ -37,7 +37,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
         private readonly PositionWriter localPositions;
         private volatile bool offline;
         private bool local;
-        internal ReaderSession()
+        private static string DirectoryRoot()
         {
             // Read runtime metadata, avoiding inlining a Windows const into an Android assembly.
             FieldInfo field = typeof(ModsManager).GetField("UserDataPath", BindingFlags.Public | BindingFlags.Static);
@@ -45,7 +45,13 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             if (string.IsNullOrEmpty(data)) throw new InvalidDataException("UserDataPath");
             string parent = Storage.GetDirectoryName(data);
             if (string.IsNullOrEmpty(parent)) throw new InvalidDataException("UserDataPath parent");
-            root = Storage.CombinePaths(parent, "CelestialCodex");
+            return Storage.CombinePaths(parent, "CelestialCodex");
+        }
+        internal ReaderSession() : this(DirectoryRoot()) { }
+        internal ReaderSession(string root)
+        {
+            if(string.IsNullOrEmpty(root)) throw new ArgumentException("Reader directory");
+            this.root=root;
             string directory = root;
             positions = new PositionWriter(bytes => new BoundedCache(new StorageAdapter(directory)).Write("position.json", bytes));
             localPositions = new PositionWriter(bytes =>
@@ -94,7 +100,7 @@ namespace SCIEPort.Features.CelestialCodex.Mod
                 gate.Begin(token =>
                 {
                     var source = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
-                    ReaderResult result = new LocalBookLibrary(source).Read(request, token);
+                    ReaderResult result = new LocalBookLibrary(source, LogLocal).Read(request, token);
                     result.Position = LocalPosition();
                     return Task.FromResult(result);
                 });
@@ -115,16 +121,26 @@ namespace SCIEPort.Features.CelestialCodex.Mod
             // No server/network state and no world save state are accessed.
             if (string.IsNullOrEmpty(selectedPath) || selectedPath.Length > 2048)
                 throw new InvalidDataException("文件路径无效");
-            string name = BookImportService.FileName(selectedPath);
-            token.ThrowIfCancellationRequested();
-            using (Stream input = Storage.OpenFile(selectedPath, OpenFileMode.Read))
+            try
             {
-                var store = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
-                return BookImportService.Copy(name, input, store, token);
+                string name = BookImportService.FileName(selectedPath);
+                token.ThrowIfCancellationRequested();
+                using (Stream input = BookFilePicker.OpenSelected(selectedPath))
+                {
+                    var store = new StorageAdapter(Storage.CombinePaths(root, "Imports"));
+                    return BookImportService.Copy(name, input, store, token);
+                }
             }
+            finally { BookFilePicker.Release(selectedPath); }
         }
         internal ReaderResult Take() { return gate.Take(); }
         private static void LogNetwork(string message) { Log.Error(message); }
+        private static void LogLocal(Exception error)
+        {
+            PickerDiagnostic.Write("local-read-failed",error);
+            string detail=error.ToString();
+            Log.Warning("[CelestialCodex] Local read: "+(detail.Length>4096?detail.Substring(0,4096):detail));
+        }
         internal void Cancel() { gate.Cancel(); }
         internal void GoOnline() { offline = false; }
         internal bool IsOffline { get { return offline; } }

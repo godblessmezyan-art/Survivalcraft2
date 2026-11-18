@@ -1,5 +1,135 @@
 # 测试结果
 
+## 2026-11-18 / 0.94.0：共同主线整合
+
+完整合并本地0b9b7a0与GitHub main ba27dd0，16个冲突文件逐项解决，保留植物0.93生态、动物0.91生态、蓄力钓鱼、书典选书/JNI/EPUB/纸页/返回与空行修复、恒温床/壁炉、古建detail/home蓝图、书柜、五分类与统一书典。未纳入三个未完成骨龙文件，原件逐字节保持。
+
+固定Windows Net_x25.01.17环境/哈希/ABI、完整net472 Release和统一包校验**已确认**；三个编译阶段均0警告/0错误。蓝图379359、植物1052680、钓鱼2526规则/40原生、动物11123规则/96原生、书典627核心/34944目标、家居496928规则/911原生、书柜40网格/5方块/4配方、五分类807规则/259原生检查及全部既有回归通过。上述为离线/原生隔离检查，非游戏房间执行。
+
+移除废弃OnTerrainContentsGenerated Hook：植物在原生生成器第四阶段后生成，动物由原生SubsystemCreatureSpawn在更新线程生成；其余Hook、net472/API1.42/SC2.4.10.6、SCIEPort身份/旧ID/GUID/存档保持。包236仍20字节，采用完整蓄力/收线协议；各端统一0.94.0，旧版混用不支持。
+
+218条目、单SCIEPort.dll，旧0.91.0全部216条目保留；新增两张书典纹理，206旧条目逐字节相同。212个源资产与构建快照逐字节一致；其中93个文本相对Git索引只有Windows检出行尾变化，二进制/纹理未改变。主包及0.94.0版本副本字节一致。
+
+| 产物 | 字节 | SHA-256 |
+|---|---:|---|
+| 荒野探险家.netmod / 荒野探险家-0.94.0.netmod | 12989976 | `099984BD122A370BD2E59557C7529E8E149A7432A97530015AB668F30B4DB1CA` |
+| SCIEPort.dll | 1055744 | `EA536B4C387FA3605C7FF83DA228EE909D9E782B743035E5502FFF98EE0DD387` |
+
+本机留存Android三份BCL快照解析绘卷496和钓鱼87个成员，0缺失，MVID `48c195d8-4eac-4b59-aba7-9c2fd7949e3c`。这些检查不覆盖新书典完整System.Xml/平台程序集，未将远端既有Android审计记录冒充本次全量复测。Android7723、触屏/分辨率、旧世界和真实Local/Server/Client仍**待验证**。
+
+命令、首次失败及纠正、边界和输出位置见[整合记录](MERGE-0.94.0.md)。完整构建退出0，日志`artifacts/merge-0.94.0/full-build.log`；独立包比对`package-check.json`，BCL日志`android-bcl.log`/`android-fishing.log`。源码只本地main提交，未push；该合并提交在GitHub可访问前不发布指向旧提交的Release。
+
+## 2026-11-18 · 0.93.0 物品尺寸与植物生态
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/plants-0.93.0`。三份固定 Windows 程序集指纹、Release 构建和完整包检查通过。编译报告 0 警告、0 错误。
+- 725 项苹果规则检查和 1,052,680 项固定目标检查通过。使用原生内存 Terrain 覆盖五类合成栖息地、640 个新区块、同种子重现和单区块上限。128 个温湿草地样本生成 27 棵完整苹果树。另检查旧 DATA、支持块、阻塞、主机和客户端隔离、采后空枝、再生和掉落比例。
+- 对包内同字节的 DLL 运行 `Test-PlantsGpu.ps1`，得到六组固定 Windows Engine/OpenGL 预览。对固定 Android APK 快照解析植物相关代码的 210 个外部成员，0 缺失。日志和预览在 `artifacts/plants-0.93.0`。
+- 双份统一安装包字节一致，共 215 个条目、12,954,800 字节。与 0.92.2 逐项比较，更新了 DLL、版本元数据、六份植物 CSV 和 Apple XDB。SHA-256 为 `ED0F637E27372AF65869752DA8B5CF52CC29BDBDC6292A9EB0C392751AB94F5D`。
+- Android 7723 实机、现有世界中的触屏种植与采摘、长期分布及真实联机同步 **待验证**。[完整种植与分布规则](PLANTS-0.93.0.md)
+
+## 2026-11-18 · 0.92.2 云天书典段落间距
+
+- EPUB 的 XHTML 提取会在段落和容器前后插入换行，嵌套容器和占位段落可能叠出多行空白。进入阅读页时把连续空行缩成一行，移除首尾空行，保留正文字符及普通断行。已有 EPUB、云端和缓存章节走同一显示路径。
+- 0.92.1 DLL 在新增原生排版回归中仍显示额外空行。修复版通过最大字号下的中英文横屏 812×375 与竖屏 375×812 检查，夹具减少至少六行高度并保留原始章节文本。覆盖普通段落、混合换行符、空格占位和万行空白输入。
+- 从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/codex-spacing-0.92.2`。环境、Release 构建（0 警告、0 错误）、完整回归和统一包校验通过。书典 627 项核心检查和 35,808 项固定目标检查通过，最终 DLL 对固定 Android 快照解析 533 个外部成员，0 缺失。日志见输出目录的 `full-build.log`、`android-final.log` 和 `old-reader.log`。
+- 正式包与版本副本字节一致，共 215 个条目、12,952,397 字节。相对 0.92.1 只替换 `SCIEPort.dll` 和 `modinfo.json`。最终 SHA-256 为 `982A268571EEF02CDF0AEA38688F0EB078229A65600CE48A727CACCC735A6794`。
+- Android 7723 实机、截图对应的 EPUB 文件与真实联机 **待验证**。
+
+## 2026-11-18 · 0.92.1 云天书典返回书库
+
+- 用固定 Windows SCNET Net_x25.01.17 的原生控件复现。0.92.0 在点击返回后的第一帧以临时宽度测量新建书目。原生 `LabelWidget.UpdateLines` 的省略分支在字体量得 0 个可放入字符时反复处理同一段文本。旧 DLL 在 320×240 复现，夹具等待 8 秒后终止进程。
+- 修复版在同一帧完成新书目布局，根据实际宽高测量最多两行标题。原生回归覆盖 320×240、375×812、812×375 下重复返回到原书库分页，保留导入和续读入口，并覆盖 0、1、26 逻辑单位等窄宽度上的标题测量。测试只使用合成书目，无需联网或读取玩家存档。
+- 从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/codex-back-0.92.1`。环境检查、Release 构建（0 警告、0 错误）、完整回归和统一包校验通过。书典 623 项核心检查、35,748 项固定目标检查通过。对最终 DLL 执行 `Test-CelestialCodexAndroidBcl.ps1`，固定 Android 快照解析 533 个外部成员，0 缺失。日志在同一输出目录的 `full-build.log` 与 `android-final.log`。
+- 正式包和版本副本字节一致，共 215 个条目、12,952,290 字节。相对 0.92.0 仅 `SCIEPort.dll` 与 `modinfo.json` 有字节差异。SHA-256 为 `F18C6988B9F0B3A7352C16027B0E3C37E40DF5B0A3BBD2A6C9ED8287DC29577B`。
+- Android 7723 实机、用户报告的闪退及真实联机 **待验证**。手机复测路径为打开书典，点击书籍进入目录，再点返回，确认书目可见且可继续操作。联机各端使用同一版本。
+
+## 2026-11-18 · 0.92.0 蓄力抛竿
+
+- 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、全量回归和统一包校验 **已确认**。仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.92.0`，退出 0。日志为输出目录中的 `build-final.log`。
+- 2526 项钓鱼规则和 40 项固定目标隔离检查通过。固定目标原生水域上，同一平视角轻抛 3.28 格、满力 8.49 格，满力抬高视角后 14.14 格。覆盖方位变化、水面亚格落点、岩墙拦截、浅水、遮盖水面、原生输入抬臂与甩竿、主机计时、原生掉落和背包同步。测试使用两个独立的主客实例和实际包序列化。
+- 用固定 Windows Engine/OpenGL 离屏渲染实际鱼竿模型与本次姿态和鱼线代码。抬竿、出手、空中飞行三个阶段在 960×540 画面可区分，恢复后几何与基线相同。截图在输出目录的 `gpu` 中，使用合成水岸。系统无音频输出设备，声音播放效果 **待验证**。
+- 对最终 DLL 执行 `Test-CelestialCodexAndroidBcl.ps1 -FeaturePrefix SCIEPort.Features.Fishing.`，Android 目标快照解析 286 个外部成员，0 缺失。结果见 `android-final.log`。Android 7723 的触屏和真实双端房间 **待验证**。
+- 统一包和版本副本字节一致，共 215 条目，12,951,877 字节。SHA-256 为 `A1CC1DE2488ED1D0E6BCAFC2E1F1E2E5E92C55670AB8CA8BD76D677306097F5E`。
+
+## 2026-11-18：0.91.0 钓鱼
+
+- 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、完整回归及统一包校验 **已确认**。从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.91.0`，退出 0。日志在该输出目录 `build-final.log`。
+- 2526 项规则检查覆盖等口、提竿窗口、松线、失联和大鱼的两次挣扎。28 项固定目标检查用独立主客对象、真实包序列化和背包同步，覆盖普通玩家抛竿、触屏输入路径、原版鱼肉、背包部分溢出、重复动作和断开清理。固定目标 `Content.scpak` 确认 `rawfish` 走现有熔炉配方生成一份 `CookedFishBlock`。
+- Android 快照审计使用 `Test-CelestialCodexAndroidBcl.ps1 -FeaturePrefix SCIEPort.Features.Fishing.`。最终包 DLL 的 233 个外部成员全部解析，旧编译负对照检出被裁剪的 `Random.NextDouble()`，已改用可用的 `Random.Next(int)`。结果见输出目录 `android-snapshot.log`。
+- `荒野探险家.netmod` 与 `荒野探险家-0.91.0.netmod` 一致，共 215 条目，12,949,372 字节，唯一运行 DLL。包 SHA-256 `5949B9A4FFA60602C8484F8027FDB4E0359EC5C77D8A56F59D7D53730DE560B1`。
+- Windows 隔离游戏窗口已启动，截图工具两次报 `window capture timed out: timed out waiting on channel`。Windows 游戏内画面、Android 7723 触屏和真实双端房间 **待验证**。
+
+## 2026-11-17：0.90.0 书典 UI
+
+23个业务/身份文件与最新main `72ec090` 核对相同；两张原创256px纹理的源/运行哈希、透明编码与预算检查通过。增加原生导入按钮触达、CJK/混合英文/代理对/标点/原文保持检查，保留EPUB/选书JNI/清理与续读回归。六阅读/导入视图、两主题、三分辨率共36张Engine/OpenGL示例预览；六尺寸/五字号的原生测量/滚动检查通过。完整Release和包指纹见[专项](CODEX-PAPER-UI-0.90.0.md)，手机7723/触屏与真实联机仍 **待验证**。
+
+## 2026-11-17：0.89.3 EPUB读取
+
+补齐缺失程序集与System.Xml审计，旧0.89.2负对照检出缺失压缩程序集/ZIP成员/XPath共8项。新增EPUB ZIP/CRC/展开上限/取消/命名空间及实际编译ReaderSession导入→暂存清理→目录/章节/正文→重开会话测试，保留原JNI生命周期回归。完整Release和包指纹见[专项](CODEX-EPUB-READ-0.89.3.md)；用户系统选书可导入已记录，Android原EPUB阅读、触屏及真实联机仍 **待验证**。
+
+## 2026-11-17：0.89.2本地导入闪退
+
+新增实际编译JNI桥接的严格局部/全局引用夹具，旧错误释放负对照、新/已有DEX路径、每一原生边界失败清理及空句柄拦截通过；固定Android元数据17签名和FindClass内部NewGlobalRef的IL检查通过。完整Release、Android BCL及包结果见[专项记录](CODEX-PICKER-CRASH-0.89.2.md)。没有手机/Android虚拟机执行，原设备无日志闪退、7723系统选择/取消/后台恢复、触屏和真实联机仍 **待验证**。
+
+## 2026-11-17：0.89.1系统选书与苹果食物
+
+Release与完整旧回归通过；新增系统选书桥接的原创DEX源/嵌入资源/校验和、Java边界/取消、目标AndroidJNI接口和BCL检查，以及旧落地苹果遮面负对照、不可放置和回收测试。没有打开玩家存档或修改APK。命令、日志、产物哈希及Android待验证边界见[专项](CODEX-PICKER-APPLE-0.89.1.md)。
+
+## 2026-11-16：0.89.0植物与果树
+
+环境/ABI、net472 Release（0警告/0错误）、完整旧回归与包内容检查通过；725纯规则/事务故障注入、999952固定目标几何/实际内存地形/权限/采收/并发检查通过。目标Engine/OpenGL六组渲染包含原生Block.Initialize/DrawBlock、前后视角、苹果开花/青果/成熟与玉米阶段；不是实机截图。新检查已接入Build-NetMod.ps1。精确命令、指纹、安装包及未测项见[0.89.0专项](PLANTS-0.89.0.md)。
+
+Android7723、真实单机世界/主机/普通客户端、旧存档及手机帧率 **待验证**；本地提交尚未推送时不得发布到其他提交的Release。
+
+## 2026-11-16 main 0.88.1：合并钓鱼/创造栏/书架与睡眠修复
+
+接手时已处于合并中，本地80b9f1b与远端6ba0cc7各保留；重新fetch确认远端三次提交为87e36fa、20c9879、6ba0cc7。解决7个冲突文件，HomeBlocks同时保留书架CreateTexture/CreateMesh与普通家居PrepareSection，保留恒温床、睡眠射线及壁炉修复；版本统一0.88.1。双方README/兼容性/测试/蓝图记录保留，新增[合并记录](MERGE-0.88.1.md)。
+
+实际验证：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+```
+
+完整入口退出0，日志 `artifacts/merge-0.88.1/build.log`；环境/固定目标ABI、net472 Release 0警告/0错误、家居911/陈列器672检查、书架40网格/5方块/碰撞/4套2×2配方及包检查、五类Tab/31个CSV/80源行、钓鱼、书典、绘卷、PixelFX与全部旧回归通过。没有Android或真实游戏房间证据。
+
+最终213条目包中SCIEPort.dll与Release DLL逐字节一致，版本0.88.1，正式包及版本副本一致：
+
+| 产物 | 字节 | SHA-256 |
+|---|---:|---|
+| `荒野探险家.netmod` / `荒野探险家-0.88.1.netmod` | 12768213 | `A3579B77E8C9246F51D44D132941C14CF8432FE9BE228384C3814E83CF2F40F0` |
+| `SCIEPort.dll` | 962560 | `D061B490FD78A25C3AF55563B222CD756808F983F8406B336DEC3B2C24D945A1` |
+
+Windows环境/编译/隔离回归/包内容 **已确认**，Android7723、触屏及真实Local/Server/Client **待验证**。本轮用户明确授权普通推送main；先保留双亲合并提交并正常push，确认提交可从GitHub访问后发布同提交0.88.1预发布包，不强推、不移动旧标签、不覆盖其它资产。
+
+## 2026-11-16 main 0.86.1：睡眠射线、恒温床与壁炉
+
+`git pull --ff-only origin main` 已是最新，开发起点 `55e77f0`。用户反馈床在单人、房主均闪退，随后追加“床自带保温，无论温度多少都能睡着”；其它设备制作的书架按用户后续要求不处理。
+
+修复窗帘962/963、悬浮陈列器954及非法占位DATA返回空碰撞数组，触发实际目标 `Block.Raycast` 无条件取索引0的越界。保留非实心行为。床使用原生CanSleep/Sleep，并增加失效/重复请求保护；966/970范围睡眠维持体温12，准确拦截原生低温/过热三种伤害，醒来/拆床/离开立即停止。使用世界内提前更新器及既有SubsystemUpdate/OnCreatureInjure，每睡眠加速子步更新；不改环境/衣物/湿度、其它伤害、协议或存档键。壁炉火焰按真实Engine导入顺序独立红橙自发光，点燃GetHeat=1、熄灭0，原生发光8/0；全部家居DAE/PNG不变。详细边界见[专项](HOME-SLEEP-FIREPLACE-0.86.1.md)。
+
+实际命令（仓库根）：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-Environment.ps1
+dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo -o SCIE-Port/artifacts/home-fixes-build
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Test-HomeNative.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath SCIE-Port/artifacts/home-fixes-build/SCIEPort.dll
+powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release
+```
+
+固定Windows四程序集哈希/ABI通过，net472 Release为0警告/0错误。LiteNetLib哈希正确但原带下载区域标记，首次.NET Framework加载拒绝；移除该文件区域标记后复检通过，程序集字节不变。最终完整入口退出0，日志 `artifacts/home-fixes/final-insulation-build.log`；家居911项（含原生空数组越界负对照、各4朝向×4格Local/Server原生入睡/醒来、-1000/+1000环境保温、三温度伤害拦截及其它伤害放行、解除及客户端隔离、温度求解器点燃升温/熄灭恢复、实际Engine火焰几何顺序/材质）、悬浮陈列器667项、书典、绘卷、钓鱼、PixelFX、神器/四圣兽、载具及全部旧回归通过。床脚下用具备相同SleepSuitability的原生块代替GPU模型初始化；未运行完整游戏或设备。
+
+最终包212条目、30个CSV/75源行，包内SCIEPort.dll与最终Release DLL哈希一致、元数据0.86.1/程序集0.86.1.0；书典资源/类型保留，正式包与版本副本字节一致：
+
+| 产物 | 字节 | SHA-256 |
+|---|---:|---|
+| `荒野探险家.netmod` / `荒野探险家-0.86.1.netmod` | 12763842 | `E4BDB48EFE21C2A7E9B074F97691395FB5770CF83B0A4CCEE0DB7C192895D040` |
+| `SCIEPort.dll` | 951296 | `6EB2DD89FBCDC1E3D7C58530BCA49441F16BB03621010628F9481925F85D712A` |
+
+Windows编译、原生隔离行为、整包校验 **已确认**；Android7723原闪退是否完全消失、旧世界、触屏/分辨率、完整单人/房主/普通客户端睡眠和恒温 **待验证**。未取得手机原堆栈，不把可复现的原生越界视为所有手机闪退的唯一原因。源码仅本地main提交，未执行git push；本次提交未到GitHub，故保留包，待用户推送后再发布对应预发布Release。
+
 ## 2026-11-15 / 0.91.0：Blender动物与原生生态
 
 官方Blender MCP/5.1.1独立场景：狐狸762/兔子624/鸡604/猫722三角形，分别6/6/7/6骨与同数网格；保存Blend设计源与三面评审。没有把Blender图称作游戏截图。新猫985、鸡蛋118类型50、共享128×8色板；原实体GUID和生成器927/928/938保持。自然生成从关闭的旧区块队列切换为原生SubsystemCreatureSpawn的Surface注册；更新线程、双客户端拒绝、活体计数与合计2只/帧预算。鸡原生鸟类动画/下蛋，兔子吃草类和果蔬掉落物，猫吃鱼肉并避人，狐狸原生捕猎。

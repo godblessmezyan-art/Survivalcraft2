@@ -11,7 +11,6 @@ namespace SCIEPort.Features.Suspension
         public const int Index = 954;
         private readonly BlockMesh marker = new BlockMesh();
         private Texture2D texture;
-        private static readonly BoundingBox[] Empty = new BoundingBox[0];
         private static readonly BoundingBox[] Selection = { new BoundingBox(Vector3.Zero, Vector3.One) };
 
         /// <inheritdoc/>
@@ -51,7 +50,9 @@ namespace SCIEPort.Features.Suspension
             mesh.Indices.Add(start); mesh.Indices.Add((ushort)(start + 1)); mesh.Indices.Add((ushort)(start + 2));
         }
         /// <inheritdoc/>
-        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value) => Empty;
+        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value) => Compatibility.BlockRaycastSafety.NonSolid;
+        /// <inheritdoc/>
+        public override bool IsCollidable_(int value) => false;
         /// <inheritdoc/>
         public override BoundingBox[] GetCustomInteractionBoxes(SubsystemTerrain terrain, int value) => Selection;
         /// <inheritdoc/>

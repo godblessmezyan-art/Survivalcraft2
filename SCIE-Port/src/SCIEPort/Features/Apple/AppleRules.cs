@@ -2,21 +2,7 @@ using System;
 
 namespace SCIEPort.Features.Apple
 {
-    /// <summary>
-    /// Pure apple rules shared by the SCIE-Port apple runtime and the offline test
-    /// suite. The apple slice reuses the two proven in-workspace plant idioms instead
-    /// of inventing a new structure: it grows through staged development like the
-    /// flax/sunflower crops (size lives in the low DATA bits) AND bears an edible
-    /// fruit on a dedicated fruiting bit exactly like the audited <c>WildBerryPlantBlock</c>.
-    /// A full sapling-to-trunk apple-tree is deliberately out of scope for this phase
-    /// because it needs the private <c>Game.SubsystemSaplingBlockBehavior</c> schema,
-    /// which has not been decompiled and validated yet. These rules carry no dependency
-    /// on the Survivalcraft assemblies so growth pacing, the fruit-season gate,
-    /// maturity, harvest yields and authority gating can be verified deterministically
-    /// without a running game process. The apple is modelled as a temperate, full-sun
-    /// perennial: cold hard stalls it, and it only ripens fruit in the autumn harvest
-    /// season.
-    /// </summary>
+    /// <summary>Legacy apple stage/fruit encoding and growth pacing, shared by tree runtime and tests.</summary>
     public static class AppleRules
     {
         /// <summary>The number of developmental stages an apple plant walks through, zero based.</summary>
@@ -103,7 +89,7 @@ namespace SCIEPort.Features.Apple
         }
 
         /// <summary>
-        /// Only an upward-facing placement directly onto tilled soil may create a new
+        /// Only an upward-facing placement directly onto a valid natural substrate may create a new
         /// apple plant, mirroring the proven grain/sunflower planting constraint.
         /// </summary>
         public static bool CanPlaceApple(bool isTopFace, bool isSoil)

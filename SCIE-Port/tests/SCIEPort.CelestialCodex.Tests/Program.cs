@@ -48,6 +48,7 @@ internal static class Program
         await HandlerWireChecks();
         LocalBookChecks();
         LocalBookTests.Run();
+        EpubArchiveChecks.Run(Check);
         Check(NetworkFailure.Code(new MissingMethodException("missing-member")) == "BCL", "missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new MissingMethodException("inner-member"))) == "BCL", "nested missing member diagnostic");
         Check(NetworkFailure.Code(new HttpRequestException("outer", new System.Security.Authentication.AuthenticationException("certificate"))) == "TLS", "nested TLS diagnostic");

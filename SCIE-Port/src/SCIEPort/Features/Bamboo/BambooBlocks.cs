@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Engine;
 using Engine.Graphics;
 using Game;
+using SCIEPort.Features.Plants;
 
 namespace SCIEPort.Features.Bamboo
 {
@@ -50,6 +51,14 @@ namespace SCIEPort.Features.Bamboo
 
     public sealed class BambooPlantBlock : CrossBlock
     {
+        private readonly PlantModel m_plantModel = new PlantModel();
+
+        public override void Initialize()
+        {
+            m_plantModel.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
         public const int Index = 932;
 
         public override int GetFaceTextureSlot(int face, int value)
@@ -71,15 +80,7 @@ namespace SCIEPort.Features.Bamboo
             int y,
             int z)
         {
-            generator.GenerateCrossfaceVertices(
-                this,
-                value,
-                x,
-                y,
-                z,
-                Color.White,
-                GetFaceTextureSlot(4, value),
-                geometry.GetGeometry(BambooTextures.Atlas).SubsetAlphaTest);
+            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
         }
 
         public override void DrawBlock(
@@ -90,15 +91,7 @@ namespace SCIEPort.Features.Bamboo
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            BlocksManager.DrawFlatBlock(
-                primitivesRenderer,
-                value,
-                size,
-                ref matrix,
-                BambooTextures.Atlas,
-                color,
-                false,
-                environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -229,9 +222,7 @@ namespace SCIEPort.Features.Bamboo
             Point3 direction = CellFace.FaceToPoint3(target.Face);
             int below = subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z);
             int substrate = Terrain.ExtractContents(below);
-            bool hasSubstrate = substrate == SoilBlock.Index
-                || substrate == SandBlock.Index
-                || substrate == DirtBlock.Index;
+            bool hasSubstrate = PlantHabitat.IsRootingSoil(substrate) || substrate == SandBlock.Index;
             if (BambooRules.CanPlaceBase(direction.Y == 1, hasSubstrate))
             {
                 return new BlockPlacementData

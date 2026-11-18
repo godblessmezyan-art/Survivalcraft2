@@ -1,9 +1,9 @@
 #pragma warning disable CS1591
 
-using System.Collections.Generic;
 using Engine;
 using Game;
-using GameEntitySystem;
+using SCIEPort.Features.Plants;
+using Game.NetWork;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.KellyPlants
@@ -14,93 +14,18 @@ namespace SCIEPort.Features.KellyPlants
 
         public override int[] HandledBlocks { get { return s_handledBlocks; } }
 
-        public override void Load(ValuesDictionary valuesDictionary)
-        {
-            base.Load(valuesDictionary);
-            KellyPlantWorldGeneration.SetProject(Project);
-        }
-
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
-        {
-            Terrain terrain = SubsystemTerrain.Terrain;
-            if (Terrain.ExtractLight(terrain.GetCellValueFast(x, y + 1, z)) < 9)
-            {
-                return;
-            }
+            => AnnualCropGrowth.Poll(SubsystemTerrain, SoybeanBlock.Index, x, y, z, pollPass, KellyPlantRules.GetSoybeanGrowthInterval);
 
-            int data = Terrain.ExtractData(value);
-            int size = SoybeanBlock.GetSize(data);
-            if (size >= 7)
-            {
-                return;
-            }
-
-            int soilValue = terrain.GetCellValueFast(x, y - 1, z);
-            if (Terrain.ExtractContents(soilValue) != SoilBlock.Index)
-            {
-                return;
-            }
-
-            int soilData = Terrain.ExtractData(soilValue);
-
-            int temperature = terrain.GetSeasonalTemperature(x, z)
-                + SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
-            int interval = KellyPlantRules.GetSoybeanGrowthInterval(
-                SoilBlock.GetHydration(soilData),
-                SoilBlock.GetNitrogen(soilData),
-                temperature);
-
-            if (pollPass % interval != 0)
-            {
-                return;
-            }
-
-            SubsystemTerrain.ChangeCell(
-                x,
-                y,
-                z,
-                Terrain.ReplaceData(value, SoybeanBlock.SetSize(data, size + 1)),
-                true,
-                null);
-
-            if (size + 1 == 7)
-            {
-                int nitrogen = MathUtils.Max(SoilBlock.GetNitrogen(soilData) - 1, 0);
-                SubsystemTerrain.ChangeCell(
-                    x,
-                    y - 1,
-                    z,
-                    Terrain.ReplaceData(soilValue, SoilBlock.SetNitrogen(soilData, nitrogen)),
-                    true,
-                    null);
-            }
-        }
-
-        public override void OnNeighborBlockChanged(
-            int x,
-            int y,
-            int z,
-            int neighborX,
-            int neighborY,
-            int neighborZ)
-        {
-            Terrain terrain = SubsystemTerrain.Terrain;
-            int value = terrain.GetCellValue(x, y, z);
-            if (Terrain.ExtractContents(value) != SoybeanBlock.Index || y <= 0)
-            {
-                return;
-            }
-            if (Terrain.ExtractContents(terrain.GetCellValue(x, y - 1, z)) != SoilBlock.Index)
-            {
-                SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
-            }
-        }
+        public override void OnNeighborBlockChanged(int x, int y, int z, int neighborX, int neighborY, int neighborZ)
+            => AnnualCropGrowth.CheckSupport(SubsystemTerrain, SoybeanBlock.Index, x, y, z);
     }
 
     public sealed class SubsystemWildBerryBlockBehavior : SubsystemPollableBlockBehavior
     {
-        private static readonly int[] s_handledBlocks = { WildBerryPlantBlock.Index };
+        private static readonly int[] s_handledBlocks = { WildBerryPlantBlock.Index,CloudberryPlantBlock.Index,WildBerryBlock.Index,CloudberryBlock.Index };
         private SubsystemSeasons m_seasons;
+        private SubsystemGameInfo m_gameInfo;
 
         public override int[] HandledBlocks { get { return s_handledBlocks; } }
 
@@ -108,31 +33,58 @@ namespace SCIEPort.Features.KellyPlants
         {
             base.Load(valuesDictionary);
             m_seasons = Project.FindSubsystem<SubsystemSeasons>(false);
-            KellyPlantWorldGeneration.SetProject(Project);
+            m_gameInfo = Project.FindSubsystem<SubsystemGameInfo>(true);
         }
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
-            bool fruiting = m_seasons == null ||
-                m_seasons.Season == Season.Spring ||
-                m_seasons.Season == Season.Summer;
+            if(CommonLib.WorkType==WorkType.Client||y<=0||y>=255) return;
+            Terrain terrain=SubsystemTerrain.Terrain;
+            value=terrain.GetCellValue(x,y,z);
+            int id=Terrain.ExtractContents(value);
+            if(id!=WildBerryPlantBlock.Index&&id!=CloudberryPlantBlock.Index) return;
+            bool cloud=id==CloudberryPlantBlock.Index;
+            int soil = terrain.GetCellValue(x, y - 1, z);
+            if (!PlantHabitat.IsRootingSoil(Terrain.ExtractContents(soil)))
+            {
+                if (PlantGrowthBudget.Take(1)) SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
+                return;
+            }
+            if (!PlantGrowthSite.IsLiving(SubsystemTerrain)) return;
+            bool fruiting = m_seasons == null || !m_gameInfo.WorldSettings.AreSeasonsChanging ||
+                m_seasons.Season == Season.Summer || !cloud && m_seasons.Season == Season.Spring;
             int data = Terrain.ExtractData(value);
-            if (WildBerryPlantBlock.GetFruiting(data) != fruiting)
+            bool hydrated = Terrain.ExtractContents(soil) == SoilBlock.Index && SoilBlock.GetHydration(Terrain.ExtractData(soil));
+            bool suitable = PlantHabitat.For(id).AllowsGrowth(PlantHabitat.TemperatureAt(terrain, x, y, z),
+                terrain.GetSeasonalHumidity(x, z), terrain.GetCellLight(x, y + 1, z), hydrated);
+            int next=KellyPlantRules.NextBerry(data,cloud,fruiting,suitable,pollPass%(cloud ? 4 : 3)==0);
+            if (next != data && PlantGrowthBudget.Take(1))
             {
                 SubsystemTerrain.ChangeCell(
                     x,
                     y,
                     z,
-                    Terrain.ReplaceData(value, WildBerryPlantBlock.SetFruiting(data, fruiting)),
+                    Terrain.ReplaceData(value, next),
                     true,
                     null);
             }
         }
+
+        public override void OnItemHarvested(int x,int y,int z,int oldValue,ref BlockDropValue dropValue,ref int newValue)
+        {
+            if(CommonLib.WorkType==WorkType.Client||Terrain.ExtractContents(newValue)!=0) return;
+            int id=Terrain.ExtractContents(oldValue),fruit=Terrain.ExtractContents(dropValue.Value),data=Terrain.ExtractData(oldValue);
+            if(id==WildBerryPlantBlock.Index&&fruit==WildBerryBlock.Index&&(data&1)!=0)
+                newValue=Terrain.ReplaceData(oldValue,data&~15);
+            else if(id==CloudberryPlantBlock.Index&&fruit==CloudberryBlock.Index&&(data&3)==0)
+                newValue=Terrain.ReplaceData(oldValue,(data&~3)|1);
+        }
     }
 
-    public sealed class SubsystemKellyFruitBlockBehavior : SubsystemBlockBehavior
+    public sealed class SubsystemKellyFruitBlockBehavior : SubsystemPollableBlockBehavior
     {
-        private static readonly int[] s_handledBlocks = { OakLeavesBlock.Index, CactusFruitBlock.Index };
+        private static readonly int[] s_handledBlocks =
+            { OakLeavesBlock.Index, CactusFruitBlock.Index, CattailBlock.Index, CattailShootBlock.Index };
         private readonly Game.Random m_random = new Game.Random();
         private SubsystemPickables m_pickables;
         private SubsystemSeasons m_seasons;
@@ -144,12 +96,12 @@ namespace SCIEPort.Features.KellyPlants
             base.Load(valuesDictionary);
             m_pickables = Project.FindSubsystem<SubsystemPickables>(true);
             m_seasons = Project.FindSubsystem<SubsystemSeasons>(false);
-            KellyPlantWorldGeneration.SetProject(Project);
         }
 
         public override void OnBlockRemoved(int value, int newValue, int x, int y, int z)
         {
-            if (Terrain.ExtractContents(value) != OakLeavesBlock.Index)
+            if (CommonLib.WorkType == WorkType.Client || Terrain.ExtractContents(value) != OakLeavesBlock.Index ||
+                Terrain.ExtractContents(newValue) == OakLeavesBlock.Index)
             {
                 return;
             }
@@ -166,257 +118,129 @@ namespace SCIEPort.Features.KellyPlants
             }
         }
 
-        public override void OnNeighborBlockChanged(
-            int x,
-            int y,
-            int z,
-            int neighborX,
-            int neighborY,
-            int neighborZ)
+        public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
+            if (CommonLib.WorkType == WorkType.Client || y < 2 || y >= 255) return;
             Terrain terrain = SubsystemTerrain.Terrain;
-            if (Terrain.ExtractContents(terrain.GetCellValue(x, y, z)) == CactusFruitBlock.Index &&
-                Terrain.ExtractContents(terrain.GetCellValue(x, y - 1, z)) != CactusBlock.Index)
+            value = terrain.GetCellValue(x, y, z);
+            int id = Terrain.ExtractContents(value);
+            if (id != CattailBlock.Index && id != CactusFruitBlock.Index) return;
+
+            bool cattail = id == CattailBlock.Index;
+            if (!CheckSupport(id, x, y, z)) return;
+
+            int data = Terrain.ExtractData(value);
+            if (!PlantGrowthSite.IsLiving(SubsystemTerrain) || (data & 3) == 0 || pollPass % (cattail ? 3 : 5) != 0) return;
+            if (cattail && !PlantGrowthSite.HasWater(x, y, z, terrain.GetCellContents)) return;
+            bool suitable = PlantHabitat.For(id).AllowsGrowth(PlantHabitat.TemperatureAt(terrain, x, y, z),
+                terrain.GetSeasonalHumidity(x, z), terrain.GetCellLight(x, y + 1, z), cattail);
+            if (suitable && PlantGrowthBudget.Take(1))
+                SubsystemTerrain.ChangeCell(x, y, z, Terrain.ReplaceData(value, (data & ~3) | ((data + 1) & 3)), true, null);
+        }
+
+        public override void OnNeighborBlockChanged(int x, int y, int z, int neighborX, int neighborY, int neighborZ)
+        {
+            if (CommonLib.WorkType == WorkType.Client || y < 2 || y >= 255 || neighborY != y - 1) return;
+            int id = SubsystemTerrain.Terrain.GetCellContents(x, y, z);
+            if (id == CattailBlock.Index || id == CactusFruitBlock.Index) CheckSupport(id, x, y, z);
+        }
+
+        private bool CheckSupport(int plant, int x, int y, int z)
+        {
+            if (HasSupport(plant, SubsystemTerrain.Terrain.GetCellContents(x, y - 1, z))) return true;
+            if (PlantGrowthBudget.Take(1)) SubsystemTerrain.DestroyCell(0, x, y, z, 0, false, true, null);
+            return false;
+        }
+
+        internal static bool HasSupport(int plant, int ground)
+            => plant == CattailBlock.Index ? PlantHabitat.IsRootingSoil(ground) || ground == SandBlock.Index : ground == CactusBlock.Index;
+
+        public override void OnItemHarvested(int x, int y, int z, int oldValue, ref BlockDropValue drop, ref int newValue)
+        {
+            if (CommonLib.WorkType == WorkType.Client || y < 2 || Terrain.ExtractContents(newValue) != 0) return;
+            int plant = Terrain.ExtractContents(oldValue);
+            int fruit = Terrain.ExtractContents(drop.Value);
+            if ((plant == CattailBlock.Index && fruit == CattailShootBlock.Index ||
+                plant == CactusFruitBlock.Index && fruit == CactusFruitBlock.Index) &&
+                HasSupport(plant, SubsystemTerrain.Terrain.GetCellContents(x, y - 1, z)))
             {
-                SubsystemTerrain.DestroyCell(0, x, y, z, 0, false, false, null);
+                newValue = Terrain.ReplaceData(oldValue, (Terrain.ExtractData(oldValue) & ~3) | 1);
             }
         }
     }
 
-    public sealed class SubsystemKellyMushroomBlockBehavior : SubsystemPollableBlockBehavior, IUpdateable
+    public sealed class SubsystemKellyMushroomBlockBehavior : SubsystemPollableBlockBehavior
     {
-        private const int PermanentData = 32;
+        internal const int Established = 32;
+        internal const int StageMask = 3 << 6;
+        internal const int Immature = 1 << 6;
         private const int DryAgeMask = 31;
         private const int MaxDryAge = 30;
         private static readonly int[] s_handledBlocks =
-        {
-            MushroomPatchBlock.Index,
-            FlyAgaricPatchBlock.Index
-        };
+            { MushroomPatchBlock.Index, FlyAgaricPatchBlock.Index, WildMushroomBlock.Index, FlyAgaricBlock.Index };
 
-        private readonly Queue<Point2> m_spawnQueue = new Queue<Point2>();
-        private readonly Game.Random m_random = new Game.Random();
         private SubsystemWeather m_weather;
-        private float m_previousRain;
-        private float m_accumulator;
-        private float m_postRainDelay;
-        private bool m_qualifiedRain;
-
-        public override int[] HandledBlocks { get { return s_handledBlocks; } }
-        public UpdateOrder UpdateOrder { get { return UpdateOrder.Default; } }
+        public override int[] HandledBlocks => s_handledBlocks;
 
         public override void Load(ValuesDictionary valuesDictionary)
         {
             base.Load(valuesDictionary);
             m_weather = Project.FindSubsystem<SubsystemWeather>(true);
-            m_previousRain = m_weather.PrecipitationIntensity;
-            KellyPlantWorldGeneration.SetProject(Project);
-        }
-
-        public void Update(float dt)
-        {
-            if (!KellyPlantRules.AllowPostRainSpawning)
-            {
-                return;
-            }
-            m_accumulator += dt;
-            if (m_accumulator < 0.25f)
-            {
-                return;
-            }
-            float elapsed = m_accumulator;
-            m_accumulator = 0f;
-
-            float rain = m_weather.PrecipitationIntensity;
-            if (rain >= 0.28f)
-            {
-                m_qualifiedRain = true;
-            }
-            if (m_qualifiedRain && m_previousRain > 0.05f && rain <= 0.05f)
-            {
-                QueueLoadedChunks();
-                m_postRainDelay = 15f;
-                m_qualifiedRain = false;
-            }
-            m_previousRain = rain;
-
-            if (m_spawnQueue.Count == 0)
-            {
-                return;
-            }
-            if (m_postRainDelay > 0f)
-            {
-                m_postRainDelay -= elapsed;
-                return;
-            }
-
-            Point2 coords = m_spawnQueue.Dequeue();
-            TerrainChunk chunk = SubsystemTerrain.Terrain.GetChunkAtCell(coords.X * 16, coords.Y * 16);
-            if (chunk != null && chunk.State == TerrainChunkState.Valid)
-            {
-                TrySpawnInChunk(chunk);
-            }
-        }
-
-        private void QueueLoadedChunks()
-        {
-            m_spawnQueue.Clear();
-            foreach (TerrainChunk chunk in SubsystemTerrain.Terrain.AllocatedChunks)
-            {
-                if (chunk != null && chunk.State == TerrainChunkState.Valid)
-                {
-                    m_spawnQueue.Enqueue(chunk.Coords);
-                }
-            }
-        }
-
-        private void TrySpawnInChunk(TerrainChunk chunk)
-        {
-            if (CountPatches(chunk, 3) >= 3)
-            {
-                return;
-            }
-
-            if (m_random.Float(0f, 1f) < 0.64f)
-            {
-                TrySpawnPatch(chunk, MushroomPatchBlock.Index);
-            }
-            if (CountPatches(chunk, 3) < 3 && m_random.Float(0f, 1f) < 0.20f)
-            {
-                TrySpawnPatch(chunk, FlyAgaricPatchBlock.Index);
-            }
-        }
-
-        private bool TrySpawnPatch(TerrainChunk chunk, int contents)
-        {
-            for (int attempt = 0; attempt < 16; attempt++)
-            {
-                int localX = m_random.Int(0, 15);
-                int localZ = m_random.Int(0, 15);
-                int worldX = chunk.Origin.X + localX;
-                int worldZ = chunk.Origin.Y + localZ;
-                int y = FindNaturalGround(chunk, localX, localZ);
-                if (y >= 2 && IsForestFloor(worldX, y + 1, worldZ))
-                {
-                    SubsystemTerrain.ChangeCell(
-                        worldX,
-                        y + 1,
-                        worldZ,
-                        Terrain.MakeBlockValue(contents),
-                        true,
-                        null);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private int FindNaturalGround(TerrainChunk chunk, int localX, int localZ)
-        {
-            for (int y = chunk.GetTopHeightFast(localX, localZ); y >= 2; y--)
-            {
-                int contents = Terrain.ExtractContents(chunk.GetCellValueFast(localX, y, localZ));
-                if (IsNaturalGround(contents) &&
-                    Terrain.ExtractContents(chunk.GetCellValueFast(localX, y + 1, localZ)) == 0)
-                {
-                    return y;
-                }
-            }
-            return -1;
-        }
-
-        private bool IsForestFloor(int x, int y, int z)
-        {
-            Terrain terrain = SubsystemTerrain.Terrain;
-            if (terrain.GetSeasonalHumidity(x, z) < 6)
-            {
-                return false;
-            }
-            int leaves = 0;
-            for (int dx = -3; dx <= 3; dx++)
-            {
-                for (int dz = -3; dz <= 3; dz++)
-                {
-                    for (int dy = 2; dy <= 8; dy++)
-                    {
-                        int contents = Terrain.ExtractContents(terrain.GetCellValue(x + dx, y + dy, z + dz));
-                        if (contents > 0 && BlocksManager.Blocks[contents] is LeavesBlock && ++leaves >= 3)
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        private static int CountPatches(TerrainChunk chunk, int stopAt)
-        {
-            int count = 0;
-            for (int x = 0; x < 16; x++)
-            {
-                for (int z = 0; z < 16; z++)
-                {
-                    int top = chunk.GetTopHeightFast(x, z);
-                    for (int y = 1; y <= top; y++)
-                    {
-                        int contents = Terrain.ExtractContents(chunk.GetCellValueFast(x, y, z));
-                        if ((contents == MushroomPatchBlock.Index || contents == FlyAgaricPatchBlock.Index) &&
-                            ++count >= stopAt)
-                        {
-                            return count;
-                        }
-                    }
-                }
-            }
-            return count;
         }
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
-            if (!IsNaturalGround(Terrain.ExtractContents(SubsystemTerrain.Terrain.GetCellValue(x, y - 1, z))))
+            if (CommonLib.WorkType == WorkType.Client || y <= 0 || y >= 255) return;
+            Terrain terrain = SubsystemTerrain.Terrain;
+            value = terrain.GetCellValue(x, y, z);
+            int id = Terrain.ExtractContents(value);
+            if (id != MushroomPatchBlock.Index && id != FlyAgaricPatchBlock.Index) return;
+            int ground = terrain.GetCellContents(x, y - 1, z);
+            if (!PlantHabitat.IsRootingSoil(ground))
             {
-                SubsystemTerrain.DestroyCell(0, x, y, z, 0, false, false, null);
+                if (PlantGrowthBudget.Take(1)) SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
                 return;
             }
 
             int data = Terrain.ExtractData(value);
-            if ((data & PermanentData) != 0)
+            if (!PlantGrowthSite.IsLiving(SubsystemTerrain)) return;
+            if ((data & Established) != 0)
             {
-                return;
-            }
-
-            int age = data & DryAgeMask;
-            if (m_weather.GetPrecipitationShaftInfo(x, z).Intensity > 0.05f)
-            {
-                if (age != 0)
+                int stage = (data & StageMask) >> 6;
+                if (stage == 0 || pollPass % (id == MushroomPatchBlock.Index ? 3 : 5) != 0) return;
+                bool wet = ground == SoilBlock.Index && SoilBlock.GetHydration(Terrain.ExtractData(terrain.GetCellValue(x, y - 1, z)));
+                if (PlantHabitat.For(id).AllowsGrowth(PlantHabitat.TemperatureAt(terrain, x, y, z),
+                    terrain.GetSeasonalHumidity(x, z), terrain.GetCellLight(x, y + 1, z), wet) && PlantGrowthBudget.Take(1))
                 {
-                    SubsystemTerrain.ChangeCell(x, y, z, Terrain.ReplaceData(value, data & ~DryAgeMask), true, null);
+                    int next = (data & ~StageMask) | (((stage + 1) & 3) << 6);
+                    SubsystemTerrain.ChangeCell(x, y, z, Terrain.ReplaceData(value, next), true, null);
                 }
                 return;
             }
 
-            age++;
-            if (age >= MaxDryAge)
-            {
+            // Old temporary rain patches retain their original drying rule.
+            int age = data & DryAgeMask;
+            int nextAge = m_weather.GetPrecipitationShaftInfo(x, z).Intensity > .05f ? 0 : age + 1;
+            if (nextAge == age || !PlantGrowthBudget.Take(1)) return;
+            if (nextAge >= MaxDryAge)
                 SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
-            }
             else
-            {
-                SubsystemTerrain.ChangeCell(
-                    x,
-                    y,
-                    z,
-                    Terrain.ReplaceData(value, (data & ~DryAgeMask) | (age & DryAgeMask)),
-                    true,
-                    null);
-            }
+                SubsystemTerrain.ChangeCell(x, y, z, Terrain.ReplaceData(value, (data & ~DryAgeMask) | nextAge), true, null);
         }
 
-        private static bool IsNaturalGround(int contents)
+        public override void OnItemHarvested(int x, int y, int z, int oldValue, ref BlockDropValue drop, ref int newValue)
         {
-            return contents > 0 &&
-                (BlocksManager.Blocks[contents] is GrassBlock || BlocksManager.Blocks[contents] is DirtBlock);
+            if (CommonLib.WorkType == WorkType.Client || y <= 0 || Terrain.ExtractContents(newValue) != 0) return;
+            int id = Terrain.ExtractContents(oldValue);
+            if (id != MushroomPatchBlock.Index && id != FlyAgaricPatchBlock.Index) return;
+            int fruit = id == MushroomPatchBlock.Index ? WildMushroomBlock.Index : FlyAgaricBlock.Index;
+            if (Terrain.ExtractContents(drop.Value) != fruit) return;
+            int data = Terrain.ExtractData(oldValue);
+            if ((data & Established) != 0 && (data & StageMask) == 0 &&
+                PlantHabitat.IsRootingSoil(SubsystemTerrain.Terrain.GetCellContents(x, y - 1, z)))
+            {
+                newValue = Terrain.ReplaceData(oldValue, data | Immature);
+            }
         }
     }
 }

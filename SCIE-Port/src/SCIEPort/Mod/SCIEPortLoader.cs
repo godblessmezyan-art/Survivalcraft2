@@ -12,7 +12,6 @@ using SCIEPort.Features.Inventory;
 using Engine;
 using Game.NetWork;
 using SCIEPort.Features.Creatures;
-using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Tanks;
 using SCIEPort.Features.Vehicles;
 using SCIEPort.Features.PortableFortress;
@@ -27,7 +26,6 @@ namespace SCIEPort.Mod
     /// <summary>SCNET x25.01.17 loader entry for the SCIE port.</summary>
     public sealed class SCIEPortLoader : ModLoader
     {
-        private bool m_kellyPlantsReady;
         private static bool s_networkPackageRegistered;
 
         /// <inheritdoc />
@@ -57,7 +55,6 @@ namespace SCIEPort.Mod
             }
 
             ModsManager.RegisterHook("BlocksInitalized", this);
-            ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
             ModsManager.RegisterHook("OnMinerDig", this);
             ModsManager.RegisterHook("AttackBody", this);
@@ -146,6 +143,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            if (componentHealth?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.ProtectBedTemperature(componentHealth, attacker, ignoreInvulnerability, cause) == true) { Skip=true; return; }
             var death=componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;
             if(death?.FriendlyDamage(componentHealth.Entity.FindComponent<ComponentBody>(false),attacker)==true){Skip=true;return;}
             death?.NoteAttack(componentHealth,attacker);
@@ -200,6 +198,7 @@ namespace SCIEPort.Mod
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
+            GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.UpdateBedInsulation();
         }
 
         /// <inheritdoc />
@@ -366,18 +365,6 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void BlocksInitalized()
         {
-            try
-            {
-                _ = KellyPlantTextures.Atlas;
-                m_kellyPlantsReady = true;
-                Log.Information("[SCIEPort] Kelly plant resources initialized (14 blocks, original inventory names).");
-            }
-            catch (System.Exception exception)
-            {
-                m_kellyPlantsReady = false;
-                Log.Error("[SCIEPort] Kelly plant resources failed to initialize: " + exception);
-            }
-
             // The `.clo` merge can silently drop entries (load order, one unreadable asset), which
             // left some or all Four Saints outfits missing from the clothing tab. Register whatever
             // the `.clo` did not deliver, one guarded item at a time.
@@ -392,21 +379,5 @@ namespace SCIEPort.Mod
             PortInventoryCatalog.Initialize();
         }
 
-        /// <inheritdoc />
-        public override void OnTerrainContentsGenerated(TerrainChunk chunk)
-        {
-            try
-            {
-                if (m_kellyPlantsReady && KellyPlantWorldGeneration.IsReady)
-                {
-                    KellyPlantWorldGeneration.Generate(chunk);
-                }
-            }
-            catch (System.Exception exception)
-            {
-                Log.Error("[SCIEPort] Kelly plant world generation failed: " + exception);
-            }
-
-        }
     }
 }

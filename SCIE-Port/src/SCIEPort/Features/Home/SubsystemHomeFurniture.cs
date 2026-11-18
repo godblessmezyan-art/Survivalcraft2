@@ -29,7 +29,12 @@ namespace SCIEPort.Features.Home
         public UpdateOrder UpdateOrder => UpdateOrder.Default;
         internal bool MayPlace => !placementHalted && added.Count < 128;
         /// <inheritdoc/>
-        public override void Load(ValuesDictionary values) { base.Load(values); clock = Project.FindSubsystem<SubsystemTime>(true); }
+        public override void Load(ValuesDictionary values)
+        {
+            base.Load(values); clock = Project.FindSubsystem<SubsystemTime>(true);
+            bedUpdates = Project.FindSubsystem<SubsystemUpdate>(true);
+            bedInsulation = new BedInsulationUpdate(this); bedUpdates.AddUpdateable(bedInsulation);
+        }
         /// <inheritdoc/>
         public override void OnBlockAdded(int value, int oldValue, int x, int y, int z)
         {
@@ -257,6 +262,6 @@ namespace SCIEPort.Features.Home
                 gui.ModalPanelWidget = new HomeStorageWidget(gui.m_componentPlayer.ComponentMiner.Inventory, (ComponentHomeStorage)chest.m_componentChest);
         }
         /// <inheritdoc/>
-        public override void Dispose() { ClearSeats(); lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); footprintBusy.Clear(); base.Dispose(); }
+        public override void Dispose() { if (bedInsulation != null) bedUpdates?.RemoveUpdateable(bedInsulation); bedInsulation = null; bedUpdates = null; ClearSeats(); lock (requests) requests.Clear(); added.Clear(); waiting.Clear(); placers.Clear(); removing.Clear(); lastRequest.Clear(); footprintBusy.Clear(); base.Dispose(); }
     }
 }

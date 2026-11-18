@@ -28,7 +28,7 @@ if ($Package) {
     $archive = [IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($Package))
     try {
         if ($archive.GetEntry('CelestialCodex.dll')) { throw 'Standalone reader DLL must not be packaged.' }
-        foreach ($name in @('SCIEPort.dll', 'Assets/Blocks/CelestialCodex.csv', 'Assets/Database/CelestialCodex.xdb', 'Assets/Textures/CelestialCodex/Book.png')) {
+        foreach ($name in @('SCIEPort.dll', 'Assets/Blocks/CelestialCodex.csv', 'Assets/Database/CelestialCodex.xdb', 'Assets/Textures/CelestialCodex/Book.png', 'Assets/Textures/CelestialCodex/Paper.png', 'Assets/Textures/CelestialCodex/Botanical.png')) {
             $entry = $archive.GetEntry($name)
             if (-not $entry) { throw "Missing reader entry: $name" }
             $source = if ($name -eq 'SCIEPort.dll') { $AssemblyPath } else { Join-Path $portRoot ('src/SCIEPort/' + $name) }

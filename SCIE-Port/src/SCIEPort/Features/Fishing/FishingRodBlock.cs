@@ -11,6 +11,9 @@ namespace SCIEPort.Features.Fishing
     {
         public const int Index = 972;
 
+        private static readonly Matrix s_tilt = Matrix.CreateRotationY(0.4f) * Matrix.CreateRotationX(0.12f);
+        internal static Vector3 ModelTip => Vector3.Transform(new Vector3(0f, 0f, -0.635f), s_tilt);
+
         private readonly BlockMesh m_mesh = new BlockMesh();
         private Texture2D m_texture;
 
@@ -61,7 +64,7 @@ namespace SCIEPort.Features.Fishing
 
         private static void BuildMesh(BlockMesh mesh)
         {
-            Matrix tilt = Matrix.CreateRotationY(0.4f) * Matrix.CreateRotationX(0.12f);
+            Matrix tilt = s_tilt;
             Box(mesh, tilt, new Vector3(0f, 0f, 0.36f), new Vector3(0.14f, 0.14f, 0.07f), new Color(48, 33, 24));
             Box(mesh, tilt, new Vector3(0f, 0f, 0.20f), new Vector3(0.115f, 0.115f, 0.30f), new Color(166, 121, 74));
             Box(mesh, tilt, new Vector3(0f, 0f, 0.04f), new Vector3(0.125f, 0.125f, 0.05f), new Color(206, 170, 112));

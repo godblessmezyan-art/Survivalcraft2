@@ -19,10 +19,11 @@ namespace SCIEPort.Features.CelestialCodex.UI
         private readonly ReaderSession session;
         private BookImportDialog importer;
         private readonly CanvasWidget panel, viewport, settingsPanel;
-        private readonly RectangleWidget paper, rule;
+        private readonly CodexSheet paper;
+        private readonly CodexInk rule;
         private readonly ScrollPanelWidget scroll;
         private readonly StackPanelWidget entries;
-        private readonly CodexLabel title, status, text, chapterTitle, folio, fontName;
+        private readonly CodexLabel title, status, text, chapterTitle, folio, fontName, eyebrow;
         private readonly CodexButton back, close, previous, middle, action, next, smaller, larger, light, dark;
         private readonly List<CodexButton> rows = new List<CodexButton>();
         private readonly List<string> rowIds = new List<string>();
@@ -43,8 +44,9 @@ namespace SCIEPort.Features.CelestialCodex.UI
         {
             Player = player; session = new ReaderSession();
             panel = new CanvasWidget { HorizontalAlignment = WidgetAlignment.Center, VerticalAlignment = WidgetAlignment.Center }; Children.Add(panel);
-            paper = new RectangleWidget { OutlineThickness = 2, IsHitTestVisible = false }; panel.Children.Add(paper);
-            rule = new RectangleWidget { OutlineThickness = 0, IsHitTestVisible = false }; panel.Children.Add(rule);
+            paper = new CodexSheet();panel.Children.Add(paper);
+            rule = new CodexInk(CodexStroke.Rule);panel.Children.Add(rule);
+            eyebrow=Label(.45f);eyebrow.Text="云 天 书 典";eyebrow.TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter;panel.Children.Add(eyebrow);
             title = Label(.82f); title.TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter;
             status = Label(.56f); status.TextAnchor = TextAnchor.VerticalCenter;
             folio = Label(.58f); folio.TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter;
@@ -53,11 +55,11 @@ namespace SCIEPort.Features.CelestialCodex.UI
             viewport = new CanvasWidget(); panel.Children.Add(viewport);
             scroll = new ScrollPanelWidget { Direction = LayoutDirection.Vertical, ScrollPosition = 0, ScrollSpeed = 0 }; viewport.Children.Add(scroll);
             entries = new StackPanelWidget { Direction = LayoutDirection.Vertical }; scroll.Children.Add(entries);
-            chapterTitle = Label(.96f); chapterTitle.WordWrap = true; chapterTitle.MaxLines = int.MaxValue; chapterTitle.Ellipsis = false; chapterTitle.Margin = new Vector2(0, 12);
-            text = Label(1f); text.WordWrap = true; text.MaxLines = int.MaxValue; text.Ellipsis = false; text.Size = new Vector2(-1, -1); text.VerticalAlignment = WidgetAlignment.Near;
+            chapterTitle = Label(.96f); chapterTitle.WordWrap = true; chapterTitle.MaxLines = int.MaxValue; chapterTitle.Ellipsis = false; chapterTitle.Margin = new Vector2(0, 16);
+            text = new CodexParagraph {WordWrap=true,MaxLines=int.MaxValue,Ellipsis=false,Size=new Vector2(-1,-1),HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Near};
             settingsPanel = new CanvasWidget { Size = new Vector2(300, 200) };
             fontName = Label(.7f); fontName.TextAnchor = TextAnchor.HorizontalCenter | TextAnchor.VerticalCenter; settingsPanel.Children.Add(fontName);
-            smaller = new CodexButton("A−"); larger = new CodexButton("A+"); light = new CodexButton("纸页"); dark = new CodexButton("夜读");
+            smaller = new CodexButton("A-"); larger = new CodexButton("A+"); light = new CodexButton("纸页"); dark = new CodexButton("夜读");
             settingsPanel.Children.Add(smaller); settingsPanel.Children.Add(larger); settingsPanel.Children.Add(light); settingsPanel.Children.Add(dark);
             if (loadInitially) Load(new Request(1));
         }
@@ -73,30 +75,37 @@ namespace SCIEPort.Features.CelestialCodex.UI
         }
         private void Layout(Vector2 available)
         {
-            var layout = new ReaderLayout(available.X, available.Y); float w = layout.Width, h = layout.Height, x = layout.ContentX, bw = layout.ButtonWidth;
+            bool reading=view==View.Reading;
+            var layout = new ReaderLayout(available.X, available.Y,reading); float w = layout.Width, h = layout.Height, x = layout.ContentX, bw = layout.ButtonWidth;
             panel.Size = new Vector2(w, h);
-            Place(panel, back, 12, 8, 64, 48); Place(panel, close, w - 76, 8, 64, 48);
-            Place(panel, title, 84, 8, MathUtils.Max(1, w - 168), 48); title.Text = heading;
-            Place(panel, status, x, layout.Compact ? 56 : 64, layout.ContentWidth, layout.Compact ? 16 : 24);
-            Place(panel, rule, x, layout.ContentY - 8, layout.ContentWidth, 1);
+            ReaderTheme colors=theme==0?ReaderTheme.Paper:ReaderTheme.Night;
+            paper.Arrange(w,h,colors,reading,layout.Compact);
+            Place(panel, back, 18, 12, 64, 48); Place(panel, close, w-82, 12, 64, 48);
+            eyebrow.IsVisible=!reading&&!layout.Compact;
+            Place(panel,eyebrow,88,20,MathUtils.Max(1,w-176),18);
+            Place(panel,title,88,layout.Compact?4:reading?12:42,MathUtils.Max(1,w-176),layout.Compact?40:reading?42:36);title.Text=heading;
+            title.FontScale=reading?.66f:.82f;
+            Place(panel,status,x,layout.Compact?48:reading?66:92,layout.ContentWidth,layout.Compact?16:24);
+            status.TextAnchor=TextAnchor.HorizontalCenter|TextAnchor.VerticalCenter;
+            Place(panel, rule, x, layout.ContentY-9, layout.ContentWidth, 2);
             viewport.Size = new Vector2(layout.ContentWidth, layout.ContentHeight); panel.SetWidgetPosition(viewport, new Vector2(x, layout.ContentY));
             Place(panel, previous, x, layout.FooterY, bw, 48); Place(panel, middle, x + bw + 8, layout.FooterY, bw, 48);
             Place(panel, folio, x + bw + 8, layout.FooterY, bw, 48); Place(panel, action, x + 2 * (bw + 8), layout.FooterY, bw, 48); Place(panel, next, x + 3 * (bw + 8), layout.FooterY, bw, 48);
             if (view == View.Settings) Place(panel, middle, x + (layout.ContentWidth - 144) / 2, layout.FooterY, 144, 48);
-            foreach (CodexButton row in rows) row.Size = new Vector2(layout.ContentWidth, 92);
-            settingsPanel.Size = new Vector2(layout.ContentWidth, 200);
-            Place(settingsPanel, smaller, 0, 20, 64, 48); Place(settingsPanel, larger, layout.ContentWidth - 64, 20, 64, 48);
-            Place(settingsPanel, fontName, 72, 20, MathUtils.Max(1, layout.ContentWidth - 144), 48);
-            Place(settingsPanel, light, 0, 92, (layout.ContentWidth - 8) / 2, 48); Place(settingsPanel, dark, (layout.ContentWidth + 8) / 2, 92, (layout.ContentWidth - 8) / 2, 48);
-            text.FontScale = .79f + .13f * font; text.FontSpacing = new Vector2(0, 8);
+            foreach (CodexButton row in rows) row.Size = new Vector2(layout.ContentWidth,row.CompactRow?60:row.Prominent?100:88);
+            settingsPanel.Size = new Vector2(layout.ContentWidth,208);
+            Place(settingsPanel, smaller, 0, 16, 64, 52); Place(settingsPanel, larger, layout.ContentWidth-64,16,64,52);
+            Place(settingsPanel,fontName,72,16,MathUtils.Max(1,layout.ContentWidth-144),52);
+            Place(settingsPanel, light, 0, 108, (layout.ContentWidth-12)/2,64);Place(settingsPanel,dark,(layout.ContentWidth+12)/2,108,(layout.ContentWidth-12)/2,64);
+            text.FontScale = .79f + .13f * font; text.FontSpacing = new Vector2(0, 11);
             ApplyTheme();
         }
         private void ApplyTheme()
         {
             ReaderTheme colors = theme == 0 ? ReaderTheme.Paper : ReaderTheme.Night;
-            paper.FillColor = CodexButton.Rgb(colors.Background); paper.OutlineColor = CodexButton.Rgb(colors.Border); rule.FillColor = CodexButton.Rgb(colors.Border);
+            rule.OutlineColor=CodexButton.Rgb(colors.Border);
             title.Color = text.Color = chapterTitle.Color = CodexButton.Rgb(colors.Ink);
-            status.Color = folio.Color = fontName.Color = CodexButton.Rgb(colors.Muted);
+            status.Color = folio.Color = fontName.Color = eyebrow.Color = CodexButton.Rgb(colors.Muted);
             back.Theme = close.Theme = previous.Theme = middle.Theme = action.Theme = next.Theme = smaller.Theme = larger.Theme = light.Theme = dark.Theme = colors;
             foreach (CodexButton row in rows) row.Theme = colors;
             light.IsChecked = theme == 0; dark.IsChecked = theme == 1;
@@ -107,7 +116,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
         }
         private void Row(string caption, string detail, string id, bool prominent = false, bool selected = false)
         {
-            var row = new CodexButton(caption, true) { Margin = new Vector2(0, 4), Prominent = prominent, IsChecked = selected };
+            var row = new CodexButton(caption, true) { Margin = new Vector2(0,6), Prominent=prominent, IsChecked=selected,CompactRow=id=="@source"||id=="@import" };
             row.Detail.Text = detail; entries.Children.Add(row); rows.Add(row); rowIds.Add(id);
         }
         private void ToggleSource()
@@ -126,7 +135,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
             {
                 // The import dialog only calls this from its game-thread Update.
                 if (!Closed && local) Load(new Request(1));
-            });
+            },theme==0?ReaderTheme.Paper:ReaderTheme.Night);
             DialogsManager.ShowDialog(Player.GameWidget.GuiWidget, importer);
         }
         private void Empty(string message)
@@ -166,7 +175,8 @@ namespace SCIEPort.Features.CelestialCodex.UI
         }
         private void ShowReading()
         {
-            view = View.Reading; Clear(); heading = book.Title; chapterTitle.Text = chapter.Title; text.Text = chapter.Text;
+            view = View.Reading; Clear(); heading = book.Title; chapterTitle.Text = chapter.Title;
+            text.Text = ReaderLayout.CompactBlankLines(chapter.Text);
             entries.Children.Add(chapterTitle); entries.Children.Add(text);
         }
         private void ShowSettings()
@@ -231,8 +241,8 @@ namespace SCIEPort.Features.CelestialCodex.UI
             else if (view == View.Chapters) ShowCatalog(); else Close();
         }
         internal void Close()
-        { if (Closed) return; SavePosition(); Closed = true; session.Dispose(); if (ParentWidget != null) DialogsManager.HideDialog(this); Player = null; }
-        public override void UpdateCeases() { Close(); base.UpdateCeases(); }
+        { if (Closed) return; SavePosition(); Closed = true; if(importer!=null) importer.Dispose(); session.Dispose(); if (ParentWidget != null) DialogsManager.HideDialog(this); Player = null; }
+        public override void UpdateCeases() { if(importer==null||importer.Closed) Close(); base.UpdateCeases(); }
         public override void Dispose() { Close(); base.Dispose(); }
         public override void Update()
         {
@@ -255,7 +265,7 @@ namespace SCIEPort.Features.CelestialCodex.UI
             foreach (CodexButton row in rows) row.IsEnabled = !busy;
             smaller.IsEnabled = font > 0; larger.IsEnabled = font < 4;
             fontName.Text = "字号 · " + FontNames[font];
-            light.Text = theme == 0 ? "纸页 · 当前" : "纸页"; dark.Text = theme == 1 ? "夜读 · 当前" : "夜读";
+            light.Text="纸页";dark.Text="夜读";
             folio.Text = view == View.Catalog ? "第 " + page + " 页" : (chapterPage + 1) + " / " + MathUtils.Max(1, (book == null ? 0 : book.Chapters.Count + 23) / 24);
             string source = book != null && view != View.Catalog && !settings && book.SourceMode == "ai_reading" ? "AI解读" : "";
             string meta = source;
@@ -270,9 +280,16 @@ namespace SCIEPort.Features.CelestialCodex.UI
         {
             if (Player == null || Player.GameWidget == null || Player.GameWidget.GuiWidget == null) { Close(); return; }
             ReaderResult result = session.Take(); if (result != null) Apply(result);
-            Chrome(); Layout(Player.GameWidget.GuiWidget.ActualSize);
             RestoreAfterLayout();
             if (view == View.Reading && Time.RealTime - lastSave > 5) SavePosition();
+            HandleInput();
+            // Navigation can replace the rows. Size them before the engine measures this frame.
+            if (Closed) return;
+            Chrome();
+            Layout(Player.GameWidget.GuiWidget.ActualSize);
+        }
+        private void HandleInput()
+        {
             if (close.IsClicked) { Close(); return; }
             if (back.IsClicked || Input.Back || Input.Cancel) { Input.Clear(); GoBack(); return; }
             if (busy) return;

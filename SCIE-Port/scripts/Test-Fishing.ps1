@@ -1,7 +1,7 @@
 ﻿param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
-foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
+foreach($file in @('Engine.dll','EntitySystem.dll','LiteNetLib.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
 $game=[Game.Block].Assembly
 
 # Native survival facts used by the fishing loop.
@@ -14,7 +14,7 @@ foreach($name in @('Ingredients','ResultValue','ResultCount','RequiredHeatLevel'
     if([Game.CraftingRecipe].GetField($name) -eq $null){throw "CraftingRecipe field missing: $name"}
 }
 if([Game.BlocksManager].GetMethod('FindBlockByTypeName') -eq $null){throw 'Block type lookup missing'}
-if([Game.ComponentInventoryBase].GetMethod('FindAcquireSlotForItem') -eq $null){throw 'Inventory acquire helper missing'}
+if([Game.ComponentInventoryBase].GetMethod('AcquireItems') -eq $null){throw 'Inventory acquire helper missing'}
 if(-not ([Game.SubsystemPickables].GetMethod('AddPickable') -and [Game.SubsystemParticles].GetMethod('AddParticleSystem'))){throw 'Pickable/particle subsystems missing'}
 $splash=[Game.WaterSplashParticleSystem].GetConstructors() | Where-Object { $_.GetParameters().Count -eq 3 }
 if($splash -eq $null){throw 'Water splash constructor changed'}
@@ -57,26 +57,13 @@ if($AssemblyPath){
     if(-not $subsystemType.IsSubclassOf([Game.SubsystemBlockBehavior])){throw 'Fishing subsystem type changed'}
     $subsystem=[Activator]::CreateInstance($subsystemType)
     if(@($subsystem.HandledBlocks) -notcontains 972){throw 'Fishing subsystem does not handle the rod'}
-    if(-not [Game.IDrawable].IsAssignableFrom($subsystemType) -or @($subsystem.DrawOrders) -notcontains 106){throw 'Persistent fishing rendering is not registered'}
-    $decode=$subsystemType.GetMethod('DecodeWaterHeight',[Reflection.BindingFlags]'Static,NonPublic')
-    $water=[Game.WaterBlock]::new()
-    foreach($data in 0..31){
-        foreach($light in @(0,15)){
-            $value=[Game.Terrain]::MakeBlockValue([Game.WaterBlock]::Index,$light,$data)
-            $height=$decode.Invoke($null,@($water,$value))
-            $expected=$water.GetLevelHeight([Game.FluidBlock]::GetLevel($data))
-            if([Math]::Abs($height-$expected) -gt 0.000001){throw "Packed water value decoding failed: data=$data light=$light"}
-        }
-    }
-    Write-Host 'Fishing final-DLL water decoder: 64 native packed values passed.'
     $packet=[Activator]::CreateInstance($assembly.GetType('SCIEPort.Features.Fishing.FishingCatchPackage',$true))
     if($packet.ID -ne 236){throw 'Fishing packet identity changed'}
     if($null -ne $table[236]){throw 'Fishing protocol 236 already registered in this audit process'}
     try{[Game.NetWork.PackageManager]::RegisterPackage($packet);if($tableField.GetValue($null)[236] -ne $packet){throw 'Native fishing package registration failed'}}
     finally{[Game.NetWork.PackageManager]::UnRegisterPackage($packet)}
     $flags=[Reflection.BindingFlags]'Instance,NonPublic';$packetType=$packet.GetType()
-    foreach($kind in 0..4){
-    $packetType.GetField('Kind',$flags).SetValue($packet,[byte]$kind)
+    $packetType.GetField('Kind',$flags).SetValue($packet,[byte]11)
     $packetType.GetField('Caster',$flags).SetValue($packet,[uint16]42)
     $packetType.GetField('Cell',$flags).SetValue($packet,[Engine.Point3]::new(-12,80,345))
     $packetType.GetField('Sequence',$flags).SetValue($packet,[uint32]7)
@@ -93,21 +80,18 @@ if($AssemblyPath){
         $field=$packetType.GetField($name,$flags)
         if(-not $field.GetValue($packet).Equals($field.GetValue($copy))){throw "Fishing packet roundtrip failed: $name"}
     }
+
+    $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider
+    $options=New-Object System.CodeDom.Compiler.CompilerParameters
+    $options.GenerateInMemory=$true
+    foreach($file in @('Engine.dll','EntitySystem.dll','LiteNetLib.dll','Survivalcraft.exe')) {
+        [void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $file))
     }
-    Write-Host 'Fishing protocol: five kinds round-tripped through native 20-byte writer/reader.'
-    $queueRuntime=[Activator]::CreateInstance($subsystemType)
-    $enqueue=$subsystemType.GetMethod('Enqueue',$flags)
-    $queue=$subsystemType.GetField('m_pending',$flags).GetValue($queueRuntime)
-    for($i=0;$i -lt 200;$i++){[void]$enqueue.Invoke($queueRuntime,@($packet,$null))}
-    if($queue.Count -ne 128){throw 'Fishing network queue must be capped at 128'}
-    $packetType.GetField('Sequence',$flags).SetValue($packet,[uint32]999)
-    $pending=$queue.Peek()
-    $copied=$pending.GetType().GetField('Packet',$flags).GetValue($pending)
-    if($packetType.GetField('Sequence',$flags).GetValue($copied) -ne 7){throw 'Fishing network callback retained a mutable packet'}
-    $queueRuntime.Dispose()
-    [void]$enqueue.Invoke($queueRuntime,@($packet,$null))
-    if($queue.Count -ne 0){throw 'Disposed fishing runtime retained queued messages'}
-    Write-Host 'Fishing native queue capacity/copy/dispose checks passed.'
+    [void]$options.ReferencedAssemblies.Add('System.Core.dll')
+    $compiled=$compiler.CompileAssemblyFromFile($options,(Join-Path $root 'tests/SCIEPort.Fishing.Tests/FishingNativeProbe.cs'))
+    if($compiled.Errors.HasErrors){throw (($compiled.Errors|ForEach-Object ToString)-join "`n")}
+    try{$compiled.CompiledAssembly.GetType('FishingNativeProbe').GetMethod('Run').Invoke($null,@($assembly))}
+    catch{Write-Host $_.Exception.ToString();throw}
 }
 
 if($Package){

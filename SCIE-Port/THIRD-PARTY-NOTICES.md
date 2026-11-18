@@ -1,5 +1,13 @@
 # Third-party notices
 
+## Original Android document picker (2026-11-17)
+
+`tools/codex-picker/CodexDocumentPicker.java` and its 5-class DEX are original project code. The DEX is embedded in the existing SCIEPort.dll solely to bridge the trimmed Android host to the platform document picker; no game assembly, APK, Android SDK class, AndroidX or second managed DLL is included. The compiler-only Android API jar and R8 are pinned in `tools/codex-picker/manifest.json` and are not redistributed. Source, executable resource hashes, reproduction command and checks are recorded there and in `docs/CODEX-PICKER-APPLE-0.89.1.md`.
+
+## Original plant geometry and apple-tree adaptation (2026-11-16)
+
+The replacement stems, branches, folded leaves, flowers, pods, kernels, mushroom caps and fruit meshes are original procedural C# geometry in `src/SCIEPort/Features/Plants/PlantGeometry.cs`. The native-target apple-tree growth/fruit/transaction code is an independent adaptation within this project; it imports no native sapling implementation, Blender asset, third-party mesh, photo, font, texture, game DLL or proprietary content. Colors use an original one-pixel runtime texture. Existing authorized Kelly metadata and legacy resource files retain their original notices and package checks. `design/plants-v1/previews` contains original-geometry renders made with the locally supplied target Engine; these are synthetic QA images, not gameplay/Android evidence and are not included in the mod package.
+
 ## Original cozy furniture (2026-11-08)
 
 The six Home furniture families (13 creative appearances, 16 runtime COLLADA variants) and `HomeFurniture.png` are original project geometry and procedural color textures. The editable source is `scripts/New-HomeFurnitureAssets.py`; per-asset SHA-256 and the generator fingerprint are recorded in `docs/assets/home-furniture/manifest.json`. No external furniture model, photo, texture pack, logo, game DLL or proprietary game content was added for this feature. Blender 5.1.1 and the official Blender MCP 1.0.2 were used as local authoring tools; their installers, source checkout and Python environment are not included in the `.netmod`. Proof renders are Blender previews, not Android/game screenshots, and are not packaged.
@@ -331,6 +339,10 @@ Four original icons generated separately with the built-in OpenAI image_gen tool
 ## Nightmare knight original cavalry / 2026-11-02
 
 `Assets/Models/AbyssNightmareKnight.dae` and `Assets/Textures/AbyssNightmareKnight.png` are original project-authored geometry and UV artwork, generated reproducibly by `scripts/New-NightmareKnightAssets.py`. The horse anatomy, tack, armored rider and sword share seven rigid bones and 4924 triangles; no game or third-party mesh, character skin, weapon model or texture is copied. Primitive/export helpers originate in this project's own bone-dragon generator. `scripts/New-NightmareKnightTemplate.py` authors mod-owned overrides and references the installed Rhino component defaults and `Audio/Creatures/Horse` sounds at runtime; these installed assets/database are not redistributed. Asset SHA-256, native-import evidence and clearly labelled software previews are retained in `design/nightmare-knight/`. This original artwork may be distributed with the mod; Android/gameplay acceptance remains pending.
+
+## Celestial Codex paper UI / 2026-11-17
+
+`Assets/Textures/CelestialCodex/Paper.png` and `Botanical.png` are original artwork created with the built-in OpenAI image_gen tool for this repository. Prompts, original generated PNGs, SHA-256 provenance and the reproducible 256px packing script are retained in `design/codex-paper-ui/`. Botanical alpha is retained and RGB is premultiplied for the target game's native blending; no outside illustration, font, shader or UI library is bundled. Hand-drawn borders are original native 2D strokes. Existing game fonts are referenced at runtime and are not redistributed.
 
 ## Celestial Codex integration / 2026-11-04
 

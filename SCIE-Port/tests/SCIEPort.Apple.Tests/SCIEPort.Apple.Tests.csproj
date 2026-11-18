@@ -8,5 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\SCIEPort\Features\Apple\AppleRules.cs" Link="AppleRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\Apple\AppleTreeRules.cs" Link="AppleTreeRules.cs" />
+    <Compile Include="..\..\src\SCIEPort\Features\KellyPlants\KellyPlantRules.cs" Link="KellyPlantRules.cs" />
   </ItemGroup>
 </Project>

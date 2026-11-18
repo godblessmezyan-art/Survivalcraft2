@@ -6,6 +6,20 @@ namespace SCIEPort.Features.KellyPlants
     /// </summary>
     public static class KellyPlantRules
     {
+        /// <summary>Perennial berry stages. Cloudberry keeps legacy DATA0 ripe; wildberry keeps bit0 ripe.</summary>
+        public static int NextBerry(int data,bool cloudberry,bool fruitSeason,bool suitable,bool step)
+        {
+            if(!fruitSeason) return cloudberry?(data&~3)|1:data&~15;
+            if(!suitable||!step) return data;
+            if(cloudberry)
+            {
+                int stage=data&3;
+                return stage==0?data:(data&~3)|((stage+1)&3);
+            }
+            if((data&1)!=0) return data;
+            int age=(data>>1)&7;
+            return (data&~15)|(age>=3?1:(age+1)<<1);
+        }
         /// <summary>Creates a deterministic, world-specific random seed for one terrain chunk.</summary>
         public static int GetChunkSeed(int worldSeed, int chunkX, int chunkZ)
         {
