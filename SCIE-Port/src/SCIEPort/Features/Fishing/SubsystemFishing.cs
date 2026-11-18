@@ -1,58 +1,81 @@
 #pragma warning disable CS1591
-using System;
 using System.Collections.Generic;
 using Engine;
 using Game;
 using Game.NetWork;
+using GameEntitySystem;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.Fishing
 {
-    /// <summary>Fishing sessions, touch-driven reel timing and host-authoritative rewards.</summary>
-    public sealed class SubsystemFishing : SubsystemBlockBehavior, IUpdateable
+    public sealed partial class SubsystemFishing : SubsystemBlockBehavior, IUpdateable, IDrawable
     {
         private sealed class Session
         {
             internal ComponentPlayer Player;
-            internal Vector3 Bobber;
+            internal Client Client;
+            internal uint Sequence;
             internal Point3 Cell;
-            internal float Elapsed;
-            internal float Wait;
-            internal bool Biting;
+            internal int RodSlot;
+            internal int BaitSlot;
+            internal FishingCycle Cycle;
+            internal double NextSnapshot;
+        }
+
+        private sealed class CastAttempt
+        {
+            internal uint Sequence;
+            internal double NextCast;
         }
 
         private readonly Dictionary<ushort, Session> m_sessions = new Dictionary<ushort, Session>();
-        private readonly Dictionary<ushort, double> m_nextCast = new Dictionary<ushort, double>();
-        private readonly Dictionary<ushort, FishingRateLimiter> m_limiters = new Dictionary<ushort, FishingRateLimiter>();
-        private readonly List<ushort> m_remove = new List<ushort>();
+        private readonly Dictionary<ushort, CastAttempt> m_castAttempts = new Dictionary<ushort, CastAttempt>();
+        private readonly List<Session> m_updating = new List<Session>();
         private readonly System.Random m_random = new System.Random();
         private SubsystemTerrain m_terrain;
         private SubsystemParticles m_particles;
+        private SubsystemAudio m_audio;
         private SubsystemPickables m_pickables;
-        private SubsystemTime m_time;
         private SubsystemPlayers m_players;
+        private SubsystemTime m_time;
+        private FishingWater m_water;
         private uint m_sequence;
 
         public override int[] HandledBlocks => new[] { FishingRodBlock.Index };
-        public UpdateOrder UpdateOrder => UpdateOrder.Default;
-        private bool Authority => CommonLib.WorkType != WorkType.Client;
+        // Sample the native touch hold after ComponentInput and before ComponentPlayer handles digging.
+        public UpdateOrder UpdateOrder => (UpdateOrder)(-5);
+        private static bool Authority => CommonLib.WorkType != WorkType.Client;
         private double Now => m_time.GameTime;
 
         public override void Load(ValuesDictionary values)
         {
             base.Load(values);
             m_terrain = Project.FindSubsystem<SubsystemTerrain>(true);
-            m_particles = Project.FindSubsystem<SubsystemParticles>(true);
+            m_particles = Project.FindSubsystem<SubsystemParticles>(false);
+            m_audio = Project.FindSubsystem<SubsystemAudio>(false);
             m_pickables = Project.FindSubsystem<SubsystemPickables>(true);
-            m_time = Project.FindSubsystem<SubsystemTime>(true);
             m_players = Project.FindSubsystem<SubsystemPlayers>(true);
+            m_time = Project.FindSubsystem<SubsystemTime>(true);
+            m_water = new FishingWater(m_terrain.Terrain);
+        }
+
+        public override void OnEntityRemoved(Entity entity)
+        {
+            base.OnEntityRemoved(entity);
+            if (m_sessions.TryGetValue(entity.EntityId, out Session session))
+                Finish(session, FishingCatchPackage.Closed);
+            m_castAttempts.Remove(entity.EntityId);
+            m_views.Remove(entity.EntityId);
         }
 
         public override void Dispose()
         {
             m_sessions.Clear();
-            m_nextCast.Clear();
-            m_limiters.Clear();
+            m_castAttempts.Clear();
+            m_updating.Clear();
+            m_views.Clear();
+            m_landings.Clear();
+            m_renderer.Clear();
             base.Dispose();
         }
 
@@ -60,198 +83,300 @@ namespace SCIEPort.Features.Fishing
         {
             if (Terrain.ExtractContents(miner.ActiveBlockValue) != FishingRodBlock.Index) return false;
             ComponentPlayer player = miner.ComponentPlayer;
-            if (player == null || player.PlayerData == null || !player.PlayerData.IsMainPlayer) return true;
-            Session session;
-            if (m_sessions.TryGetValue(player.Entity.EntityId, out session))
+            if (!IsLocal(player) || m_views.ContainsKey(player.Entity.EntityId)) return true;
+            if (!m_water.TryCast(player.ComponentCreatureModel.EyePosition, ray.Direction,
+                FishingRules.MaxCastDistance, out Point3 cell))
             {
-                Reel(player, session);
+                Message(player, "此处无鱼");
+                return true;
             }
-            else
+
+            var view = new View
             {
-                Cast(player, ray);
-            }
+                Sequence = ++m_sequence,
+                Slot = miner.Inventory.ActiveSlotIndex,
+                WasHeld = player.ComponentInput.PlayerInput.Aim.HasValue,
+                Seen = Now
+            };
+            m_views.Add(player.Entity.EntityId, view);
+            Submit(player, view, FishingCatchPackage.Cast, cell);
             return true;
         }
 
         public void Update(float dt)
         {
-            if (m_sessions.Count == 0) return;
-            m_remove.Clear();
-            foreach (KeyValuePair<ushort, Session> pair in m_sessions)
-            {
-                ushort id = pair.Key;
-                Session session = pair.Value;
-                ComponentPlayer player = session.Player;
-                if (player == null || !player.IsAddedToProject || player.ComponentHealth.Health <= 0f ||
-                    Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) != FishingRodBlock.Index ||
-                    FishingRules.ShouldEndSession(Vector3.Distance(player.ComponentBody.Position, session.Bobber)))
-                {
-                    m_remove.Add(id);
-                    continue;
-                }
-                session.Elapsed += dt;
-                if (!session.Biting && session.Elapsed >= session.Wait)
-                {
-                    session.Biting = true;
-                    Splash(session.Bobber);
-                    Message(player, "咬钩", true);
-                }
-                if (session.Biting && session.Elapsed >= session.Wait + FishingRules.BiteWindow)
-                {
-                    m_remove.Add(id);
-                    m_nextCast[id] = Now + FishingRules.FailCooldown;
-                    Message(player, "鱼跑了", false);
-                }
-            }
-            foreach (ushort id in m_remove) m_sessions.Remove(id);
-        }
-
-        private void Cast(ComponentPlayer player, Ray3 ray)
-        {
-            ushort id = player.Entity.EntityId;
-            double next;
-            if (m_nextCast.TryGetValue(id, out next) && Now < next) return;
-            Vector3 direction = ray.Direction;
-            float length = direction.Length();
-            if (length < 1e-6f) return;
-            direction /= length;
-            Terrain terrain = m_terrain.Terrain;
-            FluidBlock water = BlocksManager.Blocks[WaterBlock.Index] as FluidBlock;
-            if (water == null) return;
-            for (float distance = 0.25f; distance <= FishingRules.MaxCastDistance; distance += 0.25f)
-            {
-                Vector3 point = ray.Position + direction * distance;
-                int x = (int)Math.Floor(point.X);
-                int y = (int)Math.Floor(point.Y);
-                int z = (int)Math.Floor(point.Z);
-                if (!terrain.IsCellValid(x, y, z)) break;
-                int value = terrain.GetCellValue(x, y, z);
-                int contents = Terrain.ExtractContents(value);
-                if (contents == 0) continue;
-                if (contents != WaterBlock.Index || y <= 0) break;
-                float surface = water.GetLevelHeight(FluidBlock.GetLevel(Terrain.ExtractData(value)));
-                if (surface < 0.5f) break;
-                if (terrain.GetCellContents(x, y - 1, z) != WaterBlock.Index) break;
-                Session session = new Session
-                {
-                    Player = player,
-                    Cell = new Point3(x, y, z),
-                    Bobber = new Vector3(x + 0.5f, y + surface, z + 0.5f),
-                    Wait = FishingRules.WaitDuration(m_random)
-                };
-                m_sessions[id] = session;
-                Splash(session.Bobber);
-                return;
-            }
-            Message(player, "此处无鱼", false);
-        }
-
-        private void Reel(ComponentPlayer player, Session session)
-        {
-            ushort id = player.Entity.EntityId;
-            m_sessions.Remove(id);
-            FishingRules.ReelResult result = FishingRules.Reel(session.Elapsed, session.Wait, FishingRules.BiteWindow);
-            if (result != FishingRules.ReelResult.Success)
-            {
-                m_nextCast[id] = Now + FishingRules.FailCooldown;
-                Message(player, "鱼跑了", false);
-                return;
-            }
-            if (Authority)
-            {
-                int count = FishingRules.RewardCount(m_random.Next(100));
-                Grant(player, count);
-                Message(player, "钓到鱼", false);
-            }
-            else
-            {
-                CommonLib.Net.QueuePackage(new FishingCatchPackage
-                {
-                    Kind = FishingCatchPackage.Request,
-                    Caster = id,
-                    Cell = session.Cell,
-                    Sequence = ++m_sequence
-                });
-            }
-        }
-
-        internal void AcceptCatch(ComponentPlayer player, FishingCatchPackage packet, Client client)
-        {
-            if (!Authority || player == null || client == null) return;
-            int count = 0;
-            if (ValidateCatch(player, packet.Cell) && Limiter(player.Entity.EntityId).TryAccept(Now))
-            {
-                count = FishingRules.RewardCount(m_random.Next(100));
-                Grant(player, count);
-            }
-            CommonLib.Net.QueuePackage(new FishingCatchPackage
-            {
-                Kind = FishingCatchPackage.Result,
-                To = client,
-                Cell = packet.Cell,
-                Count = (byte)count
-            });
-        }
-
-        internal void ReceiveCatch(FishingCatchPackage packet)
-        {
-            if (packet.Kind != FishingCatchPackage.Result || packet.Count == 0) return;
-            Splash(new Vector3(packet.Cell.X + 0.5f, packet.Cell.Y + 0.5f, packet.Cell.Z + 0.5f));
             foreach (ComponentPlayer player in m_players.ComponentPlayers)
             {
-                if (player.PlayerData == null || !player.PlayerData.IsMainPlayer) continue;
-                Message(player, "钓到鱼", false);
+                if (IsLocal(player) && m_views.TryGetValue(player.Entity.EntityId, out View view))
+                    ReadInput(player, view);
+            }
+
+            if (Authority)
+            {
+                m_updating.AddRange(m_sessions.Values);
+                foreach (Session session in m_updating)
+                    Advance(session, Now);
+                m_updating.Clear();
+            }
+            UpdateViews();
+        }
+
+        private void ReadInput(ComponentPlayer player, View view)
+        {
+            if (!Equipped(player, view.Slot))
+            {
+                Submit(player, view, FishingCatchPackage.Cancel);
+                m_views.Remove(player.Entity.EntityId);
                 return;
+            }
+
+            ComponentInput component = player.ComponentInput;
+            PlayerInput input = component.PlayerInput;
+            bool tapped = input.Interact.HasValue;
+            bool held = input.Aim.HasValue;
+            bool pressed = held && !view.WasHeld;
+            view.WasHeld = held;
+            if (tapped || held)
+            {
+                component.m_playerInput.Interact = null;
+                component.m_playerInput.Hit = null;
+                component.m_playerInput.Dig = null;
+            }
+
+            if (view.Kind == FishingCatchPackage.Reeling || view.HookSent)
+            {
+                if (held != view.SentHeld || (held && !Authority && Now >= view.NextHold))
+                {
+                    view.SentHeld = held;
+                    view.NextHold = Now + FishingRules.UpdateInterval;
+                    Submit(player, view, held ? FishingCatchPackage.Hold : FishingCatchPackage.Release);
+                }
+            }
+            else if (view.Kind == FishingCatchPackage.Bite && (tapped || pressed))
+            {
+                view.HookSent = true;
+                view.SentHeld = held;
+                view.NextHold = Now + FishingRules.UpdateInterval;
+                Submit(player, view, FishingCatchPackage.Hook, count: held ? (byte)1 : (byte)0);
+            }
+            else if (tapped && view.Kind != 0)
+            {
+                Submit(player, view, FishingCatchPackage.Cancel);
             }
         }
 
-        private bool ValidateCatch(ComponentPlayer player, Point3 cell)
+        private void Submit(ComponentPlayer player, View view, byte kind, Point3 cell = default(Point3), byte count = 0)
         {
-            if (!player.IsAddedToProject || player.ComponentHealth.Health <= 0f) return false;
-            if (Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) != FishingRodBlock.Index) return false;
-            Terrain terrain = m_terrain.Terrain;
-            if (!terrain.IsCellValid(cell.X, cell.Y, cell.Z)) return false;
-            if (terrain.GetCellContents(cell.X, cell.Y, cell.Z) != WaterBlock.Index) return false;
-            Vector3 center = new Vector3(cell.X + 0.5f, cell.Y + 0.5f, cell.Z + 0.5f);
-            return Vector3.Distance(player.ComponentBody.Position + new Vector3(0f, 1f, 0f), center) <= FishingRules.MaxCatchDistance;
+            var packet = new FishingCatchPackage
+            {
+                Kind = kind,
+                Caster = player.Entity.EntityId,
+                Sequence = view.Sequence,
+                Cell = cell,
+                Count = count
+            };
+            if (Authority)
+                AcceptInput(player, packet, null);
+            else
+                CommonLib.Net.QueuePackage(packet);
         }
 
-        private void Grant(ComponentPlayer player, int count)
+        internal void AcceptInput(ComponentPlayer player, FishingCatchPackage packet, Client client)
+        {
+            if (!Authority || packet.Sequence == 0) return;
+            double now = Now;
+            ushort id = player.Entity.EntityId;
+            if (packet.Kind == FishingCatchPackage.Cast)
+            {
+                StartCast(player, packet, client, now);
+                return;
+            }
+            if (!m_sessions.TryGetValue(id, out Session session) || session.Player != player ||
+                !ReferenceEquals(session.Client, client) || session.Sequence != packet.Sequence) return;
+            if (packet.Kind == FishingCatchPackage.Cancel)
+            {
+                Finish(session, FishingCatchPackage.Closed);
+                return;
+            }
+
+            if (!ValidSession(session))
+            {
+                Finish(session, FishingCatchPackage.Closed);
+                return;
+            }
+            if (packet.Kind == FishingCatchPackage.Hook && session.Cycle.Hook(now, packet.Count == 1))
+            {
+                Snapshot(session, now);
+                return;
+            }
+            if (packet.Kind == FishingCatchPackage.Hold || packet.Kind == FishingCatchPackage.Release)
+                session.Cycle.SetHeld(now, packet.Kind == FishingCatchPackage.Hold);
+        }
+
+        private void StartCast(ComponentPlayer player, FishingCatchPackage packet, Client client, double now)
+        {
+            ushort id = player.Entity.EntityId;
+            if (!m_castAttempts.TryGetValue(id, out CastAttempt attempt))
+                m_castAttempts.Add(id, attempt = new CastAttempt());
+            if (packet.Sequence <= attempt.Sequence) return;
+            attempt.Sequence = packet.Sequence;
+            if (now < attempt.NextCast)
+            {
+                Reject(packet, client, FishingCatchPackage.Closed);
+                return;
+            }
+            attempt.NextCast = now + FishingRules.CastInterval;
+
+            IInventory inventory = player.ComponentMiner.Inventory;
+            int slot = inventory?.ActiveSlotIndex ?? -1;
+            if (m_sessions.ContainsKey(id) || !Equipped(player, slot))
+            {
+                Reject(packet, client, FishingCatchPackage.Closed);
+                return;
+            }
+            if (!m_water.ValidateTarget(player.ComponentCreatureModel.EyePosition, packet.Cell))
+            {
+                Reject(packet, client, FishingCatchPackage.InvalidWater);
+                return;
+            }
+
+            int baitSlot = slot + 1;
+            bool baited = HasBait(inventory, baitSlot);
+            bool large = FishingRules.IsLarge(m_random, baited);
+            var session = new Session
+            {
+                Player = player,
+                Client = client,
+                Sequence = packet.Sequence,
+                Cell = packet.Cell,
+                RodSlot = slot,
+                BaitSlot = baited ? baitSlot : -1,
+                Cycle = new FishingCycle(now, FishingRules.WaitDuration(m_random, baited),
+                    FishingRules.ReelDuration(m_random, large), large, client != null)
+            };
+            m_sessions.Add(id, session);
+            Publish(session, FishingCatchPackage.Waiting, baited ? (byte)1 : (byte)0);
+        }
+
+        private void Advance(Session session, double now)
+        {
+            if (!ValidSession(session))
+            {
+                Finish(session, FishingCatchPackage.Closed);
+                return;
+            }
+
+            FishingPhase previous = session.Cycle.Phase;
+            bool tense = session.Cycle.Tense;
+            session.Cycle.Advance(now);
+            switch (session.Cycle.Phase)
+            {
+                case FishingPhase.Approach:
+                    if (previous != FishingPhase.Approach) Publish(session, FishingCatchPackage.Approach);
+                    break;
+                case FishingPhase.Bite:
+                    if (previous == FishingPhase.Bite) break;
+                    if (session.BaitSlot >= 0 && !ConsumeBait(session))
+                        Finish(session, FishingCatchPackage.LostBait);
+                    else
+                        Publish(session, FishingCatchPackage.Bite);
+                    break;
+                case FishingPhase.Reeling:
+                    if (now >= session.NextSnapshot || tense != session.Cycle.Tense)
+                        Snapshot(session, now);
+                    break;
+                case FishingPhase.Landed:
+                    Finish(session, FishingCatchPackage.Landed);
+                    break;
+                case FishingPhase.Escaped:
+                    Finish(session, FishingCatchPackage.Escaped);
+                    break;
+            }
+        }
+
+        private void Snapshot(Session session, double now)
+        {
+            session.NextSnapshot = now + FishingRules.UpdateInterval;
+            int percent = (int)(session.Cycle.Progress * 100f);
+            if (session.Cycle.Tense) percent |= FishingCatchPackage.TenseBit;
+            Publish(session, FishingCatchPackage.Reeling, (byte)percent);
+        }
+
+        private bool ValidSession(Session session)
+        {
+            return Equipped(session.Player, session.RodSlot) && m_water.IsDeep(session.Cell) &&
+                Vector3.Distance(session.Player.ComponentCreatureModel.EyePosition, m_water.Surface(session.Cell))
+                    <= FishingRules.MaxSessionDistance;
+        }
+
+        private static bool Equipped(ComponentPlayer player, int slot)
+        {
+            return player != null && player.IsAddedToProject && player.ComponentHealth.Health > 0 &&
+                player.Entity.FindComponent<ComponentSleep>(false)?.IsSleeping != true &&
+                slot >= 0 && player.ComponentMiner.Inventory?.ActiveSlotIndex == slot &&
+                Terrain.ExtractContents(player.ComponentMiner.ActiveBlockValue) == FishingRodBlock.Index;
+        }
+
+        private static bool IsLocal(ComponentPlayer player) => player?.PlayerData?.IsMainPlayer == true;
+
+        private static bool HasBait(IInventory inventory, int slot)
+        {
+            if (inventory == null || slot < 0 || slot >= inventory.VisibleSlotsCount || inventory.GetSlotCount(slot) == 0)
+                return false;
+            int value = inventory.GetSlotValue(slot);
+            var seed = (SeedsBlock.SeedType)Terrain.ExtractData(value);
+            return Terrain.ExtractContents(value) == SeedsBlock.Index &&
+                (seed == SeedsBlock.SeedType.Rye || seed == SeedsBlock.SeedType.WildRye);
+        }
+
+        private static bool ConsumeBait(Session session)
+        {
+            IInventory inventory = session.Player.ComponentMiner.Inventory;
+            return HasBait(inventory, session.BaitSlot) && inventory.RemoveSlotItems(session.BaitSlot, 1) == 1;
+        }
+
+        private void Finish(Session session, byte kind)
+        {
+            m_sessions.Remove(session.Player.Entity.EntityId);
+            byte count = kind == FishingCatchPackage.Landed ? Grant(session.Player, session.Cycle.Reward) : (byte)0;
+            Publish(session, kind, count);
+        }
+
+        private byte Grant(ComponentPlayer player, int count)
         {
             int value = Terrain.MakeBlockValue(RawFishBlock.Index);
             IInventory inventory = player.ComponentMiner.Inventory;
-            if (inventory != null)
+            int remaining = inventory != null ? ComponentInventoryBase.AcquireItems(inventory, value, count) : count;
+            if (remaining > 0)
             {
-                int slot = ComponentInventoryBase.FindAcquireSlotForItem(inventory, value);
-                if (slot >= 0)
-                {
-                    inventory.AddSlotItems(slot, value, count);
-                    return;
-                }
+                Vector3 position = player.ComponentBody.Position + new Vector3(0, 0.6f, 0);
+                m_pickables.AddPickable(value, remaining, position, new Vector3(0, 1.5f, 0), null);
             }
-            Vector3 position = player.ComponentBody.Position + new Vector3(0f, 0.6f, 0f);
-            m_pickables.AddPickable(value, count, position, new Vector3?(new Vector3(0f, 1.5f, 0f)), null);
+            return FishingRules.PackReward(count, remaining);
         }
 
-        private FishingRateLimiter Limiter(ushort id)
+        private void Publish(Session session, byte kind, byte count = 0)
         {
-            FishingRateLimiter limiter;
-            if (!m_limiters.TryGetValue(id, out limiter))
+            var packet = new FishingCatchPackage
             {
-                limiter = new FishingRateLimiter();
-                m_limiters.Add(id, limiter);
-            }
-            return limiter;
+                Kind = kind,
+                Caster = session.Player.Entity.EntityId,
+                Cell = session.Cell,
+                Sequence = session.Sequence,
+                Count = count
+            };
+            if (CommonLib.WorkType == WorkType.Server)
+                CommonLib.Net.QueuePackage(packet);
+            ApplyState(packet, session.Player);
         }
 
-        private void Splash(Vector3 position)
+        private void Reject(FishingCatchPackage request, Client client, byte reason)
         {
-            m_particles.AddParticleSystem(new WaterSplashParticleSystem(m_terrain, position, false));
-        }
-
-        private static void Message(ComponentPlayer player, string text, bool blink)
-        {
-            player.ComponentGui.DisplaySmallMessage(text, Color.White, blink, true);
+            var packet = new FishingCatchPackage { Kind = reason, Caster = request.Caster, Sequence = request.Sequence, To = client };
+            if (client != null)
+                CommonLib.Net.QueuePackage(packet);
+            else
+                ApplyToPlayer(packet);
         }
     }
 }

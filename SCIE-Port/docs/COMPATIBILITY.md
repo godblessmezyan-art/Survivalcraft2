@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-18 0.91.0：钓鱼流程与联机鱼获
+
+固定目标为 SCNET Net_x25.01.17、net472/API1.42/SC2.4.10.6。现有鱼竿 972/DATA0、配方和 XDB GUID 沿用。包 236 保留 20 字节负载，改用主机权威的抛竿、提竿、收线及状态消息。各端统一 0.91.0，混版钓鱼不支持。生鱼走原生背包和拾取物同步，使用原有烹饪配方。验证见[测试记录](TEST-RESULTS.md)与[钓鱼专项](FISHING.md)。
+
 ## 2026-11-17 0.90.0：云天书典纸质 UI
 
 基于最新main `72ec090`，仅改原生控件/阅读排版/ReaderLayout与主题，新增两张256px UI PNG；旧读取/导入/网络/缓存/存档、956/三GUID/原图标和JNI DEX逐文件保持。沿用net472/API1.42/SC2.4.10.6、同一Loader/Hook/SCIEPort.dll，不引入程序集或shader；包仅扩展两张纹理。固定Windows环境/Release与回归、原生横竖屏测量/命中/字体重排、36张GPU示例与Android快照成员解析 **已确认**；7723手机/不同系统UI缩放与真实Local/Server/Client **待验证**。[证据和验收](CODEX-PAPER-UI-0.90.0.md)。

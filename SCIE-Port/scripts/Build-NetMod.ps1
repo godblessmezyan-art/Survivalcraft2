@@ -30,7 +30,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests fai
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
-if ($LASTEXITCODE -ne 0) { throw 'Fishing rules timing/reward/rate-limit tests failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Fishing authority-cycle timing and reward tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
@@ -105,7 +105,7 @@ foreach ($rule in @('StickBlock', 'StringBlock', 'GetCraftingId', 'GetProcedural
     if (-not $fishingRodSource.Contains($rule)) { throw "Fishing recipe rule missing: $rule" }
 }
 $fishingSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Fishing\SubsystemFishing.cs')
-foreach ($rule in @('Authority', 'ValidateCatch', 'MaxCatchDistance', 'FindAcquireSlotForItem', 'RawFishBlock.Index', 'AddSlotItems')) {
+foreach ($rule in @('Authority', 'ValidSession', 'ValidateTarget', 'RawFishBlock.Index', 'AcquireItems', 'm_sessions.Remove')) {
     if (-not $fishingSource.Contains($rule)) { throw "Fishing host-authority rule missing: $rule" }
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')

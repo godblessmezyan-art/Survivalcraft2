@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-18：0.91.0 钓鱼
+
+- 固定 Windows SCNET Net_x25.01.17 环境、net472 Release（0 警告、0 错误）、完整回归及统一包校验 **已确认**。从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/fishing-0.91.0`，退出 0。日志在该输出目录 `build-final.log`。
+- 2526 项规则检查覆盖等口、提竿窗口、松线、失联和大鱼的两次挣扎。28 项固定目标检查用独立主客对象、真实包序列化和背包同步，覆盖普通玩家抛竿、触屏输入路径、原版鱼肉、背包部分溢出、重复动作和断开清理。固定目标 `Content.scpak` 确认 `rawfish` 走现有熔炉配方生成一份 `CookedFishBlock`。
+- Android 快照审计使用 `Test-CelestialCodexAndroidBcl.ps1 -FeaturePrefix SCIEPort.Features.Fishing.`。最终包 DLL 的 233 个外部成员全部解析，旧编译负对照检出被裁剪的 `Random.NextDouble()`，已改用可用的 `Random.Next(int)`。结果见输出目录 `android-snapshot.log`。
+- `荒野探险家.netmod` 与 `荒野探险家-0.91.0.netmod` 一致，共 215 条目，12,949,372 字节，唯一运行 DLL。包 SHA-256 `5949B9A4FFA60602C8484F8027FDB4E0359EC5C77D8A56F59D7D53730DE560B1`。
+- Windows 隔离游戏窗口已启动，截图工具两次报 `window capture timed out: timed out waiting on channel`。Windows 游戏内画面、Android 7723 触屏和真实双端房间 **待验证**。
+
 ## 2026-11-17：0.90.0 书典 UI
 
 23个业务/身份文件与最新main `72ec090` 核对相同；两张原创256px纹理的源/运行哈希、透明编码与预算检查通过。增加原生导入按钮触达、CJK/混合英文/代理对/标点/原文保持检查，保留EPUB/选书JNI/清理与续读回归。六阅读/导入视图、两主题、三分辨率共36张Engine/OpenGL示例预览；六尺寸/五字号的原生测量/滚动检查通过。完整Release和包指纹见[专项](CODEX-PAPER-UI-0.90.0.md)，手机7723/触屏与真实联机仍 **待验证**。

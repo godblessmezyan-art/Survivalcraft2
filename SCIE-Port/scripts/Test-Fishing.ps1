@@ -1,7 +1,7 @@
 ﻿param([Parameter(Mandatory=$true)][string]$GameDir,[string]$AssemblyPath,[string]$Package)
 $ErrorActionPreference='Stop'
 $root=Split-Path -Parent $PSScriptRoot
-foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
+foreach($file in @('Engine.dll','EntitySystem.dll','LiteNetLib.dll','Survivalcraft.exe')){[void][Reflection.Assembly]::LoadFrom((Join-Path $GameDir $file))}
 $game=[Game.Block].Assembly
 
 # Native survival facts used by the fishing loop.
@@ -14,7 +14,7 @@ foreach($name in @('Ingredients','ResultValue','ResultCount','RequiredHeatLevel'
     if([Game.CraftingRecipe].GetField($name) -eq $null){throw "CraftingRecipe field missing: $name"}
 }
 if([Game.BlocksManager].GetMethod('FindBlockByTypeName') -eq $null){throw 'Block type lookup missing'}
-if([Game.ComponentInventoryBase].GetMethod('FindAcquireSlotForItem') -eq $null){throw 'Inventory acquire helper missing'}
+if([Game.ComponentInventoryBase].GetMethod('AcquireItems') -eq $null){throw 'Inventory acquire helper missing'}
 if(-not ([Game.SubsystemPickables].GetMethod('AddPickable') -and [Game.SubsystemParticles].GetMethod('AddParticleSystem'))){throw 'Pickable/particle subsystems missing'}
 $splash=[Game.WaterSplashParticleSystem].GetConstructors() | Where-Object { $_.GetParameters().Count -eq 3 }
 if($splash -eq $null){throw 'Water splash constructor changed'}
@@ -63,7 +63,7 @@ if($AssemblyPath){
     try{[Game.NetWork.PackageManager]::RegisterPackage($packet);if($tableField.GetValue($null)[236] -ne $packet){throw 'Native fishing package registration failed'}}
     finally{[Game.NetWork.PackageManager]::UnRegisterPackage($packet)}
     $flags=[Reflection.BindingFlags]'Instance,NonPublic';$packetType=$packet.GetType()
-    $packetType.GetField('Kind',$flags).SetValue($packet,[byte]1)
+    $packetType.GetField('Kind',$flags).SetValue($packet,[byte]11)
     $packetType.GetField('Caster',$flags).SetValue($packet,[uint16]42)
     $packetType.GetField('Cell',$flags).SetValue($packet,[Engine.Point3]::new(-12,80,345))
     $packetType.GetField('Sequence',$flags).SetValue($packet,[uint32]7)
@@ -80,6 +80,18 @@ if($AssemblyPath){
         $field=$packetType.GetField($name,$flags)
         if(-not $field.GetValue($packet).Equals($field.GetValue($copy))){throw "Fishing packet roundtrip failed: $name"}
     }
+
+    $compiler=New-Object Microsoft.CSharp.CSharpCodeProvider
+    $options=New-Object System.CodeDom.Compiler.CompilerParameters
+    $options.GenerateInMemory=$true
+    foreach($file in @('Engine.dll','EntitySystem.dll','LiteNetLib.dll','Survivalcraft.exe')) {
+        [void]$options.ReferencedAssemblies.Add((Join-Path $GameDir $file))
+    }
+    [void]$options.ReferencedAssemblies.Add('System.Core.dll')
+    $compiled=$compiler.CompileAssemblyFromFile($options,(Join-Path $root 'tests/SCIEPort.Fishing.Tests/FishingNativeProbe.cs'))
+    if($compiled.Errors.HasErrors){throw (($compiled.Errors|ForEach-Object ToString)-join "`n")}
+    try{$compiled.CompiledAssembly.GetType('FishingNativeProbe').GetMethod('Run').Invoke($null,@($assembly))}
+    catch{Write-Host $_.Exception.ToString();throw}
 }
 
 if($Package){

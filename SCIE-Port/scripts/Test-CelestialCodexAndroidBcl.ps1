@@ -4,7 +4,8 @@ param(
     [Parameter(Mandatory)][string]$AndroidBclDir,
     [Parameter(Mandatory)][string]$CecilPath,
     [string]$ModDll = (Join-Path $PSScriptRoot '../artifacts/build/SCIEPort.dll'),
-    [string]$NegativeDll
+    [string]$NegativeDll,
+    [string[]]$FeaturePrefix = @('SCIEPort.Features.CelestialCodex.', 'CelestialCodex.')
 )
 $ErrorActionPreference = 'Stop'
 # Read-only metadata audit. Supply extracted Android assemblies locally; never commit them.
@@ -57,12 +58,17 @@ try {
             $readerTypes = [Collections.Generic.List[Mono.Cecil.TypeDefinition]]::new()
             function Add-ReaderTypes($types) {
                 foreach ($type in $types) {
-                    if ($type.FullName.StartsWith('SCIEPort.Features.CelestialCodex.') -or $type.FullName.StartsWith('CelestialCodex.')) { $readerTypes.Add($type) }
+                    foreach ($prefix in $FeaturePrefix) {
+                        if ($type.FullName.StartsWith($prefix, [StringComparison]::Ordinal)) {
+                            $readerTypes.Add($type)
+                            break
+                        }
+                    }
                     Add-ReaderTypes $type.NestedTypes
                 }
             }
             Add-ReaderTypes $mod.MainModule.Types
-            if ($readerTypes.Count -eq 0) { throw 'Reader feature types not found.' }
+            if ($readerTypes.Count -eq 0) { throw "No types match the requested feature prefixes: $($FeaturePrefix -join ', ')" }
             $members = @{}
             foreach ($type in $readerTypes) { foreach ($method in $type.Methods) {
                 if (-not $method.HasBody) { continue }
