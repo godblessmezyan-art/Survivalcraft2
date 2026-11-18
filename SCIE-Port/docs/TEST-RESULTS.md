@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-18 · 0.92.2 云天书典段落间距
+
+- EPUB 的 XHTML 提取会在段落和容器前后插入换行，嵌套容器和占位段落可能叠出多行空白。进入阅读页时把连续空行缩成一行，移除首尾空行，保留正文字符及普通断行。已有 EPUB、云端和缓存章节走同一显示路径。
+- 0.92.1 DLL 在新增原生排版回归中仍显示额外空行。修复版通过最大字号下的中英文横屏 812×375 与竖屏 375×812 检查，夹具减少至少六行高度并保留原始章节文本。覆盖普通段落、混合换行符、空格占位和万行空白输入。
+- 从仓库根运行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/codex-spacing-0.92.2`。环境、Release 构建（0 警告、0 错误）、完整回归和统一包校验通过。书典 627 项核心检查和 35,808 项固定目标检查通过，最终 DLL 对固定 Android 快照解析 533 个外部成员，0 缺失。日志见输出目录的 `full-build.log`、`android-final.log` 和 `old-reader.log`。
+- 正式包与版本副本字节一致，共 215 个条目、12,952,397 字节。相对 0.92.1 只替换 `SCIEPort.dll` 和 `modinfo.json`。最终 SHA-256 为 `982A268571EEF02CDF0AEA38688F0EB078229A65600CE48A727CACCC735A6794`。
+- Android 7723 实机、截图对应的 EPUB 文件与真实联机 **待验证**。
+
 ## 2026-11-18 · 0.92.1 云天书典返回书库
 
 - 用固定 Windows SCNET Net_x25.01.17 的原生控件复现。0.92.0 在点击返回后的第一帧以临时宽度测量新建书目。原生 `LabelWidget.UpdateLines` 的省略分支在字体量得 0 个可放入字符时反复处理同一段文本。旧 DLL 在 320×240 复现，夹具等待 8 秒后终止进程。

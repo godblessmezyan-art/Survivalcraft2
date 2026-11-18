@@ -6,6 +6,14 @@ internal static class ReaderPresentationChecks
 {
     internal static void Run(Action<bool, string> check)
     {
+        check(ReaderLayout.CompactBlankLines("标题\r\n\t\r\n\u00a0\r\u200b\n\ufeff\n\u3000正文\n下一行\n\n")
+            == "标题\n\n\u3000正文\n下一行", "blank-line compaction handles mixed line endings and retains text indentation");
+        const string verse = "First  verse\nSecond verse\n\nNext stanza";
+        check(ReaderLayout.CompactBlankLines(verse) == verse, "ordinary stanza and deliberate hard breaks are preserved");
+        check(ReaderLayout.CompactBlankLines(" \r\n\u3000\nTitle\n" + new string('\n', 10000) + "Body\n") == "Title\n\nBody",
+            "leading and trailing blank lines and large spacer runs collapse");
+        check(ReaderLayout.CompactBlankLines("\u200b\n\u3000") == "" && ReaderLayout.CompactBlankLines(null) == "",
+            "empty and whitespace-only chapter text renders empty");
         foreach (var size in new[] { new[] { 320f, 240f }, new[] { 375f, 812f }, new[] { 812f, 375f }, new[] { 1280f, 720f }, new[] { 2340f, 1080f }, new[] { 768f, 1024f } })
         {
             var l = new ReaderLayout(size[0], size[1]);

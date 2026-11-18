@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace SCIEPort.Features.CelestialCodex.Core
 {
@@ -17,6 +18,34 @@ namespace SCIEPort.Features.CelestialCodex.Core
             FooterY = Height - 64;
             ContentHeight = Math.Max(1, FooterY - 16 - ContentY);
             ButtonWidth = Math.Max(1, (ContentWidth - 24) / 4);
+        }
+
+        internal static string CompactBlankLines(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return "";
+
+            // EPUB wrappers and spacer paragraphs can produce runs of empty display lines.
+            var body = new StringBuilder(text.Length);
+            bool paragraphBreak = false;
+            foreach (string line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+            {
+                if (IsBlankLine(line))
+                {
+                    paragraphBreak = true;
+                    continue;
+                }
+                if (body.Length > 0) body.Append(paragraphBreak ? "\n\n" : "\n");
+                body.Append(line);
+                paragraphBreak = false;
+            }
+            return body.ToString();
+        }
+
+        private static bool IsBlankLine(string line)
+        {
+            foreach (char c in line)
+                if (!char.IsWhiteSpace(c) && c != '\u200b' && c != '\ufeff') return false;
+            return true;
         }
     }
 

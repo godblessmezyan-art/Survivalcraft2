@@ -175,7 +175,8 @@ namespace SCIEPort.Features.CelestialCodex.UI
         }
         private void ShowReading()
         {
-            view = View.Reading; Clear(); heading = book.Title; chapterTitle.Text = chapter.Title; text.Text = chapter.Text;
+            view = View.Reading; Clear(); heading = book.Title; chapterTitle.Text = chapter.Title;
+            text.Text = ReaderLayout.CompactBlankLines(chapter.Text);
             entries.Children.Add(chapterTitle); entries.Children.Add(text);
         }
         private void ShowSettings()

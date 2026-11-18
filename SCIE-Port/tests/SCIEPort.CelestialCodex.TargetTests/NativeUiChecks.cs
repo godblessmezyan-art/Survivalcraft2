@@ -57,7 +57,7 @@ internal static class NativeUiChecks
         object book = Create("Book"); Set(book, "Slug", "test"); Set(book, "Title", "山海之间：给漫游者的漫长来信与星空阅读笔记"); Set(book, "Author", "云天书库"); Set(book, "SourceMode", "ai_reading"); Set(book, "Status", "ready"); Set(book, "Revision", new string('a', 64));
         string passage="晨雾越过山脊，松针上挂着昨夜的露水。沿着溪流向前，光从树叶的缝隙里落下来。\n\n我们在旧石桥边停下，把远行的故事写进纸页。风吹过时，山野也像一本慢慢翻开的书。\n\n愿你在忙碌的旅途中，留一小段时间给阅读。翻过这一页，便有新的风景等在前方。\n\n";
         for (int i = 1; i <= 30; i++)
-        { object c = Create("Chapter"); Set(c, "Id", "c" + i); Set(c, "Title", i == 1 ? "第一封信 · 山海之间" : "山海来信 · 第 " + i + " 节"); Set(c, "Text", string.Concat(Enumerable.Repeat(passage,20))); ((IList)Field(book, "Chapters")).Add(c); }
+        { object c = Create("Chapter"); Set(c, "Id", "c" + i); Set(c, "Title", i == 1 ? "第一封信 · 山海之间" : "山海来信 · 第 " + i + " 节"); Set(c, "Text", string.Concat(Enumerable.Repeat(passage,20)).TrimEnd('\n')); ((IList)Field(book, "Chapters")).Add(c); }
         object catalog = Create("Document"); ((IList)Field(catalog, "Books")).Add(book); Set(catalog, "Page", 1);
         foreach(string name in new[]{"林间手记","日落之后，沿河而行"})
         {object other=Create("Book");Set(other,"Slug","sample"+name.Length);Set(other,"Title",name);Set(other,"Author","荒野书房");Set(other,"Status","available");((IList)Field(catalog,"Books")).Add(other);}
@@ -137,12 +137,44 @@ internal static class NativeUiChecks
         }
         check(label.m_lines.SequenceEqual(new[] { title }), "Caption at full width shows the entire book title");
     }
+    static void CheckReadingSpacing(PropertyInfo text, Action<bool, string> check)
+    {
+        var dialog = Fixture();
+        try
+        {
+            object chapter = Field(dialog, "chapter");
+            var body = (LabelWidget)Field(dialog, "text");
+            foreach (Vector2 size in new[] { new Vector2(812, 375), new Vector2(375, 812) })
+            foreach (string heading in new[] { "新版序", "Preface" })
+            {
+                string original = heading + "\n\n \n\t\n\u00a0\n\u3000\n\n正文😀\n下一行\n\n";
+                if (heading == "Preface") original = original.Replace("正文😀", "First verse").Replace("下一行", "Second verse");
+                Set(chapter, "Text", original);
+                Set(dialog, "font", 4);
+                Call(dialog, "ShowReading");
+                Layout(dialog, size);
+                string[] expected = heading == "Preface"
+                    ? new[] { heading, "", "First verse", "Second verse" }
+                    : new[] { heading, "", "正文😀", "下一行" };
+                check(body.m_lines.SequenceEqual(expected), "Reader compacts EPUB spacer rows and keeps one blank line and explicit line breaks");
+                check((string)Field(chapter, "Text") == original, "Reader spacing leaves the loaded chapter untouched");
+                float compactHeight = body.ActualSize.Y;
+
+                text.SetValue(body, original, null);
+                Layout(dialog, size);
+                check(body.ActualSize.Y - compactHeight >= 6 * body.CalculateLineHeight() - .1f,
+                    "Extra blank lines consume no scroll height after reader compaction");
+            }
+        }
+        finally { dialog.Dispose(); }
+    }
     internal static void Run(Assembly assembly, ZipArchive zip, Action<bool, string> check)
     {
         mod = assembly; CacheFont(Metrics(zip));
         using (Stream language = zip.GetEntry("Assets/Lang/zh-CN.json").Open()) LanguageControl.loadJson(language);
         Type literal = mod.GetType("SCIEPort.Features.CelestialCodex.UI.CodexLabel"); var label = (LabelWidget)Activator.CreateInstance(literal, true);
         PropertyInfo text = literal.GetProperty("Text", F | BindingFlags.DeclaredOnly);
+        CheckReadingSpacing(text, check);
         foreach (Vector2 size in new[] { new Vector2(320, 240), new Vector2(375, 812), new Vector2(812, 375) })
             CheckReturnToCatalog(size, check);
         CheckNarrowCaption(literal, text, check);
