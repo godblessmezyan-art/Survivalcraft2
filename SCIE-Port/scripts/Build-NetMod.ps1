@@ -1352,8 +1352,8 @@ try {
     $bambooPlantRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooPlantBlock' })
     $bambooBlockRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooBlock' })
     $bambooShootRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooShootBlock' })
-    if ($bambooRows.Count -ne 3 -or $bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1 -or $bambooShootRow.Count -ne 1) {
-        throw 'Bamboo.csv must contain the bamboo culm, building material and shoot.'
+    if ($bambooRows.Count -ne 6 -or $bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1 -or $bambooShootRow.Count -ne 1) {
+        throw 'Bamboo.csv must contain the culm, bamboo material, shoot, fence, gate and screen.'
     }
     if ($bambooShootRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooShootRow[0].IsPlaceable -ne 'TRUE' -or
         $bambooShootRow[0].DefaultTextureSlot -ne '3' -or $bambooShootRow[0].DefaultDisplayName -ne '竹笋' -or
@@ -1367,6 +1367,19 @@ try {
     if ($bambooBlockRow[0].IsPlaceable -ne 'TRUE' -or $bambooBlockRow[0].IsCollidable -ne 'TRUE' -or
         $bambooBlockRow[0].IsTransparent -ne 'FALSE' -or $bambooBlockRow[0].DefaultTextureSlot -ne '2') {
         throw 'BambooBlock must be a solid, collidable, opaque building cube drawn on atlas slot 2.'
+    }
+    foreach ($material in @(
+        @{ Class = 'BambooFenceBlock'; Behavior = 'FenceBlockBehavior'; Slot = '6'; Interactive = 'FALSE' },
+        @{ Class = 'BambooFenceGateBlock'; Behavior = 'FenceGateBlockBehavior'; Slot = '6'; Interactive = 'TRUE' },
+        @{ Class = 'BambooScreenBlock'; Behavior = ''; Slot = '4'; Interactive = 'FALSE' }
+    )) {
+        $row = @($bambooRows | Where-Object { $_.'Class Name' -eq $material.Class })
+        if ($row.Count -ne 1 -or $row[0].DefaultCategory -ne 'SCIEPort.Structures' -or
+            $row[0].Behaviors -ne $material.Behavior -or $row[0].DefaultTextureSlot -ne $material.Slot -or
+            $row[0].DefaultIsInteractive -ne $material.Interactive -or $row[0].IsPlaceable -ne 'TRUE' -or
+            $row[0].IsCollidable -ne 'TRUE' -or $row[0].IsTransparent -ne 'TRUE') {
+            throw "Bamboo building registration differs from its placement and rendering contract: $($material.Class)."
+        }
     }
     [xml]$flaxDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Flax.xdb')
     $flaxBehavior = $flaxDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFlaxBehavior']")
@@ -1912,7 +1925,7 @@ try {
     try {
         if ($bambooBitmap.Width -ne 512 -or $bambooBitmap.Height -ne 512) { throw 'Bamboo.png must be the clean-room 512x512 bamboo atlas.' }
         if ($bambooBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Bamboo.png must be 32-bit RGBA (Format32bppArgb).' }
-        for ($slot = 0; $slot -le 3; $slot++) {
+        foreach ($slot in @(0, 1, 2, 3, 4, 6)) {
             $originX = ($slot % 16) * 32
             $originY = [int]([Math]::Floor($slot / 16)) * 32
             $opaque = 0
@@ -1921,8 +1934,8 @@ try {
                     if ($bambooBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
                 }
             }
-            if ($opaque -eq 0) { throw "Bamboo.png texture slot $slot is empty; the atlas must draw the base plant, upper culm and building cube in slots 0..2." }
-            if ($slot -eq 2 -and $opaque -ne 1024) { throw 'Bamboo.png slot 2 (the solid building cube face) must be fully opaque.' }
+            if ($opaque -eq 0) { throw "Bamboo.png texture slot $slot is empty." }
+            if ($slot -in @(2, 4, 6) -and $opaque -ne 1024) { throw "Bamboo.png building surface in slot $slot must be fully opaque." }
         }
         $spareOriginX = (5 % 16) * 32
         $spareOriginY = [int]([Math]::Floor(5 / 16)) * 32
@@ -1932,7 +1945,7 @@ try {
                 if ($bambooBitmap.GetPixel($spareOriginX + $x, $spareOriginY + $y).A -gt 0) { $spareAny = $true }
             }
         }
-        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..3 belong to this atlas.' }
+        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent.' }
     }
     finally { $bambooBitmap.Dispose() }
 

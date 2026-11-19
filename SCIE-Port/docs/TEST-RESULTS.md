@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-19 · 0.97.0 竹制建材与竹林地标
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.97.0/build --nologo`。编译报告 0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
+- 安装包 13,028,679 字节，SHA-256 为 `AE3D7C010B9B081F8512DFF4B2AF5C696DF4D389532792B768775F47A94658DD`。
+- 按用户要求跳过自动测试与进游戏实测。合成、地标出现率、触屏和联机均 **待验证**。[合成与地标条件](BAMBOO-BUILDING-0.97.0.md)
+
 ## 2026-11-19 · 0.96.0 竹林与竹笋
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.96.0`。固定环境、Release（0 警告、0 错误）、全部回归和打包检查通过。

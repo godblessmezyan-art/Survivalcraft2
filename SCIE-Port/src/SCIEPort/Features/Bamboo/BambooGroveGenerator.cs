@@ -1,4 +1,5 @@
 using System;
+using Engine;
 using Game;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Plants;
@@ -10,15 +11,15 @@ namespace SCIEPort.Features.Bamboo
         private const int Radius = 3;
         private const int CandidateAttempts = 24;
 
-        internal static void Generate(TerrainChunk chunk, int worldSeed, int seaLevel)
+        internal static Point3? Generate(TerrainChunk chunk, int worldSeed, int seaLevel)
         {
             if (!(BlocksManager.Blocks[BambooPlantBlock.Index] is BambooPlantBlock) ||
-                !(BlocksManager.Blocks[BambooShootBlock.Index] is BambooShootBlock)) return;
+                !(BlocksManager.Blocks[BambooShootBlock.Index] is BambooShootBlock)) return null;
 
             int seed = KellyPlantRules.GetChunkSeed(unchecked(worldSeed ^ BambooPlantBlock.Index * 16777619),
                 chunk.Coords.X, chunk.Coords.Y);
             var random = new Game.Random(seed);
-            if (!random.Bool(.24f)) return;
+            if (!random.Bool(.24f)) return null;
 
             int centerX = 0, centerZ = 0, centerY = 0;
             for (int attempt = 0; attempt < 8; attempt++)
@@ -29,7 +30,7 @@ namespace SCIEPort.Features.Bamboo
                 if (centerY != 0 && HasRoom(chunk, centerX, centerY, centerZ, BambooRules.MinGroveHeight)) break;
                 centerY = 0;
             }
-            if (centerY == 0) return;
+            if (centerY == 0) return null;
 
             int grown = 0;
             int desired = random.Int(5, BambooRules.MaxGroveCulms);
@@ -61,6 +62,8 @@ namespace SCIEPort.Features.Bamboo
                 chunk.SetCellValueFast(x, y, z, Terrain.MakeBlockValue(BambooShootBlock.Index));
                 shoots++;
             }
+
+            return new Point3(centerX, centerY, centerZ);
         }
 
         private static int EvaluateSite(TerrainChunk chunk, int x, int z, int seaLevel)

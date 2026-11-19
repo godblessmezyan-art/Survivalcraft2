@@ -20,6 +20,8 @@ namespace SCIEPort.Features.Bamboo
         public const int UpperPlantSlot = 1;
         public const int BuildingSlot = 2;
         public const int ShootSlot = 3;
+        public const int WeaveSlot = 4;
+        public const int CaneSlot = 6;
 
         public static Texture2D Atlas
         {

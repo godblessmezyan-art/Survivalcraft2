@@ -56,7 +56,7 @@ namespace SCIEPort.Features.Plants
         {
             // Independent deterministic streams keep one species' density from moving all the others.
             Scatter<ApplePlantBlock>(chunk, ApplePlantBlock.Index, .21f, 10, 1);
-            BambooGroveGenerator.Generate(chunk, gameInfo.WorldSeed, OceanLevel);
+            Point3? bambooGrove = BambooGroveGenerator.Generate(chunk, gameInfo.WorldSeed, OceanLevel);
             Scatter<CornStalkBlock>(chunk, CornStalkBlock.Index, .14f, 7, 2);
             Scatter<FlaxPlantBlock>(chunk, FlaxPlantBlock.Index, .19f, 7, 3);
             Scatter<SunflowerPlantBlock>(chunk, SunflowerPlantBlock.Index, .17f, 7, 3);
@@ -69,6 +69,8 @@ namespace SCIEPort.Features.Plants
             Scatter<FlyAgaricPatchBlock>(chunk, FlyAgaricPatchBlock.Index, .10f, 10, 1);
             foreach (TreeSpecies species in TreeSpecies.All)
                 ScatterSpecialTree(chunk, species);
+            if (bambooGrove.HasValue)
+                BambooLandmarkGenerator.Generate(chunk, gameInfo.WorldSeed, bambooGrove.Value, original);
         }
 
         private void Scatter<T>(TerrainChunk chunk, int id, float chance, int attempts, int limit) where T : Block
