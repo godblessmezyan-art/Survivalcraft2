@@ -15,10 +15,11 @@ namespace SCIEPort.Features.Bamboo
         // Clean-room 512x512 RGBA atlas laid out as the confirmed 16x16 grid of
         // 32x32 tiles (see docs/COMPATIBILITY.md). Slot 0 is the planted base
         // cross face, slot 1 the stacked upper culm cross face and slot 2 the
-        // solid building block cube face.
+        // solid building block cube face. Slot 3 holds the shoot sprite for debris.
         public const int BasePlantSlot = 0;
         public const int UpperPlantSlot = 1;
         public const int BuildingSlot = 2;
+        public const int ShootSlot = 3;
 
         public static Texture2D Atlas
         {
@@ -39,13 +40,7 @@ namespace SCIEPort.Features.Bamboo
             int value,
             float strength)
         {
-            return new BlockDebrisParticleSystem(
-                terrain,
-                position,
-                strength,
-                block.DestructionDebrisScale,
-                Color.White,
-                block.GetFaceTextureSlot(4, value));
+            return TreeBlockRendering.Debris(block, Atlas, terrain, position, value, strength);
         }
     }
 
@@ -56,6 +51,7 @@ namespace SCIEPort.Features.Bamboo
         public override void Initialize()
         {
             m_plantModel.Initialize(BlockIndex);
+            _ = BambooTextures.Atlas;
             base.Initialize();
         }
 
@@ -80,7 +76,11 @@ namespace SCIEPort.Features.Bamboo
             int y,
             int z)
         {
-            m_plantModel.Generate(this, generator, geometry, value, x, y, z);
+            // Read only the immediate neighbor so the native slice mesh cache
+            // invalidates correctly even across a vertical slice boundary.
+            int above = generator.Terrain.GetCellContents(x, y + 1, z);
+            int visual = above != Index ? PlantGeometry.BambooCrown : y % 3 == 1 ? PlantGeometry.BambooBranch : PlantGeometry.BambooStem;
+            m_plantModel.Generate(this, generator, geometry, Terrain.ReplaceData(value, visual), x, y, z);
         }
 
         public override void DrawBlock(
@@ -91,7 +91,7 @@ namespace SCIEPort.Features.Bamboo
             ref Matrix matrix,
             DrawBlockEnvironmentData environmentData)
         {
-            m_plantModel.Draw(this, primitivesRenderer, value, color, size, ref matrix, environmentData);
+            m_plantModel.Draw(this, primitivesRenderer, Terrain.ReplaceData(value, PlantGeometry.BambooCrown), color, size, ref matrix, environmentData);
         }
 
         public override BlockDebrisParticleSystem CreateDebrisParticleSystem(
@@ -132,6 +132,45 @@ namespace SCIEPort.Features.Bamboo
                 Count = BambooRules.GetCulmYield()
             });
         }
+    }
+
+    public sealed class BambooShootBlock : FlatBlock
+    {
+        public const int Index = 1001;
+
+        private readonly PlantModel model = new PlantModel();
+
+        public override void Initialize()
+        {
+            model.Initialize(BlockIndex);
+            base.Initialize();
+        }
+
+        public override int GetFaceTextureSlot(int face, int value) => BambooTextures.ShootSlot;
+
+        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
+            => model.Boxes(this, value);
+
+        public override void GenerateTerrainVertices(BlockGeometryGenerator generator, TerrainGeometry geometry,
+            int value, int x, int y, int z) => model.Generate(this, generator, geometry, value, x, y, z);
+
+        public override void DrawBlock(PrimitivesRenderer3D renderer, int value, Color color, float size,
+            ref Matrix matrix, DrawBlockEnvironmentData environment)
+            => model.Draw(this, renderer, Terrain.MakeBlockValue(Index), color, size, ref matrix, environment);
+
+        public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner,
+            int value, TerrainRaycastResult hit) => BambooPlacement.GetPlacementValue(terrain, hit, Index);
+
+        public override void GetDropValues(SubsystemTerrain terrain, int oldValue, int newValue, int toolLevel,
+            List<BlockDropValue> drops, out bool debris)
+        {
+            debris = true;
+            drops.Add(new BlockDropValue { Value = Terrain.MakeBlockValue(Index), Count = 1 });
+        }
+
+        public override BlockDebrisParticleSystem CreateDebrisParticleSystem(SubsystemTerrain terrain,
+            Vector3 position, int value, float strength)
+            => BambooTextures.CreateDebris(this, terrain, position, value, strength);
     }
 
     public sealed class BambooBlock : Block
@@ -195,6 +234,21 @@ namespace SCIEPort.Features.Bamboo
             yield return Terrain.MakeBlockValue(Index);
         }
 
+        public override IEnumerable<CraftingRecipe> GetProceduralCraftingRecipes()
+        {
+            if (!(BlocksManager.Blocks[BambooPlantBlock.Index] is BambooPlantBlock plant)) yield break;
+            string culm = plant.GetCraftingId(Terrain.MakeBlockValue(BambooPlantBlock.Index));
+            if (string.IsNullOrEmpty(culm)) yield break;
+
+            yield return new CraftingRecipe
+            {
+                ResultValue = Terrain.MakeBlockValue(Index),
+                ResultCount = 1,
+                Ingredients = new[] { culm, culm, null, culm, culm, null, null, null, null },
+                Description = "把竹竿扎成一方竹材。"
+            };
+        }
+
         public override void GetDropValues(
             SubsystemTerrain subsystemTerrain,
             int oldValue,
@@ -214,20 +268,23 @@ namespace SCIEPort.Features.Bamboo
 
     internal static class BambooPlacement
     {
+        internal static bool HasSubstrate(int contents)
+            => PlantHabitat.IsRootingSoil(contents) || contents == SandBlock.Index;
+
         public static BlockPlacementData GetPlacementValue(
             SubsystemTerrain subsystemTerrain,
-            TerrainRaycastResult raycastResult)
+            TerrainRaycastResult raycastResult,
+            int contents = BambooPlantBlock.Index)
         {
             CellFace target = raycastResult.CellFace;
             Point3 direction = CellFace.FaceToPoint3(target.Face);
             int below = subsystemTerrain.Terrain.GetCellValue(target.X, target.Y, target.Z);
             int substrate = Terrain.ExtractContents(below);
-            bool hasSubstrate = PlantHabitat.IsRootingSoil(substrate) || substrate == SandBlock.Index;
-            if (BambooRules.CanPlaceBase(direction.Y == 1, hasSubstrate))
+            if (target.Y >= 0 && target.Y <= 252 && BambooRules.CanPlaceBase(direction.Y == 1, HasSubstrate(substrate)))
             {
                 return new BlockPlacementData
                 {
-                    Value = Terrain.MakeBlockValue(BambooPlantBlock.Index, 0, BambooRules.MarkBase(0)),
+                    Value = Terrain.MakeBlockValue(contents, 0, contents == BambooPlantBlock.Index ? BambooRules.MarkBase(0) : 0),
                     CellFace = target
                 };
             }

@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-19 · 0.96.0 竹林与竹笋
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.96.0`。固定环境、Release（0 警告、0 错误）、全部回归和打包检查通过。
+- 41 项竹子纯规则和 1,071,247 项固定目标植物检查通过。覆盖竹林完整高度、每区块根与竹笋上限、同种子复现、三阶段竹笋、空位阻塞、根部再生、砍断后原生掉落、世界上界与联机权限。原生 CSV 成功加载 932、933、1001。真实原版配方匹配函数接受 2×2 的四段竹竿并产出一块竹材。
+- 十组 Windows Engine/OpenGL 合成预览通过。固定 Android APK 快照静态解析竹子和植物代码的 184 个外部成员，0 缺失。新增图集槽 3，其他 255 个槽位和 0.95.0 逐像素一致。
+- 正式包及版本副本字节一致，218 条目、12,989,873 字节。变更包括 Bamboo CSV/PNG、统一 DLL、版本元数据和资源声明。SHA-256 为 `902CD709B3531A1EBCA748FEC40BCB2FAAC220ECFF571AB239251F0C3A9C7B58`。
+- Android 7723 实机、真实旧世界与多人联机 **待验证**。[竹林和种植规则](BAMBOO-GROVES-0.96.0.md)
+
 ## 2026-11-19 · 0.95.0 四种特色树木
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/trees-0.95.0`。固定 x25.01.17 环境、Release（0 警告、0 错误）、全套回归和包内容校验通过。

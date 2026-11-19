@@ -56,7 +56,7 @@ namespace SCIEPort.Features.Plants
         {
             // Independent deterministic streams keep one species' density from moving all the others.
             Scatter<ApplePlantBlock>(chunk, ApplePlantBlock.Index, .21f, 10, 1);
-            Scatter<BambooPlantBlock>(chunk, BambooPlantBlock.Index, .24f, 9, 3);
+            BambooGroveGenerator.Generate(chunk, gameInfo.WorldSeed, OceanLevel);
             Scatter<CornStalkBlock>(chunk, CornStalkBlock.Index, .14f, 7, 2);
             Scatter<FlaxPlantBlock>(chunk, FlaxPlantBlock.Index, .19f, 7, 3);
             Scatter<SunflowerPlantBlock>(chunk, SunflowerPlantBlock.Index, .17f, 7, 3);
@@ -136,7 +136,6 @@ namespace SCIEPort.Features.Plants
             bool cycling = gameInfo.WorldSettings.AreSeasonsChanging;
             switch (id)
             {
-                case BambooPlantBlock.Index: return BambooRules.MarkBase(0);
                 case CornStalkBlock.Index:
                 case FlaxPlantBlock.Index:
                 case SunflowerPlantBlock.Index:

@@ -46,7 +46,7 @@ public static class PlantNativeProbe
         var g=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true);
         var build=g.GetMethod("Build",BindingFlags.Static|BindingFlags.NonPublic);
         var visual=g.GetMethod("VisualData",BindingFlags.Static|BindingFlags.NonPublic);
-        int[] ids={903,904,905,906,907,908,909,910,911,912,913,914,915,916,929,930,931,932,934,935,936,937,939,940,987,991};
+        int[] ids={903,904,905,906,907,908,909,910,911,912,913,914,915,916,929,930,931,932,934,935,936,937,939,940,987,991,1001};
         float appleWidth = MeshWidth(build, 940);
         Check(appleWidth > 1.65f * MeshWidth(build, 904) && appleWidth > 1.65f * MeshWidth(build, 916),
             "apple is visibly broader than a berry bundle");
@@ -224,7 +224,7 @@ public static class PlantNativeProbe
     {
         string[] names = { "Apple.ApplePlantBlock", "Bamboo.BambooPlantBlock", "Crops.CornStalkBlock", "Flax.FlaxPlantBlock",
             "Sunflower.SunflowerPlantBlock", "KellyPlants.SoybeanBlock", "KellyPlants.WildBerryPlantBlock", "KellyPlants.CloudberryPlantBlock",
-            "KellyPlants.CattailBlock", "KellyPlants.CactusFruitBlock", "KellyPlants.MushroomPatchBlock", "KellyPlants.FlyAgaricPatchBlock" };
+            "KellyPlants.CattailBlock", "KellyPlants.CactusFruitBlock", "KellyPlants.MushroomPatchBlock", "KellyPlants.FlyAgaricPatchBlock", "Bamboo.BambooShootBlock" };
         foreach (string name in names) MakeBlock(mod, name);
         var wood = MakeBlock(mod, "Apple.AppleWoodBlock");
         var leaves = MakeBlock(mod, "Apple.AppleLeavesBlock");
@@ -268,7 +268,8 @@ public static class PlantNativeProbe
                     int[] count = CountPlants(chunk);
                     Check(count[939] == 0 && (count[978] == 0 && count[979] + count[980] == 0 ||
                         count[978] == 3 && count[979] == 14 && count[980] == 4), "natural apple tree has three logs and the correct autumn leaves");
-                    Check(count[932] <= 3 && count[929] <= 2 && count[934] <= 3 && count[936] <= 3 &&
+                    VerifyGrove(chunk, count[932], count[1001]);
+                    Check(count[932] <= 64 && count[929] <= 2 && count[934] <= 3 && count[936] <= 3 &&
                         count[911] <= 2 && count[903] <= 3 && count[915] <= 3 && count[905] <= 4 &&
                         count[907] <= 2 && count[909] <= 2 && count[913] <= 1, "per-chunk limits");
                     for (int id = 0; id < count.Length; id++) totals[id] += count[id];
@@ -284,7 +285,7 @@ public static class PlantNativeProbe
             if (scenario == 2) Check(totals[905] > 0, "inland shoreline supports cattails" + evidence);
             if (scenario == 3) Check(totals[907] > 0 && totals[929] == 0, "dry cactus tops support cactus fruit" + evidence);
             if (scenario == 4) Check(totals[909] > 0 && totals[913] > 0 && totals[978] == 0, "fungi seed after vanilla canopy generation" + evidence);
-            var selected = new[] {978,979,980,932,929,934,936,911,903,915,905,907,909,913};
+            var selected = new[] {978,979,980,932,1001,929,934,936,911,903,915,905,907,909,913};
             Console.WriteLine("Habitat " + scenario + " over 128 chunks, " + string.Join(", ", Array.ConvertAll(selected, id => id + "=" + totals[id])));
         }
 
@@ -301,8 +302,108 @@ public static class PlantNativeProbe
             for (int i = 0; i < a.Cells.Length; i++) Check(a.Cells[i] == b.Cells[i], "same seed creates identical terrain");
             CommonLib.WorkType = WorkType.Client;
             wrapper.GenerateChunkContentsPass4(c);
-            Check(CountPlants(c)[978] + CountPlants(c)[979] + CountPlants(c)[980] + CountPlants(c)[932] + CountPlants(c)[903] + CountPlants(c)[934] == 0 &&
+            Check(CountPlants(c)[978] + CountPlants(c)[979] + CountPlants(c)[980] + CountPlants(c)[932] + CountPlants(c)[1001] + CountPlants(c)[903] + CountPlants(c)[934] == 0 &&
                 Terrain.ExtractContents(c.GetCellValueFast(0, 65, 0)) == GrassBlock.Index, "client delegates original generation without adding mod plants");
+        }
+    }
+
+    static void VerifyGrove(TerrainChunk chunk, int culmCells, int shoots)
+    {
+        Check(shoots <= 2 && (culmCells != 0 || shoots == 0), "shoots remain inside a bounded natural grove");
+        if (culmCells == 0) return;
+        int rootCount = 0;
+        int segments = 0;
+        for (int x = 0; x < 16; x++)
+        for (int z = 0; z < 16; z++)
+        {
+            for (int y = 64; y <= 80; y++)
+            {
+                int block = chunk.GetCellValueFast(x, y, z);
+                if (Terrain.ExtractContents(block) != 932 || (Terrain.ExtractData(block) & 1) == 0) continue;
+                int data = Terrain.ExtractData(block);
+                int height = 5 + ((data >> 2) & 3);
+                rootCount++;
+                Check((data & 2) != 0, "each wild root records its permanent mature height");
+                Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y - 1, z)) != 0, "grove only plants on supported sites");
+                for (int h = 0; h < height; h++)
+                    Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y + h, z)) == 932, "wild bamboo generates a complete culm");
+                Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y + height, z)) != 932, "wild bamboo ends at the persisted height");
+                segments += height;
+            }
+        }
+        Check(rootCount >= 1 && rootCount <= 8 && segments == culmCells, "natural grove puts at most eight complete culms in one chunk");
+    }
+
+    static void BambooRuntime(Assembly mod, SubsystemTerrain subsystem, WorkType mode)
+    {
+        Terrain terrain = subsystem.Terrain;
+        var bamboo = MakeBlock(mod, "Bamboo.BambooPlantBlock");
+        bamboo.CraftingId = "bamboo";
+        var shoot = MakeBlock(mod, "Bamboo.BambooShootBlock");
+        var building = MakeBlock(mod, "Bamboo.BambooBlock");
+        var runtime = MakeBehavior(mod, subsystem, "Bamboo.SubsystemBambooBlockBehavior");
+        const int x = 10, y = 91, z = 11;
+        terrain.SetCellValueFast(x, y - 1, z, DirtBlock.Index);
+        for (int h = 1; h <= 9; h++) terrain.SetCellValueFast(x, y + h, z, Terrain.MakeBlockValue(0, 15, 0));
+
+        var hit = new TerrainRaycastResult { CellFace = new CellFace(x, y - 1, z, 4) };
+        Check(shoot.GetPlacementValue(subsystem, null, Terrain.MakeBlockValue(1001, 0, 2), hit).Value == 1001,
+            "a collected shoot plants at stage zero on top of supported soil");
+        hit.CellFace = new CellFace(x, y - 1, z, 1);
+        Check(shoot.GetPlacementValue(subsystem, null, Terrain.MakeBlockValue(1001), hit).Value == 0,
+            "shoots cannot be planted sideways");
+
+        int start = Terrain.MakeBlockValue(1001);
+        terrain.SetCellValueFast(x, y, z, start);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(Terrain.ExtractData(terrain.GetCellValue(x, y, z)) == (mode == WorkType.Client ? 0 : 1),
+            "only an authoritative poll advances the fresh shoot");
+        if (mode == WorkType.Client) { terrain.SetCellValueFast(x,y,z,0); return; }
+
+        bool debris;
+        var drops = new List<BlockDropValue>();
+        shoot.GetDropValues(subsystem, Terrain.MakeBlockValue(1001, 0, 2), 0, 0, drops, out debris);
+        Check(drops.Count == 1 && drops[0].Value == 1001 && drops[0].Count == 1, "one shoot harvest resets growth age");
+        runtime.OnPoll(0, x, y, z, 0);
+        runtime.OnPoll(0, x, y, z, 0);
+        int root = terrain.GetCellValue(x, y, z);
+        Check(Terrain.ExtractContents(root) == 932 && (Terrain.ExtractData(root) & 3) == 3,
+            "maturing shoot becomes the existing bamboo ID with a stable root height");
+        int height = 5 + ((Terrain.ExtractData(root) >> 2) & 3);
+
+        terrain.SetCellValueFast(x, y + 1, z, GraniteBlock.Index);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + 1, z) == GraniteBlock.Index, "blocked growing culm never overwrites a solid block");
+        terrain.SetCellValueFast(x, y + 1, z, Terrain.MakeBlockValue(0, 15, 0));
+        for (int h = 1; h <= height; h++) runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + height - 1, z) == 932 &&
+            terrain.GetCellContents(x, y + height, z) == 0, "the culm stops at its saved height");
+        terrain.SetCellValueFast(x, y + height - 1, z, Terrain.MakeBlockValue(0, 15, 0));
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + height - 1, z) == 932, "a culm with its root left in place grows back");
+
+        var pickables = new SubsystemPickables { m_subsystemGameInfo = new SubsystemGameInfo() };
+        Put(subsystem, "m_subsystemPickables", pickables);
+        Put(subsystem, "m_dropValues", new List<BlockDropValue>());
+        terrain.SetCellValueFast(x, y, z, 0);
+        runtime.OnNeighborBlockChanged(x, y + 1, z, x, y, z);
+        Check(terrain.GetCellContents(x, y + 1, z) == 0 && pickables.Pickables.Count == 1 &&
+            pickables.Pickables[0].Value == Terrain.MakeBlockValue(932, 0, 1),
+            "unsupported upper bamboo falls as a single native reusable culm item");
+        for (int h = 0; h <= height; h++) terrain.SetCellValueFast(x, y + h, z, 0);
+        terrain.SetCellValueFast(x, 254, z, Terrain.MakeBlockValue(932));
+        runtime.OnPoll(0, x, 254, z, 0);
+        Check(terrain.GetCellContents(x, 254, z) == 0 && pickables.Pickables.Count == 2,
+            "a detached upper segment at the world ceiling is also harvested safely");
+
+        using (var recipes = building.GetProceduralCraftingRecipes().GetEnumerator())
+        {
+            Check(recipes.MoveNext(), "bamboo material has a native recipe");
+            CraftingRecipe recipe = recipes.Current;
+            var ingredients = new[] { "bamboo:1", "bamboo:1", null, "bamboo:1", "bamboo:1", null, null, null, null };
+            Check(recipe.ResultValue == 933 && recipe.ResultCount == 1 &&
+                CraftingRecipesManager.MatchRecipe(recipe.Ingredients, ingredients),
+                "actual native two-by-two bamboo recipe consumes four culm items for one block");
         }
     }
 
@@ -535,6 +636,7 @@ public static class PlantNativeProbe
                 behaviors.m_blockBehaviorsByContents[id] = new[] { runtime };
             var apple=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Apple.ApplePlantBlock",true));apple.BlockIndex=939;BlocksManager.Blocks[939]=apple;
             PlantLifecycle(mod, terrain);
+            BambooRuntime(mod, terrain, mode);
             SpecialTreeRuntime(mod, terrain, mode);
             const int y=64;cells.SetCellValueFast(8,y-1,8,Terrain.MakeBlockValue(DirtBlock.Index));
             cells.SetCellValueFast(8,y,8,Terrain.MakeBlockValue(939,0,0));cells.SetCellValueFast(8,y+1,8,Terrain.MakeBlockValue(0,15,0));

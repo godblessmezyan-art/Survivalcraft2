@@ -1351,8 +1351,14 @@ try {
     $bambooRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Bamboo.csv'))
     $bambooPlantRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooPlantBlock' })
     $bambooBlockRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooBlock' })
-    if ($bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1) {
-        throw 'Bamboo.csv must contain exactly one row for BambooPlantBlock and BambooBlock.'
+    $bambooShootRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooShootBlock' })
+    if ($bambooRows.Count -ne 3 -or $bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1 -or $bambooShootRow.Count -ne 1) {
+        throw 'Bamboo.csv must contain the bamboo culm, building material and shoot.'
+    }
+    if ($bambooShootRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooShootRow[0].IsPlaceable -ne 'TRUE' -or
+        $bambooShootRow[0].DefaultTextureSlot -ne '3' -or $bambooShootRow[0].DefaultDisplayName -ne '竹笋' -or
+        [double]$bambooShootRow[0].DefaultNutritionalValue -le 0) {
+        throw 'BambooShootBlock must be a plantable food in the Nature tab with atlas slot 3.'
     }
     if ($bambooPlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $bambooPlantRow[0].DefaultTextureSlot -ne '0') {
@@ -1906,7 +1912,7 @@ try {
     try {
         if ($bambooBitmap.Width -ne 512 -or $bambooBitmap.Height -ne 512) { throw 'Bamboo.png must be the clean-room 512x512 bamboo atlas.' }
         if ($bambooBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Bamboo.png must be 32-bit RGBA (Format32bppArgb).' }
-        for ($slot = 0; $slot -le 2; $slot++) {
+        for ($slot = 0; $slot -le 3; $slot++) {
             $originX = ($slot % 16) * 32
             $originY = [int]([Math]::Floor($slot / 16)) * 32
             $opaque = 0
@@ -1926,7 +1932,7 @@ try {
                 if ($bambooBitmap.GetPixel($spareOriginX + $x, $spareOriginY + $y).A -gt 0) { $spareAny = $true }
             }
         }
-        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..2 belong to this atlas.' }
+        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..3 belong to this atlas.' }
     }
     finally { $bambooBitmap.Dispose() }
 

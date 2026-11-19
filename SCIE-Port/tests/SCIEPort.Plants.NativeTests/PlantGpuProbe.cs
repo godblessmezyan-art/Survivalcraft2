@@ -11,7 +11,7 @@ public static class PlantGpuBootstrap
     public static int Main(string[] args)
     {
         AppDomain.CurrentDomain.AssemblyResolve+=(s,e)=>{string name=new AssemblyName(e.Name).Name;foreach(string ext in new[]{".dll",".exe"}){string p=Path.Combine(args[0],name+ext);if(File.Exists(p))return Assembly.LoadFrom(p);}return null;};
-        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2],args[3],args[4]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
+        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2],args[3],args[4],args[5]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }
 }
 public static class PlantGpuProbe
@@ -24,11 +24,12 @@ public static class PlantGpuProbe
     static string output;
     static string atlasPath;
     static string specialAtlasPath;
+    static string bambooAtlasPath;
     static int triangles;
     static BlockMesh Mesh(int id,int data){return (BlockMesh)build.Invoke(null,new object[]{id,data});}
-    public static void Run(string assembly,string directory,string atlas,string specialAtlas)
+    public static void Run(string assembly,string directory,string atlas,string specialAtlas,string bambooAtlas)
     {
-        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;atlasPath=atlas;specialAtlasPath=specialAtlas;
+        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;atlasPath=atlas;specialAtlasPath=specialAtlas;bambooAtlasPath=bambooAtlas;
         Window.Created+=()=>{object w=typeof(Window).GetField("m_gameWindow",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null);w.GetType().GetProperty("Visible").SetValue(w,false,null);};
         Exception failure=null;
         Window.Frame+=()=>{try{Execute();}catch(Exception e){failure=e;}finally{Window.Close();}};
@@ -116,6 +117,9 @@ public static class PlantGpuProbe
         LightingManager.CalculateLightingTables();
         Texture2D atlas = LoadAtlas(atlasPath, "Apple.AppleTextures", "s_atlas");
         Texture2D specialAtlas = LoadAtlas(specialAtlasPath, "SpecialTrees.SpecialTreeTextures", "atlas");
+        Texture2D bambooAtlas = LoadAtlas(bambooAtlasPath, "Bamboo.BambooTextures", "s_atlas");
+        Register("Bamboo.BambooBlock");
+        Register("Bamboo.BambooShootBlock");
         foreach (string name in new[] { "AppleWoodBlock", "AppleLeavesBlock", "AppleFruitingLeavesBlock" })
             Register("Apple." + name);
         foreach (string name in new[] { "TallPalm", "Coconut", "Baobab", "Sakura" })
@@ -126,7 +130,7 @@ public static class PlantGpuProbe
         try
         {
             Begin();int[] ids={929,936,934,911,903,915,905,932,909};
-            for(int i=0;i<ids.Length;i++)Add(ids[i],ids[i]==903?1:ids[i]==915?0:7,new Vector3(-2.1f+i%3*1.6f,0,.9f-i/3*1.5f));
+            for(int i=0;i<ids.Length;i++)Add(ids[i],ids[i]==903?1:ids[i]==915?0:ids[i]==932?2:7,new Vector3(-2.1f+i%3*1.6f,0,.9f-i/3*1.5f));
             Save("crops",new Vector3(4.2f,3.8f,6.5f),new Vector3(0,.35f,-.3f),41);
             Begin();Tree(new Vector3(-.5f,0,-.5f),15);Add(939,0,new Vector3(2.0f,0,.5f));Add(939,3,new Vector3(2.8f,0,.5f));Add(939,6,new Vector3(3.6f,0,.5f));
             Save("apple-ripe",new Vector3(7.5f,5.3f,9),new Vector3(.9f,2.0f,0),40);
@@ -175,7 +179,22 @@ public static class PlantGpuProbe
             DrawTreeBlock(Terrain.MakeBlockValue(987), new Vector3(-1.3f, .45f, 2.2f));
             DrawTreeBlock(Terrain.MakeBlockValue(991), new Vector3(1.3f, .45f, 2.2f));
             Save("special-tree-materials", new Vector3(2.1f, 4.4f, 11f), new Vector3(0, .4f, .5f), 43);
+            Begin();
+            float[,] grove = { { -2f, -1.2f }, { -.6f, -.7f }, { 1f, -1.8f }, { 2f, .2f }, { -1.45f, 1.0f }, { .2f, 1.6f } };
+            int[] matureHeights = { 6, 8, 7, 5, 5, 6 };
+            for (int stem = 0; stem < matureHeights.Length; stem++)
+            {
+                for (int y = 0; y < matureHeights[stem]; y++)
+                {
+                    int visual = y == matureHeights[stem] - 1 ? 2 : (66 + y) % 3 == 1 ? 1 : 0;
+                    Add(932, visual, new Vector3(grove[stem, 0], y, grove[stem, 1]));
+                }
+            }
+            for (int stage = 0; stage < 3; stage++)
+                Add(1001, stage, new Vector3(-1.3f + stage * .8f, 0, 2.75f));
+            DrawTreeBlock(Terrain.MakeBlockValue(933), new Vector3(2.3f, .5f, 2.85f));
+            Save("bamboo-grove", new Vector3(8.2f, 6.55f, 13.7f), new Vector3(.3f, 3.38f, .5f), 40);
         }
-        finally{Display.RenderTarget=null;target.Dispose();atlas.Dispose();specialAtlas.Dispose();}
+        finally{Display.RenderTarget=null;target.Dispose();atlas.Dispose();specialAtlas.Dispose();bambooAtlas.Dispose();}
     }
 }

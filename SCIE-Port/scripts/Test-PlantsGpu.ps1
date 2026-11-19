@@ -12,7 +12,8 @@ $result=$compiler.CompileAssemblyFromFile($options,(Join-Path $root 'tests/SCIEP
 if($result.Errors.HasErrors){throw (($result.Errors|ForEach-Object ToString)-join "`n")}
 $atlas=Join-Path $root 'src/SCIEPort/Assets/Textures/Apple.png'
 $treeAtlas=Join-Path $root 'src/SCIEPort/Assets/Textures/SpecialTrees.png'
-$arguments=@('"'+$GameDir+'"','"'+$AssemblyPath+'"','"'+$OutputDir+'"','"'+$atlas+'"','"'+$treeAtlas+'"')
+$bambooAtlas=Join-Path $root 'src/SCIEPort/Assets/Textures/Bamboo.png'
+$arguments=@('"'+$GameDir+'"','"'+$AssemblyPath+'"','"'+$OutputDir+'"','"'+$atlas+'"','"'+$treeAtlas+'"','"'+$bambooAtlas+'"')
 $process=Start-Process -FilePath $options.OutputAssembly -ArgumentList $arguments -WorkingDirectory $GameDir -WindowStyle Hidden -RedirectStandardOutput (Join-Path $OutputDir 'stdout.txt') -RedirectStandardError (Join-Path $OutputDir 'stderr.txt') -PassThru
 $handle=$process.Handle
 if(!$process.WaitForExit(55000)){$process.Kill();throw 'Plants GPU probe timed out'}
