@@ -1,5 +1,6 @@
 using Game;
 using SCIEPort.Features.AbyssReaper;
+using SCIEPort.Features.AirVehicles;
 using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
@@ -202,6 +203,7 @@ namespace SCIEPort.Mod
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.UpdateBedInsulation();
+            HelicopterCockpit.UpdateViews(GameManager.Project);
         }
 
         /// <inheritdoc />

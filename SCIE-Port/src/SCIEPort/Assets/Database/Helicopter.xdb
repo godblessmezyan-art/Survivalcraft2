@@ -8,6 +8,7 @@
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="HelicopterDrive" Guid="13a65742-3c60-4bec-ab79-12323bcc9610" InheritanceParent="9ae4e87b-27cb-4b18-9c3a-6cd11f3f11f5" />
       <MemberComponentTemplate Name="SimpleModel" Guid="44261b50-3d4b-4cf1-8a5f-755ed438ac98" InheritanceParent="cc5a4e72-0df9-4acf-a42e-ecb5a2a7baf4">
+        <Parameter Name="Class" Guid="b3ea1ae3-b48d-42d2-9646-8cfe7c5a08b1" Value="SCIEPort.Features.AirVehicles.ComponentHelicopterModel" Type="string" />
         <Parameter Name="ModelName" Guid="8fd2d251-8e97-4360-9fc9-a243039cae67" Value="Models/Helicopter" Type="string" />
         <Parameter Name="CastsShadow" Guid="054e450f-fe5f-4c2c-a87d-386fbc217186" Value="True" Type="bool" />
         <Parameter Name="TextureOverride" Guid="cce73ec6-5ff4-4c10-ba7e-c2a85a26110a" Value="Textures/Helicopter" Type="string" />

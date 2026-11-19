@@ -112,15 +112,15 @@ SHA-256 of generated release sources:
 - `Assets/Audio/Poseidon/Surge.wav`: `BA79A64E595EF33CF49A3B5AE58644DA72461F66F7D6299B2ADA52EA546969AD`
 - `Assets/Audio/Poseidon/Tsunami.wav`: `EB950127964F6A3D18EDD7F2703B5966A6EDE3CF5057B0B4AE302337D963455A`
 
-## SCIE-Port original helicopter V0.4 assets
+## SCIE-Port original helicopter assets (0.99.1 cockpit revision)
 
 - `Assets/Models/Helicopter.dae` is a clean-room, project-created low-poly
-  two-seat light helicopter. It contains 758 triangles in five merged meshes
-  under six render bones; SHA-256
-  `40DDD65D70C2594C77A9D6D15B561AFAAF093C6715E7DE2C8031A438131B96A1`.
+  two-seat light helicopter. The cockpit revision contains 1,110 triangles
+  in six merged meshes under seven render bones. The generated SHA-256 is
+  `3D6A90A3B20AA3EB7072C6FC7D2C805EDB0762A8DE457324CDD86B00349733FC`.
 - `Assets/Textures/Helicopter.png` is a project-created 96×16 fully opaque
   twelve-color material palette; SHA-256
-  `882298C090BEB16AC63075D18D67889E7AB9ADA78C8F35E8E1E6D90BE87155A4`.
+  `E6F81B9AB22E64C087E302419C0827348349A1EC02BC4953F62B1C5082D228F2`.
 - `Assets/Audio/SCIEPortHelicopterLoop.wav` is a project-created one-second
   mono PCM16 22050 Hz loop synthesized from integer-period rotor and engine
   harmonics. It contains no sampled recording; SHA-256

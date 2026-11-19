@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-19 · 0.99.1 直升机座舱
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/helicopter-cockpit-0.99.1`。固定环境、Release、完整自动回归和包内容校验通过。构建时为静态数据库校验补录了 x25.01.17 自带的 `Subsystem` 模板 GUID，供地质模块的现有继承项解析。
+- 8,119 项直升机飞行规则和 110 项目标程序集检查通过。目标检查覆盖原生 XDB 合并、双座眼位、视线输入和俯仰侧倾、切换第三人称、离座及死亡恢复、玻璃隔离、仪表读数和既有触控布局。原生 Engine 导入 7 骨骼、6 网格，Windows Engine/OpenGL 合成渲染检查驾驶位、副驾和机身外观。
+- 安装包与版本副本逐字节一致，共 221 条目、13,037,545 字节。校验了直升机 DAE、PNG、XDB 和声音文件的包内字节。SHA-256 为 `DD76184500F080A32A8B18FCA0033C6E1AD79E691EC2F0D475716DCCBA3CC79B`。
+- Android 7723 触屏、真实联机、旧世界载入与长时间飞行 **待验证**。[座舱与验收步骤](HELICOPTER-COCKPIT-0.99.1.md)
+
 ## 2026-11-19 · 0.99.0 火山与地质奇景
 
 - 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/geology-0.99.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包和字节一致的版本副本。

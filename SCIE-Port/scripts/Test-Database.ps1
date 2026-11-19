@@ -58,6 +58,7 @@ $KnownVanillaParents = @{
     '8edd1986-0dcc-424f-893a-491c089b821e' = 'Body (ComponentTemplate)'
     '17bb7b53-159c-4eb3-b4bc-137b10bba88a' = 'Damage (ComponentTemplate)'
     'b05700ed-7e4e-4679-98f5-b597f421496b' = 'Drive base (ComponentTemplate)'
+    'a3914c13-7801-46a6-b23a-9e2b36e9defb' = 'Subsystem (SubsystemTemplate)'
     'fefb9590-4972-4893-b02a-76063611b745' = 'Boat block behavior base (SubsystemTemplate)'
     '85023bf8-1c90-4dd1-9442-e6c13691d078' = 'Project (ProjectTemplate)'
     '49a9845c-3810-4092-ba53-df213d10d563' = 'Wolf (EntityTemplate)'

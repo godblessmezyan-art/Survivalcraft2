@@ -377,7 +377,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Artifact Codex native permissions/storage chec
 if ($LASTEXITCODE -ne 0) { throw 'PixelFX compiled frame table/native import failed.' }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
-if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD, cockpit or physics tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidHorizon.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input/domain regression' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -1159,7 +1159,8 @@ try {
         throw 'Helicopter seats, collision body or safe dismount differ from the audited layout.'
     }
     if ($helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/Helicopter' -or
-        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter') {
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter' -or
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.AirVehicles.ComponentHelicopterModel') {
         throw 'Helicopter model or texture resource mapping is invalid.'
     }
     $helicopterDriveTemplate = $helicopterDatabase.SelectSingleNode("//ComponentTemplate[@Name='SCIEPortHelicopterDrive']")
@@ -2166,10 +2167,11 @@ try {
     $tailRotor = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotor']")
     $mainRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='MainRotorBlur']")
     $tailRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotorBlur']")
+    $canopyGlass = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='CanopyGlass']")
     if ($null -eq $visualRoot -or $null -eq $mainRotor -or $null -eq $tailRotor -or
-        $null -eq $mainRotorBlur -or $null -eq $tailRotorBlur -or
-        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 6) {
-        throw 'Helicopter.dae must use exactly HelicopterRoot, VisualRoot, two rotor and two rotor-blur bones.'
+        $null -eq $mainRotorBlur -or $null -eq $tailRotorBlur -or $null -eq $canopyGlass -or
+        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 7) {
+        throw 'Helicopter.dae must use seven bones including the separate canopy glass.'
     }
     if (($visualRoot.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 1 -0.55' -or
         ($mainRotor.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 0.80 0.25' -or
@@ -2179,10 +2181,10 @@ try {
         throw 'Helicopter visual attitude and rotor pivot transforms differ from the audited V0.4 layout.'
     }
     $helicopterGeometries = @($helicopterModel.SelectNodes("//*[local-name()='geometry']"))
-    if ($helicopterGeometries.Count -ne 5) { throw "Helicopter.dae must contain five merged draw meshes; found $($helicopterGeometries.Count)." }
-    $expectedHelicopterMeshes = @('VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')
+    if ($helicopterGeometries.Count -ne 6) { throw "Helicopter.dae must contain six merged draw meshes; found $($helicopterGeometries.Count)." }
+    $expectedHelicopterMeshes = @('VisualRoot','CanopyGlass','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')
     if ((@($helicopterGeometries | ForEach-Object { $_.GetAttribute('name') } | Sort-Object) -join ',') -ne (($expectedHelicopterMeshes | Sort-Object) -join ',')) {
-        throw 'Helicopter.dae merged mesh names differ from the audited V0.4 layout.'
+        throw 'Helicopter.dae merged mesh names differ from the cockpit layout.'
     }
     foreach ($geometry in $helicopterGeometries) {
         $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
@@ -2207,10 +2209,10 @@ try {
     $helicopterStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Helicopter.dae'))
     try { $targetHelicopterModel = $targetModelLoad.Invoke($null,@($helicopterStream)) }
     finally { $helicopterStream.Dispose() }
-    if ($targetHelicopterModel.Bones.Count -ne 6 -or $targetHelicopterModel.Meshes.Count -ne 5) {
-        throw "Target Engine must import Helicopter.dae as 6 bones/5 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
+    if ($targetHelicopterModel.Bones.Count -ne 7 -or $targetHelicopterModel.Meshes.Count -ne 6) {
+        throw "Target Engine must import Helicopter.dae as 7 bones/6 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
     }
-    foreach ($boneName in @('HelicopterRoot','VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')) {
+    foreach ($boneName in @('HelicopterRoot') + $expectedHelicopterMeshes) {
         if (-not ($targetHelicopterModel.Bones | Where-Object { $_.Name -eq $boneName })) { throw "Target Engine did not import helicopter bone $boneName." }
     }
     Add-Type -AssemblyName System.Drawing
