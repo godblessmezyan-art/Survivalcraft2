@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-19 · 0.94.0 苹果木与树叶
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/apple-0.94.0`。固定 Windows 目标环境、Release（0 警告、0 错误）、全套回归和包契约通过。固定目标原生方块表读取 260 项，最高 ID 263。978–980 可用。
+- 725 项苹果纯规则及 1,052,713 项固定目标植物检查通过，覆盖五类栖息地的 640 个合成区块、季节、阻塞、两种旧树迁移顺序、旧挂果和采后状态、客户端隔离、原生木材方向、脱落和采摘。原生 BlocksManager 实际载入五条 CSV，验证创造栏、碰撞、木材配方类别与木材行为绑定。
+- 同字节的包内 DLL 通过七组 Engine/OpenGL 渲染，其中四组显示新苹果树和方块。Android APK 快照静态核对 206 个苹果与植物引用成员，0 缺失。构建、渲染和接口检查输出位于 `artifacts/apple-0.94.0`。
+- 双份安装包字节一致，共 215 个条目、12,962,080 字节。相对 0.93.0 修改 DLL、版本元数据、Apple CSV/PNG 和资源声明。SHA-256 为 `E1D2D9D4A03B02E04C9760A16AAFC1E6E893952E8B4AEFAF99DEAF8F7F2251EA`。
+- Android 7723 实机、真实旧世界和多人会话 **待验证**。[方块和迁移说明](APPLE-TREE-0.94.0.md)
+
 ## 2026-11-18 · 0.93.0 物品尺寸与植物生态
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/plants-0.93.0`。三份固定 Windows 程序集指纹、Release 构建和完整包检查通过。编译报告 0 警告、0 错误。

@@ -148,7 +148,7 @@ namespace SCIEPort.Features.Plants
 
         private bool TryPlantApple(TerrainChunk chunk, int x, int y, int z)
         {
-            if (x < 1 || x > 14 || z < 1 || z > 14 || y > 250) return false;
+            if (!AppleTreeLayout.IsRegistered || x < 1 || x > 14 || z < 1 || z > 14 || y > 250) return false;
             float year = gameInfo.WorldSettings.TimeOfYear;
             int stage = !gameInfo.WorldSettings.AreSeasonsChanging || (year >= .25f && year < .5f)
                 ? 15 : year < .25f ? 4 : year >= .75f ? 1 : 0;

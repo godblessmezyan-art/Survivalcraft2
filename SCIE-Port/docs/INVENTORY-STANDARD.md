@@ -1,5 +1,7 @@
 # 移植工程物品展示规范（0.44.0 起强制）
 
+0.94.0 的苹果木、苹果树叶、结果的苹果树叶和既有树苗、苹果归入「自然与生物」。新增的三个方块在创造栏展示 DATA 0。普通物品槽沿用该分类的默认样式。[方块列表](APPLE-TREE-0.94.0.md)
+
 2026-11-14 / 0.88.0：新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）及隐藏占位977，全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或槽位主题；高书架上格复用隐藏块963的bit7，977固定`DefaultCreativeData=-1`。详见[书架专项](BOOKSHELF.md)。
 
 2026-11-14 / 0.87.0：按用户要求把11个创造Tab合并为5个：神器、装备与工具、载具、建造与家居、自然与生物。旧键`SCIEPort.Saints/Tools/Plants/Food/Materials/Industry/Building/Home/Creatures`全部退休；物品ID、DATA、创造可见性、模型、主题与配方不变，仅`DefaultCategory`与`GetCategory`归并。见[兼容性](COMPATIBILITY.md)。

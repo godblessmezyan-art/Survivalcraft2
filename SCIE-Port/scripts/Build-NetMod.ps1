@@ -1435,8 +1435,22 @@ try {
     $appleRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Apple.csv'))
     $applePlantRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'ApplePlantBlock' })
     $appleFruitRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'AppleBlock' })
-    if ($applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
-        throw 'Apple.csv must contain exactly one row for ApplePlantBlock and AppleBlock.'
+    if ($appleRows.Count -ne 5 -or $applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
+        throw 'Apple.csv must contain the sapling, food, wood, leaves and fruiting leaves.'
+    }
+    foreach ($spec in @(
+        @{ Name = 'AppleWoodBlock'; Label = '苹果木'; Slot = '16'; Transparent = 'FALSE'; CraftingId = 'wood'; Behavior = 'WoodBlockBehavior' },
+        @{ Name = 'AppleLeavesBlock'; Label = '苹果树叶'; Slot = '18'; Transparent = 'TRUE'; CraftingId = 'appleleaves'; Behavior = '' },
+        @{ Name = 'AppleFruitingLeavesBlock'; Label = '结果的苹果树叶'; Slot = '21'; Transparent = 'TRUE'; CraftingId = 'applefruitleaves'; Behavior = '' }
+    )) {
+        $rows = @($appleRows | Where-Object { $_.'Class Name' -eq $spec.Name })
+        if ($rows.Count -ne 1 -or $rows[0].DefaultDisplayName -ne $spec.Label -or
+            $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
+            $rows[0].DefaultCreativeData -ne '0' -or $rows[0].DefaultTextureSlot -ne $spec.Slot -or
+            $rows[0].IsTransparent -ne $spec.Transparent -or $rows[0].CraftingId -ne $spec.CraftingId -or
+            $rows[0].Behaviors -ne $spec.Behavior) {
+            throw "Apple tree block contract failed: $($spec.Name)"
+        }
     }
     if ($applePlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
         $applePlantRow[0].DefaultTextureSlot -ne '0') {
@@ -1925,6 +1939,21 @@ try {
             }
             if ($opaque -eq 0) { throw "Apple.png texture slot $slot is empty; the atlas must fill plant stages 0..7, the fruiting canopy in slot 8 and the apple fruit in slot 9." }
         }
+        foreach ($slot in (16..21)) {
+            $opaque = 0
+            $red = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    $pixel = $appleBitmap.GetPixel(($slot - 16) * 32 + $x, 32 + $y)
+                    if ($pixel.A -eq 255) { $opaque++ }
+                    if ($pixel.A -eq 255 -and $pixel.R -gt 120 -and $pixel.G -lt $pixel.R * .45) { $red++ }
+                }
+            }
+            if ($slot -le 17 -and $opaque -ne 1024) { throw "Apple wood slot $slot must be opaque." }
+            if ($slot -ge 18 -and ($opaque -lt 480 -or $opaque -gt 1000)) { throw "Apple canopy slot $slot needs solid leaves and alpha cutouts." }
+            if ($slot -eq 21 -and $red -lt 24) { throw 'The ripe apple foliage tile must show visibly red apples.' }
+            if ($slot -ge 18 -and $slot -lt 21 -and $red -ne 0) { throw "Unripe foliage slot $slot has red fruit." }
+        }
         $appleSpareX = (12 % 16) * 32
         $appleSpareY = [int]([Math]::Floor(12 / 16)) * 32
         $appleSpareAny = $false
@@ -1933,7 +1962,7 @@ try {
                 if ($appleBitmap.GetPixel($appleSpareX + $x, $appleSpareY + $y).A -gt 0) { $appleSpareAny = $true }
             }
         }
-        if ($appleSpareAny) { throw 'Apple.png slot 12 must be transparent; only apple tiles 0..9 belong to this atlas.' }
+        if ($appleSpareAny) { throw 'Apple.png slot 12 must stay transparent.' }
     }
     finally { $appleBitmap.Dispose() }
 
