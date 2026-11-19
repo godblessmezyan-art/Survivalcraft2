@@ -7,6 +7,7 @@ using SCIEPort.Features.Bamboo;
 using SCIEPort.Features.Crops;
 using SCIEPort.Features.Flax;
 using SCIEPort.Features.KellyPlants;
+using SCIEPort.Features.Landmarks;
 using SCIEPort.Features.Sunflower;
 using SCIEPort.Features.SpecialTrees;
 
@@ -49,6 +50,15 @@ namespace SCIEPort.Features.Plants
             catch (Exception error)
             {
                 Log.Error("[SCIEPort] Natural plant generation failed: " + error);
+            }
+
+            try
+            {
+                NaturalLandmarks.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode);
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Natural landmark generation failed: " + error);
             }
         }
 

@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-19 · 0.98.0 五种自然地形
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/landmarks-0.98.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
+- 安装包 13,036,826 字节，SHA-256 为 `2B16FEFEEC1BE6E54C64C7E1F72880D0EBE48FC54F49A0D793DC4FCCC2989112`。
+- 沿用用户亲自测试的约定，本轮只编译和打包。自动测试、游戏内生成密度、水流、通行和联机均 **待验证**。[地形规则](NATURAL-LANDMARKS-0.98.0.md)
+
 ## 2026-11-19 · 0.97.0 竹制建材与竹林地标
 
 - 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.97.0/build --nologo`。编译报告 0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
