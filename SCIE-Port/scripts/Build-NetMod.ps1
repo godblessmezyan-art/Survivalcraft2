@@ -1557,7 +1557,7 @@ try {
         $water = $name -eq 'MineralWaterBlock'
         if ($rows.Count -ne 1 -or $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
             $rows[0].DefaultTextureSlot -ne $geologyClasses[$name] -or
-            $rows[0].Behaviors -ne $(if ($water) { 'WaterBlockBehavior' } else { '' }) -or
+            $rows[0].Behaviors -ne $(if ($water) { 'WaterBehavior' } else { '' }) -or
             $rows[0].DefaultCreativeData -ne $(if ($water) { '-1' } else { '0' })) {
             throw "Geology registration failed for $name."
         }
@@ -2572,6 +2572,8 @@ try {
 finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-BlockBehaviorBindings.ps1') -GameDir $GameDir -Package $package
+if ($LASTEXITCODE -ne 0) { throw 'Packaged block behavior bindings failed native validation.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package

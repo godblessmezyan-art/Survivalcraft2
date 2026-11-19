@@ -1,5 +1,7 @@
 # Builder Assistant 蓝图方块能力清单 v0.25.2
 
+2026-11-19 · 荒野探险家 0.99.2 的矿色水 1013 绑定到目标原生 `WaterBehavior`。作为世界生成水体，1013 禁止写入蓝图 cells。[地质方块](../SCIE-Port/docs/GEOLOGY-0.99.0.md)
+
 2026-11-19 · 荒野探险家 0.99.1 的直升机 941 是载具部署物品，禁止写入蓝图 cells。[直升机座舱](../SCIE-Port/docs/HELICOPTER-COCKPIT-0.99.1.md)
 
 2026-11-19：荒野探险家 0.99.0 新增地质方块 1005–1013，均未加入蓝图 cells 支持。彩岩 1009 的 DATA 低两位为岩层颜色，矿色水 1013 的 DATA 低五位为原版水位和液面标志，bit 5–6 对应矿色。[地质方块与生成](../SCIE-Port/docs/GEOLOGY-0.99.0.md)

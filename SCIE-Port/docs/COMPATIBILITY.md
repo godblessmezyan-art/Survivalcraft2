@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-19 0.99.2 · 修复世界加载
+
+固定目标为 SCNET Net_x25.01.17、net472/API1.42/SC2.4.10.6。矿色水 1013 的 CSV 指向原生工程成员 `WaterBehavior`。0.99.0 与 0.99.1 使用的 `WaterBlockBehavior` 是该成员继承的模板名，世界加载会因找不到该名称的子系统而中断。Windows 目标程序集在 `Project` 与 `GameProject` 配置下的行为绑定 **已确认**。Android 7723 上的世界重进与真实联机 **待验证**。[验证记录](TEST-RESULTS.md#2026-11-19--0992-修复世界加载)
+
 ## 2026-11-19 0.99.1 · 直升机座舱
 
 固定目标为 SCNET Net_x25.01.17、net472/API1.42/SC2.4.10.6。座舱眼位使用现有 `SubsystemUpdate` 回调和原生 `FppCamera`，直升机 941 的原实体模板将 `SimpleModel` 指向 `ComponentHelicopterModel`。目标 Engine 将模型导入为 7 骨骼、6 网格，玻璃按当前视口处理。目标程序集与合成渲染 **已确认**。Android 7723 实机、旧世界与真实联机 **待验证**。[座舱与验收](HELICOPTER-COCKPIT-0.99.1.md)

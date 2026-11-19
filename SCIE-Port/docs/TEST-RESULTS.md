@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-19 · 0.99.2 修复世界加载
+
+- 使用 0.99.0 和 0.99.1 的实际安装包，在固定 x25.01.17 的 `SubsystemBlockBehaviors.Load` 中复现 `Required subsystem Game.SubsystemBlockBehavior with name "WaterBlockBehavior" does not exist in project.`
+- 0.99.2 的实际安装包通过原生加载流程检查。合并全部包内 XDB 后，`Project` 和 `GameProject` 均解析全部 22 个 CSV 行为名，原版水 18 和矿色水 1013 各绑定一次同一原生 `WaterBehavior`，双向被原生流体规则识别为同类。恢复旧名称时，两种配置均重现原异常。
+- 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/world-load-0.99.2`。Release、完整自动回归和包校验通过。两份安装包字节一致，共 221 条目、13,037,539 字节，SHA-256 为 `9929DB4791D6BB536B4C0BE1EE686295F45BA055470B5E3CB2420F23BBF0267B`。
+- Android 7723 实机打开原世界与真实联机 **待验证**。
+
 ## 2026-11-19 · 0.99.1 直升机座舱
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/helicopter-cockpit-0.99.1`。固定环境、Release、完整自动回归和包内容校验通过。构建时为静态数据库校验补录了 x25.01.17 自带的 `Subsystem` 模板 GUID，供地质模块的现有继承项解析。
