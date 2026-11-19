@@ -881,6 +881,7 @@ try {
         'Assets/Blocks/Creatures.csv',
         'Assets/Blocks/Crops.csv',
         'Assets/Blocks/Bamboo.csv',
+        'Assets/Blocks/Geology.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
@@ -897,6 +898,7 @@ try {
         'Assets/Database/Creatures.xdb',
         'Assets/Database/Crops.xdb',
         'Assets/Database/Bamboo.xdb',
+        'Assets/Database/Geology.xdb',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
@@ -939,6 +941,7 @@ try {
         'Assets/Textures/Chicken.png',
         'Assets/Textures/Corn.png',
         'Assets/Textures/Bamboo.png',
+        'Assets/Textures/Geology.png',
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/PortableFortress.png',
@@ -1543,6 +1546,42 @@ try {
         }
     }
     finally { $treeAtlas.Dispose() }
+
+    $geologyRows = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/Geology.csv') -Delimiter ';' -Encoding UTF8)
+    $geologyClasses = [ordered]@{ VolcanicRockBlock = '0'; BasaltPillarBlock = '1'; VolcanicSandBlock = '3'; TravertineBlock = '4';
+        PaintedStrataBlock = '5'; KarstLimestoneBlock = '9'; BlueIceBlock = '10'; SaltCrustBlock = '11'; MineralWaterBlock = '189' }
+    if ($geologyRows.Count -ne $geologyClasses.Count) { throw 'Geology.csv must register nine geological block types.' }
+    foreach ($name in $geologyClasses.Keys) {
+        $rows = @($geologyRows | Where-Object { $_.'Class Name' -eq $name })
+        $water = $name -eq 'MineralWaterBlock'
+        if ($rows.Count -ne 1 -or $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
+            $rows[0].DefaultTextureSlot -ne $geologyClasses[$name] -or
+            $rows[0].Behaviors -ne $(if ($water) { 'WaterBlockBehavior' } else { '' }) -or
+            $rows[0].DefaultCreativeData -ne $(if ($water) { '-1' } else { '0' })) {
+            throw "Geology registration failed for $name."
+        }
+    }
+    $geologyAtlas = [Drawing.Bitmap]::FromFile((Join-Path $treeRoot 'Textures/Geology.png'))
+    try {
+        if ($geologyAtlas.Width -ne 512 -or $geologyAtlas.Height -ne 512 -or
+            $geologyAtlas.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) {
+            throw 'Geology.png must be a 512x512 RGBA terrain atlas.'
+        }
+        for ($x = 0; $x -lt 384; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 0–11 must be fully opaque.' }
+            }
+        }
+    }
+    finally { $geologyAtlas.Dispose() }
+    [xml]$geologyDatabase = Get-Content -LiteralPath (Join-Path $treeRoot 'Database/Geology.xdb') -Raw -Encoding UTF8
+    $shimmer = $geologyDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortSaltFlatShimmer']")
+    $shimmerMember = $geologyDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortSaltFlatShimmer']")
+    if ($null -eq $shimmer -or $shimmer.InheritanceParent -ne 'a3914c13-7801-46a6-b23a-9e2b36e9defb' -or
+        $shimmer.SelectSingleNode("./Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.Geology.SubsystemSaltFlatShimmer' -or
+        $null -eq $shimmerMember -or $shimmerMember.InheritanceParent -ne $shimmer.Guid) {
+        throw 'Geology.xdb must add the salt surface renderer to Project.'
+    }
 
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")

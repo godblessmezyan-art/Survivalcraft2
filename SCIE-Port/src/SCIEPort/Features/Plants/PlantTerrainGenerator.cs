@@ -6,6 +6,7 @@ using SCIEPort.Features.Apple;
 using SCIEPort.Features.Bamboo;
 using SCIEPort.Features.Crops;
 using SCIEPort.Features.Flax;
+using SCIEPort.Features.Geology;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Landmarks;
 using SCIEPort.Features.Sunflower;
@@ -35,7 +36,19 @@ namespace SCIEPort.Features.Plants
         public float CalculateMountainRangeFactor(float x, float z) => original.CalculateMountainRangeFactor(x, z);
         public void GenerateChunkContentsPass1(TerrainChunk chunk) => original.GenerateChunkContentsPass1(chunk);
         public void GenerateChunkContentsPass2(TerrainChunk chunk) => original.GenerateChunkContentsPass2(chunk);
-        public void GenerateChunkContentsPass3(TerrainChunk chunk) => original.GenerateChunkContentsPass3(chunk);
+        public void GenerateChunkContentsPass3(TerrainChunk chunk)
+        {
+            original.GenerateChunkContentsPass3(chunk);
+            if (CommonLib.WorkType == WorkType.Client) return;
+            try
+            {
+                GeologyTerrain.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode);
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Geology terrain generation failed: " + error);
+            }
+        }
 
         public void GenerateChunkContentsPass4(TerrainChunk chunk)
         {

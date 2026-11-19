@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-19 · 0.99.0 火山与地质奇景
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/geology-0.99.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包和字节一致的版本副本。
+- 安装包 221 条目、13,063,576 字节，包含新 DLL、Geology CSV、XDB 和图集。SHA‑256 为 `2750698AD10FBBEC0B937CB11B81CB7B542DC12B6503AAD04519B1374F7D12E5`。
+- 沿用用户亲自实测的安排，未运行自动测试或启动游戏。地貌出现率、跨区块接缝、水体、盐原湿光、手持与放置、多端兼容均 **待验证**。[地貌与方块](GEOLOGY-0.99.0.md)
+
 ## 2026-11-19 · 0.98.0 五种自然地形
 
 - 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/landmarks-0.98.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
