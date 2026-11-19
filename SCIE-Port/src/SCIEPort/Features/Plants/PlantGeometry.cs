@@ -4,6 +4,7 @@ using Engine;
 using Engine.Graphics;
 using Game;
 using SCIEPort.Features.Apple;
+using SCIEPort.Features.SpecialTrees;
 
 namespace SCIEPort.Features.Plants
 {
@@ -241,6 +242,24 @@ namespace SCIEPort.Features.Plants
         private static void Item(BlockMesh m, int id, int stage)
         {
             if (id == 940) { AppleFruit(m, new Vector3(.5f, .205f, .5f), .218f, true); return; }
+            if (id == CoconutFruitBlock.Index)
+            {
+                var center = new Vector3(.5f, .24f, .5f);
+                Ellipsoid(m, center, new Vector3(.24f, .224f, .229f), new Color(116, 77, 40), 10);
+                Ellipsoid(m, new Vector3(.45f, .28f, .43f), new Vector3(.14f, .14f, .13f), new Color(141, 100, 56), 8);
+                for (int eye = -1; eye <= 1; eye++)
+                    Ellipsoid(m, new Vector3(.5f + eye * .069f, .441f - Math.Abs(eye) * .016f, .53f),
+                        new Vector3(.021f, .014f, .018f), new Color(62, 43, 29), 6);
+                return;
+            }
+            if (id == BaobabFruitBlock.Index)
+            {
+                var center = new Vector3(.5f, .29f, .5f);
+                Ellipsoid(m, center, new Vector3(.136f, .27f, .128f), new Color(155, 129, 82), 10);
+                Ellipsoid(m, new Vector3(.47f, .26f, .45f), new Vector3(.091f, .171f, .098f), new Color(171, 149, 95), 8);
+                Tube(m, new Vector3(.5f, .54f, .5f), new Vector3(.51f, .63f, .5f), .024f, .015f, Bark, 6);
+                return;
+            }
             if (id == 931)
             {
                 Vector3 tip = new Vector3(.5f, .62f, .5f);

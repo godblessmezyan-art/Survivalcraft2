@@ -11,7 +11,7 @@ public static class PlantGpuBootstrap
     public static int Main(string[] args)
     {
         AppDomain.CurrentDomain.AssemblyResolve+=(s,e)=>{string name=new AssemblyName(e.Name).Name;foreach(string ext in new[]{".dll",".exe"}){string p=Path.Combine(args[0],name+ext);if(File.Exists(p))return Assembly.LoadFrom(p);}return null;};
-        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2],args[3]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
+        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2],args[3],args[4]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }
 }
 public static class PlantGpuProbe
@@ -23,11 +23,12 @@ public static class PlantGpuProbe
     static RenderTarget2D target;
     static string output;
     static string atlasPath;
+    static string specialAtlasPath;
     static int triangles;
     static BlockMesh Mesh(int id,int data){return (BlockMesh)build.Invoke(null,new object[]{id,data});}
-    public static void Run(string assembly,string directory,string atlas)
+    public static void Run(string assembly,string directory,string atlas,string specialAtlas)
     {
-        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;atlasPath=atlas;
+        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;atlasPath=atlas;specialAtlasPath=specialAtlas;
         Window.Created+=()=>{object w=typeof(Window).GetField("m_gameWindow",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null);w.GetType().GetProperty("Visible").SetValue(w,false,null);};
         Exception failure=null;
         Window.Frame+=()=>{try{Execute();}catch(Exception e){failure=e;}finally{Window.Close();}};
@@ -57,11 +58,39 @@ public static class PlantGpuProbe
         foreach (TerrainBrush.Cell cell in brush.Cells)
             DrawTreeBlock(cell.Value, offset + new Vector3(cell.X + .5f, cell.Y + .5f, cell.Z + .5f));
     }
+    static void SpecialTree(string name, int variant, Vector3 offset)
+    {
+        var type = mod.GetType("SCIEPort.Features.SpecialTrees.TreeSpecies", true);
+        const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
+        object species = type.GetField(name, flags).GetValue(null);
+        var brush = (TerrainBrush)type.GetMethod("GetBrush", BindingFlags.Instance | BindingFlags.NonPublic)
+            .Invoke(species, new object[] { variant, true });
+        foreach (TerrainBrush.Cell cell in brush.Cells)
+            DrawTreeBlock(cell.Value, offset + new Vector3(cell.X + .5f, cell.Y + .5f, cell.Z + .5f));
+    }
+
+    static Texture2D LoadAtlas(string path, string typeName, string field)
+    {
+        Texture2D texture;
+        using (var stream = File.OpenRead(path)) texture = Texture2D.Load(stream, false, 1);
+        mod.GetType("SCIEPort.Features." + typeName, true).GetField(field, BindingFlags.Static | BindingFlags.NonPublic)
+            .SetValue(null, texture);
+        return texture;
+    }
+
+    static void Register(string name)
+    {
+        var block = (Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features." + name, true));
+        block.BlockIndex = (int)block.GetType().GetField("Index").GetRawConstantValue();
+        block.Initialize();
+        BlocksManager.Blocks[block.BlockIndex] = block;
+    }
+
     static void Begin()
     {
         triangles=0;renderer.Clear();Display.RenderTarget=target;Display.Viewport=new Viewport(0,0,Width,Height);Display.Clear(new Color(218,227,221),1,0);
         var ground=renderer.FlatBatch(-1,DepthStencilState.Default,RasterizerState.CullNone,BlendState.Opaque);
-        for(int x=-12;x<12;x++)for(int z=-8;z<8;z++)ground.QueueQuad(new Vector3(x,-.015f,z),new Vector3(x+1,-.015f,z),new Vector3(x+1,-.015f,z+1),new Vector3(x,-.015f,z+1),((x+z)&1)==0?new Color(135,153,109):new Color(140,157,113));
+        for(int x=-19;x<19;x++)for(int z=-12;z<12;z++)ground.QueueQuad(new Vector3(x,-.015f,z),new Vector3(x+1,-.015f,z),new Vector3(x+1,-.015f,z+1),new Vector3(x,-.015f,z+1),((x+z)&1)==0?new Color(135,153,109):new Color(140,157,113));
     }
     static void Save(string name,Vector3 eye,Vector3 at,float fov)
     {
@@ -85,17 +114,15 @@ public static class PlantGpuProbe
         renderer=new PrimitivesRenderer3D();target=new RenderTarget2D(Width,Height,1,ColorFormat.Rgba8888,DepthFormat.Depth24Stencil8);
         ModsManager.ModHooks=new System.Collections.Generic.Dictionary<string,ModsManager.ModHook>();
         LightingManager.CalculateLightingTables();
-        Texture2D atlas;
-        using (var stream = File.OpenRead(atlasPath)) atlas = Texture2D.Load(stream, false, 1);
-        mod.GetType("SCIEPort.Features.Apple.AppleTextures",true).GetField("s_atlas",BindingFlags.Static|BindingFlags.NonPublic)
-            .SetValue(null, atlas);
+        Texture2D atlas = LoadAtlas(atlasPath, "Apple.AppleTextures", "s_atlas");
+        Texture2D specialAtlas = LoadAtlas(specialAtlasPath, "SpecialTrees.SpecialTreeTextures", "atlas");
         foreach (string name in new[] { "AppleWoodBlock", "AppleLeavesBlock", "AppleFruitingLeavesBlock" })
-        {
-            var block=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Apple."+name,true));
-            block.BlockIndex=(int)block.GetType().GetField("Index").GetRawConstantValue();
-            block.Initialize();
-            BlocksManager.Blocks[block.BlockIndex]=block;
-        }
+            Register("Apple." + name);
+        foreach (string name in new[] { "TallPalm", "Coconut", "Baobab", "Sakura" })
+        foreach (string part in new[] { "Wood", "Leaves", "Sapling" })
+            Register("SpecialTrees." + name + part + "Block");
+        Register("SpecialTrees.CoconutFruitBlock");
+        Register("SpecialTrees.BaobabFruitBlock");
         try
         {
             Begin();int[] ids={929,936,934,911,903,915,905,932,909};
@@ -128,7 +155,27 @@ public static class PlantGpuProbe
                 triangles += Mesh(block.BlockIndex, data).Indices.Count / 3;
             }
             Save("native-items",new Vector3(5.1f,4.0f,7.8f),new Vector3(.2f,.30f,-1.3f),42);
+            Begin();
+            SpecialTree("Palm", 3, new Vector3(-10f, 0, 0));
+            SpecialTree("Coconut", 3, new Vector3(-3f, 0, 1.5f));
+            SpecialTree("Baobab", 2, new Vector3(5.5f, 0, 1.5f));
+            SpecialTree("Sakura", 2, new Vector3(13.5f, 0, 1.5f));
+            Save("four-tree-species", new Vector3(14f, 14f, 45f), new Vector3(1f, 8f, 0), 41);
+
+            Begin();
+            for (int species = 0; species < 4; species++)
+            {
+                int log = new[] { 982, 985, 989, 993 }[species];
+                float x = (species - 1.5f) * 2.6f;
+                DrawTreeBlock(Terrain.MakeBlockValue(log), new Vector3(x, .5f, 1f));
+                int data = species == 1 ? 8 | 5 : species == 2 ? 8 | 4 : 0;
+                DrawTreeBlock(Terrain.MakeBlockValue(log + 1, 0, data), new Vector3(x, .5f, -.2f));
+                DrawTreeBlock(Terrain.MakeBlockValue(log - 1), new Vector3(x, .5f, -1.3f));
+            }
+            DrawTreeBlock(Terrain.MakeBlockValue(987), new Vector3(-1.3f, .45f, 2.2f));
+            DrawTreeBlock(Terrain.MakeBlockValue(991), new Vector3(1.3f, .45f, 2.2f));
+            Save("special-tree-materials", new Vector3(2.1f, 4.4f, 11f), new Vector3(0, .4f, .5f), 43);
         }
-        finally{Display.RenderTarget=null;target.Dispose();atlas.Dispose();}
+        finally{Display.RenderTarget=null;target.Dispose();atlas.Dispose();specialAtlas.Dispose();}
     }
 }

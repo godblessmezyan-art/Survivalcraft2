@@ -8,6 +8,7 @@ using SCIEPort.Features.Crops;
 using SCIEPort.Features.Flax;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Sunflower;
+using SCIEPort.Features.SpecialTrees;
 
 namespace SCIEPort.Features.Plants
 {
@@ -66,6 +67,8 @@ namespace SCIEPort.Features.Plants
             Scatter<CactusFruitBlock>(chunk, CactusFruitBlock.Index, .52f, 14, 2);
             Scatter<MushroomPatchBlock>(chunk, MushroomPatchBlock.Index, .29f, 12, 2);
             Scatter<FlyAgaricPatchBlock>(chunk, FlyAgaricPatchBlock.Index, .10f, 10, 1);
+            foreach (TreeSpecies species in TreeSpecies.All)
+                ScatterSpecialTree(chunk, species);
         }
 
         private void Scatter<T>(TerrainChunk chunk, int id, float chance, int attempts, int limit) where T : Block
@@ -152,10 +155,42 @@ namespace SCIEPort.Features.Plants
             float year = gameInfo.WorldSettings.TimeOfYear;
             int stage = !gameInfo.WorldSettings.AreSeasonsChanging || (year >= .25f && year < .5f)
                 ? 15 : year < .25f ? 4 : year >= .75f ? 1 : 0;
-            TerrainBrush brush = AppleTreeLayout.ForStage(stage);
+            return TryPaintTree(chunk, x, y, z, AppleTreeLayout.ForStage(stage));
+        }
+
+        private void ScatterSpecialTree(TerrainChunk chunk, TreeSpecies species)
+        {
+            if (!species.Registered) return;
+            int seed = KellyPlantRules.GetChunkSeed(unchecked(gameInfo.WorldSeed ^ (species.Sapling * 16777619)),
+                chunk.Coords.X, chunk.Coords.Y);
+            var random = new Game.Random(seed);
+            if (!random.Bool(species.GenerationChance)) return;
+
+            for (int attempt = 0; attempt < 14; attempt++)
+            {
+                int x = random.Int(3, 12);
+                int z = random.Int(3, 12);
+                int y = chunk.CalculateTopmostCellHeight(x, z) + 1;
+                if (y <= 1 || y > 254 - species.MaxHeight) continue;
+                int temperature = chunk.GetTemperatureFast(x, z) + SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
+                int humidity = chunk.GetHumidityFast(x, z);
+                float shore = CalculateOceanShoreDistance(chunk.Origin.X + x, chunk.Origin.Y + z);
+                if (!species.WildSite(Contents(chunk, x, y - 1, z), temperature, humidity, y - OceanLevel, shore)) continue;
+                int variant = species.VariantAt(gameInfo.WorldSeed, chunk.Origin.X + x, chunk.Origin.Y + z);
+                TerrainBrush brush = species.GetBrush(variant, true);
+                if (TryPaintTree(chunk, x, y, z, brush, species)) return;
+            }
+        }
+
+        private static bool TryPaintTree(TerrainChunk chunk, int x, int y, int z, TerrainBrush brush, TreeSpecies species = null)
+        {
             foreach (TerrainBrush.Cell cell in brush.Cells)
             {
-                if (Contents(chunk, x + cell.X, y + cell.Y, z + cell.Z) != 0) return false;
+                int cx = x + cell.X, cy = y + cell.Y, cz = z + cell.Z;
+                if (cx < 0 || cx >= 16 || cz < 0 || cz >= 16 || cy < 1 || cy > 254 || Contents(chunk, cx, cy, cz) != 0)
+                    return false;
+                if (species != null && cell.Y == 0 && !species.Supports(Contents(chunk, cx, cy - 1, cz)))
+                    return false;
             }
             brush.PaintFast(chunk, chunk.Origin.X + x, y, chunk.Origin.Y + z);
             return true;

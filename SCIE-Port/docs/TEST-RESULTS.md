@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-19 · 0.95.0 四种特色树木
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/trees-0.95.0`。固定 x25.01.17 环境、Release（0 警告、0 错误）、全套回归和包内容校验通过。
+- 1,056,083 项固定目标植物检查通过。在 384 个新树种合成区块中按栖息地分别生成 23 棵高棕榈、34 棵椰子树、18 棵猴面包树、17 棵樱花树。检查了各树高度、空间阻塞、主机与普通客户端区分、椰子两颗自然落果上限、同一果串的自然落果与采摘、支撑和再生。原生 CSV 载入验证 14 个新 ID、创造栏和食物属性，猴面包果原生腐坏间隔为苹果的 3.25 倍。
+- 九组 Engine/OpenGL 合成渲染通过。`gpu/four-tree-species.png` 展示实际树形和相对高度，`gpu/special-tree-materials.png` 展示木材和果实。对固定 Android APK 快照解析 237 个相关成员，0 缺失。
+- 正式包及版本副本字节一致，218 条目、12,987,207 字节。相对 0.94.0 新增 SpecialTrees 的 CSV、XDB 和图集，更新 DLL、版本元数据及资源声明。SHA-256 为 `952A0BAA0518BB10ADD65B23C4E7F1557F3C7634DA2D45EF774823CE9ED14C04`。
+- Android 7723 手机实机、真实单机世界和多人联机 **待验证**。[树种专题](SPECIAL-TREES-0.95.0.md)
+
 ## 2026-11-19 · 0.94.0 苹果木与树叶
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/apple-0.94.0`。固定 Windows 目标环境、Release（0 警告、0 错误）、全套回归和包契约通过。固定目标原生方块表读取 260 项，最高 ID 263。978–980 可用。

@@ -884,6 +884,7 @@ try {
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
+        'Assets/Blocks/SpecialTrees.csv',
         'Assets/Blocks/Helicopter.csv',
         'Assets/Blocks/Stormhammer.csv',
         'Assets/Blocks/StormhammerAwakened.csv',
@@ -899,6 +900,7 @@ try {
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
+        'Assets/Database/SpecialTrees.xdb',
         'Assets/Database/Helicopter.xdb',
         'Assets/Database/Stormhammer.xdb',
         'Assets/Database/StormhammerAwakened.xdb',
@@ -944,6 +946,7 @@ try {
         'Assets/Textures/FortressGlow.png',
         'Assets/Textures/FortressCore.png',
         'Assets/Textures/Apple.png',
+        'Assets/Textures/SpecialTrees.png',
         'Assets/Textures/Helicopter.png',
         'Assets/Audio/SCIEPortHelicopterLoop.wav',
         'Assets/Textures/Stormhammer.png',
@@ -1462,6 +1465,66 @@ try {
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
         throw 'AppleBlock must be an unplaceable Food item with transparent legacy terrain faces, slot 9 and positive nutrition.'
     }
+    $treeRoot = Join-Path $projectDir 'Assets'
+    $newTrees = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/SpecialTrees.csv') -Delimiter ';' -Encoding UTF8)
+    if ($newTrees.Count -ne 14 -or @($newTrees | Where-Object DefaultCategory -ne 'SCIEPort.Nature').Count -ne 0) {
+        throw 'SpecialTrees must register its fourteen nature-tab items and blocks.'
+    }
+    foreach ($species in @('TallPalm', 'Coconut', 'Baobab', 'Sakura')) {
+        $wood = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'WoodBlock') })
+        $leaves = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'LeavesBlock') })
+        $sapling = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'SaplingBlock') })
+        if ($wood.Count -ne 1 -or $leaves.Count -ne 1 -or $sapling.Count -ne 1 -or
+            $wood[0].Behaviors -ne 'WoodBlockBehavior' -or $wood[0].CraftingId -ne 'wood' -or
+            $leaves[0].IsTransparent -ne 'TRUE' -or $sapling[0].IsPlaceable -ne 'TRUE') {
+            throw "Missing native tree material or sapling contract: $species."
+        }
+    }
+    $treeFoods = @($newTrees | Where-Object { $_.'Class Name' -match 'FruitBlock$' })
+    $baobab = @($treeFoods | Where-Object { $_.'Class Name' -eq 'BaobabFruitBlock' })
+    $coconut = @($treeFoods | Where-Object { $_.'Class Name' -eq 'CoconutFruitBlock' })
+    if ($treeFoods.Count -ne 2 -or $baobab.Count -ne 1 -or $coconut.Count -ne 1 -or
+        [int]$baobab[0].DefaultRotPeriod -le [int]$appleFruitRow[0].DefaultRotPeriod -or
+        @($treeFoods | Where-Object { $_.IsPlaceable -ne 'FALSE' -or [double]$_.DefaultNutritionalValue -le 0 }).Count -ne 0) {
+        throw 'Only edible coconut and baobab fruits are expected. Baobab must outlast apple fruit.'
+    }
+    [xml]$treeDatabase = Get-Content -LiteralPath (Join-Path $treeRoot 'Database/SpecialTrees.xdb') -Raw -Encoding UTF8
+    $treeBehavior = $treeDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortSpecialTreeBehavior']")
+    $treeMember = $treeDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortSpecialTreeBehavior']")
+    if ($null -eq $treeBehavior -or $treeBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745' -or
+        $treeBehavior.SelectSingleNode("./Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.SpecialTrees.SubsystemSpecialTreeBehavior' -or
+        $treeBehavior.SelectSingleNode("./Parameter[@Name='Dependencies']").Value -ne 'Terrain, Pickables' -or
+        $null -eq $treeMember -or $treeMember.InheritanceParent -ne $treeBehavior.Guid) {
+        throw 'Special tree growth, harvest and native pickable bindings are missing.'
+    }
+    $treeAtlas = [Drawing.Bitmap]::FromFile((Join-Path $treeRoot 'Textures/SpecialTrees.png'))
+    try {
+        if ($treeAtlas.Width -ne 512 -or $treeAtlas.Height -ne 512 -or
+            $treeAtlas.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) {
+            throw 'SpecialTrees.png must be a 512×512 RGBA atlas.'
+        }
+        foreach ($slot in (0..35)) {
+            if ($slot -in @(6, 7, 8, 33, 34, 35)) { continue }
+            $opaque = 0
+            $pink = 0
+            $top = [int][Math]::Floor($slot / 16) * 32
+            for ($u = 0; $u -lt 32; $u++) {
+                for ($v = 0; $v -lt 32; $v++) {
+                    $pixel = $treeAtlas.GetPixel(($slot % 16) * 32 + $u, $top + $v)
+                    if ($pixel.A -eq 255) {
+                        $opaque++
+                        if ($pixel.R -gt $pixel.G * 1.15 -and $pixel.B -gt $pixel.G) { $pink++ }
+                    }
+                }
+            }
+            if ($opaque -eq 0 -or ($slot % 9 -lt 2 -and $opaque -ne 1024) -or
+                ($slot % 9 -eq 2 -and $opaque -eq 1024) -or ($slot -eq 29 -and $pink -lt 360)) {
+                throw "Special tree atlas has an invalid bark, foliage or item tile: $slot."
+            }
+        }
+    }
+    finally { $treeAtlas.Dispose() }
+
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")

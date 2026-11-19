@@ -11,7 +11,8 @@ foreach($f in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe')){[void]$opt
 $result=$compiler.CompileAssemblyFromFile($options,(Join-Path $root 'tests/SCIEPort.Plants.NativeTests/PlantGpuProbe.cs'))
 if($result.Errors.HasErrors){throw (($result.Errors|ForEach-Object ToString)-join "`n")}
 $atlas=Join-Path $root 'src/SCIEPort/Assets/Textures/Apple.png'
-$arguments=@('"'+$GameDir+'"','"'+$AssemblyPath+'"','"'+$OutputDir+'"','"'+$atlas+'"')
+$treeAtlas=Join-Path $root 'src/SCIEPort/Assets/Textures/SpecialTrees.png'
+$arguments=@('"'+$GameDir+'"','"'+$AssemblyPath+'"','"'+$OutputDir+'"','"'+$atlas+'"','"'+$treeAtlas+'"')
 $process=Start-Process -FilePath $options.OutputAssembly -ArgumentList $arguments -WorkingDirectory $GameDir -WindowStyle Hidden -RedirectStandardOutput (Join-Path $OutputDir 'stdout.txt') -RedirectStandardError (Join-Path $OutputDir 'stderr.txt') -PassThru
 $handle=$process.Handle
 if(!$process.WaitForExit(55000)){$process.Kill();throw 'Plants GPU probe timed out'}

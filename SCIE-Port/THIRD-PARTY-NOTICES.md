@@ -4,6 +4,10 @@
 
 `tools/codex-picker/CodexDocumentPicker.java` and its 5-class DEX are original project code. The DEX is embedded in the existing SCIEPort.dll solely to bridge the trimmed Android host to the platform document picker; no game assembly, APK, Android SDK class, AndroidX or second managed DLL is included. The compiler-only Android API jar and R8 are pinned in `tools/codex-picker/manifest.json` and are not redistributed. Source, executable resource hashes, reproduction command and checks are recorded there and in `docs/CODEX-PICKER-APPLE-0.89.1.md`.
 
+## Original special-tree textures and fruit geometry (2026-11-19)
+
+`Assets/Textures/SpecialTrees.png` is an original 512×512 pixel-art atlas for the four trees. Identical fields share 32×32 tile coordinates, with separate bark and end grain palettes for each species. The two loose fruit models are original procedural geometry in `Features/Plants/PlantGeometry.cs`. Atlas SHA-256 is `43B89ABE077CFB9FB0519822C7608612E838718D3A15521EEED490A5C2B02458`.
+
 ## Original apple-tree block tiles (2026-11-19)
 
 The six 32×32 tiles in slots 16–21 of `Assets/Textures/Apple.png` are original pixel art authored for this project. The tiles depict bark, end grain, leaves, blossoms, green fruit and red fruit. The source is the project atlas. Saved atlas SHA-256 is `F309BCA16E3ED9A89E1312B9EB5B58CF71703C256C7B11C3F043659D159211AA`.
