@@ -1,6 +1,7 @@
 using System;
 using Engine;
 using Game;
+using SCIEPort.Features.Geology;
 using static SCIEPort.Features.Landmarks.LandmarkTerrain;
 
 namespace SCIEPort.Features.Landmarks
@@ -25,6 +26,53 @@ namespace SCIEPort.Features.Landmarks
                 }
             }
             return null;
+        }
+
+        internal static LandmarkPlan SeaStacks(LandmarkTerrain terrain)
+        {
+            int level = terrain.Sea;
+            foreach (Point2 center in terrain.Candidates())
+            {
+                if (terrain.WaterSurface(center) != level || terrain.Shore(center) < -38f || terrain.Shore(center) > 6f) continue;
+                foreach (Point2 span in terrain.Bearings())
+                {
+                    var plan = new LandmarkPlan(terrain);
+                    if (RaiseStacks(plan, terrain, center, span, level)) return plan;
+                }
+            }
+            return null;
+        }
+
+        private static bool RaiseStacks(LandmarkPlan plan, LandmarkTerrain terrain, Point2 center, Point2 span, int level)
+        {
+            // Leave the middle three columns in each gap open at the waterline.
+            for (int distance = -3; distance <= 3; distance++)
+            {
+                if (distance == 0) continue;
+                Point2 gap = At(center, span, 0, distance);
+                if (terrain.WaterSurface(gap) != level || terrain.Read(gap, level - 2) != WaterBlock.Index) return false;
+            }
+            for (int distance = -4; distance <= 4; distance += 4)
+            {
+                Point2 column = At(center, span, 0, distance);
+                if (terrain.WaterSurface(column) != level) return false;
+                int bed = terrain.WaterBed(column, level, 13);
+                if (bed == 0 || level - bed < 3) return false;
+                int rock = HeadlandRock(terrain, column, bed);
+                if (rock == 0) rock = BasaltBlock.Index;
+                int height = 2 + GeologySites.Grain(terrain.Chunk.Origin.X + column.X,
+                    terrain.Chunk.Origin.Y + column.Y, terrain.Seed, 4);
+                for (int y = bed + 1; y <= level + height; y++)
+                    if (!plan.Set(column, y, Terrain.MakeBlockValue(rock), block => block == WaterBlock.Index || block == 0)) return false;
+
+                Point2 shoulder = At(center, span, distance == 0 ? -1 : 1, distance);
+                if (terrain.WaterSurface(shoulder) != level) return false;
+                int shoulderBed = terrain.WaterBed(shoulder, level, 13);
+                if (shoulderBed == 0 || level - shoulderBed < 3) return false;
+                for (int y = shoulderBed + 1; y <= level + height - 2; y++)
+                    if (!plan.Set(shoulder, y, Terrain.MakeBlockValue(rock), block => block == WaterBlock.Index || block == 0)) return false;
+            }
+            return true;
         }
 
         private static int HeadlandRock(LandmarkTerrain terrain, Point2 bank, int top)

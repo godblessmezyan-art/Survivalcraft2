@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Engine;
 using Game;
+using SCIEPort.Features.Geology;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Plants;
 
@@ -11,25 +12,33 @@ namespace SCIEPort.Features.Landmarks
     {
         internal static void Generate(TerrainChunk chunk, ITerrainContentsGenerator generator, int worldSeed, TerrainGenerationMode mode)
         {
-            if (mode != TerrainGenerationMode.Continent && mode != TerrainGenerationMode.Island && mode != TerrainGenerationMode.Better) return;
+            if (chunk.IsLoaded || !GeologySites.Enabled(mode) ||
+                !LandmarkDeck.Choose(worldSeed, chunk.Coords, out LandmarkKind? first, out LandmarkKind? second)) return;
 
             int seed = KellyPlantRules.GetChunkSeed(worldSeed ^ 0x42d5961, chunk.Coords.X, chunk.Coords.Y);
             var random = new Game.Random(seed);
-            bool waterfall = random.Bool(.14f);
-            bool ford = random.Bool(.19f);
-            bool blossom = random.Bool(.23f);
-            bool arch = random.Bool(.23f);
-            bool shelter = random.Bool(.24f);
-            if (!waterfall && !ford && !blossom && !arch && !shelter) return;
-
             var terrain = new LandmarkTerrain(chunk, generator, worldSeed, random.Int(0, 255), random.Int(0, 3));
-            // Place the first complete landmark. Candidate selection and writes are confined to this chunk.
-            LandmarkPlan plan = (waterfall ? StreamLandmarks.Waterfall(terrain, random.Bool(.18f)) : null)
-                ?? (arch ? RockLandmarks.SeaArch(terrain) : null)
-                ?? (shelter ? RockLandmarks.SnowShelter(terrain) : null)
-                ?? (blossom ? SakuraCreek.Generate(terrain) : null)
-                ?? (ford ? StreamLandmarks.Ford(terrain, random.Bool(.20f)) : null);
+            LandmarkPlan plan = Plan(first, terrain, random) ?? Plan(second, terrain, random);
             plan?.Commit();
+        }
+
+        private static LandmarkPlan Plan(LandmarkKind? kind, LandmarkTerrain terrain, Game.Random random)
+        {
+            switch (kind)
+            {
+                case LandmarkKind.Waterfall: return StreamLandmarks.Waterfall(terrain, random.Bool(.18f));
+                case LandmarkKind.Ford: return StreamLandmarks.Ford(terrain, random.Bool(.20f));
+                case LandmarkKind.Blossom: return SakuraCreek.Generate(terrain);
+                case LandmarkKind.Arch: return RockLandmarks.SeaArch(terrain);
+                case LandmarkKind.Shelter: return RockLandmarks.SnowShelter(terrain);
+                case LandmarkKind.StoneCircle: return StoneLandmarks.StoneCircle(terrain);
+                case LandmarkKind.Hoodoo: return StoneLandmarks.HoodooField(terrain);
+                case LandmarkKind.Serac: return WildLandmarks.Seracs(terrain);
+                case LandmarkKind.DuneRidge: return WildLandmarks.DuneRidge(terrain);
+                case LandmarkKind.SeaStacks: return RockLandmarks.SeaStacks(terrain);
+                case LandmarkKind.Sinkhole: return StoneLandmarks.Sinkhole(terrain);
+                default: return null;
+            }
         }
     }
 
@@ -95,6 +104,21 @@ namespace SCIEPort.Features.Landmarks
         internal int Temperature(Point2 column, int y)
             => Chunk.GetTemperatureFast(column.X, column.Y) + SubsystemWeather.GetTemperatureAdjustmentAtHeight(y);
 
+        internal bool HasOpenGround(Point2 column, int level, int tolerance)
+        {
+            int surface = Surface(column);
+            return surface != 0 && Math.Abs(surface - level) <= tolerance && Ground(SurfaceBlock(column)) &&
+                Open(Read(column, surface + 1)) && Read(column, surface + 2) == 0;
+        }
+
+        internal bool HasPlateau(Point2 center, int level, int radius, int tolerance)
+        {
+            for (int z = -radius; z <= radius; z++)
+            for (int x = -radius; x <= radius; x++)
+                if (!HasOpenGround(center + new Point2(x, z), level, tolerance)) return false;
+            return true;
+        }
+
         internal int Read(Point2 column, int y)
             => Inside(column) && y >= 3 && y <= 250 ? Terrain.ExtractContents(Chunk.GetCellValueFast(column.X, y, column.Y)) : -1;
 
@@ -159,6 +183,7 @@ namespace SCIEPort.Features.Landmarks
 
         internal void Commit()
         {
+            if (writes.Count == 0) return;
             foreach (var edit in writes)
                 chunk.SetCellValueFast(edit.Key.X, edit.Key.Y, edit.Key.Z, edit.Value);
 
@@ -169,6 +194,7 @@ namespace SCIEPort.Features.Landmarks
                 FixWaterSurface(position.X, position.Y, position.Z);
                 FixWaterSurface(position.X, position.Y - 1, position.Z);
             }
+            chunk.ModificationCounter++;
         }
 
         private void FixWaterSurface(int x, int y, int z)

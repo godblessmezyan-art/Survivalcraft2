@@ -68,6 +68,8 @@ namespace SCIEPort.Features.Geology
                 case PaintedHills: return Painted(site, u, v, weight);
                 case BasaltCoast: return Coast(site, u, v, weight);
                 case Pinnacles: return StoneForest(site, u, v, weight);
+                case ColumnarBasalt: return BasaltPlateau(site, u, v, weight);
+                case DryCanyon: return Canyon(site, u, v, weight);
                 case RiverCave:
                 case IceCave: return Cavern(site, u, v, weight);
                 default: return SaltBasin(site, u, v, radius, weight);
@@ -220,6 +222,33 @@ namespace SCIEPort.Features.Geology
             if (Math.Abs(u - trail) <= 1) height = 0;
             int floor = Math.Max(site.Sea + 1, site.Base - 2 + (int)Math.Round(Math.Sin(v * .1) * 1.7));
             return new GeologyColumn(weight, floor + height, KarstLimestoneBlock.Index, KarstLimestoneBlock.Index);
+        }
+
+        private static GeologyColumn BasaltPlateau(GeologySite site, int u, int v, float weight)
+        {
+            int row = GeologySites.FloorDiv(v, 4);
+            int column = GeologySites.FloorDiv(u + (row & 1) * 2, 4);
+            int rise = 5 + GeologySites.Grain(column, row, site.Seed, 10);
+            int gully = (int)Math.Round(3 * Math.Sin(v * .19));
+            float shoulder = Edge((Math.Abs(u - gully) - 1f) / 6);
+            int height = site.Base - 2 + (int)Math.Round(rise * shoulder);
+            return new GeologyColumn(weight, height,
+                shoulder < .25f ? VolcanicSandBlock.Index : BasaltPillarBlock.Index, BasaltPillarBlock.Index);
+        }
+
+        private static GeologyColumn Canyon(GeologySite site, int u, int v, float weight)
+        {
+            int bend = (int)Math.Round(4 * Math.Sin(v * .14) + 2 * Math.Sin(v * .3));
+            int side = Math.Abs(u - bend);
+            if (side > 16) return default;
+            weight *= Edge((17f - side) / 5);
+            int floor = Math.Max(site.Sea + 2, site.Base - 10 + (int)Math.Round(Math.Sin(v * .15)));
+            if (side <= 2) return new GeologyColumn(weight, floor, GravelBlock.Index, SandstoneBlock.Index);
+            int shelf = side <= 5 ? 3 : side <= 8 ? 6 : side <= 11 ? 9 : 12;
+            return new GeologyColumn(weight, floor + shelf, PaintedStrataBlock.Index, PaintedStrataBlock.Index)
+            {
+                ColorBand = 64 + (int)Math.Round(2 * Math.Sin(v * .09))
+            };
         }
 
         private static GeologyColumn Cavern(GeologySite site, int u, int v, float weight)

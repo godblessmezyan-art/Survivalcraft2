@@ -1,5 +1,14 @@
 # 测试结果
 
+## 2026-11-20 · 1.3.0 特殊地形
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/special-terrain-1.3.0`。固定目标依赖与 ABI 检查、Release 编译、完整回归及包校验通过。
+- 专项原生测试通过 126,134 项检查。对两个世界种子各抽样 9,409 个区块，分别有 5,445、5,532 个区块保留候选；各组均覆盖 11 种，东西南北相邻区块无同类候选。测试还涵盖备选落地、障碍拒绝后无部分写入、区块与高度边界、旧区块跳过、天坑出口和近岸浅水间距。
+- 大陆原生区块测试使用 `HighVolcano`。六种小地标的测试区块中心 X/Z 分别是立石环 `1480,-40`，风蚀蘑菇岩 `-88,24`，冰塔林 `-1240,-408`，沙丘脊 `56,1256`，海蚀柱群 `1704,-184`，天坑 `1192,-8`。测试使用原生四阶段和地标生成器。
+- 同种子在大陆 400 个区域选到 6 处柱状节理台地和 6 处干峡谷，Better 各选到 1 处与 2 处。大陆跨区块样本中心为 `88,2616` 和 `2632,680`，Better 为 `2040,2440` 和 `-88,2936`。每个样本确认相邻两个原生区块都生成对应材料。
+- 水幕沉殿 384 项、火山 16,626 项、日阶神殿 9,124 项原生回归通过，书柜、五分类、钓鱼和云天书典通过整包检查。两个安装包字节一致，共 230 项、13,119,480 字节，SHA-256 为 `21144D1C0C2EA55766177A4462B78A3748A0F2EA5A92A1DA95E362CAD3631825`。与 1.2.0 的包逐项比对，仅更新 `SCIEPort.dll` 和 `modinfo.json`。
+- Android 7723、实际游玩分布和真实联机 **待验证**。[生成规则](SPECIAL-TERRAIN-1.3.0.md)
+
 ## 2026-11-20 · 1.2.0 日阶神殿
 
 - 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-1.2.0`。目标环境校验、Release 编译、完整回归和包检查退出 0，编译 0 警告、0 错误。

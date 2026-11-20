@@ -92,6 +92,12 @@ public static class TidePalaceProbe
             return Fixture(game, mode, out project, out behavior, seed);
         });
         PyramidNativeProbe.Run(mod, game, Fixture);
+        SpecialTerrainNativeProbe.Run(mod, (mode, seed) =>
+        {
+            Project project;
+            SubsystemBlockBehavior behavior;
+            return Fixture(game, mode, out project, out behavior, seed);
+        });
     }
 
     private static void RegisterBlocks(Assembly mod, string native, string geology, string palace,

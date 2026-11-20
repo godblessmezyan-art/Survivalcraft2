@@ -6,7 +6,11 @@ using SCIEPort.Features.KellyPlants;
 
 namespace SCIEPort.Features.Geology
 {
-    internal enum GeologyKind { Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat }
+    internal enum GeologyKind
+    {
+        Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat,
+        ColumnarBasalt, DryCanyon
+    }
 
     internal sealed class GeologySite
     {
@@ -85,7 +89,21 @@ namespace SCIEPort.Features.Geology
                 if (IsVolcano(kind)) return FindVolcano(generator, kind, rx, rz, x, z, variantSeed);
                 int baseline = kind == GeologyKind.RiverCave || kind == GeologyKind.Terraces ? (height + low) / 2 : height;
                 baseline = Math.Max(sea + 1, baseline);
-                return new GeologySite(kind, x, z, baseline, Radius(kind), variantSeed, sea, facing);
+                int radius = Radius(kind);
+                if (kind == GeologyKind.PaintedHills || kind == GeologyKind.Pinnacles)
+                {
+                    // Reuse the original site reservation. Volcano searches and pyramid
+                    // exclusion still see the same positions and extents for this seed.
+                    int roll = Grain(x, z, variantSeed ^ 0x15a2cb, 100);
+                    bool basalt = low >= sea + 2 && height >= sea + 6 && relief <= 17;
+                    bool canyon = low >= sea + 2 && height >= sea + 6 && heat >= 4 && humidity <= 9 && relief <= 21;
+                    if (roll < 65)
+                    {
+                        if (basalt && (!canyon || (roll & 1) == 0)) kind = GeologyKind.ColumnarBasalt;
+                        else if (canyon) kind = GeologyKind.DryCanyon;
+                    }
+                }
+                return new GeologySite(kind, x, z, baseline, radius, variantSeed, sea, facing);
             }
             return null;
         }

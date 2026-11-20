@@ -47,6 +47,7 @@ $compiler = New-Object Microsoft.CSharp.CSharpCodeProvider
 [string[]]$sources = @(
     (Join-Path $root 'tests/SCIEPort.TidePalace.NativeTests/TidePalaceProbe.cs'),
     (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/VolcanoNativeProbe.cs'),
+    (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/SpecialTerrainNativeProbe.cs'),
     (Join-Path $root 'tests/SCIEPort.Pyramid.NativeTests/PyramidNativeProbe.cs')
 )
 $compiled = $compiler.CompileAssemblyFromFile($options, $sources)
