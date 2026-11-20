@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortMountainShelter" Guid="e6541873-f612-4f66-91f8-d4d89d6944ec" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="ee1afb52-d323-40b0-9421-41da20f94b31" Value="SCIEPort.Features.MountainShelter.SubsystemMountainShelter" Type="string"/>
+      <Parameter Name="Dependencies" Guid="dcfb9589-2e3a-4065-9653-da00284b0435" Value="Terrain, Players, Bodies, Pickables" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortMountainShelter" Guid="35352012-47d3-4847-ae58-a3137dbf7af7" InheritanceParent="e6541873-f612-4f66-91f8-d4d89d6944ec"/>
+  </ProjectTemplate>
+</DatabaseObjects>

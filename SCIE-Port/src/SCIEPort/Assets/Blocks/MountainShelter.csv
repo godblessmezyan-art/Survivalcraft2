@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;CraftingId;IsCollidable;IsPlaceable;IsPlacementTransparent;IsTransparent;LightAttenuation;DefaultShadowStrength;DefaultEmittedLightAmount;DefaultIsInteractive;IsGatherable;MaxStacking;DefaultDescription;SleepSuitability
+MountainShelterBlock;双人折叠山地庇护帐;SCIEPort.Structures;SCIEPortMountainShelter;947;0;1;scieportmountainshelter;TRUE;FALSE;FALSE;TRUE;1;2;12;TRUE;FALSE;1;;0

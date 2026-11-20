@@ -373,6 +373,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/dr
 if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-MountainShelter.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Mountain shelter native regression tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Plants.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Plant target-native geometry, growth, authority and harvest checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -888,6 +890,7 @@ try {
         'Assets/Blocks/Geology.csv',
         'Assets/Blocks/TidePalace.csv',
         'Assets/Blocks/Pyramid.csv',
+        'Assets/Blocks/MountainShelter.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
@@ -907,6 +910,7 @@ try {
         'Assets/Database/Geology.xdb',
         'Assets/Database/TidePalace.xdb',
         'Assets/Database/Pyramid.xdb',
+        'Assets/Database/MountainShelter.xdb',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',

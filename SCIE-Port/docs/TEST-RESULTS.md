@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-21 · 1.7.0 双人折叠山地庇护帐
+
+- 固定环境通过。索引快照构建命令为 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/mountain-shelter-1.7.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/mountain-shelter-1.7.0/output`。Release 0 警告、0 错误，完整回归和统一包检查退出 0。
+- 对成品 DLL 执行 `Test-MountainShelter.ps1` 的 352 项检查通过。使用原生地形、睡眠、网络数据流和光照更新器验证跨区块一格高差搭建、未生成区块拒绝、写入中断回滚、原生光源开关、连接鉴权、独立铺位、占满拒绝、动物伤害与击退拦截、破坏后唤醒和回收。均在隔离的内存世界执行。
+- 本地 Android 快照中解析新模块 228 个游戏、引擎、实体和留存 BCL 成员，0 缺失。两个统一包逐字节一致，共 232 项、13,135,501 字节，SHA-256 为 `C8469A05E4999EFAD42BC8D932D81B804E1906B57DF6007896487E835AD751B0`。相对 1.6.0 仅新增庇护帐 CSV/XDB 并更新 DLL 和版本元数据，旧资源逐项一致。
+- Android 7723 触屏、实际夜间画面与真实双机联机待验证。验收包括两人各自关门和控制灯、同侧抢位、狼或熊贴帐攻击、支脚上方存读档、天亮离开并收回。
+
 ## 2026-11-21 · 1.6.0 海岸与高地奇景
 
 - 固定环境检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/terrain-1.6.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/terrain-1.6.0/output`，Release、完整回归和统一包校验通过。

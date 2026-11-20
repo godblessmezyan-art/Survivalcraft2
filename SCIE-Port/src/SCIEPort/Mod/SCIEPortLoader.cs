@@ -22,6 +22,7 @@ using SCIEPort.Features.FourSaints;
 using SCIEPort.Features.Fishing;
 using SCIEPort.Features.TidePalace;
 using SCIEPort.Features.Pyramid;
+using SCIEPort.Features.MountainShelter;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -56,6 +57,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new FishingCatchPackage());
                 PackageManager.RegisterPackage(new TidePalacePackage());
                 PackageManager.RegisterPackage(new PyramidPackage());
+                PackageManager.RegisterPackage(new MountainShelterPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -124,6 +126,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override bool AttackBody(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float attackPower, bool isMeleeAttack)
         {
+            if (SubsystemMountainShelter.Protects(target, attacker)) { attackPower = 0f; return true; }
             if(attacker?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death?.FriendlyDamage(target,attacker)==true){attackPower=0;return true;}
             if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
             if (AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false))) { attackPower=0f; return true; }
@@ -148,6 +151,7 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void OnCreatureInjure(ComponentHealth componentHealth, float amount, ComponentCreature attacker, bool ignoreInvulnerability, string cause, out bool Skip)
         {
+            if (SubsystemMountainShelter.Protects(componentHealth?.Entity.FindComponent<ComponentBody>(false), attacker)) { Skip = true; return; }
             if (componentHealth?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.ProtectBedTemperature(componentHealth, attacker, ignoreInvulnerability, cause) == true) { Skip=true; return; }
             var death=componentHealth?.Project.FindSubsystem<SubsystemAbyssReaper>(false)?.Death;
             if(death?.FriendlyDamage(componentHealth.Entity.FindComponent<ComponentBody>(false),attacker)==true){Skip=true;return;}
@@ -168,7 +172,8 @@ namespace SCIEPort.Mod
         /// <inheritdoc />
         public override void AttackPowerParameter(ComponentBody target, ComponentCreature attacker, Vector3 hitPoint, Vector3 hitDirection, ref float impulseFactor, ref float stunTimeFactor, ref bool recalculate)
         {
-            if (DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false))||AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false)))
+            if (SubsystemMountainShelter.Protects(target, attacker)
+                || DomainProtected(target?.Entity.FindComponent<ComponentHealth>(false)) || AvalonProtected(target?.Entity.FindComponent<ComponentHealth>(false)))
             { impulseFactor=0; stunTimeFactor=0; recalculate=false; }
         }
 
