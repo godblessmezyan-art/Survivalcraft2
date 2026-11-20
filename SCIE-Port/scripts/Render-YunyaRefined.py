@@ -19,7 +19,7 @@ blueprint=json.loads(source.read_text(encoding='utf-8'))
 parts={(s['id'],s['data']>>3):s for s in json.loads(args.parts.read_text(encoding='utf-8-sig'))}
 if args.home_parts:parts.update({(s['id'],s['data']>>3):s for s in json.loads(args.home_parts.read_text(encoding='utf-8-sig'))})
 types=['Roof','Timber','Window','Lantern','Tea','Garden','Telescope']
-part_ids={'Ancient'+name+'Block':978+i for i,name in enumerate(types)}
+part_ids={'Ancient'+name+'Block':1014+i for i,name in enumerate(types)}
 part_ids.update({'BookshelfBlock':973,'BookPileBlock':976})
 def visible(c):
     group=manifest['cellGroups'][f"{c['x']},{c['y']},{c['z']}"]

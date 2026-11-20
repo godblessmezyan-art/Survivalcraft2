@@ -1,5 +1,6 @@
 using Game;
 using SCIEPort.Features.AbyssReaper;
+using SCIEPort.Features.AirVehicles;
 using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
@@ -19,6 +20,8 @@ using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.Gungnir;
 using SCIEPort.Features.FourSaints;
 using SCIEPort.Features.Fishing;
+using SCIEPort.Features.TidePalace;
+using SCIEPort.Features.Pyramid;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -51,6 +54,8 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
                 PackageManager.RegisterPackage(new FishingCatchPackage());
+                PackageManager.RegisterPackage(new TidePalacePackage());
+                PackageManager.RegisterPackage(new PyramidPackage());
                 s_networkPackageRegistered = true;
             }
 
@@ -199,6 +204,7 @@ namespace SCIEPort.Mod
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.UpdateBedInsulation();
+            HelicopterCockpit.UpdateViews(GameManager.Project);
         }
 
         /// <inheritdoc />

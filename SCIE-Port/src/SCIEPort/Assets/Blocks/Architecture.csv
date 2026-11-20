@@ -1,8 +1,8 @@
 Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;DefaultIconViewScale;IsCollidable;IsPlaceable;IsPlacementTransparent;IsTransparent;LightAttenuation;DefaultShadowStrength;DefaultIsInteractive;IsGatherable;MaxStacking;DefaultDropContent;DefaultDescription
-AncientRoofBlock;古建屋面;SCIEPort.Structures;;978;0;1;TRUE;TRUE;FALSE;TRUE;1;5;FALSE;TRUE;40;978;
-AncientTimberBlock;古建木构;SCIEPort.Structures;;979;0;1;TRUE;TRUE;FALSE;TRUE;1;5;FALSE;TRUE;40;979;
-AncientWindowBlock;古建窗;SCIEPort.Structures;;980;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;980;
-AncientLanternBlock;灯笼;SCIEPort.Structures;;981;0;1;TRUE;TRUE;FALSE;TRUE;1;3;FALSE;TRUE;40;981;
-AncientTeaBlock;茶廊陈设;SCIEPort.Structures;;982;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;982;
-AncientGardenBlock;园景装饰;SCIEPort.Structures;;983;0;1;TRUE;TRUE;FALSE;TRUE;1;3;FALSE;TRUE;40;983;
-AncientTelescopeBlock;望远镜;SCIEPort.Structures;;984;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;984;
+AncientRoofBlock;古建屋面;SCIEPort.Structures;;1014;0;1;TRUE;TRUE;FALSE;TRUE;1;5;FALSE;TRUE;40;1014;
+AncientTimberBlock;古建木构;SCIEPort.Structures;;1015;0;1;TRUE;TRUE;FALSE;TRUE;1;5;FALSE;TRUE;40;1015;
+AncientWindowBlock;古建窗;SCIEPort.Structures;;1016;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;1016;
+AncientLanternBlock;灯笼;SCIEPort.Structures;;1017;0;1;TRUE;TRUE;FALSE;TRUE;1;3;FALSE;TRUE;40;1017;
+AncientTeaBlock;茶廊陈设;SCIEPort.Structures;;1018;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;1018;
+AncientGardenBlock;园景装饰;SCIEPort.Structures;;1019;0;1;TRUE;TRUE;FALSE;TRUE;1;3;FALSE;TRUE;40;1019;
+AncientTelescopeBlock;望远镜;SCIEPort.Structures;;1020;0;1;TRUE;TRUE;FALSE;TRUE;1;4;FALSE;TRUE;40;1020;

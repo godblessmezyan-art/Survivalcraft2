@@ -8,7 +8,7 @@ namespace SCIEPort.Features.Creatures
     public sealed class CatSpawnBlock : Block
     {
         /// <summary>SCIE-Port reserved content ID for the manual cat spawner.</summary>
-        public const int Index = 985;
+        public const int Index = 1021;
 
         private readonly BlockMesh m_mesh = new BlockMesh();
         private static Texture2D s_texture;

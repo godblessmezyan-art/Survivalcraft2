@@ -4,8 +4,12 @@
 #   slot 0 = planted bamboo base cross face (short culm with a node ring + roots)
 #   slot 1 = stacked upper culm cross face (taller internode with node ring + sprig)
 #   slot 2 = solid bamboo building-block cube face (a full panel of side-by-side culms)
+#   slot 3 = fresh shoot (visible in destruction debris)
+#   slot 4 = woven bamboo screen
+#   slot 6 = dried split cane with nodes
 # Everything else stays fully transparent (cross-face blocks render with alpha test;
 # the cube face is fully opaque so its SubsetOpaque tiles have coverage).
+param([string]$OutPath = (Join-Path $PSScriptRoot '../src/SCIEPort/Assets/Textures/Bamboo.png'))
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 
@@ -77,15 +81,52 @@ Rect $bmp $ox $oy 0 20 31 21 $darkR $darkG $darkB 255
 # right-most culm column to fill edge
 Rect $bmp $ox $oy 30 0 31 31 $culmR $culmG $culmB 255
 
-$out = Join-Path (Get-Location) 'src\SCIEPort\Assets\Textures\Bamboo.png'
-$out = [IO.Path]::GetFullPath($out)
+# Slot 3: tapered shoot with overlapping brown and olive sheaths.
+$ox = TileX 3; $oy = TileY 3
+for ($y = 5; $y -le 29; $y++) {
+    $halfWidth = [int][Math]::Floor(($y - 4) * .33)
+    for ($x = 17 - $halfWidth; $x -le 17 + $halfWidth; $x++) {
+        if ($y -lt 10) {
+            Px $bmp $ox $oy $x $y 105 141 62 255
+        } elseif ((($y + [int][Math]::Floor($x / 3)) % 5) -le 1 -or $x -eq 17 - $halfWidth) {
+            Px $bmp $ox $oy $x $y 106 91 47 255
+        } elseif ($x -lt 18) {
+            Px $bmp $ox $oy $x $y 169 149 70 255
+        } else {
+            Px $bmp $ox $oy $x $y 141 122 62 255
+        }
+    }
+}
+
+$ox = TileX 4; $oy = TileY 4
+for ($y = 0; $y -lt $TILE; $y++) {
+    for ($x = 0; $x -lt $TILE; $x++) {
+        $column = [int][Math]::Floor($x / 4)
+        $row = [int][Math]::Floor($y / 4)
+        $cross = if (($column + $row) % 2 -eq 0) { $x % 4 } else { $y % 4 }
+        $shade = @(16, 5, 0, -26)[$cross] + (($x * 13 + $y * 17) % 7 - 3)
+        Px $bmp $ox $oy $x $y (181 + $shade) (146 + $shade) (82 + $shade) 255
+    }
+}
+
+$ox = TileX 6; $oy = TileY 6
+for ($y = 0; $y -lt $TILE; $y++) {
+    for ($x = 0; $x -lt $TILE; $x++) {
+        $shade = 13 - [int][Math]::Floor([Math]::Abs($x - 10) * .92) + (($x * 9 + $y * 11) % 9 - 4)
+        if ($y -eq 9 -or $y -eq 23) { $shade -= 29 }
+        if ($y -eq 10 -or $y -eq 24) { $shade += 14 }
+        Px $bmp $ox $oy $x $y (164 + $shade) (155 + $shade) (85 + $shade) 255
+    }
+}
+
+$out = [IO.Path]::GetFullPath($OutPath)
 $bmp.Save($out, [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
 
 $check = [System.Drawing.Bitmap]::FromFile($out)
 if ($check.Width -ne 512 -or $check.Height -ne 512) { $check.Dispose(); throw 'Bamboo.png must be 512x512.' }
 $fmt = $check.PixelFormat
-# verify the three authored slots have opaque pixels and a spare slot is clear
+# Verify the authored tiles and the reserved empty slot.
 function Opaque($check, [int]$slot) {
     $bx = TileX $slot; $by = TileY $slot
     $n = 0
@@ -93,7 +134,9 @@ function Opaque($check, [int]$slot) {
         if ($check.GetPixel($bx + $x, $by + $y).A -gt 0) { $n++ } } }
     return $n
 }
-$c0 = Opaque $check 0; $c1 = Opaque $check 1; $c2 = Opaque $check 2; $c5 = Opaque $check 5
+$c0 = Opaque $check 0; $c1 = Opaque $check 1; $c2 = Opaque $check 2; $c3 = Opaque $check 3
+$c4 = Opaque $check 4; $c5 = Opaque $check 5; $c6 = Opaque $check 6
 $check.Dispose()
 Write-Host ("Wrote " + $out + "  format=" + $fmt)
-Write-Host ("opaque slot0=" + $c0 + " slot1=" + $c1 + " slot2=" + $c2 + " slot5(spare)=" + $c5)
+Write-Host "Opaque pixels by slot (0 through 6): $c0 $c1 $c2 $c3 $c4 $c5 $c6"
+if ($c0 -le 0 -or $c1 -le 0 -or $c2 -ne 1024 -or $c3 -le 0 -or $c4 -ne 1024 -or $c5 -ne 0 -or $c6 -ne 1024) { throw 'Bamboo atlas tile coverage is invalid.' }

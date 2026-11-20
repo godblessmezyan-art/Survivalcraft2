@@ -24,7 +24,7 @@ def main():
     draw.text((30, 65), '实际 C# BlockMesh 几何预览；非游戏截图。透明、照明与实机性能待验证。', font=small, fill='#6b6258')
     gallery = []
     for sample in samples:
-        row = sample['id'] - 978
+        row = sample['id'] - 1014
         col = sample['data'] >> 3
         left, top = 15 + col * 238, 105 + row * 231
         draw.rounded_rectangle((left, top, left + 228, top + 219), 12, fill='#f5f1e9')
@@ -56,8 +56,8 @@ def main():
     (blueprints / 'ancient-bookhouse-corners.json').write_text(json.dumps({'schemaVersion':3,'kind':'builderassistant.blueprint','name':'书屋细节组合','cells':floor,'furniturePlacements':placements},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     capabilities = {'mod':'SCIEPort','minVersion':'0.89.0','schemaVersion':3,'family':'detail','data':'rotation | (mirrorX ? 4 : 0) | (variant << 3)','singleCell':True,'blocks':[]}
     for row, key in enumerate(TYPES):
-        forms = [s for s in samples if s['id']==978+row]
-        capabilities['blocks'].append({'key':key,'index':978+row,'forms':[{'variant':s['data']>>3,'name':s['name']} for s in forms],'allowedData':list(range(len(forms)*8))})
+        forms = [s for s in samples if s['id']==1014+row]
+        capabilities['blocks'].append({'key':key,'index':1014+row,'forms':[{'variant':s['data']>>3,'name':s['name']} for s in forms],'allowedData':list(range(len(forms)*8))})
     (ROOT/'docs/architecture-block-capabilities.json').write_text(json.dumps(capabilities,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({'forms':len(samples),'preview':str(args.output/'architecture-kit.png'),'galleryCells':len(gallery)+378},ensure_ascii=False))
 

@@ -28,14 +28,22 @@ function Add-OrientedBox($mesh,$center,$axisX,$axisY,$axisZ,[double]$halfX,[doub
     $signTriples=@([pscustomobject]@{X=-1;Y=-1;Z=-1},[pscustomobject]@{X=1;Y=-1;Z=-1},[pscustomobject]@{X=1;Y=1;Z=-1},[pscustomobject]@{X=-1;Y=1;Z=-1},[pscustomobject]@{X=-1;Y=-1;Z=1},[pscustomobject]@{X=1;Y=-1;Z=1},[pscustomobject]@{X=1;Y=1;Z=1},[pscustomobject]@{X=-1;Y=1;Z=1})
     $vertices=[object[]]::new(8); $vertexIndex=0
     foreach($signs in $signTriples){ [double]$vx=([double]$center[0])+$signs.X*$halfX*$axisX[0]+$signs.Y*$halfY*$axisY[0]+$signs.Z*$halfZ*$axisZ[0]; [double]$vy=([double]$center[1])+$signs.X*$halfX*$axisX[1]+$signs.Y*$halfY*$axisY[1]+$signs.Z*$halfZ*$axisZ[1]; [double]$vz=([double]$center[2])+$signs.X*$halfX*$axisX[2]+$signs.Y*$halfY*$axisY[2]+$signs.Z*$halfZ*$axisZ[2]; $vertices[$vertexIndex]=@($vx,$vy,$vz); $vertexIndex++ }
-    Add-Quad $mesh $vertices[0] $vertices[1] $vertices[2] $vertices[3] $material; Add-Quad $mesh $vertices[4] $vertices[7] $vertices[6] $vertices[5] $material; Add-Quad $mesh $vertices[0] $vertices[3] $vertices[7] $vertices[4] $material; Add-Quad $mesh $vertices[1] $vertices[5] $vertices[6] $vertices[2] $material; Add-Quad $mesh $vertices[0] $vertices[4] $vertices[5] $vertices[1] $material; Add-Quad $mesh $vertices[3] $vertices[2] $vertices[6] $vertices[7] $material
+    Add-BoxFaces $mesh $vertices $material
+}
+function Add-BoxFaces($mesh,$v,[int]$material) {
+    Add-Quad $mesh $v[0] $v[3] $v[2] $v[1] $material
+    Add-Quad $mesh $v[4] $v[5] $v[6] $v[7] $material
+    Add-Quad $mesh $v[0] $v[1] $v[5] $v[4] $material
+    Add-Quad $mesh $v[3] $v[7] $v[6] $v[2] $material
+    Add-Quad $mesh $v[0] $v[4] $v[7] $v[3] $material
+    Add-Quad $mesh $v[1] $v[2] $v[6] $v[5] $material
 }
 function Add-Box($mesh,$minimum,$maximum,[int]$material) { [double]$cx=(([double]$minimum[0])+$maximum[0])/2; [double]$cy=(([double]$minimum[1])+$maximum[1])/2; [double]$cz=(([double]$minimum[2])+$maximum[2])/2; $center=@($cx,$cy,$cz); Add-OrientedBox $mesh $center @(1,0,0) @(0,1,0) @(0,0,1) (([double]$maximum[0]-$minimum[0])/2) (([double]$maximum[1]-$minimum[1])/2) (([double]$maximum[2]-$minimum[2])/2) $material }
 function Add-FrustumZ($mesh,[double]$z0,[double]$z1,$center0,$center1,$half0,$half1,[int]$material) {
     $v=[object[]]::new(8)
     $v[0]=@((([double]$center0[0])-$half0[0]),(([double]$center0[1])-$half0[1]),$z0); $v[1]=@((([double]$center0[0])+$half0[0]),(([double]$center0[1])-$half0[1]),$z0); $v[2]=@((([double]$center0[0])+$half0[0]),(([double]$center0[1])+$half0[1]),$z0); $v[3]=@((([double]$center0[0])-$half0[0]),(([double]$center0[1])+$half0[1]),$z0)
     $v[4]=@((([double]$center1[0])-$half1[0]),(([double]$center1[1])-$half1[1]),$z1); $v[5]=@((([double]$center1[0])+$half1[0]),(([double]$center1[1])-$half1[1]),$z1); $v[6]=@((([double]$center1[0])+$half1[0]),(([double]$center1[1])+$half1[1]),$z1); $v[7]=@((([double]$center1[0])-$half1[0]),(([double]$center1[1])+$half1[1]),$z1)
-    Add-Quad $mesh $v[0] $v[1] $v[2] $v[3] $material; Add-Quad $mesh $v[4] $v[7] $v[6] $v[5] $material; Add-Quad $mesh $v[0] $v[3] $v[7] $v[4] $material; Add-Quad $mesh $v[1] $v[5] $v[6] $v[2] $material; Add-Quad $mesh $v[0] $v[4] $v[5] $v[1] $material; Add-Quad $mesh $v[3] $v[2] $v[6] $v[7] $material
+    Add-BoxFaces $mesh $v $material
 }
 function Add-EllipsoidBand($mesh,$center,$radius,[double]$latitudeMinimum,[double]$latitudeMaximum,[int]$rings,[int]$segments,[int]$material) {
     [double]$cx=$center[0]; [double]$cy=$center[1]; [double]$cz=$center[2]
@@ -59,6 +67,28 @@ function Add-RotorBox($mesh,[double]$angle,[double]$radius,[double]$width,[doubl
     if($tail){ $axisLength=@(0,[Math]::Cos($angle),[Math]::Sin($angle)); $axisWidth=@(0,-[Math]::Sin($angle),[Math]::Cos($angle)); Add-OrientedBox $mesh @(0,0,0) @(1,0,0) $axisLength $axisWidth ($height/2) $radius ($width/2) $material }
     else { $axisLength=@([Math]::Cos($angle),0,[Math]::Sin($angle)); $axisWidth=@(-[Math]::Sin($angle),0,[Math]::Cos($angle)); Add-OrientedBox $mesh @(0,0,0) $axisLength @(0,1,0) $axisWidth $radius ($height/2) ($width/2) $material }
 }
+function Add-CabinRail($mesh,$start,$end,$across,[double]$halfWidth,[double]$halfDepth,[int]$material) {
+    $delta=Subtract-Vector $end $start
+    $along=Normalize-Vector $delta
+    $depth=Normalize-Vector (Cross-Vector $across $along)
+    $length=[Math]::Sqrt($delta[0]*$delta[0]+$delta[1]*$delta[1]+$delta[2]*$delta[2])
+    $center=@((($start[0]+$end[0])/2),(($start[1]+$end[1])/2),(($start[2]+$end[2])/2))
+    Add-OrientedBox $mesh $center $across $along $depth $halfWidth ($length/2+$halfDepth) $halfDepth $material
+}
+function Add-Gauge($mesh,[double]$x,[double]$y,[double]$z,[double]$radius) {
+    $center=@($x,$y,$z)
+    for($i=0;$i -lt 12;$i++) {
+        $a=2*[Math]::PI*$i/12; $b=2*[Math]::PI*($i+1)/12
+        $ax=[Math]::Cos($a); $ay=[Math]::Sin($a); $bx=[Math]::Cos($b); $by=[Math]::Sin($b)
+        $innerA=@(($x+0.81*$radius*$ax),($y+0.8*0.81*$radius*$ay),($z-0.6*0.81*$radius*$ay))
+        $innerB=@(($x+0.81*$radius*$bx),($y+0.8*0.81*$radius*$by),($z-0.6*0.81*$radius*$by))
+        $outerA=@(($x+$radius*$ax),($y+0.8*$radius*$ay),($z-0.6*$radius*$ay))
+        $outerB=@(($x+$radius*$bx),($y+0.8*$radius*$by),($z-0.6*$radius*$by))
+        $rim=if($i % 3 -eq 0){5}else{3}
+        Add-Quad $mesh $innerA $outerA $outerB $innerB $rim
+        Add-Triangle $mesh $center $innerA $innerB 4
+    }
+}
 function Convert-ToLocal($mesh,$pivot) { for($i=0;$i -lt $mesh.Positions.Count;$i+=3){ $mesh.Positions[$i]-=$pivot[0]; $mesh.Positions[$i+1]-=$pivot[1]; $mesh.Positions[$i+2]-=$pivot[2] } }
 function New-GeometryXml($mesh) {
     $positions=($mesh.Positions|ForEach-Object{Format-Number $_}) -join ' '; $normals=($mesh.Normals|ForEach-Object{Format-Number $_}) -join ' '; $uvs=($mesh.UVs|ForEach-Object{Format-Number $_}) -join ' '; $indices=($mesh.Indices|ForEach-Object{$_.ToString($invariant)}) -join ' '; $vertexCount=[int]($mesh.Positions.Count/3); $name=$mesh.Name
@@ -72,36 +102,68 @@ function New-GeometryXml($mesh) {
 "@
 }
 
-$visual=New-Mesh 'VisualRoot'; $main=New-Mesh 'MainRotor'; $tail=New-Mesh 'TailRotor'; $mainBlur=New-Mesh 'MainRotorBlur'; $tailBlur=New-Mesh 'TailRotorBlur'
-Add-EllipsoidBand $visual @(0,0.88,-0.72) @(0.94,0.72,1.32) (-[Math]::PI/2) 0.24 5 12 0
-Add-FrustumZ $visual -1.82 -1.34 @(0,0.87) @(0,0.96) @(0.54,0.40) @(0.78,0.52) 0
-Add-Quad $visual @(-0.54,0.82,-1.825) @(0.54,0.82,-1.825) @(0.67,1.37,-1.42) @(-0.67,1.37,-1.42) 2
-Add-Box $visual @(-0.72,1.34,-1.38) @(0.72,1.48,0.18) 0
-Add-Box $visual @(-0.88,0.48,-1.30) @(-0.80,1.34,0.18) 1; Add-Box $visual @(0.80,0.48,-1.30) @(0.88,1.34,0.18) 1
-foreach($x in @(-0.83,0.83)){ Add-Box $visual @(($x-0.035),0.50,-0.95) @(($x+0.035),0.61,0.10) 1; Add-Box $visual @(($x-0.035),0.58,-1.03) @(($x+0.035),1.34,-0.95) 3; Add-Box $visual @(($x-0.035),0.58,0.10) @(($x+0.035),1.34,0.18) 3; Add-Box $visual @(($x-0.035),1.28,-0.95) @(($x+0.035),1.36,0.10) 3 }
+$visual=New-Mesh 'VisualRoot'; $glass=New-Mesh 'CanopyGlass'
+$main=New-Mesh 'MainRotor'; $tail=New-Mesh 'TailRotor'; $mainBlur=New-Mesh 'MainRotorBlur'; $tailBlur=New-Mesh 'TailRotorBlur'
+Add-EllipsoidBand $visual @(0,0.88,-0.72) @(0.94,0.72,1.32) (-[Math]::PI/2) 0.20 5 12 0
+Add-FrustumZ $visual -1.82 -1.35 @(0,0.76) @(0,0.83) @(0.53,0.20) @(0.78,0.20) 0
+Add-FrustumZ $visual -1.12 0.18 @(0,1.65) @(0,1.64) @(0.79,0.05) @(0.82,0.08) 0
+Add-Box $visual @(-0.79,0.55,0.09) @(0.79,1.62,0.18) 7
+
+# The swept front windscreen and side windows share one exterior-only bone.
+$bottomY=1.035; $bottomZ=-1.56; $topY=1.63; $topZ=-1.10; $windowX=0.78
+Add-Quad $glass @(-$windowX,$bottomY,$bottomZ) @(-$windowX,$topY,$topZ) @($windowX,$topY,$topZ) @($windowX,$bottomY,$bottomZ) 2
+foreach($side in @(-1,1)) {
+    $x=$side*$windowX
+    $lowerFront=@($x,$bottomY,$bottomZ); $upperFront=@($x,$topY,$topZ)
+    $upperRear=@($x,$topY,0.12); $lowerRear=@($x,$bottomY,0.12)
+    if($side -lt 0) { Add-Quad $glass $lowerFront $lowerRear $upperRear $upperFront 2 }
+    else { Add-Quad $glass $lowerFront $upperFront $upperRear $lowerRear 2 }
+    Add-Box $visual @(($x-0.045),0.61,-1.37) @(($x+0.045),$bottomY,0.18) 1
+    Add-CabinRail $visual $lowerFront $upperFront @(1,0,0) 0.043 0.033 3
+    Add-CabinRail $visual $lowerRear $upperRear @(1,0,0) 0.045 0.033 3
+}
+Add-CabinRail $visual @(-$windowX,$bottomY,$bottomZ) @($windowX,$bottomY,$bottomZ) @(0,1,0) 0.047 0.039 3
+Add-CabinRail $visual @(-$windowX,$topY,$topZ) @($windowX,$topY,$topZ) @(0,1,0) 0.041 0.037 3
+Add-CabinRail $visual @(0,$bottomY,$bottomZ) @(0,$topY,$topZ) @(1,0,0) 0.021 0.022 3
+
 foreach($x in @(-0.42,0.42)){ Add-Box $visual @(($x-0.27),0.48,-0.84) @(($x+0.27),0.61,-0.30) 6; Add-Box $visual @(($x-0.27),0.57,-0.24) @(($x+0.27),1.22,-0.10) 6; Add-Box $visual @(($x-0.24),0.61,-0.79) @(($x+0.24),0.66,-0.36) 3 }
-Add-FrustumZ $visual -1.31 -0.97 @(0,0.92) @(0,1.03) @(0.66,0.18) @(0.61,0.23) 7
-foreach($x in @(-0.32,0,0.32)){ Add-Box $visual @(($x-0.07),1.04,-1.335) @(($x+0.07),1.15,-1.30) 10 }
+Add-FrustumZ $visual -1.50 -1.19 @(0,0.90) @(0,0.93) @(0.64,0.11) @(0.68,0.13) 7
+$panelUp=@(0,0.8,-0.6); $panelNormal=@(0,0.6,0.8)
+Add-OrientedBox $visual @(0,1.045,-1.24) @(1,0,0) $panelUp $panelNormal 0.685 0.165 0.05 7
+foreach($x in @(-0.42,0.42)) {
+    Add-OrientedBox $visual @($x,1.074,-1.203) @(1,0,0) $panelUp $panelNormal 0.232 0.115 0.008 3
+    foreach($delta in @(-0.145,0,0.145)) {
+        Add-Gauge $visual ($x+$delta) 1.084 -1.194 0.064
+    }
+    Add-OrientedBox $visual @($x,1.006,-1.137) @(1,0,0) $panelUp $panelNormal 0.13 0.010 0.004 5
+    Add-CabinRail $visual @($x,0.60,-0.91) @($x,0.94,-0.89) @(1,0,0) 0.022 0.022 5
+    Add-Box $visual @(($x-0.055),0.907,-0.924) @(($x+0.055),0.951,-0.856) 3
+}
+Add-OrientedBox $visual @(0,1.095,-1.22) @(1,0,0) $panelUp $panelNormal 0.111 0.053 0.013 3
+Add-OrientedBox $visual @(0,1.105,-1.206) @(1,0,0) $panelUp $panelNormal 0.088 0.014 0.003 8
+foreach($x in @(-0.060,0,0.060)) {
+    Add-OrientedBox $visual @($x,1.022,-1.156) @(1,0,0) $panelUp $panelNormal 0.012 0.012 0.006 10
+}
 Add-FrustumZ $visual 0.16 2.42 @(0,0.96) @(0,1.15) @(0.30,0.28) @(0.12,0.13) 0; Add-Box $visual @(-0.04,0.92,0.22) @(0.04,1.04,2.34) 1
-Add-FrustumZ $visual 2.16 2.53 @(0,1.25) @(0,1.56) @(0.10,0.52) @(0.075,0.25) 1; Add-Box $visual @(-0.54,1.10,2.18) @(0.54,1.18,2.46) 0; Add-Box $visual @(-0.08,1.49,-0.43) @(0.08,1.80,-0.27) 3
+Add-FrustumZ $visual 2.16 2.53 @(0,1.25) @(0,1.56) @(0.10,0.52) @(0.075,0.25) 1; Add-Box $visual @(-0.54,1.10,2.18) @(0.54,1.18,2.46) 0; Add-Box $visual @(-0.08,1.67,-0.43) @(0.08,1.80,-0.27) 3
 foreach($x in @(-0.98,0.98)){ Add-Box $visual @(($x-0.065),0.05,-1.37) @(($x+0.065),0.15,1.02) 4; Add-Box $visual @(($x-0.055),0.14,-0.72) @(($x+0.055),0.50,-0.57) 5; Add-Box $visual @(($x-0.055),0.14,0.28) @(($x+0.055),0.50,0.43) 5 }
 Add-Box $visual @(-1.00,0.84,-0.22) @(-0.93,0.94,-0.10) 9; Add-Box $visual @(0.93,0.84,-0.22) @(1.00,0.94,-0.10) 8; Add-Box $visual @(-0.05,1.31,2.49) @(0.05,1.40,2.57) 10
 Add-RotorBox $main 0 2.36 0.16 0.045 3 $false; Add-RotorBox $main ([Math]::PI/2) 2.36 0.16 0.045 3 $false; Add-OrientedBox $main @(0,0,0) @(1,0,0) @(0,1,0) @(0,0,1) 0.18 0.08 0.18 5
 Add-RotorBox $tail 0 0.70 0.12 0.045 3 $true; Add-RotorBox $tail ([Math]::PI/2) 0.70 0.12 0.045 3 $true; Add-OrientedBox $tail @(0,0,0) @(1,0,0) @(0,1,0) @(0,0,1) 0.07 0.12 0.12 5
 for($i=0;$i -lt 6;$i++){ Add-RotorBox $mainBlur ($i*[Math]::PI/6) 2.38 0.065 0.018 11 $false }; for($i=0;$i -lt 5;$i++){ Add-RotorBox $tailBlur ($i*[Math]::PI/5) 0.72 0.055 0.018 11 $true }
 
-$visualPivot=@(0.0,1.0,-0.55); Convert-ToLocal $visual $visualPivot
-$geometries=(@($visual,$main,$tail,$mainBlur,$tailBlur)|ForEach-Object{New-GeometryXml $_}) -join "`n"
+$visualPivot=@(0.0,1.0,-0.55); Convert-ToLocal $visual $visualPivot; Convert-ToLocal $glass $visualPivot
+$geometries=(@($visual,$glass,$main,$tail,$mainBlur,$tailBlur)|ForEach-Object{New-GeometryXml $_}) -join "`n"
 $document=@"
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Project-created clean-room V0.4 two-seat helicopter. Six bones, five merged meshes, opaque palette UVs. -->
-<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1"><asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-HelicopterAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset><library_geometries>$geometries</library_geometries><library_visual_scenes><visual_scene id="Scene" name="Scene"><node id="HelicopterRoot" name="HelicopterRoot" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><node id="VisualRoot" name="VisualRoot" type="NODE"><translate>0 1 -0.55</translate><instance_geometry url="#VisualRoot-mesh" name="VisualRoot"/><node id="MainRotor" name="MainRotor" type="NODE"><translate>0 0.80 0.25</translate><instance_geometry url="#MainRotor-mesh" name="MainRotor"/></node><node id="TailRotor" name="TailRotor" type="NODE"><translate>0.30 0.20 2.92</translate><instance_geometry url="#TailRotor-mesh" name="TailRotor"/></node><node id="MainRotorBlur" name="MainRotorBlur" type="NODE"><translate>0 0.80 0.25</translate><instance_geometry url="#MainRotorBlur-mesh" name="MainRotorBlur"/></node><node id="TailRotorBlur" name="TailRotorBlur" type="NODE"><translate>0.30 0.20 2.92</translate><instance_geometry url="#TailRotorBlur-mesh" name="TailRotorBlur"/></node></node></node></visual_scene></library_visual_scenes><scene><instance_visual_scene url="#Scene"/></scene></COLLADA>
+<!-- Project-created two-seat helicopter with glass isolated for the cockpit view. -->
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1"><asset><contributor><author>SCIE-Port contributors</author><authoring_tool>New-HelicopterAssets.ps1</authoring_tool></contributor><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset><library_geometries>$geometries</library_geometries><library_visual_scenes><visual_scene id="Scene" name="Scene"><node id="HelicopterRoot" name="HelicopterRoot" type="NODE"><matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix><node id="VisualRoot" name="VisualRoot" type="NODE"><translate>0 1 -0.55</translate><instance_geometry url="#VisualRoot-mesh" name="VisualRoot"/><node id="CanopyGlass" name="CanopyGlass" type="NODE"><instance_geometry url="#CanopyGlass-mesh" name="CanopyGlass"/></node><node id="MainRotor" name="MainRotor" type="NODE"><translate>0 0.80 0.25</translate><instance_geometry url="#MainRotor-mesh" name="MainRotor"/></node><node id="TailRotor" name="TailRotor" type="NODE"><translate>0.30 0.20 2.92</translate><instance_geometry url="#TailRotor-mesh" name="TailRotor"/></node><node id="MainRotorBlur" name="MainRotorBlur" type="NODE"><translate>0 0.80 0.25</translate><instance_geometry url="#MainRotorBlur-mesh" name="MainRotorBlur"/></node><node id="TailRotorBlur" name="TailRotorBlur" type="NODE"><translate>0.30 0.20 2.92</translate><instance_geometry url="#TailRotorBlur-mesh" name="TailRotorBlur"/></node></node></node></visual_scene></library_visual_scenes><scene><instance_visual_scene url="#Scene"/></scene></COLLADA>
 "@
 [IO.File]::WriteAllText($modelPath,$document,[Text.UTF8Encoding]::new($false))
 
 Add-Type -AssemblyName System.Drawing
 $bitmap=New-Object Drawing.Bitmap 96,16,([Drawing.Imaging.PixelFormat]::Format32bppArgb)
-try { $palette=@([Drawing.Color]::FromArgb(255,232,235,232),[Drawing.Color]::FromArgb(255,184,35,38),[Drawing.Color]::FromArgb(255,22,38,50),[Drawing.Color]::FromArgb(255,47,50,53),[Drawing.Color]::FromArgb(255,24,25,26),[Drawing.Color]::FromArgb(255,132,142,148),[Drawing.Color]::FromArgb(255,74,30,32),[Drawing.Color]::FromArgb(255,18,23,25),[Drawing.Color]::FromArgb(255,60,220,95),[Drawing.Color]::FromArgb(255,255,55,55),[Drawing.Color]::FromArgb(255,240,230,160),[Drawing.Color]::FromArgb(255,78,83,86)); for($x=0;$x -lt $bitmap.Width;$x++){ $color=$palette[[Math]::Min([int]($x/8),$palette.Count-1)]; for($y=0;$y -lt $bitmap.Height;$y++){$bitmap.SetPixel($x,$y,$color)} }; $bitmap.Save($texturePath,[Drawing.Imaging.ImageFormat]::Png) } finally { $bitmap.Dispose() }
+try { $palette=@([Drawing.Color]::FromArgb(255,232,235,232),[Drawing.Color]::FromArgb(255,184,35,38),[Drawing.Color]::FromArgb(255,22,38,50),[Drawing.Color]::FromArgb(255,47,50,53),[Drawing.Color]::FromArgb(255,24,25,26),[Drawing.Color]::FromArgb(255,132,142,148),[Drawing.Color]::FromArgb(255,74,30,32),[Drawing.Color]::FromArgb(255,18,23,25),[Drawing.Color]::FromArgb(255,60,220,95),[Drawing.Color]::FromArgb(255,255,55,55),[Drawing.Color]::FromArgb(255,240,230,160),[Drawing.Color]::FromArgb(255,78,83,86)); for($x=0;$x -lt $bitmap.Width;$x++){ $color=$palette[[int][Math]::Floor($x/8)]; for($y=0;$y -lt $bitmap.Height;$y++){$bitmap.SetPixel($x,$y,$color)} }; $bitmap.Save($texturePath,[Drawing.Imaging.ImageFormat]::Png) } finally { $bitmap.Dispose() }
 
 New-Item -ItemType Directory -Force -Path $audioDirectory | Out-Null
 $sampleRate=22050; $sampleCount=$sampleRate; $dataLength=$sampleCount*2; $stream=[IO.File]::Open($audioPath,[IO.FileMode]::Create,[IO.FileAccess]::Write,[IO.FileShare]::None); $writer=[IO.BinaryWriter]::new($stream)

@@ -1,5 +1,100 @@
 # 测试结果
 
+## 2026-11-20 · 1.3.0 特殊地形
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/special-terrain-1.3.0`。固定目标依赖与 ABI 检查、Release 编译、完整回归及包校验通过。
+- 专项原生测试通过 126,134 项检查。对两个世界种子各抽样 9,409 个区块，分别有 5,445、5,532 个区块保留候选；各组均覆盖 11 种，东西南北相邻区块无同类候选。测试还涵盖备选落地、障碍拒绝后无部分写入、区块与高度边界、旧区块跳过、天坑出口和近岸浅水间距。
+- 大陆原生区块测试使用 `HighVolcano`。六种小地标的测试区块中心 X/Z 分别是立石环 `1480,-40`，风蚀蘑菇岩 `-88,24`，冰塔林 `-1240,-408`，沙丘脊 `56,1256`，海蚀柱群 `1704,-184`，天坑 `1192,-8`。测试使用原生四阶段和地标生成器。
+- 同种子在大陆 400 个区域选到 6 处柱状节理台地和 6 处干峡谷，Better 各选到 1 处与 2 处。大陆跨区块样本中心为 `88,2616` 和 `2632,680`，Better 为 `2040,2440` 和 `-88,2936`。每个样本确认相邻两个原生区块都生成对应材料。
+- 水幕沉殿 384 项、火山 16,626 项、日阶神殿 9,124 项原生回归通过，书柜、五分类、钓鱼和云天书典通过整包检查。两个安装包字节一致，共 230 项、13,119,480 字节，SHA-256 为 `21144D1C0C2EA55766177A4462B78A3748A0F2EA5A92A1DA95E362CAD3631825`。与 1.2.0 的包逐项比对，仅更新 `SCIEPort.dll` 和 `modinfo.json`。
+- Android 7723、实际游玩分布和真实联机 **待验证**。[生成规则](SPECIAL-TERRAIN-1.3.0.md)
+
+## 2026-11-20 · 1.2.0 日阶神殿
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-1.2.0`。目标环境校验、Release 编译、完整回归和包检查退出 0，编译 0 警告、0 错误。
+- 日阶神殿通过 9,124 项固定目标程序集检查。使用 `SunPyramid` 在大陆、岛屿和 Better 各采样 256 个区域，分别找到 8、1、8 个候选，每种模式通过原生入口完整写入 25 个新区块。测试覆盖旧区块回避、断桥与落坑返回、东廊和上层路线、六种封印排列、三叉戟排除、9,000 次奖池抽样、隔墙拒绝、单人及主机领取、取出和重读后禁止重复装填。
+- 通过水幕沉殿 384 项和火山 16,626 项原生专项回归。整包以相同字节生成两份，共 230 项、13,113,830 字节。SHA-256 为 `38127262DC34558CEC512A28130E6574214DEC08061F3162D5A51C18ADF73C36`。两版包对比保留了 1.1.1 的全部资源，新加金字塔数据表、数据库和机关贴图。
+- Android 7723 实机、画面及跳跃手感、真实联机 **待验证**。[生成规则与入口坐标](PYRAMID-1.2.0.md)
+
+## 2026-11-20 · 1.1.1 高地火山口
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/volcanoes-1.1.1`。固定目标环境、Release 构建、完整回归和包检查退出 0，编译 0 警告、0 错误。
+- 火山专项通过 16,626 项检查。固定 Windows 目标生成器对大陆、Better 和 3072×3072 格岛屿各采样 400 个区域。大陆为冷却 12、余火 10、三色 1，Better 为冷却 8、余火 4，岛屿为冷却 9、余火 7。完整生成 16 座火山，验证山脊开口、五格路径范围内一格以内的通行高差，以及余火型原版第四阶段后仍保留的 137 格裸露岩浆。还检查池底与四向围岸、外部方块打断时整池跳过、已加载区块保留、负坐标、跨区块写入顺序。
+- 主包与版本副本字节一致，共 227 条目、13,094,446 字节。SHA-256 为 `47AB8F4EEE4C93ECBE6B553DC17FE955DB6DE1BC707E3E12F96075DF404B01BF`。与 1.1.0 比较，更新的包条目是 `SCIEPort.dll` 和 `modinfo.json`。水幕沉殿 384 项检查，以及书柜、五类创造栏、钓鱼和云天书典回归通过。
+- Android 7723 的实机观感、控制、岩浆演化和真实联机 **待验证**。[首测种子与坐标](GEOLOGY-VOLCANOES-1.1.1.md)
+
+## 2026-11-20 · 1.1.0 水幕沉殿
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/tide-palace-1.1.0`。环境检查、Release、既有自动回归和包校验退出 0，编译 0 警告、0 错误。
+- 沉殿专项通过 384 项检查。用固定目标实际地形生成器，在大陆、岛屿和 Better 模式各采样 100 个区域，分别有 18、21、18 个候选。每种模式逆序生成三个完整宫殿，共 108 个新区块切片。检查了负坐标、旧存档区块重叠、纯客户端隔离、空气口与水幕侧漏、开闸前后路线及回程竖井。
+- 检查全部 26 种潮轮解、原生机关绑定、235 请求的 13 字节有效负载、普通客户端身份绑定和隔墙拒绝。Local 与 Server 隔离夹具均通过一次装填、取空和拆除后读回状态检查。原有书柜、五类创造栏、钓鱼、绘卷、云天书典和陈列器回归通过。
+- 两份安装包字节一致，共 227 条目、13,094,021 字节，SHA-256 为 `648B03A3C75DED596591D1B31B363FA7302F9901ADD267AD0C3585192DB5A21B`。包内只有一个 SCIEPort.dll，沉殿 CSV、XDB 和像素图集与源文件一致。
+- Android 7723 的触屏、氧气时长和水下观感，以及真实联机和晚加入同步 **待验证**。[生成、路线与首测种子](TIDE-PALACE-1.1.0.md)
+
+## 2026-11-20 · 1.0.1 植物物品大小
+
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\plants-1.0.1` 退出 0，Release 编译 0 警告/错误；目标程序集植物几何、尺寸与生命周期测试通过（1,071,251 项）。使用 Test-PlantsGpu.ps1 按原生掉落物 size=0.3 渲染浆果、苹果、椰子、猴面包果和椰子叶，对比图见 artifacts/plants-1.0.1/gpu/plant-pickable-sizes.png。安装包 SHA-256 `7F43208F38E7C8D5046EAEAFCB9CA9196A1414968C10AE01B667388989B0F182`。Android 实机和真实联机待验证。
+
+## 2026-11-20 · 1.0.0 主线合并
+
+执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\merge-1.0.0-final`，退出 0，Release 编译 0 警告、0 错误；环境和数据库、蓝图、古建、动物模型导入以及动物食物/鸡蛋/权限检查通过。安装包 SHA-256 `620E9FCF80E9AC73360EE98E4B4F0C8FB811FE74E7EA2DBB4DD3152102C82DEF`。Android 实机、真实世界与联机待验证。
+
+## 2026-11-19 · 0.99.2 修复世界加载
+
+- 使用 0.99.0 和 0.99.1 的实际安装包，在固定 x25.01.17 的 `SubsystemBlockBehaviors.Load` 中复现 `Required subsystem Game.SubsystemBlockBehavior with name "WaterBlockBehavior" does not exist in project.`
+- 0.99.2 的实际安装包通过原生加载流程检查。合并全部包内 XDB 后，`Project` 和 `GameProject` 均解析全部 22 个 CSV 行为名，原版水 18 和矿色水 1013 各绑定一次同一原生 `WaterBehavior`，双向被原生流体规则识别为同类。恢复旧名称时，两种配置均重现原异常。
+- 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/world-load-0.99.2`。Release、完整自动回归和包校验通过。两份安装包字节一致，共 221 条目、13,037,539 字节，SHA-256 为 `9929DB4791D6BB536B4C0BE1EE686295F45BA055470B5E3CB2420F23BBF0267B`。
+- Android 7723 实机打开原世界与真实联机 **待验证**。
+
+## 2026-11-19 · 0.99.1 直升机座舱
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/helicopter-cockpit-0.99.1`。固定环境、Release、完整自动回归和包内容校验通过。构建时为静态数据库校验补录了 x25.01.17 自带的 `Subsystem` 模板 GUID，供地质模块的现有继承项解析。
+- 8,119 项直升机飞行规则和 110 项目标程序集检查通过。目标检查覆盖原生 XDB 合并、双座眼位、视线输入和俯仰侧倾、切换第三人称、离座及死亡恢复、玻璃隔离、仪表读数和既有触控布局。原生 Engine 导入 7 骨骼、6 网格，Windows Engine/OpenGL 合成渲染检查驾驶位、副驾和机身外观。
+- 安装包与版本副本逐字节一致，共 221 条目、13,037,545 字节。校验了直升机 DAE、PNG、XDB 和声音文件的包内字节。SHA-256 为 `DD76184500F080A32A8B18FCA0033C6E1AD79E691EC2F0D475716DCCBA3CC79B`。
+- Android 7723 触屏、真实联机、旧世界载入与长时间飞行 **待验证**。[座舱与验收步骤](HELICOPTER-COCKPIT-0.99.1.md)
+
+## 2026-11-19 · 0.99.0 火山与地质奇景
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/geology-0.99.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包和字节一致的版本副本。
+- 安装包 221 条目、13,063,576 字节，包含新 DLL、Geology CSV、XDB 和图集。SHA‑256 为 `2750698AD10FBBEC0B937CB11B81CB7B542DC12B6503AAD04519B1374F7D12E5`。
+- 沿用用户亲自实测的安排，未运行自动测试或启动游戏。地貌出现率、跨区块接缝、水体、盐原湿光、手持与放置、多端兼容均 **待验证**。[地貌与方块](GEOLOGY-0.99.0.md)
+
+## 2026-11-19 · 0.98.0 五种自然地形
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/landmarks-0.98.0/build --nologo`。0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
+- 安装包 13,036,826 字节，SHA-256 为 `2B16FEFEEC1BE6E54C64C7E1F72880D0EBE48FC54F49A0D793DC4FCCC2989112`。
+- 沿用用户亲自测试的约定，本轮只编译和打包。自动测试、游戏内生成密度、水流、通行和联机均 **待验证**。[地形规则](NATURAL-LANDMARKS-0.98.0.md)
+
+## 2026-11-19 · 0.97.0 竹制建材与竹林地标
+
+- 从仓库根执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17 -o E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.97.0/build --nologo`。编译报告 0 警告、0 错误。复用 `Build-NetMod.ps1` 的资源暂存和压缩步骤生成安装包及版本副本。
+- 安装包 13,028,679 字节，SHA-256 为 `AE3D7C010B9B081F8512DFF4B2AF5C696DF4D389532792B768775F47A94658DD`。
+- 按用户要求跳过自动测试与进游戏实测。合成、地标出现率、触屏和联机均 **待验证**。[合成与地标条件](BAMBOO-BUILDING-0.97.0.md)
+
+## 2026-11-19 · 0.96.0 竹林与竹笋
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/bamboo-0.96.0`。固定环境、Release（0 警告、0 错误）、全部回归和打包检查通过。
+- 41 项竹子纯规则和 1,071,247 项固定目标植物检查通过。覆盖竹林完整高度、每区块根与竹笋上限、同种子复现、三阶段竹笋、空位阻塞、根部再生、砍断后原生掉落、世界上界与联机权限。原生 CSV 成功加载 932、933、1001。真实原版配方匹配函数接受 2×2 的四段竹竿并产出一块竹材。
+- 十组 Windows Engine/OpenGL 合成预览通过。固定 Android APK 快照静态解析竹子和植物代码的 184 个外部成员，0 缺失。新增图集槽 3，其他 255 个槽位和 0.95.0 逐像素一致。
+- 正式包及版本副本字节一致，218 条目、12,989,873 字节。变更包括 Bamboo CSV/PNG、统一 DLL、版本元数据和资源声明。SHA-256 为 `902CD709B3531A1EBCA748FEC40BCB2FAAC220ECFF571AB239251F0C3A9C7B58`。
+- Android 7723 实机、真实旧世界与多人联机 **待验证**。[竹林和种植规则](BAMBOO-GROVES-0.96.0.md)
+
+## 2026-11-19 · 0.95.0 四种特色树木
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/trees-0.95.0`。固定 x25.01.17 环境、Release（0 警告、0 错误）、全套回归和包内容校验通过。
+- 1,056,083 项固定目标植物检查通过。在 384 个新树种合成区块中按栖息地分别生成 23 棵高棕榈、34 棵椰子树、18 棵猴面包树、17 棵樱花树。检查了各树高度、空间阻塞、主机与普通客户端区分、椰子两颗自然落果上限、同一果串的自然落果与采摘、支撑和再生。原生 CSV 载入验证 14 个新 ID、创造栏和食物属性，猴面包果原生腐坏间隔为苹果的 3.25 倍。
+- 九组 Engine/OpenGL 合成渲染通过。`gpu/four-tree-species.png` 展示实际树形和相对高度，`gpu/special-tree-materials.png` 展示木材和果实。对固定 Android APK 快照解析 237 个相关成员，0 缺失。
+- 正式包及版本副本字节一致，218 条目、12,987,207 字节。相对 0.94.0 新增 SpecialTrees 的 CSV、XDB 和图集，更新 DLL、版本元数据及资源声明。SHA-256 为 `952A0BAA0518BB10ADD65B23C4E7F1557F3C7634DA2D45EF774823CE9ED14C04`。
+- Android 7723 手机实机、真实单机世界和多人联机 **待验证**。[树种专题](SPECIAL-TREES-0.95.0.md)
+
+## 2026-11-19 · 0.94.0 苹果木与树叶
+
+- 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/apple-0.94.0`。固定 Windows 目标环境、Release（0 警告、0 错误）、全套回归和包契约通过。固定目标原生方块表读取 260 项，最高 ID 263。978–980 可用。
+- 725 项苹果纯规则及 1,052,713 项固定目标植物检查通过，覆盖五类栖息地的 640 个合成区块、季节、阻塞、两种旧树迁移顺序、旧挂果和采后状态、客户端隔离、原生木材方向、脱落和采摘。原生 BlocksManager 实际载入五条 CSV，验证创造栏、碰撞、木材配方类别与木材行为绑定。
+- 同字节的包内 DLL 通过七组 Engine/OpenGL 渲染，其中四组显示新苹果树和方块。Android APK 快照静态核对 206 个苹果与植物引用成员，0 缺失。构建、渲染和接口检查输出位于 `artifacts/apple-0.94.0`。
+- 双份安装包字节一致，共 215 个条目、12,962,080 字节。相对 0.93.0 修改 DLL、版本元数据、Apple CSV/PNG 和资源声明。SHA-256 为 `E1D2D9D4A03B02E04C9760A16AAFC1E6E893952E8B4AEFAF99DEAF8F7F2251EA`。
+- Android 7723 实机、真实旧世界和多人会话 **待验证**。[方块和迁移说明](APPLE-TREE-0.94.0.md)
+
 ## 2026-11-18 / 0.94.0：共同主线整合
 
 完整合并本地0b9b7a0与GitHub main ba27dd0，16个冲突文件逐项解决，保留植物0.93生态、动物0.91生态、蓄力钓鱼、书典选书/JNI/EPUB/纸页/返回与空行修复、恒温床/壁炉、古建detail/home蓝图、书柜、五分类与统一书典。未纳入三个未完成骨龙文件，原件逐字节保持。

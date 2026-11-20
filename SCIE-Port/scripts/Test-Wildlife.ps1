@@ -5,7 +5,7 @@ foreach($file in @('Engine.dll','EntitySystem.dll','Survivalcraft.exe','LiteNetL
 $assets=Join-Path $root 'src/SCIEPort/Assets'
 $all=@{}
 foreach($t in [Game.Block].Assembly.GetTypes()) {if($t.IsSubclassOf([Game.Block])){$f=$t.GetField('Index');if($f -and $f.IsLiteral){$all[[int]$f.GetRawConstantValue()]=$t.FullName}}}
-if($all.ContainsKey(985)){throw 'Cat ID 985 conflicts with native target'}
+if($all.ContainsKey(1021)){throw 'Cat ID 1021 conflicts with native target'}
 $models=@{Fox=6;Rabbit=6;Chicken=7;Cat=6}
 foreach($name in $models.Keys){
     $path=Join-Path $assets ('Models/'+$name+'.dae')

@@ -8,7 +8,7 @@
   "blocks": [
     {
       "key": "AncientRoofBlock",
-      "index": 978,
+      "index": 1014,
       "forms": [
         {
           "variant": 0,
@@ -88,7 +88,7 @@
     },
     {
       "key": "AncientTimberBlock",
-      "index": 979,
+      "index": 1015,
       "forms": [
         {
           "variant": 0,
@@ -156,7 +156,7 @@
     },
     {
       "key": "AncientWindowBlock",
-      "index": 980,
+      "index": 1016,
       "forms": [
         {
           "variant": 0,
@@ -236,7 +236,7 @@
     },
     {
       "key": "AncientLanternBlock",
-      "index": 981,
+      "index": 1017,
       "forms": [
         {
           "variant": 0,
@@ -280,7 +280,7 @@
     },
     {
       "key": "AncientTeaBlock",
-      "index": 982,
+      "index": 1018,
       "forms": [
         {
           "variant": 0,
@@ -336,7 +336,7 @@
     },
     {
       "key": "AncientGardenBlock",
-      "index": 983,
+      "index": 1019,
       "forms": [
         {
           "variant": 0,
@@ -392,7 +392,7 @@
     },
     {
       "key": "AncientTelescopeBlock",
-      "index": 984,
+      "index": 1020,
       "forms": [
         {
           "variant": 0,

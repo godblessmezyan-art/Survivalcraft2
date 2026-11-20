@@ -2,139 +2,111 @@
 
 using Engine;
 using Game;
-using SCIEPort.Features.Plants;
 using Game.NetWork;
-using TemplatesDatabase;
+using SCIEPort.Features.Plants;
 
 namespace SCIEPort.Features.Bamboo
 {
     public sealed class SubsystemBambooBlockBehavior : SubsystemPollableBlockBehavior
     {
-        private static readonly int[] s_handledBlocks = { BambooPlantBlock.Index };
+        private static readonly int[] s_handledBlocks = { BambooPlantBlock.Index, BambooShootBlock.Index };
 
-        public override int[] HandledBlocks { get { return s_handledBlocks; } }
+        public override int[] HandledBlocks => s_handledBlocks;
 
         public override void OnPoll(int value, int x, int y, int z, int pollPass)
         {
-            // Ordinary clients must not drive column growth that will not
-            // synchronize back from the authoritative host.
-            if (CommonLib.WorkType == WorkType.Client || !PlantGrowthSite.IsLiving(SubsystemTerrain))
-            {
-                return;
-            }
-
-            int data = Terrain.ExtractData(value);
-
-            // Only the planted base advances the column so a single culm has one
-            // grower. Upper segments are inert with respect to growth.
-            if (!BambooRules.IsBase(data) || y <= 0 || y >= 254)
-            {
-                return;
-            }
+            if (CommonLib.WorkType == WorkType.Client || y <= 0 || y > 254 ||
+                !PlantGrowthSite.IsLiving(SubsystemTerrain)) return;
 
             Terrain terrain = SubsystemTerrain.Terrain;
-
-            int belowValue = terrain.GetCellValueFast(x, y - 1, z);
-            if (!HasValidSubstrate(Terrain.ExtractContents(belowValue)))
+            value = terrain.GetCellValue(x, y, z);
+            int contents = Terrain.ExtractContents(value);
+            if (contents != BambooPlantBlock.Index && contents != BambooShootBlock.Index) return;
+            int data = Terrain.ExtractData(value);
+            int soilValue = terrain.GetCellValueFast(x, y - 1, z);
+            int soil = Terrain.ExtractContents(soilValue);
+            bool shoot = contents == BambooShootBlock.Index;
+            if (!shoot && !BambooRules.IsBase(data))
             {
+                // A neighbor update usually handles this. The scanner also catches
+                // detached culms left behind by a save or a full frame budget.
+                if (soil != BambooPlantBlock.Index) DropUnsupported(x, y, z);
                 return;
             }
 
-            // Count the contiguous column already standing above the base.
-            int topY = y;
-            int height = 1;
-            while (topY < 254 && height < BambooRules.MaxHeight
-                && Terrain.ExtractContents(terrain.GetCellValueFast(x, topY + 1, z)) == BambooPlantBlock.Index)
+            if (!BambooPlacement.HasSubstrate(soil))
             {
-                topY++;
+                DropUnsupported(x, y, z);
+                return;
+            }
+
+            bool hydrated = soil == SoilBlock.Index && SoilBlock.GetHydration(Terrain.ExtractData(soilValue));
+            int temperature = PlantHabitat.TemperatureAt(terrain, x, y, z);
+            int interval = BambooRules.GetGrowthInterval(hydrated, temperature);
+            if (pollPass % interval != 0) return;
+
+            int humidity = terrain.GetSeasonalHumidity(x, z);
+            if (shoot)
+            {
+                if (!PlantHabitat.For(BambooPlantBlock.Index).AllowsGrowth(
+                    temperature, humidity, terrain.GetCellLight(x, y + 1, z), hydrated)) return;
+
+                int stage = BambooRules.GetShootStage(data);
+                int next = stage < BambooRules.LastShootStage
+                    ? Terrain.ReplaceData(value, stage + 1)
+                    : Terrain.MakeBlockValue(BambooPlantBlock.Index, 0,
+                        BambooRules.SetHeight(BambooRules.MarkBase(0), BambooRules.HeightFromRoll(
+                            MathUtils.Hash(unchecked((uint)(x * 73428767 ^ z * 912931))))));
+                Change(x, y, z, next);
+                return;
+            }
+
+            int height = 1;
+            int limit = BambooRules.GetHeight(data);
+            while (height < limit && y + height < 255)
+            {
+                int segment = terrain.GetCellValueFast(x, y + height, z);
+                if (Terrain.ExtractContents(segment) != BambooPlantBlock.Index ||
+                    BambooRules.IsBase(Terrain.ExtractData(segment))) break;
                 height++;
             }
 
-            if (topY >= 254 || !BambooRules.CanExtend(height))
-            {
-                return;
-            }
+            int top = y + height;
+            if (height >= limit || top >= 255 || terrain.GetCellContents(x, top, z) != 0) return;
+            if (!PlantHabitat.For(BambooPlantBlock.Index).AllowsGrowth(
+                PlantHabitat.TemperatureAt(terrain, x, top, z), humidity,
+                terrain.GetCellLight(x, top + 1, z), hydrated)) return;
 
-            int aboveValue = terrain.GetCellValueFast(x, topY + 1, z);
-            if (Terrain.ExtractContents(aboveValue) != 0)
-            {
-                return;
-            }
-
-            if (Terrain.ExtractLight(terrain.GetCellValueFast(x, topY + 2, z)) < BambooRules.MinLightToGrow)
-            {
-                return;
-            }
-
-            bool hydrated = false;
-            if (Terrain.ExtractContents(belowValue) == SoilBlock.Index)
-            {
-                hydrated = SoilBlock.GetHydration(Terrain.ExtractData(belowValue));
-            }
-
-            int temperature = terrain.GetSeasonalTemperature(x, z)
-                + SubsystemWeather.GetTemperatureAdjustmentAtHeight(topY + 1);
-            int interval = BambooRules.GetGrowthInterval(hydrated, temperature);
-
-            if (!PlantHabitat.For(BambooPlantBlock.Index).AllowsGrowth(temperature, terrain.GetSeasonalHumidity(x, z),
-                terrain.GetCellLight(x, topY + 2, z), hydrated) || pollPass % interval != 0)
-            {
-                return;
-            }
-
-            // Add a plain upper segment (base flag cleared) on top of the column.
-            if(!PlantGrowthBudget.Take(1)) return;
-            SubsystemTerrain.ChangeCell(
-                x,
-                topY + 1,
-                z,
-                Terrain.MakeBlockValue(BambooPlantBlock.Index, 0, 0),
-                true,
-                null);
+            Change(x, top, z, Terrain.MakeBlockValue(BambooPlantBlock.Index));
         }
 
-        public override void OnNeighborBlockChanged(
-            int x,
-            int y,
-            int z,
-            int neighborX,
-            int neighborY,
-            int neighborZ)
+        private void Change(int x, int y, int z, int value)
         {
-            // Mirror the authoritative-only rule already applied in OnPoll: a normal
-            // client must not issue an independent terrain destroy that could desync
-            // from the authoritative host's own neighbor-change reaction.
-            if (CommonLib.WorkType == WorkType.Client)
-            {
+            if (PlantGrowthBudget.Take(1)) SubsystemTerrain.ChangeCell(x, y, z, value, true, null);
+        }
+
+        private void DropUnsupported(int x, int y, int z)
+        {
+            if (PlantGrowthBudget.Take(1)) SubsystemTerrain.DestroyCell(0, x, y, z, 0, false, true, null);
+        }
+
+        public override void OnNeighborBlockChanged(int x, int y, int z, int neighborX, int neighborY, int neighborZ)
+        {
+            if (CommonLib.WorkType == WorkType.Client || y <= 0 || neighborX != x || neighborY != y - 1 || neighborZ != z)
                 return;
-            }
 
             Terrain terrain = SubsystemTerrain.Terrain;
             int value = terrain.GetCellValue(x, y, z);
-            if (Terrain.ExtractContents(value) != BambooPlantBlock.Index || y <= 0)
+            int contents = Terrain.ExtractContents(value);
+            int below = terrain.GetCellContents(x, y - 1, z);
+            if (contents == BambooShootBlock.Index && !BambooPlacement.HasSubstrate(below))
+                DropUnsupported(x, y, z);
+            else if (contents == BambooPlantBlock.Index)
             {
-                return;
+                bool supported = BambooRules.IsBase(Terrain.ExtractData(value))
+                    ? BambooPlacement.HasSubstrate(below) : below == BambooPlantBlock.Index;
+                if (!supported) DropUnsupported(x, y, z);
             }
-
-            int below = Terrain.ExtractContents(terrain.GetCellValue(x, y - 1, z));
-            if (BambooRules.IsBase(Terrain.ExtractData(value)))
-            {
-                if (!HasValidSubstrate(below))
-                {
-                    SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
-                }
-            }
-            else if (below != BambooPlantBlock.Index)
-            {
-                // A detached upper segment loses its support and breaks, letting a
-                // harvested or flooded column collapse segment by segment.
-                SubsystemTerrain.DestroyCell(0, x, y, z, 0, true, true, null);
-            }
-        }
-
-        private static bool HasValidSubstrate(int contents)
-        {
-            return PlantHabitat.IsRootingSoil(contents) || contents == SandBlock.Index;
         }
     }
 }

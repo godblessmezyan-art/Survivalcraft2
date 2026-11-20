@@ -30,7 +30,7 @@ internal static partial class BlueprintTests
                     Check(Terrain.ExtractContents(value) == id && Terrain.ExtractData(value) == variants * 8, "creative architectural DATA"); variants++;
                 }
                 Check(variants == ArchitectureRules.Variants(id), "all architectural forms visible");
-                Check(block.GetEmittedLightAmount(Terrain.MakeBlockValue(id)) == (id == 981 ? 12 : 0), "native lantern light only");
+                Check(block.GetEmittedLightAmount(Terrain.MakeBlockValue(id)) == (id == 1017 ? 12 : 0), "native lantern light only");
                 for (int data = -1; data <= 80; data++)
                 {
                     VanillaBlockCapability cap; Check(VanillaBlockCapabilities.TryGetByTypeName(type, out cap), "owned authoring catalog");
@@ -67,9 +67,9 @@ internal static partial class BlueprintTests
                                 Check(vertex.TextureCoordinates.X == .5f && vertex.TextureCoordinates.Y == .5f, "white texel UV");
                             }
                         }
-                        Check(shape.Glass.Vertices.Count > 0 == (id == 980 && variant == 0), "glass goes only into transparent mesh");
+                        Check(shape.Glass.Vertices.Count > 0 == (id == 1016 && variant == 0), "glass goes only into transparent mesh");
                         bool glow = false; foreach (var vertex in shape.Opaque.Vertices) glow |= vertex.IsEmissive;
-                        Check(glow == (id == 981), "lantern emissive panels");
+                        Check(glow == (id == 1017), "lantern emissive panels");
                         for (int turn = 0; turn < 4; turn++) foreach (bool mirrored in new[] { false, true })
                         {
                             int transformed = BlockOrientation.Rotate(BlockFamily.Detail, data, turn);

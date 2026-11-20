@@ -12,7 +12,7 @@ foreach($type in [Game.Block].Assembly.GetTypes()){
 }
 foreach($row in $rows){
     $id=[int]$row.DisplayOrder
-    if($id -lt 978 -or $id -gt 984 -or $ids.ContainsKey($id)){throw "Architectural ID $id conflicts with target native blocks"}
+    if($id -lt 1014 -or $id -gt 1020 -or $ids.ContainsKey($id)){throw "Architectural ID $id conflicts with target native blocks"}
     if($row.DefaultCategory -ne 'SCIEPort.Structures' -or $row.Behaviors -or $row.DefaultCreativeData -ne '0' -or $row.IsPlaceable -ne 'TRUE'){throw "Invalid architectural registration $id"}
 }
 if($AssemblyPath){
@@ -29,7 +29,7 @@ if($AssemblyPath){
         if($id -ne [int]$row.DisplayOrder){throw 'Architecture CSV/id mismatch'}
         foreach($value in $block.GetCreativeValues()){
             $data=[Game.Terrain]::ExtractData($value);$shape=$build.Invoke($null,@($id,$data))
-            if($block.GetEmittedLightAmount($value) -ne $(if($id -eq 981){12}else{0})){throw 'Architecture native lighting changed'}
+            if($block.GetEmittedLightAmount($value) -ne $(if($id -eq 1017){12}else{0})){throw 'Architecture native lighting changed'}
             if($MeshOutput){
                 $parts=@()
                 foreach($part in @('Opaque','Glass')){

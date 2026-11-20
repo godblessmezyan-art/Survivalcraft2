@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortTidePalace" Guid="d9adabed-bb08-4e64-9eac-ccf5b6c9fd23" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="e2da0851-79e2-4c50-a01e-0e68fe952b71" Value="SCIEPort.Features.TidePalace.SubsystemTidePalace" Type="string"/>
+      <Parameter Name="Dependencies" Guid="bcf0b542-6736-4d5b-9799-0688aea8026d" Value="Terrain, BlockEntities" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortTidePalace" Guid="b1600b38-698c-4496-ba96-b9d4957243d6" InheritanceParent="d9adabed-bb08-4e64-9eac-ccf5b6c9fd23"/>
+  </ProjectTemplate>
+</DatabaseObjects>

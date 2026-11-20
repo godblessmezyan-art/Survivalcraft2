@@ -3,7 +3,7 @@ namespace SCIEPort.Features.Architecture
     /// <summary>Original, single-cell architectural parts. No inventories or companion cells.</summary>
     internal static class ArchitectureRules
     {
-        internal const int Roof = 978, Timber = 979, Window = 980, Lantern = 981, Tea = 982, Garden = 983, Telescope = 984;
+        internal const int Roof = 1014, Timber = 1015, Window = 1016, Lantern = 1017, Tea = 1018, Garden = 1019, Telescope = 1020;
         internal static readonly string[] Types = { "AncientRoofBlock", "AncientTimberBlock", "AncientWindowBlock", "AncientLanternBlock", "AncientTeaBlock", "AncientGardenBlock", "AncientTelescopeBlock" };
         private static readonly string[][] Names = {
             new[] { "叠瓦坡面", "屋脊", "平檐", "翘檐", "转角檐", "封边坡面" },

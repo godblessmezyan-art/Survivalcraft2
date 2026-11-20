@@ -76,9 +76,13 @@ namespace SCIEPort.Features.Apple
     {
         /// <summary>Applies a prevalidated plan; never undoes an intervening foreign replacement.</summary>
         public static bool Apply(int[] before,int[] after,Func<int,int> read,Action<int,int> write,out bool undoFailed,out Exception error)
+            => Apply(before, after, read, write, out undoFailed, out error, AppleTreeRules.MaxChanges);
+
+        internal static bool Apply(int[] before,int[] after,Func<int,int> read,Action<int,int> write,
+            out bool undoFailed,out Exception error,int maxChanges)
         {
             undoFailed=false;error=null;
-            if(before.Length!=after.Length||before.Length==0||before.Length>AppleTreeRules.MaxChanges) return false;
+            if(before.Length!=after.Length||before.Length==0||before.Length>maxChanges) return false;
             int attempted=-1;
             try
             {

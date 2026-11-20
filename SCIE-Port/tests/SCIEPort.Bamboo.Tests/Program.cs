@@ -15,6 +15,7 @@ namespace SCIEPort.Bamboo.Tests
                 TestBaseFlagPreservesOtherBits();
                 TestUpperSegmentDetection();
                 TestHeightCap();
+                TestGroveHeightsAndStages();
                 TestGrowthIntervals();
                 TestPlacementRule();
                 TestCulmYield();
@@ -56,6 +57,24 @@ namespace SCIEPort.Bamboo.Tests
             Assert(!BambooRules.CanExtend(BambooRules.MaxHeight), "A column at the cap must stop extending.");
             Assert(!BambooRules.CanExtend(BambooRules.MaxHeight + 5), "Oversized columns never extend.");
             Assert(!BambooRules.CanExtend(0), "A zero-height column is not a valid grower.");
+        }
+
+        private static void TestGroveHeightsAndStages()
+        {
+            Assert(BambooRules.GetHeight(0) == 8 && BambooRules.GetHeight(1) == 8,
+                "Old culms and old root flags retain the previous height cap.");
+            for (int height = BambooRules.MinGroveHeight; height <= BambooRules.MaxHeight; height++)
+            {
+                int encoded = BambooRules.SetHeight(0x41, height);
+                Assert(BambooRules.GetHeight(encoded) == height, "New height metadata round-trips.");
+                Assert(BambooRules.IsBase(encoded) && (encoded & 0x40) != 0, "Height preserves legacy and outside flags.");
+                Assert(BambooRules.HeightFromRoll((uint)(height - BambooRules.MinGroveHeight)) == height,
+                    "Deterministic values cover every supported height.");
+            }
+            Assert(BambooRules.SetHeight(1, -1) == BambooRules.SetHeight(1, 5), "Short height clamps to the natural minimum.");
+            Assert(BambooRules.SetHeight(1, 110) == BambooRules.SetHeight(1, 8), "Tall height clamps to the world budget.");
+            Assert(BambooRules.GetShootStage(0) == 0 && BambooRules.GetShootStage(1) == 1 &&
+                BambooRules.GetShootStage(2) == 2 && BambooRules.GetShootStage(3) == 2, "Shoot stages canonicalize to three meshes.");
         }
 
         private static void TestGrowthIntervals()

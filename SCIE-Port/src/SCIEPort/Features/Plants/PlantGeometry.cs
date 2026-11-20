@@ -4,6 +4,8 @@ using Engine;
 using Engine.Graphics;
 using Game;
 using SCIEPort.Features.Apple;
+using SCIEPort.Features.Bamboo;
+using SCIEPort.Features.SpecialTrees;
 
 namespace SCIEPort.Features.Plants
 {
@@ -14,13 +16,31 @@ namespace SCIEPort.Features.Plants
         private static readonly Color LeafGreen = new Color(79, 135, 49);
         private static readonly Color Bark = new Color(111, 77, 47);
 
+        internal const int BambooStem = 0;
+        internal const int BambooBranch = 1;
+        internal const int BambooCrown = 2;
+
+        // Native pickables pass size 0.3 to DrawBlock. These meshes already occupy
+        // less than a block, so the larger tree fruits need an item-only correction.
+        internal static float ItemDisplayScale(int id, DrawBlockMode mode)
+        {
+            if (mode == DrawBlockMode.UI) return 1f;
+            if (id == CoconutFruitBlock.Index) return 1.65f;
+            if (id == BaobabFruitBlock.Index) return 1.5f;
+            return 1f;
+        }
+
+        internal static float LeavesDisplayScale(DrawBlockMode mode)
+            => mode == DrawBlockMode.UI ? 1f : 1.2f;
+
         internal static BlockMesh Build(int id, int data)
         {
             var m = new BlockMesh();
             int stage = data & 7;
             if (id == 939) Apple(m, data);
             else if (id == 929 || id == 934 || id == 936 || id == 911) Crop(m, id, stage);
-            else if (id == 932) Bamboo(m);
+            else if (id == BambooPlantBlock.Index) Bamboo(m, data);
+            else if (id == BambooShootBlock.Index) BambooShoot(m, stage);
             else if (id == 905) Cattail(m, data);
             else if (id == 903 || id == 915) BerryBush(m, id, data);
             else Item(m, id, id == 909 || id == 913 ? (data >> 6) & 3 : data);
@@ -39,6 +59,8 @@ namespace SCIEPort.Features.Plants
                 }
                 return (data&63)|(part==AppleTreeRules.Trunk?data&7168:0);
             }
+            if (id == BambooPlantBlock.Index) return MathUtils.Clamp(data, BambooStem, BambooCrown);
+            if (id == BambooShootBlock.Index) return BambooRules.GetShootStage(data);
             if (id == 903) return data & 15;
             if (id == 905 || id == 907 || id == 915) return data & 3;
             if (id == 909 || id == 913) return data & (3 << 6);
@@ -117,15 +139,63 @@ namespace SCIEPort.Features.Plants
             }
         }
 
-        private static void Bamboo(BlockMesh m)
+        private static void Bamboo(BlockMesh m, int part)
         {
-            Tube(m,new Vector3(.5f,0,.5f),new Vector3(.5f,1,.5f),.061f,.054f,new Color(113,146,60),8);
-            foreach (float y in new[] {.08f,.42f,.70f})
+            bool crown = part == BambooCrown;
+            float top = crown ? .91f : 1f;
+            Tube(m, new Vector3(.5f, 0, .5f), new Vector3(.5f, top, .5f), .067f, crown ? .025f : .067f,
+                new Color(107, 141, 64), 8);
+            for (int node = 0; node < 4; node++)
             {
-                Tube(m,new Vector3(.5f,y,.5f),new Vector3(.5f,y+.035f,.5f),.068f,.068f,new Color(165,175,87),8);
-                Vector3 start = new Vector3(.5f,y+.03f,.5f), end = start + new Vector3(y < .5f ? -.21f : .21f,.15f,.09f);
-                Tube(m,start,end,.015f,.005f,Stem);
-                for(int i=0;i<3;i++) Leaf(m,Vector3.Lerp(start,end,.4f+i*.2f),end+new Vector3((i-1)*.08f,.09f,-.10f),.024f,LeafGreen);
+                float y = .075f + node * .235f;
+                float radius = crown ? .072f - y * .031f : .076f;
+                Tube(m, new Vector3(.5f, y, .5f), new Vector3(.5f, y + .028f, .5f), radius, radius,
+                    new Color(152, 169, 83), 8);
+            }
+
+            int branches = crown ? 6 : part == BambooBranch ? 2 : 0;
+            for (int i = 0; i < branches; i++)
+            {
+                float angle = i * 2.39996f;
+                Vector3 direction = new Vector3((float)Math.Cos(angle), 0, (float)Math.Sin(angle));
+                Vector3 side = new Vector3(-direction.Z, 0, direction.X);
+                float startY = crown ? .18f + i * .119f : .24f + i * .35f;
+                var start = new Vector3(.5f, startY, .5f);
+                Vector3 end = start + direction * (crown ? .33f : .22f) + Vector3.UnitY * .09f;
+                Tube(m, start, end, .015f, .004f, Stem);
+                int blades = crown ? 5 : 4;
+                for (int blade = 0; blade < blades; blade++)
+                {
+                    Vector3 at = Vector3.Lerp(start, end, .35f + blade * .118f);
+                    float turn = blade % 2 == 0 ? -1f : 1f;
+                    float rise = (blade % 3 - 1) * (crown ? .112f : .075f);
+                    Vector3 tip = at + direction * (crown ? .155f : .11f) + side * turn * (crown ? .12f : .08f)
+                        + Vector3.UnitY * rise;
+                    Vector3 normal = Vector3.Normalize(Vector3.UnitY * .56f + side * turn * .83f);
+                    float width = (crown ? .040f : .031f) - blade * .0024f;
+                    Leaf(m, at, tip, width, blade % 2 == 0 ? LeafGreen : new Color(111, 160, 70), normal);
+                }
+            }
+        }
+
+        private static void BambooShoot(BlockMesh m, int stage)
+        {
+            float height = .34f + stage * .15f;
+            var root = new Vector3(.5f, .01f, .5f);
+            Tube(m, root, root + Vector3.UnitY * height, .145f, .012f, new Color(148, 139, 64), 9);
+            for (int sheath = 0; sheath < 5; sheath++)
+            {
+                float offset = sheath / 5f;
+                float radius = .15f * (1f - offset * .79f);
+                Vector3 bottom = root + Vector3.UnitY * (offset * height);
+                Tube(m, bottom, bottom + Vector3.UnitY * (height * .108f), radius, radius * .80f,
+                    new Color(124 + sheath * 7, 95 + sheath * 12, 51 + sheath * 3), 9);
+            }
+            if (stage > 0)
+            {
+                Vector3 top = root + Vector3.UnitY * (height * .74f);
+                Leaf(m, top, top + new Vector3(.09f, .13f, .03f), .023f, LeafGreen);
+                Leaf(m, top, top + new Vector3(-.085f, .11f, -.04f), .022f, Stem);
             }
         }
 
@@ -241,6 +311,24 @@ namespace SCIEPort.Features.Plants
         private static void Item(BlockMesh m, int id, int stage)
         {
             if (id == 940) { AppleFruit(m, new Vector3(.5f, .205f, .5f), .218f, true); return; }
+            if (id == CoconutFruitBlock.Index)
+            {
+                var center = new Vector3(.5f, .24f, .5f);
+                Ellipsoid(m, center, new Vector3(.24f, .224f, .229f), new Color(116, 77, 40), 10);
+                Ellipsoid(m, new Vector3(.45f, .28f, .43f), new Vector3(.14f, .14f, .13f), new Color(141, 100, 56), 8);
+                for (int eye = -1; eye <= 1; eye++)
+                    Ellipsoid(m, new Vector3(.5f + eye * .069f, .441f - Math.Abs(eye) * .016f, .53f),
+                        new Vector3(.021f, .014f, .018f), new Color(62, 43, 29), 6);
+                return;
+            }
+            if (id == BaobabFruitBlock.Index)
+            {
+                var center = new Vector3(.5f, .29f, .5f);
+                Ellipsoid(m, center, new Vector3(.136f, .27f, .128f), new Color(155, 129, 82), 10);
+                Ellipsoid(m, new Vector3(.47f, .26f, .45f), new Vector3(.091f, .171f, .098f), new Color(171, 149, 95), 8);
+                Tube(m, new Vector3(.5f, .54f, .5f), new Vector3(.51f, .63f, .5f), .024f, .015f, Bark, 6);
+                return;
+            }
             if (id == 931)
             {
                 Vector3 tip = new Vector3(.5f, .62f, .5f);
@@ -487,7 +575,8 @@ namespace SCIEPort.Features.Plants
             BlockMesh mesh=Mesh(block.BlockIndex,Terrain.ExtractData(value));
             BoundingBox bounds = Boxes(block, value)[0];
             Vector3 center = (bounds.Min + bounds.Max) * .5f;
-            Matrix centered = Matrix.CreateTranslation(-center) * Matrix.CreateScale(size) * matrix;
+            DrawBlockMode mode = environment != null ? environment.DrawBlockMode : DrawBlockMode.World;
+            Matrix centered = Matrix.CreateTranslation(-center) * Matrix.CreateScale(size * PlantGeometry.ItemDisplayScale(block.BlockIndex, mode)) * matrix;
             BlocksManager.DrawMeshBlock(renderer,mesh,Texture,color,1f,ref centered,environment);
         }
     }
