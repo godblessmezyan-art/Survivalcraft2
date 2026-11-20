@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-20 · 1.4.0 地表与奇景
+
+- 固定环境检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/terrain-1.4.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/terrain-1.4.0/output`，Release、完整回归和统一包校验通过。快照引用本机授权上游目录。
+- 比较两个固定种子共 18,818 个区块的候选。1.3.0 中 10,977 个区块保留候选，1.4.0 中为 6,773 个，14 种均出现。新规则下两圈区块内无同类候选，含备选和斜向。同样窗口复算旧规则时有 16,063 对区块共享同类候选。计数仅涉及生成器候选，游戏内还需通过地表校验。
+- 固定目标地形专项共通过 304,270 项检查，覆盖实际地形落地、跨区块写入、备选、写入范围及旧区块跳过。种子 `HighVolcano` 的大陆样本区块中心 X/Z 为碎石坡扇 `2184,-104`、草覆岩丘 `904,824`、冻土石纹 `2008,-104`。三种奇景的大陆样本中心为花岗岩穹丘 `1288,1096`、冲蚀沟壑 `1608,648`、冰蚀围谷 `264,1032`，Better 样本为 `2424,1048`、`1608,648`、`696,1256`。
+- 书柜、五分类、钓鱼、云天书典与三项原有火山及遗迹回归通过。两份包字节一致，共 230 项、13,121,209 字节。相对本地 1.3.0 统一包只更新 `modinfo.json` 和 `SCIEPort.dll`。SHA-256 为 `F235072BF9DF7FCDF9BF5DC92C10473ABE5C7A1A8D629E8DAC7657EBC2030C1B`。
+- Android 7723、旧世界实际过渡和真实联机 **待验证**。[生成规则](SURFACE-WONDERS-1.4.0.md)
+
 ## 2026-11-20 · 1.3.0 特殊地形
 
 - 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/special-terrain-1.3.0`。固定目标依赖与 ABI 检查、Release 编译、完整回归及包校验通过。

@@ -54,7 +54,8 @@ namespace SCIEPort.Features.Geology
         {
             int top = chunk.CalculateTopmostCellHeight(x, z);
             int ground = top;
-            bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt;
+            bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt ||
+                kind == GeologyKind.GraniteDomes || kind == GeologyKind.ErodedBadlands || kind == GeologyKind.GlacialCirque;
             while (ground > 4)
             {
                 int id = Terrain.ExtractContents(chunk.GetCellValueFast(x, ground, z));

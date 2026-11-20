@@ -9,7 +9,7 @@ namespace SCIEPort.Features.Geology
     internal enum GeologyKind
     {
         Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat,
-        ColumnarBasalt, DryCanyon
+        ColumnarBasalt, DryCanyon, GraniteDomes, ErodedBadlands, GlacialCirque
     }
 
     internal sealed class GeologySite
@@ -103,6 +103,15 @@ namespace SCIEPort.Features.Geology
                         else if (canyon) kind = GeologyKind.DryCanyon;
                     }
                 }
+                int surfaceRoll = Grain(x, z, variantSeed ^ 0x6b912e, 100);
+                if (kind == GeologyKind.IceCave && low >= sea + 6 && height >= sea + 18 && surfaceRoll < 38)
+                    kind = GeologyKind.GlacialCirque;
+                else if ((kind == GeologyKind.DryCanyon || kind == GeologyKind.PaintedHills) &&
+                    low >= sea + 2 && height >= sea + 6 && shore >= 38 && heat >= 4 && humidity <= 9 && surfaceRoll < 38)
+                    kind = GeologyKind.ErodedBadlands;
+                else if (humidity >= 6 && low >= sea + 2 && height >= sea + 6 &&
+                    (kind == GeologyKind.ColumnarBasalt && surfaceRoll < 48 || kind == GeologyKind.Terraces && surfaceRoll < 20))
+                    kind = GeologyKind.GraniteDomes;
                 return new GeologySite(kind, x, z, baseline, radius, variantSeed, sea, facing);
             }
             return null;

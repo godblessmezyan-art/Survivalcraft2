@@ -33,6 +33,9 @@ public static class SpecialTerrainNativeProbe
         Local("DuneRidge", new Habitat(71, 12, 3, 50f, SandstoneBlock.Index, SandBlock.Index), SandBlock.Index);
         Local("SeaStacks", new Habitat(58, 10, 6, -10f, BasaltBlock.Index, BasaltBlock.Index), BasaltBlock.Index);
         Local("Sinkhole", new Habitat(82, 11, 10, 45f, LimestoneBlock.Index, GrassBlock.Index), GravelBlock.Index);
+        Local("ScreeFan", new Habitat(89, 10, 6, 45f, GraniteBlock.Index, GraniteBlock.Index, 1), GravelBlock.Index);
+        Local("MeadowHummocks", new Habitat(80, 10, 10, 45f, GraniteBlock.Index, GrassBlock.Index), GraniteBlock.Index);
+        Local("FrostPolygons", new Habitat(105, 0, 6, 40f, GraniteBlock.Index, GraniteBlock.Index), SnowBlock.Index);
         Fallback();
         NativeLandmarks(fixture, 167537);
         Regional(fixture, TerrainGenerationMode.Continent, 167537);
@@ -72,15 +75,16 @@ public static class SpecialTerrainNativeProbe
             }
             foreach (var pair in choices)
             {
-                foreach (Point2 step in new[] { new Point2(1, 0), new Point2(0, 1) })
+                for (int dz = 0; dz <= 2; dz++)
+                for (int dx = dz == 0 ? 1 : -2; dx <= 2; dx++)
                 {
                     string[] adjacent;
-                    if (!choices.TryGetValue(pair.Key + step, out adjacent)) continue;
-                    Check(!pair.Value.Intersect(adjacent).Any(s => s.Length != 0), "adjacent candidates differ");
+                    if (!choices.TryGetValue(pair.Key + new Point2(dx, dz), out adjacent)) continue;
+                    Check(!pair.Value.Intersect(adjacent).Any(s => s.Length != 0), "candidates differ within two chunks, including corners");
                 }
             }
-            Check(all.Count == 11 && selected > side * side / 2 && selected <= side * side * 2 / 3,
-                "all eleven choices with bounded participation for seed " + seed);
+            Check(all.Count == 14 && selected > side * side / 3 && selected <= side * side * 2 / 3,
+                "all fourteen choices with bounded participation for seed " + seed);
             var negative = new Point2(-19, -23);
             Check(choices[negative].SequenceEqual(Draw(seed, negative)), "repeatable negative chunk");
             Console.WriteLine("Landmark draws " + seed + ": " + selected + "/" + side * side +
@@ -172,7 +176,7 @@ public static class SpecialTerrainNativeProbe
     private static void Fallback()
     {
         var position = new Point2(7, -9);
-        int seed = Enumerable.Range(1, 1000).First(value => Draw(value, position).SequenceEqual(new[] { "Serac", "DuneRidge" }));
+        int seed = Enumerable.Range(1, 10000).First(value => Draw(value, position).SequenceEqual(new[] { "Serac", "DuneRidge" }));
         var habitat = new Habitat(73, 12, 3, 50f, SandstoneBlock.Index, SandBlock.Index);
         using (var terrain = new Terrain())
         {
@@ -206,7 +210,8 @@ public static class SpecialTerrainNativeProbe
         var mode = TerrainGenerationMode.Continent;
         var world = fixture(mode, seed);
         var generator = new TerrainContentsGenerator24(world);
-        var remaining = new HashSet<string> { "StoneCircle", "Hoodoo", "Serac", "DuneRidge", "SeaStacks", "Sinkhole" };
+        var remaining = new HashSet<string> { "StoneCircle", "Hoodoo", "Serac", "DuneRidge", "SeaStacks", "Sinkhole",
+            "ScreeFan", "MeadowHummocks", "FrostPolygons" };
         for (int z = -96; z < 192 && remaining.Count > 0; z++)
         for (int x = -96; x < 192 && remaining.Count > 0; x++)
         {
@@ -248,6 +253,9 @@ public static class SpecialTerrainNativeProbe
             case "DuneRidge": return altitude >= 1 && heat >= 7 && humidity <= 5 && shore >= 22;
             case "SeaStacks": return shore >= -44 && shore <= 11;
             case "Sinkhole": return altitude >= 8 && heat >= 2 && humidity >= 7 && shore >= 18;
+            case "ScreeFan": return altitude >= 8 && shore >= 20;
+            case "MeadowHummocks": return altitude >= 3 && heat >= 4 && humidity >= 8 && shore >= 18;
+            case "FrostPolygons": return altitude >= 10 && heat <= 0 && shore >= 16;
             default: return false;
         }
     }
@@ -258,8 +266,9 @@ public static class SpecialTerrainNativeProbe
         ITerrainContentsGenerator generator = mode == TerrainGenerationMode.Better
             ? (ITerrainContentsGenerator)new TerrainContentsGeneratorBetter(world) : new TerrainContentsGenerator24(world);
         var sites = new Dictionary<string, List<Point2>>();
-        for (int z = -4; z < 16; z++)
-        for (int x = -4; x < 16; x++)
+        const int min = -4, max = 26;
+        for (int z = min; z < max; z++)
+        for (int x = min; x < max; x++)
         {
             object site = chooseGeology.Invoke(null, new object[] { generator, seed, new Point2(x * 192, z * 192) });
             if (site == null) continue;
@@ -268,12 +277,13 @@ public static class SpecialTerrainNativeProbe
             if (!sites.TryGetValue(kind, out positions)) sites[kind] = positions = new List<Point2>();
             positions.Add(new Point2(Field<int>(site, "X"), Field<int>(site, "Z")));
         }
-        foreach (string kind in new[] { "ColumnarBasalt", "DryCanyon" })
+        foreach (string kind in new[] { "ColumnarBasalt", "DryCanyon", "GraniteDomes", "ErodedBadlands", "GlacialCirque" })
         {
             Check(sites.ContainsKey(kind), mode + " native terrain selects " + kind);
             var center = sites[kind].OrderBy(p => p.X * p.X + p.Y * p.Y).First();
             int cx = center.X >> 4, cz = center.Y >> 4;
-            int distinctive = kind == "ColumnarBasalt" ? 1006 : 1009;
+            int distinctive = kind == "ColumnarBasalt" ? 1006 : kind == "GraniteDomes" ? GraniteBlock.Index :
+                kind == "GlacialCirque" ? 1011 : 1009;
             for (int dx = 0; dx < 2; dx++)
             {
                 var chunk = world.Terrain.AllocateChunk(cx + dx, cz);
@@ -286,10 +296,19 @@ public static class SpecialTerrainNativeProbe
                 Check(chunk.Cells.SequenceEqual(original), kind + " skips stored region slices");
                 chunk.IsLoaded = false;
                 Generate(generateGeology, chunk, generator, seed, mode);
-                Check(chunk.ModificationCounter > 0 && chunk.Cells.Any(c => Terrain.ExtractContents(c) == distinctive),
+                int edited = 0, material = 0;
+                for (int index = 0; index < original.Length; index++)
+                {
+                    if (chunk.Cells[index] == original[index]) continue;
+                    edited++;
+                    if (Terrain.ExtractContents(chunk.Cells[index]) == distinctive) material++;
+                }
+                Check(chunk.ModificationCounter > 0 && edited > 0 &&
+                    (kind == "GlacialCirque" && dx == 1 || material > 0),
                     kind + " appears on both sides of a native chunk border");
             }
-            Console.WriteLine(mode + " " + kind + ": " + sites[kind].Count + "/400 regions, center " + center + ".");
+            Console.WriteLine(mode + " " + kind + ": " + sites[kind].Count + "/" + (max - min) * (max - min) +
+                " regions, center " + center + ".");
         }
         Check(sites.ContainsKey("PaintedHills") && sites.ContainsKey("Pinnacles"), mode + " keeps earlier dry-land variants");
     }
@@ -297,10 +316,10 @@ public static class SpecialTerrainNativeProbe
     private sealed class Habitat : ITerrainContentsGenerator
     {
         internal readonly int Height;
-        private readonly int temperature, humidity, ground, surface;
+        private readonly int temperature, humidity, ground, surface, slope;
         private readonly float shore;
 
-        internal Habitat(int height, int temperature, int humidity, float shore, int ground, int surface)
+        internal Habitat(int height, int temperature, int humidity, float shore, int ground, int surface, int slope = 0)
         {
             Height = height;
             this.temperature = temperature;
@@ -308,12 +327,13 @@ public static class SpecialTerrainNativeProbe
             this.shore = shore;
             this.ground = ground;
             this.surface = surface;
+            this.slope = slope;
         }
 
         public int OceanLevel { get { return 64; } }
         public Vector3 FindCoarseSpawnPosition() { return Vector3.Zero; }
         public float CalculateOceanShoreDistance(float x, float z) { return shore; }
-        public float CalculateHeight(float x, float z) { return Height; }
+        public float CalculateHeight(float x, float z) { return Height - slope * ((int)x & 15); }
         public int CalculateTemperature(float x, float z) { return temperature; }
         public int CalculateHumidity(float x, float z) { return humidity; }
         public float CalculateMountainRangeFactor(float x, float z) { return 0f; }
@@ -327,9 +347,10 @@ public static class SpecialTerrainNativeProbe
             {
                 chunk.SetTemperatureFast(x, z, temperature);
                 chunk.SetHumidityFast(x, z, humidity);
-                for (int y = Height - 16; y < Height; y++) chunk.SetCellValueFast(x, y, z, ground);
-                chunk.SetCellValueFast(x, Height, z, surface);
-                for (int y = Height + 1; y <= OceanLevel; y++)
+                int height = Height - slope * x;
+                for (int y = height - 16; y < height; y++) chunk.SetCellValueFast(x, y, z, ground);
+                chunk.SetCellValueFast(x, height, z, surface);
+                for (int y = height + 1; y <= OceanLevel; y++)
                     chunk.SetCellValueFast(x, y, z, Terrain.MakeBlockValue(WaterBlock.Index, 0, FluidBlock.SetIsTop(0, y == OceanLevel)));
             }
         }

@@ -70,9 +70,13 @@ namespace SCIEPort.Features.Geology
                 case Pinnacles: return StoneForest(site, u, v, weight);
                 case ColumnarBasalt: return BasaltPlateau(site, u, v, weight);
                 case DryCanyon: return Canyon(site, u, v, weight);
+                case GraniteDomes: return Domes(site, u, v, weight);
+                case ErodedBadlands: return Badlands(site, u, v, weight);
+                case GlacialCirque: return Cirque(site, u, v, weight);
                 case RiverCave:
                 case IceCave: return Cavern(site, u, v, weight);
-                default: return SaltBasin(site, u, v, radius, weight);
+                case SaltFlat: return SaltBasin(site, u, v, radius, weight);
+                default: return default;
             }
         }
 
@@ -249,6 +253,61 @@ namespace SCIEPort.Features.Geology
             {
                 ColorBand = 64 + (int)Math.Round(2 * Math.Sin(v * .09))
             };
+        }
+
+        private static GeologyColumn Domes(GeologySite site, int u, int v, float weight)
+        {
+            int twist = GeologySites.Grain(site.X, site.Z, site.Seed, 7) - 3;
+            float main = Dome(u + 8, v + twist, 13, 16);
+            float companion = Dome(u - 9, v - 5, 10, 12);
+            float outcrop = Dome(u - 5, v + 12, 8, 7);
+            float rise = Math.Max(main, Math.Max(companion, outcrop));
+            if (rise <= 0) return default;
+
+            int ribs = GeologySites.FloorDiv(u + v / 3 + twist, 4);
+            int notch = (u + v / 3 + twist) - ribs * 4;
+            int height = site.Base + Math.Max(0, (int)Math.Round(rise) - (notch == 0 && rise > 4 ? 1 : 0));
+            int cap = rise <= 2 ? GravelBlock.Index : GraniteBlock.Index;
+            return new GeologyColumn(weight, height, cap, GraniteBlock.Index);
+        }
+
+        private static float Dome(int u, int v, int radius, int height)
+        {
+            float distance = (float)Math.Sqrt(u * u + .8f * v * v);
+            return height * Edge(1f - distance / radius);
+        }
+
+        private static GeologyColumn Badlands(GeologySite site, int u, int v, float weight)
+        {
+            int center = (int)Math.Round(3 * Math.Sin(v * .19));
+            int side = u - center;
+            if (Math.Abs(side) > 21) return default;
+            weight *= Edge((22f - Math.Abs(side)) / 6);
+            // Tributaries converge on the wash at opposite ends of the ridge.
+            int tributary = Math.Abs(side - Math.Max(0, v + 9));
+            int other = Math.Abs(side + Math.Max(0, 8 - v));
+            int channel = Math.Min(Math.Abs(side), Math.Min(tributary, other));
+            int floor = Math.Max(site.Sea + 2, site.Base - 9 + (v + site.Radius) / 12);
+            int shoulder = (int)Math.Round(14 * Edge((channel - 1f) / 5));
+            int cap = channel <= 1 ? GravelBlock.Index : SandstoneBlock.Index;
+            return new GeologyColumn(weight, floor + shoulder, cap, SandstoneBlock.Index)
+            {
+                ColorBand = channel > 3 ? 64 + v / 5 : 0
+            };
+        }
+
+        private static GeologyColumn Cirque(GeologySite site, int u, int v, float weight)
+        {
+            float radius = (float)Math.Sqrt(u * u + v * v);
+            int floor = Math.Max(site.Sea + 4, site.Base - 8);
+            float wall = Edge((radius - 6) / 10) * Edge((site.Radius - radius) / 6);
+            int outletWidth = Math.Max(2, (-v + 3) / 2);
+            if (v < 0) wall *= Edge((Math.Abs(u) - outletWidth) / 5f);
+            int height = floor + (int)Math.Round(20 * wall);
+            if (v < -3) height = Mix(height, site.Base, Edge((-v - 3f) / 18));
+            bool ice = radius <= 6 && v >= -3;
+            int cap = ice ? BlueIceBlock.Index : wall > .3f ? GraniteBlock.Index : GravelBlock.Index;
+            return new GeologyColumn(weight, height, cap, GraniteBlock.Index);
         }
 
         private static GeologyColumn Cavern(GeologySite site, int u, int v, float weight)

@@ -37,6 +37,9 @@ namespace SCIEPort.Features.Landmarks
                 case LandmarkKind.DuneRidge: return WildLandmarks.DuneRidge(terrain);
                 case LandmarkKind.SeaStacks: return RockLandmarks.SeaStacks(terrain);
                 case LandmarkKind.Sinkhole: return StoneLandmarks.Sinkhole(terrain);
+                case LandmarkKind.ScreeFan: return SurfaceLandmarks.ScreeFan(terrain);
+                case LandmarkKind.MeadowHummocks: return SurfaceLandmarks.MeadowHummocks(terrain);
+                case LandmarkKind.FrostPolygons: return SurfaceLandmarks.FrostPolygons(terrain);
                 default: return null;
             }
         }
