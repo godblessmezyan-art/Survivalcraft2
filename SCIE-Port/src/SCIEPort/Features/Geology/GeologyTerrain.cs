@@ -8,6 +8,7 @@ namespace SCIEPort.Features.Geology
     {
         private const int MaxHeightRange = 58;
         private const int SkinDepth = 5;
+        private const int MagmaBasinRadius = 7;
 
         internal static void Generate(TerrainChunk chunk, ITerrainContentsGenerator generator, int seed, TerrainGenerationMode mode)
         {
@@ -16,11 +17,17 @@ namespace SCIEPort.Features.Geology
             if (site == null || !site.Touches(chunk)) return;
 
             var writes = new List<CellEdit>();
+            bool volcano = GeologySites.IsVolcano(site.Kind);
+            bool hasBasin = site.Kind == GeologyKind.MagmaCrater && (site.X & ~15) == chunk.Origin.X &&
+                (site.Z & ~15) == chunk.Origin.Y;
+            if (hasBasin && !PlanMagmaBasin(chunk, site, writes)) writes.Clear();
             for (int z = 0; z < 16; z++)
             for (int x = 0; x < 16; x++)
             {
+                if (hasBasin && Math.Abs(x - (site.X & 15)) <= MagmaBasinRadius &&
+                    Math.Abs(z - (site.Z & 15)) <= MagmaBasinRadius) continue;
                 GeologyColumn profile = GeologyProfiles.At(site, chunk.Origin.X + x, chunk.Origin.Y + z);
-                if (profile.Weight > .02f) PlanColumn(chunk, x, z, profile, writes);
+                if (profile.Weight > .02f) PlanColumn(chunk, x, z, profile, volcano, writes);
             }
 
             if (writes.Count == 0) return;
@@ -30,7 +37,21 @@ namespace SCIEPort.Features.Geology
             chunk.ModificationCounter++;
         }
 
-        private static void PlanColumn(TerrainChunk chunk, int x, int z, GeologyColumn shape, List<CellEdit> writes)
+        private static bool PlanMagmaBasin(TerrainChunk chunk, GeologySite site, List<CellEdit> writes)
+        {
+            // Preflight the whole pool, its bed and at least one solid neighbor on all sides.
+            // If a column is occupied, leave this entire part of the center chunk alone.
+            int centerX = site.X & 15, centerZ = site.Z & 15;
+            for (int z = centerZ - MagmaBasinRadius; z <= centerZ + MagmaBasinRadius; z++)
+            for (int x = centerX - MagmaBasinRadius; x <= centerX + MagmaBasinRadius; x++)
+            {
+                GeologyColumn profile = GeologyProfiles.At(site, chunk.Origin.X + x, chunk.Origin.Y + z);
+                if (!PlanColumn(chunk, x, z, profile, true, writes)) return false;
+            }
+            return true;
+        }
+
+        private static bool PlanColumn(TerrainChunk chunk, int x, int z, GeologyColumn shape, bool volcano, List<CellEdit> writes)
         {
             int top = chunk.CalculateTopmostCellHeight(x, z);
             int ground = top;
@@ -40,14 +61,14 @@ namespace SCIEPort.Features.Geology
                 if (id != WaterBlock.Index && id != MagmaBlock.Index && id != IceBlock.Index && id != SnowBlock.Index) break;
                 ground--;
             }
-            if (ground < 5 || top >= 250) return;
+            if (ground < 5 || top >= 250) return false;
 
             int surface = GeologyProfiles.Mix(ground, shape.Surface, shape.Weight);
             bool tunnel = shape.CaveFloor != 0;
             if (tunnel) surface = Math.Max(surface, shape.CaveFloor);
             if (shape.Waterline != 0 && shape.Surface < shape.Waterline && shape.Weight >= .9f && !tunnel)
                 surface = Math.Min(surface, shape.Waterline - 1);
-            if (shape.Weight < .35f && surface == ground && !tunnel) return;
+            if (shape.Weight < .35f && surface == ground && !tunnel) return true;
 
             int fluidTop = shape.Waterline;
             int fluidValue = shape.Liquid;
@@ -62,11 +83,15 @@ namespace SCIEPort.Features.Geology
             if (tunnel) low = Math.Min(low, shape.CaveFloor - 2);
             low = Math.Max(5, low);
             int high = Math.Max(top, Math.Max(surface, fluidTop));
-            if (high > 248 || high - low >= MaxHeightRange) return;
+            if (high > 248 || high - low >= MaxHeightRange) return false;
 
             int offset = TerrainChunk.CalculateCellIndex(x, 0, z);
             for (int y = low; y <= high; y++)
-                if (!Natural(Terrain.ExtractContents(chunk.GetCellValueFast(offset + y)))) return;
+            {
+                int contents = Terrain.ExtractContents(chunk.GetCellValueFast(offset + y));
+                if (!Natural(contents) && !(volcano && (contents == ClayBlock.Index || contents == CoalBlock.Index)))
+                    return false;
+            }
 
             int nativeCap = chunk.GetCellValueFast(offset + ground);
             int above = 0;
@@ -97,6 +122,7 @@ namespace SCIEPort.Features.Geology
                 if (value != old) writes.Add(new CellEdit(offset + y, value));
                 above = Terrain.ExtractContents(value);
             }
+            return true;
         }
 
         private static bool Natural(int contents)

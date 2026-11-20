@@ -11,10 +11,11 @@ namespace SCIEPort.Features.Geology
     internal sealed class GeologySite
     {
         internal readonly GeologyKind Kind;
-        internal readonly int X, Z, Base, Radius, Seed, Sea;
+        internal readonly int X, Z, Base, Radius, Seed, Sea, Outlet;
         internal readonly Point2 Facing;
+        internal int Extent => Radius + (GeologySites.IsVolcano(Kind) ? GeologyProfiles.VolcanoApron : 0);
 
-        internal GeologySite(GeologyKind kind, int x, int z, int height, int radius, int seed, int sea, Point2 facing)
+        internal GeologySite(GeologyKind kind, int x, int z, int height, int radius, int seed, int sea, Point2 facing, int outlet = 0)
         {
             Kind = kind;
             X = x;
@@ -24,16 +25,18 @@ namespace SCIEPort.Features.Geology
             Seed = seed;
             Sea = sea;
             Facing = facing;
+            Outlet = outlet;
         }
 
         internal bool Touches(TerrainChunk chunk)
-            => X + Radius >= chunk.Origin.X && X - Radius <= chunk.Origin.X + 15 &&
-               Z + Radius >= chunk.Origin.Y && Z - Radius <= chunk.Origin.Y + 15;
+            => X + Extent >= chunk.Origin.X && X - Extent <= chunk.Origin.X + 15 &&
+               Z + Extent >= chunk.Origin.Y && Z - Extent <= chunk.Origin.Y + 15;
     }
 
     internal static class GeologySites
     {
         private const int RegionWidth = 192;
+        private const int VolcanoAttempts = 12;
         private static readonly Point2[] Directions = { new Point2(1, 0), new Point2(0, 1), new Point2(-1, 0), new Point2(0, -1) };
 
         internal static bool Enabled(TerrainGenerationMode mode) => mode == TerrainGenerationMode.Continent ||
@@ -79,9 +82,9 @@ namespace SCIEPort.Features.Geology
                 }
                 if (eligible.Count == 0) continue;
                 GeologyKind kind = eligible[random.Int(0, eligible.Count - 1)];
+                if (IsVolcano(kind)) return FindVolcano(generator, kind, rx, rz, x, z, variantSeed);
                 int baseline = kind == GeologyKind.RiverCave || kind == GeologyKind.Terraces ? (height + low) / 2 : height;
                 baseline = Math.Max(sea + 1, baseline);
-                if (kind == GeologyKind.Crater || kind == GeologyKind.MagmaCrater) baseline = Math.Max(sea + 6, baseline);
                 return new GeologySite(kind, x, z, baseline, Radius(kind), variantSeed, sea, facing);
             }
             return null;
@@ -90,8 +93,66 @@ namespace SCIEPort.Features.Geology
         private static GeologyKind ChooseVolcano(Game.Random random)
         {
             float type = random.Float(0, 1);
-            return type < .12f ? GeologyKind.CraterLakes : type < .40f ? GeologyKind.MagmaCrater : GeologyKind.Crater;
+            return type < .12f ? GeologyKind.CraterLakes : type < .62f ? GeologyKind.MagmaCrater : GeologyKind.Crater;
         }
+
+        internal static bool IsVolcano(GeologyKind kind) =>
+            kind == GeologyKind.Crater || kind == GeologyKind.MagmaCrater || kind == GeologyKind.CraterLakes;
+
+        private static GeologySite FindVolcano(ITerrainContentsGenerator generator, GeologyKind kind,
+            int rx, int rz, int preferredX, int preferredZ, int seed)
+        {
+            int sea = generator.OceanLevel, radius = Radius(kind);
+            int startX = rx * RegionWidth + 56, startZ = rz * RegionWidth + 56;
+            int slot = (preferredX - startX) / 16 + 6 * ((preferredZ - startZ) / 16);
+            // Keep volcano reservations inside the original region. Visit distinct chunk centers
+            // to search nearby uplands without moving any other geology site's selection.
+            for (int attempt = 0; attempt < VolcanoAttempts; attempt++, slot = (slot + 13) % 36)
+            {
+                int x = startX + 16 * (slot % 6), z = startZ + 16 * (slot / 6);
+                if (generator.CalculateOceanShoreDistance(x, z) < radius + 12) continue;
+                int height = SampleHeight(generator, x, z);
+                if (height < sea + 14 || height > 191 ||
+                    !FindRelief(generator, x, z, height, out int low, out int relief) || low < sea + 8 || relief > 27)
+                    continue;
+
+                int baseline = Math.Max(height, sea + 25);
+                int floor = baseline + (kind == GeologyKind.CraterLakes ? 4 : -4);
+                if (TryFindOutlet(generator, kind, x, z, radius, floor, seed, out Point2 facing, out int outlet))
+                    return new GeologySite(kind, x, z, baseline, radius, seed, sea, facing, outlet);
+            }
+            return null;
+        }
+
+        private static bool TryFindOutlet(ITerrainContentsGenerator generator, GeologyKind kind,
+            int x, int z, int radius, int floor, int seed, out Point2 facing, out int outlet)
+        {
+            facing = default;
+            outlet = 0;
+            int bestScore = int.MaxValue;
+            int first = Grain(x, z, seed, Directions.Length);
+            for (int index = 0; index < Directions.Length; index++)
+            {
+                Point2 direction = Directions[(first + index) % Directions.Length];
+                int edge = SampleHeight(generator, x - (radius - 1) * direction.X, z - (radius - 1) * direction.Y);
+                int outside = SampleHeight(generator, x - (radius + 4) * direction.X, z - (radius + 4) * direction.Y);
+                int apron = SampleHeight(generator, x - (radius - 7) * direction.X, z - (radius - 7) * direction.Y);
+                int approach = Math.Abs(outside - edge);
+                int grade = Math.Abs(edge - floor);
+                if (outside < generator.OceanLevel + 5 || approach > 5 || Math.Abs(edge - apron) > 8 ||
+                    grade > radius - 17 || (kind == GeologyKind.MagmaCrater && edge < floor - 4))
+                    continue;
+                int score = approach * 4 + grade + Math.Abs(edge - apron) * 2;
+                if (score >= bestScore) continue;
+                bestScore = score;
+                facing = direction;
+                outlet = edge;
+            }
+            return bestScore < int.MaxValue;
+        }
+
+        private static int SampleHeight(ITerrainContentsGenerator generator, int x, int z) =>
+            (int)Math.Round(generator.CalculateHeight(x, z));
 
         private static bool FindRelief(ITerrainContentsGenerator generator, int x, int z, int center, out int low, out int relief)
         {

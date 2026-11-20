@@ -82,6 +82,14 @@ public static class TidePalaceProbe
         Reward(game, WorkType.Local);
         Reward(game, WorkType.Server);
         Console.WriteLine("Tide Palace fixed target: " + checks + " checks passed.");
+        CommonLib.WorkType = WorkType.Local;
+        BlocksManager.FluidBlocks[MagmaBlock.Index].Initialize();
+        VolcanoNativeProbe.Run(mod, (mode, seed) =>
+        {
+            Project project;
+            SubsystemBlockBehavior behavior;
+            return Fixture(game, mode, out project, out behavior, seed);
+        });
     }
 
     private static void RegisterBlocks(Assembly mod, string native, string geology, string palace)
@@ -267,7 +275,8 @@ public static class TidePalaceProbe
         public void Dispose() { }
     }
 
-    private static SubsystemTerrain Fixture(GameDatabase db, TerrainGenerationMode mode, out Project p, out SubsystemBlockBehavior behavior)
+    private static SubsystemTerrain Fixture(GameDatabase db, TerrainGenerationMode mode, out Project p,
+        out SubsystemBlockBehavior behavior, int seed = Seed)
     {
         p = new Project();
         p.m_gameDatabase = db;
@@ -277,7 +286,7 @@ public static class TidePalaceProbe
         settings.BiomeSize = 1f;
         settings.IslandSize = new Vector2(400f, 400f);
         settings.DisableBlocks = string.Empty;
-        Add(p, new SubsystemGameInfo { WorldSeed = Seed, WorldSettings = settings });
+        Add(p, new SubsystemGameInfo { WorldSeed = seed, WorldSettings = settings });
         Add(p, new SubsystemInventories());
         Add(p, new SubsystemPlayers());
         Add(p, new SubsystemBottomSuckerBlockBehavior());

@@ -47,6 +47,7 @@ namespace SCIEPort.Features.Geology
 
     internal static class GeologyProfiles
     {
+        internal const int VolcanoApron = 8;
         private static readonly int[] TerraceHalfWidths = { 0, 2, 4, 5, 5, 4, 3, 0 };
 
         internal static GeologyColumn At(GeologySite site, int x, int z)
@@ -54,9 +55,10 @@ namespace SCIEPort.Features.Geology
             int dx = x - site.X, dz = z - site.Z;
             float radius = (float)Math.Sqrt(dx * dx + dz * dz);
             float weight = Edge((site.Radius - radius) / 7f);
-            if (weight == 0) return default;
             int v = dx * site.Facing.X + dz * site.Facing.Y;
             int u = dz * site.Facing.X - dx * site.Facing.Y;
+            if (weight == 0 && !(GeologySites.IsVolcano(site.Kind) && v <= -8 &&
+                v > -site.Extent && Math.Abs(u) < 6)) return default;
             switch (site.Kind)
             {
                 case Crater:
@@ -79,11 +81,17 @@ namespace SCIEPort.Features.Geology
             float ring = (radius + 1.8f * (float)Math.Sin(u * .12 + v * .15)) / site.Radius;
             float ramp = ring <= .57f ? Edge((ring - .31f) / .26f) : Edge((1f - ring) / .43f);
             int height = floor + (int)Math.Round(ramp * (lakes ? 24 : 23));
-            float breachWidth = 2.6f + Math.Max(0, -v - 11) * .13f;
-            if (v < -8 && Math.Abs(u) < breachWidth + 3)
+            int reach = -v;
+            int side = Math.Abs(u);
+            if (reach >= 8 && side <= 6)
             {
-                int trail = floor + (-v - 8) / 4;
-                height = Mix(height, Math.Min(height, trail), Edge((breachWidth + 3 - Math.Abs(u)) / 3f));
+                // Keep the central five columns on grade through the ring's outer edge.
+                // Fade the extended approach beyond the circular part of the mountain.
+                float grade = (reach - 8f) / (site.Radius - 9);
+                int trail = Mix(floor, site.Outlet, Math.Min(grade, 1f));
+                float shoulder = Edge((6f - side) / 4f);
+                height = Mix(height, trail, shoulder);
+                weight = Math.Max(weight, shoulder * Edge((site.Extent - reach) / (VolcanoApron + 1f)));
             }
 
             int cap = radius > site.Radius * .72f || (radius < 14 && GeologySites.Grain(u, v, site.Seed, 7) == 0)
@@ -103,10 +111,10 @@ namespace SCIEPort.Features.Geology
                 return result;
             }
 
-            if (site.Kind == MagmaCrater && u * u + v * v <= 39)
+            if (site.Kind == MagmaCrater && u * u + v * v <= 41)
             {
-                result.Surface = floor - (u * u + v * v < 20 ? 4 : 2);
-                result.Flood(Terrain.MakeBlockValue(MagmaBlock.Index), floor - 1);
+                result.Surface = floor - (u * u + v * v < 20 ? 5 : 4);
+                result.Flood(Terrain.MakeBlockValue(MagmaBlock.Index), floor - 2);
             }
 
             int center = (int)Math.Round(2 * Math.Sin((v - 8) * .19));

@@ -43,7 +43,11 @@ foreach ($file in @('System.dll', 'System.Core.dll', 'System.Xml.dll', 'System.X
     [void]$options.ReferencedAssemblies.Add($file)
 }
 $compiler = New-Object Microsoft.CSharp.CSharpCodeProvider
-$compiled = $compiler.CompileAssemblyFromFile($options, @((Join-Path $root 'tests/SCIEPort.TidePalace.NativeTests/TidePalaceProbe.cs')))
+[string[]]$sources = @(
+    (Join-Path $root 'tests/SCIEPort.TidePalace.NativeTests/TidePalaceProbe.cs'),
+    (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/VolcanoNativeProbe.cs')
+)
+$compiled = $compiler.CompileAssemblyFromFile($options, $sources)
 if ($compiled.Errors.HasErrors) { throw (($compiled.Errors | ForEach-Object ToString) -join "`n") }
 
 function Read-Text($entry) {

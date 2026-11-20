@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-20 · 1.1.1 高地火山口
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/volcanoes-1.1.1`。固定目标环境、Release 构建、完整回归和包检查退出 0，编译 0 警告、0 错误。
+- 火山专项通过 16,626 项检查。固定 Windows 目标生成器对大陆、Better 和 3072×3072 格岛屿各采样 400 个区域。大陆为冷却 12、余火 10、三色 1，Better 为冷却 8、余火 4，岛屿为冷却 9、余火 7。完整生成 16 座火山，验证山脊开口、五格路径范围内一格以内的通行高差，以及余火型原版第四阶段后仍保留的 137 格裸露岩浆。还检查池底与四向围岸、外部方块打断时整池跳过、已加载区块保留、负坐标、跨区块写入顺序。
+- 主包与版本副本字节一致，共 227 条目、13,094,446 字节。SHA-256 为 `47AB8F4EEE4C93ECBE6B553DC17FE955DB6DE1BC707E3E12F96075DF404B01BF`。与 1.1.0 比较，更新的包条目是 `SCIEPort.dll` 和 `modinfo.json`。水幕沉殿 384 项检查，以及书柜、五类创造栏、钓鱼和云天书典回归通过。
+- Android 7723 的实机观感、控制、岩浆演化和真实联机 **待验证**。[首测种子与坐标](GEOLOGY-VOLCANOES-1.1.1.md)
+
 ## 2026-11-20 · 1.1.0 水幕沉殿
 
 - 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/tide-palace-1.1.0`。环境检查、Release、既有自动回归和包校验退出 0，编译 0 警告、0 错误。
