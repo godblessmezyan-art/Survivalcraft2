@@ -35,7 +35,7 @@ namespace SCIEPort.Features.Geology
 
     internal static class GeologySites
     {
-        private const int RegionWidth = 192;
+        internal const int RegionWidth = 192;
         private const int VolcanoAttempts = 12;
         private static readonly Point2[] Directions = { new Point2(1, 0), new Point2(0, 1), new Point2(-1, 0), new Point2(0, -1) };
 

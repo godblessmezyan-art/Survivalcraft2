@@ -15,7 +15,8 @@ Add-Type -AssemblyName System.Xml.Linq
 if ($Package) {
     $archive = [IO.Compression.ZipFile]::OpenRead($Package)
     try {
-        foreach ($name in @('Blocks/TidePalace.csv', 'Database/TidePalace.xdb', 'Textures/TidePalace.png')) {
+        foreach ($name in @('Blocks/TidePalace.csv', 'Database/TidePalace.xdb', 'Textures/TidePalace.png',
+                'Blocks/Pyramid.csv', 'Database/Pyramid.xdb', 'Textures/PyramidMechanism.png')) {
             $entry = $archive.GetEntry("Assets/$name")
             if (!$entry) { throw "Missing palace asset $name" }
             $stream = $entry.Open()
@@ -26,7 +27,7 @@ if ($Package) {
             } finally { $stream.Dispose() }
         }
     } finally { $archive.Dispose() }
-    Write-Host 'Tide Palace package CSV, XDB and atlas match the tested source assets.'
+    Write-Host 'Tide Palace and Pyramid package CSV, XDB and atlas match the tested source assets.'
     return
 }
 
@@ -45,7 +46,8 @@ foreach ($file in @('System.dll', 'System.Core.dll', 'System.Xml.dll', 'System.X
 $compiler = New-Object Microsoft.CSharp.CSharpCodeProvider
 [string[]]$sources = @(
     (Join-Path $root 'tests/SCIEPort.TidePalace.NativeTests/TidePalaceProbe.cs'),
-    (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/VolcanoNativeProbe.cs')
+    (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/VolcanoNativeProbe.cs'),
+    (Join-Path $root 'tests/SCIEPort.Pyramid.NativeTests/PyramidNativeProbe.cs')
 )
 $compiled = $compiler.CompileAssemblyFromFile($options, $sources)
 if ($compiled.Errors.HasErrors) { throw (($compiled.Errors | ForEach-Object ToString) -join "`n") }
@@ -67,11 +69,15 @@ try {
     if (!$nativeTable) { throw "Native block CSV not found. Candidate names: $($zip.Entries.Name -like '*Block*' -join ', ')." }
     $nativeBlocks = Read-Text $nativeTable
 } finally { $zip.Dispose() }
-foreach ($name in @('Geology', 'SuspendedItem', 'TidePalace')) {
+foreach ($name in @('Geology', 'SuspendedItem', 'TidePalace', 'Pyramid')) {
     $xdb = [IO.File]::OpenRead((Join-Path $assets "Database/$name.xdb"))
     try { [ModsManager]::CombineDataBase($xml, $xdb) } finally { $xdb.Dispose() }
 }
 $geology = [IO.File]::ReadAllText((Join-Path $assets 'Blocks/Geology.csv'))
 $palace = [IO.File]::ReadAllText((Join-Path $assets 'Blocks/TidePalace.csv'))
-try { $compiled.CompiledAssembly.GetType('TidePalaceProbe').GetMethod('Run').Invoke($null, @($mod, $xml, $nativeBlocks, $geology, $palace)) }
+$pyramid = [IO.File]::ReadAllText((Join-Path $assets 'Blocks/Pyramid.csv'))
+[string[]]$artifactTables = Get-ChildItem -LiteralPath (Join-Path $assets 'Blocks') -Filter '*.csv' |
+    Where-Object { Select-String -LiteralPath $_.FullName -Pattern ';SCIEPort.Artifacts;' -Quiet } |
+    ForEach-Object { [IO.File]::ReadAllText($_.FullName) }
+try { $compiled.CompiledAssembly.GetType('TidePalaceProbe').GetMethod('Run').Invoke($null, @($mod, $xml, $nativeBlocks, $geology, $palace, $pyramid, $artifactTables)) }
 catch { Write-Host $_.Exception.ToString(); throw }

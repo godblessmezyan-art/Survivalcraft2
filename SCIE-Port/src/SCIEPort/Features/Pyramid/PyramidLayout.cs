@@ -1,0 +1,196 @@
+using System;
+using Engine;
+using Game;
+
+namespace SCIEPort.Features.Pyramid
+{
+    internal sealed class PyramidLayout
+    {
+        internal const int LowY = -14, HighY = 36;
+        internal const int Unchanged = -1, Underpinning = -2;
+        private const int Height = HighY - LowY + 1;
+        private static readonly int Sandstone = Terrain.MakeBlockValue(SandstoneBlock.Index);
+        private static readonly int Marble = Terrain.MakeBlockValue(MarbleBlock.Index);
+        private static readonly int Basalt = Terrain.MakeBlockValue(BasaltBlock.Index);
+        private static readonly int Limestone = Terrain.MakeBlockValue(LimestoneBlock.Index);
+        private static readonly int Lamp = PyramidMechanismBlock.Value(PyramidMechanismBlock.Lamp);
+        private static readonly int Relief = PyramidMechanismBlock.Value(PyramidMechanismBlock.Trim);
+        private readonly int x0, z0;
+        private readonly int[] cells = new int[16 * 16 * Height];
+
+        internal PyramidLayout(PyramidSite site, Point2 origin)
+        {
+            x0 = origin.X - site.Origin.X;
+            z0 = origin.Y - site.Origin.Y;
+            for (int i = 0; i < cells.Length; i++) cells[i] = Unchanged;
+            Shell();
+            MainHall(site);
+            Bridge();
+            Labyrinth();
+            UpperChamber();
+            Vault();
+        }
+
+        internal int At(int x, int y, int z) => cells[((z * 16 + x) * Height) + y - LowY];
+
+        private void Shell()
+        {
+            Fill(2, -14, 4, 77, -1, 77, Underpinning);
+            Fill(2, 0, 4, 77, 0, 77, Limestone);
+            for (int z = Math.Max(5, z0); z <= Math.Min(74, z0 + 15); z++)
+            for (int x = Math.Max(5, x0); x <= Math.Min(74, x0 + 15); x++)
+            {
+                int top = 2 + Math.Min(Math.Min(x - 5, 74 - x), Math.Min(z - 5, 74 - z));
+                Fill(x, 1, z, x, top, z, Sandstone);
+                if (top == HighY) Set(x, top, z, Relief);
+                else if (top % 6 == 0) Set(x, top, z, Limestone);
+            }
+            // Broad approach supported by solid masonry. Low terraces cover the sample relief.
+            for (int z = 0; z <= 5; z++)
+            {
+                int tread = z - 5;
+                Fill(32, -14, z, 47, tread - 1, z, Underpinning);
+                Fill(32, tread, z, 47, tread, z, z == 5 ? Marble : Limestone);
+                Fill(36, tread + 1, z, 43, Math.Max(0, tread + 3), z, 0);
+            }
+            Fill(31, 1, 4, 35, 7, 7, Sandstone);
+            Fill(44, 1, 4, 48, 7, 7, Sandstone);
+            Fill(31, 8, 4, 48, 8, 7, Marble);
+            Fill(35, 6, 4, 44, 6, 12, Sandstone);
+            Fill(34, 4, 4, 34, 6, 4, Relief);
+            Fill(45, 4, 4, 45, 6, 4, Relief);
+            Set(34, 3, 4, Lamp);
+            Set(45, 3, 4, Lamp);
+        }
+
+        private void MainHall(PyramidSite site)
+        {
+            Fill(36, 1, 4, 43, 5, 16, 0);
+            Fill(28, 1, 14, 51, 9, 44, 0);
+            Fill(36, 0, 5, 43, 0, 44, Marble);
+            Fill(38, 0, 6, 41, 0, 44, Basalt);
+            for (int z = 17; z <= 41; z += 6)
+            {
+                Pillar(31, 1, z, 9);
+                Pillar(48, 1, z, 9);
+                Set(32, 4, z, Lamp);
+                Set(47, 4, z, Lamp);
+            }
+            Fill(35, 4, 44, 44, 7, 44, Relief);
+            for (int step = 0; step < 3; step++)
+            {
+                int x = 36 + step * 3;
+                Set(x, 6, 43, PyramidMechanismBlock.Value(PyramidMechanismBlock.Clue + site.SealAt(step)));
+                for (int pip = 0; pip <= step; pip++) Set(x - 1 + pip, 5, 43, Lamp);
+            }
+            Fill(37, 1, PyramidSite.GateZ, 42, 4, PyramidSite.GateZ, PyramidMechanismBlock.Value(PyramidMechanismBlock.Gate));
+        }
+
+        private void Bridge()
+        {
+            Fill(10, 1, 19, 27, 6, 32, 0);
+            Fill(26, 1, 24, 29, 5, 27, 0);
+            Fill(13, -5, 19, 24, -5, 32, Basalt);
+            Fill(13, -4, 19, 24, 0, 32, 0);
+            for (int x = 13; x <= 22; x += 3)
+            {
+                Fill(x, -4, 24, x + 1, 0, 27, Sandstone);
+                Fill(x, 0, 24, x + 1, 0, 24, Marble);
+            }
+            // Missed jumps land on the lower floor. This stair leads back to the near bank.
+            for (int x = 21; x <= 25; x++)
+                Fill(x, -5, 30, x, x - 25, 32, Sandstone);
+            Fill(10, 1, 24, 11, 1, 26, Marble);
+            Set(11, 2, 25, PyramidMechanismBlock.Value(0));
+            Set(11, 4, 23, Lamp);
+            Set(26, 4, 28, Lamp);
+        }
+
+        private void Labyrinth()
+        {
+            Fill(51, 1, 18, 68, 7, 42, 0);
+            Fill(50, 1, 25, 53, 5, 28, 0);
+            for (int lane = 0; lane < 3; lane++)
+            {
+                int x = 54 + lane * 5, opening = lane == 1 ? 38 : 20;
+                Fill(x, 1, 18, x, 8, 42, Sandstone);
+                Fill(x, 1, opening, x, 4, opening + 2, 0);
+                Fill(x + 1, 5, opening, x + 1, 5, opening + 2, Marble);
+                Set(x + 1, 4, opening + 1, Lamp);
+            }
+            Fill(57, 1, 28, 58, 4, 30, Limestone);
+            Fill(61, 1, 33, 62, 4, 36, Limestone);
+            Fill(66, 1, 36, 68, 1, 38, Marble);
+            Set(67, 2, 37, PyramidMechanismBlock.Value(1));
+            Set(68, 4, 41, Lamp);
+        }
+
+        private void UpperChamber()
+        {
+            Fill(33, 18, 24, 48, 20, 32, 0);
+            Fill(33, 17, 24, 48, 17, 31, Limestone);
+            Fill(35, 9, 34, 46, 9, 36, Marble);
+            Fill(35, 10, 34, 46, 13, 36, 0);
+            for (int z = 26; z <= 34; z++)
+            {
+                Stair(35, 38, z, z - 25);
+                Stair(43, 46, z, 43 - z);
+            }
+            Fill(38, 18, 24, 40, 18, 26, Marble);
+            Set(39, 19, 25, PyramidMechanismBlock.Value(2));
+            Set(36, 20, 26, Lamp);
+            Set(45, 20, 29, Lamp);
+        }
+
+        private void Vault()
+        {
+            Fill(26, -13, 54, 53, -2, 73, Basalt);
+            Fill(27, -12, 55, 52, -3, 72, Sandstone);
+            Fill(28, -11, 56, 51, -4, 71, 0);
+            Fill(37, -11, 61, 43, -11, 67, Limestone);
+            Fill(38, -10, 63, 42, -10, 66, Marble);
+            Set(PyramidSite.Display.X, PyramidSite.Display.Y, PyramidSite.Display.Z, PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal));
+            for (int z = 59; z <= 69; z += 5)
+            {
+                Pillar(31, -11, z, -4);
+                Pillar(48, -11, z, -4);
+                Set(32, -7, z, Lamp);
+                Set(47, -7, z, Lamp);
+            }
+            for (int z = 46; z <= 57; z++)
+            {
+                int floor = 46 - z;
+                Stair(38, 41, z, floor);
+                if (z >= 56) continue;
+                Fill(37, floor, z, 37, floor + 5, z, Basalt);
+                Fill(42, floor, z, 42, floor + 5, z, Basalt);
+                Fill(38, floor + 5, z, 41, floor + 5, z, Sandstone);
+            }
+        }
+
+        private void Pillar(int x, int y, int z, int top)
+        {
+            Fill(x - 1, y, z - 1, x + 1, y, z + 1, Basalt);
+            Fill(x, y + 1, z, x, top - 1, z, Limestone);
+            Fill(x - 1, top, z - 1, x + 1, top, z + 1, Marble);
+        }
+
+        private void Stair(int left, int right, int z, int floor)
+        {
+            Fill(left, floor, z, right, floor, z, Sandstone);
+            Fill(left, floor + 1, z, right, floor + 4, z, 0);
+        }
+
+        private void Set(int x, int y, int z, int value) => Fill(x, y, z, x, y, z, value);
+
+        private void Fill(int left, int bottom, int front, int right, int top, int back, int value)
+        {
+            for (int z = Math.Max(front, z0); z <= Math.Min(back, z0 + 15); z++)
+            for (int x = Math.Max(left, x0); x <= Math.Min(right, x0 + 15); x++)
+            {
+                int offset = (((z - z0) * 16 + x - x0) * Height) - LowY;
+                for (int y = bottom; y <= top; y++) cells[offset + y] = value;
+            }
+        }
+    }
+}

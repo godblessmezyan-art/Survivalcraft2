@@ -21,6 +21,7 @@ using SCIEPort.Features.Gungnir;
 using SCIEPort.Features.FourSaints;
 using SCIEPort.Features.Fishing;
 using SCIEPort.Features.TidePalace;
+using SCIEPort.Features.Pyramid;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -54,6 +55,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
                 PackageManager.RegisterPackage(new FishingCatchPackage());
                 PackageManager.RegisterPackage(new TidePalacePackage());
+                PackageManager.RegisterPackage(new PyramidPackage());
                 s_networkPackageRegistered = true;
             }
 

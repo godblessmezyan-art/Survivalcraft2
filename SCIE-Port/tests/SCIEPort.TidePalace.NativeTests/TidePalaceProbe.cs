@@ -42,7 +42,7 @@ public static class TidePalaceProbe
         throw new MissingFieldException(name);
     }
 
-    private static void Put(object target, string name, object value) { Field(target.GetType(), name).SetValue(target, value); }
+    internal static void Put(object target, string name, object value) { Field(target.GetType(), name).SetValue(target, value); }
     private static T Get<T>(object target, string name) { return (T)Field(target.GetType(), name).GetValue(target); }
     private static T Property<T>(object target, string name) { return (T)target.GetType().GetProperty(name, Instance).GetValue(target); }
     private static object Call(object target, string name, params object[] args)
@@ -53,13 +53,14 @@ public static class TidePalaceProbe
     {
         return Activator.CreateInstance(type, Instance, null, args, null);
     }
-    private static void Add(Project project, Subsystem subsystem)
+    internal static void Add(Project project, Subsystem subsystem)
     {
         Put(subsystem, "m_project", project);
         project.m_subsystems.Add(subsystem);
     }
 
-    public static void Run(Assembly mod, XElement xml, string nativeBlocks, string geologyBlocks, string palaceBlocks)
+    public static void Run(Assembly mod, XElement xml, string nativeBlocks, string geologyBlocks, string palaceBlocks,
+        string pyramidBlocks, string[] artifactTables)
     {
         siteType = mod.GetType("SCIEPort.Features.TidePalace.PalaceSite", true);
         layoutType = mod.GetType("SCIEPort.Features.TidePalace.PalaceLayout", true);
@@ -70,7 +71,7 @@ public static class TidePalaceProbe
         CommonLib.Net = (NetNode)FormatterServices.GetUninitializedObject(typeof(NetNode));
         Put(CommonLib.Net, "PendingPackages", new List<IPackage>());
         CommonLib.Net.Clients = new Dictionary<int, Client>();
-        RegisterBlocks(mod, nativeBlocks, geologyBlocks, palaceBlocks);
+        RegisterBlocks(mod, nativeBlocks, geologyBlocks, palaceBlocks, pyramidBlocks, artifactTables);
         CheckRegistration(mod, xml);
         var site = Make(siteType, new Point2(0, 0), 32, 17);
         Layout(site);
@@ -90,10 +91,13 @@ public static class TidePalaceProbe
             SubsystemBlockBehavior behavior;
             return Fixture(game, mode, out project, out behavior, seed);
         });
+        PyramidNativeProbe.Run(mod, game, Fixture);
     }
 
-    private static void RegisterBlocks(Assembly mod, string native, string geology, string palace)
+    private static void RegisterBlocks(Assembly mod, string native, string geology, string palace,
+        string pyramid, string[] artifactTables)
     {
+        var artifacts = new HashSet<string>(artifactTables.Select(table => table.Split('\n')[1].Split(';')[0]));
         for (int i = 0; i < BlocksManager.Blocks.Length; i++) BlocksManager.Blocks[i] = new AirBlock();
         foreach (var assembly in new[] { typeof(Block).Assembly, mod })
         foreach (var type in assembly.GetTypes())
@@ -102,7 +106,8 @@ public static class TidePalaceProbe
             var index = type.GetField("Index", Static | BindingFlags.DeclaredOnly);
             if (index == null || !index.IsLiteral || type.GetConstructor(Type.EmptyTypes) == null) continue;
             int id = (int)index.GetRawConstantValue();
-            if (assembly == mod && id != 951 && id != 954 && (id < 1005 || id > 1013) && id != PalaceId) continue;
+            if (assembly == mod && id != 954 && (id < 1005 || id > 1013) && id != PalaceId && id != 1023 &&
+                !artifacts.Contains(type.Name)) continue;
             var block = (Block)Activator.CreateInstance(type);
             block.BlockIndex = id;
             BlocksManager.Blocks[id] = block;
@@ -112,6 +117,8 @@ public static class TidePalaceProbe
         BlocksManager.LoadBlocksData(native);
         BlocksManager.LoadBlocksData(geology);
         BlocksManager.LoadBlocksData(palace);
+        BlocksManager.LoadBlocksData(pyramid);
+        foreach (string table in artifactTables) BlocksManager.LoadBlocksData(table);
         BlocksManager.FluidBlocks[WaterBlock.Index].Initialize();
         BlocksManager.Blocks[951].MaxStacking = 1;
     }
@@ -461,7 +468,7 @@ public static class TidePalaceProbe
         Check(blockEntities.GetBlockEntity(p.X, p.Y, p.Z) == null, "destroying and reloading a claimed display leaves no second trident");
     }
 
-    private static ComponentPlayer MakePlayer(Project project)
+    internal static ComponentPlayer MakePlayer(Project project)
     {
         var entity = (Entity)FormatterServices.GetUninitializedObject(typeof(Entity));
         Put(entity, "m_project", project);

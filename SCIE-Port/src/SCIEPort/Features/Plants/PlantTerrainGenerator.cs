@@ -12,6 +12,7 @@ using SCIEPort.Features.Landmarks;
 using SCIEPort.Features.Sunflower;
 using SCIEPort.Features.SpecialTrees;
 using SCIEPort.Features.TidePalace;
+using SCIEPort.Features.Pyramid;
 
 namespace SCIEPort.Features.Plants
 {
@@ -22,12 +23,14 @@ namespace SCIEPort.Features.Plants
         private readonly ITerrainContentsGenerator original;
         private readonly SubsystemGameInfo gameInfo;
         private readonly SubsystemTidePalace tidePalace;
+        private readonly SubsystemPyramid pyramid;
 
         internal PlantTerrainGenerator(ITerrainContentsGenerator original, SubsystemGameInfo gameInfo)
         {
             this.original = original;
             this.gameInfo = gameInfo;
             tidePalace = gameInfo.Project?.FindSubsystem<SubsystemTidePalace>(false);
+            pyramid = gameInfo.Project?.FindSubsystem<SubsystemPyramid>(false);
         }
 
         public int OceanLevel => original.OceanLevel;
@@ -67,6 +70,16 @@ namespace SCIEPort.Features.Plants
             catch (Exception error)
             {
                 Log.Error("[SCIEPort] Tide Palace generation failed: " + error);
+            }
+
+            try
+            {
+                if (pyramid?.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode) == true)
+                    return;
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Pyramid generation failed: " + error);
             }
 
             try

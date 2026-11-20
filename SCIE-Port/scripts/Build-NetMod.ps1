@@ -370,7 +370,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
-if ($LASTEXITCODE -ne 0) { throw 'Tide Palace or volcano target terrain checks failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Plants.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -887,6 +887,7 @@ try {
         'Assets/Blocks/Bamboo.csv',
         'Assets/Blocks/Geology.csv',
         'Assets/Blocks/TidePalace.csv',
+        'Assets/Blocks/Pyramid.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
@@ -905,6 +906,7 @@ try {
         'Assets/Database/Bamboo.xdb',
         'Assets/Database/Geology.xdb',
         'Assets/Database/TidePalace.xdb',
+        'Assets/Database/Pyramid.xdb',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
@@ -951,6 +953,7 @@ try {
         'Assets/Textures/Bamboo.png',
         'Assets/Textures/Geology.png',
         'Assets/Textures/TidePalace.png',
+        'Assets/Textures/PyramidMechanism.png',
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/PortableFortress.png',
@@ -2361,7 +2364,7 @@ if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $ve
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item final package validation failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
-if ($LASTEXITCODE -ne 0) { throw 'Tide Palace final package validation failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Tide Palace or Pyramid package validation failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Codex package validation failed.' }
 

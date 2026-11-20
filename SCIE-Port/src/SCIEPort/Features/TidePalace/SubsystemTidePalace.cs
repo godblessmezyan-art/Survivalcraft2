@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using Game.NetWork;
-using GameEntitySystem;
 using SCIEPort.Features.Geology;
 using SCIEPort.Features.Poseidon;
-using SCIEPort.Features.Suspension;
+using SCIEPort.Features.Shrines;
 using TemplatesDatabase;
 
 namespace SCIEPort.Features.TidePalace
@@ -92,7 +91,7 @@ namespace SCIEPort.Features.TidePalace
                         candidates[region] = candidate;
                     }
                     if (candidate == null || candidate.ChunkBit(chunk.Origin) == 0) return false;
-                    if (OverlapsSavedChunks(candidate))
+                    if (ShrineWorld.OverlapsSavedChunks(SubsystemTerrain, candidate.Origin, 4, 3))
                     {
                         candidates[region] = null;
                         return false;
@@ -105,17 +104,6 @@ namespace SCIEPort.Features.TidePalace
                 state.Slices |= slice;
                 return true;
             }
-        }
-
-        private bool OverlapsSavedChunks(PalaceSite site)
-        {
-            TerrainSerializer23.IStorage storage = SubsystemTerrain.TerrainSerializer?.m_storage;
-            if (storage == null) return true;
-            int originX = site.Origin.X >> 4, originZ = site.Origin.Y >> 4;
-            for (int z = 0; z < 3; z++)
-            for (int x = 0; x < 4; x++)
-                if (storage.Exists(new Point2(originX + x, originZ + z))) return true;
-            return false;
         }
 
         /// <inheritdoc/>
@@ -190,11 +178,11 @@ namespace SCIEPort.Features.TidePalace
             ComponentPlayer player = request.Player;
             Point3 point = request.Point;
             if (!player.IsAddedToProject || player.Project != Project || player.ComponentHealth.Health <= 0f ||
-                !Ready(point) || !AllowsChange(point)) return;
+                !Ready(point) || !ShrineWorld.AllowsChange(point)) return;
             int value = Cell(point);
             if (!TidePalaceBlock.Matches(value, request.Expected, request.Expected)) return;
             TidePalaceState state = Find(new Point2(point.X, point.Z));
-            if (state == null || state.Slices != PalaceSite.Complete || !CanReach(player, point)) return;
+            if (state == null || state.Slices != PalaceSite.Complete || !ShrineWorld.CanReach(SubsystemTerrain, player, point)) return;
 
             PalaceSite site = state.Site;
             if (point == site.World(PalaceSite.West))
@@ -210,16 +198,6 @@ namespace SCIEPort.Features.TidePalace
                 Schedule(state);
                 break;
             }
-        }
-
-        private bool CanReach(ComponentPlayer player, Point3 point)
-        {
-            Vector3 eye = player.ComponentCreatureModel.EyePosition;
-            Vector3 target = new Vector3(point) + new Vector3(.5f);
-            if (!(Vector3.DistanceSquared(eye, target) <= 25f)) return false;
-            TerrainRaycastResult? hit = SubsystemTerrain.Raycast(eye, target, true, true,
-                (value, distance) => !BlocksManager.Blocks[Terrain.ExtractContents(value)].IsPlacementTransparent);
-            return hit.HasValue && hit.Value.CellFace.Point == point;
         }
 
         private void Synchronize(TidePalaceState state)
@@ -248,37 +226,10 @@ namespace SCIEPort.Features.TidePalace
 
         private void Stock(TidePalaceState state)
         {
-            Point3 point = state.Site.World(PalaceSite.Display);
-            if (!Ready(point) || !(BlocksManager.Blocks[PoseidonBlock.Index] is PoseidonBlock) ||
-                !(BlocksManager.Blocks[SuspendedItemBlock.Index] is SuspendedItemBlock)) return;
-            int old = Cell(point), id = Terrain.ExtractContents(old);
-            if (id != 0 && id != SuspendedItemBlock.Index && !TidePalaceBlock.Matches(old, TidePalaceBlock.Seal, TidePalaceBlock.Seal))
-                return;
-            if (entities.GetBlockEntity(point.X, point.Y, point.Z) != null) return;
-            var database = Project.GameDatabase;
-            var template = database.Database.FindDatabaseObject("SCIEPortSuspendedItem", database.EntityTemplateType, true);
-            var values = new ValuesDictionary();
-            values.PopulateFromDatabaseObject(template);
-            var blockEntity = values.GetValue<ValuesDictionary>("BlockEntity");
-            blockEntity.SetValue("Coordinates", point);
-            blockEntity.SetValue("Owner", Guid.Empty);
-            Entity entity = Project.CreateEntity(values);
-            var inventory = entity.FindComponent<ComponentSuspendedItem>(true);
-            // Prepare the real inventory before the entity is added, so its creation packet
-            // and persisted registry see the same single artifact as the local display.
-            if (!inventory.AddNetSlotItems(0, Terrain.MakeBlockValue(PoseidonBlock.Index), 1))
-            {
-                entity.Dispose();
-                return;
-            }
-            Change(point, Terrain.MakeBlockValue(SuspendedItemBlock.Index));
-            if (Terrain.ExtractContents(Cell(point)) != SuspendedItemBlock.Index)
-            {
-                entity.Dispose();
-                return;
-            }
-            Project.AddEntity(entity);
-            state.MarkStocked();
+            if (BlocksManager.Blocks[PoseidonBlock.Index] is PoseidonBlock &&
+                ShrineWorld.TryStock(SubsystemTerrain, entities, state.Site.World(PalaceSite.Display),
+                    TidePalaceBlock.Value(TidePalaceBlock.Seal), Terrain.MakeBlockValue(PoseidonBlock.Index)))
+                state.MarkStocked();
         }
 
         private void Refresh(Point3 point, int first, int last, int data)
@@ -289,21 +240,10 @@ namespace SCIEPort.Features.TidePalace
                 Change(point, TidePalaceBlock.Value(data));
         }
 
-        private bool Ready(Point3 point)
-        {
-            TerrainChunk chunk = SubsystemTerrain.Terrain.GetChunkAtCell(point.X, point.Z);
-            return chunk != null && chunk.State >= TerrainChunkState.InvalidLight;
-        }
+        private bool Ready(Point3 point) => ShrineWorld.Ready(SubsystemTerrain, point);
 
         private int Cell(Point3 point) => SubsystemTerrain.Terrain.GetCellValue(point.X, point.Y, point.Z);
         private void Change(Point3 point, int value) => SubsystemTerrain.ChangeCell(point.X, point.Y, point.Z, value);
-
-        private static bool AllowsChange(Point3 point)
-        {
-            if (!SubsystemBedrockBlockBehavior.CheckIsInTerritoriy(point.X, point.Z, out Territoriy territory)) return true;
-            return territory.AllowBlockBehavior &&
-                (!territory.IsVisible || !SubsystemBedrockBlockBehavior.IsInTerritoriyBorder(territory, point.X, point.Z));
-        }
 
         private readonly struct UseRequest
         {

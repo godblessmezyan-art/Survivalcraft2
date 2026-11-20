@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-20 · 1.2.0 日阶神殿
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-1.2.0`。目标环境校验、Release 编译、完整回归和包检查退出 0，编译 0 警告、0 错误。
+- 日阶神殿通过 9,124 项固定目标程序集检查。使用 `SunPyramid` 在大陆、岛屿和 Better 各采样 256 个区域，分别找到 8、1、8 个候选，每种模式通过原生入口完整写入 25 个新区块。测试覆盖旧区块回避、断桥与落坑返回、东廊和上层路线、六种封印排列、三叉戟排除、9,000 次奖池抽样、隔墙拒绝、单人及主机领取、取出和重读后禁止重复装填。
+- 通过水幕沉殿 384 项和火山 16,626 项原生专项回归。整包以相同字节生成两份，共 230 项、13,113,830 字节。SHA-256 为 `38127262DC34558CEC512A28130E6574214DEC08061F3162D5A51C18ADF73C36`。两版包对比保留了 1.1.1 的全部资源，新加金字塔数据表、数据库和机关贴图。
+- Android 7723 实机、画面及跳跃手感、真实联机 **待验证**。[生成规则与入口坐标](PYRAMID-1.2.0.md)
+
 ## 2026-11-20 · 1.1.1 高地火山口
 
 - 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/volcanoes-1.1.1`。固定目标环境、Release 构建、完整回归和包检查退出 0，编译 0 警告、0 错误。
