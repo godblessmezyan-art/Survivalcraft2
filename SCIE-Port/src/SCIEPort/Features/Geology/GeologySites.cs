@@ -11,7 +11,8 @@ namespace SCIEPort.Features.Geology
     {
         Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat,
         ColumnarBasalt, DryCanyon, GraniteDomes, ErodedBadlands, GlacialCirque,
-        KarstBridges, DuneLagoons, BlueHole, AlpineGlacier
+        KarstBridges, DuneLagoons, BlueHole, AlpineGlacier,
+        CliffFjord, TableMountain, ReefChannels, FrostSteps
     }
 
     internal sealed class GeologySite
@@ -69,20 +70,11 @@ namespace SCIEPort.Features.Geology
                 int humidity = generator.CalculateHumidity(x, z);
 
                 bool basaltCoast = shore >= -18f && shore <= 8f && Math.Abs(height - sea) <= 6 && heat >= 2;
-                bool blueHole = shore <= -12f && shore >= -96f && heat >= 5 && height >= sea - 19 && height <= sea - 2 &&
-                    IsShallowShelf(generator, x, z, sea);
-                if (basaltCoast || blueHole)
+                GeologySite coast = ChooseCoast(generator, worldSeed, x, z, sea, height, shore, heat, basaltCoast, variantSeed);
+                if (coast != null)
                 {
-                    bool reef = blueHole && (!basaltCoast || Grain(x, z, variantSeed, 2) == 0);
-                    const int reefRadius = 25;
-                    if (reef && !OverlapsPalace(generator, worldSeed, x, z, reefRadius))
-                    {
-                        var hole = new GeologySite(GeologyKind.BlueHole, x, z, sea, reefRadius, variantSeed, sea, FindLandward(generator, x, z));
-                        if (basaltCoast) return hole;
-                        if (fallback == null) fallback = hole;
-                    }
-                    if (basaltCoast)
-                        return new GeologySite(GeologyKind.BasaltCoast, x, z, sea, 22, variantSeed, sea, FindLandward(generator, x, z));
+                    if (basaltCoast) return coast;
+                    if (fallback == null) fallback = coast;
                 }
                 if (shore < 14f || height < sea - 3 || height > 191) continue;
                 bool inland = shore >= 26f;
@@ -121,6 +113,7 @@ namespace SCIEPort.Features.Geology
                     {
                         eligible.Add(GeologyKind.GlacialCirque);
                         if (heat <= 0 && height >= sea + 22 && relief <= 21) eligible.Add(GeologyKind.AlpineGlacier);
+                        if (heat <= 1 && relief <= 23) eligible.Add(GeologyKind.FrostSteps);
                     }
                     if (heat >= 3 && gentle)
                     {
@@ -134,6 +127,8 @@ namespace SCIEPort.Features.Geology
                     }
                     if (heat >= 4 && humidity >= 7 && height >= sea + 16 && low >= sea + 8 && relief <= 21)
                         eligible.Add(GeologyKind.KarstBridges);
+                    if (heat >= 4 && humidity >= 7 && height >= sea + 12 && height <= 174 && low >= sea + 6 && relief <= 21)
+                        eligible.Add(GeologyKind.TableMountain);
                 }
                 if (shore <= 68 && heat >= 5 && humidity >= 6 && low >= sea + 1 && relief <= 10 && height <= sea + 15)
                     eligible.Add(GeologyKind.DuneLagoons);
@@ -213,6 +208,39 @@ namespace SCIEPort.Features.Geology
         private static int SampleHeight(ITerrainContentsGenerator generator, int x, int z) =>
             (int)Math.Round(generator.CalculateHeight(x, z));
 
+        private static GeologySite ChooseCoast(ITerrainContentsGenerator generator, int seed, int x, int z, int sea,
+            int height, float shore, int heat, bool basalt, int variantSeed)
+        {
+            bool shelf = shore <= -12 && shore >= -96 && heat >= 2 && height >= sea - 19 && height <= sea - 2 &&
+                IsShallowShelf(generator, x, z, sea);
+            bool inlet = heat <= 8 && shore >= -17 && shore <= 14 && Math.Abs(height - sea) <= 9;
+            if (!basalt && !shelf && !inlet) return null;
+            Point2 facing = FindLandward(generator, x, z);
+            var eligible = new List<GeologyKind>(4);
+            if (basalt) eligible.Add(GeologyKind.BasaltCoast);
+            if (shelf && !OverlapsPalace(generator, seed, x, z, 25))
+            {
+                if (heat >= 5) eligible.Add(GeologyKind.BlueHole);
+                eligible.Add(GeologyKind.ReefChannels);
+            }
+            if (inlet && SupportsFjord(generator, x, z, sea, facing) && !OverlapsPalace(generator, seed, x, z, 35))
+                eligible.Add(GeologyKind.CliffFjord);
+            if (eligible.Count == 0) return null;
+
+            GeologyKind kind = eligible[Grain(x, z, variantSeed, eligible.Count)];
+            return new GeologySite(kind, x, z, sea, Radius(kind), variantSeed, sea, facing);
+        }
+
+        private static bool SupportsFjord(ITerrainContentsGenerator generator, int x, int z, int sea, Point2 inland)
+        {
+            int mouthX = x - 26 * inland.X, mouthZ = z - 26 * inland.Y;
+            if (SampleHeight(generator, mouthX, mouthZ) > sea - 4 ||
+                generator.CalculateOceanShoreDistance(mouthX, mouthZ) > -3) return false;
+            int headX = x + 21 * inland.X, headZ = z + 21 * inland.Y;
+            int head = SampleHeight(generator, headX, headZ);
+            return head >= sea + 2 && head <= sea + 23;
+        }
+
         private static bool IsShallowShelf(ITerrainContentsGenerator generator, int x, int z, int sea)
         {
             foreach (Point2 direction in Directions)
@@ -278,6 +306,11 @@ namespace SCIEPort.Features.Geology
                 case GeologyKind.Pinnacles: return 27;
                 case GeologyKind.DuneLagoons: return 38;
                 case GeologyKind.KarstBridges: return 39;
+                case GeologyKind.BasaltCoast: return 22;
+                case GeologyKind.BlueHole:
+                case GeologyKind.ReefChannels: return 25;
+                case GeologyKind.CliffFjord: return 35;
+                case GeologyKind.TableMountain: return 36;
                 default: return 33;
             }
         }

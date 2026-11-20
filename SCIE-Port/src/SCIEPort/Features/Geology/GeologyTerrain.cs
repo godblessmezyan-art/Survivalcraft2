@@ -73,8 +73,10 @@ namespace SCIEPort.Features.Geology
             int ground = top;
             bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt ||
                 kind == GeologyKind.GraniteDomes || kind == GeologyKind.ErodedBadlands || kind == GeologyKind.GlacialCirque ||
-                kind == GeologyKind.KarstBridges || kind == GeologyKind.DuneLagoons || kind == GeologyKind.AlpineGlacier;
-            if (kind == GeologyKind.BlueHole && Terrain.ExtractContents(chunk.GetCellValueFast(x, top, z)) != WaterBlock.Index)
+                kind == GeologyKind.KarstBridges || kind == GeologyKind.DuneLagoons || kind == GeologyKind.AlpineGlacier ||
+                kind == GeologyKind.TableMountain || kind == GeologyKind.FrostSteps;
+            if ((kind == GeologyKind.BlueHole || kind == GeologyKind.ReefChannels) &&
+                Terrain.ExtractContents(chunk.GetCellValueFast(x, top, z)) != WaterBlock.Index)
                 return false;
             while (ground > 4)
             {

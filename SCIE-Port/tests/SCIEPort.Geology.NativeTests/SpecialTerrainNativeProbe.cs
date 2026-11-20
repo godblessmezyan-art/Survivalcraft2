@@ -36,16 +36,21 @@ public static class SpecialTerrainNativeProbe
         Local("ScreeFan", new Habitat(89, 10, 6, 45f, GraniteBlock.Index, GraniteBlock.Index, 1), GravelBlock.Index);
         Local("MeadowHummocks", new Habitat(80, 10, 10, 45f, GraniteBlock.Index, GrassBlock.Index), GraniteBlock.Index);
         Local("FrostPolygons", new Habitat(105, 0, 6, 40f, GraniteBlock.Index, GraniteBlock.Index), SnowBlock.Index);
+        Local("TidePools", new Habitat(67, 10, 8, 6f, LimestoneBlock.Index, LimestoneBlock.Index), WaterBlock.Index);
+        Local("MarshIslets", new Habitat(61, 10, 9, 34f, LimestoneBlock.Index, DirtBlock.Index), GrassBlock.Index);
+        Local("SnowCornice", new Habitat(106, 0, 7, 40f, GraniteBlock.Index, GraniteBlock.Index), SnowBlock.Index);
+        Local("SandstoneSlot", new Habitat(74, 12, 4, 44f, SandstoneBlock.Index, SandBlock.Index), GravelBlock.Index);
         Fallback();
         SharedHabitat("warm inland", new Habitat(88, 12, 8, 44f, LimestoneBlock.Index, GrassBlock.Index),
-            new[] { "KarstBridges", "PaintedHills", "Pinnacles", "RiverCave", "ColumnarBasalt", "GraniteDomes", "DryCanyon", "ErodedBadlands" });
+            new[] { "TableMountain", "KarstBridges", "PaintedHills", "Pinnacles", "RiverCave", "ColumnarBasalt", "GraniteDomes", "DryCanyon", "ErodedBadlands" });
         SharedHabitat("warm coastal dunes", new Habitat(73, 12, 8, 39f, SandstoneBlock.Index, SandBlock.Index),
             new[] { "DuneLagoons", "Terraces", "GraniteDomes", "RiverCave" });
         SharedHabitat("shallow sea", new Habitat(58, 10, 8, -17f, LimestoneBlock.Index, SandBlock.Index),
-            new[] { "BlueHole", "BasaltCoast" });
+            new[] { "BlueHole", "BasaltCoast", "ReefChannels" });
         SharedHabitat("cold upland", new Habitat(106, 0, 7, 44f, GraniteBlock.Index, GraniteBlock.Index),
-            new[] { "AlpineGlacier", "IceCave", "GlacialCirque" });
+            new[] { "AlpineGlacier", "IceCave", "GlacialCirque", "FrostSteps" });
         WonderGeometry();
+        FjordGeometry();
         NativeLandmarks(fixture, 167537);
         Regional(fixture, TerrainGenerationMode.Continent, 167537);
         Regional(fixture, TerrainGenerationMode.Better, 167537);
@@ -92,8 +97,8 @@ public static class SpecialTerrainNativeProbe
                     Check(!pair.Value.Intersect(adjacent).Any(s => s.Length != 0), "candidates differ within two chunks, including corners");
                 }
             }
-            Check(all.Count == 14 && selected > side * side / 3 && selected <= side * side * 2 / 3,
-                "all fourteen choices with bounded participation for seed " + seed);
+            Check(all.Count == 18 && selected > side * side / 3 && selected <= side * side * 2 / 3,
+                "all eighteen choices with bounded participation for seed " + seed);
             var negative = new Point2(-19, -23);
             Check(choices[negative].SequenceEqual(Draw(seed, negative)), "repeatable negative chunk");
             Console.WriteLine("Landmark draws " + seed + ": " + selected + "/" + side * side +
@@ -149,8 +154,40 @@ public static class SpecialTerrainNativeProbe
                 Check(pillars >= 3 && water >= 190, "stacks rise above the sea with open gaps");
             }
             if (kind == "Sinkhole") Check(SinkholeExit(chunk, habitat.Height), "sinkhole has a climbable stair route");
+            if (kind == "TidePools") CheckTidePools(chunk, habitat.Height - 1);
+            if (kind == "MarshIslets")
+            {
+                int islands = 0, water = 0;
+                for (int z = 1; z <= 14; z++)
+                for (int x = 1; x <= 14; x++)
+                {
+                    if (chunk.GetCellContentsFast(x, 65, z) == GrassBlock.Index) islands++;
+                    if (chunk.GetCellContentsFast(x, 64, z) == WaterBlock.Index) water++;
+                }
+                Check(islands >= 12 && water >= 170, "marsh islets retain open water around them");
+            }
             Console.WriteLine(kind + " built through production selection: " + changes + " edited cells.");
         }
+    }
+
+    private static void CheckTidePools(TerrainChunk chunk, int level)
+    {
+        int wet = 0;
+        for (int z = 1; z <= 14; z++)
+        for (int x = 1; x <= 14; x++)
+        {
+            int value = chunk.GetCellValueFast(x, level, z);
+            if (Terrain.ExtractContents(value) != WaterBlock.Index) continue;
+            wet++;
+            Check(FluidBlock.GetIsTop(Terrain.ExtractData(value)), "tide pool stays open at the top");
+            Check(BlocksManager.Blocks[chunk.GetCellContentsFast(x, level - 1, z)].IsFluidBlocker, "tide pool bed is sealed");
+            foreach (Point2 offset in new[] { new Point2(1, 0), new Point2(-1, 0), new Point2(0, 1), new Point2(0, -1) })
+            {
+                int border = chunk.GetCellContentsFast(x + offset.X, level, z + offset.Y);
+                Check(border == WaterBlock.Index || BlocksManager.Blocks[border].IsFluidBlocker, "tide pool rim is sealed");
+            }
+        }
+        Check(wet == 10, "both tide pools were generated");
     }
 
     private static bool SinkholeExit(TerrainChunk chunk, int rim)
@@ -345,7 +382,7 @@ public static class SpecialTerrainNativeProbe
         var world = fixture(mode, seed);
         var generator = new TerrainContentsGenerator24(world);
         var remaining = new HashSet<string> { "StoneCircle", "Hoodoo", "Serac", "DuneRidge", "SeaStacks", "Sinkhole",
-            "ScreeFan", "MeadowHummocks", "FrostPolygons" };
+            "ScreeFan", "MeadowHummocks", "FrostPolygons", "TidePools", "MarshIslets", "SnowCornice", "SandstoneSlot" };
         for (int z = -96; z < 192 && remaining.Count > 0; z++)
         for (int x = -96; x < 192 && remaining.Count > 0; x++)
         {
@@ -390,6 +427,10 @@ public static class SpecialTerrainNativeProbe
             case "ScreeFan": return altitude >= 8 && shore >= 20;
             case "MeadowHummocks": return altitude >= 3 && heat >= 4 && humidity >= 8 && shore >= 18;
             case "FrostPolygons": return altitude >= 10 && heat <= 0 && shore >= 16;
+            case "TidePools": return altitude >= 0 && altitude <= 6 && heat >= 4 && shore >= -6 && shore <= 18;
+            case "MarshIslets": return altitude >= -9 && altitude <= 2 && heat >= 4 && humidity >= 7 && shore >= 5;
+            case "SnowCornice": return altitude >= 12 && heat <= 0;
+            case "SandstoneSlot": return altitude >= 5 && heat >= 6 && humidity <= 6 && shore >= 20;
             default: return false;
         }
     }
@@ -400,7 +441,7 @@ public static class SpecialTerrainNativeProbe
         ITerrainContentsGenerator generator = mode == TerrainGenerationMode.Better
             ? (ITerrainContentsGenerator)new TerrainContentsGeneratorBetter(world) : new TerrainContentsGenerator24(world);
         var sites = new Dictionary<string, List<Point2>>();
-        const int min = -4, max = 26;
+        const int min = -24, max = 44;
         for (int z = min; z < max; z++)
         for (int x = min; x < max; x++)
         {
@@ -412,15 +453,16 @@ public static class SpecialTerrainNativeProbe
             positions.Add(new Point2(Field<int>(site, "X"), Field<int>(site, "Z")));
         }
         foreach (string kind in new[] { "ColumnarBasalt", "DryCanyon", "GraniteDomes", "ErodedBadlands", "GlacialCirque",
-            "KarstBridges", "DuneLagoons", "BlueHole", "AlpineGlacier" })
+            "KarstBridges", "DuneLagoons", "BlueHole", "AlpineGlacier", "CliffFjord", "TableMountain", "ReefChannels", "FrostSteps" })
         {
             Check(sites.ContainsKey(kind), mode + " native terrain selects " + kind);
             var center = sites[kind].OrderBy(p => p.X * p.X + p.Y * p.Y).First();
             int cx = center.X >> 4, cz = center.Y >> 4;
             int distinctive = kind == "ColumnarBasalt" ? 1006 : kind == "GraniteDomes" ? GraniteBlock.Index :
-                kind == "GlacialCirque" || kind == "AlpineGlacier" ? 1011 :
+                kind == "GlacialCirque" || kind == "AlpineGlacier" || kind == "FrostSteps" ? 1011 :
                 kind == "KarstBridges" ? 1010 : kind == "DuneLagoons" ? SandBlock.Index :
-                kind == "BlueHole" ? 1010 : 1009;
+                kind == "BlueHole" ? 1010 : kind == "TableMountain" ? SandstoneBlock.Index :
+                kind == "ReefChannels" ? 1008 : kind == "CliffFjord" ? WaterBlock.Index : 1009;
             for (int dx = 0; dx < 2; dx++)
             {
                 var chunk = world.Terrain.AllocateChunk(cx + dx, cz);
@@ -438,10 +480,12 @@ public static class SpecialTerrainNativeProbe
                 {
                     if (chunk.Cells[index] == original[index]) continue;
                     edited++;
-                    if (Terrain.ExtractContents(chunk.Cells[index]) == distinctive) material++;
+                    int contents = Terrain.ExtractContents(chunk.Cells[index]);
+                    if (contents == distinctive || kind == "CliffFjord" && contents == GraniteBlock.Index) material++;
                 }
                 Check(chunk.ModificationCounter > 0 && edited > 0 &&
-                    (dx == 1 && (kind == "GlacialCirque" || kind == "AlpineGlacier" || kind == "BlueHole") || material > 0),
+                    (dx == 1 && (kind == "GlacialCirque" || kind == "AlpineGlacier" || kind == "BlueHole" ||
+                        kind == "ReefChannels" || kind == "TableMountain" || kind == "FrostSteps" || kind == "CliffFjord") || material > 0),
                     kind + " appears on both sides of a native chunk border");
             }
             Console.WriteLine(mode + " " + kind + ": " + sites[kind].Count + "/" + (max - min) * (max - min) +
@@ -450,13 +494,39 @@ public static class SpecialTerrainNativeProbe
         Check(sites.ContainsKey("PaintedHills") && sites.ContainsKey("Pinnacles"), mode + " keeps earlier dry-land variants");
     }
 
+    private static void FjordGeometry()
+    {
+        var coast = new Habitat(64, 6, 7, 0, GraniteBlock.Index, LimestoneBlock.Index, coastX: -96);
+        int seed;
+        object site = FindSite(coast, "CliffFjord", out seed);
+        int bend = 2 + Field<int>(site, "Seed") % 4;
+        using (var terrain = new Terrain())
+        {
+            for (int v = -20; v <= 8; v++)
+            {
+                int center = (int)Math.Round(bend * Math.Sin((v + 8) * .13));
+                for (int side = -2; side <= 2; side++)
+                {
+                    Point2 point = Offset(site, center + side, v);
+                    FixtureChunk(terrain, point, coast, seed);
+                    for (int y = 62; y <= 64; y++)
+                        Check(terrain.GetCellContents(point.X, y, point.Y) == WaterBlock.Index, "fjord has a continuous flooded channel");
+                }
+            }
+            Point2 bank = Offset(site, (int)Math.Round(bend * Math.Sin(16 * .13)) + 12, 8);
+            FixtureChunk(terrain, bank, coast, seed);
+            Check(terrain.GetCellContents(bank.X, 70, bank.Y) == GraniteBlock.Index, "fjord bank rises above the water");
+        }
+    }
+
     private sealed class Habitat : ITerrainContentsGenerator
     {
         internal readonly int Height;
         private readonly int temperature, humidity, ground, surface, slope;
         private readonly float shore;
+        private readonly int? coastX;
 
-        internal Habitat(int height, int temperature, int humidity, float shore, int ground, int surface, int slope = 0)
+        internal Habitat(int height, int temperature, int humidity, float shore, int ground, int surface, int slope = 0, int? coastX = null)
         {
             Height = height;
             this.temperature = temperature;
@@ -465,12 +535,17 @@ public static class SpecialTerrainNativeProbe
             this.ground = ground;
             this.surface = surface;
             this.slope = slope;
+            this.coastX = coastX;
         }
 
         public int OceanLevel { get { return 64; } }
         public Vector3 FindCoarseSpawnPosition() { return Vector3.Zero; }
-        public float CalculateOceanShoreDistance(float x, float z) { return shore; }
-        public float CalculateHeight(float x, float z) { return Height - slope * ((int)x & 15); }
+        public float CalculateOceanShoreDistance(float x, float z) { return coastX.HasValue ? x - coastX.Value : shore; }
+        public float CalculateHeight(float x, float z)
+        {
+            return coastX.HasValue ? OceanLevel + Math.Max(-14, Math.Min(30, (float)Math.Round((x - coastX.Value) * .45))) :
+                Height - slope * ((int)x & 15);
+        }
         public int CalculateTemperature(float x, float z) { return temperature; }
         public int CalculateHumidity(float x, float z) { return humidity; }
         public float CalculateMountainRangeFactor(float x, float z) { return 0f; }
@@ -484,7 +559,7 @@ public static class SpecialTerrainNativeProbe
             {
                 chunk.SetTemperatureFast(x, z, temperature);
                 chunk.SetHumidityFast(x, z, humidity);
-                int height = Height - slope * x;
+                int height = (int)CalculateHeight(chunk.Origin.X + x, chunk.Origin.Y + z);
                 for (int y = height - 16; y < height; y++) chunk.SetCellValueFast(x, y, z, ground);
                 chunk.SetCellValueFast(x, height, z, surface);
                 for (int y = height + 1; y <= OceanLevel; y++)

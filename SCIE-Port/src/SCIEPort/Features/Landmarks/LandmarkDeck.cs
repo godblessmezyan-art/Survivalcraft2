@@ -18,12 +18,20 @@ namespace SCIEPort.Features.Landmarks
         Sinkhole,
         ScreeFan,
         MeadowHummocks,
-        FrostPolygons
+        FrostPolygons,
+        TidePools,
+        MarshIslets,
+        SnowCornice,
+        SandstoneSlot
     }
 
     internal static class LandmarkDeck
     {
-        private static readonly int[] Weights = { 150, 150, 130, 130, 120, 110, 100, 90, 100, 100, 100, 115, 130, 110 };
+        private static readonly int[] Weights =
+        {
+            150, 150, 130, 130, 120, 110, 100, 90, 100, 100, 100, 115, 130, 110,
+            115, 110, 105, 110
+        };
         private static readonly int Total = SumWeights();
         internal const int RepeatRadius = 2;
 

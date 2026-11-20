@@ -77,6 +77,10 @@ namespace SCIEPort.Features.Geology
                 case DuneLagoons: return Dunes(site, u, v, weight);
                 case BlueHole: return Reef(site, u, v, radius, weight);
                 case AlpineGlacier: return Glacier(site, u, v, weight);
+                case CliffFjord: return Fjord(site, u, v, weight);
+                case TableMountain: return Tabletop(site, u, v, weight);
+                case ReefChannels: return ReefLanes(site, u, v, weight);
+                case FrostSteps: return GlacialSteps(site, u, v, weight);
                 case RiverCave:
                 case IceCave: return Cavern(site, u, v, weight);
                 case SaltFlat: return SaltBasin(site, u, v, radius, weight);

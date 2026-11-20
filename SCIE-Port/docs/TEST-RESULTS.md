@@ -1,5 +1,14 @@
 # 测试结果
 
+## 2026-11-21 · 1.6.0 海岸与高地奇景
+
+- 固定环境检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/terrain-1.6.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/terrain-1.6.0/output`，Release、完整回归和统一包校验通过。
+- 两组固定种子共抽样 18,818 个区块，18 种小型地标都进入过候选，周围两圈区块（含斜向）内无重复同类候选。固定条件各抽 400 个种子，暖湿内陆出现 10 种奇景，浅海台地 3 种，寒冷高地 4 种。对应最高频型分别为 41/341、122/341、99/341，1.5.0 分别为 50/341、181/341、122/341。
+- 固定目标专项 331,680 项检查通过。验证两座礁池围岸和液面顶标志、草岛周围留水、峡湾五格宽至少三格深的连续水路、八种新地貌落地及已保存区块跳过。
+- 种子 `HighVolcano` 的大陆模式四种地标样本中心 X/Z 为潮缘礁池 `680,-120`、湿地草岛 `1000,40`、雪线风脊 `-1288,-136`、红岩窄缝 `2120,2248`。四种跨区块奇景样本为寒崖峡湾 `2568,-104`、断云桌山 `1640,1256`、浅海礁道 `-248,440`、雪脊冰阶 `2056,-72`，Better 样本分别为 `6024,-120`、`4360,136`、`-248,440`、`2056,-72`。测试各模式抽样 4,624 个区域，并确认样本中心与相邻区块均有写入。
+- 书柜、五分类、钓鱼、云天书典、火山及两处遗迹回归通过。两份安装包字节一致，共 230 项、13,125,645 字节。相对本地 1.5.0 统一包仅更新 `modinfo.json` 和 `SCIEPort.dll`。SHA-256 为 `89BE2DA5D03C929F771F96401D9BADBEF9C1B1CA00D80B4B1A525E1580396032`。
+- Android 7723、实际探索频率和真实联机 **待验证**。
+
 ## 2026-11-21 · 1.5.0 奇景候选
 
 - 固定环境与 ABI 检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/wonders-1.5.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/wonders-1.5.0/output`，Release、完整回归和统一包校验通过。

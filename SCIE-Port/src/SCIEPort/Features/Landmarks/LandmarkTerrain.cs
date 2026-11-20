@@ -40,6 +40,10 @@ namespace SCIEPort.Features.Landmarks
                 case LandmarkKind.ScreeFan: return SurfaceLandmarks.ScreeFan(terrain);
                 case LandmarkKind.MeadowHummocks: return SurfaceLandmarks.MeadowHummocks(terrain);
                 case LandmarkKind.FrostPolygons: return SurfaceLandmarks.FrostPolygons(terrain);
+                case LandmarkKind.TidePools: return TerrainDetails.TidePools(terrain);
+                case LandmarkKind.MarshIslets: return TerrainDetails.MarshIslets(terrain);
+                case LandmarkKind.SnowCornice: return TerrainDetails.SnowCornice(terrain);
+                case LandmarkKind.SandstoneSlot: return TerrainDetails.SandstoneSlot(terrain);
                 default: return null;
             }
         }
