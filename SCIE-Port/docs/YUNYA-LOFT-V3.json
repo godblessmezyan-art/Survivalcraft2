@@ -1,0 +1,309 @@
+{
+  "name": "云崖书屋·阁楼版 V3",
+  "minModVersion": "0.90.0",
+  "size": {
+    "x": 20,
+    "y": 16,
+    "z": 15
+  },
+  "cells": 1248,
+  "sha256": "fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6",
+  "sourceFile": "yunya-loft-v3.json",
+  "mainFloorY": 3,
+  "facade": "-Z",
+  "glassSide": "none",
+  "designOrigin": [
+    1,
+    -3,
+    3
+  ],
+  "landmarks": {
+    "tea": [
+      15,
+      3,
+      7
+    ],
+    "main": [
+      8,
+      3,
+      7
+    ],
+    "frontPlatform": [
+      4,
+      3,
+      1
+    ],
+    "rightPlatform": [
+      1,
+      3,
+      8
+    ],
+    "internalDoor": [
+      12,
+      4,
+      7
+    ],
+    "sideEntry": [
+      18,
+      4,
+      7
+    ],
+    "loft": [
+      9,
+      8,
+      8
+    ],
+    "rightDoorAccess": [
+      3,
+      3,
+      8
+    ]
+  },
+  "platformConnected": true,
+  "teaFrontRecess": 1,
+  "rearWallsAligned": true,
+  "circulation": {
+    "method": "two clear cells over cube/stair floor; cardinal steps with at most one-cell rise; wooden doors considered open",
+    "reachable": {
+      "tea": true,
+      "main": true,
+      "frontPlatform": true,
+      "rightPlatform": true,
+      "loft": true,
+      "rightDoorAccess": true
+    }
+  },
+  "materials": {
+    "AncientTimberBlock": 46,
+    "OakWoodBlock": 58,
+    "StoneBrickBlock": 161,
+    "PlanksBlock": 429,
+    "AncientWindowBlock": 30,
+    "ClayBlock": 218,
+    "BookshelfBlock": 37,
+    "WoodenStairsBlock": 10,
+    "HomeCoffeeTableBlock": 2,
+    "AncientTelescopeBlock": 1,
+    "AncientTeaBlock": 4,
+    "HomeSofaBlock": 3,
+    "WoodenDoorBlock": 3,
+    "BookPileBlock": 2,
+    "AncientLanternBlock": 8,
+    "GlassBlock": 12,
+    "WoodenSlabBlock": 50,
+    "AncientRoofBlock": 174
+  },
+  "groups": {
+    "floor": 297,
+    "platform": 102,
+    "loft_stairs": 20,
+    "main_room": 109,
+    "tea_room": 68,
+    "tea_roof": 106,
+    "moon_window": 4,
+    "right_wall": 33,
+    "roof": 368,
+    "glass": 32,
+    "doors": 2,
+    "furniture": 30,
+    "lights": 7,
+    "loft_lights": 4,
+    "loft_window": 6,
+    "brackets": 4,
+    "right_door": 1,
+    "right_bookshelves": 10,
+    "loft_floor": 18,
+    "loft_beams": 10,
+    "loft_rail": 9,
+    "loft_furniture": 8
+  },
+  "coordinateConvention": "Viewer-right U maps to game -X. For a camera outside -Z, native view-right is -X. Blender maps game(x,y,z) to (x,-z,y), determinant +1.",
+  "scope": "Same V2 building envelope; opaque right wall with platform door and custom shelves; rear loft and two-wide interior stairs; no exterior stairs or scenery.",
+  "furniturePolicy": "Actual single-cell custom Bookshelf, BookPile, Sofa and CoffeeTable; tall/multicell/storage furniture remains excluded.",
+  "validation": {
+    "status": "PASS",
+    "validator": "SCIEPort.BlueprintImportService + material capability catalog",
+    "source": "C:\\Users\\85196\\Documents\\ChatGPT\\Surviveft2 2\\SCIE-Port\\blueprints\\yunya-loft-v3.json",
+    "sha256": "fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6",
+    "byteLength": 64004,
+    "name": "云崖书屋·阁楼版 V3",
+    "schemaVersion": 3,
+    "kind": "builderassistant.blueprint",
+    "size": {
+      "y": 16,
+      "z": 15,
+      "x": 20
+    },
+    "blockCount": 1248,
+    "modVersion": "0.90.0.0",
+    "modDllSha256": "eef175d8cb8bb9a34798e3f47dbe0eab22b186a75581b094dfc23f25c1eeaab6",
+    "furnitureExpanded": false,
+    "android7723": "待验证",
+    "liveMultiplayer": "待验证"
+  },
+  "publication": {
+    "id": "8d9ea9e5-4a09-440c-b3fd-54b5b67617e9",
+    "revision": 1,
+    "name": "云崖书屋·阁楼版 V3",
+    "sha256": "fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6",
+    "downloadUrl": "https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/8d9ea9e5-4a09-440c-b3fd-54b5b67617e9/json?revision=1",
+    "pageUrl": "https://wxhappylife.top/digital-study/index.html#blueprints",
+    "status": "published",
+    "publicDownloadVerified": true,
+    "modVersion": "0.90.0.0"
+  },
+  "previews": {
+    "hero": {
+      "blueprintSha256": "fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 1248,
+      "view": "hero",
+      "source": "final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials",
+      "gameToBlender": "(x,-z,y); determinant +1; native Engine screen-left/right preserved",
+      "cameraGame": [
+        -40,
+        28.8,
+        -45
+      ],
+      "partsSha256": "9e47d0c307abdb5d03e9cf064ae60c69299c2c80a260e876269c852ba17a0007",
+      "camera": {
+        "location": [
+          -40.0,
+          45.0,
+          28.799999237060547
+        ],
+        "target": [
+          10.0,
+          -7.5,
+          6.880000114440918
+        ],
+        "orthoScale": 31.0
+      },
+      "landmarkScreenCoordinates": {
+        "tea": [
+          0.3720800280570984,
+          0.39763209223747253,
+          79.81828308105469
+        ],
+        "main": [
+          0.5355950593948364,
+          0.3469296991825104,
+          75.1972885131836
+        ],
+        "frontPlatform": [
+          0.49555057287216187,
+          0.27232468128204346,
+          68.39781951904297
+        ],
+        "rightPlatform": [
+          0.7213570475578308,
+          0.30383265018463135,
+          71.26943969726562
+        ],
+        "internalDoor": [
+          0.44215789437294006,
+          0.41063982248306274,
+          77.54844665527344
+        ],
+        "sideEntry": [
+          0.3020021617412567,
+          0.45409902930259705,
+          81.5093002319336
+        ],
+        "loft": [
+          0.5344826579093933,
+          0.535464882850647,
+          75.10354614257812
+        ],
+        "rightDoorAccess": [
+          0.6746384501457214,
+          0.31831905245780945,
+          72.5897216796875
+        ]
+      },
+      "frontLeftRightAudit": "PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit"
+    },
+    "interior": {
+      "blueprintSha256": "fe1a5b540986858cb47f0306abd779e7a093c6f147dca1e5c9a9a32916b8e8a6",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 737,
+      "view": "interior",
+      "source": "final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials",
+      "gameToBlender": "(x,-z,y); determinant +1; native Engine screen-left/right preserved",
+      "cameraGame": [
+        -36.0,
+        64,
+        -45
+      ],
+      "partsSha256": "9e47d0c307abdb5d03e9cf064ae60c69299c2c80a260e876269c852ba17a0007",
+      "camera": {
+        "location": [
+          -36.0,
+          45.0,
+          64.0
+        ],
+        "target": [
+          10.0,
+          -7.5,
+          6.880000114440918
+        ],
+        "orthoScale": 31.0
+      },
+      "landmarkScreenCoordinates": {
+        "tea": [
+          0.3680591285228729,
+          0.45811548829078674,
+          94.91015625
+        ],
+        "main": [
+          0.5378956198692322,
+          0.35209429264068604,
+          91.34007263183594
+        ],
+        "frontPlatform": [
+          0.5073943734169006,
+          0.18779432773590088,
+          85.80754852294922
+        ],
+        "rightPlatform": [
+          0.7289904952049255,
+          0.2633591592311859,
+          88.35206604003906
+        ],
+        "internalDoor": [
+          0.44084620475769043,
+          0.44076308608055115,
+          92.74681854248047
+        ],
+        "sideEntry": [
+          0.2952721118927002,
+          0.5316383838653564,
+          95.80689239501953
+        ],
+        "loft": [
+          0.534891664981842,
+          0.5249525308609009,
+          89.26565551757812
+        ],
+        "rightDoorAccess": [
+          0.680465817451477,
+          0.29365095496177673,
+          89.3720932006836
+        ]
+      },
+      "frontLeftRightAudit": "PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit"
+    }
+  },
+  "orientedV3Builds": 24,
+  "orientedV2RegressionBuilds": 24,
+  "maxWritesPerFrame": 32,
+  "nativeCameraScreenX": {
+    "tea": -6,
+    "main": 2,
+    "rightPlatform": 9.5
+  },
+  "v2JsonUnchanged": true,
+  "modRuntimeUnchanged": true,
+  "android7723": "待验证",
+  "liveMultiplayer": "待验证"
+}

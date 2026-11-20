@@ -20,3 +20,8 @@ SCIE-Port/src/SCIEPort/Features/PixelFx/StormhammerSpriteClips.g.cs text eol=lf
 SCIE-Port/src/SCIEPort/Features/PixelFx/ArtifactSpriteClips.g.cs text eol=lf
 # Preserve the checked blueprint hash across Windows checkouts.
 blueprints/yunya_bookhouse.json text eol=lf
+# Cloud validation/publication binds the original UTF-8 blueprint bytes.
+SCIE-Port/blueprints/yunya-refined-v1.json text eol=lf
+SCIE-Port/blueprints/yunya-compact-v2.json text eol=lf
+SCIE-Port/blueprints/yunya-loft-v3.json text eol=lf
+SCIE-Port/blueprints/yunya-view-loft-v4.json text eol=lf

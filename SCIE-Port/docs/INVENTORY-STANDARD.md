@@ -10,6 +10,10 @@
 
 0.94.0 的苹果木、苹果树叶、结果的苹果树叶和既有树苗、苹果归入「自然与生物」。新增的三个方块在创造栏展示 DATA 0。普通物品槽沿用该分类的默认样式。[方块列表](APPLE-TREE-0.94.0.md)
 
+2026-11-15 / 0.91.0：猫生成器1021/DATA0归入SCIEPort.Nature（自然与生物）。狐狸/兔子/鸡生成器原ID与分类保持；原生鸡蛋118类型50隐藏创造蛋列表，玩家由鸡产蛋获得，不移动原版蛋分类。本轮无新神器/特殊套装主题。
+
+2026-11-15 / 0.89.0：古建1014–1020共28外观全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或神器主题。DefaultCreativeData=0，运行枚举款式；类别/注册/DATA与包字节由Test-Architecture和Test-PortInventory检查。见[古建专项](ANCIENT-ARCHITECTURE.md)。
+
 2026-11-14 / 0.88.0：新增纯装饰书架973（三款）、高书架974（两款）、2×2大书柜975、书堆976（四款）及隐藏占位977，全部归入`SCIEPort.Structures`「建造与家居」，不新建Tab或槽位主题；高书架上格复用隐藏块963的bit7，977固定`DefaultCreativeData=-1`。详见[书架专项](BOOKSHELF.md)。
 
 2026-11-14 / 0.87.0：按用户要求把11个创造Tab合并为5个：神器、装备与工具、载具、建造与家居、自然与生物。旧键`SCIEPort.Saints/Tools/Plants/Food/Materials/Industry/Building/Home/Creatures`全部退休；物品ID、DATA、创造可见性、模型、主题与配方不变，仅`DefaultCategory`与`GetCategory`归并。见[兼容性](COMPATIBILITY.md)。

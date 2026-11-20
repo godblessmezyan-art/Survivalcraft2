@@ -1,0 +1,352 @@
+{
+  "name": "云崖书屋·紧凑版 V2",
+  "minModVersion": "0.90.0",
+  "size": {
+    "x": 20,
+    "y": 16,
+    "z": 15
+  },
+  "cells": 1175,
+  "sha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+  "sourceFile": "yunya-compact-v2.json",
+  "mainFloorY": 3,
+  "facade": "-Z",
+  "glassSide": "-X",
+  "designOrigin": [
+    1,
+    -3,
+    3
+  ],
+  "landmarks": {
+    "tea": [
+      15,
+      3,
+      7
+    ],
+    "main": [
+      8,
+      3,
+      7
+    ],
+    "frontPlatform": [
+      4,
+      3,
+      1
+    ],
+    "rightPlatform": [
+      1,
+      3,
+      8
+    ],
+    "internalDoor": [
+      12,
+      4,
+      7
+    ],
+    "sideEntry": [
+      18,
+      4,
+      7
+    ]
+  },
+  "platformConnected": true,
+  "teaFrontRecess": 1,
+  "rearWallsAligned": true,
+  "circulation": {
+    "method": "two clear cells over continuous floor; wooden doors considered open; exterior threshold connects platform",
+    "reachable": {
+      "tea": true,
+      "main": true,
+      "frontPlatform": true,
+      "rightPlatform": true
+    }
+  },
+  "materials": {
+    "AncientTimberBlock": 37,
+    "OakWoodBlock": 45,
+    "StoneBrickBlock": 161,
+    "PlanksBlock": 412,
+    "AncientWindowBlock": 42,
+    "ClayBlock": 191,
+    "HomeCoffeeTableBlock": 1,
+    "AncientTelescopeBlock": 1,
+    "AncientTeaBlock": 4,
+    "HomeSofaBlock": 2,
+    "WoodenDoorBlock": 2,
+    "BookPileBlock": 2,
+    "BookshelfBlock": 22,
+    "AncientLanternBlock": 7,
+    "GlassBlock": 22,
+    "WoodenSlabBlock": 50,
+    "AncientRoofBlock": 174
+  },
+  "groups": {
+    "floor": 299,
+    "platform": 102,
+    "main_room": 116,
+    "tea_room": 68,
+    "tea_roof": 106,
+    "moon_window": 4,
+    "roof": 376,
+    "glass": 60,
+    "doors": 2,
+    "furniture": 31,
+    "lights": 7,
+    "brackets": 4
+  },
+  "coordinateConvention": "Viewer-right U maps to game -X. For a camera outside -Z, native view-right is -X. Blender maps game(x,y,z) to (x,-z,y), determinant +1.",
+  "scope": "Building and connected platforms only; no stairs, trees, mountain, cellar or attic; tea-side entry reserved for user stairs.",
+  "furniturePolicy": "Actual single-cell custom Bookshelf, BookPile, Sofa and CoffeeTable; tall/multicell/storage furniture remains excluded.",
+  "validation": {
+    "status": "PASS",
+    "validator": "SCIEPort.BlueprintImportService + material capability catalog",
+    "source": "C:\\Users\\85196\\Documents\\ChatGPT\\Surviveft2 2\\SCIE-Port\\blueprints\\yunya-compact-v2.json",
+    "sha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+    "byteLength": 60183,
+    "name": "云崖书屋·紧凑版 V2",
+    "schemaVersion": 3,
+    "kind": "builderassistant.blueprint",
+    "size": {
+      "y": 16,
+      "z": 15,
+      "x": 20
+    },
+    "blockCount": 1175,
+    "modVersion": "0.90.0.0",
+    "modDllSha256": "eef175d8cb8bb9a34798e3f47dbe0eab22b186a75581b094dfc23f25c1eeaab6",
+    "furnitureExpanded": false,
+    "android7723": "待验证",
+    "liveMultiplayer": "待验证"
+  },
+  "publication": {
+    "id": "a68aa002-ed37-4057-bb15-820768212628",
+    "revision": 1,
+    "name": "云崖书屋·紧凑版 V2",
+    "sha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+    "downloadUrl": "https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/a68aa002-ed37-4057-bb15-820768212628/json?revision=1",
+    "pageUrl": "https://wxhappylife.top/digital-study/index.html#blueprints",
+    "status": "published",
+    "publicDownloadVerified": true,
+    "modVersion": "0.90.0.0"
+  },
+  "package": {
+    "version": "0.90.0",
+    "entries": 214,
+    "oldEntriesPreserved": true,
+    "changedEntries": [
+      "modinfo.json",
+      "SCIEPort.dll"
+    ],
+    "packageSha256": "8fa276dfe30aa55fa54e4165e170b5b44e994a783cdc84aef56ec474e38010c5",
+    "dllSha256": "eef175d8cb8bb9a34798e3f47dbe0eab22b186a75581b094dfc23f25c1eeaab6",
+    "boneModel": "matches committed HEAD after newline normalization; uncommitted working model excluded",
+    "unchangedEntries": 212
+  },
+  "regressionChecks": 379358,
+  "homeStates": 40,
+  "architectureForms": 29,
+  "architectureStates": 232,
+  "maxPartTriangles": 492,
+  "nativeCameraScreenX": {
+    "tea": -6,
+    "main": 2,
+    "rightPlatform": 9.5
+  },
+  "orientedWholeHouseBuilds": 24,
+  "maxWritesPerFrame": 32,
+  "androidBcl": {
+    "members": 486,
+    "missing": 0,
+    "execution": false
+  },
+  "android7723": "待验证",
+  "liveMultiplayer": "待验证",
+  "previews": {
+    "hero": {
+      "blueprintSha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 1175,
+      "view": "hero",
+      "source": "final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials",
+      "gameToBlender": "(x,-z,y); determinant +1; native Engine screen-left/right preserved",
+      "cameraGame": [
+        -40,
+        28.8,
+        -45
+      ],
+      "partsSha256": "9e47d0c307abdb5d03e9cf064ae60c69299c2c80a260e876269c852ba17a0007",
+      "camera": {
+        "location": [
+          -40.0,
+          45.0,
+          28.799999237060547
+        ],
+        "target": [
+          10.0,
+          -7.5,
+          6.880000114440918
+        ],
+        "orthoScale": 31.0
+      },
+      "landmarkScreenCoordinates": {
+        "tea": [
+          0.3720800280570984,
+          0.39763209223747253,
+          79.81828308105469
+        ],
+        "main": [
+          0.5355950593948364,
+          0.3469296991825104,
+          75.1972885131836
+        ],
+        "frontPlatform": [
+          0.49555057287216187,
+          0.27232468128204346,
+          68.39781951904297
+        ],
+        "rightPlatform": [
+          0.7213570475578308,
+          0.30383265018463135,
+          71.26943969726562
+        ],
+        "internalDoor": [
+          0.44215789437294006,
+          0.41063982248306274,
+          77.54844665527344
+        ],
+        "sideEntry": [
+          0.3020021617412567,
+          0.45409902930259705,
+          81.5093002319336
+        ]
+      },
+      "frontLeftRightAudit": "PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit"
+    },
+    "front": {
+      "blueprintSha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 1175,
+      "view": "front",
+      "source": "final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials",
+      "gameToBlender": "(x,-z,y); determinant +1; native Engine screen-left/right preserved",
+      "cameraGame": [
+        10.0,
+        7.2,
+        -75
+      ],
+      "partsSha256": "9e47d0c307abdb5d03e9cf064ae60c69299c2c80a260e876269c852ba17a0007",
+      "camera": {
+        "location": [
+          10.0,
+          75.0,
+          7.199999809265137
+        ],
+        "target": [
+          10.0,
+          -7.5,
+          6.880000114440918
+        ],
+        "orthoScale": 31.0
+      },
+      "landmarkScreenCoordinates": {
+        "tea": [
+          0.33870992064476013,
+          0.359123557806015,
+          82.01567077636719
+        ],
+        "main": [
+          0.5645163655281067,
+          0.3591235876083374,
+          82.01567077636719
+        ],
+        "frontPlatform": [
+          0.6935486197471619,
+          0.3582790791988373,
+          76.01571655273438
+        ],
+        "rightPlatform": [
+          0.7903227806091309,
+          0.3592643737792969,
+          83.01566314697266
+        ],
+        "internalDoor": [
+          0.4354840815067291,
+          0.3954136371612549,
+          82.01179504394531
+        ],
+        "sideEntry": [
+          0.24193571507930756,
+          0.3954136073589325,
+          82.01179504394531
+        ]
+      },
+      "frontLeftRightAudit": "PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit"
+    },
+    "interior": {
+      "blueprintSha256": "a360ce122fea961d4a68142cf1dd5c81783429beddaa00470b40ecdd249c5f25",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 689,
+      "view": "interior",
+      "source": "final JSON; actual C# detail/book meshes and project home DAE/atlas; approximate native block shapes/materials",
+      "gameToBlender": "(x,-z,y); determinant +1; native Engine screen-left/right preserved",
+      "cameraGame": [
+        -36.0,
+        64,
+        -45
+      ],
+      "partsSha256": "9e47d0c307abdb5d03e9cf064ae60c69299c2c80a260e876269c852ba17a0007",
+      "camera": {
+        "location": [
+          -36.0,
+          45.0,
+          64.0
+        ],
+        "target": [
+          10.0,
+          -7.5,
+          6.880000114440918
+        ],
+        "orthoScale": 31.0
+      },
+      "landmarkScreenCoordinates": {
+        "tea": [
+          0.3680591285228729,
+          0.45811548829078674,
+          94.91015625
+        ],
+        "main": [
+          0.5378956198692322,
+          0.35209429264068604,
+          91.34007263183594
+        ],
+        "frontPlatform": [
+          0.5073943734169006,
+          0.18779432773590088,
+          85.80754852294922
+        ],
+        "rightPlatform": [
+          0.7289904952049255,
+          0.2633591592311859,
+          88.35206604003906
+        ],
+        "internalDoor": [
+          0.44084620475769043,
+          0.44076308608055115,
+          92.74681854248047
+        ],
+        "sideEntry": [
+          0.2952721118927002,
+          0.5316383838653564,
+          95.80689239501953
+        ]
+      },
+      "frontLeftRightAudit": "PASS: tea < main < right platform in actual Blender camera screen X; agrees with native Engine audit"
+    }
+  },
+  "ownedPreviewAssetHashes": {
+    "Models/HomeSofa0.dae": "6874a58eb8fec61f6348ffde76d269d4456c12e5f64e266b77149e1279c04efc",
+    "Models/HomeCoffeeTable.dae": "37b990ea76e7f26e38ca03555f1262ae4eee5202f3f01c7b5838ef256c8b8147",
+    "Textures/HomeFurniture.png": "79a20b01a0070fdb5c1f472aca33c65ff144fcbf1fef6557d98ec3c90493e6ec"
+  },
+  "sourceAuthority": "User-approved compact room relationships; original image appearance guide; unseen details inferred."
+}

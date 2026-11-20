@@ -1,0 +1,241 @@
+{
+  "name": "云崖书屋·整屋精修 V1",
+  "minModVersion": "0.89.0",
+  "size": {
+    "x": 38,
+    "y": 34,
+    "z": 36
+  },
+  "cells": 5372,
+  "sha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+  "originUnnormalized": [
+    -6,
+    0,
+    -4
+  ],
+  "mainFloorY": 12,
+  "facade": "-Z",
+  "glassSide": "+X",
+  "groups": {
+    "stone_archive": 1000,
+    "terrace": 234,
+    "west_annex": 478,
+    "main_floor": 453,
+    "archive_stair": 40,
+    "approach": 127,
+    "attic": 105,
+    "cherry": 31,
+    "timber_plaster": 353,
+    "glass_library": 85,
+    "roof": 914,
+    "moon_window": 20,
+    "library_furniture": 82,
+    "tea_veranda": 19,
+    "veranda_roof": 181,
+    "snow_pines": 822,
+    "eave_brackets": 12,
+    "garden_cliff": 416
+  },
+  "materials": {
+    "StoneBrickBlock": 1161,
+    "CobblestoneBlock": 686,
+    "StoneBrickStairsBlock": 36,
+    "GrassBlock": 155,
+    "PlanksBlock": 1215,
+    "AncientLanternBlock": 19,
+    "WhiteFlowerBlock": 16,
+    "WoodenStairsBlock": 36,
+    "SpruceWoodBlock": 108,
+    "WoodenSlabBlock": 278,
+    "PurpleFlowerBlock": 8,
+    "StoneBrickSlabBlock": 4,
+    "OakWoodBlock": 158,
+    "AncientWindowBlock": 93,
+    "AncientTimberBlock": 72,
+    "AncientGardenBlock": 42,
+    "WickerLampBlock": 13,
+    "MimosaWoodBlock": 6,
+    "AncientTeaBlock": 20,
+    "ClayBlock": 334,
+    "AncientTelescopeBlock": 1,
+    "GlassBlock": 36,
+    "SpruceLeavesBlock": 290,
+    "AncientRoofBlock": 509,
+    "MarbleSlabBlock": 76
+  },
+  "circulation": {
+    "method": "two clear whole cells above native cube/stair floor, cardinal steps with at most one-cell rise",
+    "entry": [
+      4,
+      1,
+      -4
+    ],
+    "reachable": {
+      "westAnnex": true,
+      "teaVeranda": true,
+      "library": true,
+      "terrace": true,
+      "lowerArchive": true,
+      "attic": true
+    },
+    "visited": 695,
+    "destinations": {
+      "westAnnex": [
+        6,
+        12,
+        12
+      ],
+      "teaVeranda": [
+        15,
+        12,
+        7
+      ],
+      "library": [
+        20,
+        12,
+        18
+      ],
+      "terrace": [
+        28,
+        12,
+        20
+      ],
+      "lowerArchive": [
+        14,
+        2,
+        16
+      ],
+      "attic": [
+        16,
+        20,
+        19
+      ]
+    }
+  },
+  "sourcePolicy": "original single photo; unseen rear/interiors inferred; game geometry authoritative",
+  "previewPolicy": "actual C# detail meshes; native block shape/material approximation; not a game screenshot",
+  "reference": {
+    "sha256": "6cff8e77c939da91cc6bb31221ce0cad110726194d4bc191c068b07327767f80",
+    "authority": "user-supplied reference image; appearance authority only; hidden rooms and back inferred"
+  },
+  "validation": {
+    "status": "PASS",
+    "validator": "SCIEPort.BlueprintImportService + material capability catalog",
+    "source": "C:\\Users\\85196\\Documents\\ChatGPT\\Surviveft2 2\\SCIE-Port\\blueprints\\yunya-refined-v1.json",
+    "sha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+    "byteLength": 277347,
+    "name": "云崖书屋·整屋精修 V1",
+    "schemaVersion": 3,
+    "kind": "builderassistant.blueprint",
+    "size": {
+      "y": 34,
+      "z": 36,
+      "x": 38
+    },
+    "blockCount": 5372,
+    "modVersion": "0.89.0.0",
+    "modDllSha256": "d7a1cda384312be471e7530ef85204b108c85578a2c19a286ef1367244ff90f0",
+    "furnitureExpanded": false,
+    "android7723": "待验证",
+    "liveMultiplayer": "待验证"
+  },
+  "publication": {
+    "id": "dbd55e9b-baf6-483b-8a3f-5fd6bc355d49",
+    "revision": 1,
+    "name": "云崖书屋·整屋精修 V1",
+    "sha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+    "downloadUrl": "https://wxhappylife.top/digital-study/api/game-blueprints/v1/blueprints/dbd55e9b-baf6-483b-8a3f-5fd6bc355d49/json?revision=1",
+    "pageUrl": "https://wxhappylife.top/digital-study/index.html#blueprints",
+    "status": "published",
+    "publicDownloadVerified": true,
+    "modVersion": "0.89.0.0"
+  },
+  "previews": {
+    "hero": {
+      "blueprintSha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 5372,
+      "view": "hero",
+      "source": "final JSON; C# detail meshes, approximate native block shapes/materials; no render-only geometry",
+      "partsSha256": "ee59812ad8077d2c6677a113f006dd9089b3d7fef288ffb20184c0bcf7f39231",
+      "camera": {
+        "location": [
+          100.0,
+          -85.0,
+          53.0
+        ],
+        "target": [
+          20.0,
+          17.0,
+          16.0
+        ],
+        "orthoScale": 54.0
+      }
+    },
+    "interior": {
+      "blueprintSha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 2928,
+      "view": "interior",
+      "source": "final JSON; C# detail meshes, approximate native block shapes/materials; no render-only geometry",
+      "partsSha256": "ee59812ad8077d2c6677a113f006dd9089b3d7fef288ffb20184c0bcf7f39231",
+      "camera": {
+        "location": [
+          90.0,
+          -80.0,
+          115.0
+        ],
+        "target": [
+          20.0,
+          17.0,
+          16.0
+        ],
+        "orthoScale": 49.0
+      }
+    },
+    "east": {
+      "blueprintSha256": "f3971d6e5ad9bb04bf746902a780f8e13a3a762bdbeeb512a3c4640e955bed79",
+      "blenderVersion": "5.1.1",
+      "renderedCells": 5372,
+      "view": "east",
+      "source": "final JSON; C# detail meshes, approximate native block shapes/materials; no render-only geometry",
+      "partsSha256": "ee59812ad8077d2c6677a113f006dd9089b3d7fef288ffb20184c0bcf7f39231",
+      "camera": {
+        "location": [
+          135.0,
+          17.0,
+          20.0
+        ],
+        "target": [
+          20.0,
+          17.0,
+          16.0
+        ],
+        "orthoScale": 49.0
+      }
+    }
+  },
+  "offlineTransactions": {
+    "orientedBuilds": 24,
+    "roles": [
+      "Local",
+      "Server",
+      "Client"
+    ],
+    "maxWritesPerFrame": 32,
+    "nativeSupports": 24,
+    "cancelAndFailureRollback": true,
+    "undo": true,
+    "nonAirProtection": true,
+    "clearRestoresOriginal": true,
+    "heightBounds": true,
+    "environment": "in-memory terrain gateway; actual 0.89.0 importer, planner, scheduler, journal; not a live room"
+  },
+  "renderBackend": {
+    "selected": "official Blender MCP",
+    "version": "5.1.1",
+    "liveScenePreserved": true,
+    "cliTool": "timed out at 120s; no output or scene mutation detected",
+    "renderExecution": "same verified local Blender executable, separate factory-startup background CLI; no changes to live Blender scene"
+  }
+}

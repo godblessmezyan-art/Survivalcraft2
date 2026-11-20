@@ -8,8 +8,8 @@ namespace SCIEPort.Features.Creatures
     /// <summary>
     /// Creates a persistent chicken only when the explicit creative item is used. Like
     /// the fox and rabbit spawners this is an authoritative-only action: a normal client
-    /// never manufactures an unsynchronized entity. The chicken is manual-spawn only in
-    /// this slice; it is deliberately not registered with the natural world spawner.
+    /// never manufactures an unsynchronized entity. Natural spawning is registered separately
+    /// with the native world spawner after project loading.
     /// </summary>
     public sealed class SubsystemChickenSpawnBlockBehavior : SubsystemBlockBehavior
     {

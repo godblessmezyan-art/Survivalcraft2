@@ -1,0 +1,153 @@
+{
+  "kind": "Existing animation formula sampled in Blender, not gameplay",
+  "flight_frames": [
+    {
+      "phase": 0.0,
+      "wing_angle": 0.2,
+      "normalized_bounds": [
+        0.1953485906124115,
+        0.26478832960128784,
+        0.8543012142181396,
+        0.7307741641998291
+      ],
+      "minimum_margin": 0.14569878578186035,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 0.5235987755982988,
+      "wing_angle": 0.375,
+      "normalized_bounds": [
+        0.20280838012695312,
+        0.26478832960128784,
+        0.8401099443435669,
+        0.7903627753257751
+      ],
+      "minimum_margin": 0.1598900556564331,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 1.0471975511965976,
+      "wing_angle": 0.5031088913245535,
+      "normalized_bounds": [
+        0.21184231340885162,
+        0.26478832960128784,
+        0.8247616291046143,
+        0.8298380374908447
+      ],
+      "minimum_margin": 0.17016196250915527,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 1.5707963267948966,
+      "wing_angle": 0.55,
+      "normalized_bounds": [
+        0.2158731073141098,
+        0.26478832960128784,
+        0.8181389570236206,
+        0.8432598114013672
+      ],
+      "minimum_margin": 0.1567401885986328,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 2.0943951023931953,
+      "wing_angle": 0.5031088913245536,
+      "normalized_bounds": [
+        0.21184231340885162,
+        0.26478832960128784,
+        0.8247616291046143,
+        0.8298380374908447
+      ],
+      "minimum_margin": 0.17016196250915527,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 2.6179938779914944,
+      "wing_angle": 0.375,
+      "normalized_bounds": [
+        0.20280838012695312,
+        0.26478832960128784,
+        0.8401099443435669,
+        0.7903627753257751
+      ],
+      "minimum_margin": 0.1598900556564331,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 3.141592653589793,
+      "wing_angle": 0.20000000000000007,
+      "normalized_bounds": [
+        0.1953485906124115,
+        0.26478832960128784,
+        0.8543012142181396,
+        0.7307741641998291
+      ],
+      "minimum_margin": 0.14569878578186035,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 3.665191429188092,
+      "wing_angle": 0.025000000000000105,
+      "normalized_bounds": [
+        0.19256606698036194,
+        0.26478832960128784,
+        0.8603932857513428,
+        0.6857496500015259
+      ],
+      "minimum_margin": 0.13960671424865723,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 4.1887902047863905,
+      "wing_angle": -0.10310889132455342,
+      "normalized_bounds": [
+        0.19436031579971313,
+        0.26478832960128784,
+        0.859486997127533,
+        0.6857496500015259
+      ],
+      "minimum_margin": 0.14051300287246704,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 4.71238898038469,
+      "wing_angle": -0.14999999999999997,
+      "normalized_bounds": [
+        0.19596295058727264,
+        0.26478832960128784,
+        0.8580204248428345,
+        0.6857496500015259
+      ],
+      "minimum_margin": 0.14197957515716553,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 5.235987755982989,
+      "wing_angle": -0.10310889132455348,
+      "normalized_bounds": [
+        0.19436031579971313,
+        0.26478832960128784,
+        0.859486997127533,
+        0.6857496500015259
+      ],
+      "minimum_margin": 0.14051300287246704,
+      "whole_model_in_frame": true
+    },
+    {
+      "phase": 5.759586531581287,
+      "wing_angle": 0.024999999999999856,
+      "normalized_bounds": [
+        0.19256606698036194,
+        0.26478832960128784,
+        0.8603932857513428,
+        0.6857496500015259
+      ],
+      "minimum_margin": 0.13960671424865723,
+      "whole_model_in_frame": true
+    }
+  ],
+  "landing_angle": 1.12,
+  "landing_view": "blender-ground.png",
+  "rider_gameplay": "\u5f85\u9a8c\u8bc1",
+  "bone_pivots_and_animation_code": "unchanged"
+}

@@ -1,7 +1,7 @@
 ﻿{
     "game_sha256":  "3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD",
     "engine_sha256":  "98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694",
-    "triangles":  7674,
+    "triangles":  5862,
     "locomotion_class":  "SCIEPort.Features.AbyssReaper.ComponentBoneDragonLocomotion",
     "fly_speed":  16,
     "walk_speed":  7,

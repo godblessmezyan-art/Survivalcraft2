@@ -1,0 +1,88 @@
+{
+  "kind": "Blender framing audit, not gameplay",
+  "views": {
+    "flight": {
+      "render": "blender-flight.png",
+      "kind": "whole model",
+      "camera_scale": 7.94960355758667,
+      "normalized_bounds": [
+        0.0689656063914299,
+        0.195188969373703,
+        0.9310345649719238,
+        0.8048108816146851
+      ],
+      "minimum_margin": 0.06896543502807617,
+      "whole_model_in_frame": true
+    },
+    "ground": {
+      "render": "blender-ground.png",
+      "kind": "whole model",
+      "camera_scale": 8.331076622009277,
+      "normalized_bounds": [
+        0.21732982993125916,
+        0.06896541267633438,
+        0.7826701998710632,
+        0.9310344457626343
+      ],
+      "minimum_margin": 0.06896541267633438,
+      "whole_model_in_frame": true
+    },
+    "side": {
+      "render": "blender-side.png",
+      "kind": "whole model",
+      "camera_scale": 8.496027946472168,
+      "normalized_bounds": [
+        0.06896554678678513,
+        0.07138459384441376,
+        0.9310344457626343,
+        0.9286155104637146
+      ],
+      "minimum_margin": 0.06896554678678513,
+      "whole_model_in_frame": true
+    },
+    "front": {
+      "render": "blender-front.png",
+      "kind": "whole model",
+      "camera_scale": 9.178976058959961,
+      "normalized_bounds": [
+        0.06896553933620453,
+        0.3029363453388214,
+        0.9310344457626343,
+        0.697063684463501
+      ],
+      "minimum_margin": 0.06896553933620453,
+      "whole_model_in_frame": true
+    },
+    "back": {
+      "render": "blender-back.png",
+      "kind": "whole model",
+      "camera_scale": 9.178976058959961,
+      "normalized_bounds": [
+        0.06896553933620453,
+        0.2748872935771942,
+        0.9310344457626343,
+        0.7251127362251282
+      ],
+      "minimum_margin": 0.06896553933620453,
+      "whole_model_in_frame": true
+    },
+    "top": {
+      "render": "blender-top.png",
+      "kind": "whole model",
+      "camera_scale": 11.576966285705566,
+      "normalized_bounds": [
+        0.1582476943731308,
+        0.06896550208330154,
+        0.841752290725708,
+        0.9310344457626343
+      ],
+      "minimum_margin": 0.06896550208330154,
+      "whole_model_in_frame": true
+    },
+    "head": {
+      "render": "blender-head.png",
+      "kind": "head detail crop",
+      "camera_scale": 3.0999999046325684
+    }
+  }
+}

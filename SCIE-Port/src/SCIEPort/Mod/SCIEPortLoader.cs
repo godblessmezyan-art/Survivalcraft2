@@ -56,7 +56,6 @@ namespace SCIEPort.Mod
             }
 
             ModsManager.RegisterHook("BlocksInitalized", this);
-            ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
             ModsManager.RegisterHook("OnMinerDig", this);
             ModsManager.RegisterHook("AttackBody", this);
@@ -196,9 +195,7 @@ namespace SCIEPort.Mod
         public override void SubsystemUpdate(float dt)
         {
             StormhammerVisuals.Update();
-            // Natural creatures are queued from the chunk hook and only created here, once the
-            // owning chunk has finished generating. Spawning from inside chunk generation is not
-            // a supported x25.01.17 path and could stall a fresh world on the loading screen.
+            // Register native wildlife after project loading; native updates own all spawning.
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
@@ -384,24 +381,5 @@ namespace SCIEPort.Mod
             PortInventoryCatalog.Initialize();
         }
 
-        /// <inheritdoc />
-        public override void OnTerrainContentsGenerated(TerrainChunk chunk)
-        {
-            try
-            {
-                // Natural fox/rabbit seeding is 待验证 on-device: the authority gate, seed
-                // determinism, per-chunk budget and population caps are enforced by the
-                // offline-tested EcologyRules, but the live entity spawn during generation
-                // has not yet been observed to succeed or sync correctly on Android/7723.
-                if (CreatureWorldSpawn.IsReady)
-                {
-                    CreatureWorldSpawn.TrySpawnNaturalCreatures(chunk);
-                }
-            }
-            catch (System.Exception exception)
-            {
-                Log.Error("[SCIEPort] Natural creature world spawn failed: " + exception);
-            }
-        }
     }
 }
