@@ -11,6 +11,7 @@ using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Landmarks;
 using SCIEPort.Features.Sunflower;
 using SCIEPort.Features.SpecialTrees;
+using SCIEPort.Features.TidePalace;
 
 namespace SCIEPort.Features.Plants
 {
@@ -20,11 +21,13 @@ namespace SCIEPort.Features.Plants
     {
         private readonly ITerrainContentsGenerator original;
         private readonly SubsystemGameInfo gameInfo;
+        private readonly SubsystemTidePalace tidePalace;
 
         internal PlantTerrainGenerator(ITerrainContentsGenerator original, SubsystemGameInfo gameInfo)
         {
             this.original = original;
             this.gameInfo = gameInfo;
+            tidePalace = gameInfo.Project?.FindSubsystem<SubsystemTidePalace>(false);
         }
 
         public int OceanLevel => original.OceanLevel;
@@ -55,6 +58,16 @@ namespace SCIEPort.Features.Plants
             original.GenerateChunkContentsPass4(chunk);
             if (CommonLib.WorkType == WorkType.Client || gameInfo.WorldSettings.TerrainGenerationMode == TerrainGenerationMode.Nihility)
                 return;
+
+            try
+            {
+                if (tidePalace?.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode) == true)
+                    return;
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Tide Palace generation failed: " + error);
+            }
 
             try
             {

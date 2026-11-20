@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-20 · 1.1.0 水幕沉殿
+
+- 从仓库根执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/tide-palace-1.1.0`。环境检查、Release、既有自动回归和包校验退出 0，编译 0 警告、0 错误。
+- 沉殿专项通过 384 项检查。用固定目标实际地形生成器，在大陆、岛屿和 Better 模式各采样 100 个区域，分别有 18、21、18 个候选。每种模式逆序生成三个完整宫殿，共 108 个新区块切片。检查了负坐标、旧存档区块重叠、纯客户端隔离、空气口与水幕侧漏、开闸前后路线及回程竖井。
+- 检查全部 26 种潮轮解、原生机关绑定、235 请求的 13 字节有效负载、普通客户端身份绑定和隔墙拒绝。Local 与 Server 隔离夹具均通过一次装填、取空和拆除后读回状态检查。原有书柜、五类创造栏、钓鱼、绘卷、云天书典和陈列器回归通过。
+- 两份安装包字节一致，共 227 条目、13,094,021 字节，SHA-256 为 `648B03A3C75DED596591D1B31B363FA7302F9901ADD267AD0C3585192DB5A21B`。包内只有一个 SCIEPort.dll，沉殿 CSV、XDB 和像素图集与源文件一致。
+- Android 7723 的触屏、氧气时长和水下观感，以及真实联机和晚加入同步 **待验证**。[生成、路线与首测种子](TIDE-PALACE-1.1.0.md)
+
 ## 2026-11-20 · 1.0.1 植物物品大小
 
 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\plants-1.0.1` 退出 0，Release 编译 0 警告/错误；目标程序集植物几何、尺寸与生命周期测试通过（1,071,251 项）。使用 Test-PlantsGpu.ps1 按原生掉落物 size=0.3 渲染浆果、苹果、椰子、猴面包果和椰子叶，对比图见 artifacts/plants-1.0.1/gpu/plant-pickable-sizes.png。安装包 SHA-256 `7F43208F38E7C8D5046EAEAFCB9CA9196A1414968C10AE01B667388989B0F182`。Android 实机和真实联机待验证。
