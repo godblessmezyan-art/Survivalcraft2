@@ -20,6 +20,19 @@ namespace SCIEPort.Features.Plants
         internal const int BambooBranch = 1;
         internal const int BambooCrown = 2;
 
+        // Native pickables pass size 0.3 to DrawBlock. These meshes already occupy
+        // less than a block, so the larger tree fruits need an item-only correction.
+        internal static float ItemDisplayScale(int id, DrawBlockMode mode)
+        {
+            if (mode == DrawBlockMode.UI) return 1f;
+            if (id == CoconutFruitBlock.Index) return 1.65f;
+            if (id == BaobabFruitBlock.Index) return 1.5f;
+            return 1f;
+        }
+
+        internal static float LeavesDisplayScale(DrawBlockMode mode)
+            => mode == DrawBlockMode.UI ? 1f : 1.2f;
+
         internal static BlockMesh Build(int id, int data)
         {
             var m = new BlockMesh();
@@ -562,7 +575,8 @@ namespace SCIEPort.Features.Plants
             BlockMesh mesh=Mesh(block.BlockIndex,Terrain.ExtractData(value));
             BoundingBox bounds = Boxes(block, value)[0];
             Vector3 center = (bounds.Min + bounds.Max) * .5f;
-            Matrix centered = Matrix.CreateTranslation(-center) * Matrix.CreateScale(size) * matrix;
+            DrawBlockMode mode = environment != null ? environment.DrawBlockMode : DrawBlockMode.World;
+            Matrix centered = Matrix.CreateTranslation(-center) * Matrix.CreateScale(size * PlantGeometry.ItemDisplayScale(block.BlockIndex, mode)) * matrix;
             BlocksManager.DrawMeshBlock(renderer,mesh,Texture,color,1f,ref centered,environment);
         }
     }

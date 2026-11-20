@@ -1,5 +1,9 @@
 # 测试结果
 
+## 2026-11-20 · 1.0.1 植物物品大小
+
+`powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\plants-1.0.1` 退出 0，Release 编译 0 警告/错误；目标程序集植物几何、尺寸与生命周期测试通过（1,071,251 项）。使用 Test-PlantsGpu.ps1 按原生掉落物 size=0.3 渲染浆果、苹果、椰子、猴面包果和椰子叶，对比图见 artifacts/plants-1.0.1/gpu/plant-pickable-sizes.png。安装包 SHA-256 `7F43208F38E7C8D5046EAEAFCB9CA9196A1414968C10AE01B667388989B0F182`。Android 实机和真实联机待验证。
+
 ## 2026-11-20 · 1.0.0 主线合并
 
 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -OutputDir E:\Survivalcraft2\SCIE-Port\artifacts\merge-1.0.0-final`，退出 0，Release 编译 0 警告、0 错误；环境和数据库、蓝图、古建、动物模型导入以及动物食物/鸡蛋/权限检查通过。安装包 SHA-256 `620E9FCF80E9AC73360EE98E4B4F0C8FB811FE74E7EA2DBB4DD3152102C82DEF`。Android 实机、真实世界与联机待验证。

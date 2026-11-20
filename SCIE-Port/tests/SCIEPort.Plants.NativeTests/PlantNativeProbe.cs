@@ -51,6 +51,20 @@ public static class PlantNativeProbe
         Check(appleWidth > 1.65f * MeshWidth(build, 904) && appleWidth > 1.65f * MeshWidth(build, 916),
             "apple is visibly broader than a berry bundle");
         Check(appleWidth * .3f >= .12f && appleWidth * .3f <= .14f, "native drop size corresponds to a full-size apple");
+        var itemScale = g.GetMethod("ItemDisplayScale", BindingFlags.Static | BindingFlags.NonPublic);
+        var leafScale = g.GetMethod("LeavesDisplayScale", BindingFlags.Static | BindingFlags.NonPublic);
+        Func<int, DrawBlockMode, float> scale = (id, mode) => (float)itemScale.Invoke(null, new object[] { id, mode });
+        float coconutWidth = MeshWidth(build, 987) * .3f * scale(987, DrawBlockMode.World);
+        float baobabWidth = MeshWidth(build, 991) * .3f * scale(991, DrawBlockMode.World);
+        Check(coconutWidth >= .22f && coconutWidth <= .26f && coconutWidth > appleWidth * .3f * 1.5f,
+            "dropped coconut has a realistic size relative to an apple");
+        Check(baobabWidth >= .11f && baobabWidth <= .14f, "dropped baobab fruit has a realistic width");
+        Check(scale(987, DrawBlockMode.UI) == 1f && scale(991, DrawBlockMode.UI) == 1f &&
+              scale(940, DrawBlockMode.World) == 1f && scale(904, DrawBlockMode.World) == 1f,
+            "inventory and already proportioned apple and berries retain their scale");
+        Check((float)leafScale.Invoke(null, new object[] { DrawBlockMode.World }) == 1.2f &&
+              (float)leafScale.Invoke(null, new object[] { DrawBlockMode.UI }) == 1f,
+            "dropped tree leaves are more legible without enlarging inventory icons");
         foreach(int id in ids)
         {
             var words=new List<int>();

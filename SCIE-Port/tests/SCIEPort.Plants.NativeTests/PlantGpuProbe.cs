@@ -127,6 +127,8 @@ public static class PlantGpuProbe
             Register("SpecialTrees." + name + part + "Block");
         Register("SpecialTrees.CoconutFruitBlock");
         Register("SpecialTrees.BaobabFruitBlock");
+        Register("Apple.AppleBlock");
+        Register("KellyPlants.WildBerryBlock");
         try
         {
             Begin();int[] ids={929,936,934,911,903,915,905,932,909};
@@ -179,6 +181,15 @@ public static class PlantGpuProbe
             DrawTreeBlock(Terrain.MakeBlockValue(987), new Vector3(-1.3f, .45f, 2.2f));
             DrawTreeBlock(Terrain.MakeBlockValue(991), new Vector3(1.3f, .45f, 2.2f));
             Save("special-tree-materials", new Vector3(2.1f, 4.4f, 11f), new Vector3(0, .4f, .5f), 43);
+            Begin();
+            int[] dropIds = { 904, 940, 987, 991, 986 };
+            for (int i = 0; i < dropIds.Length; i++)
+            {
+                Matrix position = Matrix.CreateTranslation((i - 2) * .48f, .25f, 0);
+                BlocksManager.Blocks[dropIds[i]].DrawBlock(renderer, Terrain.MakeBlockValue(dropIds[i]), Color.White,
+                    .3f, ref position, new DrawBlockEnvironmentData { Light = 15, DrawBlockMode = DrawBlockMode.World });
+            }
+            Save("plant-pickable-sizes", new Vector3(1.1f, 1.3f, 3.5f), new Vector3(0, .22f, 0), 42);
             Begin();
             float[,] grove = { { -2f, -1.2f }, { -.6f, -.7f }, { 1f, -1.8f }, { 2f, .2f }, { -1.45f, 1.0f }, { .2f, 1.6f } };
             int[] matureHeights = { 6, 8, 7, 5, 5, 6 };

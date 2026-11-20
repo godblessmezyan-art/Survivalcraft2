@@ -56,7 +56,9 @@ namespace SCIEPort.Features.Plants
 
         public override void DrawBlock(PrimitivesRenderer3D renderer, int value, Color color, float size,
             ref Matrix matrix, DrawBlockEnvironmentData environment)
-            => BlocksManager.DrawCubeBlock(renderer, value, new Vector3(size), ref matrix, color, color, environment, Atlas);
+            => BlocksManager.DrawCubeBlock(renderer, value,
+                new Vector3(size * PlantGeometry.LeavesDisplayScale(environment != null ? environment.DrawBlockMode : DrawBlockMode.World)),
+                ref matrix, color, color, environment, Atlas);
 
         public override BlockPlacementData GetPlacementValue(SubsystemTerrain terrain, ComponentMiner miner,
             int value, TerrainRaycastResult hit)
