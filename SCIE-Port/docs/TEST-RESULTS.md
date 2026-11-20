@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-21 · 1.5.0 奇景候选
+
+- 固定环境与 ABI 检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/wonders-1.5.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/wonders-1.5.0/output`，Release、完整回归和统一包校验通过。
+- 四种地形分别固定高度、湿度、温度与距海距离，在同一区域换 400 个种子。对 1.4.0 和 1.5.0 的实际构建调用同一测试，各组均有 341 个选址。暖湿内陆与近海沙地各由 8 种增至 9 种，最高频型由 77/341 降至 50/341。浅海台地由 1 种增至 2 种，最高频型由 341/341 降至 181/341。寒冷高地由 2 种增至 3 种，最高频型由 222/341 降至 122/341。同一种子从区域不同区块进入时，最终坐标与类型相同。这些是固定地形夹具数据，实际频率随地图变化。
+- 地形专项 307,733 项检查通过。验证石桥净空、潟湖原生液面/封闭围岸及阻挡整池回退、蓝洞水深和环礁。原生大陆、Better 模式各抽样 900 个区域，并对四种新奇景检查相邻两块区块的地貌写入与跳过存档区块。种子 `HighVolcano` 的大陆四处样本 X/Z 为三桥天坑 `1048,1432`、白沙蓝潟 `3320,-120`、环礁蓝洞 `-248,440`、冰川长脊 `4664,-88`，Better 样本分别为 `2568,504`、`3320,-120`、`-248,440`、`3704,1480`。
+- 固定目标水幕沉殿 384 项、火山 16,626 项和日阶神殿 9,124 项回归通过。Android 7723 实机、实际探索和真实联机 **待验证**。
+- 书柜、五分类、钓鱼和云天书典回归通过。两份安装包字节一致，共 230 项、13,122,905 字节。相对本地 1.4.0 统一包仅更新 `modinfo.json` 和 `SCIEPort.dll`。SHA-256 为 `A8C23A185E6FE0C5740360B090662A211D866303F9EF5224B7F495D9C2E4C3C8`。
+
 ## 2026-11-20 · 1.4.0 地表与奇景
 
 - 固定环境检查通过：`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`。从 Git 索引快照执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/terrain-1.4.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/terrain-1.4.0/output`，Release、完整回归和统一包校验通过。快照引用本机授权上游目录。

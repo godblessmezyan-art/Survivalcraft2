@@ -45,7 +45,7 @@ namespace SCIEPort.Features.Geology
         }
     }
 
-    internal static class GeologyProfiles
+    internal static partial class GeologyProfiles
     {
         internal const int VolcanoApron = 8;
         private static readonly int[] TerraceHalfWidths = { 0, 2, 4, 5, 5, 4, 3, 0 };
@@ -73,6 +73,10 @@ namespace SCIEPort.Features.Geology
                 case GraniteDomes: return Domes(site, u, v, weight);
                 case ErodedBadlands: return Badlands(site, u, v, weight);
                 case GlacialCirque: return Cirque(site, u, v, weight);
+                case KarstBridges: return BridgeGorge(site, u, v, weight);
+                case DuneLagoons: return Dunes(site, u, v, weight);
+                case BlueHole: return Reef(site, u, v, radius, weight);
+                case AlpineGlacier: return Glacier(site, u, v, weight);
                 case RiverCave:
                 case IceCave: return Cavern(site, u, v, weight);
                 case SaltFlat: return SaltBasin(site, u, v, radius, weight);

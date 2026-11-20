@@ -37,6 +37,15 @@ public static class SpecialTerrainNativeProbe
         Local("MeadowHummocks", new Habitat(80, 10, 10, 45f, GraniteBlock.Index, GrassBlock.Index), GraniteBlock.Index);
         Local("FrostPolygons", new Habitat(105, 0, 6, 40f, GraniteBlock.Index, GraniteBlock.Index), SnowBlock.Index);
         Fallback();
+        SharedHabitat("warm inland", new Habitat(88, 12, 8, 44f, LimestoneBlock.Index, GrassBlock.Index),
+            new[] { "KarstBridges", "PaintedHills", "Pinnacles", "RiverCave", "ColumnarBasalt", "GraniteDomes", "DryCanyon", "ErodedBadlands" });
+        SharedHabitat("warm coastal dunes", new Habitat(73, 12, 8, 39f, SandstoneBlock.Index, SandBlock.Index),
+            new[] { "DuneLagoons", "Terraces", "GraniteDomes", "RiverCave" });
+        SharedHabitat("shallow sea", new Habitat(58, 10, 8, -17f, LimestoneBlock.Index, SandBlock.Index),
+            new[] { "BlueHole", "BasaltCoast" });
+        SharedHabitat("cold upland", new Habitat(106, 0, 7, 44f, GraniteBlock.Index, GraniteBlock.Index),
+            new[] { "AlpineGlacier", "IceCave", "GlacialCirque" });
+        WonderGeometry();
         NativeLandmarks(fixture, 167537);
         Regional(fixture, TerrainGenerationMode.Continent, 167537);
         Regional(fixture, TerrainGenerationMode.Better, 167537);
@@ -205,6 +214,131 @@ public static class SpecialTerrainNativeProbe
         return (T)value.GetType().GetField(name, Instance).GetValue(value);
     }
 
+    private static void SharedHabitat(string name, Habitat habitat, string[] expected)
+    {
+        var counts = new Dictionary<string, int>();
+        int total = 0;
+        for (int seed = 1; seed <= 400; seed++)
+        {
+            object first = chooseGeology.Invoke(null, new object[] { habitat, seed, new Point2(-192, 0) });
+            object other = chooseGeology.Invoke(null, new object[] { habitat, seed, new Point2(-16, 176) });
+            Check((first == null) == (other == null), name + " shares selection availability across the region");
+            if (first == null) continue;
+            string kind = Field<object>(first, "Kind").ToString();
+            Check(kind == Field<object>(other, "Kind").ToString() && Field<int>(first, "X") == Field<int>(other, "X") &&
+                Field<int>(first, "Z") == Field<int>(other, "Z") && Field<int>(first, "Seed") == Field<int>(other, "Seed"),
+                name + " selection is deterministic across the region");
+            int frequency;
+            counts.TryGetValue(kind, out frequency);
+            counts[kind] = frequency + 1;
+            total++;
+        }
+        Check(expected.All(counts.ContainsKey), name + " offers all expected alternatives: " + string.Join(", ", counts.Keys));
+        Check(counts.Values.Max() * expected.Length <= 1.9 * total, name + " no type dominates the eligible alternatives");
+        Console.WriteLine("Shared " + name + ": " + counts.Count + " types in " + total + " sites, largest share " +
+            counts.Values.Max() + "/" + total + ".");
+    }
+
+    private static object FindSite(Habitat habitat, string kind, out int seed)
+    {
+        for (seed = 1; seed <= 400; seed++)
+        {
+            object site = chooseGeology.Invoke(null, new object[] { habitat, seed, new Point2(-192, 0) });
+            if (site != null && Field<object>(site, "Kind").ToString() == kind) return site;
+        }
+        throw new InvalidOperationException("No test site for " + kind);
+    }
+
+    private static Point2 Offset(object site, int side, int forward)
+    {
+        Point2 facing = Field<Point2>(site, "Facing");
+        return new Point2(Field<int>(site, "X") + forward * facing.X - side * facing.Y,
+            Field<int>(site, "Z") + forward * facing.Y + side * facing.X);
+    }
+
+    private static TerrainChunk FixtureChunk(Terrain terrain, Point2 point, Habitat habitat, int seed)
+    {
+        TerrainChunk chunk = terrain.GetChunkAtCell(point.X, point.Y);
+        if (chunk != null) return chunk;
+        chunk = terrain.AllocateChunk(point.X >> 4, point.Y >> 4);
+        habitat.GenerateChunkContentsPass4(chunk);
+        Generate(generateGeology, chunk, habitat, seed, TerrainGenerationMode.Continent);
+        return chunk;
+    }
+
+    private static void WonderGeometry()
+    {
+        int seed;
+        var sand = new Habitat(73, 12, 8, 39f, SandstoneBlock.Index, SandBlock.Index);
+        object lagoons = FindSite(sand, "DuneLagoons", out seed);
+        int level = Field<int>(lagoons, "Base");
+        Point2 pond = Offset(lagoons, -16, 0);
+        using (var terrain = new Terrain())
+        {
+            TerrainChunk chunk = FixtureChunk(terrain, pond, sand, seed);
+            int wet = 0;
+            for (int z = 2; z <= 14; z++)
+            for (int x = 2; x <= 14; x++)
+            {
+                int value = chunk.GetCellValueFast(x, level, z);
+                if (Terrain.ExtractContents(value) != 1013) continue;
+                wet++;
+                Check(FluidBlock.GetIsTop(Terrain.ExtractData(value)), "lagoon surface uses native top flags");
+                Check(x > 2 && x < 14 && z > 2 && z < 14, "lagoon stays inside its solid rim");
+                foreach (Point2 dir in new[] { new Point2(1, 0), new Point2(-1, 0), new Point2(0, 1), new Point2(0, -1) })
+                {
+                    int neighbor = chunk.GetCellContentsFast(x + dir.X, level, z + dir.Y);
+                    Check(neighbor == 1013 || BlocksManager.Blocks[neighbor].IsFluidBlocker, "lagoon rim holds water");
+                }
+            }
+            Check(wet >= 30, "lagoon pool generated through the production path");
+        }
+        using (var terrain = new Terrain())
+        {
+            TerrainChunk chunk = terrain.AllocateChunk(pond.X >> 4, pond.Y >> 4);
+            sand.GenerateChunkContentsPass4(chunk);
+            chunk.SetCellValueFast(2, level, 8, ChestBlock.Index);
+            Generate(generateGeology, chunk, sand, seed, TerrainGenerationMode.Continent);
+            Check(chunk.GetCellContentsFast(2, level, 8) == ChestBlock.Index &&
+                !chunk.Cells.Any(c => Terrain.ExtractContents(c) == 1013), "foreign rim blocks cancel the complete lagoon");
+        }
+
+        var sea = new Habitat(58, 10, 8, -17f, LimestoneBlock.Index, SandBlock.Index);
+        object hole = FindSite(sea, "BlueHole", out seed);
+        using (var terrain = new Terrain())
+        {
+            Point2 center = Offset(hole, 0, 0);
+            Point2 rim = Offset(hole, 0, 18);
+            FixtureChunk(terrain, center, sea, seed);
+            FixtureChunk(terrain, rim, sea, seed);
+            Check(terrain.GetCellContents(center.X, 42, center.Y) == WaterBlock.Index &&
+                terrain.GetCellContents(center.X, 37, center.Y) == 1010, "blue hole is filled from the sea to its deep limestone floor");
+            Check(terrain.GetCellContents(rim.X, 60, rim.Y) == 1008 &&
+                terrain.GetCellContents(rim.X, 64, rim.Y) == WaterBlock.Index, "blue hole has a submerged pale reef rim");
+        }
+
+        var rock = new Habitat(88, 12, 8, 44f, LimestoneBlock.Index, GrassBlock.Index);
+        object gorge = FindSite(rock, "KarstBridges", out seed);
+        using (var terrain = new Terrain())
+        {
+            int bend = 2 + Field<int>(gorge, "Seed") % 5;
+            foreach (int along in new[] { -18, 0, 18 })
+            {
+                int side = (int)Math.Round(bend * Math.Sin(along * .12));
+                int floor = rock.Height - 12 + Math.Max(0, Math.Abs(along) - 15) * 2 / 3;
+                for (int dx = -2; dx <= 2; dx++)
+                {
+                    Point2 cell = Offset(gorge, side + dx, along);
+                    FixtureChunk(terrain, cell, rock, seed);
+                    Check(terrain.GetCellContents(cell.X, floor, cell.Y) == 1010, "gorge bridge has a solid walking floor");
+                    for (int y = floor + 1; y <= floor + 5; y++)
+                        Check(terrain.GetCellContents(cell.X, y, cell.Y) == 0, "gorge bridge clear walking space");
+                    Check(terrain.GetCellContents(cell.X, rock.Height + 3, cell.Y) == 1010, "gorge bridge spans the opening");
+                }
+            }
+        }
+    }
+
     private static void NativeLandmarks(Func<TerrainGenerationMode, int, SubsystemTerrain> fixture, int seed)
     {
         var mode = TerrainGenerationMode.Continent;
@@ -277,13 +411,16 @@ public static class SpecialTerrainNativeProbe
             if (!sites.TryGetValue(kind, out positions)) sites[kind] = positions = new List<Point2>();
             positions.Add(new Point2(Field<int>(site, "X"), Field<int>(site, "Z")));
         }
-        foreach (string kind in new[] { "ColumnarBasalt", "DryCanyon", "GraniteDomes", "ErodedBadlands", "GlacialCirque" })
+        foreach (string kind in new[] { "ColumnarBasalt", "DryCanyon", "GraniteDomes", "ErodedBadlands", "GlacialCirque",
+            "KarstBridges", "DuneLagoons", "BlueHole", "AlpineGlacier" })
         {
             Check(sites.ContainsKey(kind), mode + " native terrain selects " + kind);
             var center = sites[kind].OrderBy(p => p.X * p.X + p.Y * p.Y).First();
             int cx = center.X >> 4, cz = center.Y >> 4;
             int distinctive = kind == "ColumnarBasalt" ? 1006 : kind == "GraniteDomes" ? GraniteBlock.Index :
-                kind == "GlacialCirque" ? 1011 : 1009;
+                kind == "GlacialCirque" || kind == "AlpineGlacier" ? 1011 :
+                kind == "KarstBridges" ? 1010 : kind == "DuneLagoons" ? SandBlock.Index :
+                kind == "BlueHole" ? 1010 : 1009;
             for (int dx = 0; dx < 2; dx++)
             {
                 var chunk = world.Terrain.AllocateChunk(cx + dx, cz);
@@ -304,7 +441,7 @@ public static class SpecialTerrainNativeProbe
                     if (Terrain.ExtractContents(chunk.Cells[index]) == distinctive) material++;
                 }
                 Check(chunk.ModificationCounter > 0 && edited > 0 &&
-                    (kind == "GlacialCirque" && dx == 1 || material > 0),
+                    (dx == 1 && (kind == "GlacialCirque" || kind == "AlpineGlacier" || kind == "BlueHole") || material > 0),
                     kind + " appears on both sides of a native chunk border");
             }
             Console.WriteLine(mode + " " + kind + ": " + sites[kind].Count + "/" + (max - min) * (max - min) +

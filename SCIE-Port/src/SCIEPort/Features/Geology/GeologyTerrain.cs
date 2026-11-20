@@ -20,11 +20,14 @@ namespace SCIEPort.Features.Geology
             bool hasBasin = site.Kind == GeologyKind.MagmaCrater && (site.X & ~15) == chunk.Origin.X &&
                 (site.Z & ~15) == chunk.Origin.Y;
             if (hasBasin && !PlanMagmaBasin(chunk, site, writes)) writes.Clear();
+            if (site.Kind == GeologyKind.DuneLagoons && !PlanLagoons(chunk, site, writes)) writes.Clear();
             for (int z = 0; z < 16; z++)
             for (int x = 0; x < 16; x++)
             {
                 if (hasBasin && Math.Abs(x - (site.X & 15)) <= MagmaBasinRadius &&
                     Math.Abs(z - (site.Z & 15)) <= MagmaBasinRadius) continue;
+                if (site.Kind == GeologyKind.DuneLagoons && GeologyProfiles.IsLagoonPatch(site, chunk.Origin.X + x, chunk.Origin.Y + z))
+                    continue;
                 GeologyColumn profile = GeologyProfiles.At(site, chunk.Origin.X + x, chunk.Origin.Y + z);
                 if (profile.Weight > .02f) PlanColumn(chunk, x, z, profile, site.Kind, writes);
             }
@@ -50,12 +53,29 @@ namespace SCIEPort.Features.Geology
             return true;
         }
 
+        private static bool PlanLagoons(TerrainChunk chunk, GeologySite site, List<CellEdit> writes)
+        {
+            // Each lagoon and its complete rim fit inside a single chunk.
+            if (!GeologyProfiles.IsLagoonPatch(site, chunk.Origin.X + 8, chunk.Origin.Y + 8)) return true;
+            int radius = GeologyProfiles.LagoonPatchRadius;
+            for (int z = 8 - radius; z <= 8 + radius; z++)
+            for (int x = 8 - radius; x <= 8 + radius; x++)
+            {
+                GeologyColumn profile = GeologyProfiles.At(site, chunk.Origin.X + x, chunk.Origin.Y + z);
+                if (profile.Weight < 1 || !PlanColumn(chunk, x, z, profile, site.Kind, writes)) return false;
+            }
+            return true;
+        }
+
         private static bool PlanColumn(TerrainChunk chunk, int x, int z, GeologyColumn shape, GeologyKind kind, List<CellEdit> writes)
         {
             int top = chunk.CalculateTopmostCellHeight(x, z);
             int ground = top;
             bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt ||
-                kind == GeologyKind.GraniteDomes || kind == GeologyKind.ErodedBadlands || kind == GeologyKind.GlacialCirque;
+                kind == GeologyKind.GraniteDomes || kind == GeologyKind.ErodedBadlands || kind == GeologyKind.GlacialCirque ||
+                kind == GeologyKind.KarstBridges || kind == GeologyKind.DuneLagoons || kind == GeologyKind.AlpineGlacier;
+            if (kind == GeologyKind.BlueHole && Terrain.ExtractContents(chunk.GetCellValueFast(x, top, z)) != WaterBlock.Index)
+                return false;
             while (ground > 4)
             {
                 int id = Terrain.ExtractContents(chunk.GetCellValueFast(x, ground, z));

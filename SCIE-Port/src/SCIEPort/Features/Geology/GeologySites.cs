@@ -3,13 +3,15 @@ using System.Collections.Generic;
 using Engine;
 using Game;
 using SCIEPort.Features.KellyPlants;
+using SCIEPort.Features.TidePalace;
 
 namespace SCIEPort.Features.Geology
 {
     internal enum GeologyKind
     {
         Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat,
-        ColumnarBasalt, DryCanyon, GraniteDomes, ErodedBadlands, GlacialCirque
+        ColumnarBasalt, DryCanyon, GraniteDomes, ErodedBadlands, GlacialCirque,
+        KarstBridges, DuneLagoons, BlueHole, AlpineGlacier
     }
 
     internal sealed class GeologySite
@@ -53,6 +55,7 @@ namespace SCIEPort.Features.Geology
             var random = new Game.Random(seed);
             if (!random.Bool(.83f)) return null;
             int sea = generator.OceanLevel;
+            GeologySite fallback = null;
             // Chunk-aligned centers leave room for bounded single-chunk lava/lake basins. The
             // buffer at the region edge keeps every proposal within its seed's ownership region.
             for (int attempt = 0; attempt < 4; attempt++)
@@ -65,56 +68,85 @@ namespace SCIEPort.Features.Geology
                 int heat = generator.CalculateTemperature(x, z) + SubsystemWeather.GetTemperatureAdjustmentAtHeight(height);
                 int humidity = generator.CalculateHumidity(x, z);
 
-                if (shore >= -18f && shore <= 8f && Math.Abs(height - sea) <= 6 && heat >= 2)
-                    return new GeologySite(GeologyKind.BasaltCoast, x, z, sea, 22, variantSeed, sea, FindLandward(generator, x, z));
-                if (shore < 26f || height < sea - 3 || height > 191) continue;
-                Point2 facing = Directions[random.Int(0, 3)];
+                bool basaltCoast = shore >= -18f && shore <= 8f && Math.Abs(height - sea) <= 6 && heat >= 2;
+                bool blueHole = shore <= -12f && shore >= -96f && heat >= 5 && height >= sea - 19 && height <= sea - 2 &&
+                    IsShallowShelf(generator, x, z, sea);
+                if (basaltCoast || blueHole)
+                {
+                    bool reef = blueHole && (!basaltCoast || Grain(x, z, variantSeed, 2) == 0);
+                    const int reefRadius = 25;
+                    if (reef && !OverlapsPalace(generator, worldSeed, x, z, reefRadius))
+                    {
+                        var hole = new GeologySite(GeologyKind.BlueHole, x, z, sea, reefRadius, variantSeed, sea, FindLandward(generator, x, z));
+                        if (basaltCoast) return hole;
+                        if (fallback == null) fallback = hole;
+                    }
+                    if (basaltCoast)
+                        return new GeologySite(GeologyKind.BasaltCoast, x, z, sea, 22, variantSeed, sea, FindLandward(generator, x, z));
+                }
+                if (shore < 14f || height < sea - 3 || height > 191) continue;
+                bool inland = shore >= 26f;
+                int bearing = inland ? random.Int(0, 3) : Grain(x, z, variantSeed, Directions.Length);
+                Point2 facing = Directions[bearing];
                 if (!FindRelief(generator, x, z, height, out int low, out int relief)) continue;
 
-                var eligible = new List<GeologyKind>(7);
+                var eligible = new List<GeologyKind>(12);
                 bool gentle = relief <= 17;
-                if (heat <= 2 && height >= sea + 14 && relief <= 29) eligible.Add(GeologyKind.IceCave);
-                if (heat >= 3)
+                bool volcano = inland && heat >= 3 && shore >= 46 && relief <= 24 && height >= sea + 2;
+                if (volcano) eligible.Add(ChooseVolcano(random));
+                if (inland && heat <= 2 && height >= sea + 14) eligible.Add(GeologyKind.IceCave);
+                if (inland && heat >= 3)
                 {
-                    if (shore >= 46 && relief <= 24 && height >= sea + 2)
-                        eligible.Add(ChooseVolcano(random));
                     if (humidity >= 6 && gentle && height <= sea + 24) eligible.Add(GeologyKind.Terraces);
-                    if (humidity <= 10 && relief <= 29) eligible.Add(GeologyKind.PaintedHills);
+                    if (humidity <= 10) eligible.Add(GeologyKind.PaintedHills);
                     if (humidity <= 11 && gentle) eligible.Add(GeologyKind.Pinnacles);
                     if (humidity >= 5 && relief <= 26) eligible.Add(GeologyKind.RiverCave);
                     if (humidity <= 6 && heat >= 5 && relief <= 11 && height <= sea + 47) eligible.Add(GeologyKind.SaltFlat);
                 }
+                bool establishedHabitat = eligible.Count > 0;
+                // Keep the original weighted family roll for the higher, separately validated volcano sites.
+                // Other shapes share the same pool whenever the same center satisfies their habitat.
+                if (volcano)
+                {
+                    if (random.Int(0, eligible.Count - 1) == 0)
+                    {
+                        GeologySite found = FindVolcano(generator, eligible[0], rx, rz, x, z, variantSeed);
+                        if (found != null) return found;
+                    }
+                    eligible.RemoveAt(0);
+                }
+                if (inland && low >= sea + 2 && height >= sea + 6)
+                {
+                    if (heat <= 2 && low >= sea + 6 && height >= sea + 18)
+                    {
+                        eligible.Add(GeologyKind.GlacialCirque);
+                        if (heat <= 0 && height >= sea + 22 && relief <= 21) eligible.Add(GeologyKind.AlpineGlacier);
+                    }
+                    if (heat >= 3 && gentle)
+                    {
+                        eligible.Add(GeologyKind.ColumnarBasalt);
+                        if (humidity >= 6) eligible.Add(GeologyKind.GraniteDomes);
+                    }
+                    if (heat >= 4 && humidity <= 9 && relief <= 21)
+                    {
+                        eligible.Add(GeologyKind.DryCanyon);
+                        if (shore >= 38) eligible.Add(GeologyKind.ErodedBadlands);
+                    }
+                    if (heat >= 4 && humidity >= 7 && height >= sea + 16 && low >= sea + 8 && relief <= 21)
+                        eligible.Add(GeologyKind.KarstBridges);
+                }
+                if (shore <= 68 && heat >= 5 && humidity >= 6 && low >= sea + 1 && relief <= 10 && height <= sea + 15)
+                    eligible.Add(GeologyKind.DuneLagoons);
                 if (eligible.Count == 0) continue;
-                GeologyKind kind = eligible[random.Int(0, eligible.Count - 1)];
-                if (IsVolcano(kind)) return FindVolcano(generator, kind, rx, rz, x, z, variantSeed);
+
+                GeologyKind kind = eligible[Grain(rx, rz, variantSeed ^ 0x6b912e, eligible.Count)];
                 int baseline = kind == GeologyKind.RiverCave || kind == GeologyKind.Terraces ? (height + low) / 2 : height;
                 baseline = Math.Max(sea + 1, baseline);
-                int radius = Radius(kind);
-                if (kind == GeologyKind.PaintedHills || kind == GeologyKind.Pinnacles)
-                {
-                    // Reuse the original site reservation. Volcano searches and pyramid
-                    // exclusion still see the same positions and extents for this seed.
-                    int roll = Grain(x, z, variantSeed ^ 0x15a2cb, 100);
-                    bool basalt = low >= sea + 2 && height >= sea + 6 && relief <= 17;
-                    bool canyon = low >= sea + 2 && height >= sea + 6 && heat >= 4 && humidity <= 9 && relief <= 21;
-                    if (roll < 65)
-                    {
-                        if (basalt && (!canyon || (roll & 1) == 0)) kind = GeologyKind.ColumnarBasalt;
-                        else if (canyon) kind = GeologyKind.DryCanyon;
-                    }
-                }
-                int surfaceRoll = Grain(x, z, variantSeed ^ 0x6b912e, 100);
-                if (kind == GeologyKind.IceCave && low >= sea + 6 && height >= sea + 18 && surfaceRoll < 38)
-                    kind = GeologyKind.GlacialCirque;
-                else if ((kind == GeologyKind.DryCanyon || kind == GeologyKind.PaintedHills) &&
-                    low >= sea + 2 && height >= sea + 6 && shore >= 38 && heat >= 4 && humidity <= 9 && surfaceRoll < 38)
-                    kind = GeologyKind.ErodedBadlands;
-                else if (humidity >= 6 && low >= sea + 2 && height >= sea + 6 &&
-                    (kind == GeologyKind.ColumnarBasalt && surfaceRoll < 48 || kind == GeologyKind.Terraces && surfaceRoll < 20))
-                    kind = GeologyKind.GraniteDomes;
-                return new GeologySite(kind, x, z, baseline, radius, variantSeed, sea, facing);
+                var site = new GeologySite(kind, x, z, baseline, Radius(kind), variantSeed, sea, facing);
+                if (establishedHabitat) return site;
+                if (fallback == null) fallback = site;
             }
-            return null;
+            return fallback;
         }
 
         private static GeologyKind ChooseVolcano(Game.Random random)
@@ -181,6 +213,30 @@ namespace SCIEPort.Features.Geology
         private static int SampleHeight(ITerrainContentsGenerator generator, int x, int z) =>
             (int)Math.Round(generator.CalculateHeight(x, z));
 
+        private static bool IsShallowShelf(ITerrainContentsGenerator generator, int x, int z, int sea)
+        {
+            foreach (Point2 direction in Directions)
+            {
+                int height = SampleHeight(generator, x + 15 * direction.X, z + 15 * direction.Y);
+                if (height > sea - 2 || height < sea - 22) return false;
+            }
+            return true;
+        }
+
+        private static bool OverlapsPalace(ITerrainContentsGenerator generator, int seed, int x, int z, int radius)
+        {
+            Point2 first = PalaceSite.Region(new Point2(x - radius, z - radius));
+            Point2 last = PalaceSite.Region(new Point2(x + radius, z + radius));
+            for (int rz = first.Y; rz <= last.Y; rz++)
+            for (int rx = first.X; rx <= last.X; rx++)
+            {
+                PalaceSite palace = PalaceSite.Choose(generator, seed, new Point2(rx, rz));
+                if (palace != null && palace.Origin.X <= x + radius && palace.Origin.X + PalaceSite.Width > x - radius &&
+                    palace.Origin.Y <= z + radius && palace.Origin.Y + PalaceSite.Length > z - radius) return true;
+            }
+            return false;
+        }
+
         private static bool FindRelief(ITerrainContentsGenerator generator, int x, int z, int center, out int low, out int relief)
         {
             low = center;
@@ -220,6 +276,8 @@ namespace SCIEPort.Features.Geology
                 case GeologyKind.RiverCave: return 30;
                 case GeologyKind.IceCave: return 24;
                 case GeologyKind.Pinnacles: return 27;
+                case GeologyKind.DuneLagoons: return 38;
+                case GeologyKind.KarstBridges: return 39;
                 default: return 33;
             }
         }
