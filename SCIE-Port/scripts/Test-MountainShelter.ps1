@@ -4,7 +4,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$csv = Import-Csv -LiteralPath (Join-Path $root 'src/SCIEPort/Assets/Blocks/MountainShelter.csv') -Delimiter ';' -Encoding UTF8
+$csvPath = Join-Path $root 'src/SCIEPort/Assets/Blocks/MountainShelter.csv'
+$csv = Import-Csv -LiteralPath $csvPath -Delimiter ';' -Encoding UTF8
 if ($csv.'Class Name' -ne 'MountainShelterBlock' -or $csv.DefaultCategory -ne 'SCIEPort.Structures' -or
     $csv.Behaviors -ne 'SCIEPortMountainShelter' -or $csv.DefaultCreativeData -ne '0' -or
     $csv.DefaultEmittedLightAmount -ne '12' -or $csv.SleepSuitability -ne '0') {
@@ -25,5 +26,5 @@ foreach ($file in @('System.dll','System.Core.dll',$assembly)) { [void]$options.
 $provider = New-Object Microsoft.CSharp.CSharpCodeProvider
 $compiled = $provider.CompileAssemblyFromFile($options, [string[]]@((Join-Path $root 'tests/SCIEPort.MountainShelter.NativeTests/MountainShelterProbe.cs')))
 if ($compiled.Errors.HasErrors) { throw (($compiled.Errors | ForEach-Object ToString) -join "`n") }
-try { $compiled.CompiledAssembly.GetType('MountainShelterProbe').GetMethod('Run').Invoke($null, @([int]$csv.DefaultEmittedLightAmount)) }
+try { $compiled.CompiledAssembly.GetType('MountainShelterProbe').GetMethod('Run').Invoke($null, @([IO.File]::ReadAllText($csvPath))) }
 catch { Write-Host $_.Exception.ToString(); throw }

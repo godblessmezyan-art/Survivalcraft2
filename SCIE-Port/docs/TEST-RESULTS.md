@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-22 · 山地庇护帐修复
+
+- `SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 通过。执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/mountain-shelter-fixes-20261122 --nologo`，0 警告、0 错误。
+- 按编译 DLL 执行 `Test-MountainShelter.ps1`，737 项通过。核验四朝向的中间通道和地布颜色、实心方块旁的原生地形网格、原生 CSV 手持配置及模型范围、从帐内实际射线点击睡垫、创造模式满精神入睡、生存疲劳判定、关门受阻时的回退、同时争用和两门闭合时的防护。家居原生 911 项及物品栏 325 项通过。
+- Android 7723 实机显示、触屏和真实联机待验证。本轮执行源码编译和回归，原安装包 SHA-256 与上一轮记录一致。
+
 ## 2026-11-21 · 1.7.0 双人折叠山地庇护帐
 
 - 固定环境通过。索引快照构建命令为 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File artifacts/mountain-shelter-1.7.0/source/SCIE-Port/scripts/Build-NetMod.ps1 -GameDir D:/Games/SCNET-x25.01.17 -Configuration Release -OutputDir artifacts/mountain-shelter-1.7.0/output`。Release 0 警告、0 错误，完整回归和统一包检查退出 0。

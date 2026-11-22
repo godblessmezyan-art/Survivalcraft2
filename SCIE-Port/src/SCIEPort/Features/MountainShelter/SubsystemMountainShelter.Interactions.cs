@@ -18,12 +18,12 @@ namespace SCIEPort.Features.MountainShelter
             }
             if (ShelterLayout.LampPart(part))
             {
-                if (Inside(player.ComponentBody, site) == lane) ToggleLamp(player, site);
+                if (Inside(player.ComponentBody, site) >= 0) ToggleLamp(player, site);
                 return;
             }
             if (part < 4)
             {
-                TrySleep(player, site, lane);
+                TrySleep(player, site);
                 return;
             }
             if (part < ShelterLayout.StructureCount) Pack(player, site);
@@ -32,24 +32,45 @@ namespace SCIEPort.Features.MountainShelter
         private void ToggleDoor(ComponentPlayer player, Site site, int lane)
         {
             bool closing = !Closed(site, lane);
-            bool inside = Inside(player.ComponentBody, site) == lane;
-            if (!closing && !inside && HasSleeper(site, lane))
+            if (!closing && Inside(player.ComponentBody, site) < 0 && (HasSleeper(site, 0) || HasSleeper(site, 1)))
             {
                 Message(player, "有人在睡觉");
                 return;
             }
-            if (closing && BlocksDoor(site, lane))
+            if (closing && DoorObstructed(site, lane == 0, lane == 1))
             {
                 Message(player, "帐门被挡住");
                 return;
             }
+            var edits = new List<CellEdit>(2);
+            if (PlanDoor(player, site, lane, closing, edits)) Commit(edits, player.ComponentMiner);
+        }
+
+        private bool PlanDoor(ComponentPlayer player, Site site, int lane, bool closing, List<CellEdit> edits)
+        {
             Point3 lower = site.At(lane), upper = site.At(4 + lane);
-            if (!Permitted(player, lower) || !Permitted(player, upper)) return;
-            Commit(new List<CellEdit>
+            if (!Permitted(player, lower) || !Permitted(player, upper)) return false;
+            edits.Add(Edit(lower, PartValue(lane, site.Rotation, closing)));
+            edits.Add(Edit(upper, PartValue(4 + lane, site.Rotation, closing)));
+            return true;
+        }
+
+        private bool CloseForSleep(ComponentPlayer player, Site site)
+        {
+            bool left = !Closed(site, 0), right = !Closed(site, 1);
+            if (!left && !right) return true;
+            if (DoorObstructed(site, left, right))
             {
-                Edit(lower, PartValue(lane, site.Rotation, closing)),
-                Edit(upper, PartValue(4 + lane, site.Rotation, closing))
-            }, player.ComponentMiner);
+                Message(player, "帐门被挡住");
+                return false;
+            }
+            var edits = new List<CellEdit>(4);
+            if ((left && !PlanDoor(player, site, 0, true, edits)) || (right && !PlanDoor(player, site, 1, true, edits)))
+            {
+                Message(player, "无法关闭帐门");
+                return false;
+            }
+            return Commit(edits, player.ComponentMiner);
         }
 
         private void ToggleLamp(ComponentPlayer player, Site site)
@@ -88,23 +109,16 @@ namespace SCIEPort.Features.MountainShelter
         private static int Inside(ComponentBody body, Site site)
         {
             Vector3 p = ShelterLayout.Local(body.Position, site.Root, site.Rotation);
-            if (p.Y >= ShelterLayout.FloorHeight - .04f && p.Y < 1.80f && p.Z > .09f && p.Z < 1.94f)
-            {
-                if (p.X > .06f && p.X < .94f) return 0;
-                if (p.X > 1.06f && p.X < 1.94f) return 1;
-            }
-            return -1;
+            if (!(p.Y >= ShelterLayout.FloorHeight - .08f && p.Y < 1.80f
+                && p.X > .06f && p.X < 1.94f && p.Z > .09f && p.Z < 1.94f)) return -1;
+            return p.X < 1f ? 0 : 1;
         }
 
-        private bool TryAt(ComponentBody body, out Site site, out int lane)
+        private bool TryAt(ComponentBody body, out Site site)
         {
             var point = new Point3(Terrain.ToCell(body.Position.X), Terrain.ToCell(body.Position.Y), Terrain.ToCell(body.Position.Z));
-            lane = -1;
             site = default;
-            if (!Ready(point) || !Locate(point, Value(point), out site, out int part) || part >= 8)
-                return false;
-            lane = Inside(body, site);
-            return lane >= 0;
+            return Ready(point) && Locate(point, Value(point), out site, out int part) && part < 8 && Inside(body, site) >= 0;
         }
 
         private bool HasSleeper(Site site, int lane)
@@ -114,23 +128,28 @@ namespace SCIEPort.Features.MountainShelter
             return false;
         }
 
-        private void TrySleep(ComponentPlayer player, Site site, int lane)
+        private void TrySleep(ComponentPlayer player, Site site)
         {
             var body = player.ComponentBody;
-            if (Inside(body, site) != lane || !body.StandingOnValue.HasValue
-                || !Decode(body.StandingOnValue.Value, out int floor, out _, out _, out _) || floor >= 4)
+            int lane = Inside(body, site);
+            if (lane < 0 || body.Position.Y > site.Root.Y + ShelterLayout.FloorHeight + .14f)
             {
                 Message(player, "请站到睡垫上");
                 return;
             }
-            if (!Closed(site, lane)) { Message(player, "请先关帐门"); return; }
             if (HasSleeper(site, lane)) { Message(player, "铺位已占用"); return; }
             if (body.ImmersionDepth > 0f || player.ComponentVitalStats.Wetness > .95f)
             {
                 Message(player, "身上太湿");
                 return;
             }
-            if (player.ComponentVitalStats.Sleep > .99f) { Message(player, "还不困"); return; }
+            var settings = gameInfo.WorldSettings;
+            if (settings.GameMode != GameMode.Creative && settings.AreAdventureSurvivalMechanicsEnabled && player.ComponentVitalStats.Sleep > .99f)
+            {
+                Message(player, "还不困");
+                return;
+            }
+            if (!CloseForSleep(player, site)) return;
             player.ComponentSleep.Sleep(true);
             if (player.ComponentSleep.IsSleeping) sleepers[player] = site;
         }
@@ -148,7 +167,7 @@ namespace SCIEPort.Features.MountainShelter
                 {
                     int lane = Inside(player.ComponentBody, pair.Value);
                     // Keep the reference across brief chunk reloads.
-                    if (lane >= 0 && (!Loaded(pair.Value) || Complete(pair.Value) && Closed(pair.Value, lane))) continue;
+                    if (lane >= 0 && (!Loaded(pair.Value) || Complete(pair.Value) && DoorsClosed(pair.Value))) continue;
                     player.ComponentSleep.WakeUp();
                 }
                 endedSleep.Add(player);
@@ -156,8 +175,8 @@ namespace SCIEPort.Features.MountainShelter
             foreach (var player in endedSleep) sleepers.Remove(player);
             foreach (var player in players.ComponentPlayers)
             {
-                if (!IsSleeping(player) || sleepers.ContainsKey(player) || !TryAt(player.ComponentBody, out Site site, out int lane)) continue;
-                if (Loaded(site) && Complete(site) && Closed(site, lane))
+                if (!IsSleeping(player) || sleepers.ContainsKey(player) || !TryAt(player.ComponentBody, out Site site)) continue;
+                if (Loaded(site) && Complete(site) && DoorsClosed(site))
                     sleepers[player] = site;
             }
         }
@@ -175,7 +194,7 @@ namespace SCIEPort.Features.MountainShelter
             return false;
         }
 
-        private bool BlocksDoor(Site site, int lane)
+        private bool DoorObstructed(Site site, bool left, bool right)
         {
             QueryBodies(site);
             for (int i = 0; i < nearBodies.Count; i++)
@@ -183,11 +202,11 @@ namespace SCIEPort.Features.MountainShelter
                 var body = nearBodies.Array[i];
                 BoundingBox box = body.BoundingBox;
                 Vector3 a = ShelterLayout.Local(box.Min, site.Root, site.Rotation), b = ShelterLayout.Local(box.Max, site.Root, site.Rotation);
-                Vector3 min = Vector3.Min(a,b), max = Vector3.Max(a,b);
-                if (max.X <= lane + .06f || min.X >= lane + .94f || max.Y <= ShelterLayout.FloorHeight || min.Y >= 2f) continue;
-                if (min.Z < .14f && max.Z > 0) return true;
-                if (Inside(body, site) == lane && body.Entity.FindComponent<ComponentCreature>(false) is ComponentCreature creature
-                    && IsAnimal(creature)) return true;
+                Vector3 min = Vector3.Min(a, b), max = Vector3.Max(a, b);
+                if (max.Y > ShelterLayout.FloorHeight && min.Y < 2f && min.Z < .14f && max.Z > 0
+                    && ((left && max.X > .06f && min.X < 1f) || (right && max.X > 1f && min.X < 1.94f)))
+                    return true;
+                if (Inside(body, site) >= 0 && IsAnimal(body.Entity.FindComponent<ComponentCreature>(false))) return true;
             }
             return false;
         }
@@ -211,8 +230,8 @@ namespace SCIEPort.Features.MountainShelter
             if (!IsAnimal(attacker) || target?.Entity.FindComponent<ComponentPlayer>(false) == null
                 || attacker.Project != target.Project) return false;
             var shelter = target.Project.FindSubsystem<SubsystemMountainShelter>(false);
-            return shelter != null && shelter.TryAt(target, out Site site, out int lane)
-                && shelter.Complete(site) && shelter.Closed(site, lane);
+            return shelter != null && shelter.TryAt(target, out Site site)
+                && shelter.Complete(site) && shelter.DoorsClosed(site);
         }
     }
 }

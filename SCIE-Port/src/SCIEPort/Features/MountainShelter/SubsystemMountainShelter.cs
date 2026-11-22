@@ -22,6 +22,7 @@ namespace SCIEPort.Features.MountainShelter
         private SubsystemPlayers players;
         private SubsystemBodies bodies;
         private SubsystemPickables pickables;
+        private SubsystemGameInfo gameInfo;
         private bool writing;
         private bool writeHalted;
 
@@ -59,6 +60,7 @@ namespace SCIEPort.Features.MountainShelter
             players = Project.FindSubsystem<SubsystemPlayers>(true);
             bodies = Project.FindSubsystem<SubsystemBodies>(true);
             pickables = Project.FindSubsystem<SubsystemPickables>(true);
+            gameInfo = Project.FindSubsystem<SubsystemGameInfo>(true);
         }
 
         /// <inheritdoc/>
@@ -125,7 +127,7 @@ namespace SCIEPort.Features.MountainShelter
                 var player = request.Player;
                 Point3 point = request.Packet.Point;
                 if (!Available(player) || (request.Client != null && !ReferenceEquals(player.PlayerData.Client, request.Client))
-                    || !Ready(point) || Signature(point) != request.Packet.Expected || !CanReach(player, point, request.Packet.Place))
+                    || !Ready(point) || !ExpectedCell(point, request.Packet) || !CanReach(player, point, request.Packet.Place))
                     return;
                 if (request.Packet.Place) Deploy(player, point);
                 else Interact(player, point);
@@ -137,6 +139,16 @@ namespace SCIEPort.Features.MountainShelter
             => p != null && p.IsAddedToProject && p.Project == Project && p.PlayerData?.IsReadyForPlaying == true
                 && p.ComponentHealth.Health > 0 && p.ComponentSleep?.IsSleeping == false && p.ComponentRider?.Mount == null
                 && p.ComponentBody.ParentBody == null;
+
+        private bool ExpectedCell(Point3 point, MountainShelterPackage packet)
+        {
+            int actual = Signature(point);
+            if (actual == packet.Expected) return true;
+            // Another sleeper can close the doors before this queued floor tap runs.
+            return !packet.Place && Decode(actual, out int part, out int rotation, out _, out _) && part < 2
+                && Decode(packet.Expected, out int expectedPart, out int expectedRotation, out _, out _)
+                && part == expectedPart && rotation == expectedRotation;
+        }
 
         private bool CanReach(ComponentPlayer player, Point3 point, bool place)
         {
@@ -317,6 +329,7 @@ namespace SCIEPort.Features.MountainShelter
                 && actual == part && rotation == site.Rotation;
 
         private bool Closed(Site site, int lane) => Terrain.ExtractData(Value(site.At(lane))) == ShelterLayout.Encode(lane, site.Rotation, true);
+        private bool DoorsClosed(Site site) => Closed(site, 0) && Closed(site, 1);
 
         private bool Complete(Site site)
         {

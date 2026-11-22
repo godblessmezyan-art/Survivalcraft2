@@ -10,9 +10,11 @@ namespace SCIEPort.Features.MountainShelter
         private static readonly Color Seam = new Color(163, 150, 98);
         private static readonly Color Frame = new Color(62, 52, 43);
         private static readonly Color Lining = new Color(179, 152, 105);
-        private static readonly Color[] Bedding = { new Color(181, 98, 53), new Color(72, 129, 136) };
+        private static readonly Color[] Bedding = { new Color(123, 137, 87), new Color(83, 103, 59) };
         private static readonly int[] Faces = { 0, 3, 2, 1, 5, 6, 7, 4, 1, 2, 6, 5, 4, 7, 3, 0, 3, 7, 6, 2, 4, 0, 1, 5 };
+        private static readonly byte[] NativeFaces = { 2, 0, 1, 3, 4, 5 };
         private static readonly int[] Triangles = { 0, 1, 2, 0, 2, 3 };
+        private const float FabricInset = .008f;
 
         private static BoundingBox Bounds(float x, float y, float z, float endX, float endY, float endZ)
             => new BoundingBox(new Vector3(x, y, z), new Vector3(endX, endY, endZ));
@@ -26,20 +28,20 @@ namespace SCIEPort.Features.MountainShelter
             }
             int height = part / 4;
             bool front = (part & 2) == 0;
+            bool left = (part & 1) == 0;
+            float sideX = left ? 0f : .94f;
             if (height == 2)
             {
                 yield return Bounds(0, ShelterLayout.RoofBottom, 0, 1, .20f, 1);
-                yield return Bounds(0, 0, 0, .06f, ShelterLayout.RoofBottom, 1);
-                yield return Bounds(.94f, 0, 0, 1, ShelterLayout.RoofBottom, 1);
+                yield return Bounds(sideX, 0, 0, left ? .06f : 1f, ShelterLayout.RoofBottom, 1);
                 if (front) yield return Bounds(0, 0, 0, 1, ShelterLayout.RoofBottom, .09f);
                 else yield return Bounds(0, 0, .94f, 1, ShelterLayout.RoofBottom, 1);
                 yield break;
             }
             if (height == 0) yield return Bounds(0, 0, 0, 1, ShelterLayout.FloorHeight, 1);
-            yield return Bounds(0, 0, 0, .06f, 1, 1);
-            yield return Bounds(.94f, 0, 0, 1, 1, 1);
+            yield return Bounds(sideX, 0, 0, left ? .06f : 1f, 1, 1);
             if (!front) yield return Bounds(0, 0, .94f, 1, 1, 1);
-            if (front && closed) yield return Bounds(.06f, 0, .015f, .94f, 1, .09f);
+            if (front && closed) yield return Bounds(left ? .06f : 0f, 0, .015f, left ? 1f : .94f, 1, .09f);
         }
 
         internal static BoundingBox[] Boxes(int part, int rotation, bool closed)
@@ -51,18 +53,16 @@ namespace SCIEPort.Features.MountainShelter
                 Vector3 b = ShelterLayout.RotateCell(box.Max, rotation);
                 boxes.Add(new BoundingBox(Vector3.Min(a,b), Vector3.Max(a,b)));
             }
-            // Closed doors also meet the cloth edge above the standing height.
+            // Keep a touchable handle when the canvas is rolled up.
             if (part == 4 || part == 5)
             {
-                Vector3 a = ShelterLayout.RotateCell(new Vector3(.06f, .91f, .02f), rotation);
-                Vector3 b = ShelterLayout.RotateCell(new Vector3(.17f, 1, .12f), rotation);
+                bool left = part == 4;
+                Vector3 a = ShelterLayout.RotateCell(new Vector3(left ? .06f : .83f, .91f, .02f), rotation);
+                Vector3 b = ShelterLayout.RotateCell(new Vector3(left ? .17f : .94f, 1, .12f), rotation);
                 boxes.Add(new BoundingBox(Vector3.Min(a,b), Vector3.Max(a,b)));
             }
             return boxes.ToArray();
         }
-
-        internal static BoundingBox DoorSweep(bool upper)
-            => Bounds(0, upper ? 0 : ShelterLayout.FloorHeight, 0, 1, 1, .14f);
 
         internal static BlockMesh Part(int part, int rotation, bool closed, bool lit)
         {
@@ -71,11 +71,10 @@ namespace SCIEPort.Features.MountainShelter
             bool front = (part & 2) == 0, left = (part & 1) == 0;
             foreach (var box in Shell(part, closed))
             {
-                Color tone = box.Max.Y == ShelterLayout.FloorHeight || part >= ShelterLayout.StructureCount ? Frame : Canvas;
                 if (height == 2 && box.Min.Y == ShelterLayout.RoofBottom)
                     Box(mesh, box, Canvas, slope: left ? 1 : -1);
                 else
-                    Box(mesh, box, tone);
+                    Box(mesh, box, part >= ShelterLayout.StructureCount ? Frame : Canvas);
             }
             if (part >= ShelterLayout.StructureCount)
             {
@@ -93,8 +92,8 @@ namespace SCIEPort.Features.MountainShelter
             {
                 float x = left ? 0 : .94f;
                 Box(mesh, Bounds(x, 0, .08f, x + .06f, 1, .13f), Seam);
-                Box(mesh, Bounds(0, .035f, .02f, .075f, .95f, .075f), Frame);
-                Box(mesh, Bounds(.925f, .035f, .02f, 1, .95f, .075f), Frame);
+                if (front)
+                    Box(mesh, Bounds(left ? .02f : .925f, .035f, .02f, left ? .075f : .98f, .95f, .075f), Frame);
                 if (front)
                 {
                     if (closed)
@@ -120,10 +119,16 @@ namespace SCIEPort.Features.MountainShelter
             for (int i = 0; i < mesh.Vertices.Count; i++)
             {
                 var vertex = mesh.Vertices.Array[i];
+                // Keep the outside skin away from coplanar rock faces, while joining adjacent shelter parts.
+                if (left && vertex.Position.X == 0f) vertex.Position.X = FabricInset;
+                if (!left && vertex.Position.X == 1f) vertex.Position.X = 1f - FabricInset;
+                if (!front && vertex.Position.Z == 1f) vertex.Position.Z = 1f - FabricInset;
+                if (height == 0 && vertex.Position.Y == 0f) vertex.Position.Y = FabricInset;
                 vertex.Position = ShelterLayout.RotateCell(vertex.Position, rotation);
+                if (vertex.Face < 4) vertex.Face = (byte)((vertex.Face - rotation) & 3);
                 mesh.Vertices.Array[i] = vertex;
             }
-            mesh.GenerateSidesData();
+            // Arbitrary thin meshes must retain their outer faces next to opaque blocks.
             return mesh;
         }
 
@@ -158,7 +163,7 @@ namespace SCIEPort.Features.MountainShelter
                 Color shade = Color.MultiplyColorOnly(color, emissive || face == 4 ? 1f : face == 5 ? .62f : .84f);
                 for (int i = 0; i < 4; i++)
                     mesh.Vertices.Add(new BlockMeshVertex { Position = corners[Faces[face * 4 + i]], Color = shade,
-                        TextureCoordinates = new Vector2(.5f), Face = (byte)face, IsEmissive = emissive });
+                        TextureCoordinates = new Vector2(.5f), Face = NativeFaces[face], IsEmissive = emissive });
                 foreach (int index in Triangles) mesh.Indices.Add((ushort)(start + index));
             }
         }
