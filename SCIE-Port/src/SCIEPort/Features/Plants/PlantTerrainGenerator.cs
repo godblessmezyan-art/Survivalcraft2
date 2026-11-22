@@ -25,6 +25,7 @@ namespace SCIEPort.Features.Plants
         private readonly SubsystemGameInfo gameInfo;
         private readonly SubsystemTidePalace tidePalace;
         private readonly SubsystemPyramid pyramid;
+        private readonly SubsystemScenery scenery;
 
         internal PlantTerrainGenerator(ITerrainContentsGenerator original, SubsystemGameInfo gameInfo)
         {
@@ -32,6 +33,7 @@ namespace SCIEPort.Features.Plants
             this.gameInfo = gameInfo;
             tidePalace = gameInfo.Project?.FindSubsystem<SubsystemTidePalace>(false);
             pyramid = gameInfo.Project?.FindSubsystem<SubsystemPyramid>(false);
+            scenery = gameInfo.Project?.FindSubsystem<SubsystemScenery>(false);
         }
 
         public int OceanLevel => original.OceanLevel;
@@ -103,7 +105,7 @@ namespace SCIEPort.Features.Plants
 
             try
             {
-                SceneryGenerator.Generate(chunk, this, gameInfo.WorldSeed);
+                SceneryGenerator.Generate(chunk, this, gameInfo.WorldSeed, scenery);
             }
             catch (Exception error)
             {

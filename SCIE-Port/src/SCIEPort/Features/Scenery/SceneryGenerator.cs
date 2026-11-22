@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Game;
+using SCIEPort.Features.Suspension;
 
 namespace SCIEPort.Features.Scenery
 {
@@ -15,6 +16,9 @@ namespace SCIEPort.Features.Scenery
         private static List<ScenerySite> s_sites;
 
         public static int Generate(TerrainChunk chunk, ITerrainContentsGenerator source, int worldSeed)
+            => Generate(chunk, source, worldSeed, null);
+
+        public static int Generate(TerrainChunk chunk, ITerrainContentsGenerator source, int worldSeed, SubsystemScenery rewards)
         {
             if (chunk == null || source == null) return 0;
             if (!(BlocksManager.Blocks[SceneryHullBlock.Index] is SceneryHullBlock)) return 0;
@@ -34,6 +38,7 @@ namespace SCIEPort.Features.Scenery
             for (int i = 0; i < s_sites.Count; i++)
             {
                 SceneryRules.Paint(s_sites[i], sink, blocks);
+                rewards?.Note(s_sites[i]);
             }
             return sink.Written;
         }
@@ -54,7 +59,8 @@ namespace SCIEPort.Features.Scenery
                 Treasure = TreasureGeneratorBlock.Index,
                 Leaves = OakLeavesBlock.Index,
                 Dirt = DirtBlock.Index,
-                Grass = GrassBlock.Index
+                Grass = GrassBlock.Index,
+                Display = SuspendedItemBlock.Index
             };
         }
 

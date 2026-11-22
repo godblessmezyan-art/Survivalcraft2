@@ -8,7 +8,7 @@ namespace SCIEPort.Scenery.Tests
     {
         private const int Seed = 20261122;
         private const int OceanLevel = 64;
-        private const int WorldChunkRadius = 14;
+        private const int WorldChunkRadius = 64;
 
         private static int s_assertions;
 
@@ -26,6 +26,8 @@ namespace SCIEPort.Scenery.Tests
                 TestBoundsContainEveryVoxel();
                 TestBlockSetIsComplete();
                 TestDensity();
+                TestSkyLandmarksAreRare();
+                TestSkyLandmarksCarryAPrize();
                 Console.WriteLine("Scenery rule tests passed: " + s_assertions);
                 return 0;
             }
@@ -200,7 +202,7 @@ namespace SCIEPort.Scenery.Tests
             {
                 blocks.Hull, blocks.Envelope, blocks.Cloudstone, blocks.Crystal, blocks.Brass,
                 blocks.Sail, blocks.Wood, blocks.Planks, blocks.Glass, blocks.Treasure,
-                blocks.Leaves, blocks.Dirt, blocks.Grass
+                blocks.Leaves, blocks.Dirt, blocks.Grass, blocks.Display
             };
             foreach (int id in ids)
             {
@@ -219,6 +221,70 @@ namespace SCIEPort.Scenery.Tests
             {
                 long key = ((long)site.X << 32) ^ (uint)site.Z;
                 Assert(unique.Add(key), "Two landmarks must not share one anchor.");
+            }
+        }
+
+        private static void TestSkyLandmarksAreRare()
+        {
+            var sites = CollectSites(Seed, LandHeight);
+            var regions = new HashSet<long>();
+            var sky = new List<ScenerySite>();
+            foreach (var site in sites)
+            {
+                if (site.Kind != SceneryKind.Airship && site.Kind != SceneryKind.SkyIsland) continue;
+                sky.Add(site);
+                int regionX = SceneryRules.FloorDiv(site.X, SceneryRules.RegionSize);
+                int regionZ = SceneryRules.FloorDiv(site.Z, SceneryRules.RegionSize);
+                long key = ((long)regionX << 32) ^ (uint)regionZ;
+                Assert(regions.Add(key), "One 512-cell region may hold at most one sky landmark.");
+                Assert(Math.Abs(site.X - (regionX * SceneryRules.RegionSize + SceneryRules.RegionSize / 2))
+                       <= SceneryRules.RegionInset, "Sky anchors must stay inside their region.");
+                Assert(Math.Abs(site.Z - (regionZ * SceneryRules.RegionSize + SceneryRules.RegionSize / 2))
+                       <= SceneryRules.RegionInset, "Sky anchors must stay inside their region.");
+            }
+            Assert(sky.Count >= 3, "The sampled area must contain sky landmarks.");
+            int sampledRegions = 0;
+            int fromRegion = SceneryRules.FloorDiv(-WorldChunkRadius * 16, SceneryRules.RegionSize);
+            int toRegion = SceneryRules.FloorDiv(WorldChunkRadius * 16 + 15, SceneryRules.RegionSize);
+            for (int z = fromRegion; z <= toRegion; z++)
+            {
+                for (int x = fromRegion; x <= toRegion; x++) sampledRegions++;
+            }
+            Assert(sky.Count * 100 <= sampledRegions * 70,
+                "Sky landmarks must stay rare: at most 70% of the sampled regions may hold one.");
+            for (int i = 0; i < sky.Count; i++)
+            {
+                Assert(sky[i].DisplayX >= sky[i].MinX && sky[i].DisplayX <= sky[i].MaxX,
+                    "The prize display must sit inside the landmark bounds.");
+                Assert(sky[i].DisplayY >= sky[i].MinY && sky[i].DisplayY <= sky[i].MaxY,
+                    "The prize display must sit inside the landmark bounds.");
+                Assert(sky[i].DisplayZ >= sky[i].MinZ && sky[i].DisplayZ <= sky[i].MaxZ,
+                    "The prize display must sit inside the landmark bounds.");
+                for (int j = i + 1; j < sky.Count; j++)
+                {
+                    Assert(Math.Abs(sky[i].X - sky[j].X) >= 256 || Math.Abs(sky[i].Z - sky[j].Z) >= 256,
+                        "Neighbouring sky landmarks must keep a wide gap.");
+                }
+            }
+        }
+
+        private static void TestSkyLandmarksCarryAPrize()
+        {
+            var blocks = BlockSet();
+            foreach (var site in CollectSites(Seed, LandHeight))
+            {
+                if (site.Kind != SceneryKind.Airship && site.Kind != SceneryKind.SkyIsland) continue;
+                var sink = new RecordingSink();
+                SceneryRules.Paint(site, sink, blocks);
+                long key = RecordingSink.Key(site.DisplayX, site.DisplayY, site.DisplayZ);
+                Assert(sink.Cells.TryGetValue(key, out int value) && value == blocks.Display,
+                    "Every airship and sky island must carry a suspended prize display.");
+                int displays = 0;
+                foreach (var cell in sink.Cells.Values)
+                {
+                    if (cell == blocks.Display) displays++;
+                }
+                Assert(displays == 1, "Each sky landmark must carry exactly one prize display.");
             }
         }
 
@@ -258,7 +324,9 @@ namespace SCIEPort.Scenery.Tests
                    a.SlopePercent == b.SlopePercent && a.MastHeight == b.MastHeight &&
                    a.EnvelopeRadius == b.EnvelopeRadius && a.Variant == b.Variant &&
                    a.TopHeight == b.TopHeight && a.BottomDepth == b.BottomDepth &&
-                   a.TreeX == b.TreeX && a.TreeZ == b.TreeZ && a.TreeHeight == b.TreeHeight;
+                   a.TreeX == b.TreeX && a.TreeZ == b.TreeZ && a.TreeHeight == b.TreeHeight &&
+                   a.RewardX == b.RewardX && a.RewardZ == b.RewardZ &&
+                   a.DisplayX == b.DisplayX && a.DisplayY == b.DisplayY && a.DisplayZ == b.DisplayZ;
         }
 
         private static float OceanHeight(int x, int z)
@@ -287,7 +355,8 @@ namespace SCIEPort.Scenery.Tests
                 Treasure = 4,
                 Leaves = 5,
                 Dirt = 6,
-                Grass = 7
+                Grass = 7,
+                Display = 906
             };
         }
 
@@ -309,7 +378,7 @@ namespace SCIEPort.Scenery.Tests
                 Coordinates.Add(Tuple.Create(x, y, z));
             }
 
-            protected static long Key(int x, int y, int z)
+            public static long Key(int x, int y, int z)
             {
                 return ((long)(x + 1048576) << 42) | ((long)(y + 1024) << 21) | (uint)(z + 1048576);
             }

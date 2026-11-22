@@ -39,6 +39,11 @@ namespace SCIEPort.Features.Scenery
         public int TreeX;
         public int TreeZ;
         public int TreeHeight;
+        public int RewardX;
+        public int RewardZ;
+        public int DisplayX;
+        public int DisplayY;
+        public int DisplayZ;
         public int MinX;
         public int MinY;
         public int MinZ;
@@ -75,6 +80,7 @@ namespace SCIEPort.Features.Scenery
         public int Leaves;
         public int Dirt;
         public int Grass;
+        public int Display;
     }
 
     /// <summary>
@@ -86,13 +92,16 @@ namespace SCIEPort.Features.Scenery
     {
         public const int CellSize = 112;
         public const int CellInset = 24;
+        public const int RegionSize = 512;
+        public const int RegionInset = 96;
+        public const int SkySiteChancePercent = 55;
         public const int ChunkSize = 16;
         public const int MaxSitesPerChunk = 4;
         public const int MinOceanDepth = 8;
         public const int MinAirClearance = 26;
         public const int MaxWorldHeight = 246;
 
-        /// <summary>Collects every site whose horizontal bounds touch the chunk.</summary>
+        /// <summary>Collects shipwrecks from 112-cell cells and sky landmarks from 512-cell regions.</summary>
         public static void VisitSites(
             int worldSeed,
             int chunkX,
@@ -108,6 +117,8 @@ namespace SCIEPort.Features.Scenery
             int minZ = chunkZ * ChunkSize;
             int maxX = minX + ChunkSize - 1;
             int maxZ = minZ + ChunkSize - 1;
+
+            // Shipwrecks keep the old 112-cell rhythm: they hide under water, so density is unobtrusive.
             int margin = CellInset + 20;
             int fromCellX = FloorDiv(minX - margin, CellSize);
             int toCellX = FloorDiv(maxX + margin, CellSize);
@@ -124,9 +135,29 @@ namespace SCIEPort.Features.Scenery
                     if (sites.Count >= MaxSitesPerChunk) return;
                 }
             }
+
+            // Airships and sky islands are large and readable from far away, so each
+            // 512-cell region holds at most one, and only a little over half of the
+            // regions hold one at all: roughly one landmark per two regions.
+            int skyMargin = RegionInset + 20;
+            int fromRegionX = FloorDiv(minX - skyMargin, RegionSize);
+            int toRegionX = FloorDiv(maxX + skyMargin, RegionSize);
+            int fromRegionZ = FloorDiv(minZ - skyMargin, RegionSize);
+            int toRegionZ = FloorDiv(maxZ + skyMargin, RegionSize);
+            for (int regionZ = fromRegionZ; regionZ <= toRegionZ; regionZ++)
+            {
+                for (int regionX = fromRegionX; regionX <= toRegionX; regionX++)
+                {
+                    ScenerySite site;
+                    if (!TryCreateSkySite(worldSeed, regionX, regionZ, oceanLevel, height, out site)) continue;
+                    if (!site.Intersects(minX, minZ, maxX, maxZ)) continue;
+                    sites.Add(site);
+                    if (sites.Count >= MaxSitesPerChunk) return;
+                }
+            }
         }
 
-        /// <summary>Evaluates one landmark cell. Pure except for the supplied height function.</summary>
+        /// <summary>Evaluates one shipwreck cell. Pure except for the supplied height function.</summary>
         public static bool TryCreateSite(
             int worldSeed,
             int cellX,
@@ -143,23 +174,36 @@ namespace SCIEPort.Features.Scenery
             if (float.IsNaN(surface) || float.IsInfinity(surface)) return false;
             int terrain = (int)Math.Floor(surface);
             int depth = oceanLevel - terrain;
-
             if (surface < oceanLevel - 1f && depth >= MinOceanDepth)
             {
                 return TryCreateShipwreck(random, anchorX, anchorZ, terrain, oceanLevel, out site);
             }
+            return false;
+        }
 
+        /// <summary>Evaluates the single sky landmark candidate of one 512-cell region.</summary>
+        public static bool TryCreateSkySite(
+            int worldSeed,
+            int regionX,
+            int regionZ,
+            int oceanLevel,
+            Func<int, int, float> height,
+            out ScenerySite site)
+        {
+            site = new ScenerySite();
+            var random = new SceneryRandom(Hash(worldSeed, regionX, regionZ, 0x6B1F42A7u));
+            if (!random.Chance(SkySiteChancePercent)) return false;
+            int anchorX = regionX * RegionSize + RegionSize / 2 + random.Next(-RegionInset, RegionInset);
+            int anchorZ = regionZ * RegionSize + RegionSize / 2 + random.Next(-RegionInset, RegionInset);
+            float surface = height(anchorX, anchorZ);
+            if (float.IsNaN(surface) || float.IsInfinity(surface)) return false;
+            int terrain = (int)Math.Floor(surface);
             if (terrain > 150) return false;
-            int roll = random.Next(0, 99);
-            if (roll < 42)
+            if (random.Chance(50))
             {
                 return TryCreateAirship(random, anchorX, anchorZ, terrain, out site);
             }
-            if (roll < 74)
-            {
-                return TryCreateSkyIsland(random, anchorX, anchorZ, terrain, out site);
-            }
-            return false;
+            return TryCreateSkyIsland(random, anchorX, anchorZ, terrain, out site);
         }
 
         /// <summary>Writes every cell of a site through the sink. Returns the number of emitted cells.</summary>
@@ -269,7 +313,10 @@ namespace SCIEPort.Features.Scenery
             site.Rotation = random.Next(0, 3);
             site.EnvelopeRadius = envelopeRadius;
             site.Variant = random.Next(0, 2);
+            site.RewardX = 0;
+            site.RewardZ = 0;
             ApplyBounds(ref site);
+            LocalToWorld(site, 0, 2, 0, out site.DisplayX, out site.DisplayY, out site.DisplayZ);
             return true;
         }
 
@@ -293,6 +340,13 @@ namespace SCIEPort.Features.Scenery
 
             int treeX = random.Next(-(radius - 3), radius - 3);
             int treeZ = random.Next(-(radius - 3), radius - 3);
+            int limit = Math.Max(2, radius - 4);
+            int rewardX = treeX > 0 ? treeX - 4 : treeX + 4;
+            int rewardZ = treeZ;
+            if (rewardX > limit) rewardX = limit;
+            if (rewardX < -limit) rewardX = -limit;
+            if (rewardZ > limit) rewardZ = limit;
+            if (rewardZ < -limit) rewardZ = -limit;
             site.Kind = SceneryKind.SkyIsland;
             site.Seed = unchecked((int)random.NextUInt());
             site.X = anchorX;
@@ -307,7 +361,11 @@ namespace SCIEPort.Features.Scenery
             site.TreeX = treeX;
             site.TreeZ = treeZ;
             site.TreeHeight = treeHeight;
+            site.RewardX = rewardX;
+            site.RewardZ = rewardZ;
             ApplyBounds(ref site);
+            LocalToWorld(site, rewardX, topHeight + bottomDepth + 2, rewardZ,
+                out site.DisplayX, out site.DisplayY, out site.DisplayZ);
             return true;
         }
 
@@ -485,6 +543,13 @@ namespace SCIEPort.Features.Scenery
             int radiusZ = Math.Max(3, halfWidth - 1);
             int centerY = site.Height - radiusY - 2;
 
+            // Guaranteed prize: the suspended display floats above the cargo crate.
+            if (blocks.Display != 0 && lx == 0 && ly == 2 && lz == 0)
+            {
+                block = blocks.Display;
+                return true;
+            }
+
             // Envelope shell.
             float nx = lx / (float)radiusX;
             float ny = (ly - centerY) / (float)radiusY;
@@ -592,6 +657,29 @@ namespace SCIEPort.Features.Scenery
             int topHeight = site.TopHeight;
             int bottomDepth = site.BottomDepth;
             int topY = bottomDepth + topHeight;
+
+            // Brass altar with the guaranteed suspended prize; kept clear of the tree.
+            if (blocks.Display != 0 && lx == site.RewardX && lz == site.RewardZ)
+            {
+                if (ly == topY + 2)
+                {
+                    block = blocks.Display;
+                    return true;
+                }
+                if (ly == topY + 1)
+                {
+                    block = blocks.Brass;
+                    return true;
+                }
+            }
+            if (ly == topY + 1 && lx * lx + lz * lz <= 1 &&
+                (lx != site.RewardX || lz != site.RewardZ) &&
+                (lx != site.TreeX || lz != site.TreeZ))
+            {
+                block = blocks.Crystal;
+                data = 1;
+                return true;
+            }
 
             // Tree trunk and canopy, rooted on the grass cap.
             if (site.TreeHeight > 0)

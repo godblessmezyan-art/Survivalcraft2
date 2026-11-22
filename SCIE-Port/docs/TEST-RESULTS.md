@@ -1,14 +1,15 @@
 # 测试结果
 
-## 2026-11-22 · 1.4.0 沉船、飞艇与浮空岛
+## 2026-11-22 · 1.4.1 沉船、飞艇与浮空岛
 
-- 从 `SCIE-Port` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-NetMod.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release -OutputDir 'D:\Dev\Survivalcraft2\SCIE-Port\artifacts\scenery-1.4.0'`，退出 0。固定 Windows 三程序集（net472 / API 1.42 / SC 2.4.10.6）、Release 构建、全部既有回归、统一包与版本副本校验通过；编译无警告。
-- 规则测试 `tests/SCIEPort.Scenery.Tests` 通过 101,576 项检查：世界种子确定性、海洋/陆地高度带、四分之一旋转体积守恒、跨区块裁剪稳定、沉船全在水下、空中场景净空、AABB 包含体素、方块 ID 完整、密度与每区块站点上限。
-- 资源守卫与固定目标原生探针 `scripts/Test-Scenery.ps1` 通过：`Scenery.csv` 6 行 / 10 个图集格 / 512×512 PNG；原生 26,078 项检查使用目标 `Engine.dll`、`EntitySystem.dll`、`Survivalcraft.exe` 和内存 Terrain，覆盖真实 `TerrainChunk` 写入、海床不被覆盖、沉船替换水且不露出水面、飞艇/浮空岛保持净空、客户端与 Nihility 跳过、正逆序区块生成一致、固体障碍不被覆盖、单区块预算及生成异常不破坏原生地形。
+- 从 `SCIE-Port` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-NetMod.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release -OutputDir 'D:\Dev\Survivalcraft2\SCIE-Port\artifacts\scenery-1.4.1'`，退出 0。固定 Windows 三程序集（net472 / API 1.42 / SC 2.4.10.6）、Release 构建、全部既有回归、统一包与版本副本校验通过；编译无警告。
+- 规则测试 `tests/SCIEPort.Scenery.Tests` 通过 857,139 项检查：世界种子确定性、海洋/陆地高度带、四分之一旋转体积守恒、跨区块裁剪稳定、沉船全在水下、空中场景净空、AABB 包含体素、方块 ID 完整、每 512 格区域至多一座天空地标、出地标区域不超过 70%、相邻天空地标至少相隔 256 格、每个天空地标恰好一个奖励陈列器。
+- 资源守卫与固定目标原生探针 `scripts/Test-Scenery.ps1` 通过：`Scenery.csv` 6 行 / 10 个图集格 / 512×512 PNG；原生 28,435 项检查使用目标 `Engine.dll`、`EntitySystem.dll`、`Survivalcraft.exe` 和内存 Terrain，覆盖真实 `TerrainChunk` 写入、海床不被覆盖、沉船替换水且不露出水面、飞艇/浮空岛保持净空、飞艇与浮空岛各含一个陈列器、客户端与 Nihility 跳过、正逆序区块生成一致、固体障碍不被覆盖、单区块预算及生成异常不破坏原生地形。
 - `Test-PortInventory.ps1` 通过 338 项目标 API 检查 / 126 个实际方块分类、807 项分类与槽位规则：六个新方块可反射实例化，分类为 `SCIEPort.Structures`，创造变体不逃逸专用 Tab。
-- 场景方块改用本工作区空闲编号 880–885；978–983 已被苹果木与特色树木占用，1014–1020 为古建、1021 猫生成器、1022 沉殿机关、1023 日阶机关，1024 起超出目标 `BlocksManager` 的 1024 槽数组。
-- 统一包与版本副本字节一致：`荒野探险家.netmod` / `荒野探险家-1.4.0.netmod`，232 个条目、13,148,956 字节，SHA-256 `5FD84C538ED616D96BFA0942C4F8ECCC7F887A93067C59C77A1FB492BC9EAAEC`。相对 1.3.0 增加 `Assets/Blocks/Scenery.csv` 与 `Assets/Textures/Scenery.png`，并更新 `SCIEPort.dll`、`modinfo.json`。
-- Android 7723 实机、触屏放置六种新方块、长期世界分布、现有世界的已加载区块回填及真实 Local/Server/Client 联机 **待验证**。[奇幻地形专项](SCENERY-1.4.0.md)
+- 场景方块使用本工作区空闲编号 880–885；978–983 已被苹果木与特色树木占用，1014–1020 为古建、1021 猫生成器、1022 沉殿机关、1023 日阶机关，1024 起超出目标 `BlocksManager` 的 1024 槽数组。
+- 奖励发放使用新增 `SubsystemScenery`（`Assets/Database/Scenery.xdb` 注册）与既有 `ShrineWorld.TryStock`：仅主机或本地发放，区块未就绪时等待，陈列器被破坏或已有实体时不再补发，未发放奖励写入 `Scenery` 存档键。Windows 编译与静态检查通过；实机发奖与联机同步 **待验证**。
+- 统一包与版本副本字节一致：`荒野探险家.netmod` / `荒野探险家-1.4.1.netmod`，233 个条目、13,150,720 字节，SHA-256 `93B394E402A23370092DAFFF218465146DB5A1CEC16483C0D3435FB64557C3F0`。相对 1.3.0 增加 `Assets/Blocks/Scenery.csv`、`Assets/Textures/Scenery.png` 与 `Assets/Database/Scenery.xdb`，并更新 `SCIEPort.dll`、`modinfo.json`。
+- Android 7723 实机、触屏放置六种新方块、长期世界分布、现有世界的已加载区块回填、奖励实际领取及真实 Local/Server/Client 联机 **待验证**。[奇幻地形专项](SCENERY-1.4.1.md)
 
 ## 2026-11-20 · 1.3.0 特殊地形
 

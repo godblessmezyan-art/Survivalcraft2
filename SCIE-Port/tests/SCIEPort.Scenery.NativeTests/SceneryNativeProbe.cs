@@ -191,6 +191,7 @@ public static class SceneryNativeProbe
             Check(CountBlock(chunks, 883) > 0, "airship crystal lamp is written");
             Check(CountBlock(chunks, 15) > 0, "airship windows are written");
             Check(CountBlock(chunks, 21) > 0, "airship deck and tail are written");
+            Check(CountBlock(chunks, 954) == 1, "airship carries exactly one prize display");
             AssertAirClearance(chunks, "airship");
             AssertLandSoil(chunks, "airship");
         }
@@ -204,6 +205,8 @@ public static class SceneryNativeProbe
             Check(CountBlock(chunks, 2) > 0, "sky island soil is written");
             Check(CountBlock(chunks, 9) > 0, "sky island trunk is written");
             Check(CountBlock(chunks, 12) > 0, "sky island canopy is written");
+            Check(CountBlock(chunks, 884) > 0, "sky island prize altar is written");
+            Check(CountBlock(chunks, 954) == 1, "sky island carries exactly one prize display");
             AssertAirClearance(chunks, "sky island");
             AssertLandSoil(chunks, "sky island");
         }
@@ -386,9 +389,9 @@ public static class SceneryNativeProbe
     {
         Func<int, int, float> height = LandHeight;
         if (ocean) height = OceanHeight;
-        for (int chunkZ = -40; chunkZ <= 40; chunkZ++)
+        for (int chunkZ = -96; chunkZ <= 96; chunkZ++)
         {
-            for (int chunkX = -40; chunkX <= 40; chunkX++)
+            for (int chunkX = -96; chunkX <= 96; chunkX++)
             {
                 var sites = new List<ScenerySite>();
                 SceneryRules.VisitSites(WorldSeed, chunkX, chunkZ, OceanLevel, height, sites);
@@ -474,7 +477,8 @@ public static class SceneryNativeProbe
     static MethodInfo GeneratorMethod(Assembly mod)
     {
         Type type = mod.GetType("SCIEPort.Features.Scenery.SceneryGenerator", true);
-        MethodInfo method = type.GetMethod("Generate", S);
+        MethodInfo method = type.GetMethod("Generate", S, null,
+            new[] { typeof(TerrainChunk), typeof(ITerrainContentsGenerator), typeof(int) }, null);
         Check(method != null, "scenery generator entry point");
         return method;
     }
@@ -551,7 +555,8 @@ public static class SceneryNativeProbe
             Treasure = TreasureGeneratorBlock.Index,
             Leaves = OakLeavesBlock.Index,
             Dirt = DirtBlock.Index,
-            Grass = GrassBlock.Index
+            Grass = GrassBlock.Index,
+            Display = 954
         };
     }
 
