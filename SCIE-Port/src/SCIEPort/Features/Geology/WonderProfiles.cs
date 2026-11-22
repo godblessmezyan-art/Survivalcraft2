@@ -21,6 +21,8 @@ namespace SCIEPort.Features.Geology
             int height = Mix(floor, site.Base + 4, Edge((side - halfWidth) / 8f));
             var result = new GeologyColumn(weight * bank * ends, height,
                 side <= halfWidth ? GravelBlock.Index : KarstLimestoneBlock.Index, KarstLimestoneBlock.Index);
+            if (side > halfWidth && ((v + 36) / 5 & 1) == 0 && BlocksManager.Blocks[LayeredKarstBlock.Index] is LayeredKarstBlock)
+                result.Cap = Terrain.MakeBlockValue(LayeredKarstBlock.Index);
             int span = Math.Abs(v + 18) <= 1 ? 0 : Math.Abs(v) <= 2 ? 1 : Math.Abs(v - 18) <= 1 ? 2 : -1;
             if (span < 0 || side > 9) return result;
             int arch = floor + (span == 1 ? 10 : 8) - side * side / 10;
@@ -85,6 +87,8 @@ namespace SCIEPort.Features.Geology
             int height = radius <= throat + 2 ? bottom : shelf;
             int cap = descent > .2f ? KarstLimestoneBlock.Index :
                 reef > .2f && !passage ? TravertineBlock.Index : SandBlock.Index;
+            if (cap == TravertineBlock.Index && reef > .65f && v >= 0 && BlocksManager.Blocks[ShellLimestoneBlock.Index] is ShellLimestoneBlock)
+                cap = ShellLimestoneBlock.Index;
             var result = new GeologyColumn(weight, height, cap, KarstLimestoneBlock.Index);
             result.Flood(Terrain.MakeBlockValue(WaterBlock.Index), site.Sea);
             return result;
@@ -102,8 +106,9 @@ namespace SCIEPort.Features.Geology
             int bank = (int)Math.Round(9 * Edge((side - throat) / 5f));
             bool ice = side <= throat;
             int ridge = Math.Abs(side - throat - 1) <= 1 ? 2 : 0;
+            bool band = ice && (v + 31 + side / 3) % 8 <= 2 && BlocksManager.Blocks[BandedGlacierIceBlock.Index] is BandedGlacierIceBlock;
             return new GeologyColumn(weight * shoulder * ends, height + bank + ridge,
-                ice ? BlueIceBlock.Index : ridge > 0 ? GravelBlock.Index : GraniteBlock.Index,
+                band ? BandedGlacierIceBlock.Index : ice ? BlueIceBlock.Index : ridge > 0 ? GravelBlock.Index : GraniteBlock.Index,
                 ice ? BlueIceBlock.Index : GraniteBlock.Index);
         }
     }

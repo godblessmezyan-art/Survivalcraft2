@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-22 · 1.9.0 地形图鉴与地貌材料
+
+- 固定目标 `Net_x25.01.17` 的程序集哈希、ABI 和 895–897 的原生 ID 校验通过。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用 SDK 9.0.300 执行 `dotnet build SCIE-Port/artifacts/terrain-guide-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/terrain-guide-staged/build --nologo`，0 警告、0 错误。
+- 特殊地形固定目标 331,692 项通过，三种新方块在五类地貌落地，自身掉落和冰面摩擦通过。另有火山 16,626 项、水幕沉殿 384 项、日阶神殿 9,124 项通过。五张新图块完全不透明，旧图集区域像素一致，新图集 SHA-256 为 `F80E3134A0D0312A85E28AF9053D28170389D82A00E6B27D7DB5B7AAAE9FE31C`。
+- 神器图谱原生行为 517 项、物品栏 335 项通过。云天书典共用的原生界面测试 30,292 项通过，含地形 46 条、现实来源 17 条、320×240 / 375×812 / 812×375 的阅读布局、完整换行和触屏目标。云天书典逻辑 627 项、双人庇护帐 1,777 项、钓鱼 40 项、书柜及盐晶工艺回归通过。
+- 交付本地源码及 Release 编译验证。Android 7723 的实际画面、来源按钮行为、触屏操作与真实联机待验证。
+
 ## 2026-11-22 · 1.8.0 地形盘点与盐晶工艺
 
 - 从 Git 索引快照运行 `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`，通过 Windows 固定目标 `Net_x25.01.17` 的程序集哈希、加载器 ABI 和 898、899 的原生 ID 检查。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用本机 SDK 9.0.300 执行 `dotnet build SCIE-Port/artifacts/salt-crafting-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/salt-crafting-staged/build --nologo`，0 警告、0 错误。

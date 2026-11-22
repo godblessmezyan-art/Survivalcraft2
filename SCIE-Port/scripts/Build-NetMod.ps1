@@ -1471,8 +1471,9 @@ try {
 
     $geologyRows = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/Geology.csv') -Delimiter ';' -Encoding UTF8)
     $geologyClasses = [ordered]@{ VolcanicRockBlock = '0'; BasaltPillarBlock = '1'; VolcanicSandBlock = '3'; TravertineBlock = '4';
-        PaintedStrataBlock = '5'; KarstLimestoneBlock = '9'; BlueIceBlock = '10'; SaltCrustBlock = '11'; MineralWaterBlock = '189' }
-    if ($geologyRows.Count -ne $geologyClasses.Count) { throw 'Geology.csv must register nine geological block types.' }
+        PaintedStrataBlock = '5'; KarstLimestoneBlock = '9'; BlueIceBlock = '10'; SaltCrustBlock = '11'; MineralWaterBlock = '189';
+        ShellLimestoneBlock = '16'; BandedGlacierIceBlock = '17'; LayeredKarstBlock = '19' }
+    if ($geologyRows.Count -ne $geologyClasses.Count) { throw 'Geology.csv must register the expected geological block types.' }
     foreach ($name in $geologyClasses.Keys) {
         $rows = @($geologyRows | Where-Object { $_.'Class Name' -eq $name })
         $water = $name -eq 'MineralWaterBlock'
@@ -1492,6 +1493,11 @@ try {
         for ($x = 0; $x -lt 384; $x++) {
             for ($y = 0; $y -lt 32; $y++) {
                 if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 0–11 must be fully opaque.' }
+            }
+        }
+        for ($x = 0; $x -lt 160; $x++) {
+            for ($y = 32; $y -lt 64; $y++) {
+                if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 16–20 must be fully opaque.' }
             }
         }
     }

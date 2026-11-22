@@ -79,6 +79,20 @@ namespace SCIEPort.Features.Geology
     public sealed class BlueIceBlock : GeologyCube { public const int Index = 1011; }
     public sealed class SaltCrustBlock : GeologyCube { public const int Index = 1012; }
 
+    public sealed class ShellLimestoneBlock : GeologyCube { public const int Index = 895; }
+
+    public sealed class BandedGlacierIceBlock : GeologyCube
+    {
+        public const int Index = 896;
+        public override int GetFaceTextureSlot(int face, int value) => face >= 4 ? 18 : DefaultTextureSlot;
+    }
+
+    public sealed class LayeredKarstBlock : GeologyCube
+    {
+        public const int Index = 897;
+        public override int GetFaceTextureSlot(int face, int value) => face >= 4 ? 20 : DefaultTextureSlot;
+    }
+
     public sealed class MineralWaterBlock : WaterBlock
     {
         public new const int Index = 1013;

@@ -55,8 +55,9 @@ namespace SCIEPort.Features.Geology
             float crest = Edge((4.5f - ridge) / 3.5f) * Edge((22f - Math.Abs(v)) / 8);
             if (Math.Abs(v - breakAt) <= 2 && side < 5) crest = 0;
             int height = site.Sea - 9 + (int)Math.Round(7 * crest);
+            bool shell = crest > .72f && ((v + 24) / 5 & 1) == 0 && BlocksManager.Blocks[ShellLimestoneBlock.Index] is ShellLimestoneBlock;
             var result = new GeologyColumn(weight, height,
-                crest > .35f ? TravertineBlock.Index : SandBlock.Index, KarstLimestoneBlock.Index);
+                shell ? ShellLimestoneBlock.Index : crest > .35f ? TravertineBlock.Index : SandBlock.Index, KarstLimestoneBlock.Index);
             result.Flood(Terrain.MakeBlockValue(WaterBlock.Index), site.Sea);
             return result;
         }
@@ -74,8 +75,10 @@ namespace SCIEPort.Features.Geology
             float shoulders = Edge((18f - taper) / 6);
             float ends = Edge((28f - Math.Abs(v)) / 6);
             int height = site.Base - 8 + rise;
+            bool band = ice && face && taper > 2 && BlocksManager.Blocks[BandedGlacierIceBlock.Index] is BandedGlacierIceBlock;
             return new GeologyColumn(weight * shoulders * ends, height,
-                ice ? BlueIceBlock.Index : GraniteBlock.Index, face && ice ? BlueIceBlock.Index : GraniteBlock.Index);
+                band ? BandedGlacierIceBlock.Index : ice ? BlueIceBlock.Index : GraniteBlock.Index,
+                face && ice ? BlueIceBlock.Index : GraniteBlock.Index);
         }
     }
 }

@@ -5,7 +5,8 @@ namespace SCIEPort.Features.Codex
     {
         private readonly ComponentPlayer player;
         private readonly CanvasWidget panel=new CanvasWidget{Size=new Vector2(660,460),HorizontalAlignment=WidgetAlignment.Center,VerticalAlignment=WidgetAlignment.Center};
-        private readonly LabelWidget title,info;private readonly BlockIconWidget icon;private readonly BevelledButtonWidget close;
+        private readonly LabelWidget title,info;private readonly BlockIconWidget icon;private readonly BevelledButtonWidget close, terrainGuide;
+        private TerrainGuidePage guide;
         private readonly BevelledButtonWidget[] entries=new BevelledButtonWidget[CodexRules.Items.Length];private int selected;
         internal CodexDialog(ComponentPlayer p)
         {
@@ -22,6 +23,7 @@ namespace SCIEPort.Features.Codex
             var scrollFrame=new CanvasWidget{Size=new Vector2(376,142)};Add(scrollFrame,254,190);
             var scroll=new ScrollPanelWidget{HorizontalAlignment=WidgetAlignment.Stretch,VerticalAlignment=WidgetAlignment.Stretch};scrollFrame.Children.Add(scroll);
             info=new LabelWidget{Size=new Vector2(360,float.PositiveInfinity),FontScale=.65f,Color=new Color(55,47,40),WordWrap=true};scroll.Children.Add(info);
+            terrainGuide=Button("地形图鉴",312,392,154);
             close=Button("关闭",486,392,150);
         }
         private void Add(Widget w,float x,float y){panel.Children.Add(w);panel.SetWidgetPosition(w,new Vector2(x,y));}
@@ -29,8 +31,34 @@ namespace SCIEPort.Features.Codex
         /// <inheritdoc/>
         public override void Update()
         {
-            if(!SubsystemArtifactCodex.Held(player,CodexRules.Book)||close.IsClicked||Input.Cancel||Input.Back){Input.Clear();DialogsManager.HideDialog(this);return;}
-            var size=player.GuiWidget.ActualSize;float scale=MathUtils.Min(1,MathUtils.Min((size.X-16)/660,(size.Y-16)/460));if(scale>0)panel.LayoutTransform=Matrix.CreateScale(scale);
+            bool browsing = guide != null && guide.IsVisible;
+            if(!SubsystemArtifactCodex.Held(player,CodexRules.Book)||Input.Cancel||(!browsing&&(close.IsClicked||Input.Back))||(browsing&&guide.Close.IsClicked))
+            {Input.Clear();DialogsManager.HideDialog(this);return;}
+            var size=player.GuiWidget.ActualSize;
+            if (browsing)
+            {
+                if (guide.Back.IsClicked || Input.Back)
+                {
+                    Input.Clear();
+                    guide.IsVisible = false;
+                    panel.IsVisible = true;
+                }
+                else guide.Refresh(size);
+                return;
+            }
+            if (terrainGuide.IsClicked)
+            {
+                if (guide == null)
+                {
+                    guide = new TerrainGuidePage();
+                    Children.Add(guide);
+                }
+                panel.IsVisible = false;
+                guide.IsVisible = true;
+                guide.Refresh(size);
+                return;
+            }
+            float scale=MathUtils.Min(1,MathUtils.Min((size.X-16)/660,(size.Y-16)/460));if(scale>0)panel.LayoutTransform=Matrix.CreateScale(scale);
             for(int i=0;i<entries.Length;i++){if(entries[i].IsClicked)selected=i;entries[i].Text=CodexRules.Names[i];}
             int id=CodexRules.Items[selected];title.Text=CodexRules.Names[selected];icon.Value=Terrain.MakeBlockValue(id,15,0);
             info.Text=CodexRules.Information[selected];

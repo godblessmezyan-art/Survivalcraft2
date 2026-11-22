@@ -7,6 +7,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.Xml.Linq;
 using SCIEPort.Features.CelestialCodex.Mod;
 using Engine;
 using Engine.Graphics;
@@ -168,10 +169,82 @@ internal static class NativeUiChecks
         }
         finally { dialog.Dispose(); }
     }
+    static void CheckTerrainGuide(Action<bool, string> check)
+    {
+        var page = (CanvasWidget)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Codex.TerrainGuidePage", true), true);
+        try
+        {
+            var dataType = mod.GetType("SCIEPort.Features.Codex.TerrainGuideData", true);
+            var sections = (Array)dataType.GetField("Sections", F).GetValue(null);
+            var counts = new[] { mod.GetType("SCIEPort.Features.Geology.GeologyKind", true).GetEnumValues().Length,
+                mod.GetType("SCIEPort.Features.Landmarks.LandmarkKind", true).GetEnumValues().Length, 5 };
+            var names = new HashSet<string>();
+            int references = 0;
+            for (int section = 0; section < counts.Length; section++)
+            {
+                var entries = (Array)sections.GetValue(section);
+                check(entries.Length == counts[section], "terrain guide covers each registered formation category");
+                foreach (object entry in entries)
+                {
+                    string title = (string)Field(entry, "Name"), body = (string)Field(entry, "Text"), url = (string)Field(entry, "SourceUrl");
+                    check(names.Add(title) && body.StartsWith("游戏地形\n", StringComparison.Ordinal), "each terrain entry is distinct and describes the game");
+                    if (url == null) continue;
+                    references++;
+                    Uri parsed;
+                    check(Uri.TryCreate(url, UriKind.Absolute, out parsed) && parsed.Scheme == "https" && body.Length > 100 &&
+                        body.Contains("现实取景") && body.Contains("资料来源"), "documented landscape reference has a detailed entry and HTTPS source");
+                }
+            }
+            check(names.Count == 46 && references == 17, "all guide entries and documented comparisons are present");
+
+            foreach (Vector2 size in new[] { new Vector2(320, 240), new Vector2(375, 812), new Vector2(812, 375) })
+            {
+                Call(page, "Layout", size);
+                for (int section = 0; section < counts.Length; section++)
+                {
+                    Call(page, "SelectSection", section);
+                    var list = (ScrollPanelWidget)Field(page, "indexScroll");
+                    var reading = (ScrollPanelWidget)Field(page, "readingScroll");
+                    var guideTitle = (LabelWidget)Field(page, "title");
+                    var text = (LabelWidget)Field(page, "description");
+                    var source = (BevelledButtonWidget)Field(page, "source");
+                    var close = (Widget)page.GetType().GetProperty("Close", F).GetValue(page);
+                    var back = (Widget)page.GetType().GetProperty("Back", F).GetValue(page);
+                    int[] samples = section == 0 ? new[] { 0, 15, counts[section] - 1 } : new[] { 0, counts[section] - 1 };
+                    foreach (int row in samples)
+                    {
+                        reading.ScrollPosition = 150;
+                        Call(page, "SelectEntry", row);
+                        check(reading.ScrollPosition == 0, "new terrain entry resets the detail scroll");
+                        Widget.LayoutWidgetsHierarchy(page, size);
+                        Widget.LayoutWidgetsHierarchy(page, size);
+                        object entry = ((Array)sections.GetValue(section)).GetValue(row);
+                        check(guideTitle.Text == (string)Field(entry, "Name") && text.Text == (string)Field(entry, "Text"), "selected terrain is rendered on its first layout");
+                        check(list.ActualSize.Y >= 40 && reading.ActualSize.Y >= 38 &&
+                            reading.WidgetToScreen(reading.ActualSize).Y <= close.WidgetToScreen(Vector2.Zero).Y,
+                            "reading area and touch footer stay separate at " + size);
+                        bool linked = Field(entry, "SourceUrl") != null;
+                        check(source.IsVisible == linked, "source action is available only for a documented reference");
+                        if (linked) check(text.ActualSize.Y > 0 && string.Concat(text.m_lines).Where(c => !char.IsWhiteSpace(c))
+                            .SequenceEqual(text.Text.Where(c => !char.IsWhiteSpace(c))), "rendered lines retain the full geography text");
+                        foreach (Widget button in new[] { back, close, linked ? source : null }.Where(widget => widget != null))
+                            check(Widget.HitTestGlobal(page, button.WidgetToScreen(button.ActualSize / 2), null) is ClickableWidget,
+                                "guide buttons have native touch targets at " + size);
+                    }
+                }
+            }
+        }
+        finally { page.Dispose(); }
+    }
+
     internal static void Run(Assembly assembly, ZipArchive zip, Action<bool, string> check)
     {
         mod = assembly; CacheFont(Metrics(zip));
         using (Stream language = zip.GetEntry("Assets/Lang/zh-CN.json").Open()) LanguageControl.loadJson(language);
+        using (Stream button = zip.GetEntry("Assets/Widgets/BevelledButtonContents.xml").Open())
+            ((IDictionary)typeof(ContentManager).GetField("Caches", F).GetValue(null))["Widgets/BevelledButtonContents"] =
+                new List<object> { XElement.Load(button) };
+        CheckTerrainGuide(check);
         Type literal = mod.GetType("SCIEPort.Features.CelestialCodex.UI.CodexLabel"); var label = (LabelWidget)Activator.CreateInstance(literal, true);
         PropertyInfo text = literal.GetProperty("Text", F | BindingFlags.DeclaredOnly);
         CheckReadingSpacing(text, check);

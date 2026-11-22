@@ -50,6 +50,7 @@ public static class SpecialTerrainNativeProbe
         SharedHabitat("cold upland", new Habitat(106, 0, 7, 44f, GraniteBlock.Index, GraniteBlock.Index),
             new[] { "AlpineGlacier", "IceCave", "GlacialCirque", "FrostSteps" });
         WonderGeometry();
+        FieldMaterials();
         FjordGeometry();
         NativeLandmarks(fixture, 167537);
         Regional(fixture, TerrainGenerationMode.Continent, 167537);
@@ -350,7 +351,7 @@ public static class SpecialTerrainNativeProbe
             FixtureChunk(terrain, rim, sea, seed);
             Check(terrain.GetCellContents(center.X, 42, center.Y) == WaterBlock.Index &&
                 terrain.GetCellContents(center.X, 37, center.Y) == 1010, "blue hole is filled from the sea to its deep limestone floor");
-            Check(terrain.GetCellContents(rim.X, 60, rim.Y) == 1008 &&
+            Check(terrain.GetCellContents(rim.X, 60, rim.Y) == 895 &&
                 terrain.GetCellContents(rim.X, 64, rim.Y) == WaterBlock.Index, "blue hole has a submerged pale reef rim");
         }
 
@@ -373,6 +374,49 @@ public static class SpecialTerrainNativeProbe
                     Check(terrain.GetCellContents(cell.X, rock.Height + 3, cell.Y) == 1010, "gorge bridge spans the opening");
                 }
             }
+        }
+    }
+
+    private static void FieldMaterials()
+    {
+        var sea = new Habitat(58, 10, 8, -17f, LimestoneBlock.Index, SandBlock.Index);
+        var snow = new Habitat(106, 0, 7, 44f, GraniteBlock.Index, GraniteBlock.Index);
+        var rock = new Habitat(88, 12, 8, 44f, LimestoneBlock.Index, GrassBlock.Index);
+        CheckMaterial("BlueHole", sea, 895);
+        CheckMaterial("ReefChannels", sea, 895);
+        CheckMaterial("AlpineGlacier", snow, 896);
+        CheckMaterial("FrostSteps", snow, 896);
+        CheckMaterial("KarstBridges", rock, 897);
+        foreach (int id in new[] { 895, 896, 897 })
+        {
+            Block block = BlocksManager.Blocks[id];
+            var drops = new List<BlockDropValue>();
+            bool debris;
+            block.GetDropValues(null, Terrain.MakeBlockValue(id), 0, 0, drops, out debris);
+            Check(block.IsPlaceable && block.IsCollidable && block.GetCreativeValues().Single() == Terrain.MakeBlockValue(id),
+                "field material has one full-cube creative value: " + id);
+            Check(drops.Count == 1 && drops[0].Value == Terrain.MakeBlockValue(id) && drops[0].Count == 1,
+                "field material drops itself: " + id);
+        }
+        Check(BlocksManager.Blocks[896].FrictionFactor == BlocksManager.Blocks[1011].FrictionFactor,
+            "banded blue ice uses the same friction as game blue ice");
+    }
+
+    private static void CheckMaterial(string kind, Habitat habitat, int id)
+    {
+        int seed;
+        object site = FindSite(habitat, kind, out seed);
+        using (var terrain = new Terrain())
+        {
+            int matches = 0;
+            for (int dz = -2; dz <= 2; dz++)
+            for (int dx = -2; dx <= 2; dx++)
+            {
+                Point2 center = Offset(site, dx * 16, dz * 16);
+                TerrainChunk chunk = FixtureChunk(terrain, center, habitat, seed);
+                matches += chunk.Cells.Count(value => Terrain.ExtractContents(value) == id);
+            }
+            Check(matches > 0, kind + " produces its new surface material: " + id);
         }
     }
 

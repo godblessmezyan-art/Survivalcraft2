@@ -104,6 +104,7 @@ public static class TidePalaceProbe
         string pyramid, string[] artifactTables)
     {
         var artifacts = new HashSet<string>(artifactTables.Select(table => table.Split('\n')[1].Split(';')[0]));
+        var geologyClasses = new HashSet<string>(geology.Split('\n').Skip(1).Select(row => row.Split(';')[0]));
         for (int i = 0; i < BlocksManager.Blocks.Length; i++) BlocksManager.Blocks[i] = new AirBlock();
         foreach (var assembly in new[] { typeof(Block).Assembly, mod })
         foreach (var type in assembly.GetTypes())
@@ -112,7 +113,7 @@ public static class TidePalaceProbe
             var index = type.GetField("Index", Static | BindingFlags.DeclaredOnly);
             if (index == null || !index.IsLiteral || type.GetConstructor(Type.EmptyTypes) == null) continue;
             int id = (int)index.GetRawConstantValue();
-            if (assembly == mod && id != 954 && (id < 1005 || id > 1013) && id != PalaceId && id != 1023 &&
+            if (assembly == mod && id != 954 && !geologyClasses.Contains(type.Name) && id != PalaceId && id != 1023 &&
                 !artifacts.Contains(type.Name)) continue;
             var block = (Block)Activator.CreateInstance(type);
             block.BlockIndex = id;
