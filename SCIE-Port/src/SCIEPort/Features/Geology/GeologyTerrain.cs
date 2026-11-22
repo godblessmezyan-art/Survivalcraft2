@@ -17,6 +17,9 @@ namespace SCIEPort.Features.Geology
             if (site == null || !site.Touches(chunk)) return;
 
             var writes = new List<CellEdit>();
+            bool cloudfallCore = site.Kind == GeologyKind.CloudfallPeaks && chunk.Origin.X == (site.X & ~15) &&
+                chunk.Origin.Y == (site.Z & ~15);
+            if (cloudfallCore && !PlanCloudfallCore(chunk, site, writes)) return;
             bool hasBasin = site.Kind == GeologyKind.MagmaCrater && (site.X & ~15) == chunk.Origin.X &&
                 (site.Z & ~15) == chunk.Origin.Y;
             if (hasBasin && !PlanMagmaBasin(chunk, site, writes)) writes.Clear();
@@ -24,6 +27,7 @@ namespace SCIEPort.Features.Geology
             for (int z = 0; z < 16; z++)
             for (int x = 0; x < 16; x++)
             {
+                if (cloudfallCore && CloudfallProfiles.InCore(x - (site.X & 15), z - (site.Z & 15))) continue;
                 if (hasBasin && Math.Abs(x - (site.X & 15)) <= MagmaBasinRadius &&
                     Math.Abs(z - (site.Z & 15)) <= MagmaBasinRadius) continue;
                 if (site.Kind == GeologyKind.DuneLagoons && GeologyProfiles.IsLagoonPatch(site, chunk.Origin.X + x, chunk.Origin.Y + z))
@@ -37,6 +41,61 @@ namespace SCIEPort.Features.Geology
             // The native serializer normally skips untouched generated chunks. Persist geology
             // once encountered so a later world generator revision cannot reshape it on reload.
             chunk.ModificationCounter++;
+        }
+
+        // Native pass four plants trees after the geology pass. A trunk beside the trail can
+        // paint its canopy over the stone path, so clear that growth and restore the paving.
+        internal static void Finish(TerrainChunk chunk, ITerrainContentsGenerator generator, int seed, TerrainGenerationMode mode)
+        {
+            if (chunk.IsLoaded || !GeologySites.Enabled(mode) || !GeologyCube.Registered) return;
+            GeologySite site = GeologySites.Choose(generator, seed, chunk.Origin);
+            if (site == null || site.Kind != GeologyKind.CloudfallPeaks || !site.Touches(chunk)) return;
+
+            bool changed = false;
+            for (int z = 0; z < 16; z++)
+            for (int x = 0; x < 16; x++)
+            {
+                int dx = chunk.Origin.X + x - site.X;
+                int dz = chunk.Origin.Y + z - site.Z;
+                int u = dz * site.Facing.X - dx * site.Facing.Y;
+                int v = dx * site.Facing.X + dz * site.Facing.Y;
+                if (!CloudfallProfiles.IsTrail(u, v)) continue;
+
+                GeologyColumn shape = CloudfallProfiles.At(site, dx, dz);
+                int surface = shape.Surface;
+                if (surface < 5 || surface > 245) continue;
+                if (Vegetation(chunk.GetCellValueFast(x, surface, z)))
+                {
+                    chunk.SetCellValueFast(x, surface, z, shape.Cap);
+                    changed = true;
+                }
+                for (int y = surface + 1; y <= surface + 7 && y < 250; y++)
+                {
+                    if (!Vegetation(chunk.GetCellValueFast(x, y, z))) continue;
+                    chunk.SetCellValueFast(x, y, z, 0);
+                    changed = true;
+                }
+            }
+            if (changed) chunk.ModificationCounter++;
+        }
+
+        private static bool Vegetation(int value)
+        {
+            Block block = BlocksManager.Blocks[Terrain.ExtractContents(value)];
+            return block is LeavesBlock || block is LeavesBlock24 || block is WoodBlock ||
+                block is CrossBlock || block is FlowerBlock || block is IvyBlock;
+        }
+
+        private static bool PlanCloudfallCore(TerrainChunk chunk, GeologySite site, List<CellEdit> writes)
+        {
+            int cx = site.X & 15, cz = site.Z & 15;
+            for (int z = -CloudfallProfiles.CoreRadius; z <= CloudfallProfiles.CoreRadius; z++)
+            for (int x = -CloudfallProfiles.CoreRadius; x <= CloudfallProfiles.CoreRadius; x++)
+            {
+                GeologyColumn shape = CloudfallProfiles.At(site, x, z);
+                if (!PlanColumn(chunk, cx + x, cz + z, shape, site.Kind, writes)) return false;
+            }
+            return true;
         }
 
         private static bool PlanMagmaBasin(TerrainChunk chunk, GeologySite site, List<CellEdit> writes)
@@ -74,7 +133,7 @@ namespace SCIEPort.Features.Geology
             bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt ||
                 kind == GeologyKind.GraniteDomes || kind == GeologyKind.ErodedBadlands || kind == GeologyKind.GlacialCirque ||
                 kind == GeologyKind.KarstBridges || kind == GeologyKind.DuneLagoons || kind == GeologyKind.AlpineGlacier ||
-                kind == GeologyKind.TableMountain || kind == GeologyKind.FrostSteps;
+                kind == GeologyKind.TableMountain || kind == GeologyKind.FrostSteps || kind == GeologyKind.CloudfallPeaks;
             if ((kind == GeologyKind.BlueHole || kind == GeologyKind.ReefChannels) &&
                 Terrain.ExtractContents(chunk.GetCellValueFast(x, top, z)) != WaterBlock.Index)
                 return false;
@@ -114,7 +173,8 @@ namespace SCIEPort.Features.Geology
             for (int y = low; y <= high; y++)
             {
                 int contents = Terrain.ExtractContents(chunk.GetCellValueFast(offset + y));
-                if (!Natural(contents) && !(volcano && (contents == ClayBlock.Index || contents == CoalBlock.Index)))
+                bool nativeClay = (volcano || kind == GeologyKind.CloudfallPeaks) && contents == ClayBlock.Index;
+                if (!Natural(contents) && !nativeClay && !(volcano && contents == CoalBlock.Index))
                     return false;
             }
 

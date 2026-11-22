@@ -53,6 +53,7 @@ namespace SCIEPort.Features.Geology
         internal static GeologyColumn At(GeologySite site, int x, int z)
         {
             int dx = x - site.X, dz = z - site.Z;
+            if (site.Kind == CloudfallPeaks) return CloudfallProfiles.At(site, dx, dz);
             float radius = (float)Math.Sqrt(dx * dx + dz * dz);
             float weight = Edge((site.Radius - radius) / 7f);
             int v = dx * site.Facing.X + dz * site.Facing.Y;

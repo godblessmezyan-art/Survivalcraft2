@@ -1,5 +1,7 @@
 # 移植工程物品展示规范（0.44.0 起强制）
 
+1.10.0 的叠纹石英砂岩 892、崖苔岩 893 在「自然与生物」`SCIEPort.Nature` 展示 DATA 0。峰纹石阶 894 和它的原生染色变体在「建造与家居」`SCIEPort.Structures` 展示。[云瀑峰林](CLOUDFALL-1.10.0.md)
+
 1.9.0 的贝纹礁岩 895、冰纹蓝冰 896、层纹灰岩 897 在「自然与生物」`SCIEPort.Nature` 展示 DATA 0。神器图谱 955 的分类、主题和持有属性沿用，使用时新增地图资料阅读入口。[地形图鉴](TERRAIN-GUIDE-1.9.0.md)
 
 1.8.0 的盐晶 898 放入「自然与生物」`SCIEPort.Nature`，盐晶灯 899 放入「建造与家居」`SCIEPort.Structures`。两件物品展示 DATA 0，使用分类默认槽位样式。[盐晶工艺](TERRAIN-REVIEW-1.8.0.md)

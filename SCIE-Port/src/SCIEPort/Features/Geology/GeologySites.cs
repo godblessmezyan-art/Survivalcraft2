@@ -12,7 +12,7 @@ namespace SCIEPort.Features.Geology
         Crater, MagmaCrater, CraterLakes, Terraces, PaintedHills, BasaltCoast, Pinnacles, RiverCave, IceCave, SaltFlat,
         ColumnarBasalt, DryCanyon, GraniteDomes, ErodedBadlands, GlacialCirque,
         KarstBridges, DuneLagoons, BlueHole, AlpineGlacier,
-        CliffFjord, TableMountain, ReefChannels, FrostSteps
+        CliffFjord, TableMountain, ReefChannels, FrostSteps, CloudfallPeaks
     }
 
     internal sealed class GeologySite
@@ -53,6 +53,18 @@ namespace SCIEPort.Features.Geology
         {
             int rx = FloorDiv(origin.X, RegionWidth), rz = FloorDiv(origin.Y, RegionWidth);
             int seed = KellyPlantRules.GetChunkSeed(worldSeed ^ 0x625b7d3, rx, rz);
+            GeologySite existing = ChooseEstablished(generator, worldSeed, rx, rz, seed);
+            int roll = Grain(rx, rz, worldSeed ^ 0x4126fd, 10);
+            if (existing == null ? roll < 5 : roll < 2 && SharesCloudfallHabitat(existing.Kind))
+                return CloudfallProfiles.FindSite(generator, rx, rz, seed) ?? existing;
+            return existing;
+        }
+
+        private static bool SharesCloudfallHabitat(GeologyKind kind) => kind == GeologyKind.PaintedHills || kind == GeologyKind.Pinnacles ||
+            kind == GeologyKind.RiverCave || kind == GeologyKind.GraniteDomes || kind == GeologyKind.ColumnarBasalt || kind == GeologyKind.DryCanyon;
+
+        private static GeologySite ChooseEstablished(ITerrainContentsGenerator generator, int worldSeed, int rx, int rz, int seed)
+        {
             var random = new Game.Random(seed);
             if (!random.Bool(.83f)) return null;
             int sea = generator.OceanLevel;

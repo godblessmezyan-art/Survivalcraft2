@@ -64,6 +64,15 @@ namespace SCIEPort.Features.Plants
 
             try
             {
+                GeologyTerrain.Finish(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode);
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Cloudfall trail cleanup failed: " + error);
+            }
+
+            try
+            {
                 if (tidePalace?.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode) == true)
                     return;
             }

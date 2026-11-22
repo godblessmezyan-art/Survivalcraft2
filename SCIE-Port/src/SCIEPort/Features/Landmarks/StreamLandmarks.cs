@@ -39,7 +39,90 @@ namespace SCIEPort.Features.Landmarks
                     return plan;
                 }
             }
+            return SlopeWaterfall(terrain);
+        }
+
+        private static LandmarkPlan SlopeWaterfall(LandmarkTerrain terrain)
+        {
+            foreach (Point2 lip in terrain.Candidates())
+            {
+                int high = terrain.Surface(lip);
+                if (high < terrain.Sea + 3 || !Ground(terrain.SurfaceBlock(lip)) || terrain.Humidity(lip) < 3 ||
+                    terrain.Temperature(lip, high + 1) < 2 || terrain.Shore(lip) < 8f) continue;
+
+                foreach (Point2 front in terrain.Bearings())
+                {
+                    if (!Inside(At(lip, front, -2, 5)) || !Inside(At(lip, front, 2, 5)) ||
+                        !Inside(At(lip, front, 0, -1))) continue;
+                    int toe = terrain.Surface(At(lip, front, 0, 3));
+                    int level = toe - 1;
+                    if (level < terrain.Sea || high <= toe || high - level > 13 ||
+                        terrain.Surface(At(lip, front, 0, 1)) >= high) continue;
+
+                    int spring = Math.Max(high, level + 4);
+                    int rock = terrain.SurfaceBlock(lip);
+                    if (!Rock(rock)) rock = terrain.Read(lip, high - 1);
+                    if (!Rock(rock)) rock = LimestoneBlock.Index;
+                    int stone = Terrain.MakeBlockValue(rock);
+                    var plan = new LandmarkPlan(terrain);
+                    if (SculptPool(plan, terrain, lip, front, level, stone) &&
+                        SculptSpring(plan, terrain, lip, front, spring, level, stone)) return plan;
+                }
+            }
             return null;
+        }
+
+        private static bool SculptPool(LandmarkPlan plan, LandmarkTerrain terrain, Point2 lip, Point2 front, int level, int stone)
+        {
+            for (int v = 0; v <= 5; v++)
+            for (int side = -2; side <= 2; side++)
+            {
+                Point2 column = At(lip, front, side, v);
+                int top = terrain.Surface(column);
+                if (!Ground(terrain.SurfaceBlock(column))) return false;
+                bool rim = v == 0 || v == 5 || Math.Abs(side) == 2;
+                if (rim)
+                {
+                    if (top < level - 2 || !FillTo(plan, column, top, level, stone)) return false;
+                    for (int y = level - 1; y <= level; y++)
+                        if (!Ground(plan.Read(column, y))) return false;
+                    continue;
+                }
+
+                if (top < level - 1 || top > level + 4 || !Ground(plan.Read(column, level - 3))) return false;
+                if (!plan.Set(column, level - 2, stone, Ground)) return false;
+                for (int y = level - 1; y <= level; y++)
+                    if (!plan.Set(column, y, Source, PoolBed)) return false;
+                for (int y = level + 1; y <= top + 1; y++)
+                    if (!plan.Set(column, y, 0, block => Ground(block) || Open(block))) return false;
+            }
+            return true;
+        }
+
+        private static bool SculptSpring(LandmarkPlan plan, LandmarkTerrain terrain, Point2 lip, Point2 front, int high, int level, int stone)
+        {
+            int top = terrain.Surface(lip);
+            if (!FillTo(plan, lip, top, high - 1, stone) ||
+                !Ground(plan.Read(lip, high - 1)) || !plan.Set(lip, high, Source, block => Ground(block) || Open(block)) ||
+                !plan.Set(lip, high + 1, 0, Open)) return false;
+
+            foreach (Point2 wall in new[] { At(lip, front, -1, 0), At(lip, front, 1, 0), At(lip, front, 0, -1) })
+            {
+                int surface = terrain.Surface(wall);
+                if (surface < high - 4 || !Ground(terrain.SurfaceBlock(wall)) ||
+                    !FillTo(plan, wall, surface, high, stone) || !Ground(plan.Read(wall, high))) return false;
+            }
+            Point2 fall = At(lip, front, 0, 1);
+            for (int y = level + 1; y <= high; y++)
+                if (!plan.Set(fall, y, Falling, Open)) return false;
+            return true;
+        }
+
+        private static bool FillTo(LandmarkPlan plan, Point2 column, int top, int y, int stone)
+        {
+            for (int height = top + 1; height <= y; height++)
+                if (!plan.Set(column, height, stone, Open)) return false;
+            return true;
         }
 
         private static bool SpringFits(LandmarkTerrain terrain, Point2 lip, Point2 front, int high)

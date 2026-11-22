@@ -83,10 +83,21 @@ def field_tile(slot, x, y):
         base = (47, 115, 159) if slot == 17 else (62, 144, 189)
         ridge = (y + round(2 * sin(x * .196)) + (x // 4 if slot == 18 else 0)) % 8
         pattern = (79, 41, -22, -9, 0, 13, 8, -6)[ridge]
-    else:
+    elif slot in (19, 20):
         base = (147, 132, 111) if slot == 19 else (162, 151, 128)
         layer = (y + round(2 * sin(x * .196 + slot))) % 8
         pattern = (-36, -22, 1, 20, 28, 12, 4, -9)[layer]
+    elif slot in (21, 22, 23):
+        base = (208, 176, 132) if slot != 22 else (225, 197, 153)
+        layer = (y + round(1.4 * sin(x * .196))) % 16
+        pattern = -24 if layer in (3, 4, 12) else 11 if layer in (5, 13) else 0
+        if slot == 23 and (y < 5 + 3 * sin(x * .39) or grain > 4 and y < 13):
+            base, pattern = (87, 111, 57), pattern / 2
+    else:
+        base = (99, 123, 64)
+        pattern = hash_byte(x // 2, y // 2, 48) / 13 - 10
+        if grain < -4:
+            base = (150, 144, 100)
     return tuple(max(0, min(255, round(c + grain + pattern))) for c in base) + (255,)
 
 
@@ -115,7 +126,7 @@ def main():
                     glow = max(0, 17 - abs(x - 15) - abs(y - 14))
                     color = tuple(round(max(0, min(255, c + grain + facet + glow))) for c in (230, 162, 105)) + (255,)
                 atlas.putpixel((slot * 32 + x, y), color)
-    for slot in range(16, 21):
+    for slot in range(16, 25):
         for y in range(32):
             for x in range(32):
                 atlas.putpixel(((slot % 16) * 32 + x, (slot // 16) * 32 + y), field_tile(slot, x, y))

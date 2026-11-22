@@ -56,6 +56,7 @@ public static class SpecialTerrainNativeProbe
         Regional(fixture, TerrainGenerationMode.Continent, 167537);
         Regional(fixture, TerrainGenerationMode.Better, 167537);
         Console.WriteLine("Special terrain fixed target: " + checks + " checks passed.");
+        CloudfallNativeProbe.Run(mod, fixture);
     }
 
     private static string[] Draw(int seed, Point2 chunk)

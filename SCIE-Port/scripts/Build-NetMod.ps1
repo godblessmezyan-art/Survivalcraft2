@@ -1472,12 +1472,14 @@ try {
     $geologyRows = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/Geology.csv') -Delimiter ';' -Encoding UTF8)
     $geologyClasses = [ordered]@{ VolcanicRockBlock = '0'; BasaltPillarBlock = '1'; VolcanicSandBlock = '3'; TravertineBlock = '4';
         PaintedStrataBlock = '5'; KarstLimestoneBlock = '9'; BlueIceBlock = '10'; SaltCrustBlock = '11'; MineralWaterBlock = '189';
-        ShellLimestoneBlock = '16'; BandedGlacierIceBlock = '17'; LayeredKarstBlock = '19' }
+        ShellLimestoneBlock = '16'; BandedGlacierIceBlock = '17'; LayeredKarstBlock = '19';
+        PeakSandstoneBlock = '21'; MossyPeakRockBlock = '23'; PeakStoneStairsBlock = '21' }
     if ($geologyRows.Count -ne $geologyClasses.Count) { throw 'Geology.csv must register the expected geological block types.' }
     foreach ($name in $geologyClasses.Keys) {
         $rows = @($geologyRows | Where-Object { $_.'Class Name' -eq $name })
         $water = $name -eq 'MineralWaterBlock'
-        if ($rows.Count -ne 1 -or $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
+        $category = if ($name -eq 'PeakStoneStairsBlock') { 'SCIEPort.Structures' } else { 'SCIEPort.Nature' }
+        if ($rows.Count -ne 1 -or $rows[0].DefaultCategory -ne $category -or $rows[0].IsPlaceable -ne 'TRUE' -or
             $rows[0].DefaultTextureSlot -ne $geologyClasses[$name] -or
             $rows[0].Behaviors -ne $(if ($water) { 'WaterBehavior' } else { '' }) -or
             $rows[0].DefaultCreativeData -ne $(if ($water) { '-1' } else { '0' })) {
@@ -1495,9 +1497,9 @@ try {
                 if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 0–11 must be fully opaque.' }
             }
         }
-        for ($x = 0; $x -lt 160; $x++) {
+        for ($x = 0; $x -lt 288; $x++) {
             for ($y = 32; $y -lt 64; $y++) {
-                if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 16–20 must be fully opaque.' }
+                if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 16–24 must be fully opaque.' }
             }
         }
     }

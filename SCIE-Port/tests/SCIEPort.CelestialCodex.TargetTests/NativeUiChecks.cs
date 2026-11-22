@@ -195,7 +195,7 @@ internal static class NativeUiChecks
                         body.Contains("现实取景") && body.Contains("资料来源"), "documented landscape reference has a detailed entry and HTTPS source");
                 }
             }
-            check(names.Count == 46 && references == 17, "all guide entries and documented comparisons are present");
+            check(names.Count == 47 && references == 18, "all guide entries and documented comparisons are present");
 
             foreach (Vector2 size in new[] { new Vector2(320, 240), new Vector2(375, 812), new Vector2(812, 375) })
             {

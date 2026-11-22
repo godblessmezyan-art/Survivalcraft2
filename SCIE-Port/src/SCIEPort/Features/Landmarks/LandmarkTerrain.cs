@@ -12,13 +12,18 @@ namespace SCIEPort.Features.Landmarks
     {
         internal static void Generate(TerrainChunk chunk, ITerrainContentsGenerator generator, int worldSeed, TerrainGenerationMode mode)
         {
-            if (chunk.IsLoaded || !GeologySites.Enabled(mode) ||
-                !LandmarkDeck.Choose(worldSeed, chunk.Coords, out LandmarkKind? first, out LandmarkKind? second)) return;
+            if (chunk.IsLoaded || !GeologySites.Enabled(mode)) return;
+            bool hasCandidates = LandmarkDeck.Choose(worldSeed, chunk.Coords, out LandmarkKind? first, out LandmarkKind? second);
+            int waterfallSlot = GeologySites.Grain(chunk.Coords.X >> 1, chunk.Coords.Y >> 1, worldSeed ^ 0x482c71, 4);
+            bool hasWaterfallAttempt = waterfallSlot == (chunk.Coords.X & 1) + 2 * (chunk.Coords.Y & 1);
+            if (!hasCandidates && !hasWaterfallAttempt) return;
 
             int seed = KellyPlantRules.GetChunkSeed(worldSeed ^ 0x42d5961, chunk.Coords.X, chunk.Coords.Y);
             var random = new Game.Random(seed);
             var terrain = new LandmarkTerrain(chunk, generator, worldSeed, random.Int(0, 255), random.Int(0, 3));
             LandmarkPlan plan = Plan(first, terrain, random) ?? Plan(second, terrain, random);
+            if (plan == null && hasWaterfallAttempt && first != LandmarkKind.Waterfall && second != LandmarkKind.Waterfall)
+                plan = StreamLandmarks.Waterfall(terrain, random.Bool(.18f));
             plan?.Commit();
         }
 
