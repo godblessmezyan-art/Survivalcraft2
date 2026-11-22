@@ -7,6 +7,7 @@ namespace SCIEPort.Features.Geology
     internal struct GeologyColumn
     {
         internal float Weight;
+        internal bool RelativeSurface;
         internal int Surface, Cap, Rock, ColorBand;
         internal int Liquid, Waterline, SourceLine;
         internal int CaveFloor, CaveRoof, CaveLining;

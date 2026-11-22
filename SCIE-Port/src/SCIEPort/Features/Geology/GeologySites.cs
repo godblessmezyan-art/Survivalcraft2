@@ -20,6 +20,7 @@ namespace SCIEPort.Features.Geology
         internal readonly GeologyKind Kind;
         internal readonly int X, Z, Base, Radius, Seed, Sea, Outlet;
         internal readonly Point2 Facing;
+        internal int CloudfallSpringY { get; set; }
         internal int Extent => Radius + (GeologySites.IsVolcano(Kind) ? GeologyProfiles.VolcanoApron : 0);
 
         internal GeologySite(GeologyKind kind, int x, int z, int height, int radius, int seed, int sea, Point2 facing, int outlet = 0)

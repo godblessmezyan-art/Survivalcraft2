@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-22 · 1.10.2 云瀑峰林单道宽瀑
+
+- `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 校验固定程序集和 ABI。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，从索引快照运行 `dotnet build SCIE-Port/artifacts/cloudfall-single-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/cloudfall-single-staged/build --nologo`，0 警告、0 错误。
+- `Test-TidePalace.ps1` 的峰林和坡地瀑布 119 项通过。原生大陆、Better、岛屿模式分别确认 2/2、1/1、2/2 个选中的样点生成一条连续五格宽水幕，最近样点经历四轮原生流体更新后仍保持。验证了保留峰间原始地形、弯曲进路、潭岸、干扰方块整组回退、旧区块跳过和石阶配方。普通三格宽瀑布分别在 383、380、459 个抽样陆地区块实际生成 8、7、12 处。[样点坐标](CLOUDFALL-1.10.2.md)
+- 现有特殊地形 303,718 项、火山 16,626 项、水幕沉殿 384 项、日阶神殿 9,124 项通过。回归覆盖图鉴和神器、物品栏、山地庇护帐、书柜、云天书典、钓鱼和盐晶工艺。
+- 当前结果来自 Windows 固定目标的 Release 编译和原生生成验证。Android 7723 实景、探索表现与真实联机待验证。
+
 ## 2026-11-22 · 1.10.1 山地庇护帐睡觉修复
 
 - 固定目标检查通过。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用 SDK 9.0.300 执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17`，0 警告、0 错误。

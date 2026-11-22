@@ -7,42 +7,10 @@ namespace SCIEPort.Features.Landmarks
 {
     internal static class StreamLandmarks
     {
-        private static readonly int[] PoolWidths = { 1, 2, 3, 2, 1 };
         private static readonly int Source = Terrain.MakeBlockValue(WaterBlock.Index);
         private static readonly int Falling = Terrain.MakeBlockValue(WaterBlock.Index, 0, FluidBlock.SetLevel(0, 1));
 
         internal static LandmarkPlan Waterfall(LandmarkTerrain terrain, bool cave)
-        {
-            foreach (Point2 lip in terrain.Candidates())
-            {
-                int high = terrain.Surface(lip);
-                if (high < terrain.Sea + 4 || terrain.Shore(lip) < 12f || terrain.Humidity(lip) < 6 || terrain.Temperature(lip, high) < 2) continue;
-                int rock = terrain.SurfaceBlock(lip);
-                if (!Rock(rock))
-                {
-                    if (!Ground(rock) || !Rock(terrain.Read(lip, high - 1))) continue;
-                    rock = terrain.Read(lip, high - 1);
-                }
-                foreach (Point2 front in terrain.Bearings())
-                {
-                    Point2 fall = At(lip, front, 0, 1);
-                    Point2 basin = At(lip, front, 0, 3);
-                    if (!Inside(basin) || terrain.Surface(fall) >= high - 3) continue;
-                    int level = terrain.WaterSurface(basin);
-                    if (level == 0 && Ground(terrain.SurfaceBlock(basin))) level = terrain.Surface(basin) - 1;
-                    if (level < terrain.Sea - 1 || high - level < 4 || high - level > 14) continue;
-                    if (!SpringFits(terrain, lip, front, high)) continue;
-
-                    var plan = new LandmarkPlan(terrain);
-                    if (!DigPool(plan, terrain, lip, front, level, rock) || !FeedSpring(plan, lip, front, high, level)) continue;
-                    if (cave && high - level >= 6) TryCave(plan, lip, front, level);
-                    return plan;
-                }
-            }
-            return SlopeWaterfall(terrain);
-        }
-
-        private static LandmarkPlan SlopeWaterfall(LandmarkTerrain terrain)
         {
             foreach (Point2 lip in terrain.Candidates())
             {
@@ -65,8 +33,10 @@ namespace SCIEPort.Features.Landmarks
                     if (!Rock(rock)) rock = LimestoneBlock.Index;
                     int stone = Terrain.MakeBlockValue(rock);
                     var plan = new LandmarkPlan(terrain);
-                    if (SculptPool(plan, terrain, lip, front, level, stone) &&
-                        SculptSpring(plan, terrain, lip, front, spring, level, stone)) return plan;
+                    if (!SculptPool(plan, terrain, lip, front, level, stone) ||
+                        !SculptSpring(plan, terrain, lip, front, spring, level, stone)) continue;
+                    if (cave && spring - level >= 6) TryCave(plan, lip, front, level);
+                    return plan;
                 }
             }
             return null;
@@ -80,7 +50,7 @@ namespace SCIEPort.Features.Landmarks
                 Point2 column = At(lip, front, side, v);
                 int top = terrain.Surface(column);
                 if (!Ground(terrain.SurfaceBlock(column))) return false;
-                bool rim = v == 0 || v == 5 || Math.Abs(side) == 2;
+                bool rim = v == 0 || v == 5 || Math.Abs(side) == 2 || v == 4 && side != 0;
                 if (rim)
                 {
                     if (top < level - 2 || !FillTo(plan, column, top, level, stone)) return false;
@@ -101,98 +71,39 @@ namespace SCIEPort.Features.Landmarks
 
         private static bool SculptSpring(LandmarkPlan plan, LandmarkTerrain terrain, Point2 lip, Point2 front, int high, int level, int stone)
         {
-            int top = terrain.Surface(lip);
-            if (!FillTo(plan, lip, top, high - 1, stone) ||
-                !Ground(plan.Read(lip, high - 1)) || !plan.Set(lip, high, Source, block => Ground(block) || Open(block)) ||
-                !plan.Set(lip, high + 1, 0, Open)) return false;
-
-            foreach (Point2 wall in new[] { At(lip, front, -1, 0), At(lip, front, 1, 0), At(lip, front, 0, -1) })
+            for (int side = -2; side <= 2; side++)
             {
-                int surface = terrain.Surface(wall);
-                if (surface < high - 4 || !Ground(terrain.SurfaceBlock(wall)) ||
-                    !FillTo(plan, wall, surface, high, stone) || !Ground(plan.Read(wall, high))) return false;
+                Point2 edge = At(lip, front, side, 0);
+                int surface = terrain.Surface(edge);
+                if (surface < high - 4 || !Ground(terrain.SurfaceBlock(edge))) return false;
+                if (Math.Abs(side) == 2)
+                {
+                    if (!BuildSpringWall(plan, terrain, edge, high, stone)) return false;
+                    continue;
+                }
+                if (!BuildSpringWall(plan, terrain, At(lip, front, side, -1), high, stone) ||
+                    !FillTo(plan, edge, surface, high - 1, stone) || !Ground(plan.Read(edge, high - 1)) ||
+                    !plan.Set(edge, high, Source, block => Ground(block) || Open(block)) ||
+                    !plan.Set(edge, high + 1, 0, Open)) return false;
+
+                Point2 fall = At(lip, front, side, 1);
+                for (int y = level + 1; y <= high; y++)
+                    if (!plan.Set(fall, y, Falling, Open)) return false;
             }
-            Point2 fall = At(lip, front, 0, 1);
-            for (int y = level + 1; y <= high; y++)
-                if (!plan.Set(fall, y, Falling, Open)) return false;
             return true;
+        }
+
+        private static bool BuildSpringWall(LandmarkPlan plan, LandmarkTerrain terrain, Point2 wall, int high, int stone)
+        {
+            int surface = terrain.Surface(wall);
+            return surface >= high - 4 && Ground(terrain.SurfaceBlock(wall)) &&
+                FillTo(plan, wall, surface, high, stone) && Ground(plan.Read(wall, high));
         }
 
         private static bool FillTo(LandmarkPlan plan, Point2 column, int top, int y, int stone)
         {
             for (int height = top + 1; height <= y; height++)
                 if (!plan.Set(column, height, stone, Open)) return false;
-            return true;
-        }
-
-        private static bool SpringFits(LandmarkTerrain terrain, Point2 lip, Point2 front, int high)
-        {
-            // A short level spring channel enters the air column over the cliff. It cannot leak
-            // across the top of the hill when the native fluid simulator wakes this section.
-            if (!Ground(terrain.Read(At(lip, front, 0, -2), high))) return false;
-            for (int v = -1; v <= 0; v++)
-            {
-                Point2 channel = At(lip, front, 0, v);
-                if (!Ground(terrain.Read(channel, high - 1)) || !Ground(terrain.Read(channel, high)) ||
-                    !Open(terrain.Read(channel, high + 1))) return false;
-                if (!Ground(terrain.Read(At(lip, front, -1, v), high)) || !Ground(terrain.Read(At(lip, front, 1, v), high))) return false;
-            }
-            return terrain.Read(At(lip, front, 0, 1), high) == 0;
-        }
-
-        private static bool DigPool(LandmarkPlan plan, LandmarkTerrain terrain, Point2 lip, Point2 front, int level, int rock)
-        {
-            for (int v = 1; v <= PoolWidths.Length; v++)
-            for (int u = -PoolWidths[v - 1]; u <= PoolWidths[v - 1]; u++)
-            {
-                Point2 column = At(lip, front, u, v);
-                int top = terrain.Surface(column);
-                if (top < level - 2 || top > level + 2 || !PoolBed(terrain.SurfaceBlock(column))) return false;
-                int depth = v >= 2 && v <= 4 && Math.Abs(u) <= 1 ? 3 : 2;
-                int bed = level - depth;
-                if (!Ground(terrain.Read(column, bed - 1)) || !plan.Set(column, bed, Terrain.MakeBlockValue(rock), PoolBed)) return false;
-                for (int y = bed + 1; y <= level; y++)
-                    if (!plan.Set(column, y, Source, PoolBed)) return false;
-                for (int y = level + 1; y <= top + 1; y++)
-                    if (!plan.Set(column, y, 0, block => Ground(block) || Open(block))) return false;
-            }
-
-            // Seal the excavated footprint into existing rock/earth or same-level water.
-            // A shallow one-block dip gets a low stone edge, while deep cavities reject the site.
-            for (int v = 1; v <= PoolWidths.Length; v++)
-            for (int u = -PoolWidths[v - 1]; u <= PoolWidths[v - 1]; u++)
-            {
-                Point2 column = At(lip, front, u, v);
-                foreach (Point2 side in terrain.Bearings())
-                {
-                    Point2 neighbor = column + side;
-                    int atSurface = plan.Read(neighbor, level);
-                    if (!Ground(atSurface) && atSurface != WaterBlock.Index)
-                    {
-                        if (!Ground(plan.Read(neighbor, level - 1)) || !Open(plan.Read(neighbor, level + 1)) ||
-                            !plan.Set(neighbor, level, Terrain.MakeBlockValue(rock), Open)) return false;
-                    }
-                    for (int y = level - 2; y < level; y++)
-                    {
-                        if (plan.Read(column, y) != WaterBlock.Index) continue;
-                        int wall = plan.Read(neighbor, y);
-                        if (!Ground(wall) && wall != WaterBlock.Index) return false;
-                    }
-                }
-            }
-            return true;
-        }
-
-        private static bool FeedSpring(LandmarkPlan plan, Point2 lip, Point2 front, int high, int level)
-        {
-            for (int v = -1; v <= 0; v++)
-            {
-                Point2 channel = At(lip, front, 0, v);
-                if (!plan.Set(channel, high, Source, Ground) || !plan.Set(channel, high + 1, 0, Open)) return false;
-            }
-            Point2 fall = At(lip, front, 0, 1);
-            for (int y = level + 1; y <= high; y++)
-                if (!plan.Set(fall, y, Falling, block => block == 0)) return false;
             return true;
         }
 

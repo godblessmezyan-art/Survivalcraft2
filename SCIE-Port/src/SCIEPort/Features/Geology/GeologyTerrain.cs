@@ -64,6 +64,9 @@ namespace SCIEPort.Features.Geology
                 GeologyColumn shape = CloudfallProfiles.At(site, dx, dz);
                 int surface = shape.Surface;
                 if (surface < 5 || surface > 245) continue;
+                int cap = Terrain.ExtractContents(shape.Cap);
+                if (chunk.GetCellContentsFast(x, surface, z) != cap && chunk.GetCellContentsFast(x, surface - 1, z) != cap)
+                    continue;
                 if (Vegetation(chunk.GetCellValueFast(x, surface, z)))
                 {
                     chunk.SetCellValueFast(x, surface, z, shape.Cap);
@@ -93,7 +96,7 @@ namespace SCIEPort.Features.Geology
             for (int x = -CloudfallProfiles.CoreRadius; x <= CloudfallProfiles.CoreRadius; x++)
             {
                 GeologyColumn shape = CloudfallProfiles.At(site, x, z);
-                if (!PlanColumn(chunk, cx + x, cz + z, shape, site.Kind, writes)) return false;
+                if (shape.Weight > .02f && !PlanColumn(chunk, cx + x, cz + z, shape, site.Kind, writes)) return false;
             }
             return true;
         }
@@ -146,7 +149,8 @@ namespace SCIEPort.Features.Geology
             }
             if (ground < 5 || top >= 250) return false;
 
-            int surface = GeologyProfiles.Mix(ground, shape.Surface, shape.Weight);
+            int target = shape.RelativeSurface ? ground + shape.Surface : shape.Surface;
+            int surface = GeologyProfiles.Mix(ground, target, shape.Weight);
             bool tunnel = shape.CaveFloor != 0;
             if (tunnel) surface = Math.Max(surface, shape.CaveFloor);
             if (shape.Waterline != 0 && shape.Surface < shape.Waterline && shape.Weight >= .9f && !tunnel)
