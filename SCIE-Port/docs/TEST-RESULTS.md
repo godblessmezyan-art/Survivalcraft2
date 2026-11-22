@@ -1,5 +1,14 @@
 # 测试结果
 
+## 2026-11-22 · 0.94.0 奇幻地形
+
+- 从 `SCIE-Port` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-NetMod.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release -OutputDir 'D:\Dev\Survivalcraft2\SCIE-Port\artifacts\scenery-0.94.0'`，退出 0。固定 Windows 三程序集（net472 / API 1.42 / SC 2.4.10.6）、Release 构建、全部既有回归、统一包与版本副本校验通过；编译无警告。
+- 规则测试 `tests/SCIEPort.Scenery.Tests` 通过 101,576 项检查：世界种子确定性、海洋/陆地高度带、四分之一旋转体积守恒、跨区块裁剪稳定、沉船全在水下、空中场景净空、AABB 包含体素、方块 ID 完整、密度与每区块站点上限。
+- 资源守卫与固定目标原生探针 `scripts/Test-Scenery.ps1` 通过：`Scenery.csv` 6 行 / 10 个图集格 / 512×512 PNG；原生 26,078 项检查使用目标 `Engine.dll`、`EntitySystem.dll`、`Survivalcraft.exe` 和内存 Terrain，覆盖真实 `TerrainChunk` 写入、海床不被覆盖、沉船替换水且不露出水面、飞艇/浮空岛保持净空、客户端与 Nihility 跳过、正逆序区块生成一致、固体障碍不被覆盖、单区块预算及生成异常不破坏原生地形。
+- `Test-PortInventory.ps1` 以最终 DLL 通过 236 项检查 / 86 个实际方块分类：六个新方块可反射实例化，分类为 `SCIEPort.Structures`，创造变体不逃逸专用 Tab。
+- 统一包与版本副本字节一致：`荒野探险家.netmod` / `荒野探险家-0.94.0.netmod`，217 个条目、12,982,725 字节，SHA-256 `FFF2E9DE59EA7F8CC2876B5E2B3B290A96DE03C008B927793F406DD3E496E8C9`。相对 0.93.0 增加 `Assets/Blocks/Scenery.csv` 与 `Assets/Textures/Scenery.png`，并更新 `SCIEPort.dll`、`modinfo.json`。
+- Android 7723 实机、触屏放置六种新方块、长期世界分布、现有世界的已加载区块回填及真实 Local/Server/Client 联机 **待验证**。[奇幻地形专项](SCENERY-0.94.0.md)
+
 ## 2026-11-18 · 0.93.0 物品尺寸与植物生态
 
 - 从仓库根执行 `powershell -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/plants-0.93.0`。三份固定 Windows 程序集指纹、Release 构建和完整包检查通过。编译报告 0 警告、0 错误。

@@ -1,0 +1,7 @@
+Class Name;DefaultDisplayName;DefaultCategory;DisplayOrder;CraftingId;DefaultCreativeData;IsCollidable;IsPlaceable;IsDiggingTransparent;IsPlacementTransparent;IsGatherable;IsFluidBlocker;IsTransparent;GenerateFacesForSameNeighbors;DefaultShadowStrength;LightAttenuation;DefaultEmittedLightAmount;MaxStacking;DefaultSoundMaterialName;DigMethod;DigResilience;DefaultTextureSlot;DestructionDebrisScale;DefaultDescription
+SceneryCloudstoneBlock;云石;SCIEPort.Structures;351;scieport-scenery-cloudstone;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;6;1;0;40;Stone;Hack;2;5;1.5;
+SceneryHullBlock;沉船船板;SCIEPort.Structures;352;scieport-scenery-hull;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;6;1;0;40;Wood;Hack;2;0;1.5;
+SceneryEnvelopeBlock;飞艇蒙皮;SCIEPort.Structures;353;scieport-scenery-envelope;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;6;1;0;40;Grass;Hack;1;2;1.5;
+SceneryCrystalBlock;云晶;SCIEPort.Structures;354;scieport-scenery-crystal;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;8;1;12;40;Stone;Hack;3;6;1.5;
+SceneryBrassBlock;飞艇铜件;SCIEPort.Structures;355;scieport-scenery-brass;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;6;1;0;40;Metal;Hack;3;8;1.5;
+ScenerySailBlock;破帆布;SCIEPort.Structures;356;scieport-scenery-sail;0;TRUE;TRUE;FALSE;FALSE;FALSE;TRUE;FALSE;FALSE;6;1;0;40;Grass;Hack;1;9;1.5;

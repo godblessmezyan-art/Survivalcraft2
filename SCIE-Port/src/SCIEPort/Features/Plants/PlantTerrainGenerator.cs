@@ -7,6 +7,7 @@ using SCIEPort.Features.Bamboo;
 using SCIEPort.Features.Crops;
 using SCIEPort.Features.Flax;
 using SCIEPort.Features.KellyPlants;
+using SCIEPort.Features.Scenery;
 using SCIEPort.Features.Sunflower;
 
 namespace SCIEPort.Features.Plants
@@ -48,6 +49,15 @@ namespace SCIEPort.Features.Plants
             catch (Exception error)
             {
                 Log.Error("[SCIEPort] Natural plant generation failed: " + error);
+            }
+
+            try
+            {
+                SceneryGenerator.Generate(chunk, this, gameInfo.WorldSeed);
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Fantasy scenery generation failed: " + error);
             }
         }
 
