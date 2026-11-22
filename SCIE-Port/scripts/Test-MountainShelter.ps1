@@ -8,7 +8,7 @@ $csvPath = Join-Path $root 'src/SCIEPort/Assets/Blocks/MountainShelter.csv'
 $csv = Import-Csv -LiteralPath $csvPath -Delimiter ';' -Encoding UTF8
 if ($csv.'Class Name' -ne 'MountainShelterBlock' -or $csv.DefaultCategory -ne 'SCIEPort.Structures' -or
     $csv.Behaviors -ne 'SCIEPortMountainShelter' -or $csv.DefaultCreativeData -ne '0' -or
-    $csv.DefaultEmittedLightAmount -ne '12' -or $csv.SleepSuitability -ne '0') {
+    $csv.DefaultEmittedLightAmount -ne '12' -or $csv.SleepSuitability -ne '1') {
     throw 'Mountain shelter block registration or native lighting contract is invalid.'
 }
 

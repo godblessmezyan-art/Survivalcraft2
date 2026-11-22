@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Engine;
 using Game;
+using Game.NetWork;
 
 namespace SCIEPort.Features.MountainShelter
 {
@@ -145,6 +146,30 @@ namespace SCIEPort.Features.MountainShelter
             var point = new Point3(Terrain.ToCell(body.Position.X), Terrain.ToCell(body.Position.Y), Terrain.ToCell(body.Position.Z));
             site = default;
             return Ready(point) && Locate(point, Value(point), out site, out int part) && part < 8 && Inside(body, site) >= 0;
+        }
+
+        internal static bool RequestGuiSleep(ComponentPlayer player)
+        {
+            var subsystem = player?.Project?.FindSubsystem<SubsystemMountainShelter>(false);
+            return subsystem != null && subsystem.TryGuiSleep(player);
+        }
+
+        private bool TryGuiSleep(ComponentPlayer player)
+        {
+            if (!TryAt(player.ComponentBody, out Site site)) return false;
+            if (CommonLib.WorkType == WorkType.Client)
+            {
+                Point3 point = new Point3(Terrain.ToCell(player.ComponentBody.Position.X),
+                    Terrain.ToCell(player.ComponentBody.Position.Y), Terrain.ToCell(player.ComponentBody.Position.Z));
+                CommonLib.Net.QueuePackage(new MountainShelterPackage
+                {
+                    Point = point,
+                    Expected = Terrain.ReplaceLight(Value(point), 5),
+                    Place = false
+                });
+            }
+            else TrySleep(player, site);
+            return true;
         }
 
         private bool HasSleeper(Site site, int lane)

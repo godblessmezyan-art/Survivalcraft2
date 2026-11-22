@@ -232,6 +232,32 @@ namespace SCIEPort.Mod
         }
 
         /// <inheritdoc />
+        public override void OnModalPanelWidgetSet(ComponentGui gui, Widget Old, Widget New)
+        {
+            if (!(New is ClothingWidget clothing)) return;
+            ClickableWidget clickable = FindClickable(clothing.m_sleepButton);
+            if (clickable == null) return;
+            var previous = clickable.OnClick;
+            clickable.OnClick = delegate
+            {
+                if (SubsystemMountainShelter.RequestGuiSleep(clothing.m_componentPlayer))
+                    clickable.IsClicked = false;
+                previous?.Invoke();
+            };
+        }
+
+        private static ClickableWidget FindClickable(Widget root)
+        {
+            if (root is BevelledButtonWidget button) return button.m_clickableWidget;
+            if (root is ContainerWidget container)
+            {
+                foreach (Widget child in container.AllChildren)
+                    if (child is ClickableWidget clickable) return clickable;
+            }
+            return null;
+        }
+
+        /// <inheritdoc />
         public override void OnModelAnimate(ComponentCreatureModel model, out bool skip)
         {
             skip = model?.Project.FindSubsystem<SubsystemHomeFurniture>(false)?.AnimateSeat(model) == true;

@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-22 · 1.10.1 山地庇护帐睡觉修复
+
+- 固定目标检查通过。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用 SDK 9.0.300 执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17`，0 警告、0 错误。
+- 对编译 DLL 执行 `Test-MountainShelter.ps1`，1,777 项通过。`Build-NetMod.ps1` 全量回归和统一包校验通过；人物界面睡觉按钮在帐内改走庇护帐入睡流程，清除点击标记以阻止原版漏风判定。
+- `荒野探险家-1.10.1.netmod` 与 `荒野探险家.netmod` 字节一致，SHA-256 为 `DF63E4519998904E412A995122F6AA0AB2C75DC016FFDC6EB7F8206532072326`。包内 `Assets/Blocks/MountainShelter.csv` 的 SleepSuitability 为 1，`SCIEPort.dll` 文件版本 1.10.1.0。
+- Android 7723 实际触屏点击、单机/主机/普通客户端的真实睡觉同步待验证。
+
 ## 2026-11-22 · 1.9.0 地形图鉴与地貌材料
 
 - 固定目标 `Net_x25.01.17` 的程序集哈希、ABI 和 895–897 的原生 ID 校验通过。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用 SDK 9.0.300 执行 `dotnet build SCIE-Port/artifacts/terrain-guide-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/terrain-guide-staged/build --nologo`，0 警告、0 错误。
