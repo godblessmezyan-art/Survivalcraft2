@@ -12,18 +12,26 @@ namespace SCIEPort.Features.MountainShelter
 
         internal static bool DoorPart(int part) => part == 0 || part == 1 || part == 4 || part == 5;
         internal static bool LampPart(int part) => part == 6 || part == 7;
+        internal static bool SkylightPart(int part) => part == 10 || part == 11;
+        internal static bool ViewPart(int part) => LampPart(part) || SkylightPart(part);
+        internal static bool SideFace(int face, int rotation) => face >= 0 && face < 4 && ((face + rotation) & 1) == 1;
 
-        internal static int Encode(int part, int rotation, bool closed = false, bool lit = false)
-            => 1 + (part << 4) + rotation + (closed ? 4 : 0) + (lit ? 8 : 0);
+        internal static int Encode(int part, int rotation, bool closed = false, bool lit = false, bool viewOpen = false)
+            => 1 + (part << 4) + rotation + (closed || viewOpen ? 4 : 0) + (lit ? 8 : 0);
 
         internal static bool Decode(int data, out int part, out int rotation, out bool closed, out bool lit)
+            => Decode(data, out part, out rotation, out closed, out lit, out _);
+
+        internal static bool Decode(int data, out int part, out int rotation, out bool closed, out bool lit, out bool viewOpen)
         {
             int bits = data - 1;
             part = bits >> 4;
             rotation = bits & 3;
-            closed = (bits & 4) != 0;
+            bool changed = (bits & 4) != 0;
+            closed = changed && DoorPart(part);
+            viewOpen = changed && ViewPart(part);
             lit = (bits & 8) != 0;
-            return part >= 0 && part < CellCount && (!closed || DoorPart(part)) && (!lit || LampPart(part));
+            return part >= 0 && part < CellCount && (!changed || closed || viewOpen) && (!lit || LampPart(part));
         }
 
         private static Point3 Offset(int rotation, int x, int y, int z)

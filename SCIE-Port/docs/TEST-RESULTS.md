@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-22 · 山地庇护帐天窗、窗帘和蓝色内饰
+
+- 固定环境检查通过。执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/mountain-shelter-views-20261122 --nologo`，0 警告、0 错误。
+- `Test-MountainShelter.ps1` 通过 1777 项。核验原生顺时针绕序、窗面开合后无遮挡视线、透明批次保留预乘 Alpha、四朝向碰撞、真实游戏射线按面区分窗帘和灯、远程请求序列化、两块天窗同步及窗灯状态独立。家居原生 911 项及物品栏 325 项通过。
+- Android 7723 实机显示、触屏及真实双端联机待验证。原安装包 SHA-256 与上一轮记录一致。
+
 ## 2026-11-22 · 山地庇护帐修复
 
 - `SCIE-Port/scripts/Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 通过。执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/mountain-shelter-fixes-20261122 --nologo`，0 警告、0 错误。

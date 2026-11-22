@@ -70,7 +70,7 @@ namespace SCIEPort.Features.MountainShelter
                 return false;
             var hit = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Digging);
             if (hit.HasValue && hit.Value.CellFace.Face == 4)
-                Submit(miner.ComponentPlayer, hit.Value.CellFace.Point, hit.Value.Value, true);
+                Submit(miner.ComponentPlayer, hit.Value.CellFace, hit.Value.Value, true);
             return true;
         }
 
@@ -79,13 +79,13 @@ namespace SCIEPort.Features.MountainShelter
         {
             if (miner?.ComponentPlayer == null || !Decode(hit.Value, out _, out _, out _, out _))
                 return false;
-            Submit(miner.ComponentPlayer, hit.CellFace.Point, hit.Value, false);
+            Submit(miner.ComponentPlayer, hit.CellFace, hit.Value, false);
             return true;
         }
 
-        private void Submit(ComponentPlayer player, Point3 point, int expected, bool place)
+        private void Submit(ComponentPlayer player, CellFace hit, int expected, bool place)
         {
-            var packet = new MountainShelterPackage { Point = point, Expected = Terrain.ReplaceLight(expected, 0), Place = place };
+            var packet = new MountainShelterPackage { Point = hit.Point, Expected = Terrain.ReplaceLight(expected, hit.Face + 1), Place = place };
             if (Authority) Enqueue(player, packet, null);
             else if (ReferenceEquals(CommonLib.MainPlayer, player)) CommonLib.Net.QueuePackage(packet);
         }
@@ -93,7 +93,7 @@ namespace SCIEPort.Features.MountainShelter
         internal void Enqueue(ComponentPlayer player, MountainShelterPackage packet, Client client)
         {
             Point3 point = packet.Point;
-            if (!Authority || !ShelterLayout.ValidRoot(new Point3(point.X, 2, point.Z)) || point.Y < 0 || point.Y > 254)
+            if (!Authority || packet.Face > 5 || !ShelterLayout.ValidRoot(new Point3(point.X, 2, point.Z)) || point.Y < 0 || point.Y > 254)
                 return;
             lock (requests)
             {
@@ -127,10 +127,10 @@ namespace SCIEPort.Features.MountainShelter
                 var player = request.Player;
                 Point3 point = request.Packet.Point;
                 if (!Available(player) || (request.Client != null && !ReferenceEquals(player.PlayerData.Client, request.Client))
-                    || !Ready(point) || !ExpectedCell(point, request.Packet) || !CanReach(player, point, request.Packet.Place))
+                    || !Ready(point) || !ExpectedCell(point, request.Packet) || !CanReach(player, request.Packet))
                     return;
                 if (request.Packet.Place) Deploy(player, point);
-                else Interact(player, point);
+                else Interact(player, point, request.Packet.Face);
             }
             catch (Exception ex) { Log.Error("[SCIEPort:MountainShelter] Interaction failed: " + ex); }
         }
@@ -143,29 +143,37 @@ namespace SCIEPort.Features.MountainShelter
         private bool ExpectedCell(Point3 point, MountainShelterPackage packet)
         {
             int actual = Signature(point);
-            if (actual == packet.Expected) return true;
+            if (actual == packet.Signature) return true;
             // Another sleeper can close the doors before this queued floor tap runs.
             return !packet.Place && Decode(actual, out int part, out int rotation, out _, out _) && part < 2
-                && Decode(packet.Expected, out int expectedPart, out int expectedRotation, out _, out _)
+                && Decode(packet.Signature, out int expectedPart, out int expectedRotation, out _, out _)
                 && part == expectedPart && rotation == expectedRotation;
         }
 
-        private bool CanReach(ComponentPlayer player, Point3 point, bool place)
+        private bool CanReach(ComponentPlayer player, MountainShelterPackage packet)
         {
+            Point3 point = packet.Point;
             Vector3 eye = player.ComponentCreatureModel.EyePosition;
             Vector3 offset = new Vector3(point);
             if (!(Vector3.DistanceSquared(eye, offset + new Vector3(.5f)) <= 25f)) return false;
-            if (place) return Reaches(eye, offset + new Vector3(.5f, .99f, .5f), point, false, true);
+            if (packet.Place) return Reaches(eye, offset + new Vector3(.5f, .99f, .5f), point, false, 4);
             int value = Value(point);
+            if (Decode(value, out int part, out int rotation, out _, out _) && ShelterLayout.LampPart(part))
+            {
+                bool side = ShelterLayout.SideFace(packet.Face, rotation);
+                var control = side ? new Vector3((part & 1) == 0 ? .03f : .97f, .64f, .52f) : new Vector3(.5f, .76f, .97f);
+                int face = ((side ? ((part & 1) == 0 ? 1 : 3) : 2) - rotation) & 3;
+                return Reaches(eye, offset + ShelterLayout.RotateCell(control, rotation), point, true, face);
+            }
             foreach (BoundingBox box in BlocksManager.Blocks[MountainShelterBlock.Index].GetCustomInteractionBoxes(SubsystemTerrain, value))
-                if (Reaches(eye, offset + (box.Min + box.Max) * .5f, point, true, false)) return true;
+                if (Reaches(eye, offset + (box.Min + box.Max) * .5f, point, true)) return true;
             return false;
         }
 
-        private bool Reaches(Vector3 eye, Vector3 end, Point3 point, bool interaction, bool top)
+        private bool Reaches(Vector3 eye, Vector3 end, Point3 point, bool interaction, int face = -1)
         {
             var hit = SubsystemTerrain.Raycast(eye, end, interaction, true, null);
-            return hit.HasValue && hit.Value.CellFace.Point.Equals(point) && (!top || hit.Value.CellFace.Face == 4);
+            return hit.HasValue && hit.Value.CellFace.Point.Equals(point) && (face < 0 || hit.Value.CellFace.Face == face);
         }
 
         private void Deploy(ComponentPlayer player, Point3 support)
@@ -296,8 +304,8 @@ namespace SCIEPort.Features.MountainShelter
             && SubsystemTerrain.Terrain.GetChunkAtCell(p.X, p.Z)?.State >= TerrainChunkState.InvalidLight;
         private int Value(Point3 p) => SubsystemTerrain.Terrain.GetCellValue(p.X, p.Y, p.Z);
         private int Signature(Point3 p) => Terrain.ReplaceLight(Value(p), 0);
-        private static int PartValue(int part, int rotation, bool closed = false, bool lit = false)
-            => Terrain.MakeBlockValue(MountainShelterBlock.Index, 0, ShelterLayout.Encode(part, rotation, closed, lit));
+        private static int PartValue(int part, int rotation, bool closed = false, bool lit = false, bool viewOpen = false)
+            => Terrain.MakeBlockValue(MountainShelterBlock.Index, 0, ShelterLayout.Encode(part, rotation, closed, lit, viewOpen));
 
         private static bool Decode(int value, out int part, out int rotation, out bool closed, out bool lit)
         {

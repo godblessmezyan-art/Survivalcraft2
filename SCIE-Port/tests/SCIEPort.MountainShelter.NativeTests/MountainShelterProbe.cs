@@ -121,18 +121,19 @@ public static class MountainShelterProbe
         MethodInfo build = meshType.GetMethod("Part", method);
         var point = new Point3(8, 64, 8);
         var generator = new BlockGeometryGenerator(terrain.Terrain, terrain, null, null, null, null);
+        BlockMesh unusedPane, leftPane, rightPane, roofPane, roofDark;
         for (int rotation = 0; rotation < 4; rotation++)
         {
-            var wall = (BlockMesh)build.Invoke(null, new object[] { 6, rotation, false, false });
-            var floor = (BlockMesh)build.Invoke(null, new object[] { 0, rotation, false, false });
-            Check(floor.Vertices.Array[16].Color == new Color(105, 119, 71), "upper surface of continuous tent floor uses canvas color");
+            var wall = BuildPart(build, 6, rotation, false, out unusedPane);
+            var floor = BuildPart(build, 0, rotation, false, out unusedPane);
+            Check(floor.Vertices.Array[16].Color == new Color(53, 88, 122), "upper surface of continuous tent floor uses blue canvas color");
             for (int i = 0; i < wall.Indices.Count; i += 3)
             {
                 var a = wall.Vertices.Array[wall.Indices.Array[i]];
                 var b = wall.Vertices.Array[wall.Indices.Array[i + 1]];
                 var c = wall.Vertices.Array[wall.Indices.Array[i + 2]];
-                Check(CellFace.Vector3ToFace(Vector3.Cross(b.Position - a.Position, c.Position - a.Position)) == a.Face,
-                    "shaded face metadata matches rotated geometry");
+                Check(CellFace.Vector3ToFace(Vector3.Cross(c.Position - a.Position, b.Position - a.Position)) == a.Face,
+                    "rotated terrain uses the native clockwise front-face convention");
             }
             var rock = point + CellFace.FaceToPoint3((3 - rotation) & 3);
             Set(terrain.Terrain, rock, 3);
@@ -142,6 +143,66 @@ public static class MountainShelterProbe
             Check(mesh.Indices.Count == wall.Indices.Count, "native terrain generator keeps the full canvas beside an opaque rock");
             Set(terrain.Terrain, rock, 0);
         }
+        var leftOpen = BuildPart(build, 6, 0, true, out leftPane);
+        var leftClosed = BuildPart(build, 6, 0, false, out unusedPane);
+        var rightOpen = BuildPart(build, 7, 0, true, out rightPane);
+        var roofOpen = BuildPart(build, 10, 0, true, out roofPane);
+        var roofClosed = BuildPart(build, 10, 0, false, out roofDark);
+        var eye = new Vector3(.5f, .71f, .52f);
+        Check(Hits(leftClosed, eye, -Vector3.UnitX) && !Hits(leftOpen, eye, -Vector3.UnitX) && Hits(leftPane, eye, -Vector3.UnitX),
+            "left curtain moves out of the sightline while retaining its pane");
+        Check(!Hits(rightOpen, eye, Vector3.UnitX) && Hits(rightPane, eye, Vector3.UnitX), "right curtain and pane mirror the left");
+        var underneath = new Vector3(.51f, -.1f, .54f);
+        Check(Hits(roofClosed, underneath, Vector3.UnitY) && roofDark.Indices.Count == 0
+            && !Hits(roofOpen, underneath, Vector3.UnitY) && Hits(roofPane, underneath, Vector3.UnitY),
+            "the skylight changes from opaque to a real transparent opening");
+        var transparent = new TerrainGeometrySubset();
+        Set(terrain.Terrain, point, Terrain.MakeBlockValue(0, 15, 0));
+        float standardLight = LightingManager.LightIntensityByLightValue[15];
+        LightingManager.LightIntensityByLightValue[15] = 1f;
+        try
+        {
+            shelter.GetType().GetMethod("GenerateGlazing", Instance)
+                .Invoke(shelter, new object[] { generator, point.X, point.Y, point.Z, leftPane, transparent });
+        }
+        finally { LightingManager.LightIntensityByLightValue[15] = standardLight; }
+        Check(transparent.Indices.Count == leftPane.Indices.Count && transparent.Vertices.Array[0].Color.A == leftPane.Vertices.Array[0].Color.A
+            && transparent.Vertices.Array[0].Color.B > 0 && transparent.Vertices.Array[0].Color.B < leftPane.Vertices.Array[0].Color.A,
+            "native translucent geometry receives a low premultiplied glass opacity");
+        Set(terrain.Terrain, point, 0);
+        for (int rotation = 0; rotation < 4; rotation++)
+        foreach (int part in new[] { 6, 7, 10, 11 })
+        {
+            int data = 1 + 16 * part + rotation;
+            Check(ReferenceEquals(shelter.GetCustomCollisionBoxes(terrain, Terrain.MakeBlockValue(947, 0, data)),
+                shelter.GetCustomCollisionBoxes(terrain, Terrain.MakeBlockValue(947, 0, data + 4))),
+                "clear windows retain a solid boundary and matching interaction geometry");
+        }
+    }
+
+    private static BlockMesh BuildPart(MethodInfo build, int part, int rotation, bool open, out BlockMesh pane)
+    {
+        object[] args = { part, rotation, false, false, open, null };
+        var mesh = (BlockMesh)build.Invoke(null, args);
+        pane = (BlockMesh)args[5];
+        return mesh;
+    }
+
+    private static bool Hits(BlockMesh mesh, Vector3 origin, Vector3 direction)
+    {
+        for (int i = 0; i < mesh.Indices.Count; i += 3)
+        {
+            Vector3 a = mesh.Vertices.Array[mesh.Indices.Array[i]].Position;
+            Vector3 edge1 = mesh.Vertices.Array[mesh.Indices.Array[i + 1]].Position - a;
+            Vector3 edge2 = mesh.Vertices.Array[mesh.Indices.Array[i + 2]].Position - a;
+            Vector3 p = Vector3.Cross(direction, edge2);
+            float determinant = Vector3.Dot(edge1, p);
+            if (Math.Abs(determinant) < .000001f) continue;
+            Vector3 s = origin - a, q = Vector3.Cross(s, edge1);
+            float u = Vector3.Dot(s, p) / determinant, v = Vector3.Dot(direction, q) / determinant;
+            if (u >= 0f && v >= 0f && u + v <= 1f && Vector3.Dot(edge2, q) / determinant > .00001f) return true;
+        }
+        return false;
     }
 
     private static void Move(ComponentPlayer player, Vector3 point, int? standing)
@@ -166,6 +227,19 @@ public static class MountainShelterProbe
         Check(hit.HasValue && hit.Value.CellFace.Point.Equals(point) && hit.Value.CellFace.Face == 4,
             "an actual downward ray reaches the floor from inside the open-plan shelter");
         Check(tent.OnInteract(hit.Value, p.ComponentMiner), "native hit is consumed as a sleep interaction");
+    }
+
+    private static void TapView(SubsystemMountainShelter tent, ComponentPlayer p, SubsystemTerrain terrain, Point3 point, Vector3 aim, int face)
+    {
+        var hit = terrain.Raycast(p.ComponentCreatureModel.EyePosition, aim, true, true, null);
+        Check(hit.HasValue && hit.Value.CellFace.Point.Equals(point) && hit.Value.CellFace.Face == face, "native touch ray hits the correct glass face");
+        Check(tent.OnInteract(hit.Value, p.ComponentMiner), "native view interaction routed to shelter");
+        tent.Update(.05f);
+    }
+
+    private static bool ViewOpen(Terrain cells, Point3 point)
+    {
+        return ((Terrain.ExtractData(Cell(cells, point)) - 1) & 4) != 0;
     }
 
     private static int Cell(Terrain cells, Point3 point) { return cells.GetCellValue(point.X, point.Y, point.Z); }
@@ -349,6 +423,33 @@ public static class MountainShelterProbe
                 tent.Update(.05f);
                 Check(shelter.GetEmittedLightAmount(Cell(cells, lamp)) == 12 && pending.Exists(p => p is SubsystemTerrainPackage),
                     "authenticated remote control changes the lamp and queues native terrain packets");
+                Move(left, new Vector3(15.5f,64.18f,8.5f), null);
+                Move(right, new Vector3(16.5f,64.18f,8.5f), null);
+                TapView(tent, left, terrain, lamp, new Vector3(15.02f,65.65f,8.52f), 1);
+                Check(ViewOpen(cells, lamp) && !ViewOpen(cells, lampRight), "one curtain opens independently without changing the other");
+                Put(lightRequest, "Expected", Terrain.ReplaceLight(Cell(cells, lampRight), 4));
+                using (var writer = new PackageStreamWriter())
+                {
+                    lightRequest.WriteData(writer);
+                    using (var reader = new PackageStreamReader(writer.Data()))
+                    {
+                        received = new MountainShelterPackage { From = client };
+                        received.ReadData(reader);
+                    }
+                }
+                received.Handle(netProject, CommonLib.Net, true);
+                tent.Update(.05f);
+                Check(ViewOpen(cells, lampRight) && shelter.GetEmittedLightAmount(Cell(cells, lamp)) == 12,
+                    "authenticated remote curtain tap survives serialization and preserves light state");
+                var roofLeft = new Point3(15,66,8);
+                var roofRight = new Point3(16,66,8);
+                TapView(tent, left, terrain, roofLeft, new Vector3(15.53f,66.17f,8.56f), 5);
+                Check(ViewOpen(cells, roofLeft) && ViewOpen(cells, roofRight), "either half switches the whole skylight");
+                TapView(tent, right, terrain, roofRight, new Vector3(16.53f,66.17f,8.56f), 5);
+                Check(!ViewOpen(cells, roofLeft) && !ViewOpen(cells, roofRight), "skylight returns to opaque from the other half");
+                Press(tent, left, cells, lamp);
+                Check(ViewOpen(cells, lamp) && ViewOpen(cells, lampRight) && shelter.GetEmittedLightAmount(Cell(cells, lamp)) == 0,
+                    "operating the lamp preserves both open curtains");
                 Move(left, new Vector3(15.5f,64.18f,7.5f), null);
                 Move(right, new Vector3(16.5f,64.18f,7.5f), null);
                 Press(tent, left, cells, new Point3(15,65,7));

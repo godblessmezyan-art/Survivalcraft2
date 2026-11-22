@@ -20,6 +20,9 @@ namespace SCIEPort.Features.MountainShelter
         internal Point3 Point;
         internal int Expected;
         internal bool Place;
+        // The expected terrain signature excludes light. Use those bits to carry a hit face without resizing the packet.
+        internal int Signature => Terrain.ReplaceLight(Expected, 0);
+        internal int Face => Terrain.ExtractLight(Expected) - 1;
 
         /// <inheritdoc/>
         public void WriteData(PackageStreamWriter writer)

@@ -13,6 +13,7 @@ namespace SCIEPort.Features.MountainShelter
         public const int Index = 947;
         internal static int ItemValue => Terrain.MakeBlockValue(Index);
         private readonly Dictionary<int, BlockMesh> meshes = new Dictionary<int, BlockMesh>();
+        private readonly Dictionary<int, BlockMesh> panes = new Dictionary<int, BlockMesh>();
         private static readonly Dictionary<int, BoundingBox[]> boxes = MakeBoxes();
         private Texture2D texture;
 
@@ -24,8 +25,9 @@ namespace SCIEPort.Features.MountainShelter
             meshes[0] = ShelterMesh.Folded();
             foreach (int data in boxes.Keys)
             {
-                ShelterLayout.Decode(data, out int part, out int rotation, out bool closed, out bool lit);
-                meshes[data] = ShelterMesh.Part(part, rotation, closed, lit);
+                ShelterLayout.Decode(data, out int part, out int rotation, out bool closed, out bool lit, out bool viewOpen);
+                meshes[data] = ShelterMesh.Part(part, rotation, closed, lit, viewOpen, out var glass);
+                if (glass.Indices.Count > 0) panes[data] = glass;
             }
             base.Initialize();
         }
@@ -41,6 +43,10 @@ namespace SCIEPort.Features.MountainShelter
                     result.Add(ShelterLayout.Encode(part, rotation, true), ShelterMesh.Boxes(part, rotation, true));
                 if (ShelterLayout.LampPart(part))
                     result.Add(ShelterLayout.Encode(part, rotation, lit: true), result[ShelterLayout.Encode(part, rotation)]);
+                if (ShelterLayout.ViewPart(part))
+                    result.Add(ShelterLayout.Encode(part, rotation, viewOpen: true), result[ShelterLayout.Encode(part, rotation)]);
+                if (ShelterLayout.LampPart(part))
+                    result.Add(ShelterLayout.Encode(part, rotation, lit: true, viewOpen: true), result[ShelterLayout.Encode(part, rotation)]);
             }
             return result;
         }
@@ -81,8 +87,27 @@ namespace SCIEPort.Features.MountainShelter
         /// <inheritdoc/>
         public override void GenerateTerrainVertices(BlockGeometryGenerator generator, TerrainGeometry geometry, int value, int x, int y, int z)
         {
-            if (Terrain.ExtractData(value) != 0 && meshes.TryGetValue(Terrain.ExtractData(value), out var mesh))
-                generator.GenerateShadedMeshVertices(this, x, y, z, mesh, Color.White, null, null, geometry.GetGeometry(texture).SubsetOpaque);
+            int data = Terrain.ExtractData(value);
+            if (data == 0 || !meshes.TryGetValue(data, out var mesh)) return;
+            var target = geometry.GetGeometry(texture);
+            generator.GenerateShadedMeshVertices(this, x, y, z, mesh, Color.White, null, null, target.SubsetOpaque);
+            if (panes.TryGetValue(data, out var glass))
+                GenerateGlazing(generator, x, y, z, glass, target.SubsetTransparent);
+        }
+
+        internal void GenerateGlazing(BlockGeometryGenerator generator, int x, int y, int z, BlockMesh glass, TerrainGeometrySubset target)
+        {
+            int start = target.Vertices.Count;
+            generator.GenerateMeshVertices(this, x, y, z, glass, Color.White, null, target);
+            // The target generator writes RGB only. Its transparent pass blends premultiplied colors.
+            for (int i = 0; i < glass.Vertices.Count; i++)
+            {
+                var vertex = target.Vertices.Array[start + i];
+                var color = vertex.Color;
+                int alpha = glass.Vertices.Array[i].Color.A;
+                vertex.Color = new Color(color.R * alpha / 255, color.G * alpha / 255, color.B * alpha / 255, alpha);
+                target.Vertices.Array[start + i] = vertex;
+            }
         }
 
         /// <inheritdoc/>

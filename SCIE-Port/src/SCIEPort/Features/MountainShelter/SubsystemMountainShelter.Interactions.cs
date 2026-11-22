@@ -6,7 +6,7 @@ namespace SCIEPort.Features.MountainShelter
 {
     public sealed partial class SubsystemMountainShelter
     {
-        private void Interact(ComponentPlayer player, Point3 point)
+        private void Interact(ComponentPlayer player, Point3 point, int face)
         {
             if (!Permitted(player, point) || !Locate(point, Value(point), out Site site, out int part) || !Complete(site))
                 return;
@@ -18,7 +18,11 @@ namespace SCIEPort.Features.MountainShelter
             }
             if (ShelterLayout.LampPart(part))
             {
-                if (Inside(player.ComponentBody, site) >= 0) ToggleLamp(player, site);
+                if (Inside(player.ComponentBody, site) >= 0)
+                {
+                    if (ShelterLayout.SideFace(face, site.Rotation)) ToggleCurtain(player, site, part);
+                    else ToggleLamp(player, site);
+                }
                 return;
             }
             if (part < 4)
@@ -26,7 +30,9 @@ namespace SCIEPort.Features.MountainShelter
                 TrySleep(player, site);
                 return;
             }
-            if (part < ShelterLayout.StructureCount) Pack(player, site);
+            if (part >= ShelterLayout.StructureCount) return;
+            if (Inside(player.ComponentBody, site) < 0) Pack(player, site);
+            else if (ShelterLayout.SkylightPart(part)) ToggleSkylight(player, site, part);
         }
 
         private void ToggleDoor(ComponentPlayer player, Site site, int lane)
@@ -77,11 +83,31 @@ namespace SCIEPort.Features.MountainShelter
         {
             Point3 left = site.At(6), right = site.At(7);
             if (!Permitted(player, left) || !Permitted(player, right)) return;
-            Decode(Value(left), out _, out _, out _, out bool lit);
+            ShelterLayout.Decode(Terrain.ExtractData(Value(left)), out _, out _, out _, out bool lit, out bool leftOpen);
+            ShelterLayout.Decode(Terrain.ExtractData(Value(right)), out _, out _, out _, out _, out bool rightOpen);
             Commit(new List<CellEdit>
             {
-                Edit(left, PartValue(6, site.Rotation, lit: !lit)),
-                Edit(right, PartValue(7, site.Rotation, lit: !lit))
+                Edit(left, PartValue(6, site.Rotation, lit: !lit, viewOpen: leftOpen)),
+                Edit(right, PartValue(7, site.Rotation, lit: !lit, viewOpen: rightOpen))
+            }, player.ComponentMiner);
+        }
+
+        private void ToggleCurtain(ComponentPlayer player, Site site, int part)
+        {
+            Point3 point = site.At(part);
+            ShelterLayout.Decode(Terrain.ExtractData(Value(point)), out _, out _, out _, out bool lit, out bool open);
+            Commit(new List<CellEdit> { Edit(point, PartValue(part, site.Rotation, lit: lit, viewOpen: !open)) }, player.ComponentMiner);
+        }
+
+        private void ToggleSkylight(ComponentPlayer player, Site site, int part)
+        {
+            Point3 left = site.At(10), right = site.At(11);
+            if (!Permitted(player, left) || !Permitted(player, right)) return;
+            ShelterLayout.Decode(Terrain.ExtractData(Value(site.At(part))), out _, out _, out _, out _, out bool clear);
+            Commit(new List<CellEdit>
+            {
+                Edit(left, PartValue(10, site.Rotation, viewOpen: !clear)),
+                Edit(right, PartValue(11, site.Rotation, viewOpen: !clear))
             }, player.ComponentMiner);
         }
 
