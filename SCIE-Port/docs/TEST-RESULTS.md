@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-22 · 1.8.0 地形盘点与盐晶工艺
+
+- 从 Git 索引快照运行 `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17`，通过 Windows 固定目标 `Net_x25.01.17` 的程序集哈希、加载器 ABI 和 898、899 的原生 ID 检查。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，使用本机 SDK 9.0.300 执行 `dotnet build SCIE-Port/artifacts/salt-crafting-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/salt-crafting-staged/build --nologo`，0 警告、0 错误。
+- `Test-SaltCrafting.ps1` 使用原生方块数据加载和配方匹配器检查两条合成、缺少材料拒绝、注册唯一性、盐晶不可放置、灯可放置、12 级光源与原生掉落。物品栏通过 329 项，构建输出的两份地质 CSV 和图集与源码一致。图集 SHA-256 为 `049A180DE6D528CAABD60A8A214A336494A14D967DC995B21A7E1CB1F93DF62C`，旧 12 张材质像素逐字节一致。
+- 固定目标回归通过。特殊地形 331,680 项，火山 16,626 项，水幕沉殿 384 项，日阶神殿 9,124 项，山地庇护帐 1,777 项，云天书典逻辑 627 项及固定目标 30,085 项。书柜模型、配方与碰撞检查通过，钓鱼固定目标 40 项通过。
+- 本次交付本地源码和 Release 编译验证。Android 7723、实际显示与触屏合成、真实联机待验证。
+
 ## 2026-11-22 · 山地庇护帐天窗、窗帘和蓝色内饰
 
 - 固定环境检查通过。执行 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/mountain-shelter-views-20261122 --nologo`，0 警告、0 错误。

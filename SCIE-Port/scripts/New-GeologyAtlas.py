@@ -3,7 +3,7 @@
 from math import sin
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 def hash_byte(x, y, seed):
@@ -78,6 +78,25 @@ def main():
         for y in range(32):
             for x in range(32):
                 atlas.putpixel((slot * 32 + x, y), pixel(slot, x, y))
+    draw = ImageDraw.Draw(atlas)
+    crystal = [(4, 24), (6, 13), (13, 5), (21, 7), (28, 16), (27, 24), (20, 28), (10, 28)]
+    draw.polygon([(x + 384, y) for x, y in crystal], fill=(190, 112, 82, 255))
+    draw.polygon([(390, 13), (397, 5), (405, 7), (402, 16), (393, 19)], fill=(255, 231, 193, 255))
+    draw.polygon([(402, 16), (405, 7), (412, 16), (411, 24), (404, 28)], fill=(225, 150, 110, 255))
+    draw.polygon([(393, 19), (402, 16), (404, 28), (394, 28)], fill=(250, 200, 153, 255))
+
+    for slot in (13, 14):
+        for y in range(32):
+            for x in range(32):
+                rim = min(x, 31 - x, y, 31 - y)
+                if rim < 3 or slot == 13 and y >= 26:
+                    color = pixel(2, x, y)
+                else:
+                    grain = line_noise(x, y, 121) + (hash_byte(x, y, 36) - 128) / 24
+                    facet = ((x + y // 2) % 9 - (y - x // 2) % 7) * 2
+                    glow = max(0, 17 - abs(x - 15) - abs(y - 14))
+                    color = tuple(round(max(0, min(255, c + grain + facet + glow))) for c in (230, 162, 105)) + (255,)
+                atlas.putpixel((slot * 32 + x, y), color)
     output = Path(__file__).resolve().parents[1] / "src/SCIEPort/Assets/Textures/Geology.png"
     atlas.save(output, optimize=True)
 

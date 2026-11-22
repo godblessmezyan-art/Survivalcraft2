@@ -371,6 +371,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-SaltCrafting.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Salt crafting target block checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-MountainShelter.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -888,6 +890,7 @@ try {
         'Assets/Blocks/Crops.csv',
         'Assets/Blocks/Bamboo.csv',
         'Assets/Blocks/Geology.csv',
+        'Assets/Blocks/SaltCrafting.csv',
         'Assets/Blocks/TidePalace.csv',
         'Assets/Blocks/Pyramid.csv',
         'Assets/Blocks/MountainShelter.csv',
