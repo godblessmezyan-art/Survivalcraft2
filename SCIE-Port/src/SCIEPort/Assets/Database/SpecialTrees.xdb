@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortSpecialTreeBehavior" Guid="b5093601-3a28-4e10-b357-c4326de06a1e" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="f41e031a-e5e5-405d-91e0-6c2c1c9fa15f" Value="SCIEPort.Features.SpecialTrees.SubsystemSpecialTreeBehavior" Type="string" />
+      <Parameter Name="Dependencies" Guid="15c3503c-8e4b-438a-9460-d8e2434af97e" Value="Terrain, Pickables" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortSpecialTreeBehavior" Guid="86e93d27-02a9-4534-ab71-43e63ac7a734" InheritanceParent="b5093601-3a28-4e10-b357-c4326de06a1e" />
+  </ProjectTemplate>
+</DatabaseObjects>

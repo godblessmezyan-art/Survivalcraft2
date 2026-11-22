@@ -19,6 +19,12 @@ namespace SCIEPort.Features.Apple
         public const int PlantSlotBase = 0;
         public const int FruitingSlot = 8;
         public const int AppleSlot = 9;
+        public const int BarkSlot = 16;
+        public const int EndGrainSlot = 17;
+        public const int LeavesSlot = 18;
+        public const int BlossomSlot = 19;
+        public const int GreenFruitSlot = 20;
+        public const int RipeFruitSlot = 21;
 
         public static Texture2D Atlas
         {
@@ -45,7 +51,7 @@ namespace SCIEPort.Features.Apple
                 strength,
                 block.DestructionDebrisScale,
                 Color.White,
-                block.GetFaceTextureSlot(4, value));
+                block.GetFaceTextureSlot(4, value)) { Texture = Atlas };
         }
     }
 
@@ -151,6 +157,15 @@ namespace SCIEPort.Features.Apple
         {
             showDebris = true;
             int data = Terrain.ExtractData(oldValue);
+
+            int part = AppleTreeRules.Part(data);
+            if ((part == AppleTreeRules.Root || part == AppleTreeRules.Trunk) && AppleTreeLayout.IsRegistered)
+            {
+                int wood = Terrain.MakeBlockValue(AppleWoodBlock.Index, 0,
+                    part == AppleTreeRules.Root ? AppleWoodBlock.GrownRoot : 0);
+                BlocksManager.Blocks[AppleWoodBlock.Index].GetDropValues(subsystemTerrain, wood, newValue, toolLevel, dropValues, out showDebris);
+                return;
+            }
 
             // A ripe, fruiting plant yields edible apples; this mirrors the audited
             // WildBerry behaviour where breaking a fruiting bush hands you the fruit.

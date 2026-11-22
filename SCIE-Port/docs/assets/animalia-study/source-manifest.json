@@ -1,0 +1,67 @@
+{
+  "repository": "https://github.com/ElCeejo/animalia",
+  "commit": "5895f403fd43a9464e06b3675af3495f50565a3f",
+  "license": "MIT",
+  "files": [
+    {
+      "path": "LICENSE",
+      "git_blob_sha": "ed8c3a0f748d3ada72e0630fb3d7a8d378bdc649",
+      "sha256": "43e1df82578d59e3a90f9e1ab99bb8cc78b91d1af167d7268833a6ab9d1328d1",
+      "bytes": 1064
+    },
+    {
+      "path": "mobs/cat.lua",
+      "git_blob_sha": "644f8abc747da9e79413dd7844ec8941985abd8b",
+      "sha256": "8b3a3d7d3a6320afb49ec94470c4fa3af2117bc7c946c581373d47048e23f778",
+      "bytes": 5917
+    },
+    {
+      "path": "mobs/chicken.lua",
+      "git_blob_sha": "4f025d23ea6e8ef7a3ee8068792dbb85e8d6db8e",
+      "sha256": "fcfa60c08d15fed80c6af6050f0d3d6227bb9a9abfca3a23a2b0f74b4ae088ef",
+      "bytes": 3373
+    },
+    {
+      "path": "mobs/fox.lua",
+      "git_blob_sha": "208f4174584a7900073eb72f475f8388d3328f05",
+      "sha256": "f0125c54c43020e66fc1898a3d5a42db647d349655d2e7621b2086ac77f298b7",
+      "bytes": 2125
+    },
+    {
+      "path": "models/animalia_cat.b3d",
+      "git_blob_sha": "1726d06b1b47e46be199c346eb8dfe7d561442d8",
+      "sha256": "cf86cbb934b516cb2b14d11d31c00267f389fa81c71cade30218e571059e965e",
+      "bytes": 165102
+    },
+    {
+      "path": "models/animalia_chicken.b3d",
+      "git_blob_sha": "5870d0005b4b344026c09c0089e5ce370817790f",
+      "sha256": "fdd9cf59c3db3eab69ee33fe989034f70a8723ba88bda04eb76ef5b3d53393ad",
+      "bytes": 69429
+    },
+    {
+      "path": "models/animalia_fox.b3d",
+      "git_blob_sha": "2e76956f9e103abab469f575135ebeea4974fa2e",
+      "sha256": "4f90fdee9ea847f742f94fa673f93cd8eb6df4a61ebbf05d6fc74cf63922ba59",
+      "bytes": 50506
+    },
+    {
+      "path": "textures/cat/animalia_cat_1.png",
+      "git_blob_sha": "89da6ecce01d81cec4c129da2428e56980512c24",
+      "sha256": "812dc392a96c6e78c791806e4ad1c9295b3fca2d9af2e40df4501502ece904f9",
+      "bytes": 9854
+    },
+    {
+      "path": "textures/chicken/animalia_chicken_1.png",
+      "git_blob_sha": "c98069b88cb890e1e55e890503af7519d0932512",
+      "sha256": "a1bf21ce8e84260eaf26359c46c227729061c94a15b3c994277bb832ac91cd7c",
+      "bytes": 9213
+    },
+    {
+      "path": "textures/fox/animalia_fox_1.png",
+      "git_blob_sha": "6dc327babf2ce03fef7b4e87cdad9832ebed129e",
+      "sha256": "1679979fb17954351e6f1bc0c9bae347e915f446d3b1432831423119722a7c50",
+      "bytes": 11613
+    }
+  ]
+}

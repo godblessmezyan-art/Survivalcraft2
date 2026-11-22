@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version='1.0' encoding='utf-8'?>
 <SCIEPortCreatures>
   <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
     <EntityTemplate Name="SCIEPortFox" Guid="c4a7298e-3f4d-4fd0-91db-3f02e6144110" InheritanceParent="49a9845c-3810-4092-ba53-df213d10d563">
       <MemberComponentTemplate Name="Creature" Guid="59450ba1-72a1-4bd5-b67c-59d68ad6e4b5">
-        <Parameter Name="DisplayName" Guid="17155acf-5285-4f80-92fb-d0374317f59f" Value="SCIE 狐狸" Type="string" />
-        <Parameter Name="Description" Guid="da798b49-b7c0-44ca-a009-33783351ed3a" Value="手动生成的 SCIE-Port 狐狸验证实体。" Type="string" />
+        <Parameter Name="DisplayName" Guid="17155acf-5285-4f80-92fb-d0374317f59f" Value="狐狸" Type="string" />
+        <Parameter Name="Description" Guid="da798b49-b7c0-44ca-a009-33783351ed3a" Value="" Type="string" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Body" Guid="1823ca65-5df2-4031-8182-e7ec4af7909d">
         <Parameter Name="BoxSize" Guid="21f42121-f978-4721-8ca3-3c6b4cbe4847" Value="0.62,0.68,0.95" Type="Vector3" />
@@ -26,7 +26,7 @@
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="FourLeggedModel" Guid="87b2868e-e1b4-4790-b59a-dc2db9a49860">
         <Parameter Name="ModelName" Guid="9e70be24-9c41-48bd-8577-c6ea99eed6fb" Value="Models/Fox" Type="string" />
-        <Parameter Name="TextureOverride" Guid="660e5e9d-34bd-4020-8470-41c2f2f8547d" Value="Textures/Fox" Type="string" />
+        <Parameter Name="TextureOverride" Guid="660e5e9d-34bd-4020-8470-41c2f2f8547d" Value="Textures/WildlifePalette" Type="string" />
         <Parameter Name="WalkAnimationSpeed" Guid="1ef82532-5910-4215-913d-7ac9d810e314" Value="0.95" Type="float" />
         <Parameter Name="WalkFrontLegsAngle" Guid="a63b3d76-84cd-49c9-9d30-c15d22ea67ba" Value="0.55" Type="float" />
         <Parameter Name="WalkHindLegsAngle" Guid="e3d19ae4-4eaf-4be2-9256-8615dc838bbd" Value="0.45" Type="float" />
@@ -38,12 +38,30 @@
       <MemberComponentTemplate Name="ChaseBehavior" Guid="b8e3cebb-d26d-44b0-b96c-738cfba9f513">
         <Parameter Name="AutoChaseMask" Guid="60d23cc8-1056-4a84-9a15-966538a7a3d5" Value="LandOther" Type="Game.CreatureCategory" />
         <Parameter Name="ChaseNonPlayerProbability" Guid="7e78e276-c2b8-42fd-b467-84851a3499ec" Value="0.35" Type="float" />
+        <Parameter Name="ChaseWhenAttackedProbability" Guid="a1359c63-162b-45ac-9d7f-f48d5997ee12" Type="float" Value="0.6" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="083fc2ab-323c-4795-8a86-a9330bb8f9db">
+        <Parameter Name="EggTypeIndex" Guid="9a310bb7-1740-4def-9e9b-53f07850b216" Type="int" Value="-1" />
+        <Parameter Name="ShowEgg" Guid="b44d1761-b97c-4f47-ab6b-b28d6651aee9" Type="bool" Value="False" />
+        <Parameter Name="DisplayName" Guid="619309cd-5801-409a-8dc5-98ba108160ea" Type="string" Value="" />
+      </ParameterSet>
+      <MemberComponentTemplate Name="Miner" Guid="e9092f2e-e341-46ea-8547-1a56a75c0730">
+        <Parameter Name="AttackPower" Guid="e610a93d-be58-4b8c-b54c-0c4a9755c59f" Type="float" Value="1.5" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="EatPickableBehavior" Guid="618eb46c-2a73-45f3-be1a-e5b3c3d4ba3c">
+        <ParameterSet Name="FoodFactors" Guid="9b6f3941-50e1-43ae-ab9b-270b5a93db20">
+          <Parameter Name="Grass" Guid="ca04ab08-9161-436d-88b5-c6006917b7a4" Type="float" Value="0" />
+          <Parameter Name="Fruit" Guid="c5f3bf01-9846-4a3c-a86f-6d1d1eca064d" Type="float" Value="0" />
+          <Parameter Name="Bread" Guid="70a8d2ef-ece9-4c2e-a5de-8955a404a99e" Type="float" Value="0" />
+          <Parameter Name="Fish" Guid="5e04a860-0698-4588-99d4-86f8aa5cd8f7" Type="float" Value="0.7" />
+          <Parameter Name="Meat" Guid="b2d20a8c-1df7-412a-98bd-f3f929dd6aaf" Type="float" Value="1" />
+        </ParameterSet>
       </MemberComponentTemplate>
     </EntityTemplate>
     <EntityTemplate Name="SCIEPortRabbit" Guid="5e3e7d1c-2997-4fa5-a64d-98d261916233" InheritanceParent="8e62c6e4-a544-4c09-a3fb-59fd37d5b998">
       <MemberComponentTemplate Name="Creature" Guid="ea6fe7a6-8acb-41f8-a0b3-a2af9c6b25bd">
-        <Parameter Name="DisplayName" Guid="1cb8ad36-ad51-403a-b16e-e3ae64eb6711" Value="SCIE 兔子" Type="string" />
-        <Parameter Name="Description" Guid="905a5a19-4463-454a-b684-c1542b8a94c3" Value="手动生成的 SCIE-Port 兔子验证实体，复用原生食草/群居/逃跑 AI。" Type="string" />
+        <Parameter Name="DisplayName" Guid="1cb8ad36-ad51-403a-b16e-e3ae64eb6711" Value="兔子" Type="string" />
+        <Parameter Name="Description" Guid="905a5a19-4463-454a-b684-c1542b8a94c3" Value="" Type="string" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Body" Guid="ef319a84-9262-4a5e-8c94-84811a3489be">
         <Parameter Name="BoxSize" Guid="1c8ce411-6c9e-4413-bf9d-46e81a68b2a6" Value="0.4,0.44,0.62" Type="Vector3" />
@@ -65,18 +83,41 @@
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="FourLeggedModel" Guid="e294e603-b3c0-40cd-863a-f1bce28fdba9">
         <Parameter Name="ModelName" Guid="ccae825f-6182-4aa3-97dd-72dddedc916a" Value="Models/Rabbit" Type="string" />
-        <Parameter Name="TextureOverride" Guid="0246237f-e914-44fd-b84b-a4e38a27175e" Value="Textures/Rabbit" Type="string" />
+        <Parameter Name="TextureOverride" Guid="0246237f-e914-44fd-b84b-a4e38a27175e" Value="Textures/WildlifePalette" Type="string" />
         <Parameter Name="WalkAnimationSpeed" Guid="5482a317-46ab-4f9d-b449-1903c782f5d7" Value="1.4" Type="float" />
         <Parameter Name="WalkFrontLegsAngle" Guid="0e247c8f-ec37-4667-97aa-963c4892af9f" Value="0.6" Type="float" />
         <Parameter Name="WalkHindLegsAngle" Guid="ba13d6d7-d6bf-4f97-a892-77bef2213efd" Value="0.7" Type="float" />
         <Parameter Name="WalkBobHeight" Guid="be441a16-602a-44a9-a45a-4e28ae73e137" Value="0.04" Type="float" />
         <Parameter Name="CanTrot" Guid="fda5e05f-16a3-42ae-9fc0-3788e0f545cc" Value="True" Type="bool" />
       </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="adb21aea-6ff1-488b-92d5-53895bd2d3d6">
+        <Parameter Name="EggTypeIndex" Guid="727167fc-07e6-4cc0-bc82-06f35a258e4c" Type="int" Value="-1" />
+        <Parameter Name="ShowEgg" Guid="80a9ed22-ea28-4536-9212-02a0add26c31" Type="bool" Value="False" />
+        <Parameter Name="DisplayName" Guid="d9d70612-793e-48e9-9099-219ab4166fcd" Type="string" Value="" />
+      </ParameterSet>
+      <MemberComponentTemplate Name="AvoidPlayerBehavior" Guid="60ac6efc-f6df-40f3-aa69-113969e47479" InheritanceParent="3942e891-6b50-467c-8da5-a15bc63e59e0">
+        <Parameter Name="DayRange" Guid="f1973801-fa42-40c7-983a-ae0d8f95e524" Type="float" Value="5" />
+        <Parameter Name="NightRange" Guid="ac07ac46-c490-4c7b-bc11-0cbd09bea0c8" Type="float" Value="5" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="EatPickableBehavior" Guid="7a4dc52a-a708-489a-ac68-0ffec320d203">
+        <ParameterSet Name="FoodFactors" Guid="7949a9ac-b36f-41cd-b978-cd9fae040e94">
+          <Parameter Name="Grass" Guid="68b64d97-866d-4863-ab63-81df96e7bb44" Type="float" Value="1" />
+          <Parameter Name="Fruit" Guid="9f8062cc-f983-4df9-8f41-656a15731048" Type="float" Value="1" />
+          <Parameter Name="Bread" Guid="f8f5e1f4-96f7-4117-946f-9baef065c88d" Type="float" Value="0" />
+          <Parameter Name="Fish" Guid="1843a360-d374-46f1-b78b-eb25db969f32" Type="float" Value="0" />
+          <Parameter Name="Meat" Guid="eb3a3358-6dad-4b4b-ad4e-e524b8caf252" Type="float" Value="0" />
+        </ParameterSet>
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="CreatureSounds" Guid="647d554f-b9b9-4937-8dee-c3830ce6ae31">
+        <Parameter Name="IdleSound" Guid="3a636ac1-89f3-485b-a921-4efce0525873" Value="" Type="string" />
+        <Parameter Name="PainSound" Guid="ba78aabf-bb83-4ab7-a235-c00d6ed53b6a" Value="" Type="string" />
+        <Parameter Name="AttackSound" Guid="172337d6-2bdb-4f9a-8a02-2e4aeb32e2e6" Value="" Type="string" />
+      </MemberComponentTemplate>
     </EntityTemplate>
     <EntityTemplate Name="SCIEPortChicken" Guid="af17b030-f4ba-4805-afbd-33b4f455da09" InheritanceParent="8e62c6e4-a544-4c09-a3fb-59fd37d5b998">
       <MemberComponentTemplate Name="Creature" Guid="9232f9ec-f3a8-4b94-ac15-642d1c3c461b">
-        <Parameter Name="DisplayName" Guid="defaa51e-0ffd-429b-8581-cb9e33569fac" Value="SCIE 鸡" Type="string" />
-        <Parameter Name="Description" Guid="690b443c-dd11-4d2f-885e-53b2f413e0b4" Value="手动生成的 SCIE-Port 鸡验证实体，复用原生食草/群居/逃跑 AI。" Type="string" />
+        <Parameter Name="DisplayName" Guid="defaa51e-0ffd-429b-8581-cb9e33569fac" Value="鸡" Type="string" />
+        <Parameter Name="Description" Guid="690b443c-dd11-4d2f-885e-53b2f413e0b4" Value="" Type="string" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Body" Guid="70ad203b-015d-4b58-8e33-5f7d82cbc630">
         <Parameter Name="BoxSize" Guid="712d7c70-884a-40cb-885f-f1ce7fb35f1b" Value="0.32,0.44,0.5" Type="Vector3" />
@@ -86,6 +127,7 @@
         <Parameter Name="WalkSpeed" Guid="e1773dda-88e7-47b2-a1ab-6ea5b59d02ca" Value="3.0" Type="float" />
         <Parameter Name="TurnSpeed" Guid="b9d03f25-add6-4632-b228-1f5c5efe3a1c" Value="12" Type="float" />
         <Parameter Name="AccelerationFactor" Guid="ca6d80e4-7ca2-4b35-b6db-52fad8a161d3" Value="1.5" Type="float" />
+        <Parameter Name="FlySpeed" Guid="b9d39bf8-5f29-45f0-ba9c-6479510d648a" Type="float" Value="0" />
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="Health" Guid="69b61c23-78b2-4f6c-9c97-73b0218315fb">
         <Parameter Name="AttackResilience" Guid="3abf7315-d03f-461d-948f-adfb3be3be3e" Value="2" Type="float" />
@@ -98,12 +140,109 @@
       </MemberComponentTemplate>
       <MemberComponentTemplate Name="FourLeggedModel" Guid="fe69dca2-a428-432a-9361-cfbcc129b429">
         <Parameter Name="ModelName" Guid="e38abb2f-424e-47bc-b955-85032d6cfa8e" Value="Models/Chicken" Type="string" />
-        <Parameter Name="TextureOverride" Guid="1ce19c13-54f4-43a0-9bf2-82b04ac3d996" Value="Textures/Chicken" Type="string" />
+        <Parameter Name="TextureOverride" Guid="1ce19c13-54f4-43a0-9bf2-82b04ac3d996" Value="Textures/WildlifePalette" Type="string" />
         <Parameter Name="WalkAnimationSpeed" Guid="21e61e59-2a17-4658-8fc5-99d74063f876" Value="1.6" Type="float" />
         <Parameter Name="WalkFrontLegsAngle" Guid="78188e4a-7261-40b7-aea6-ece175e381da" Value="0.5" Type="float" />
         <Parameter Name="WalkHindLegsAngle" Guid="997182ff-1559-4a76-87fa-1bb3193dad67" Value="0.5" Type="float" />
-        <Parameter Name="WalkBobHeight" Guid="3c368574-057e-4cfa-8316-bf931f1dca31" Value="0.05" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="3c368574-057e-4cfa-8316-bf931f1dca31" Value="0.025" Type="float" />
         <Parameter Name="CanTrot" Guid="d1bab5b9-96aa-4827-97fe-e99d096e86af" Value="True" Type="bool" />
+        <Parameter Name="Class" Guid="92c21acf-ea99-4946-b955-1831e9109e2e" Type="string" Value="Game.ComponentBirdModel" />
+        <Parameter Name="FlyAnimationSpeed" Guid="af9582c6-8401-4cb9-a75c-10cb56155f84" Type="float" Value="1" />
+        <Parameter Name="PeckAnimationSpeed" Guid="00e1c3e1-15bc-4891-b9a2-86f49bc366f3" Type="float" Value="2.5" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="2efe19bb-ad06-4745-94ff-c8fa69f99a90">
+        <Parameter Name="EggTypeIndex" Guid="10b7f7f6-8742-4cc2-a497-af6489a04b75" Type="int" Value="50" />
+        <Parameter Name="ShowEgg" Guid="785b4887-ea4d-4457-81bf-9e3bca432dff" Type="bool" Value="False" />
+        <Parameter Name="DisplayName" Guid="5d4f2964-715f-4c23-b523-3993ee47691c" Type="string" Value="鸡蛋" />
+        <Parameter Name="NutritionalValue" Guid="8abfb121-2741-4166-b6ee-a3d1fc8d4503" Value="0.2" Type="float" />
+        <Parameter Name="Color" Guid="513dddc0-4b4b-4e76-b8de-4add645443bb" Value="246,231,199" Type="Color" />
+      </ParameterSet>
+      <MemberComponentTemplate Name="AvoidPlayerBehavior" Guid="930a11ca-2b73-4c55-a716-f0b84de15f04" InheritanceParent="3942e891-6b50-467c-8da5-a15bc63e59e0">
+        <Parameter Name="DayRange" Guid="7c35acee-a400-4109-9475-1755f65409c9" Type="float" Value="5" />
+        <Parameter Name="NightRange" Guid="378e3213-b1d8-404a-8370-2bbe8dac6f5e" Type="float" Value="5" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="EatPickableBehavior" Guid="6b9eaa85-3aa7-4f87-ab98-7ebb6ed143e3">
+        <ParameterSet Name="FoodFactors" Guid="7b737cc5-b51c-4ee1-a69f-84e3d62638e1">
+          <Parameter Name="Grass" Guid="a1b95a6d-3420-4adb-99ac-cee4be555259" Type="float" Value="0.5" />
+          <Parameter Name="Fruit" Guid="4f536575-5cce-407d-ab04-09d99e6f12dc" Type="float" Value="1" />
+          <Parameter Name="Bread" Guid="25482ae8-5811-4d2a-aab6-7af41167982e" Type="float" Value="1" />
+          <Parameter Name="Fish" Guid="a3c50f33-8cf7-414d-87da-3c00e35af659" Type="float" Value="0" />
+          <Parameter Name="Meat" Guid="8cd6cd55-4e78-4df0-b58f-950cf00ad928" Type="float" Value="0" />
+        </ParameterSet>
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="LayEggBehavior" Guid="97bce43f-3b00-4214-bc01-be9e3d0e6236" InheritanceParent="9c8f236d-7a27-4cf4-b223-47a87cad977d">
+        <Parameter Name="LayFrequency" Guid="8ee75182-f912-4fe9-abec-b5d91a12a03d" Type="float" Value="0.0020833333333333333" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="CreatureSounds" Guid="d11cc1fd-061c-4eff-bd5e-c2889b8263e5">
+        <Parameter Name="IdleSound" Guid="c26b6174-3637-40f8-b125-23e7d1398b4b" Value="" Type="string" />
+        <Parameter Name="PainSound" Guid="49cb55b2-43c3-4e4d-a436-5d290dd9c5cc" Value="" Type="string" />
+        <Parameter Name="AttackSound" Guid="09c1223a-5b93-406d-932d-9cd632103b2f" Value="" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Loot" Guid="69926777-667a-4f74-a313-fd86dd6387c0">
+        <ParameterSet Name="Loot" Guid="e472e259-32a5-4438-a863-c30ef6e1930b">
+          <Parameter Name="1" Guid="41d01f50-1dd3-4e07-9c6e-4218123890a3" Value="RawBirdBlock;1;1" Type="string" />
+          <Parameter Name="2" Guid="01b37e93-be78-4d52-bc7b-1626d9a805a3" Value="FeatherBlock;1;1" Type="string" />
+        </ParameterSet>
+        <ParameterSet Name="LootOnFire" Guid="5a3ad541-a9de-4bc4-95fd-3e25829e3849">
+          <Parameter Name="1" Guid="f3d67ba4-ec26-4c0d-8e79-67670b72a909" Value="CookedBirdBlock;1;1" Type="string" />
+        </ParameterSet>
+      </MemberComponentTemplate>
+    </EntityTemplate>
+    <EntityTemplate Name="SCIEPortCat" Guid="05795cf6-8b09-414e-a4ed-d49c05fa4bae" InheritanceParent="8e62c6e4-a544-4c09-a3fb-59fd37d5b998">
+      <MemberComponentTemplate Name="Creature" Guid="491f33a0-60b9-4248-9fbb-cc121e3c418e">
+        <Parameter Name="DisplayName" Guid="7579d8e6-b2d2-4602-bf30-856c4cfa6299" Value="猫" Type="string" />
+        <Parameter Name="Description" Guid="21c20066-97b7-4c39-a794-c097570dbad1" Value="" Type="string" />
+        <Parameter Name="Category" Guid="f805b652-2995-4b9a-bdff-f1078c70e61d" Value="LandPredator" Type="Game.CreatureCategory" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="bb6c7574-27f2-4fa4-92db-ccd77a7dc409">
+        <Parameter Name="BoxSize" Guid="cadfcf96-a89b-4bb0-8bce-52494ce5da15" Value="0.34,0.52,0.72" Type="Vector3" />
+        <Parameter Name="Mass" Guid="3e7505de-86d0-41df-b895-693360f8d8d1" Value="4" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="e60e21fe-6762-4290-a6d9-4b68e540ec62">
+        <Parameter Name="WalkSpeed" Guid="5009d31e-e2d0-40ca-b401-4b2ee26beadd" Value="4.2" Type="float" />
+        <Parameter Name="TurnSpeed" Guid="7181f048-c458-43f1-b619-6227771636a6" Value="13" Type="float" />
+        <Parameter Name="AccelerationFactor" Guid="50756df2-38ae-47d3-8697-7920d901ef6a" Value="1.7" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="90855f89-5d70-4439-8df8-67904d9b14c7">
+        <Parameter Name="AttackResilience" Guid="912b720a-1d46-44ed-96c2-1ad4e87e379a" Value="5" Type="float" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="f2367f99-2025-4fcf-83f4-c6f78eae0887">
+        <Parameter Name="AutoDespawn" Guid="21f92e52-a4a7-44ff-b130-b88e843df8b1" Value="False" Type="bool" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="HerdBehavior" Guid="500707f9-4cfe-4d3b-8bc0-69c07c0dfc24">
+        <Parameter Name="HerdName" Guid="63d7c641-26b2-406c-925d-fcba2b6a4312" Value="SCIEPortCat" Type="string" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="FourLeggedModel" Guid="177f80b1-4037-41c5-b7a3-f4c84eb21408">
+        <Parameter Name="ModelName" Guid="c3c1769e-2708-4443-8cce-fcbb5447373e" Value="Models/Cat" Type="string" />
+        <Parameter Name="TextureOverride" Guid="7a45e56d-4e1a-42de-aa90-8f11adaca239" Value="Textures/WildlifePalette" Type="string" />
+        <Parameter Name="WalkAnimationSpeed" Guid="66d79a40-c8ad-4c01-a01a-667ae4ea63ea" Value="1.4" Type="float" />
+        <Parameter Name="WalkFrontLegsAngle" Guid="4d24e159-0390-406c-bedf-9a5ef620125d" Value="0.6" Type="float" />
+        <Parameter Name="WalkHindLegsAngle" Guid="f95e5bcc-1c7b-4168-b8c4-551b07ee8a72" Value="0.7" Type="float" />
+        <Parameter Name="WalkBobHeight" Guid="594ff0f7-f241-4560-a14d-2844eeed4ddd" Value="0.04" Type="float" />
+        <Parameter Name="CanTrot" Guid="b77340f6-230f-44f2-afe7-8644aeed8c41" Value="True" Type="bool" />
+      </MemberComponentTemplate>
+      <ParameterSet Name="CreatureEggData" Guid="127531fc-62fa-47eb-9dcf-0a9ecf1fa42f">
+        <Parameter Name="EggTypeIndex" Guid="43a0daa8-8aad-4002-8eb5-ff0b927aa833" Type="int" Value="-1" />
+        <Parameter Name="ShowEgg" Guid="4da3c385-e70b-4eff-82db-190ed368bc20" Type="bool" Value="False" />
+        <Parameter Name="DisplayName" Guid="3755db64-c641-468b-a60a-11221bc64d79" Type="string" Value="" />
+      </ParameterSet>
+      <MemberComponentTemplate Name="AvoidPlayerBehavior" Guid="30016f51-f9db-4763-b4c0-0db42243000f" InheritanceParent="3942e891-6b50-467c-8da5-a15bc63e59e0">
+        <Parameter Name="DayRange" Guid="9e1f49bd-5f0e-44c4-85f7-48ef69c73607" Type="float" Value="3" />
+        <Parameter Name="NightRange" Guid="f98634c2-1355-4659-b475-8afa61485ea3" Type="float" Value="3" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="EatPickableBehavior" Guid="0a246a7c-499f-482a-ad85-8c866e1536f4">
+        <ParameterSet Name="FoodFactors" Guid="23403bbd-45b3-46e9-9ddc-d03f388053cb">
+          <Parameter Name="Grass" Guid="f132cd97-2aa4-4466-9181-603a07050423" Type="float" Value="0" />
+          <Parameter Name="Fruit" Guid="ce8fa70b-8806-4f84-a3a4-78cdca6b83db" Type="float" Value="0" />
+          <Parameter Name="Bread" Guid="0b0de2d7-cc0c-480d-87ce-e5736c23dab9" Type="float" Value="0" />
+          <Parameter Name="Fish" Guid="05df2b63-4c7a-40b6-9788-f147e1280756" Type="float" Value="1" />
+          <Parameter Name="Meat" Guid="f153be1e-62cb-479b-a4f6-f8c4f7740bea" Type="float" Value="0.5" />
+        </ParameterSet>
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="CreatureSounds" Guid="1e60d6c8-268d-430d-b42f-d57a89d9ff42">
+        <Parameter Name="IdleSound" Guid="bf5ae136-bead-47ba-acc1-7a36866d57a0" Value="" Type="string" />
+        <Parameter Name="PainSound" Guid="8c675cbc-8e0d-40a6-95b5-100bd85e24fc" Value="" Type="string" />
+        <Parameter Name="AttackSound" Guid="28921800-7dd4-4370-81c4-d1c33db2e20f" Value="" Type="string" />
       </MemberComponentTemplate>
     </EntityTemplate>
   </Folder>
@@ -117,10 +256,14 @@
     <SubsystemTemplate Name="SCIEPortChickenSpawnBehavior" Guid="e9a26952-7a51-41e1-b5cb-f52620ba20a0" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
       <Parameter Name="Class" Guid="6849e022-c97f-4b40-815b-9ad37df2aac4" Value="SCIEPort.Features.Creatures.SubsystemChickenSpawnBlockBehavior" Type="string" />
     </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortCatSpawnBehavior" Guid="29f03beb-b810-4622-9621-499f1c57e9a9" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="21a7c1ca-9a8b-4690-90e8-2664e2edf385" Value="SCIEPort.Features.Creatures.SubsystemCatSpawnBlockBehavior" Type="string" />
+    </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
     <MemberSubsystemTemplate Name="SCIEPortFoxSpawnBehavior" Guid="1bdac495-0343-4bc3-955e-5b252c3c8757" InheritanceParent="d5816ffd-a7ca-4f8b-98b5-df7d2a4a3c22" />
     <MemberSubsystemTemplate Name="SCIEPortRabbitSpawnBehavior" Guid="af999e47-6900-4a0c-b8e7-84bb9b474c11" InheritanceParent="deca144f-67eb-4c6c-8316-178cbf5274da" />
     <MemberSubsystemTemplate Name="SCIEPortChickenSpawnBehavior" Guid="f11b08fb-1f22-4508-957d-dea679c101f2" InheritanceParent="e9a26952-7a51-41e1-b5cb-f52620ba20a0" />
+    <MemberSubsystemTemplate Name="SCIEPortCatSpawnBehavior" Guid="fe9c5d00-f8ff-4b7d-8056-5cd13a9f2e19" InheritanceParent="29f03beb-b810-4622-9621-499f1c57e9a9" />
   </ProjectTemplate>
 </SCIEPortCreatures>

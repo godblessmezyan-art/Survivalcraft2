@@ -14,6 +14,10 @@ $decoder=$gameAssembly.GetType('Game.SurvivalCraftModEntity').GetMethod('GetDeci
 $source=[IO.File]::OpenRead((Join-Path $GameDir 'Content.scpak'))
 try { $decoded=$decoder.Invoke($null,@($source)) } finally { $source.Dispose() }
 $zip=New-Object IO.Compression.ZipArchive($decoded,[IO.Compression.ZipArchiveMode]::Read)
+Add-Type -AssemblyName System.Xml.Linq
+$databaseReader = New-Object IO.StreamReader($zip.GetEntry('Assets/Database.xml').Open())
+try { $targetDatabase = [System.Xml.Linq.XElement]::Parse($databaseReader.ReadToEnd()) }
+finally { $databaseReader.Dispose() }
 if ($PreviewPath) {
     Add-Type -AssemblyName System.Drawing
     $atlasStream=$zip.GetEntry('Assets/Fonts/Pericles.png').Open()
@@ -200,4 +204,105 @@ Check ($body.Rotation -eq [Engine.Quaternion]::Identity) 'Grounded helicopter ya
 Check ($body.Velocity.LengthSquared() -gt 0) 'Airborne direction input does not work'
 Check ($body.Rotation -ne [Engine.Quaternion]::Identity) 'Airborne yaw does not work'
 Check ($body.Position.Y -eq 70) 'Flight controller teleports world height'
+
+# Exercise the mod against real SCNET camera and renderer components, with the packaged model's bone transforms.
+$asset = Join-Path (Split-Path -Parent $PSScriptRoot) 'src/SCIEPort/Assets/Models/Helicopter.dae'
+$xdb = Join-Path (Split-Path -Parent $PSScriptRoot) 'src/SCIEPort/Assets/Database/Helicopter.xdb'
+$stream = [IO.File]::OpenRead($xdb)
+try { [ModsManager]::CombineDataBase($targetDatabase, $stream) } finally { $stream.Dispose() }
+$database = [TemplatesDatabase.XmlDatabaseSerializer]::LoadDatabase($targetDatabase)
+$gameDatabase = New-Object GameEntitySystem.GameDatabase($database)
+$helicopterValues = New-Object TemplatesDatabase.ValuesDictionary
+$helicopterValues.PopulateFromDatabaseObject($database.FindDatabaseObject('SCIEPortHelicopter',$gameDatabase.EntityTemplateType,$true))
+Check ($helicopterValues['SimpleModel']['Class'] -eq 'SCIEPort.Features.AirVehicles.ComponentHelicopterModel' -and
+    $helicopterValues['SimpleModel']['ModelName'] -eq 'Models/Helicopter') 'Native database merge must select the cockpit model for the original entity'
+$stream = [IO.File]::OpenRead($asset)
+try { $data = [Engine.Media.ModelData]::Load($stream) } finally { $stream.Dispose() }
+$runtimeModel = New-Object Engine.Graphics.Model
+foreach ($bone in $data.Bones) {
+    $parent = if ($bone.ParentBoneIndex -ge 0) { $runtimeModel.Bones[$bone.ParentBoneIndex] }
+    [void]$runtimeModel.NewBone($bone.Name, $bone.Transform, $parent)
+}
+$glass = $runtimeModel.FindBone('CanopyGlass')
+$visual = $runtimeModel.FindBone('VisualRoot')
+SetField $drive m_visualRootBone $visual
+SetField $drive m_visualPitch ([single]0.09)
+SetField $drive m_visualRoll ([single]-0.11)
+$damage = New-Object Game.ComponentDamage
+$damage.Hitpoints = 1
+SetField $drive m_damage $damage
+$body.Velocity = New-Object Engine.Vector3(6,2.25,0)
+SetField $drive m_rotorSpeed ([single]0.8)
+$gauges = $drive.GetType().GetProperty('CockpitGaugeReadings',[Reflection.BindingFlags]'NonPublic,Instance')
+$readings = $gauges.GetValue($drive)
+Check ([Engine.Vector3]::DistanceSquared($readings,(New-Object Engine.Vector3(0.5,0.75,0.8))) -lt 0.000001) 'Gauges must read horizontal speed, climb and rotor power'
+$body.Velocity = New-Object Engine.Vector3(0,-1.75,0)
+$readings = $gauges.GetValue($drive)
+Check ([Math]::Abs($readings.Y - 0.25) -lt 0.0001) 'Vertical speed gauge must move below center for descent'
+$entity = [Runtime.Serialization.FormatterServices]::GetUninitializedObject([GameEntitySystem.Entity])
+$components = New-Object 'System.Collections.Generic.List[GameEntitySystem.Component]'
+$components.Add($drive)
+$components.Add($body)
+SetField $entity m_components $components
+$body.m_entity = $drive.m_entity = $entity
+$model = [Activator]::CreateInstance($mod.GetType('SCIEPort.Features.AirVehicles.ComponentHelicopterModel', $true))
+$model.m_entity = $entity
+$model.m_componentFrame = $body
+$model.m_subsystemSky = New-Object Game.SubsystemSky
+$model.Model = $runtimeModel
+$renderer = New-Object Game.SubsystemModelsRenderer
+SetField $model m_renderer $renderer
+
+$player = New-Object Game.ComponentPlayer
+$player.ComponentBody = New-Object Game.ComponentBody
+$player.ComponentBody.ParentBody = $body
+$player.ComponentHealth = New-Object Game.ComponentHealth
+$player.ComponentHealth.Health = 1
+$player.ComponentLocomotion = New-Object Game.ComponentLocomotion
+$player.ComponentLocomotion.LookAngles = New-Object Engine.Vector2(0.2,-0.15)
+$player.ComponentInput = New-Object Game.ComponentInput
+$player.ComponentRider = New-Object Game.ComponentRider
+$widget = [Runtime.Serialization.FormatterServices]::GetUninitializedObject([Game.GameWidget])
+$widget.Target = $player
+$camera = New-Object Game.FppCamera($widget)
+$outside = New-Object Game.TppCamera($widget)
+$widget.m_activeCamera = $camera
+$updateView = $mod.GetType('SCIEPort.Features.AirVehicles.HelicopterCockpit', $true).GetMethod('UpdateView',[Reflection.BindingFlags]'NonPublic,Static')
+
+foreach ($seat in @('Driver', 'Passenger')) {
+    $property = $seats.GetType().GetProperty($seat)
+    $property.SetValue($seats, $player.ComponentRider)
+    $column = if ($seat -eq 'Driver') { -0.42 } else { 0.42 }
+    $visualTransform = [Engine.Matrix]::CreateRotationX(0.09) * [Engine.Matrix]::CreateRotationZ(-0.11) * $visual.Transform * $body.Matrix
+    $expected = [Engine.Matrix]::CreateFromYawPitchRoll(-0.2,-0.15,0) * $visualTransform
+    $eye = [Engine.Vector3]::Transform((New-Object Engine.Vector3($column,0.33,-0.08)), $visualTransform)
+    [void]$updateView.Invoke($null, @($camera.PSObject.BaseObject))
+    Check ([Engine.Vector3]::DistanceSquared($camera.ViewPosition, $eye) -lt 0.000001) "Cockpit eye is outside the $seat seat"
+    Check ([Engine.Vector3]::Dot($camera.ViewDirection, $expected.Forward) -gt 0.9999) "Cockpit $seat lost look input or aircraft yaw"
+    Check ([Engine.Vector3]::Dot($camera.ViewUp, $expected.Up) -gt 0.9999) "Cockpit $seat tilt differs from the model"
+    $model.CalculateIsVisible($camera)
+    Check ($model.IsVisibleForCamera -and $model.GetBoneTransform($glass.Index).M11 -eq 0) "Canopy blocks the $seat view"
+    $renderer.PrimitivesRenderer.Clear()
+    $model.DrawExtras($camera)
+    $batch = $renderer.PrimitivesRenderer.FlatBatch(0,[Engine.Graphics.DepthStencilState]::DepthRead,[Engine.Graphics.RasterizerState]::CullNoneScissor,[Engine.Graphics.BlendState]::Opaque)
+    Check ($batch.TriangleIndices.Count -eq 18 -and $batch.TriangleVertices.Array[0].Position.Z -lt -0.1) 'Live needles must follow the panel in camera space'
+
+    $widget.m_activeCamera = $outside
+    $model.CalculateIsVisible($outside)
+    Check ($null -eq $model.GetBoneTransform($glass.Index)) 'Exterior view inherited the hidden glass'
+    $widget.m_activeCamera = $camera
+    $property.SetValue($seats, $null)
+}
+$seats.GetType().GetProperty('Driver').SetValue($seats, $player.ComponentRider)
+$stockEye = New-Object Engine.Vector3(0,72,0)
+foreach ($reason in @('dismount animation', 'detached', 'VR', 'dead')) {
+    $player.ComponentRider.m_isAnimating = $reason -eq 'dismount animation'
+    $player.ComponentBody.ParentBody = if ($reason -ne 'detached') { $body }
+    $player.ComponentInput.IsControlledByVr = $reason -eq 'VR'
+    $player.ComponentHealth.Health = [single]($reason -ne 'dead')
+    $camera.SetupPerspectiveCamera($stockEye, (New-Object Engine.Vector3(0,0,-1)), [Engine.Vector3]::UnitY)
+    [void]$updateView.Invoke($null, @($camera.PSObject.BaseObject))
+    $model.CalculateIsVisible($camera)
+    Check ($camera.ViewPosition -eq $stockEye -and $null -eq $model.GetBoneTransform($glass.Index)) "Cockpit persisted during $reason"
+}
 Write-Host "Helicopter target-assembly total checks passed: $script:count"

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="Subsystems" Guid="75acb50b-fb75-4c85-af38-a0fb51a9eb90">
+    <SubsystemTemplate Name="SCIEPortSaltFlatShimmer" Guid="7a39b417-56af-4ef7-861d-6f2eb45d2193" InheritanceParent="a3914c13-7801-46a6-b23a-9e2b36e9defb">
+      <Parameter Name="Class" Guid="be931053-10da-424c-b835-3b6f064b9744" Value="SCIEPort.Features.Geology.SubsystemSaltFlatShimmer" Type="string" />
+      <Parameter Name="Dependencies" Guid="47232908-51ce-4e04-a65c-ecfd9725d757" Value="Terrain, Weather, TimeOfDay, Sky" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortSaltFlatShimmer" Guid="e9af7b45-a20c-4d13-89a8-b74f0e49cd07" InheritanceParent="7a39b417-56af-4ef7-861d-6f2eb45d2193" />
+  </ProjectTemplate>
+</DatabaseObjects>

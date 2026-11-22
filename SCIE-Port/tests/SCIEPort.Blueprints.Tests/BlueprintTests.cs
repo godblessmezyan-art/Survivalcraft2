@@ -206,7 +206,7 @@ internal static partial class BlueprintTests
         {
             SubsystemBedrockBlockBehavior.Territories=new Dictionary<Guid,Territoriy>();
             BlocksManager.Blocks[0]=new AirBlock{BlockIndex=0};BlocksManager.Blocks[3]=new GraniteBlock{BlockIndex=3};BlocksManager.Blocks[21]=new PlanksBlock{BlockIndex=21};
-            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();DirectTests();ClearModeTests();NativeDirectTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
+            SCIEPort.Blueprints.Tests.BlueprintHttpTests.Run().GetAwaiter().GetResult();Engine.Log.AddLogSink(new Sink());TransferTests();IdentityAndCodecTests();ArchitectureTests();HomeBlueprintTests();DirectTests();ClearModeTests();NativeDirectTests();LibraryAndCopyTests();TestCloudBlueprints().GetAwaiter().GetResult();
             Console.WriteLine("Blueprint direct Local/Server/Client, API/codec and terrain: "+checks+" checks passed. No actual game room or Android device.");
         }
         finally { CommonLib.WorkType=oldMode;CommonLib.Net=oldNet;SubsystemBedrockBlockBehavior.Territories=oldTerritories; }

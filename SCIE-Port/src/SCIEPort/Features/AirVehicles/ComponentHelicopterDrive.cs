@@ -70,6 +70,34 @@ namespace SCIEPort.Features.AirVehicles
         /// <summary>Current presentation state derived from the existing engine/rotor flight state.</summary>
         public HelicopterRotorState RotorState => m_rotorState;
 
+        internal VehicleSeatRole GetCockpitSeat(ComponentPlayer player)
+        {
+            ComponentRider rider = player.ComponentRider;
+            if (m_visualRootBone == null || rider == null || rider.m_isAnimating ||
+                player.ComponentBody.ParentBody != m_body || player.ComponentHealth.Health <= 0f || m_damage.Hitpoints <= 0f)
+            {
+                return VehicleSeatRole.None;
+            }
+
+            if (rider == m_seats.Driver) return VehicleSeatRole.Driver;
+            return rider == m_seats.Passenger ? VehicleSeatRole.Passenger : VehicleSeatRole.None;
+        }
+
+        private Matrix VisualAttitude => Matrix.CreateRotationX(m_visualPitch) * Matrix.CreateRotationZ(m_visualRoll);
+
+        internal Matrix CockpitTransform => VisualAttitude * m_visualRootBone.Transform * m_body.Matrix;
+
+        internal Vector3 CockpitGaugeReadings
+        {
+            get
+            {
+                Vector3 velocity = m_body.Velocity;
+                float speed = new Vector2(velocity.X, velocity.Z).Length() / m_maximumForwardSpeed;
+                float verticalLimit = velocity.Y >= 0f ? m_ascentSpeed : m_descentSpeed;
+                return new Vector3(speed, 0.5f + 0.5f * velocity.Y / verticalLimit, m_rotorSpeed);
+            }
+        }
+
         /// <inheritdoc />
         public override void Load(ValuesDictionary valuesDictionary, IdToEntityMap idToEntityMap)
         {
@@ -344,8 +372,7 @@ namespace SCIEPort.Features.AirVehicles
 
             if (m_visualRootBone != null)
             {
-                m_model.SetBoneTransform(m_visualRootBone.Index,
-                    Matrix.CreateRotationX(m_visualPitch) * Matrix.CreateRotationZ(m_visualRoll));
+                m_model.SetBoneTransform(m_visualRootBone.Index, VisualAttitude);
             }
             if (m_mainRotorBone != null)
             {

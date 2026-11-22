@@ -5,6 +5,7 @@
     <SCNetGameDir Condition="'$(SCNetGameDir)' == ''">E:\SCNET\SCNETx25.01.17</SCNetGameDir>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../../blueprints/ancient-*.json" Link="ArchitectureExamples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
     <ProjectReference Include="../../src/SCIEPort/SCIEPort.csproj" Private="false"/>
     <Reference Include="Survivalcraft"><HintPath>$(SCNetGameDir)/Survivalcraft.exe</HintPath><Private>false</Private></Reference>
     <Reference Include="System.Net.Http"/>

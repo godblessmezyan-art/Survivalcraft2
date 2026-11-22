@@ -1,25 +1,17 @@
 {
-  "kind": "Package integrity and resource metadata only; not gameplay verification",
-  "baseline_sha256": "9422B99E4A6B62D371E3CEF52D62E73434A2DB4D9E6EE17CA8858E7BFC3D0507",
-  "package_sha256": "4652C3F2992A51FA15D37899D4C4C76BD0AE09D7AEEFE415EF045FB79774575D",
-  "dll_sha256": "6F686D8EC0388E185319F85E176A2423321B8326208B6F364F4BFC8129E55C51",
-  "bytes": 8919294,
-  "entries": 156,
-  "changed": [
+  "baseline": "荒野探险家-0.83.0.netmod",
+  "package": "荒野探险家-0.84.0.netmod",
+  "entries": 210,
+  "changed_entries": [
+    "Assets/Models/AbyssBoneDragon.dae",
     "SCIEPort.dll",
     "THIRD-PARTY-NOTICES.md",
     "modinfo.json"
   ],
-  "preserved": 150,
-  "added": [
-    "Assets/Database/AbyssBoneDragon.xdb",
-    "Assets/Models/AbyssBoneDragon.dae",
-    "Assets/Textures/AbyssBoneDragon.png"
-  ],
-  "removed": [],
-  "old_creature_assets_unchanged": true,
-  "source_matches_package": true,
-  "generic_filename_identical": true,
-  "new_guids_unique": true,
-  "opaque_texture_512x256": true
+  "all_other_entries_byte_identical": true,
+  "canonical_identical": true,
+  "model_sha256": "52F7AFBF0E93D6857FC24C76E2EE96947CD4AAD2330F97BB3D06ECE5B2812141",
+  "sha256": "602E935D1D9CCC0667903ED1D1B0F066469B48844FA520E6059792ECA357D72A",
+  "bytes": 12733637,
+  "android_gameplay": "待验证"
 }

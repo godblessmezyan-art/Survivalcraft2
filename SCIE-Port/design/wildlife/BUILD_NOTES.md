@@ -1,0 +1,1 @@
+官方Blender MCP/5.1.1；独立Wildlife-0.91场景。源码脚本为唯一原创几何定义；manifest绑定导出DAE哈希，overview/side/back为同一几何评审图。使用统一UV色板和原生动画骨架，原生导入与几何检查见docs/WILDLIFE-0.91.0.md；Blend设计源保存在artifacts/wildlife-blender/wildlife.blend。不是游戏截图。

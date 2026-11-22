@@ -18,6 +18,8 @@ $zip = Join-Path $artifacts '荒野探险家.zip'
 $package = Join-Path $artifacts '荒野探险家.netmod'
 
 & (Join-Path $PSScriptRoot 'Test-Environment.ps1') -GameDir $GameDir
+& python (Join-Path $PSScriptRoot 'Test-WildlifeAssets.py')
+if ($LASTEXITCODE -ne 0) { throw 'Wildlife geometry validation failed.' }
 & python (Join-Path $PSScriptRoot 'Test-CodexPicker.py')
 if ($LASTEXITCODE -ne 0) { throw 'Original Android document picker source/DEX checks failed.' }
 & python (Join-Path $PSScriptRoot 'Test-CodexPaper.py')
@@ -28,6 +30,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture geometry/UV/PNG checks failed.'
 if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir
+& (Join-Path $PSScriptRoot 'Test-Architecture.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Fishing authority-cycle timing and reward tests failed.' }
@@ -368,6 +371,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Nightmare knight native resources failed valid
 if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Plants.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -377,11 +382,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Fantasy scenery target-native selection, gener
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Artifact Codex native permissions/storage checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Wildlife.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Wildlife native behavior checks failed.' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PixelFx.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'PixelFX compiled frame table/native import failed.' }
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HelicopterHud.ps1') -GameDir $GameDir -ModDll (Join-Path $build 'SCIEPort.dll')
-if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD/physics tests failed.' }
+if ($LASTEXITCODE -ne 0) { throw 'Target-assembly helicopter HUD, cockpit or physics tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VoidHorizon.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Abyss native input/domain regression' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-WorldCut.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -517,16 +524,13 @@ $gungnirHudSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Feat
 foreach ($retiredNameplateRule in @('卢恩神佑', '永恒裁决', 'NamePlate', 'Caption', 'NameBandHeight')) {
     if ($gungnirHudSource.Contains($retiredNameplateRule)) { throw "Retired Gungnir skill-name UI returned: $retiredNameplateRule" }
 }
-# v0.40.1: Game.Random.Int(min, max) is INCLUSIVE on both ends. Rolling Int(0, 16) for a local
-# chunk cell returns 16 about once in seventeen rolls and reads past the chunk arrays
-# (IndexOutOfRangeException on a fresh world). ChanceMet consumes a 0..99 band, so Int(0, 100)
-# silently disables the spawn. Both ranges are pinned by the shared EcologyRules constants.
+# Native wildlife owns spawn-point validation; no generation-thread entity queue remains.
 $creatureSpawnSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Creatures\CreatureWorldSpawn.cs')
 foreach ($creatureSpawnRule in @(
-    'EcologyRules.LastChunkCellIndex',
-    'EcologyRules.LastChanceRoll',
-    'EcologyRules.IsInsideChunk',
-    'EcologyRules.ClampChunkCell',
+    'SpawnLocationType.Surface',
+    'spawn.SpawnCreatures',
+    'CommonLib.WorkType == WorkType.Client',
+    'WildlifeRules.SpawnCount',
     'chunk.State < TerrainChunkState.InvalidLight'
 )) {
     if (-not $creatureSpawnSource.Contains($creatureSpawnRule)) { throw "Creature spawner range/queue safety missing: $creatureSpawnRule" }
@@ -535,7 +539,7 @@ foreach ($badRoll in @('Int(0, 16)', 'Int(0, 100)')) {
     if ($creatureSpawnSource.Contains($badRoll)) { throw "Creature spawner uses the inclusive out-of-range roll $badRoll." }
 }
 $loaderSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Mod\SCIEPortLoader.cs')
-if (-not $loaderSource.Contains('CreatureWorldSpawn.Update();')) { throw 'Natural creatures must be drained after chunk generation, not created inside it.' }
+if (-not $loaderSource.Contains('CreatureWorldSpawn.Update();') -or $loaderSource.Contains('TrySpawnNaturalCreatures(chunk)')) { throw 'Natural creatures must use native update-thread registration.' }
 $ecologyRulesSource = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Features\Ecology\EcologyRules.cs')
 foreach ($ecologyRange in @('LastChunkCellIndex = 15', 'LastChanceRoll = 99')) {
     if (-not $ecologyRulesSource.Contains($ecologyRange)) { throw "Ecology spawn range constant changed: $ecologyRange" }
@@ -885,9 +889,13 @@ try {
         'Assets/Blocks/Creatures.csv',
         'Assets/Blocks/Crops.csv',
         'Assets/Blocks/Bamboo.csv',
+        'Assets/Blocks/Geology.csv',
+        'Assets/Blocks/TidePalace.csv',
+        'Assets/Blocks/Pyramid.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
         'Assets/Blocks/Apple.csv',
+        'Assets/Blocks/SpecialTrees.csv',
         'Assets/Blocks/Helicopter.csv',
         'Assets/Blocks/Stormhammer.csv',
         'Assets/Blocks/StormhammerAwakened.csv',
@@ -900,9 +908,13 @@ try {
         'Assets/Database/Creatures.xdb',
         'Assets/Database/Crops.xdb',
         'Assets/Database/Bamboo.xdb',
+        'Assets/Database/Geology.xdb',
+        'Assets/Database/TidePalace.xdb',
+        'Assets/Database/Pyramid.xdb',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',
+        'Assets/Database/SpecialTrees.xdb',
         'Assets/Database/Helicopter.xdb',
         'Assets/Database/Stormhammer.xdb',
         'Assets/Database/StormhammerAwakened.xdb',
@@ -924,6 +936,8 @@ try {
         'Assets/Models/Fox.dae',
         'Assets/Models/Rabbit.dae',
         'Assets/Models/Chicken.dae',
+        'Assets/Models/Cat.dae',
+        'Assets/Textures/WildlifePalette.png',
         'Assets/Models/Helicopter.dae',
         'Assets/Models/Stormhammer.dae',
         'Assets/Models/ThunderSpear.dae',
@@ -941,6 +955,9 @@ try {
         'Assets/Textures/Chicken.png',
         'Assets/Textures/Corn.png',
         'Assets/Textures/Bamboo.png',
+        'Assets/Textures/Geology.png',
+        'Assets/Textures/TidePalace.png',
+        'Assets/Textures/PyramidMechanism.png',
         'Assets/Textures/Flax.png',
         'Assets/Textures/Sunflower.png',
         'Assets/Textures/PortableFortress.png',
@@ -948,6 +965,7 @@ try {
         'Assets/Textures/FortressGlow.png',
         'Assets/Textures/FortressCore.png',
         'Assets/Textures/Apple.png',
+        'Assets/Textures/SpecialTrees.png',
         'Assets/Textures/Helicopter.png',
         'Assets/Audio/SCIEPortHelicopterLoop.wav',
         'Assets/Textures/Stormhammer.png',
@@ -1157,7 +1175,8 @@ try {
         throw 'Helicopter seats, collision body or safe dismount differ from the audited layout.'
     }
     if ($helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='ModelName']").Value -ne 'Models/Helicopter' -or
-        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter') {
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='TextureOverride']").Value -ne 'Textures/Helicopter' -or
+        $helicopterEntity.SelectSingleNode("./MemberComponentTemplate[@Name='SimpleModel']/Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.AirVehicles.ComponentHelicopterModel') {
         throw 'Helicopter model or texture resource mapping is invalid.'
     }
     $helicopterDriveTemplate = $helicopterDatabase.SelectSingleNode("//ComponentTemplate[@Name='SCIEPortHelicopterDrive']")
@@ -1208,105 +1227,7 @@ try {
         $tankShellRow[0].ProjectileDamping -ne '1') {
         throw 'TankShellBlock must use the audited non-bouncing first-impact projectile settings.'
     }
-    [xml]$creaturesDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Creatures.xdb')
-    $foxEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortFox']")
-    if ($null -eq $foxEntity -or $foxEntity.InheritanceParent -ne '49a9845c-3810-4092-ba53-df213d10d563') {
-        throw 'SCIEPortFox must inherit the audited native Wolf entity template.'
-    }
-    foreach ($component in @('Creature', 'Body', 'Locomotion', 'Health', 'Spawn', 'HerdBehavior', 'FourLeggedModel')) {
-        if ($null -eq $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
-            throw "SCIEPortFox is missing its audited override component: $component"
-        }
-    }
-    $foxModelParameter = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='ModelName']")
-    $foxTextureParameter = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='TextureOverride']")
-    $foxAutoDespawn = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Spawn']/Parameter[@Name='AutoDespawn']")
-    if ($foxModelParameter.Value -ne 'Models/Fox' -or $foxTextureParameter.Value -ne 'Textures/Fox' -or $foxAutoDespawn.Value -ne 'False') {
-        throw 'Fox model, texture or persistence mapping differs from the audited phase-one values.'
-    }
-    if ($null -ne $foxEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
-        throw 'Phase-one fox must not register an inherited/duplicate native creature egg index.'
-    }
-    $foxChase = $foxEntity.SelectSingleNode("./MemberComponentTemplate[@Name='ChaseBehavior']")
-    if ($null -eq $foxChase) {
-        throw 'SCIEPortFox must carry an explicit ChaseBehavior override so it hunts the rabbit via the native AI.'
-    }
-    $foxAutoChaseMask = $foxChase.SelectSingleNode("./Parameter[@Name='AutoChaseMask']")
-    $foxChaseProbability = $foxChase.SelectSingleNode("./Parameter[@Name='ChaseNonPlayerProbability']")
-    if ($null -eq $foxAutoChaseMask -or ($foxAutoChaseMask.Value -split ',') -notcontains 'LandOther') {
-        throw 'Fox ChaseBehavior AutoChaseMask must include LandOther (the rabbit category) for predation to target rabbits.'
-    }
-    $foxChaseProbabilityValue = 0.0
-    if ($null -eq $foxChaseProbability -or -not [double]::TryParse($foxChaseProbability.Value, [ref] $foxChaseProbabilityValue) -or $foxChaseProbabilityValue -le 0.03) {
-        throw 'Fox ChaseNonPlayerProbability must exceed the vanilla wolf baseline (0.03) so predation is observable.'
-    }
-    $foxBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
-    $foxBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortFoxSpawnBehavior']")
-    if ($null -eq $foxBehavior -or $null -eq $foxBehaviorMember -or $foxBehaviorMember.InheritanceParent -ne $foxBehavior.Guid) {
-        throw 'Manual fox spawn behavior is missing or not attached to Project.'
-    }
-    $foxRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Creatures.csv'))
-    $foxSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'FoxSpawnBlock' })
-    if ($foxSpawnerRow.Count -ne 1 -or $foxSpawnerRow[0].Behaviors -ne 'SCIEPortFoxSpawnBehavior' -or
-        $foxSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
-        throw 'FoxSpawnBlock must use SCIEPort.Nature and only SCIEPortFoxSpawnBehavior.'
-    }
-    $rabbitEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortRabbit']")
-    if ($null -eq $rabbitEntity -or $rabbitEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
-        throw 'SCIEPortRabbit must inherit the audited native Alpaca grazer entity template.'
-    }
-    foreach ($component in @('Creature', 'Body', 'Locomotion', 'Health', 'Spawn', 'HerdBehavior', 'FourLeggedModel')) {
-        if ($null -eq $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
-            throw "SCIEPortRabbit is missing its audited override component: $component"
-        }
-    }
-    $rabbitModelParameter = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='ModelName']")
-    $rabbitTextureParameter = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='TextureOverride']")
-    $rabbitAutoDespawn = $rabbitEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Spawn']/Parameter[@Name='AutoDespawn']")
-    if ($rabbitModelParameter.Value -ne 'Models/Rabbit' -or $rabbitTextureParameter.Value -ne 'Textures/Rabbit' -or $rabbitAutoDespawn.Value -ne 'False') {
-        throw 'Rabbit model, texture or persistence mapping differs from the audited phase-one values.'
-    }
-    if ($null -ne $rabbitEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
-        throw 'Phase-one rabbit must not register an inherited/duplicate native creature egg index.'
-    }
-    $rabbitBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortRabbitSpawnBehavior']")
-    $rabbitBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortRabbitSpawnBehavior']")
-    if ($null -eq $rabbitBehavior -or $null -eq $rabbitBehaviorMember -or $rabbitBehaviorMember.InheritanceParent -ne $rabbitBehavior.Guid) {
-        throw 'Manual rabbit spawn behavior is missing or not attached to Project.'
-    }
-    $rabbitSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'RabbitSpawnBlock' })
-    if ($rabbitSpawnerRow.Count -ne 1 -or $rabbitSpawnerRow[0].Behaviors -ne 'SCIEPortRabbitSpawnBehavior' -or
-        $rabbitSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
-        throw 'RabbitSpawnBlock must use SCIEPort.Nature and only SCIEPortRabbitSpawnBehavior.'
-    }
-    $chickenEntity = $creaturesDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortChicken']")
-    if ($null -eq $chickenEntity -or $chickenEntity.InheritanceParent -ne '8e62c6e4-a544-4c09-a3fb-59fd37d5b998') {
-        throw 'SCIEPortChicken must inherit the audited native Alpaca grazer entity template.'
-    }
-    foreach ($component in @('Creature', 'Body', 'Locomotion', 'Health', 'Spawn', 'HerdBehavior', 'FourLeggedModel')) {
-        if ($null -eq $chickenEntity.SelectSingleNode("./MemberComponentTemplate[@Name='$component']")) {
-            throw "SCIEPortChicken is missing its audited override component: $component"
-        }
-    }
-    $chickenModelParameter = $chickenEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='ModelName']")
-    $chickenTextureParameter = $chickenEntity.SelectSingleNode("./MemberComponentTemplate[@Name='FourLeggedModel']/Parameter[@Name='TextureOverride']")
-    $chickenAutoDespawn = $chickenEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Spawn']/Parameter[@Name='AutoDespawn']")
-    if ($chickenModelParameter.Value -ne 'Models/Chicken' -or $chickenTextureParameter.Value -ne 'Textures/Chicken' -or $chickenAutoDespawn.Value -ne 'False') {
-        throw 'Chicken model, texture or persistence mapping differs from the audited manual-spawn values.'
-    }
-    if ($null -ne $chickenEntity.SelectSingleNode("./ParameterSet[@Name='CreatureEggData']")) {
-        throw 'Manual chicken must not register an inherited/duplicate native creature egg index.'
-    }
-    $chickenBehavior = $creaturesDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortChickenSpawnBehavior']")
-    $chickenBehaviorMember = $creaturesDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortChickenSpawnBehavior']")
-    if ($null -eq $chickenBehavior -or $null -eq $chickenBehaviorMember -or $chickenBehaviorMember.InheritanceParent -ne $chickenBehavior.Guid) {
-        throw 'Manual chicken spawn behavior is missing or not attached to Project.'
-    }
-    $chickenSpawnerRow = @($foxRows | Where-Object { $_.'Class Name' -eq 'ChickenSpawnBlock' })
-    if ($chickenSpawnerRow.Count -ne 1 -or $chickenSpawnerRow[0].Behaviors -ne 'SCIEPortChickenSpawnBehavior' -or
-        $chickenSpawnerRow[0].DefaultCategory -ne 'SCIEPort.Nature') {
-        throw 'ChickenSpawnBlock must use SCIEPort.Nature and only SCIEPortChickenSpawnBehavior.'
-    }
+    & (Join-Path $PSScriptRoot 'Test-Wildlife.ps1') -GameDir $GameDir
     [xml]$cropsDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Crops.xdb')
     $cornBehavior = $cropsDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortCornBehavior']")
     if ($null -eq $cornBehavior -or $cornBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745') {
@@ -1352,8 +1273,14 @@ try {
     $bambooRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Bamboo.csv'))
     $bambooPlantRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooPlantBlock' })
     $bambooBlockRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooBlock' })
-    if ($bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1) {
-        throw 'Bamboo.csv must contain exactly one row for BambooPlantBlock and BambooBlock.'
+    $bambooShootRow = @($bambooRows | Where-Object { $_.'Class Name' -eq 'BambooShootBlock' })
+    if ($bambooRows.Count -ne 6 -or $bambooPlantRow.Count -ne 1 -or $bambooBlockRow.Count -ne 1 -or $bambooShootRow.Count -ne 1) {
+        throw 'Bamboo.csv must contain the culm, bamboo material, shoot, fence, gate and screen.'
+    }
+    if ($bambooShootRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooShootRow[0].IsPlaceable -ne 'TRUE' -or
+        $bambooShootRow[0].DefaultTextureSlot -ne '3' -or $bambooShootRow[0].DefaultDisplayName -ne '竹笋' -or
+        [double]$bambooShootRow[0].DefaultNutritionalValue -le 0) {
+        throw 'BambooShootBlock must be a plantable food in the Nature tab with atlas slot 3.'
     }
     if ($bambooPlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $bambooPlantRow[0].IsPlaceable -ne 'TRUE' -or
         $bambooPlantRow[0].DefaultTextureSlot -ne '0') {
@@ -1362,6 +1289,19 @@ try {
     if ($bambooBlockRow[0].IsPlaceable -ne 'TRUE' -or $bambooBlockRow[0].IsCollidable -ne 'TRUE' -or
         $bambooBlockRow[0].IsTransparent -ne 'FALSE' -or $bambooBlockRow[0].DefaultTextureSlot -ne '2') {
         throw 'BambooBlock must be a solid, collidable, opaque building cube drawn on atlas slot 2.'
+    }
+    foreach ($material in @(
+        @{ Class = 'BambooFenceBlock'; Behavior = 'FenceBlockBehavior'; Slot = '6'; Interactive = 'FALSE' },
+        @{ Class = 'BambooFenceGateBlock'; Behavior = 'FenceGateBlockBehavior'; Slot = '6'; Interactive = 'TRUE' },
+        @{ Class = 'BambooScreenBlock'; Behavior = ''; Slot = '4'; Interactive = 'FALSE' }
+    )) {
+        $row = @($bambooRows | Where-Object { $_.'Class Name' -eq $material.Class })
+        if ($row.Count -ne 1 -or $row[0].DefaultCategory -ne 'SCIEPort.Structures' -or
+            $row[0].Behaviors -ne $material.Behavior -or $row[0].DefaultTextureSlot -ne $material.Slot -or
+            $row[0].DefaultIsInteractive -ne $material.Interactive -or $row[0].IsPlaceable -ne 'TRUE' -or
+            $row[0].IsCollidable -ne 'TRUE' -or $row[0].IsTransparent -ne 'TRUE') {
+            throw "Bamboo building registration differs from its placement and rendering contract: $($material.Class)."
+        }
     }
     [xml]$flaxDatabase = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Database\Flax.xdb')
     $flaxBehavior = $flaxDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortFlaxBehavior']")
@@ -1439,8 +1379,22 @@ try {
     $appleRows = @(Import-Csv -Delimiter ';' -Encoding UTF8 (Join-Path $projectDir 'Assets\Blocks\Apple.csv'))
     $applePlantRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'ApplePlantBlock' })
     $appleFruitRow = @($appleRows | Where-Object { $_.'Class Name' -eq 'AppleBlock' })
-    if ($applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
-        throw 'Apple.csv must contain exactly one row for ApplePlantBlock and AppleBlock.'
+    if ($appleRows.Count -ne 5 -or $applePlantRow.Count -ne 1 -or $appleFruitRow.Count -ne 1) {
+        throw 'Apple.csv must contain the sapling, food, wood, leaves and fruiting leaves.'
+    }
+    foreach ($spec in @(
+        @{ Name = 'AppleWoodBlock'; Label = '苹果木'; Slot = '16'; Transparent = 'FALSE'; CraftingId = 'wood'; Behavior = 'WoodBlockBehavior' },
+        @{ Name = 'AppleLeavesBlock'; Label = '苹果树叶'; Slot = '18'; Transparent = 'TRUE'; CraftingId = 'appleleaves'; Behavior = '' },
+        @{ Name = 'AppleFruitingLeavesBlock'; Label = '结果的苹果树叶'; Slot = '21'; Transparent = 'TRUE'; CraftingId = 'applefruitleaves'; Behavior = '' }
+    )) {
+        $rows = @($appleRows | Where-Object { $_.'Class Name' -eq $spec.Name })
+        if ($rows.Count -ne 1 -or $rows[0].DefaultDisplayName -ne $spec.Label -or
+            $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
+            $rows[0].DefaultCreativeData -ne '0' -or $rows[0].DefaultTextureSlot -ne $spec.Slot -or
+            $rows[0].IsTransparent -ne $spec.Transparent -or $rows[0].CraftingId -ne $spec.CraftingId -or
+            $rows[0].Behaviors -ne $spec.Behavior) {
+            throw "Apple tree block contract failed: $($spec.Name)"
+        }
     }
     if ($applePlantRow[0].DefaultCategory -ne 'SCIEPort.Nature' -or $applePlantRow[0].IsPlaceable -ne 'TRUE' -or
         $applePlantRow[0].DefaultTextureSlot -ne '0') {
@@ -1452,6 +1406,102 @@ try {
         -not [double]::TryParse($appleFruitRow[0].DefaultNutritionalValue, [ref] $appleFruitNutrition) -or $appleFruitNutrition -le 0.0) {
         throw 'AppleBlock must be an unplaceable Food item with transparent legacy terrain faces, slot 9 and positive nutrition.'
     }
+    $treeRoot = Join-Path $projectDir 'Assets'
+    $newTrees = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/SpecialTrees.csv') -Delimiter ';' -Encoding UTF8)
+    if ($newTrees.Count -ne 14 -or @($newTrees | Where-Object DefaultCategory -ne 'SCIEPort.Nature').Count -ne 0) {
+        throw 'SpecialTrees must register its fourteen nature-tab items and blocks.'
+    }
+    foreach ($species in @('TallPalm', 'Coconut', 'Baobab', 'Sakura')) {
+        $wood = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'WoodBlock') })
+        $leaves = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'LeavesBlock') })
+        $sapling = @($newTrees | Where-Object { $_.'Class Name' -eq ($species + 'SaplingBlock') })
+        if ($wood.Count -ne 1 -or $leaves.Count -ne 1 -or $sapling.Count -ne 1 -or
+            $wood[0].Behaviors -ne 'WoodBlockBehavior' -or $wood[0].CraftingId -ne 'wood' -or
+            $leaves[0].IsTransparent -ne 'TRUE' -or $sapling[0].IsPlaceable -ne 'TRUE') {
+            throw "Missing native tree material or sapling contract: $species."
+        }
+    }
+    $treeFoods = @($newTrees | Where-Object { $_.'Class Name' -match 'FruitBlock$' })
+    $baobab = @($treeFoods | Where-Object { $_.'Class Name' -eq 'BaobabFruitBlock' })
+    $coconut = @($treeFoods | Where-Object { $_.'Class Name' -eq 'CoconutFruitBlock' })
+    if ($treeFoods.Count -ne 2 -or $baobab.Count -ne 1 -or $coconut.Count -ne 1 -or
+        [int]$baobab[0].DefaultRotPeriod -le [int]$appleFruitRow[0].DefaultRotPeriod -or
+        @($treeFoods | Where-Object { $_.IsPlaceable -ne 'FALSE' -or [double]$_.DefaultNutritionalValue -le 0 }).Count -ne 0) {
+        throw 'Only edible coconut and baobab fruits are expected. Baobab must outlast apple fruit.'
+    }
+    [xml]$treeDatabase = Get-Content -LiteralPath (Join-Path $treeRoot 'Database/SpecialTrees.xdb') -Raw -Encoding UTF8
+    $treeBehavior = $treeDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortSpecialTreeBehavior']")
+    $treeMember = $treeDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortSpecialTreeBehavior']")
+    if ($null -eq $treeBehavior -or $treeBehavior.InheritanceParent -ne 'fefb9590-4972-4893-b02a-76063611b745' -or
+        $treeBehavior.SelectSingleNode("./Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.SpecialTrees.SubsystemSpecialTreeBehavior' -or
+        $treeBehavior.SelectSingleNode("./Parameter[@Name='Dependencies']").Value -ne 'Terrain, Pickables' -or
+        $null -eq $treeMember -or $treeMember.InheritanceParent -ne $treeBehavior.Guid) {
+        throw 'Special tree growth, harvest and native pickable bindings are missing.'
+    }
+    $treeAtlas = [Drawing.Bitmap]::FromFile((Join-Path $treeRoot 'Textures/SpecialTrees.png'))
+    try {
+        if ($treeAtlas.Width -ne 512 -or $treeAtlas.Height -ne 512 -or
+            $treeAtlas.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) {
+            throw 'SpecialTrees.png must be a 512×512 RGBA atlas.'
+        }
+        foreach ($slot in (0..35)) {
+            if ($slot -in @(6, 7, 8, 33, 34, 35)) { continue }
+            $opaque = 0
+            $pink = 0
+            $top = [int][Math]::Floor($slot / 16) * 32
+            for ($u = 0; $u -lt 32; $u++) {
+                for ($v = 0; $v -lt 32; $v++) {
+                    $pixel = $treeAtlas.GetPixel(($slot % 16) * 32 + $u, $top + $v)
+                    if ($pixel.A -eq 255) {
+                        $opaque++
+                        if ($pixel.R -gt $pixel.G * 1.15 -and $pixel.B -gt $pixel.G) { $pink++ }
+                    }
+                }
+            }
+            if ($opaque -eq 0 -or ($slot % 9 -lt 2 -and $opaque -ne 1024) -or
+                ($slot % 9 -eq 2 -and $opaque -eq 1024) -or ($slot -eq 29 -and $pink -lt 360)) {
+                throw "Special tree atlas has an invalid bark, foliage or item tile: $slot."
+            }
+        }
+    }
+    finally { $treeAtlas.Dispose() }
+
+    $geologyRows = @(Import-Csv -LiteralPath (Join-Path $treeRoot 'Blocks/Geology.csv') -Delimiter ';' -Encoding UTF8)
+    $geologyClasses = [ordered]@{ VolcanicRockBlock = '0'; BasaltPillarBlock = '1'; VolcanicSandBlock = '3'; TravertineBlock = '4';
+        PaintedStrataBlock = '5'; KarstLimestoneBlock = '9'; BlueIceBlock = '10'; SaltCrustBlock = '11'; MineralWaterBlock = '189' }
+    if ($geologyRows.Count -ne $geologyClasses.Count) { throw 'Geology.csv must register nine geological block types.' }
+    foreach ($name in $geologyClasses.Keys) {
+        $rows = @($geologyRows | Where-Object { $_.'Class Name' -eq $name })
+        $water = $name -eq 'MineralWaterBlock'
+        if ($rows.Count -ne 1 -or $rows[0].DefaultCategory -ne 'SCIEPort.Nature' -or $rows[0].IsPlaceable -ne 'TRUE' -or
+            $rows[0].DefaultTextureSlot -ne $geologyClasses[$name] -or
+            $rows[0].Behaviors -ne $(if ($water) { 'WaterBehavior' } else { '' }) -or
+            $rows[0].DefaultCreativeData -ne $(if ($water) { '-1' } else { '0' })) {
+            throw "Geology registration failed for $name."
+        }
+    }
+    $geologyAtlas = [Drawing.Bitmap]::FromFile((Join-Path $treeRoot 'Textures/Geology.png'))
+    try {
+        if ($geologyAtlas.Width -ne 512 -or $geologyAtlas.Height -ne 512 -or
+            $geologyAtlas.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) {
+            throw 'Geology.png must be a 512x512 RGBA terrain atlas.'
+        }
+        for ($x = 0; $x -lt 384; $x++) {
+            for ($y = 0; $y -lt 32; $y++) {
+                if ($geologyAtlas.GetPixel($x, $y).A -ne 255) { throw 'Geology material tiles 0–11 must be fully opaque.' }
+            }
+        }
+    }
+    finally { $geologyAtlas.Dispose() }
+    [xml]$geologyDatabase = Get-Content -LiteralPath (Join-Path $treeRoot 'Database/Geology.xdb') -Raw -Encoding UTF8
+    $shimmer = $geologyDatabase.SelectSingleNode("//SubsystemTemplate[@Name='SCIEPortSaltFlatShimmer']")
+    $shimmerMember = $geologyDatabase.SelectSingleNode("//ProjectTemplate[@Name='Project']/MemberSubsystemTemplate[@Name='SCIEPortSaltFlatShimmer']")
+    if ($null -eq $shimmer -or $shimmer.InheritanceParent -ne 'a3914c13-7801-46a6-b23a-9e2b36e9defb' -or
+        $shimmer.SelectSingleNode("./Parameter[@Name='Class']").Value -ne 'SCIEPort.Features.Geology.SubsystemSaltFlatShimmer' -or
+        $null -eq $shimmerMember -or $shimmerMember.InheritanceParent -ne $shimmer.Guid) {
+        throw 'Geology.xdb must add the salt surface renderer to Project.'
+    }
+
     $airshipEntity = $watercraftDatabase.SelectSingleNode("//EntityTemplate[@Name='SCIEPortAirship']")
     $airshipMount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='MountOffset']")
     $airshipDismount = $airshipEntity.SelectSingleNode("./MemberComponentTemplate[@Name='Mount']/Parameter[@Name='DismountOffset']")
@@ -1649,154 +1699,7 @@ try {
     }
     finally { $atvBitmap.Dispose() }
 
-    [xml]$foxModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Fox.dae')
-    if ($foxModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
-        throw 'Fox.dae must be oriented Y_UP.'
-    }
-    $foxBoneNames = @($foxModelDocument.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']") | ForEach-Object { $_.GetAttribute('name') })
-    $requiredFoxBones = @('Body', 'Head', 'Leg1', 'Leg2', 'Leg3', 'Leg4')
-    if ($foxBoneNames.Count -ne 6 -or ($requiredFoxBones | Where-Object { $foxBoneNames -notcontains $_ }).Count -ne 0) {
-        throw "Fox.dae must contain exactly the six native procedural bones: $($requiredFoxBones -join ', ')."
-    }
-    $foxGeometries = @($foxModelDocument.SelectNodes("//*[local-name()='geometry']"))
-    if ($foxGeometries.Count -ne 13) { throw "Fox.dae must contain 13 clean-room cuboid meshes; found $($foxGeometries.Count)." }
-    foreach ($geometry in $foxGeometries) {
-        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
-        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
-        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
-            throw "Fox.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
-        }
-        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
-            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
-                throw "Fox.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
-            }
-        }
-    }
-    $foxModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Fox.dae'))
-    try { $targetFoxModel = $targetModelLoad.Invoke($null, @($foxModelStream)) }
-    finally { $foxModelStream.Dispose() }
-    if ($targetFoxModel.Bones.Count -ne 6 -or $targetFoxModel.Meshes.Count -ne 13) {
-        throw "Target Engine must import Fox.dae as 6 bones/13 meshes; found $($targetFoxModel.Bones.Count) bones/$($targetFoxModel.Meshes.Count) meshes."
-    }
-    foreach ($boneName in $requiredFoxBones) {
-        if (-not ($targetFoxModel.Bones | Where-Object { $_.Name -eq $boneName })) {
-            throw "Target Engine did not import required fox bone $boneName."
-        }
-    }
-    Add-Type -AssemblyName System.Drawing
-    $foxBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Fox.png'))
-    try {
-        if ($foxBitmap.Width -ne 32 -or $foxBitmap.Height -ne 8) { throw 'Fox.png must be the audited 32x8 opaque palette.' }
-        $foxColors = New-Object System.Collections.Generic.HashSet[int]
-        for ($x = 0; $x -lt $foxBitmap.Width; $x++) {
-            for ($y = 0; $y -lt $foxBitmap.Height; $y++) {
-                $pixel = $foxBitmap.GetPixel($x, $y)
-                if ($pixel.A -ne 255) { throw "Fox.png contains transparent pixel at $x,$y." }
-                [void]$foxColors.Add($pixel.ToArgb())
-            }
-        }
-        if ($foxColors.Count -ne 4) { throw "Fox.png must contain exactly four opaque palette colors; found $($foxColors.Count)." }
-    }
-    finally { $foxBitmap.Dispose() }
-
-    [xml]$rabbitModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Rabbit.dae')
-    if ($rabbitModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
-        throw 'Rabbit.dae must be oriented Y_UP.'
-    }
-    $rabbitBoneNames = @($rabbitModelDocument.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']") | ForEach-Object { $_.GetAttribute('name') })
-    $requiredRabbitBones = @('Body', 'Head', 'Leg1', 'Leg2', 'Leg3', 'Leg4')
-    if ($rabbitBoneNames.Count -ne 6 -or ($requiredRabbitBones | Where-Object { $rabbitBoneNames -notcontains $_ }).Count -ne 0) {
-        throw "Rabbit.dae must contain exactly the six native procedural bones: $($requiredRabbitBones -join ', ')."
-    }
-    $rabbitGeometries = @($rabbitModelDocument.SelectNodes("//*[local-name()='geometry']"))
-    if ($rabbitGeometries.Count -ne 12) { throw "Rabbit.dae must contain 12 clean-room cuboid meshes; found $($rabbitGeometries.Count)." }
-    foreach ($geometry in $rabbitGeometries) {
-        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
-        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
-        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
-            throw "Rabbit.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
-        }
-        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
-            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
-                throw "Rabbit.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
-            }
-        }
-    }
-    $rabbitModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Rabbit.dae'))
-    try { $targetRabbitModel = $targetModelLoad.Invoke($null, @($rabbitModelStream)) }
-    finally { $rabbitModelStream.Dispose() }
-    if ($targetRabbitModel.Bones.Count -ne 6 -or $targetRabbitModel.Meshes.Count -ne 12) {
-        throw "Target Engine must import Rabbit.dae as 6 bones/12 meshes; found $($targetRabbitModel.Bones.Count) bones/$($targetRabbitModel.Meshes.Count) meshes."
-    }
-    foreach ($boneName in $requiredRabbitBones) {
-        if (-not ($targetRabbitModel.Bones | Where-Object { $_.Name -eq $boneName })) {
-            throw "Target Engine did not import required rabbit bone $boneName."
-        }
-    }
-    Add-Type -AssemblyName System.Drawing
-    $rabbitBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Rabbit.png'))
-    try {
-        if ($rabbitBitmap.Width -ne 32 -or $rabbitBitmap.Height -ne 8) { throw 'Rabbit.png must be the audited 32x8 opaque palette.' }
-        $rabbitColors = New-Object System.Collections.Generic.HashSet[int]
-        for ($x = 0; $x -lt $rabbitBitmap.Width; $x++) {
-            for ($y = 0; $y -lt $rabbitBitmap.Height; $y++) {
-                $pixel = $rabbitBitmap.GetPixel($x, $y)
-                if ($pixel.A -ne 255) { throw "Rabbit.png contains transparent pixel at $x,$y." }
-                [void]$rabbitColors.Add($pixel.ToArgb())
-            }
-        }
-        if ($rabbitColors.Count -ne 4) { throw "Rabbit.png must contain exactly four opaque palette colors; found $($rabbitColors.Count)." }
-    }
-    finally { $rabbitBitmap.Dispose() }
-
-    [xml]$chickenModelDocument = Get-Content -Raw -Encoding UTF8 (Join-Path $projectDir 'Assets\Models\Chicken.dae')
-    if ($chickenModelDocument.SelectSingleNode("//*[local-name()='up_axis']").InnerText -ne 'Y_UP') {
-        throw 'Chicken.dae must be oriented Y_UP.'
-    }
-    $chickenBoneNames = @($chickenModelDocument.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']") | ForEach-Object { $_.GetAttribute('name') })
-    $requiredChickenBones = @('Body', 'Head', 'Leg1', 'Leg2', 'Leg3', 'Leg4')
-    if ($chickenBoneNames.Count -ne 6 -or ($requiredChickenBones | Where-Object { $chickenBoneNames -notcontains $_ }).Count -ne 0) {
-        throw "Chicken.dae must contain exactly the six native procedural bones: $($requiredChickenBones -join ', ')."
-    }
-    $chickenGeometries = @($chickenModelDocument.SelectNodes("//*[local-name()='geometry']"))
-    if ($chickenGeometries.Count -ne 10) { throw "Chicken.dae must contain 10 clean-room cuboid meshes; found $($chickenGeometries.Count)." }
-    foreach ($geometry in $chickenGeometries) {
-        $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
-        $triangles = $geometry.SelectSingleNode(".//*[local-name()='triangles']")
-        if ((@($positions.InnerText -split '\s+' | Where-Object { $_ })).Count -ne 24 -or $triangles.GetAttribute('count') -ne '12') {
-            throw "Chicken.dae geometry $($geometry.GetAttribute('name')) is not an audited 8-vertex/12-triangle cuboid."
-        }
-        foreach ($semantic in @('VERTEX', 'NORMAL', 'TEXCOORD')) {
-            if ($null -eq $triangles.SelectSingleNode("./*[local-name()='input' and @semantic='$semantic']")) {
-                throw "Chicken.dae geometry $($geometry.GetAttribute('name')) is missing $semantic data."
-            }
-        }
-    }
-    $chickenModelStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Chicken.dae'))
-    try { $targetChickenModel = $targetModelLoad.Invoke($null, @($chickenModelStream)) }
-    finally { $chickenModelStream.Dispose() }
-    if ($targetChickenModel.Bones.Count -ne 6 -or $targetChickenModel.Meshes.Count -ne 10) {
-        throw "Target Engine must import Chicken.dae as 6 bones/10 meshes; found $($targetChickenModel.Bones.Count) bones/$($targetChickenModel.Meshes.Count) meshes."
-    }
-    foreach ($boneName in $requiredChickenBones) {
-        if (-not ($targetChickenModel.Bones | Where-Object { $_.Name -eq $boneName })) {
-            throw "Target Engine did not import required chicken bone $boneName."
-        }
-    }
-    $chickenBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Chicken.png'))
-    try {
-        if ($chickenBitmap.Width -ne 32 -or $chickenBitmap.Height -ne 8) { throw 'Chicken.png must be the audited 32x8 opaque palette.' }
-        $chickenColors = New-Object System.Collections.Generic.HashSet[int]
-        for ($x = 0; $x -lt $chickenBitmap.Width; $x++) {
-            for ($y = 0; $y -lt $chickenBitmap.Height; $y++) {
-                $pixel = $chickenBitmap.GetPixel($x, $y)
-                if ($pixel.A -ne 255) { throw "Chicken.png contains transparent pixel at $x,$y." }
-                [void]$chickenColors.Add($pixel.ToArgb())
-            }
-        }
-        if ($chickenColors.Count -ne 4) { throw "Chicken.png must contain exactly four opaque palette colors; found $($chickenColors.Count)." }
-    }
-    finally { $chickenBitmap.Dispose() }
+    # Wildlife models are imported and audited by Test-Wildlife.ps1 above.
 
     Add-Type -AssemblyName System.Drawing
     $cornBitmap = [Drawing.Bitmap]::FromFile((Join-Path $projectDir 'Assets\Textures\Corn.png'))
@@ -1833,7 +1736,7 @@ try {
     try {
         if ($bambooBitmap.Width -ne 512 -or $bambooBitmap.Height -ne 512) { throw 'Bamboo.png must be the clean-room 512x512 bamboo atlas.' }
         if ($bambooBitmap.PixelFormat -ne [Drawing.Imaging.PixelFormat]::Format32bppArgb) { throw 'Bamboo.png must be 32-bit RGBA (Format32bppArgb).' }
-        for ($slot = 0; $slot -le 2; $slot++) {
+        foreach ($slot in @(0, 1, 2, 3, 4, 6)) {
             $originX = ($slot % 16) * 32
             $originY = [int]([Math]::Floor($slot / 16)) * 32
             $opaque = 0
@@ -1842,8 +1745,8 @@ try {
                     if ($bambooBitmap.GetPixel($originX + $x, $originY + $y).A -gt 0) { $opaque++ }
                 }
             }
-            if ($opaque -eq 0) { throw "Bamboo.png texture slot $slot is empty; the atlas must draw the base plant, upper culm and building cube in slots 0..2." }
-            if ($slot -eq 2 -and $opaque -ne 1024) { throw 'Bamboo.png slot 2 (the solid building cube face) must be fully opaque.' }
+            if ($opaque -eq 0) { throw "Bamboo.png texture slot $slot is empty." }
+            if ($slot -in @(2, 4, 6) -and $opaque -ne 1024) { throw "Bamboo.png building surface in slot $slot must be fully opaque." }
         }
         $spareOriginX = (5 % 16) * 32
         $spareOriginY = [int]([Math]::Floor(5 / 16)) * 32
@@ -1853,7 +1756,7 @@ try {
                 if ($bambooBitmap.GetPixel($spareOriginX + $x, $spareOriginY + $y).A -gt 0) { $spareAny = $true }
             }
         }
-        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent; only bamboo tiles 0..2 belong to this atlas.' }
+        if ($spareAny) { throw 'Bamboo.png slot 5 must be transparent.' }
     }
     finally { $bambooBitmap.Dispose() }
 
@@ -1929,6 +1832,21 @@ try {
             }
             if ($opaque -eq 0) { throw "Apple.png texture slot $slot is empty; the atlas must fill plant stages 0..7, the fruiting canopy in slot 8 and the apple fruit in slot 9." }
         }
+        foreach ($slot in (16..21)) {
+            $opaque = 0
+            $red = 0
+            for ($x = 0; $x -lt 32; $x++) {
+                for ($y = 0; $y -lt 32; $y++) {
+                    $pixel = $appleBitmap.GetPixel(($slot - 16) * 32 + $x, 32 + $y)
+                    if ($pixel.A -eq 255) { $opaque++ }
+                    if ($pixel.A -eq 255 -and $pixel.R -gt 120 -and $pixel.G -lt $pixel.R * .45) { $red++ }
+                }
+            }
+            if ($slot -le 17 -and $opaque -ne 1024) { throw "Apple wood slot $slot must be opaque." }
+            if ($slot -ge 18 -and ($opaque -lt 480 -or $opaque -gt 1000)) { throw "Apple canopy slot $slot needs solid leaves and alpha cutouts." }
+            if ($slot -eq 21 -and $red -lt 24) { throw 'The ripe apple foliage tile must show visibly red apples.' }
+            if ($slot -ge 18 -and $slot -lt 21 -and $red -ne 0) { throw "Unripe foliage slot $slot has red fruit." }
+        }
         $appleSpareX = (12 % 16) * 32
         $appleSpareY = [int]([Math]::Floor(12 / 16)) * 32
         $appleSpareAny = $false
@@ -1937,7 +1855,7 @@ try {
                 if ($appleBitmap.GetPixel($appleSpareX + $x, $appleSpareY + $y).A -gt 0) { $appleSpareAny = $true }
             }
         }
-        if ($appleSpareAny) { throw 'Apple.png slot 12 must be transparent; only apple tiles 0..9 belong to this atlas.' }
+        if ($appleSpareAny) { throw 'Apple.png slot 12 must stay transparent.' }
     }
     finally { $appleBitmap.Dispose() }
 
@@ -2020,10 +1938,11 @@ try {
     $tailRotor = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotor']")
     $mainRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='MainRotorBlur']")
     $tailRotorBlur = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='TailRotorBlur']")
+    $canopyGlass = $visualRoot.SelectSingleNode("./*[local-name()='node' and @name='CanopyGlass']")
     if ($null -eq $visualRoot -or $null -eq $mainRotor -or $null -eq $tailRotor -or
-        $null -eq $mainRotorBlur -or $null -eq $tailRotorBlur -or
-        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 6) {
-        throw 'Helicopter.dae must use exactly HelicopterRoot, VisualRoot, two rotor and two rotor-blur bones.'
+        $null -eq $mainRotorBlur -or $null -eq $tailRotorBlur -or $null -eq $canopyGlass -or
+        @($helicopterModel.SelectNodes("//*[local-name()='visual_scene']//*[local-name()='node']")).Count -ne 7) {
+        throw 'Helicopter.dae must use seven bones including the separate canopy glass.'
     }
     if (($visualRoot.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 1 -0.55' -or
         ($mainRotor.SelectSingleNode("./*[local-name()='translate']").InnerText -replace '\s+',' ').Trim() -ne '0 0.80 0.25' -or
@@ -2033,10 +1952,10 @@ try {
         throw 'Helicopter visual attitude and rotor pivot transforms differ from the audited V0.4 layout.'
     }
     $helicopterGeometries = @($helicopterModel.SelectNodes("//*[local-name()='geometry']"))
-    if ($helicopterGeometries.Count -ne 5) { throw "Helicopter.dae must contain five merged draw meshes; found $($helicopterGeometries.Count)." }
-    $expectedHelicopterMeshes = @('VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')
+    if ($helicopterGeometries.Count -ne 6) { throw "Helicopter.dae must contain six merged draw meshes; found $($helicopterGeometries.Count)." }
+    $expectedHelicopterMeshes = @('VisualRoot','CanopyGlass','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')
     if ((@($helicopterGeometries | ForEach-Object { $_.GetAttribute('name') } | Sort-Object) -join ',') -ne (($expectedHelicopterMeshes | Sort-Object) -join ',')) {
-        throw 'Helicopter.dae merged mesh names differ from the audited V0.4 layout.'
+        throw 'Helicopter.dae merged mesh names differ from the cockpit layout.'
     }
     foreach ($geometry in $helicopterGeometries) {
         $positions = $geometry.SelectSingleNode(".//*[local-name()='float_array'][contains(@id,'positions-array')]")
@@ -2061,10 +1980,10 @@ try {
     $helicopterStream = [IO.File]::OpenRead((Join-Path $projectDir 'Assets\Models\Helicopter.dae'))
     try { $targetHelicopterModel = $targetModelLoad.Invoke($null,@($helicopterStream)) }
     finally { $helicopterStream.Dispose() }
-    if ($targetHelicopterModel.Bones.Count -ne 6 -or $targetHelicopterModel.Meshes.Count -ne 5) {
-        throw "Target Engine must import Helicopter.dae as 6 bones/5 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
+    if ($targetHelicopterModel.Bones.Count -ne 7 -or $targetHelicopterModel.Meshes.Count -ne 6) {
+        throw "Target Engine must import Helicopter.dae as 7 bones/6 meshes; found $($targetHelicopterModel.Bones.Count)/$($targetHelicopterModel.Meshes.Count)."
     }
-    foreach ($boneName in @('HelicopterRoot','VisualRoot','MainRotor','TailRotor','MainRotorBlur','TailRotorBlur')) {
+    foreach ($boneName in @('HelicopterRoot') + $expectedHelicopterMeshes) {
         if (-not ($targetHelicopterModel.Bones | Where-Object { $_.Name -eq $boneName })) { throw "Target Engine did not import helicopter bone $boneName." }
     }
     Add-Type -AssemblyName System.Drawing
@@ -2424,9 +2343,13 @@ try {
 finally { $archive.Dispose() }
 
 if ([IO.Path]::GetFileName($package) -cne '荒野探险家.netmod') { throw 'Release filename must be 荒野探险家.netmod.' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-BlockBehaviorBindings.ps1') -GameDir $GameDir -Package $package
+if ($LASTEXITCODE -ne 0) { throw 'Packaged block behavior bindings failed native validation.' }
 & (Join-Path $PSScriptRoot 'Test-HomeFurniture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Bookshelf.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
+& (Join-Path $PSScriptRoot 'Test-Architecture.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -Package $package
+& (Join-Path $PSScriptRoot 'Test-Wildlife.ps1') -GameDir $GameDir -Package $package
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
 & (Join-Path $PSScriptRoot 'Test-Tiangong.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-CelestialCodex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
@@ -2444,6 +2367,8 @@ if ((Get-FileHash -LiteralPath $package).Hash -ne (Get-FileHash -LiteralPath $ve
 & (Join-Path $PSScriptRoot 'Test-Excalibur.ps1') -GameDir $GameDir -Package $package
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Suspension.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item final package validation failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package
+if ($LASTEXITCODE -ne 0) { throw 'Tide Palace or Pyramid package validation failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll') -Package $package -PackageOnly
 if ($LASTEXITCODE -ne 0) { throw 'Codex package validation failed.' }
 

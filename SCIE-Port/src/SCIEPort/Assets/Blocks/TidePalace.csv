@@ -1,0 +1,2 @@
+Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;IsCollidable;IsPlaceable;IsDiggingTransparent;IsPlacementTransparent;DefaultIsInteractive;IsEditable;IsFluidBlocker;IsTransparent;DefaultShadowStrength;LightAttenuation;DefaultEmittedLightAmount;DefaultDropContent;DefaultDropCount;MaxStacking;DefaultTextureSlot;DigMethod;DigResilience;ExplosionResilience;DefaultSoundMaterialName
+TidePalaceBlock;沉殿机关;SCIEPort.Structures;SCIEPortTidePalace;371;-1;TRUE;FALSE;FALSE;FALSE;FALSE;FALSE;TRUE;FALSE;15;0;13;0;0;1;0;Quarry;22;180;Stone

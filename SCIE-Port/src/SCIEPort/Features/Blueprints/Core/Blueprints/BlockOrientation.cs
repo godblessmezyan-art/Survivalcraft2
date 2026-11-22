@@ -9,6 +9,7 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
         // Trapdoor/FenceGate/Ivy remain research-only; Carpet is active since v0.24.0.
         Trapdoor, FenceGate, Carpet, Ivy,
         Falling, Grass, Soil, Plant, Snow, GroundCover, Gravestone, Lantern, Cairn,
+        Detail, Home,
     }
 
     internal static class BlockOrientation
@@ -18,6 +19,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             if (data < 0) return false;
             switch (family)
             {
+                case BlockFamily.Detail: return data < 64;
+                case BlockFamily.Home: return data < 64 && (data & 4) == 0;
                 // Cube is type-qualified by VanillaBlockCapability: only PaintedCube accepts paint.
                 case BlockFamily.Cube: return ValidPaint(data, 0, 1, 1);
                 case BlockFamily.Stairs: return ValidPaint(data, 31, 32, 6) && (data & 24) != 24;
@@ -89,6 +92,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
         {
             switch (family)
             {
+                case BlockFamily.Detail: return "位0..1朝向，位2镜像，位3..5款式（按材料限制）";
+                case BlockFamily.Home: return "位0..1朝向，位3..5款式，仅登记的单格家具";
                 case BlockFamily.Cube: return "0；PaintedCube 另允许 1+2*color，color=0..15";
                 case BlockFamily.Stairs: return "geometry=0..23；可加 32+64*color，color=0..15";
                 case BlockFamily.Slab: return "0..1；可加 2+4*color，color=0..15";
@@ -139,6 +144,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             int r = ((steps % 4) + 4) % 4;
             switch (family)
             {
+                case BlockFamily.Detail: return SCIEPort.Features.Architecture.ArchitectureRules.Rotate(data, r);
+                case BlockFamily.Home: return (data & ~3) | (((data & 3) - r + 4) & 3);
                 case BlockFamily.Lantern:
                 case BlockFamily.Stairs:
                 case BlockFamily.Door:
@@ -167,6 +174,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             RequireValid(family, data);
             switch (family)
             {
+                case BlockFamily.Detail: return SCIEPort.Features.Architecture.ArchitectureRules.Mirror(data);
+                case BlockFamily.Home: return SCIEPort.Features.Blueprints.HomeBlueprintRules.Mirror(data);
                 case BlockFamily.Stairs:
                     // Collision boxes 8..23: each corner mirrors rot0 <-> rot1, rot2 <-> rot3.
                     return (data & ~3) | (((data & 24) == 0 ? 0 - data : 1 - data) & 3);
@@ -192,6 +201,8 @@ namespace SCIEPort.Features.Blueprints.Core.Blueprints
             if (string.IsNullOrEmpty(tag) || tag == "cube") return true;
             switch (tag)
             {
+                case "detail": family = BlockFamily.Detail; return true;
+                case "home": family = BlockFamily.Home; return true;
                 case "stairs": family = BlockFamily.Stairs; return true;
                 case "slab": family = BlockFamily.Slab; return true;
                 case "fence": family = BlockFamily.Fence; return true;

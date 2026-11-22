@@ -11,7 +11,7 @@ public static class PlantGpuBootstrap
     public static int Main(string[] args)
     {
         AppDomain.CurrentDomain.AssemblyResolve+=(s,e)=>{string name=new AssemblyName(e.Name).Name;foreach(string ext in new[]{".dll",".exe"}){string p=Path.Combine(args[0],name+ext);if(File.Exists(p))return Assembly.LoadFrom(p);}return null;};
-        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
+        try{typeof(PlantGpuBootstrap).Assembly.GetType("PlantGpuProbe").GetMethod("Run").Invoke(null,new object[]{args[1],args[2],args[3],args[4],args[5]});return 0;}catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }
 }
 public static class PlantGpuProbe
@@ -22,11 +22,14 @@ public static class PlantGpuProbe
     static PrimitivesRenderer3D renderer;
     static RenderTarget2D target;
     static string output;
+    static string atlasPath;
+    static string specialAtlasPath;
+    static string bambooAtlasPath;
     static int triangles;
     static BlockMesh Mesh(int id,int data){return (BlockMesh)build.Invoke(null,new object[]{id,data});}
-    public static void Run(string assembly,string directory)
+    public static void Run(string assembly,string directory,string atlas,string specialAtlas,string bambooAtlas)
     {
-        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;
+        mod=Assembly.LoadFrom(assembly);build=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true).GetMethod("Build",BindingFlags.NonPublic|BindingFlags.Static);output=directory;atlasPath=atlas;specialAtlasPath=specialAtlas;bambooAtlasPath=bambooAtlas;
         Window.Created+=()=>{object w=typeof(Window).GetField("m_gameWindow",BindingFlags.NonPublic|BindingFlags.Static).GetValue(null);w.GetType().GetProperty("Visible").SetValue(w,false,null);};
         Exception failure=null;
         Window.Frame+=()=>{try{Execute();}catch(Exception e){failure=e;}finally{Window.Close();}};
@@ -41,32 +44,68 @@ public static class PlantGpuProbe
             batch.QueueTriangle(a.Position+offset,b.Position+offset,c.Position+offset,a.Color,b.Color,c.Color);triangles++;
         }
     }
+    static void DrawTreeBlock(int value, Vector3 center)
+    {
+        Matrix matrix = Matrix.CreateTranslation(center);
+        BlocksManager.Blocks[Terrain.ExtractContents(value)].DrawBlock(renderer, value, Color.White, 1f,
+            ref matrix, new DrawBlockEnvironmentData { Light = 15, DrawBlockMode = DrawBlockMode.World });
+        triangles += 12;
+    }
     static void Tree(Vector3 offset,int phase)
     {
-        Add(939,16|7,offset);
-        for(int y=1;y<=2;y++)Add(939,32|7|(1<<6)|(1<<8)|(y<<10),offset+new Vector3(0,y,0));
-        var rules=build.DeclaringType.Assembly.GetType("SCIEPort.Features.Apple.AppleTreeRules",true);
-        var parts=(System.Collections.IEnumerable)rules.GetMethod("Parts").Invoke(null,null);
-        foreach(int[] d in parts)
-        {
-            if(d[3]!=48)continue;
-            int data = 48 | ((d[0] + 1) << 6) | ((d[2] + 1) << 8) | (d[1] << 10);
-            if ((bool)rules.GetMethod("BearsFruit").Invoke(null, new object[] { data })) data |= phase;
-            Add(939, data, offset + new Vector3(d[0], d[1], d[2]));
-        }
+        var layout=mod.GetType("SCIEPort.Features.Apple.AppleTreeLayout",true);
+        var brush=(TerrainBrush)layout.GetMethod("ForStage",BindingFlags.Static|BindingFlags.NonPublic)
+            .Invoke(null,new object[]{phase});
+        foreach (TerrainBrush.Cell cell in brush.Cells)
+            DrawTreeBlock(cell.Value, offset + new Vector3(cell.X + .5f, cell.Y + .5f, cell.Z + .5f));
     }
+    static void SpecialTree(string name, int variant, Vector3 offset)
+    {
+        var type = mod.GetType("SCIEPort.Features.SpecialTrees.TreeSpecies", true);
+        const BindingFlags flags = BindingFlags.Static | BindingFlags.NonPublic;
+        object species = type.GetField(name, flags).GetValue(null);
+        var brush = (TerrainBrush)type.GetMethod("GetBrush", BindingFlags.Instance | BindingFlags.NonPublic)
+            .Invoke(species, new object[] { variant, true });
+        foreach (TerrainBrush.Cell cell in brush.Cells)
+            DrawTreeBlock(cell.Value, offset + new Vector3(cell.X + .5f, cell.Y + .5f, cell.Z + .5f));
+    }
+
+    static Texture2D LoadAtlas(string path, string typeName, string field)
+    {
+        Texture2D texture;
+        using (var stream = File.OpenRead(path)) texture = Texture2D.Load(stream, false, 1);
+        mod.GetType("SCIEPort.Features." + typeName, true).GetField(field, BindingFlags.Static | BindingFlags.NonPublic)
+            .SetValue(null, texture);
+        return texture;
+    }
+
+    static void Register(string name)
+    {
+        var block = (Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features." + name, true));
+        block.BlockIndex = (int)block.GetType().GetField("Index").GetRawConstantValue();
+        block.Initialize();
+        BlocksManager.Blocks[block.BlockIndex] = block;
+    }
+
     static void Begin()
     {
         triangles=0;renderer.Clear();Display.RenderTarget=target;Display.Viewport=new Viewport(0,0,Width,Height);Display.Clear(new Color(218,227,221),1,0);
         var ground=renderer.FlatBatch(-1,DepthStencilState.Default,RasterizerState.CullNone,BlendState.Opaque);
-        for(int x=-12;x<12;x++)for(int z=-8;z<8;z++)ground.QueueQuad(new Vector3(x,-.015f,z),new Vector3(x+1,-.015f,z),new Vector3(x+1,-.015f,z+1),new Vector3(x,-.015f,z+1),((x+z)&1)==0?new Color(135,153,109):new Color(140,157,113));
+        for(int x=-19;x<19;x++)for(int z=-12;z<12;z++)ground.QueueQuad(new Vector3(x,-.015f,z),new Vector3(x+1,-.015f,z),new Vector3(x+1,-.015f,z+1),new Vector3(x,-.015f,z+1),((x+z)&1)==0?new Color(135,153,109):new Color(140,157,113));
     }
     static void Save(string name,Vector3 eye,Vector3 at,float fov)
     {
         Matrix view=Matrix.CreateLookAt(eye,at,Vector3.UnitY)*Matrix.CreatePerspectiveFieldOfView(fov*MathUtils.PI/180,(float)Width/Height,.1f,100);
         renderer.Flush(view);
-        Color[] pixels=new Color[Width*Height];target.GetData(pixels,0,new Rectangle(0,0,Width,Height));int colored=0;
-        foreach(Color c in pixels)if(c.G>c.R*1.12f&&c.G>c.B*1.2f&&c.G<140)colored++;
+        Color[] pixels=new Color[Width*Height];target.GetData(pixels,0,new Rectangle(0,0,Width,Height));int colored=0, fruit=0;
+        foreach(Color c in pixels)
+        {
+            if(c.G>c.R*1.12f&&c.G>c.B*1.2f&&c.G<140)colored++;
+            if(c.R>80&&c.G<c.R*.47f&&c.B<c.R*.5f)fruit++;
+        }
+        if(name=="apple-ripe" && fruit<120) throw new Exception("No visible red apples in the native foliage render.");
+        if((name=="apple-green" || name=="apple-blossom") && fruit>20)
+            throw new Exception("Red fruit leaked into an immature tree texture.");
         using(var file=File.Create(Path.Combine(output,name+".png")))RenderTarget2D.Save(target,file,ImageFileFormat.Png,false);
         if(colored<300)throw new Exception("Model missing from native culled GPU render: "+name);
         Console.WriteLine(name+": "+triangles+" triangles, "+colored+" plant pixels (synthetic Engine/OpenGL scene)");
@@ -76,15 +115,35 @@ public static class PlantGpuProbe
         renderer=new PrimitivesRenderer3D();target=new RenderTarget2D(Width,Height,1,ColorFormat.Rgba8888,DepthFormat.Depth24Stencil8);
         ModsManager.ModHooks=new System.Collections.Generic.Dictionary<string,ModsManager.ModHook>();
         LightingManager.CalculateLightingTables();
+        Texture2D atlas = LoadAtlas(atlasPath, "Apple.AppleTextures", "s_atlas");
+        Texture2D specialAtlas = LoadAtlas(specialAtlasPath, "SpecialTrees.SpecialTreeTextures", "atlas");
+        Texture2D bambooAtlas = LoadAtlas(bambooAtlasPath, "Bamboo.BambooTextures", "s_atlas");
+        Register("Bamboo.BambooBlock");
+        Register("Bamboo.BambooShootBlock");
+        foreach (string name in new[] { "AppleWoodBlock", "AppleLeavesBlock", "AppleFruitingLeavesBlock" })
+            Register("Apple." + name);
+        foreach (string name in new[] { "TallPalm", "Coconut", "Baobab", "Sakura" })
+        foreach (string part in new[] { "Wood", "Leaves", "Sapling" })
+            Register("SpecialTrees." + name + part + "Block");
+        Register("SpecialTrees.CoconutFruitBlock");
+        Register("SpecialTrees.BaobabFruitBlock");
+        Register("Apple.AppleBlock");
+        Register("KellyPlants.WildBerryBlock");
         try
         {
             Begin();int[] ids={929,936,934,911,903,915,905,932,909};
-            for(int i=0;i<ids.Length;i++)Add(ids[i],ids[i]==903?1:ids[i]==915?0:7,new Vector3(-2.1f+i%3*1.6f,0,.9f-i/3*1.5f));
+            for(int i=0;i<ids.Length;i++)Add(ids[i],ids[i]==903?1:ids[i]==915?0:ids[i]==932?2:7,new Vector3(-2.1f+i%3*1.6f,0,.9f-i/3*1.5f));
             Save("crops",new Vector3(4.2f,3.8f,6.5f),new Vector3(0,.35f,-.3f),41);
             Begin();Tree(new Vector3(-.5f,0,-.5f),15);Add(939,0,new Vector3(2.0f,0,.5f));Add(939,3,new Vector3(2.8f,0,.5f));Add(939,6,new Vector3(3.6f,0,.5f));
             Save("apple-ripe",new Vector3(7.5f,5.3f,9),new Vector3(.9f,2.0f,0),40);
             Begin();Tree(new Vector3(-.5f,0,-.5f),1);Save("apple-blossom",new Vector3(6.1f,4.8f,8.3f),new Vector3(0,2.2f,0),37);
-            Begin();Tree(new Vector3(-.5f,0,-.5f),3);Save("apple-green",new Vector3(-6.1f,4.8f,-8.3f),new Vector3(0,2.2f,0),37);
+            Begin();Tree(new Vector3(-.5f,0,-.5f),4);Save("apple-green",new Vector3(-6.1f,4.8f,-8.3f),new Vector3(0,2.2f,0),37);
+            Begin();
+            DrawTreeBlock(Terrain.MakeBlockValue(978), new Vector3(-1.8f, .5f, 0f));
+            DrawTreeBlock(Terrain.MakeBlockValue(978, 0, WoodBlock.SetCutFace(0, 0)), new Vector3(-.55f, .5f, 0f));
+            DrawTreeBlock(Terrain.MakeBlockValue(979), new Vector3(.7f, .5f, 0f));
+            DrawTreeBlock(Terrain.MakeBlockValue(980), new Vector3(1.95f, .5f, 0f));
+            Save("apple-blocks",new Vector3(3f,3f,6.2f),new Vector3(.2f,.65f,0),42);
             Begin();for(int stage=0;stage<8;stage++)Add(929,stage,new Vector3(-3.5f+stage,0,0));
             Save("corn-stages",new Vector3(.3f,2.9f,8.7f),new Vector3(.3f,.35f,.5f),45);
             Begin();
@@ -102,7 +161,51 @@ public static class PlantGpuProbe
                 triangles += Mesh(block.BlockIndex, data).Indices.Count / 3;
             }
             Save("native-items",new Vector3(5.1f,4.0f,7.8f),new Vector3(.2f,.30f,-1.3f),42);
+            Begin();
+            SpecialTree("Palm", 3, new Vector3(-10f, 0, 0));
+            SpecialTree("Coconut", 3, new Vector3(-3f, 0, 1.5f));
+            SpecialTree("Baobab", 2, new Vector3(5.5f, 0, 1.5f));
+            SpecialTree("Sakura", 2, new Vector3(13.5f, 0, 1.5f));
+            Save("four-tree-species", new Vector3(14f, 14f, 45f), new Vector3(1f, 8f, 0), 41);
+
+            Begin();
+            for (int species = 0; species < 4; species++)
+            {
+                int log = new[] { 982, 985, 989, 993 }[species];
+                float x = (species - 1.5f) * 2.6f;
+                DrawTreeBlock(Terrain.MakeBlockValue(log), new Vector3(x, .5f, 1f));
+                int data = species == 1 ? 8 | 5 : species == 2 ? 8 | 4 : 0;
+                DrawTreeBlock(Terrain.MakeBlockValue(log + 1, 0, data), new Vector3(x, .5f, -.2f));
+                DrawTreeBlock(Terrain.MakeBlockValue(log - 1), new Vector3(x, .5f, -1.3f));
+            }
+            DrawTreeBlock(Terrain.MakeBlockValue(987), new Vector3(-1.3f, .45f, 2.2f));
+            DrawTreeBlock(Terrain.MakeBlockValue(991), new Vector3(1.3f, .45f, 2.2f));
+            Save("special-tree-materials", new Vector3(2.1f, 4.4f, 11f), new Vector3(0, .4f, .5f), 43);
+            Begin();
+            int[] dropIds = { 904, 940, 987, 991, 986 };
+            for (int i = 0; i < dropIds.Length; i++)
+            {
+                Matrix position = Matrix.CreateTranslation((i - 2) * .48f, .25f, 0);
+                BlocksManager.Blocks[dropIds[i]].DrawBlock(renderer, Terrain.MakeBlockValue(dropIds[i]), Color.White,
+                    .3f, ref position, new DrawBlockEnvironmentData { Light = 15, DrawBlockMode = DrawBlockMode.World });
+            }
+            Save("plant-pickable-sizes", new Vector3(1.1f, 1.3f, 3.5f), new Vector3(0, .22f, 0), 42);
+            Begin();
+            float[,] grove = { { -2f, -1.2f }, { -.6f, -.7f }, { 1f, -1.8f }, { 2f, .2f }, { -1.45f, 1.0f }, { .2f, 1.6f } };
+            int[] matureHeights = { 6, 8, 7, 5, 5, 6 };
+            for (int stem = 0; stem < matureHeights.Length; stem++)
+            {
+                for (int y = 0; y < matureHeights[stem]; y++)
+                {
+                    int visual = y == matureHeights[stem] - 1 ? 2 : (66 + y) % 3 == 1 ? 1 : 0;
+                    Add(932, visual, new Vector3(grove[stem, 0], y, grove[stem, 1]));
+                }
+            }
+            for (int stage = 0; stage < 3; stage++)
+                Add(1001, stage, new Vector3(-1.3f + stage * .8f, 0, 2.75f));
+            DrawTreeBlock(Terrain.MakeBlockValue(933), new Vector3(2.3f, .5f, 2.85f));
+            Save("bamboo-grove", new Vector3(8.2f, 6.55f, 13.7f), new Vector3(.3f, 3.38f, .5f), 40);
         }
-        finally{Display.RenderTarget=null;target.Dispose();}
+        finally{Display.RenderTarget=null;target.Dispose();atlas.Dispose();specialAtlas.Dispose();bambooAtlas.Dispose();}
     }
 }

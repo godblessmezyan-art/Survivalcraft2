@@ -1,0 +1,80 @@
+{
+  "coordinate_mapping": "(x,y,z) game -> (x,-z,y) Blender",
+  "scale": 1,
+  "pivots": [
+    {
+      "bone": "Body",
+      "local_pivot": [
+        0,
+        0,
+        0
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "WingL",
+      "local_pivot": [
+        -0.48,
+        1.72,
+        -0.48
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "WingR",
+      "local_pivot": [
+        0.48,
+        1.72,
+        -0.48
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "Leg1",
+      "local_pivot": [
+        -0.65,
+        1.16,
+        -0.82
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "Leg2",
+      "local_pivot": [
+        0.65,
+        1.16,
+        -0.82
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "Leg3",
+      "local_pivot": [
+        -0.61,
+        1.14,
+        1.05
+      ],
+      "error": 0.0
+    },
+    {
+      "bone": "Leg4",
+      "local_pivot": [
+        0.61,
+        1.14,
+        1.05
+      ],
+      "error": 0.0
+    }
+  ],
+  "bone_order": [
+    "Body",
+    "WingL",
+    "WingR",
+    "Leg1",
+    "Leg2",
+    "Leg3",
+    "Leg4"
+  ],
+  "seat_geometry": "unchanged baseline saddle and harness",
+  "head_neck_tail_animation": "rigid Body; no extra shader matrices"
+}

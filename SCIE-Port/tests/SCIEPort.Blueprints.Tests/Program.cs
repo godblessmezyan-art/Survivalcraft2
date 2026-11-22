@@ -13,6 +13,9 @@ internal static class Program
             string path=name=="SCIEPort"?mod:Path.Combine(game,name=="Survivalcraft"?"Survivalcraft.exe":name+".dll");
             return File.Exists(path)?Assembly.LoadFrom(path):null;
         };
-        try { BlueprintTests.Run();if(args.Length>2&&args[2]=="--live")BlueprintTests.Live();return 0; } catch(Exception ex) { Console.Error.WriteLine(ex);return 1; }
+        try {
+            if(args.Length>3&&args[2]=="--blueprint") { BlueprintTests.ValidateBlueprintFile(args[3]);return 0; }
+            BlueprintTests.Run();if(args.Length>2&&args[2]=="--live")BlueprintTests.Live();return 0;
+        } catch(Exception ex) { Console.Error.WriteLine(ex);return 1; }
     }
 }

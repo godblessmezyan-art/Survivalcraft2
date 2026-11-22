@@ -57,7 +57,7 @@ public static class SceneryNativeProbe
     static void RegisterBlocks(Assembly mod)
     {
         string[] names = { "Cloudstone", "Hull", "Envelope", "Crystal", "Brass", "Sail" };
-        int[] ids = { 978, 979, 980, 981, 982, 983 };
+        int[] ids = { 880, 881, 882, 883, 884, 885 };
         for (int i = 0; i < names.Length; i++)
         {
             Type type = mod.GetType("SCIEPort.Features.Scenery.Scenery" + names[i] + "Block", true);
@@ -72,47 +72,47 @@ public static class SceneryNativeProbe
 
     static void Geometry()
     {
-        var cloudstone = (SceneryCubeBlock)BlocksManager.Blocks[978];
-        var hull = (SceneryCubeBlock)BlocksManager.Blocks[979];
-        var envelope = (SceneryCubeBlock)BlocksManager.Blocks[980];
-        var crystal = (SceneryCubeBlock)BlocksManager.Blocks[981];
-        var brass = (SceneryCubeBlock)BlocksManager.Blocks[982];
-        var sail = (SceneryCubeBlock)BlocksManager.Blocks[983];
+        var cloudstone = (SceneryCubeBlock)BlocksManager.Blocks[880];
+        var hull = (SceneryCubeBlock)BlocksManager.Blocks[881];
+        var envelope = (SceneryCubeBlock)BlocksManager.Blocks[882];
+        var crystal = (SceneryCubeBlock)BlocksManager.Blocks[883];
+        var brass = (SceneryCubeBlock)BlocksManager.Blocks[884];
+        var sail = (SceneryCubeBlock)BlocksManager.Blocks[885];
 
         for (int face = 0; face < 6; face++)
         {
-            Check(cloudstone.GetFaceTextureSlot(face, Terrain.MakeBlockValue(978)) == 5, "cloudstone atlas slot");
-            Check(brass.GetFaceTextureSlot(face, Terrain.MakeBlockValue(982)) == 8, "brass atlas slot");
-            Check(sail.GetFaceTextureSlot(face, Terrain.MakeBlockValue(983)) == 9, "sail atlas slot");
-            Check(hull.GetFaceTextureSlot(face, Terrain.MakeBlockValue(979)) == (face == 4 ? 1 : 0), "hull top/side atlas slot");
+            Check(cloudstone.GetFaceTextureSlot(face, Terrain.MakeBlockValue(880)) == 5, "cloudstone atlas slot");
+            Check(brass.GetFaceTextureSlot(face, Terrain.MakeBlockValue(884)) == 8, "brass atlas slot");
+            Check(sail.GetFaceTextureSlot(face, Terrain.MakeBlockValue(885)) == 9, "sail atlas slot");
+            Check(hull.GetFaceTextureSlot(face, Terrain.MakeBlockValue(881)) == (face == 4 ? 1 : 0), "hull top/side atlas slot");
         }
         for (int data = 0; data <= 2; data++)
         {
-            Check(envelope.GetFaceTextureSlot(0, Terrain.MakeBlockValue(980, 0, data)) == 2 + data, "envelope skin variant " + data);
+            Check(envelope.GetFaceTextureSlot(0, Terrain.MakeBlockValue(882, 0, data)) == 2 + data, "envelope skin variant " + data);
         }
-        Check(envelope.GetFaceTextureSlot(0, Terrain.MakeBlockValue(980, 0, 7)) == 4, "out-of-range envelope data clamps");
-        Check(crystal.GetFaceTextureSlot(0, Terrain.MakeBlockValue(981, 0, 0)) == 6, "cyan crystal atlas slot");
-        Check(crystal.GetFaceTextureSlot(0, Terrain.MakeBlockValue(981, 0, 1)) == 7, "violet crystal atlas slot");
-        Check(crystal.GetEmittedLightAmount(Terrain.MakeBlockValue(981, 0, 0)) == 12, "cyan crystal light");
-        Check(crystal.GetEmittedLightAmount(Terrain.MakeBlockValue(981, 0, 1)) == 10, "violet crystal light");
+        Check(envelope.GetFaceTextureSlot(0, Terrain.MakeBlockValue(882, 0, 7)) == 4, "out-of-range envelope data clamps");
+        Check(crystal.GetFaceTextureSlot(0, Terrain.MakeBlockValue(883, 0, 0)) == 6, "cyan crystal atlas slot");
+        Check(crystal.GetFaceTextureSlot(0, Terrain.MakeBlockValue(883, 0, 1)) == 7, "violet crystal atlas slot");
+        Check(crystal.GetEmittedLightAmount(Terrain.MakeBlockValue(883, 0, 0)) == 12, "cyan crystal light");
+        Check(crystal.GetEmittedLightAmount(Terrain.MakeBlockValue(883, 0, 1)) == 10, "violet crystal light");
 
         int variants = 0;
         foreach (int value in envelope.GetCreativeValues())
         {
             variants++;
-            Check(Terrain.ExtractContents(value) == 980, "envelope creative content");
+            Check(Terrain.ExtractContents(value) == 882, "envelope creative content");
             Check(Terrain.ExtractData(value) >= 0 && Terrain.ExtractData(value) <= 2, "envelope creative data");
         }
         Check(variants == 3, "envelope exposes three skins");
 
         var drops = new List<BlockDropValue>();
         bool debris;
-        envelope.GetDropValues(null, Terrain.MakeBlockValue(980, 0, 2), 0, 0, drops, out debris);
-        Check(drops.Count == 1 && Terrain.ExtractContents(drops[0].Value) == 980 && Terrain.ExtractData(drops[0].Value) == 2,
+        envelope.GetDropValues(null, Terrain.MakeBlockValue(882, 0, 2), 0, 0, drops, out debris);
+        Check(drops.Count == 1 && Terrain.ExtractContents(drops[0].Value) == 882 && Terrain.ExtractData(drops[0].Value) == 2,
             "envelope drops keep their skin");
         drops.Clear();
-        crystal.GetDropValues(null, Terrain.MakeBlockValue(981, 0, 1), 0, 0, drops, out debris);
-        Check(drops.Count == 1 && Terrain.ExtractContents(drops[0].Value) == 981 && Terrain.ExtractData(drops[0].Value) == 1,
+        crystal.GetDropValues(null, Terrain.MakeBlockValue(883, 0, 1), 0, 0, drops, out debris);
+        Check(drops.Count == 1 && Terrain.ExtractContents(drops[0].Value) == 883 && Terrain.ExtractData(drops[0].Value) == 1,
             "crystal drops keep their colour");
     }
 
@@ -140,7 +140,7 @@ public static class SceneryNativeProbe
         using (var terrain = new Terrain())
         {
             var chunks = GenerateSite(terrain, generator, site, true);
-            int hull = CountBlock(chunks, 979);
+            int hull = CountBlock(chunks, 881);
             int planks = CountBlock(chunks, 21);
             int wood = CountBlock(chunks, 9);
             Check(hull > 0, "shipwreck hull is written");
@@ -162,8 +162,8 @@ public static class SceneryNativeProbe
                         {
                             int contents = Terrain.ExtractContents(chunk.GetCellValueFast(x, y, z));
                             if (contents == WaterBlock.Index) water++;
-                            if (contents == 979 && y >= 51 && y <= 63) wetHull++;
-                            if (contents < 978 || contents > 983) continue;
+                            if (contents == 881 && y >= 51 && y <= 63) wetHull++;
+                            if (contents < 880 || contents > 885) continue;
                             customs++;
                             Check(y >= 1, "shipwreck scenery stays above the world floor");
                             Check(y <= OceanLevel - 1, "shipwreck scenery stays under the ocean surface");
@@ -184,11 +184,11 @@ public static class SceneryNativeProbe
         using (var terrain = new Terrain())
         {
             var chunks = GenerateSite(terrain, generator, airship, true);
-            int envelope = CountBlock(chunks, 980);
+            int envelope = CountBlock(chunks, 882);
             Check(envelope > 0, "airship envelope is written");
-            Check(CountBlockWithData(chunks, 980, airship.Variant) == envelope, "airship keeps its skin variant");
-            Check(CountBlock(chunks, 982) > 0, "airship brass fittings are written");
-            Check(CountBlock(chunks, 981) > 0, "airship crystal lamp is written");
+            Check(CountBlockWithData(chunks, 882, airship.Variant) == envelope, "airship keeps its skin variant");
+            Check(CountBlock(chunks, 884) > 0, "airship brass fittings are written");
+            Check(CountBlock(chunks, 883) > 0, "airship crystal lamp is written");
             Check(CountBlock(chunks, 15) > 0, "airship windows are written");
             Check(CountBlock(chunks, 21) > 0, "airship deck and tail are written");
             AssertAirClearance(chunks, "airship");
@@ -199,7 +199,7 @@ public static class SceneryNativeProbe
         using (var terrain = new Terrain())
         {
             var chunks = GenerateSite(terrain, generator, island, true);
-            Check(CountBlock(chunks, 978) > 0, "sky island cloudstone is written");
+            Check(CountBlock(chunks, 880) > 0, "sky island cloudstone is written");
             Check(CountBlock(chunks, 8) > 0, "sky island grass cap is written");
             Check(CountBlock(chunks, 2) > 0, "sky island soil is written");
             Check(CountBlock(chunks, 9) > 0, "sky island trunk is written");
@@ -358,7 +358,7 @@ public static class SceneryNativeProbe
                     for (int y = 0; y < 256; y++)
                     {
                         int contents = Terrain.ExtractContents(chunk.GetCellValueFast(x, y, z));
-                        if (contents < 978 || contents > 983) continue;
+                        if (contents < 880 || contents > 885) continue;
                         Check(y >= 98, name + " keeps air clearance above terrain");
                         Check(y <= SceneryRules.MaxWorldHeight, name + " stays below the build ceiling");
                     }
@@ -528,7 +528,7 @@ public static class SceneryNativeProbe
                 for (int y = 0; y < 256; y++)
                 {
                     int contents = Terrain.ExtractContents(chunk.GetCellValueFast(x, y, z));
-                    if (contents >= 978 && contents <= 983) count++;
+                    if (contents >= 880 && contents <= 885) count++;
                 }
             }
         }
@@ -539,12 +539,12 @@ public static class SceneryNativeProbe
     {
         return new SceneryBlockSet
         {
-            Hull = 979,
-            Envelope = 980,
-            Cloudstone = 978,
-            Crystal = 981,
-            Brass = 982,
-            Sail = 983,
+            Hull = 881,
+            Envelope = 882,
+            Cloudstone = 880,
+            Crystal = 883,
+            Brass = 884,
+            Sail = 885,
             Wood = OakWoodBlock.Index,
             Planks = PlanksBlock.Index,
             Glass = GlassBlock.Index,

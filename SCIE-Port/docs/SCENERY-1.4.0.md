@@ -1,10 +1,10 @@
-# 0.94.0 奇幻地形：沉船、飞艇与浮空岛
+# 1.4.0 奇幻地形：沉船、飞艇与浮空岛
 
-固定目标：SCNET `Net_x25.01.17`、net472、API 1.42、SC 2.4.10.6。功能属于荒野探险家 / `SCIEPort`，在原生地形第四阶段和植物之后生成；不依赖 Builder Assistant，也不改变其蓝图材料表。
+固定目标：SCNET `Net_x25.01.17`、net472、API 1.42、SC 2.4.10.6。功能属于荒野探险家 / `SCIEPort`，在原生地形第四阶段、植物与自然地标之后生成；不依赖 Builder Assistant，也不改变其蓝图材料表。
 
 ## 生成层
 
-- `PlantTerrainGenerator` 包装原生 `ITerrainContentsGenerator`。`GenerateChunkContentsPass4` 先调用原生生成器，再调用植物生态，最后调用 `SceneryGenerator`。三段各自捕获异常，互不阻断。
+- `PlantTerrainGenerator` 包装原生 `ITerrainContentsGenerator`。`GenerateChunkContentsPass4` 先调用原生生成器，再依次调用植物生态与自然地标，最后调用 `SceneryGenerator`。各段独立捕获异常，互不阻断。
 - `SceneryGenerator` 只在 `CommonLib.WorkType != WorkType.Client` 运行；`TerrainGenerationMode.Nihility` 世界不生成。客户端始终只接收主机或本地原生地形。
 - 规则层 `SceneryRules` 只输出世界坐标体素，不引用引擎类型；引擎适配层只把落在当前 16×16 `TerrainChunk` 内的体素写入 `Terrain.MakeBlockValue`。因此同一世界种子、同一站点在不同区块生成顺序下结果一致。
 
@@ -30,12 +30,12 @@
 
 | ID | 类 | 名称 | DATA | 发光 | 图集槽 | 用途 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 978 | `SceneryCloudstoneBlock` | 云石 | 0 | 0 | 5 | 浮空岛主体 |
-| 979 | `SceneryHullBlock` | 沉船船板 | 0 | 0 | 0（顶面 1） | 沉船与吊舱船壳 |
-| 980 | `SceneryEnvelopeBlock` | 飞艇蒙皮 | 0–2 | 0 | 2–4 | 三款气囊蒙皮 |
-| 981 | `SceneryCrystalBlock` | 云晶 | 0 青 / 1 紫 | 12 / 10 | 6 / 7 | 浮空岛晶簇与吊舱灯 |
-| 982 | `SceneryBrassBlock` | 飞艇铜件 | 0 | 0 | 8 | 尾部螺旋桨 |
-| 983 | `ScenerySailBlock` | 破帆布 | 0 | 0 | 9 | 桅帆、尾翼和旗帜 |
+| 880 | `SceneryCloudstoneBlock` | 云石 | 0 | 0 | 5 | 浮空岛主体 |
+| 881 | `SceneryHullBlock` | 沉船船板 | 0 | 0 | 0（顶面 1） | 沉船与吊舱船壳 |
+| 882 | `SceneryEnvelopeBlock` | 飞艇蒙皮 | 0–2 | 0 | 2–4 | 三款气囊蒙皮 |
+| 883 | `SceneryCrystalBlock` | 云晶 | 0 青 / 1 紫 | 12 / 10 | 6 / 7 | 浮空岛晶簇与吊舱灯 |
+| 884 | `SceneryBrassBlock` | 飞艇铜件 | 0 | 0 | 8 | 尾部螺旋桨 |
+| 885 | `ScenerySailBlock` | 破帆布 | 0 | 0 | 9 | 桅帆、尾翼和旗帜 |
 
 纹理为原创 `Assets/Textures/Scenery.png`，512×512、16×16 网格、每格 32×32，使用前 10 格。CSV 位于 `Assets/Blocks/Scenery.csv`，由 `scripts/New-SceneryAssets.ps1` 重新生成图集。
 
@@ -50,6 +50,6 @@
 - 规则测试 `tests/SCIEPort.Scenery.Tests`：101,576 项检查，覆盖确定性、海洋/陆地高度带、四分之一旋转体积守恒、跨区块裁剪、沉船全在水下、空中净空、AABB 包含体素、方块 ID 完整和密度上限。
 - 固定目标原生探针 `scripts/Test-Scenery.ps1`：26,078 项检查。使用目标 `Engine.dll`、`EntitySystem.dll`、`Survivalcraft.exe` 和内存 `Terrain`，验证真实 `TerrainChunk` 写入、海床不被覆盖、沉船替换水且不露出水面、飞艇/浮空岛保持净空、客户端与 Nihility 跳过、正逆序区块生成一致、固体障碍不被覆盖、单区块预算及生成异常不破坏原生地形。
 - `Test-PortInventory.ps1`：全部 6 个新方块可反射实例化，分类为 `SCIEPort.Structures`，创造变体不逃逸专用 Tab。
-- 完整 Release、统一包与最终哈希见 [TEST-RESULTS](TEST-RESULTS.md) 的 0.94.0 条目：217 个条目、12,982,725 字节，SHA-256 `FFF2E9DE59EA7F8CC2876B5E2B3B290A96DE03C008B927793F406DD3E496E8C9`。
+- 完整 Release、统一包与最终哈希见 [TEST-RESULTS](TEST-RESULTS.md) 的 1.4.0 条目：统一包 232 个条目、13,148,956 字节，SHA-256 `5FD84C538ED616D96BFA0942C4F8ECCC7F887A93067C59C77A1FB492BC9EAAEC`。
 
-Android 7723 实机、触屏放置、长期世界生成和真实 Local/Server/Client 联机 **待验证**。联机各端应使用同一 0.94.0 版本；混用旧版时新方块会缺失，但不会覆盖原生地形。
+Android 7723 实机、触屏放置、长期世界生成和真实 Local/Server/Client 联机 **待验证**。联机各端应使用同一 1.4.0 版本；混用旧版时新方块会缺失，但不会覆盖原生地形。

@@ -1,0 +1,90 @@
+{
+  "image": "AbyssBoneDragon.png",
+  "size": [
+    512,
+    256
+  ],
+  "origin": "PNG/game top-left; Blender V inverted explicitly on import/export",
+  "regions": [
+    {
+      "index": 0,
+      "name": "bone",
+      "game_uv_rect": [
+        0.0,
+        0.0,
+        0.25,
+        0.5
+      ]
+    },
+    {
+      "index": 1,
+      "name": "joint",
+      "game_uv_rect": [
+        0.25,
+        0.0,
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "index": 2,
+      "name": "ivory",
+      "game_uv_rect": [
+        0.5,
+        0.0,
+        0.75,
+        0.5
+      ]
+    },
+    {
+      "index": 3,
+      "name": "claw-saddle",
+      "game_uv_rect": [
+        0.75,
+        0.0,
+        1.0,
+        0.5
+      ]
+    },
+    {
+      "index": 4,
+      "name": "socket",
+      "game_uv_rect": [
+        0.0,
+        0.5,
+        0.25,
+        1.0
+      ]
+    },
+    {
+      "index": 5,
+      "name": "soul",
+      "game_uv_rect": [
+        0.25,
+        0.5,
+        0.5,
+        1.0
+      ]
+    },
+    {
+      "index": 6,
+      "name": "membrane-a",
+      "game_uv_rect": [
+        0.5,
+        0.5,
+        0.75,
+        1.0
+      ]
+    },
+    {
+      "index": 7,
+      "name": "membrane-b",
+      "game_uv_rect": [
+        0.75,
+        0.5,
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}

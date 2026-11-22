@@ -35,6 +35,7 @@ public static class PlantNativeProbe
             CommonLib.Net=(NetNode)FormatterServices.GetUninitializedObject(typeof(NetNode));
             Put(CommonLib.Net,"PendingPackages",new List<IPackage>());CommonLib.Net.Clients=new Dictionary<int,Client>();
             Generation(mod);
+            SpecialTreeGeneration(mod);
             foreach(WorkType mode in new[]{WorkType.Local,WorkType.Server,WorkType.Client}) Runtime(mod,mode);
         }
         finally{CommonLib.WorkType=saved;CommonLib.Net=savedNet;ModsManager.ModHooks=savedHooks;Array.Copy(savedBlocks,BlocksManager.Blocks,savedBlocks.Length);}
@@ -45,11 +46,25 @@ public static class PlantNativeProbe
         var g=mod.GetType("SCIEPort.Features.Plants.PlantGeometry",true);
         var build=g.GetMethod("Build",BindingFlags.Static|BindingFlags.NonPublic);
         var visual=g.GetMethod("VisualData",BindingFlags.Static|BindingFlags.NonPublic);
-        int[] ids={903,904,905,906,907,908,909,910,911,912,913,914,915,916,929,930,931,932,934,935,936,937,939,940};
+        int[] ids={903,904,905,906,907,908,909,910,911,912,913,914,915,916,929,930,931,932,934,935,936,937,939,940,987,991,1001};
         float appleWidth = MeshWidth(build, 940);
         Check(appleWidth > 1.65f * MeshWidth(build, 904) && appleWidth > 1.65f * MeshWidth(build, 916),
             "apple is visibly broader than a berry bundle");
         Check(appleWidth * .3f >= .12f && appleWidth * .3f <= .14f, "native drop size corresponds to a full-size apple");
+        var itemScale = g.GetMethod("ItemDisplayScale", BindingFlags.Static | BindingFlags.NonPublic);
+        var leafScale = g.GetMethod("LeavesDisplayScale", BindingFlags.Static | BindingFlags.NonPublic);
+        Func<int, DrawBlockMode, float> scale = (id, mode) => (float)itemScale.Invoke(null, new object[] { id, mode });
+        float coconutWidth = MeshWidth(build, 987) * .3f * scale(987, DrawBlockMode.World);
+        float baobabWidth = MeshWidth(build, 991) * .3f * scale(991, DrawBlockMode.World);
+        Check(coconutWidth >= .22f && coconutWidth <= .26f && coconutWidth > appleWidth * .3f * 1.5f,
+            "dropped coconut has a realistic size relative to an apple");
+        Check(baobabWidth >= .11f && baobabWidth <= .14f, "dropped baobab fruit has a realistic width");
+        Check(scale(987, DrawBlockMode.UI) == 1f && scale(991, DrawBlockMode.UI) == 1f &&
+              scale(940, DrawBlockMode.World) == 1f && scale(904, DrawBlockMode.World) == 1f,
+            "inventory and already proportioned apple and berries retain their scale");
+        Check((float)leafScale.Invoke(null, new object[] { DrawBlockMode.World }) == 1.2f &&
+              (float)leafScale.Invoke(null, new object[] { DrawBlockMode.UI }) == 1f,
+            "dropped tree leaves are more legible without enlarging inventory icons");
         foreach(int id in ids)
         {
             var words=new List<int>();
@@ -223,8 +238,28 @@ public static class PlantNativeProbe
     {
         string[] names = { "Apple.ApplePlantBlock", "Bamboo.BambooPlantBlock", "Crops.CornStalkBlock", "Flax.FlaxPlantBlock",
             "Sunflower.SunflowerPlantBlock", "KellyPlants.SoybeanBlock", "KellyPlants.WildBerryPlantBlock", "KellyPlants.CloudberryPlantBlock",
-            "KellyPlants.CattailBlock", "KellyPlants.CactusFruitBlock", "KellyPlants.MushroomPatchBlock", "KellyPlants.FlyAgaricPatchBlock" };
+            "KellyPlants.CattailBlock", "KellyPlants.CactusFruitBlock", "KellyPlants.MushroomPatchBlock", "KellyPlants.FlyAgaricPatchBlock", "Bamboo.BambooShootBlock" };
         foreach (string name in names) MakeBlock(mod, name);
+        var wood = MakeBlock(mod, "Apple.AppleWoodBlock");
+        var leaves = MakeBlock(mod, "Apple.AppleLeavesBlock");
+        var fruitingLeaves = MakeBlock(mod, "Apple.AppleFruitingLeavesBlock");
+        Check(wood is WoodBlock && wood.BlockIndex == 978, "apple logs use the native orientable wood type");
+        Check(leaves is LeavesBlock24 && leaves.BlockIndex == 979, "ordinary foliage uses the native leaf type");
+        Check(fruitingLeaves is LeavesBlock24 && fruitingLeaves.BlockIndex == 980, "ripe foliage has its own native leaf block");
+        Check(wood.GetFaceTextureSlot(4, Terrain.MakeBlockValue(978)) == 17 &&
+            wood.GetFaceTextureSlot(0, Terrain.MakeBlockValue(978)) == 16, "upright log has end grain at the top");
+        for (int face = 0; face < 6; face++)
+        {
+            int aligned = Terrain.MakeBlockValue(978, 0, WoodBlock.SetCutFace(0, face));
+            Check(wood.GetFaceTextureSlot(face, aligned) == 17 &&
+                wood.GetFaceTextureSlot(CellFace.OppositeFace(face), aligned) == 17, "native axes rotate the apple log's cut faces");
+        }
+        Check(leaves.GetFaceTextureSlot(0, Terrain.MakeBlockValue(979)) == 18 &&
+            leaves.GetFaceTextureSlot(0, Terrain.MakeBlockValue(979, 0, 1)) == 19 &&
+            leaves.GetFaceTextureSlot(0, Terrain.MakeBlockValue(979, 0, 4)) == 20 &&
+            fruitingLeaves.GetFaceTextureSlot(0, Terrain.MakeBlockValue(980)) == 21, "each canopy phase is visibly distinct");
+        var placement = fruitingLeaves.GetPlacementValue(null, null, Terrain.MakeBlockValue(980, 0, 48 | 8192), new TerrainRaycastResult());
+        Check(placement.Value == Terrain.MakeBlockValue(980), "player-placed fruiting leaves clear tree ownership");
         BlocksManager.Blocks[OakLeavesBlock.Index] = new OakLeavesBlock();
         BlocksManager.Blocks[WaterBlock.Index] = new WaterBlock();
         var type = mod.GetType("SCIEPort.Features.Plants.PlantTerrainGenerator", true);
@@ -245,8 +280,10 @@ public static class PlantNativeProbe
                     CommonLib.WorkType = WorkType.Server;
                     generator.GenerateChunkContentsPass4(chunk);
                     int[] count = CountPlants(chunk);
-                    Check(count[939] == 0 || count[939] == 21, "natural apple tree is complete and chunk bounded");
-                    Check(count[932] <= 3 && count[929] <= 2 && count[934] <= 3 && count[936] <= 3 &&
+                    Check(count[939] == 0 && (count[978] == 0 && count[979] + count[980] == 0 ||
+                        count[978] == 3 && count[979] == 14 && count[980] == 4), "natural apple tree has three logs and the correct autumn leaves");
+                    VerifyGrove(chunk, count[932], count[1001]);
+                    Check(count[932] <= 64 && count[929] <= 2 && count[934] <= 3 && count[936] <= 3 &&
                         count[911] <= 2 && count[903] <= 3 && count[915] <= 3 && count[905] <= 4 &&
                         count[907] <= 2 && count[909] <= 2 && count[913] <= 1, "per-chunk limits");
                     for (int id = 0; id < count.Length; id++) totals[id] += count[id];
@@ -254,15 +291,15 @@ public static class PlantNativeProbe
             }
             string evidence = " scenario " + scenario;
             if (scenario == 0) {
-                foreach (int id in new[] { 939, 932, 929, 934, 936, 911, 903 })
+                foreach (int id in new[] { 978, 932, 929, 934, 936, 911, 903 })
                     Check(totals[id] > 0, "viable meadow habitat for " + id);
-                Check(totals[915] + totals[905] + totals[907] + totals[909] + totals[913] == 0, "meadow excludes bog, desert and forest species");
+                Check(totals[915] + totals[905] + totals[907] == 0, "meadow excludes bog and desert species");
             }
-            if (scenario == 1) Check(totals[915] > 0 && totals[939] == 0, "cool bog only supports cold species" + evidence);
+            if (scenario == 1) Check(totals[915] > 0 && totals[978] == 0, "cool bog only supports cold species" + evidence);
             if (scenario == 2) Check(totals[905] > 0, "inland shoreline supports cattails" + evidence);
             if (scenario == 3) Check(totals[907] > 0 && totals[929] == 0, "dry cactus tops support cactus fruit" + evidence);
-            if (scenario == 4) Check(totals[909] > 0 && totals[913] > 0 && totals[939] == 0, "fungi seed after vanilla canopy generation" + evidence);
-            var selected = new[] {939,932,929,934,936,911,903,915,905,907,909,913};
+            if (scenario == 4) Check(totals[909] > 0 && totals[913] > 0 && totals[978] == 0, "fungi seed after vanilla canopy generation" + evidence);
+            var selected = new[] {978,979,980,932,1001,929,934,936,911,903,915,905,907,909,913};
             Console.WriteLine("Habitat " + scenario + " over 128 chunks, " + string.Join(", ", Array.ConvertAll(selected, id => id + "=" + totals[id])));
         }
 
@@ -279,8 +316,108 @@ public static class PlantNativeProbe
             for (int i = 0; i < a.Cells.Length; i++) Check(a.Cells[i] == b.Cells[i], "same seed creates identical terrain");
             CommonLib.WorkType = WorkType.Client;
             wrapper.GenerateChunkContentsPass4(c);
-            Check(CountPlants(c)[939] + CountPlants(c)[932] + CountPlants(c)[903] + CountPlants(c)[934] == 0 &&
+            Check(CountPlants(c)[978] + CountPlants(c)[979] + CountPlants(c)[980] + CountPlants(c)[932] + CountPlants(c)[1001] + CountPlants(c)[903] + CountPlants(c)[934] == 0 &&
                 Terrain.ExtractContents(c.GetCellValueFast(0, 65, 0)) == GrassBlock.Index, "client delegates original generation without adding mod plants");
+        }
+    }
+
+    static void VerifyGrove(TerrainChunk chunk, int culmCells, int shoots)
+    {
+        Check(shoots <= 2 && (culmCells != 0 || shoots == 0), "shoots remain inside a bounded natural grove");
+        if (culmCells == 0) return;
+        int rootCount = 0;
+        int segments = 0;
+        for (int x = 0; x < 16; x++)
+        for (int z = 0; z < 16; z++)
+        {
+            for (int y = 64; y <= 80; y++)
+            {
+                int block = chunk.GetCellValueFast(x, y, z);
+                if (Terrain.ExtractContents(block) != 932 || (Terrain.ExtractData(block) & 1) == 0) continue;
+                int data = Terrain.ExtractData(block);
+                int height = 5 + ((data >> 2) & 3);
+                rootCount++;
+                Check((data & 2) != 0, "each wild root records its permanent mature height");
+                Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y - 1, z)) != 0, "grove only plants on supported sites");
+                for (int h = 0; h < height; h++)
+                    Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y + h, z)) == 932, "wild bamboo generates a complete culm");
+                Check(Terrain.ExtractContents(chunk.GetCellValueFast(x, y + height, z)) != 932, "wild bamboo ends at the persisted height");
+                segments += height;
+            }
+        }
+        Check(rootCount >= 1 && rootCount <= 8 && segments == culmCells, "natural grove puts at most eight complete culms in one chunk");
+    }
+
+    static void BambooRuntime(Assembly mod, SubsystemTerrain subsystem, WorkType mode)
+    {
+        Terrain terrain = subsystem.Terrain;
+        var bamboo = MakeBlock(mod, "Bamboo.BambooPlantBlock");
+        bamboo.CraftingId = "bamboo";
+        var shoot = MakeBlock(mod, "Bamboo.BambooShootBlock");
+        var building = MakeBlock(mod, "Bamboo.BambooBlock");
+        var runtime = MakeBehavior(mod, subsystem, "Bamboo.SubsystemBambooBlockBehavior");
+        const int x = 10, y = 91, z = 11;
+        terrain.SetCellValueFast(x, y - 1, z, DirtBlock.Index);
+        for (int h = 1; h <= 9; h++) terrain.SetCellValueFast(x, y + h, z, Terrain.MakeBlockValue(0, 15, 0));
+
+        var hit = new TerrainRaycastResult { CellFace = new CellFace(x, y - 1, z, 4) };
+        Check(shoot.GetPlacementValue(subsystem, null, Terrain.MakeBlockValue(1001, 0, 2), hit).Value == 1001,
+            "a collected shoot plants at stage zero on top of supported soil");
+        hit.CellFace = new CellFace(x, y - 1, z, 1);
+        Check(shoot.GetPlacementValue(subsystem, null, Terrain.MakeBlockValue(1001), hit).Value == 0,
+            "shoots cannot be planted sideways");
+
+        int start = Terrain.MakeBlockValue(1001);
+        terrain.SetCellValueFast(x, y, z, start);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(Terrain.ExtractData(terrain.GetCellValue(x, y, z)) == (mode == WorkType.Client ? 0 : 1),
+            "only an authoritative poll advances the fresh shoot");
+        if (mode == WorkType.Client) { terrain.SetCellValueFast(x,y,z,0); return; }
+
+        bool debris;
+        var drops = new List<BlockDropValue>();
+        shoot.GetDropValues(subsystem, Terrain.MakeBlockValue(1001, 0, 2), 0, 0, drops, out debris);
+        Check(drops.Count == 1 && drops[0].Value == 1001 && drops[0].Count == 1, "one shoot harvest resets growth age");
+        runtime.OnPoll(0, x, y, z, 0);
+        runtime.OnPoll(0, x, y, z, 0);
+        int root = terrain.GetCellValue(x, y, z);
+        Check(Terrain.ExtractContents(root) == 932 && (Terrain.ExtractData(root) & 3) == 3,
+            "maturing shoot becomes the existing bamboo ID with a stable root height");
+        int height = 5 + ((Terrain.ExtractData(root) >> 2) & 3);
+
+        terrain.SetCellValueFast(x, y + 1, z, GraniteBlock.Index);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + 1, z) == GraniteBlock.Index, "blocked growing culm never overwrites a solid block");
+        terrain.SetCellValueFast(x, y + 1, z, Terrain.MakeBlockValue(0, 15, 0));
+        for (int h = 1; h <= height; h++) runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + height - 1, z) == 932 &&
+            terrain.GetCellContents(x, y + height, z) == 0, "the culm stops at its saved height");
+        terrain.SetCellValueFast(x, y + height - 1, z, Terrain.MakeBlockValue(0, 15, 0));
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y + height - 1, z) == 932, "a culm with its root left in place grows back");
+
+        var pickables = new SubsystemPickables { m_subsystemGameInfo = new SubsystemGameInfo() };
+        Put(subsystem, "m_subsystemPickables", pickables);
+        Put(subsystem, "m_dropValues", new List<BlockDropValue>());
+        terrain.SetCellValueFast(x, y, z, 0);
+        runtime.OnNeighborBlockChanged(x, y + 1, z, x, y, z);
+        Check(terrain.GetCellContents(x, y + 1, z) == 0 && pickables.Pickables.Count == 1 &&
+            pickables.Pickables[0].Value == Terrain.MakeBlockValue(932, 0, 1),
+            "unsupported upper bamboo falls as a single native reusable culm item");
+        for (int h = 0; h <= height; h++) terrain.SetCellValueFast(x, y + h, z, 0);
+        terrain.SetCellValueFast(x, 254, z, Terrain.MakeBlockValue(932));
+        runtime.OnPoll(0, x, 254, z, 0);
+        Check(terrain.GetCellContents(x, 254, z) == 0 && pickables.Pickables.Count == 2,
+            "a detached upper segment at the world ceiling is also harvested safely");
+
+        using (var recipes = building.GetProceduralCraftingRecipes().GetEnumerator())
+        {
+            Check(recipes.MoveNext(), "bamboo material has a native recipe");
+            CraftingRecipe recipe = recipes.Current;
+            var ingredients = new[] { "bamboo:1", "bamboo:1", null, "bamboo:1", "bamboo:1", null, null, null, null };
+            Check(recipe.ResultValue == 933 && recipe.ResultCount == 1 &&
+                CraftingRecipesManager.MatchRecipe(recipe.Ingredients, ingredients),
+                "actual native two-by-two bamboo recipe consumes four culm items for one block");
         }
     }
 
@@ -293,16 +430,182 @@ public static class PlantNativeProbe
         return counts;
     }
 
+    static void SpecialTreeGeneration(Assembly mod)
+    {
+        string[] classes = { "TallPalmSapling", "TallPalmWood", "TallPalmLeaves",
+            "CoconutSapling", "CoconutWood", "CoconutLeaves", "CoconutFruit",
+            "BaobabSapling", "BaobabWood", "BaobabLeaves", "BaobabFruit", "SakuraSapling", "SakuraWood", "SakuraLeaves" };
+        for (int i = 0; i < classes.Length; i++)
+        {
+            var block = MakeBlock(mod, "SpecialTrees." + classes[i] + "Block");
+            Check(block.BlockIndex == 981 + i, "each new tree material has its own stable block ID");
+            if (classes[i].EndsWith("Wood")) Check(block is WoodBlock, "native log orientation and crafting path");
+            if (classes[i].EndsWith("Leaves")) Check(block is LeavesBlock24, "native leaves decay path");
+        }
+
+        var type = mod.GetType("SCIEPort.Features.Plants.PlantTerrainGenerator", true);
+        var constructor = type.GetConstructor(F, null, new[] { typeof(ITerrainContentsGenerator), typeof(SubsystemGameInfo) }, null);
+        var info = new SubsystemGameInfo {
+            WorldSeed = 743001, WorldSettings = (WorldSettings)FormatterServices.GetUninitializedObject(typeof(WorldSettings)) };
+        CommonLib.WorkType = WorkType.Server;
+        foreach (int scenario in new[] { 5, 6, 7, 8 })
+        {
+            int species = scenario - 5;
+            int[] roots = { 982, 985, 989, 993 };
+            int[] totals = new int[roots.Length];
+            int[] minHeight = { 16, 7, 8, 6 };
+            int[] maxHeight = { 22, 11, 10, 8 };
+            var generator = (ITerrainContentsGenerator)constructor.Invoke(new object[] { new HabitatFixture(scenario), info });
+            for (int j = 0; j < 96; j++)
+            {
+                using (var terrain = new Terrain())
+                {
+                    var chunk = terrain.AllocateChunk(j + 5, -3);
+                    generator.GenerateChunkContentsPass4(chunk);
+                    int rootCount = 0;
+                    int crownY = 0;
+                    foreach (int cell in chunk.Cells)
+                    {
+                        int id = Terrain.ExtractContents(cell);
+                        if ((Terrain.ExtractData(cell) & 4) == 0) continue;
+                        int which = Array.IndexOf(roots, id);
+                        if (which < 0) continue;
+                        totals[which]++;
+                        if (which == species) rootCount++;
+                    }
+                    Check(rootCount <= 1, "wild special trees have a one-per-species, per-chunk cap");
+                    if (rootCount != 1) continue;
+                    for (int x = 0; x < 16; x++)
+                    for (int z = 0; z < 16; z++)
+                    for (int y = 66; y < 90; y++)
+                    {
+                        int value = chunk.GetCellValueFast(x, y, z);
+                        if (Terrain.ExtractContents(value) == roots[species] + 1) crownY = Math.Max(crownY, y);
+                    }
+                    int height = crownY - 65;
+                    Check(height >= minHeight[species] && height <= maxHeight[species], "tree canopy has the promised mature height");
+                }
+            }
+            Check(totals[species] > 0 && totals[species] < 42, "distinct suitable habitat has a bounded distribution");
+            for (int other = 0; other < roots.Length; other++)
+                if (other != species) Check(totals[other] == 0, "species stays out of mismatched habitat");
+            Console.WriteLine("Special-tree fixture " + scenario + ": " + totals[species] + " trees in 96 eligible chunks");
+        }
+
+        var coastal = (ITerrainContentsGenerator)constructor.Invoke(new object[] { new HabitatFixture(6), info });
+        using (var terrain = new Terrain())
+        {
+            var clientChunk = terrain.AllocateChunk(5, -3);
+            CommonLib.WorkType = WorkType.Client;
+            coastal.GenerateChunkContentsPass4(clientChunk);
+            Check(Array.TrueForAll(clientChunk.Cells, cell => Terrain.ExtractContents(cell) != 985),
+                "clients never locally generate coconut trees");
+        }
+    }
+
+    static void SpecialTreeRuntime(Assembly mod, SubsystemTerrain subsystem, WorkType mode)
+    {
+        var runtime = MakeBehavior(mod, subsystem, "SpecialTrees.SubsystemSpecialTreeBehavior");
+        var info = new SubsystemGameInfo { WorldSeed = 2048,
+            WorldSettings = (WorldSettings)FormatterServices.GetUninitializedObject(typeof(WorldSettings)) };
+        Put(runtime, "gameInfo", info);
+        var pickables = new SubsystemPickables { m_subsystemGameInfo = info };
+        Put(runtime, "pickables", pickables);
+        Terrain terrain = subsystem.Terrain;
+        const int x = 8, y = 105, z = 8;
+        terrain.SetCellValueFast(x, y - 1, z, DirtBlock.Index);
+        terrain.SetCellValueFast(x, y, z, Terrain.MakeBlockValue(981, 0, 5));
+        terrain.SetCellValueFast(x, y + 1, z, Terrain.MakeBlockValue(0, 15, 0));
+        terrain.SetCellValueFast(x, y + 8, z, GraniteBlock.Index);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y, z) == 981 && terrain.GetCellContents(x, y + 2, z) == 0,
+            "blocked high palm leaves no partial trunk");
+        terrain.SetCellValueFast(x, y + 8, z, 0);
+        runtime.OnPoll(0, x, y, z, 0);
+        Check(terrain.GetCellContents(x, y, z) == (mode == WorkType.Client ? 981 : 982) &&
+            terrain.GetCellContents(x, y + 12, z) == (mode == WorkType.Client ? 0 : 982),
+            "a planted high palm reaches full trunk height only on the host");
+        terrain.SetCellValueFast(x, y, z, 0);
+
+        var root = new Point3(4, 66, 4);
+        var leaf = new Point3(5, 72, 4);
+        int offset = 8 | (4 << 4) | (3 << 7) | (6 << 10);
+        int ripe = Terrain.MakeBlockValue(986, 0, offset | 5);
+        terrain.SetCellValueFast(leaf.X, leaf.Y, leaf.Z, ripe);
+        var drops = new List<BlockDropValue>();
+        bool debris;
+        var coconutLeaves = BlocksManager.Blocks[986];
+        coconutLeaves.GetDropValues(subsystem, ripe, 0, 0, drops, out debris);
+        Check(drops.Count == 1 && drops[0].Count == 2 && Terrain.ExtractContents(drops[0].Value) == 987,
+            "coconut harvest reads the actual ripe number");
+        int replacement = 0;
+        BlockDropValue drop = drops[0];
+        runtime.OnItemHarvested(leaf.X, leaf.Y, leaf.Z, ripe, ref drop, ref replacement);
+        Check(replacement == (mode == WorkType.Client ? 0 : Terrain.MakeBlockValue(986, 0, offset)),
+            "a harvest resets the same fruit cluster only on the host");
+        if (mode == WorkType.Client)
+        {
+            Check(!(bool)Call(runtime, "TryShedCoconut", leaf, root, ripe) && pickables.Pickables.Count == 0,
+                "client cannot drop a coconut");
+            terrain.SetCellValueFast(leaf.X, leaf.Y, leaf.Z, 0);
+            return;
+        }
+
+        Call(runtime, "Update", .016f);
+        terrain.SetCellValueFast(leaf.X, leaf.Y - 1, leaf.Z, GraniteBlock.Index);
+        Check(!(bool)Call(runtime, "TryShedCoconut", leaf, root, ripe) &&
+            terrain.GetCellValue(leaf.X, leaf.Y, leaf.Z) == ripe, "a blocked drop leaves the fruit on the tree");
+        terrain.SetCellValueFast(leaf.X, leaf.Y - 1, leaf.Z, 0);
+        Check((bool)Call(runtime, "TryShedCoconut", leaf, root, ripe), "a mature coconut falls as a native pickable");
+        int oneLeft = Terrain.MakeBlockValue(986, 0, offset | 4);
+        Check(terrain.GetCellValue(leaf.X, leaf.Y, leaf.Z) == oneLeft && pickables.Pickables.Count == 1,
+            "one falling coconut consumes one displayed fruit");
+        drops.Clear();
+        coconutLeaves.GetDropValues(subsystem, oneLeft, 0, 0, drops, out debris);
+        Check(drops.Count == 1 && drops[0].Count == 1, "manual harvest observes the same depleted cluster");
+        Check((bool)Call(runtime, "TryShedCoconut", leaf, root, oneLeft) && pickables.Pickables.Count == 2,
+            "second coconut falls and exhausts the cluster");
+        terrain.SetCellValueFast(leaf.X, leaf.Y, leaf.Z, ripe);
+        Check(!(bool)Call(runtime, "TryShedCoconut", leaf, root, ripe) && pickables.Pickables.Count == 2 &&
+            terrain.GetCellValue(leaf.X, leaf.Y, leaf.Z) == ripe, "two uncollected coconuts prevent a third natural drop");
+        pickables.Pickables[0].ToRemove = true;
+        Check((bool)Call(runtime, "TryShedCoconut", leaf, root, ripe), "collecting a nearby fruit frees capacity");
+        int dormant = Terrain.MakeBlockValue(986, 0, offset);
+        terrain.SetCellValueFast(leaf.X, leaf.Y, leaf.Z, dormant);
+        Call(runtime, "Update", .016f);
+        runtime.OnPoll(0, leaf.X, leaf.Y, leaf.Z, 0);
+        Check(terrain.GetCellValue(leaf.X, leaf.Y, leaf.Z) == dormant, "a detached cluster cannot regrow");
+        terrain.SetCellValueFast(root.X, root.Y, root.Z, Terrain.MakeBlockValue(985, 0, 4));
+        terrain.SetCellValueFast(root.X, leaf.Y, root.Z, Terrain.MakeBlockValue(985));
+        for (int stage = 0; stage < 4; stage++) runtime.OnPoll(0, leaf.X, leaf.Y, leaf.Z, stage * 4);
+        Check(terrain.GetCellValue(leaf.X, leaf.Y, leaf.Z) == ripe, "harvested cluster regrows from its own living tree across four stages");
+        terrain.SetCellValueFast(leaf.X, leaf.Y, leaf.Z, 0);
+        terrain.SetCellValueFast(root.X, leaf.Y, root.Z, 0);
+        terrain.SetCellValueFast(root.X, root.Y, root.Z, 0);
+
+        int baobab = Terrain.MakeBlockValue(990, 0, offset | 4);
+        drops.Clear();
+        BlocksManager.Blocks[990].GetDropValues(subsystem, baobab, 0, 0, drops, out debris);
+        Check(drops.Count == 1 && drops[0].Count == 1 && Terrain.ExtractContents(drops[0].Value) == 991,
+            "baobab bears a single distinct fruit per cluster");
+        int sakura = Terrain.MakeBlockValue(994);
+        Check(BlocksManager.Blocks[994].GetFaceTextureSlot(0, sakura) == 29, "sakura uses the permanently pink leaf tile");
+        drops.Clear();
+        BlocksManager.Blocks[994].GetDropValues(subsystem, sakura, 0, 10, drops, out debris);
+        Check(drops.TrueForAll(item => Terrain.ExtractContents(item.Value) != 987 && Terrain.ExtractContents(item.Value) != 991),
+            "pink foliage yields no fruit");
+    }
+
     private sealed class HabitatFixture : ITerrainContentsGenerator
     {
         private readonly int kind;
         public HabitatFixture(int kind) { this.kind = kind; }
         public int OceanLevel { get { return 64; } }
         public Vector3 FindCoarseSpawnPosition() { return Vector3.Zero; }
-        public float CalculateOceanShoreDistance(float x, float z) { return 40f; }
+        public float CalculateOceanShoreDistance(float x, float z) { return kind == 5 || kind == 6 ? 8f : kind >= 7 ? 67f : 40f; }
         public float CalculateHeight(float x, float z) { return 65f; }
-        public int CalculateTemperature(float x, float z) { return kind == 1 ? 3 : kind == 3 ? 14 : 10; }
-        public int CalculateHumidity(float x, float z) { return kind == 3 ? 3 : 10; }
+        public int CalculateTemperature(float x, float z) { return kind == 1 ? 3 : kind == 8 ? 8 : kind == 3 || kind >= 5 ? 14 : 10; }
+        public int CalculateHumidity(float x, float z) { return kind == 3 || kind == 7 ? 4 : 10; }
         public float CalculateMountainRangeFactor(float x, float z) { return 0f; }
         public void GenerateChunkContentsPass1(TerrainChunk chunk) { }
         public void GenerateChunkContentsPass2(TerrainChunk chunk) { }
@@ -314,7 +617,7 @@ public static class PlantNativeProbe
             {
                 chunk.SetHumidityFast(x, z, CalculateHumidity(x, z));
                 chunk.SetTemperatureFast(x, z, CalculateTemperature(x, z));
-                chunk.SetCellValueFast(x, 65, z, kind == 3 ? SandBlock.Index : GrassBlock.Index);
+                chunk.SetCellValueFast(x, 65, z, kind == 3 || kind == 6 ? SandBlock.Index : GrassBlock.Index);
                 if (kind == 2 && z < 8) chunk.SetCellValueFast(x, 65, z, WaterBlock.Index);
                 if (kind == 3 && (x + z) % 5 == 0) chunk.SetCellValueFast(x, 66, z, CactusBlock.Index);
                 if (kind == 4)
@@ -343,9 +646,12 @@ public static class PlantNativeProbe
             Put(terrain,"m_subsystemBlockBehaviors",behaviors);
             var runtime=(SubsystemPollableBlockBehavior)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Apple.SubsystemAppleBlockBehavior",true));
             Put(runtime,"SubsystemTerrain",terrain);var seasons=new SubsystemSeasons{Season=Season.Spring};Put(runtime,"m_seasons",seasons);
-            behaviors.m_blockBehaviorsByContents[939]=new[]{runtime};behaviors.m_blockBehaviorsByContents[940]=new[]{runtime};
+            foreach (int id in new[] { 939, 940, 978, 979, 980 })
+                behaviors.m_blockBehaviorsByContents[id] = new[] { runtime };
             var apple=(Block)Activator.CreateInstance(mod.GetType("SCIEPort.Features.Apple.ApplePlantBlock",true));apple.BlockIndex=939;BlocksManager.Blocks[939]=apple;
             PlantLifecycle(mod, terrain);
+            BambooRuntime(mod, terrain, mode);
+            SpecialTreeRuntime(mod, terrain, mode);
             const int y=64;cells.SetCellValueFast(8,y-1,8,Terrain.MakeBlockValue(DirtBlock.Index));
             cells.SetCellValueFast(8,y,8,Terrain.MakeBlockValue(939,0,0));cells.SetCellValueFast(8,y+1,8,Terrain.MakeBlockValue(0,15,0));
             for(int s=0;s<6;s++){Call(runtime,"Update",.016f);runtime.OnPoll(Terrain.MakeBlockValue(939),8,y,8,0);}
@@ -355,42 +661,109 @@ public static class PlantNativeProbe
             {
                 var clientDrop=new BlockDropValue{Value=Terrain.MakeBlockValue(940),Count=2};int replacement=0;
                 runtime.OnItemHarvested(8,66,8,Terrain.MakeBlockValue(939,0,48|15),ref clientDrop,ref replacement);
-                Check(replacement==0,"client cannot mutate harvest state");return;
+                Check(replacement==0,"client cannot mutate harvest state");
+                cells.SetCellValueFast(5,y,8,Terrain.MakeBlockValue(939,0,16|7));
+                runtime.OnPoll(0,5,y,8,0);
+                Check(cells.GetCellContents(5,y,8)==939,"client cannot locally migrate legacy tree cells");
+                return;
             }
             // Obstruction and an unloaded adjoining chunk both leave the original sapling unchanged.
             cells.SetCellValueFast(9,y+2,8,3);Call(runtime,"Update",.016f);runtime.OnPoll(grown,8,y,8,0);
             Check(Terrain.ExtractData(cells.GetCellValue(8,y,8))==6&&cells.GetCellValue(9,y+2,8)==3,"occupied canopy cancels the entire expansion");
             cells.SetCellValueFast(9,y+2,8,0);
             Call(runtime,"Update",.016f);runtime.OnPoll(grown,8,y,8,0);
-            Check((Terrain.ExtractData(cells.GetCellValue(8,y,8))&48)==16,"sapling becomes a real tree");
-            int count=0;
-            for(int x=7;x<=9;x++)for(int h=0;h<5;h++)for(int z=7;z<=9;z++)if(Terrain.ExtractContents(cells.GetCellValue(x,y+h,z))==939)count++;
-            Check(count==21,"twenty parts plus their root are committed");
+            Check(cells.GetCellContents(8,y,8)==978 && Terrain.ExtractData(cells.GetCellValue(8,y,8))==4,"sapling becomes independently identified wood");
+            int logCount=0, leafCount=0;
+            for(int x=7;x<=9;x++)
+            for(int h=0;h<5;h++)
+            for(int z=7;z<=9;z++)
+            {
+                int content = cells.GetCellContents(x,y+h,z);
+                if (content == 978) logCount++;
+                if (content == 979) leafCount++;
+            }
+            Check(logCount==3 && leafCount==18,"three logs and eighteen leaf cells are committed");
             cells.SetCellValueFast(12,y-1,8,Terrain.MakeBlockValue(DirtBlock.Index));cells.SetCellValueFast(12,y,8,Terrain.MakeBlockValue(939,0,6));cells.SetCellValueFast(12,y+1,8,Terrain.MakeBlockValue(0,15,0));
             runtime.OnPoll(0,12,y,8,0);Check(Terrain.ExtractData(cells.GetCellValue(12,y,8))==6,"second tree waits when the frame budget is exhausted");
-            Call(runtime,"Update",.016f);runtime.OnPoll(0,12,y,8,0);Check((Terrain.ExtractData(cells.GetCellValue(12,y,8))&48)==16,"new frame resumes deferred growth");
+            Call(runtime,"Update",.016f);runtime.OnPoll(0,12,y,8,0);Check(cells.GetCellContents(12,y,8)==978,"new frame resumes deferred growth");
             int fertile=SoilBlock.SetNitrogen(SoilBlock.SetHydration(0,true),2);
             cells.SetCellValueFast(4,y-1,12,Terrain.MakeBlockValue(SoilBlock.Index,15,fertile));
             cells.SetCellValueFast(4,y,12,Terrain.MakeBlockValue(939,15,6));cells.SetCellValueFast(4,y+1,12,Terrain.MakeBlockValue(0,15,0));
             Call(runtime,"Update",.016f);runtime.OnPoll(0,4,y,12,0);
-            Check((Terrain.ExtractData(cells.GetCellValue(4,y,12))&48)==16,"fertile illuminated soil commits without a false light-signature mismatch");
+            Check(cells.GetCellContents(4,y,12)==978,"fertile illuminated soil commits without a false light-signature mismatch");
             Check(SoilBlock.GetNitrogen(Terrain.ExtractData(cells.GetCellValue(4,y-1,12)))==1,"tree completion consumes one nitrogen exactly once");
             Check(!(bool)runtime.GetType().GetField("m_faulted",F).GetValue(runtime),"normal native light reset does not halt growth");
             cells.SetCellValueFast(15,y-1,8,Terrain.MakeBlockValue(DirtBlock.Index));cells.SetCellValueFast(15,y,8,Terrain.MakeBlockValue(939,0,6));cells.SetCellValueFast(15,y+1,8,Terrain.MakeBlockValue(0,15,0));
             Call(runtime,"Update",.016f);runtime.OnPoll(0,15,y,8,0);Check(Terrain.ExtractData(cells.GetCellValue(15,y,8))==6,"unloaded cross-chunk canopy defers without partial writes");
             // Real GetDropValues -> OnItemHarvested -> ChangeCell lifecycle, with native DATA and network queue.
-            int leafValue=cells.GetCellValue(9,y+2,8),data=Terrain.ExtractData(leafValue);
-            data=(data&~15)|15;leafValue=Terrain.MakeBlockValue(939,0,data);cells.SetCellValueFast(9,y+2,8,leafValue);
+            var wood = BlocksManager.Blocks[978];
+            var leaves = BlocksManager.Blocks[979];
+            var fruiting = BlocksManager.Blocks[980];
+            int leafValue = cells.GetCellValue(9,y+2,8);
+            int data = Terrain.ExtractData(leafValue);
+            seasons.Season = Season.Autumn;
+            cells.SetCellValueFast(9,y+2,8,Terrain.MakeBlockValue(979,0,(data&~15)|6));
+            cells.SetCellValueFast(10,y+2,8,Terrain.MakeBlockValue(0,15,0));
+            Call(runtime,"Update",.016f);
+            runtime.OnPoll(0,9,y+2,8,0);
+            leafValue = cells.GetCellValue(9,y+2,8);
+            Check(Terrain.ExtractContents(leafValue)==980,"ripe phase becomes the fruiting block");
             var drops=new List<BlockDropValue>();bool debris;
-            apple.GetDropValues(terrain,leafValue,0,0,drops,out debris);Check(drops.Count==1&&drops[0].Count==2,"ripe canopy yields two apples and no sapling");
+            fruiting.GetDropValues(terrain,leafValue,0,0,drops,out debris);
+            Check(drops.Count==1 && Terrain.ExtractContents(drops[0].Value)==940 && drops[0].Count==2,"ripe canopy yields two apples");
             int next=0;var drop=drops[0];runtime.OnItemHarvested(9,y+2,8,leafValue,ref drop,ref next);
-            Check(Terrain.ExtractContents(next)==939&&(Terrain.ExtractData(next)&8192)!=0&&(Terrain.ExtractData(next)&8)==0,"native harvest writes an empty locked canopy");
+            Check(Terrain.ExtractContents(next)==979 && (Terrain.ExtractData(next)&8192)!=0 && (Terrain.ExtractData(next)&8)==0,"harvest turns fruiting leaves into ordinary leaves and locks the branch");
             terrain.ChangeCell(9,y+2,8,next,true,null);
-            drops.Clear();apple.GetDropValues(terrain,next,0,0,drops,out debris);Check(drops.Count==0,"repeated dig cannot duplicate apples");
-            // A removed trunk clears its own upper parts without affecting the neighboring tree.
-            cells.SetCellValueFast(8,y+1,8,0);Call(runtime,"Update",.016f);runtime.OnPoll(0,9,y+2,8,0);
-            Check(Terrain.ExtractContents(cells.GetCellValue(9,y+2,8))==0,"unsupported canopy is removed");
-            Check((Terrain.ExtractData(cells.GetCellValue(12,y,8))&48)==16,"cleanup does not touch another tree");
+            runtime.OnPoll(0,9,y+2,8,0);
+            Check(cells.GetCellContents(9,y+2,8)==979,"harvested branch cannot fruit twice in autumn");
+            seasons.Season = Season.Spring;
+            runtime.OnPoll(0,9,y+2,8,0);
+            Check((Terrain.ExtractData(cells.GetCellValue(9,y+2,8))&8192)==0,"next spring clears the previous harvest lock");
+            drops.Clear();
+            leaves.GetDropValues(terrain,next,0,0,drops,out debris);
+            Check(drops.TrueForAll(item => Terrain.ExtractContents(item.Value)!=940),"plain leaves cannot drop apples");
+            drops.Clear();
+            wood.GetDropValues(terrain,cells.GetCellValue(8,y,8),0,0,drops,out debris);
+            Check(drops.Count==2 && drops[0].Value==Terrain.MakeBlockValue(978) &&
+                drops[1].Value==Terrain.MakeBlockValue(939),"grown base yields native wood and a sapling, clearing ownership from the log");
+            drops.Clear();
+            wood.GetDropValues(terrain,Terrain.MakeBlockValue(978,0,2),0,0,drops,out debris);
+            Check(drops.Count==1 && drops[0].Value==Terrain.MakeBlockValue(978),"manual logs drop their upright inventory value without saplings");
+
+            cells.SetCellValueFast(8,y+1,8,0);
+            Call(runtime,"Update",.016f);runtime.OnPoll(0,9,y+2,8,0);
+            Check(cells.GetCellValue(9,y+2,8)==Terrain.MakeBlockValue(979),"lost trunk detaches a fruit branch for vanilla decay");
+            var info = (SubsystemGameInfo)FormatterServices.GetUninitializedObject(typeof(SubsystemGameInfo));
+            info.WorldSettings = (WorldSettings)FormatterServices.GetUninitializedObject(typeof(WorldSettings));
+            var decay = new SubsystemWoodBlockBehavior();
+            Put(decay,"SubsystemTerrain",terrain);
+            decay.m_subsystemGameInfo=info;
+            var isolatedLeaf=new Point3(2,90,7);
+            cells.SetCellValueFast(isolatedLeaf.X,isolatedLeaf.Y,isolatedLeaf.Z,Terrain.MakeBlockValue(979));
+            decay.OnBlockRemoved(Terrain.MakeBlockValue(978),0,2,89,7);
+            Check(decay.m_leavesToCheck.Contains(isolatedLeaf),"wood removal queues apple leaves through vanilla behavior");
+            decay.DecayLeavesIfNeeded(isolatedLeaf);
+            Check(cells.GetCellContents(isolatedLeaf.X,isolatedLeaf.Y,isolatedLeaf.Z)==0,"vanilla calculates and removes unsupported apple leaves");
+            Check(cells.GetCellContents(12,y,8)==978,"decay does not touch another tree");
+
+            var legacyRoot = new Point3(3,82,4);
+            int legacyLeaf = Terrain.MakeBlockValue(939,0,48|(2<<6)|(1<<8)|(2<<10)|15);
+            cells.SetCellValueFast(3,82,4,Terrain.MakeBlockValue(939,0,16|7));
+            cells.SetCellValueFast(3,83,4,Terrain.MakeBlockValue(939,0,32|7|(1<<6)|(1<<8)|(1<<10)));
+            cells.SetCellValueFast(3,84,4,Terrain.MakeBlockValue(939,0,32|7|(1<<6)|(1<<8)|(2<<10)));
+            cells.SetCellValueFast(4,84,4,legacyLeaf);
+            Call(runtime,"Update",.016f);
+            // Migrate the leaf first to exercise a partially converted save.
+            runtime.OnPoll(0,4,84,4,0);
+            Check(cells.GetCellContents(4,84,4)==980 &&
+                Terrain.ExtractData(cells.GetCellValue(4,84,4))==Terrain.ExtractData(legacyLeaf), "legacy fruit and branch ownership survive migration");
+            for(int h=0;h<3;h++)runtime.OnPoll(0,legacyRoot.X,legacyRoot.Y+h,legacyRoot.Z,0);
+            Check(cells.GetCellValue(3,82,4)==Terrain.MakeBlockValue(978,0,4) &&
+                cells.GetCellContents(3,83,4)==978 && cells.GetCellContents(3,84,4)==978,"legacy tree stem migrates in place");
+            cells.SetCellValueFast(2,84,4,Terrain.MakeBlockValue(939,0,48|(1<<8)|(2<<10)|8192));
+            runtime.OnPoll(0,2,84,4,0);
+            Check(cells.GetCellContents(2,84,4)==979 && (Terrain.ExtractData(cells.GetCellValue(2,84,4))&8192)!=0,
+                "legacy harvest lock survives wood-first migration");
             Call(runtime,"Update",.016f);runtime.OnPoll(0,0,0,0,0);runtime.OnPoll(0,0,255,0,0);runtime.OnPoll(0,int.MaxValue,64,0,0);
             Check(true,"world boundary polls safely return");
         }

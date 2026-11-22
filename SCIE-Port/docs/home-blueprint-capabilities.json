@@ -1,0 +1,90 @@
+{
+  "modVersion": "0.90.0",
+  "family": "home",
+  "data": "rotation bits0..1, variant bits3..5; bit2 prohibited; canonical facing mirror only, intrinsic book pattern/atlas unchanged",
+  "blocks": [
+    {
+      "key": "BookshelfBlock",
+      "id": 973,
+      "variants": [
+        0,
+        1,
+        2
+      ],
+      "allowedData": [
+        0,
+        1,
+        2,
+        3,
+        8,
+        9,
+        10,
+        11,
+        16,
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "key": "BookPileBlock",
+      "id": 976,
+      "variants": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "allowedData": [
+        0,
+        1,
+        2,
+        3,
+        8,
+        9,
+        10,
+        11,
+        16,
+        17,
+        18,
+        19,
+        24,
+        25,
+        26,
+        27
+      ]
+    },
+    {
+      "key": "HomeSofaBlock",
+      "id": 960,
+      "variants": [
+        0,
+        2
+      ],
+      "allowedData": [
+        0,
+        1,
+        2,
+        3,
+        16,
+        17,
+        18,
+        19
+      ]
+    },
+    {
+      "key": "HomeCoffeeTableBlock",
+      "id": 961,
+      "variants": [
+        0
+      ],
+      "allowedData": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "excluded": "Tall or multi-cell items, hidden parts, storage and interactive state not authorable; sofa asymmetric modules 1/3/4 excluded."
+}

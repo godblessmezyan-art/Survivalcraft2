@@ -1,5 +1,6 @@
 using Game;
 using SCIEPort.Features.AbyssReaper;
+using SCIEPort.Features.AirVehicles;
 using SCIEPort.Features.DevouringEye;
 using SCIEPort.Features.OmniscientEye;
 using SCIEPort.Features.Poseidon;
@@ -19,6 +20,8 @@ using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.Gungnir;
 using SCIEPort.Features.FourSaints;
 using SCIEPort.Features.Fishing;
+using SCIEPort.Features.TidePalace;
+using SCIEPort.Features.Pyramid;
 using System.Xml.Linq;
 
 namespace SCIEPort.Mod
@@ -51,11 +54,12 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new HomeFurniturePackage());
                 PackageManager.RegisterPackage(new HomeSeatingPackage());
                 PackageManager.RegisterPackage(new FishingCatchPackage());
+                PackageManager.RegisterPackage(new TidePalacePackage());
+                PackageManager.RegisterPackage(new PyramidPackage());
                 s_networkPackageRegistered = true;
             }
 
             ModsManager.RegisterHook("BlocksInitalized", this);
-            ModsManager.RegisterHook("OnTerrainContentsGenerated", this);
             ModsManager.RegisterHook("OnMinerHit", this);
             ModsManager.RegisterHook("OnMinerDig", this);
             ModsManager.RegisterHook("AttackBody", this);
@@ -195,13 +199,12 @@ namespace SCIEPort.Mod
         public override void SubsystemUpdate(float dt)
         {
             StormhammerVisuals.Update();
-            // Natural creatures are queued from the chunk hook and only created here, once the
-            // owning chunk has finished generating. Spawning from inside chunk generation is not
-            // a supported x25.01.17 path and could stall a fresh world on the loading screen.
+            // Register native wildlife after project loading; native updates own all spawning.
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.AfterSeatUpdates();
             GameManager.Project?.FindSubsystem<SubsystemHomeFurniture>(false)?.UpdateBedInsulation();
+            HelicopterCockpit.UpdateViews(GameManager.Project);
         }
 
         /// <inheritdoc />
@@ -382,24 +385,5 @@ namespace SCIEPort.Mod
             PortInventoryCatalog.Initialize();
         }
 
-        /// <inheritdoc />
-        public override void OnTerrainContentsGenerated(TerrainChunk chunk)
-        {
-            try
-            {
-                // Natural fox/rabbit seeding is 待验证 on-device: the authority gate, seed
-                // determinism, per-chunk budget and population caps are enforced by the
-                // offline-tested EcologyRules, but the live entity spawn during generation
-                // has not yet been observed to succeed or sync correctly on Android/7723.
-                if (CreatureWorldSpawn.IsReady)
-                {
-                    CreatureWorldSpawn.TrySpawnNaturalCreatures(chunk);
-                }
-            }
-            catch (System.Exception exception)
-            {
-                Log.Error("[SCIEPort] Natural creature world spawn failed: " + exception);
-            }
-        }
     }
 }

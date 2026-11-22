@@ -17,6 +17,31 @@ namespace SCIEPort.Features.Bamboo
         /// </summary>
         public const int MaxHeight = 8;
 
+        /// <summary>Minimum mature height for new grove culms.</summary>
+        public const int MinGroveHeight = 5;
+        /// <summary>Upper bound for one naturally generated patch.</summary>
+        public const int MaxGroveCulms = 8;
+        /// <summary>Upper bound for fresh shoots in a patch.</summary>
+        public const int MaxGroveShoots = 2;
+        /// <summary>The last edible growth stage before a shoot turns into a culm.</summary>
+        public const int LastShootStage = 2;
+
+        private const int HeightFlag = 2;
+        private const int HeightMask = 12;
+
+        /// <summary>Legacy culms without explicit height flags retain their eight-segment growth cap.</summary>
+        public static int GetHeight(int data) => (data & HeightFlag) == 0 ? MaxHeight : MinGroveHeight + ((data & HeightMask) >> 2);
+
+        /// <summary>Records a permanent mature height without clearing the legacy base flag.</summary>
+        public static int SetHeight(int data, int height)
+            => (data & ~HeightMask) | HeightFlag | ((Math.Max(MinGroveHeight, Math.Min(MaxHeight, height)) - MinGroveHeight) << 2);
+
+        /// <summary>Converts a deterministic random roll to a supported bamboo height.</summary>
+        public static int HeightFromRoll(uint roll) => MinGroveHeight + (int)(roll % (MaxHeight - MinGroveHeight + 1));
+
+        /// <summary>Reads an edible shoot's visible growth stage.</summary>
+        public static int GetShootStage(int data) => Math.Min(data & 3, LastShootStage);
+
         /// <summary>
         /// Mask for the single DATA bit that marks the planted base segment of a
         /// bamboo column. Only the base segment drives the column upward so that a

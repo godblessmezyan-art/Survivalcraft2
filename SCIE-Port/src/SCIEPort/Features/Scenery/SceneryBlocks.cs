@@ -130,7 +130,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class SceneryCloudstoneBlock : SceneryCubeBlock
     {
-        public const int Index = 978;
+        public const int Index = 880;
 
         protected override int Textures(int face, int data)
         {
@@ -145,7 +145,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class SceneryHullBlock : SceneryCubeBlock
     {
-        public const int Index = 979;
+        public const int Index = 881;
 
         protected override int Textures(int face, int data)
         {
@@ -160,7 +160,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class SceneryEnvelopeBlock : SceneryCubeBlock
     {
-        public const int Index = 980;
+        public const int Index = 882;
 
         protected override int Textures(int face, int data)
         {
@@ -179,7 +179,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class SceneryCrystalBlock : SceneryCubeBlock
     {
-        public const int Index = 981;
+        public const int Index = 883;
 
         protected override int Textures(int face, int data)
         {
@@ -200,7 +200,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class SceneryBrassBlock : SceneryCubeBlock
     {
-        public const int Index = 982;
+        public const int Index = 884;
 
         protected override int Textures(int face, int data)
         {
@@ -215,7 +215,7 @@ namespace SCIEPort.Features.Scenery
 
     public sealed class ScenerySailBlock : SceneryCubeBlock
     {
-        public const int Index = 983;
+        public const int Index = 885;
 
         protected override int Textures(int face, int data)
         {

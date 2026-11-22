@@ -1,0 +1,6 @@
+interface:
+  display_name: "生存战争蓝图生成与数字书房发布"
+  short_description: "按当前方块能力生成并校验建筑蓝图，发布到数字书房后回读核对下载结果"
+  default_prompt: "使用 $survivalcraft-blueprints 生成符合当前荒野探险家版本的建筑蓝图，校验后上传并发布到数字书房。"
+policy:
+  allow_implicit_invocation: true
