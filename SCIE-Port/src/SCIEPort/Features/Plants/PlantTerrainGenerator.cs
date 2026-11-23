@@ -9,6 +9,7 @@ using SCIEPort.Features.Flax;
 using SCIEPort.Features.Geology;
 using SCIEPort.Features.KellyPlants;
 using SCIEPort.Features.Landmarks;
+using SCIEPort.Features.Scenery;
 using SCIEPort.Features.Sunflower;
 using SCIEPort.Features.SpecialTrees;
 using SCIEPort.Features.TidePalace;
@@ -24,6 +25,7 @@ namespace SCIEPort.Features.Plants
         private readonly SubsystemGameInfo gameInfo;
         private readonly SubsystemTidePalace tidePalace;
         private readonly SubsystemPyramid pyramid;
+        private readonly SubsystemScenery scenery;
 
         internal PlantTerrainGenerator(ITerrainContentsGenerator original, SubsystemGameInfo gameInfo)
         {
@@ -31,6 +33,7 @@ namespace SCIEPort.Features.Plants
             this.gameInfo = gameInfo;
             tidePalace = gameInfo.Project?.FindSubsystem<SubsystemTidePalace>(false);
             pyramid = gameInfo.Project?.FindSubsystem<SubsystemPyramid>(false);
+            scenery = gameInfo.Project?.FindSubsystem<SubsystemScenery>(false);
         }
 
         public int OceanLevel => original.OceanLevel;
@@ -58,9 +61,28 @@ namespace SCIEPort.Features.Plants
 
         public void GenerateChunkContentsPass4(TerrainChunk chunk)
         {
+            bool authoritative = CommonLib.WorkType != WorkType.Client &&
+                gameInfo.WorldSettings.TerrainGenerationMode != TerrainGenerationMode.Nihility;
+            SubsystemPyramid.Placement pyramidPlacement = null;
+            if (authoritative)
+            {
+                try
+                {
+                    // Hook contributions are already present. Native pass four runs between our preflight and stamp.
+                    pyramidPlacement = pyramid?.Prepare(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode);
+                }
+                catch (Exception error)
+                {
+                    Log.Error("[SCIEPort] Pyramid preparation failed: " + error);
+                }
+            }
             original.GenerateChunkContentsPass4(chunk);
-            if (CommonLib.WorkType == WorkType.Client || gameInfo.WorldSettings.TerrainGenerationMode == TerrainGenerationMode.Nihility)
+            if (!authoritative) return;
+            if (pyramidPlacement != null)
+            {
+                pyramid.Finish(chunk, pyramidPlacement);
                 return;
+            }
 
             try
             {
@@ -83,16 +105,6 @@ namespace SCIEPort.Features.Plants
 
             try
             {
-                if (pyramid?.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode) == true)
-                    return;
-            }
-            catch (Exception error)
-            {
-                Log.Error("[SCIEPort] Pyramid generation failed: " + error);
-            }
-
-            try
-            {
                 GeneratePlants(chunk);
             }
             catch (Exception error)
@@ -107,6 +119,15 @@ namespace SCIEPort.Features.Plants
             catch (Exception error)
             {
                 Log.Error("[SCIEPort] Natural landmark generation failed: " + error);
+            }
+
+            try
+            {
+                SceneryGenerator.Generate(chunk, this, gameInfo.WorldSeed, scenery);
+            }
+            catch (Exception error)
+            {
+                Log.Error("[SCIEPort] Fantasy scenery generation failed: " + error);
             }
         }
 

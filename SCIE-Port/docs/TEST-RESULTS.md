@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-23 · 1.10.3 日阶金字塔尖顶
+
+- 根目录及 SCIE-Port 的 `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 通过固定 Windows 目标与 ABI 检查。SDK 8.0.427 从仓库外调用 `dotnet build <SCIEPort.csproj 的绝对路径> -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o <构建输出目录> --nologo`，使用本机 net472 参考程序集，0 警告、0 错误。XDB 静态验证通过。
+- `Test-TidePalace.ps1` 的金字塔通过 15,346 项固定目标检查。大陆、岛屿和 Better 各实际生成 25 个新区块，候选分别为 7/256、5/256、8/256。三种地形的基座边缘与原生地表高差均不超过 2 格，北门无外部台阶。验证矩形底层、四边逐级收分、单方块顶、切片顺序、表外方块保护、旧区块和客户端拒绝生成、装饰编号迁移。25 个迷宫布局的最短路线为 633–823 步，装饰与守卫 421 项通过。
+- 关联回归通过，含峰林和坡地瀑布 119 项、特殊地形 303,718 项、火山 77,829 项、水幕沉殿 384 项、奇幻地形 28,435 项、山地庇护帐 1,777 项、物品栏 385 项、家居 911 项、钓鱼 40 项、书柜原生模型与配方，以及云天书典 627 项逻辑和 35,236 项固定目标检查。14 个墓室装饰模型与图集均由目标引擎成功导入。
+- 本次验证使用 Release 编译输出。Android 7723、入口实机通行、旧存档实际迁移和真实联机待验证。[复测点](PYRAMID-1.10.3.md)
+
 ## 2026-11-22 · 1.10.2 云瀑峰林单道宽瀑
 
 - `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 校验固定程序集和 ABI。设置 `FrameworkPathOverride=D:/Dev/Tools/net472/build/.NETFramework/v4.7.2` 后，从索引快照运行 `dotnet build SCIE-Port/artifacts/cloudfall-single-staged/source/SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o SCIE-Port/artifacts/cloudfall-single-staged/build --nologo`，0 警告、0 错误。
@@ -71,6 +78,79 @@
 - 固定目标地形专项共通过 304,270 项检查，覆盖实际地形落地、跨区块写入、备选、写入范围及旧区块跳过。种子 `HighVolcano` 的大陆样本区块中心 X/Z 为碎石坡扇 `2184,-104`、草覆岩丘 `904,824`、冻土石纹 `2008,-104`。三种奇景的大陆样本中心为花岗岩穹丘 `1288,1096`、冲蚀沟壑 `1608,648`、冰蚀围谷 `264,1032`，Better 样本为 `2424,1048`、`1608,648`、`696,1256`。
 - 书柜、五分类、钓鱼、云天书典与三项原有火山及遗迹回归通过。两份包字节一致，共 230 项、13,121,209 字节。相对本地 1.3.0 统一包只更新 `modinfo.json` 和 `SCIEPort.dll`。SHA-256 为 `F235072BF9DF7FCDF9BF5DC92C10473ABE5C7A1A8D629E8DAC7657EBC2030C1B`。
 - Android 7723、旧世界实际过渡和真实联机 **待验证**。[生成规则](SURFACE-WONDERS-1.4.0.md)
+
+## 2026-11-23 · 1.7.5 金字塔落地与取消外部楼梯
+
+- 重塑 `PyramidSite.Choose`：基准高度改为入口正前方 (local 37,9) 自然地面 − 1（并要求 `frontY >= 33` 以维持存档校验的 `baseY >= 32`）。门口 local y=1 与沙地齐平，实体基座 local y=-14..0 全部埋于地下，阶梯四棱锥从地面直接升起。墓室布局移除 `Approach()` 外部引道，旧版迷宫布局保留以兼容旧存档；`ApproachFloor` 新站点恒为 0。
+- 更新 `PyramidNativeProbe.CheckGroundEntrance`：验证 `ApproachFloor==0`、门口世界高度与 native 地表相差 ≤1 格、门前 local z0..9 无人工石灰岩/大理石台阶铺面。
+- 执行 `dotnet build SCIEPort.csproj -c Release`，0 警告、0 错误；`Test-TidePalace.ps1` 全部通过：金字塔固定目标 **14,955**（原 14,832，因基座改由自然地形承载而增加）、守卫/装饰 421 项、25 种子迷宫连通（634–824 步）、装饰每层 87/90/107 格、火山 77,829、潮汐宫殿 384、特殊地形 126,134 均保持通过。站点数 Continent 8 / Island 1 / Better 8（每 256 区域）。
+- Android 7723 下金字塔落地观感、门口蹲伏进入、渲染与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
+## 2026-11-23 · 1.7.4 金字塔装饰地形接入
+
+- 重新设计 `PyramidLayout` 的装饰管线：三层迷宫 192 个房间中，除入口房与已有标志物的藏器室房外，每房按 `(seed, level, cell, slot)` 无状态哈希在地面四角放 1–2 件，主题按层变化；墓室/藏器室保留原 anchors；无迷宫的旧版布局补齐同样九种方块。所有摆放只写完整布局中确认为空气的单格，房间中心、通道、机关和奖台不占用。
+- 执行 `scripts/Build-NetMod.ps1 -GameDir 'E:/SCNET/SCNETx25.01.17' -Configuration Release -OutputDir 'E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-decor-terrain-1.7.4'`，退出 0，Release 编译 0 警告、0 错误；品牌契约、127 行创造栏 CSV、XDB、统一包、书典、绘卷及全部既有回归通过。包内 `modinfo.json` 为 1.7.4。
+- 金字塔原生测试（`Test-TidePalace.ps1`）：守卫/装饰检查由 217 增至 **421** 项，新增每层装饰数量（87 / 90 / 107 格）、192 处房间中心保持空气、旧版布局九种 kind 全部出现；25 种子迷宫最短路径仍为 634–824 步，金字塔固定目标 14,832、火山 77,829、潮汐宫殿 384 等全部保持通过。正反切片顺序的完整布局逐格一致。
+- 两份安装包字节一致：`荒野探险家.netmod` / `荒野探险家-1.7.4.netmod`，253 个条目、13,507,999 字节，SHA-256 `09DF47FD28FD26FC182726B8C816351F6B2A6640C8476FB6A87FB965014AC996`。相对 1.7.3 仅 `SCIEPort.dll` 与版本元数据变化，资源条目不变。
+- Android 7723 下每层房间的实际密度、渲染、碰撞、触屏开棺/点火交互与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
+## 2026-11-23 · 1.7.3 埃及墓葬装饰
+
+- 执行 `scripts/Test-Environment.ps1`，原生 260 方块常量无冲突，903–1023 保留区间有效。
+- 执行 `scripts/New-PyramidDecorAssets.py` 生成 14 个原创 Y_UP 模型（3200 三角形）与 512×512 不透明图集；`scripts/Test-PyramidDecorGeometry.py` 静态校验（有限/非退化几何、独立索引、单 tile UV、opaque PNG）通过。
+- 执行 `scripts/Test-PyramidDecor.ps1`：目标 Engine `ModelData.Load` 实际导入 14 模型/3200 三角形（骨骼=1、网格/三角形数与 manifest 一致），512×512 图集原生解码通过；方块 ID 947 注册检查通过。
+- `dotnet build SCIEPort.csproj -c Release` 0 警告、0 错误。
+- 金字塔原生测试（`Test-TidePalace.ps1`）：守卫检查由 207 增至 **217** 项，新增 9 种装饰 kind 的墓室布置断言与总数断言；迷宫 25 种子连通、金字塔固定目标 14832、火山 77829 等全部保持通过。装饰避开路线终点 (61,-11,62)，未破坏任何房间连通。
+- 实现要点：`Terrain.ContentsMask=1023` 硬上限，九种装饰共用索引 947，DATA 位编码 kind/变体/状态/旋转；石棺与火盆经 `SubsystemPyramidDecor` 在权威端 `ChangeCell` 切换状态位，无新网络包。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:/SCNET/SCNETx25.01.17' -Configuration Release -OutputDir 'E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-decor-1.7.3-final'`，退出 0，Release 编译 0 警告、0 错误；品牌契约、127 行创造栏 CSV、XDB GUID/继承、完整统一包与全部既有回归通过。包内 `modinfo.json` 与 csproj 均为 1.7.3。
+- 两份安装包字节一致：`荒野探险家.netmod` / `荒野探险家-1.7.3.netmod`，253 个条目、13,507,501 字节，SHA-256 `98457D7BF1BD631C32EF7E5EB90B143DEFF4AC1074167742B3A67EDF62C5020E`。相对 1.7.2 增加 `PyramidDecor.csv`、`PyramidDecor.png` 与 14 个装饰模型，并更新 `SCIEPort.dll`、`modinfo.json`、`Pyramid.xdb`。
+- Android 7723 渲染、碰撞盒、朝向、触屏开棺/点火交互与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
+## 2026-11-23 · 1.7.2 守卫强度与技能
+
+- 执行 `scripts/Test-Environment.ps1`，Windows 目标程序集哈希与 Net_x25.01.17 ABI 检查通过。
+- 执行 `dotnet build SCIEPort.csproj -c Release`，Release 编译 0 警告、0 错误。
+- 金字塔守卫 207 项原生检查通过，覆盖木乃伊/法老的新攻击抗性、攻击力、步行速度、追击时长、火焰抗性与 Loot 掉落表；法老血量改为 480，圣剑/雷神击杀次数断言同步更新。
+- 新增技能在权威端结算：木乃伊「裹尸缠绕」（近战 +4、命中定身 0.7 秒，8 秒冷却）、法老「法老诅咒」（3 跳 × 7 攻击点数）、「太阳裁决」（0.8 秒后半径 4 格 25→10）与「亡者号令」（12 格内木乃伊攻击力 +20%）。离线探针不触发真实攻击 Hook，技能命中、定身与联机表现 **待验证**。
+- Android 7723 实机战斗、触屏表现与真实 Local/Server/Client **待验证**。[守卫规则](PYRAMID-GUARDIANS-1.5.0.md)
+
+## 2026-11-23 · 1.7.0 石灰岩金字塔与环壁火山
+
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标程序集与公开 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/tomb-volcano-1.7.0`，退出 0，Release 编译 0 警告、0 错误。书柜、五分类、钓鱼、云天书典等统一包回归通过。
+- 金字塔通过 14,832 项原生检查。模拟原生第四阶段装饰会让旧表拒绝目标格的用例，确认提前预检后可完整落下切片。检查覆盖受保护块、已保存区块、负坐标、切片顺序和三种地形的封闭性、入口及陈列器。25 个布局种子的墓道最短路径为 634–824 方格步，旧 1.6 记录仍按旧几何绘制。
+- 守卫通过 189 项原生检查，覆盖缺失远处切片时触发入口木乃伊、生成点所在切片缺失时跳过、其余七个木乃伊点位、单一法老、占位与净空以及重载不重复生成。
+- 火山通过 77,829 项原生检查。覆盖三种变体的整圈山脊、山脊下旧通道高度的岩基、余火型池床、137 格液面和围岸、跨区块顺序以及保存区块保护。
+- 两份安装包字节一致，237 个条目、13,226,597 字节，SHA-256 为 `2F4BAD821E6ADA6C27E9EDBEB29B2DE97B7D1370579B2A092EA914858349D2CD`。与 1.6.0 运行包逐条比较，仅主 DLL 和版本元数据不同。
+- Android 7723 实机、已有存档的实际守卫行为及房主和客户端同步 **待验证**。[复测点](TOMB-VOLCANO-1.7.0.md)
+
+## 2026-11-23 · 1.6.0 日阶迷宫
+
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，Windows 目标程序集哈希与 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-maze-1.6.0`，退出 0。Release 编译 0 警告、0 错误，原有地形、书柜、五分类、钓鱼与云天书典回归通过。
+- 金字塔原生检查 14,639 项通过。25 个布局种子均有唯一 1×1 开口和 192 个可达小间，正门到藏器室的最短路径为 632–822 方格步。大陆、岛屿与 Better 的实际生成验证了门前石阶、地形围合、藏器室与一次性神器陈列。还检查了原生玩家蹲行包围盒、负坐标、相反切片顺序、旧区块拒绝、表外占用中止整片以及客户端拒绝生成。
+- 守卫原生检查 187 项通过，覆盖单机和房主的八只木乃伊与唯一法老、其他高度与点位占用、存档恢复、一次性生成和旧神殿封印进度。
+- 统一包及版本副本字节一致，共 237 个条目、13,226,061 字节。SHA-256 为 `24E2EA7A4F3B87C90892710ED87AC6888D0372737466BA1328A6629008860EAA`。与 1.5.0 的运行包逐条比较，只有 `SCIEPort.dll` 和 `modinfo.json` 的字节不同。
+- Android 7723 的蹲行进出、石阶实机通行、战斗和真实联机同步 **待验证**。[复测点](PYRAMID-MAZE-1.6.0.md)
+
+## 2026-11-23 · 1.5.0 日阶神殿守卫
+
+- 仓库根目录执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标 Windows 程序集哈希与 Net_x25.01.17 的公开 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-guardians-1.5.0`，退出 0。Release 编译 0 警告、0 错误。书柜、五分类、钓鱼、云天书典、天工绘卷和既有地形回归通过。
+- 守卫专项 75 项检查通过。目标引擎载入两个模型、图集与有效 XDB，并在无图形设备的原生 Project 中创建两种实体。测试覆盖负坐标、25 个切片齐备、房间高度、净空、实体占位、Local 与 Server 生成、Client 拒绝生成、藏器室解锁、旧存档缺省值、保存重读及一次性生成。既有金字塔选址、路线、机关与奖励的 9,124 项检查通过。
+- 两个安装包字节一致，含 237 个条目、13,224,285 字节。SHA-256 为 `B1C2DB1214B2725A9C82A72E0D7EBD4D508A412C1873D43799658C695D2D8FC3`。包内守卫 XDB、两套模型与贴图和源码资源逐字节相符。
+- Android 7723 的画面、实际寻路与战斗、游戏内保存与读档及真实房主与普通客户端同步 **待验证**。[守卫复测点](PYRAMID-GUARDIANS-1.5.0.md)
+
+## 2026-11-22 · 1.4.1 沉船、飞艇与浮空岛
+
+- 从 `SCIE-Port` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-NetMod.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release -OutputDir 'D:\Dev\Survivalcraft2\SCIE-Port\artifacts\scenery-1.4.1'`，退出 0。固定 Windows 三程序集（net472 / API 1.42 / SC 2.4.10.6）、Release 构建、全部既有回归、统一包与版本副本校验通过；编译无警告。
+- 规则测试 `tests/SCIEPort.Scenery.Tests` 通过 857,139 项检查：世界种子确定性、海洋/陆地高度带、四分之一旋转体积守恒、跨区块裁剪稳定、沉船全在水下、空中场景净空、AABB 包含体素、方块 ID 完整、每 512 格区域至多一座天空地标、出地标区域不超过 70%、相邻天空地标至少相隔 256 格、每个天空地标恰好一个奖励陈列器。
+- 资源守卫与固定目标原生探针 `scripts/Test-Scenery.ps1` 通过：`Scenery.csv` 6 行 / 10 个图集格 / 512×512 PNG；原生 28,435 项检查使用目标 `Engine.dll`、`EntitySystem.dll`、`Survivalcraft.exe` 和内存 Terrain，覆盖真实 `TerrainChunk` 写入、海床不被覆盖、沉船替换水且不露出水面、飞艇/浮空岛保持净空、飞艇与浮空岛各含一个陈列器、客户端与 Nihility 跳过、正逆序区块生成一致、固体障碍不被覆盖、单区块预算及生成异常不破坏原生地形。
+- `Test-PortInventory.ps1` 通过 338 项目标 API 检查 / 126 个实际方块分类、807 项分类与槽位规则：六个新方块可反射实例化，分类为 `SCIEPort.Structures`，创造变体不逃逸专用 Tab。
+- 场景方块使用本工作区空闲编号 880–885；978–983 已被苹果木与特色树木占用，1014–1020 为古建、1021 猫生成器、1022 沉殿机关、1023 日阶机关，1024 起超出目标 `BlocksManager` 的 1024 槽数组。
+- 奖励发放使用新增 `SubsystemScenery`（`Assets/Database/Scenery.xdb` 注册）与既有 `ShrineWorld.TryStock`：仅主机或本地发放，区块未就绪时等待，陈列器被破坏或已有实体时不再补发，未发放奖励写入 `Scenery` 存档键。Windows 编译与静态检查通过；实机发奖与联机同步 **待验证**。
+- 统一包与版本副本字节一致：`荒野探险家.netmod` / `荒野探险家-1.4.1.netmod`，233 个条目、13,150,720 字节，SHA-256 `93B394E402A23370092DAFFF218465146DB5A1CEC16483C0D3435FB64557C3F0`。相对 1.3.0 增加 `Assets/Blocks/Scenery.csv`、`Assets/Textures/Scenery.png` 与 `Assets/Database/Scenery.xdb`，并更新 `SCIEPort.dll`、`modinfo.json`。
+- Android 7723 实机、触屏放置六种新方块、长期世界分布、现有世界的已加载区块回填、奖励实际领取及真实 Local/Server/Client 联机 **待验证**。[奇幻地形专项](SCENERY-1.4.1.md)
 
 ## 2026-11-20 · 1.3.0 特殊地形
 

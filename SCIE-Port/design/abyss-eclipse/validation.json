@@ -24,13 +24,13 @@
     {
       "name": "RaisedBladeArmor",
       "triangles": 1192,
-      "signedVolume": 0.0022489422944744273,
+      "signedVolume": 0.0022489422944744256,
       "closedConsistent": true
     },
     {
       "name": "InterruptedVoidInlays",
       "triangles": 816,
-      "signedVolume": 9.962388987210468e-05,
+      "signedVolume": 9.962388987210475e-05,
       "closedConsistent": true
     },
     {
@@ -60,19 +60,19 @@
     {
       "name": "RootScale_-1",
       "triangles": 60,
-      "signedVolume": 0.0015711067344665098,
+      "signedVolume": 0.0015711067344665102,
       "closedConsistent": true
     },
     {
       "name": "RootScale_1",
       "triangles": 60,
-      "signedVolume": 0.0015711067344665076,
+      "signedVolume": 0.0015711067344665079,
       "closedConsistent": true
     },
     {
       "name": "AsymmetricOrbitFragments",
       "triangles": 280,
-      "signedVolume": 0.0035788911168000022,
+      "signedVolume": 0.0035788911168000057,
       "closedConsistent": true
     },
     {
@@ -84,7 +84,7 @@
     {
       "name": "AccretionSlivers",
       "triangles": 168,
-      "signedVolume": 6.979779780266038e-05,
+      "signedVolume": 6.979779780266047e-05,
       "closedConsistent": true
     },
     {
@@ -102,7 +102,7 @@
     {
       "name": "HelicalBinding_Lower",
       "triangles": 900,
-      "signedVolume": 0.0001887960999999996,
+      "signedVolume": 0.0001887960999999992,
       "closedConsistent": true
     },
     {
@@ -120,7 +120,7 @@
     {
       "name": "HelicalBinding_Upper",
       "triangles": 900,
-      "signedVolume": 0.0001888316000000003,
+      "signedVolume": 0.0001888316000000004,
       "closedConsistent": true
     },
     {
@@ -150,13 +150,13 @@
     {
       "name": "HaftGuardInner_-1",
       "triangles": 52,
-      "signedVolume": 0.0003836993035199998,
+      "signedVolume": 0.00038369930351999976,
       "closedConsistent": true
     },
     {
       "name": "ShaftRunes",
       "triangles": 960,
-      "signedVolume": 3.7170423594257345e-05,
+      "signedVolume": 3.717042359425719e-05,
       "closedConsistent": true
     },
     {
@@ -168,19 +168,19 @@
     {
       "name": "UpperArmoredFace_1",
       "triangles": 60,
-      "signedVolume": 0.0009056297265600002,
+      "signedVolume": 0.00090562972656,
       "closedConsistent": true
     },
     {
       "name": "SweptHaftGuard_1",
       "triangles": 52,
-      "signedVolume": 0.0006843928998399995,
+      "signedVolume": 0.0006843928998399992,
       "closedConsistent": true
     },
     {
       "name": "HaftGuardInner_1",
       "triangles": 52,
-      "signedVolume": 0.00038369930352000003,
+      "signedVolume": 0.00038369930351999986,
       "closedConsistent": true
     },
     {

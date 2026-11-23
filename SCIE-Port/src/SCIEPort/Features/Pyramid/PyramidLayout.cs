@@ -8,6 +8,8 @@ namespace SCIEPort.Features.Pyramid
     {
         internal const int LowY = -14, HighY = 36;
         internal const int Unchanged = -1, Underpinning = -2;
+        internal const int PeakY = 35, CenterX = 40, CenterZ = 44;
+        internal const int BaseHalfWidth = 38, BaseHalfDepth = 35;
         private const int Height = HighY - LowY + 1;
         private static readonly int Sandstone = Terrain.MakeBlockValue(SandstoneBlock.Index);
         private static readonly int Marble = Terrain.MakeBlockValue(MarbleBlock.Index);
@@ -23,15 +25,294 @@ namespace SCIEPort.Features.Pyramid
             x0 = origin.X - site.Origin.X;
             z0 = origin.Y - site.Origin.Y;
             for (int i = 0; i < cells.Length; i++) cells[i] = Unchanged;
+            if (site.Maze != null)
+            {
+                if (site.Tomb) TombShell(site.ApproachFloor, site.Pointed);
+                else MazeShell(site.ApproachFloor);
+                LabyrinthFloors(site.Maze);
+                if (site.Tomb) BurialDetails();
+                DecorateMaze(site.Maze.Seed, site.Tomb);
+                return;
+            }
             Shell();
             MainHall(site);
             Bridge();
             Labyrinth();
             UpperChamber();
             Vault();
+            DecorateLegacy();
         }
 
         internal int At(int x, int y, int z) => cells[((z * 16 + x) * Height) + y - LowY];
+
+        private void TombShell(int approachFloor, bool pointed)
+        {
+            Point3 entrance = PyramidMaze.TombEntrance;
+            if (pointed)
+            {
+                PointedShell();
+                // The threshold is recessed beneath the second course. Leave the outside notch
+                // open at ground level and keep its lintel within the sloping face.
+                Fill(entrance.X, 1, entrance.Z - 2, entrance.X, 2, entrance.Z - 1, 0);
+                Set(entrance.X, 2, entrance.Z + 1, Relief);
+            }
+            else
+            {
+                Fill(5, LowY, 10, 74, 0, 79, Sandstone);
+                for (int z = Math.Max(10, z0); z <= Math.Min(79, z0 + 15); z++)
+                for (int x = Math.Max(5, x0); x <= Math.Min(74, x0 + 15); x++)
+                {
+                    int top = 2 + Math.Min(Math.Min(x - 5, 74 - x), Math.Min(z - 10, 79 - z));
+                    Fill(x, 1, z, x, top - 1, z, Sandstone);
+                    Set(x, top, z, Limestone);
+                }
+                if (approachFloor < 0) Approach(entrance, approachFloor, 9);
+                Set(entrance.X, 2, entrance.Z, Relief);
+            }
+            Fill(37, 1, 10, 37, 1, 11, 0);
+            Fill(37, 1, 12, 37, 2, 16, 0);
+            Fill(36, 1, 16, 38, 3, 18, 0);
+            Fill(35, 1, 18, 39, 3, 22, 0);
+            Fill(36, 4, 18, 38, 5, 22, 0);
+            Fill(37, 6, 18, 37, 6, 22, 0);
+            Set(35, 3, 20, Lamp);
+            Set(39, 3, 20, Lamp);
+        }
+
+        private void PointedShell()
+        {
+            Fill(CenterX - BaseHalfWidth, LowY, CenterZ - BaseHalfDepth,
+                CenterX + BaseHalfWidth, 0, CenterZ + BaseHalfDepth, Sandstone);
+            for (int y = 1; y < PeakY; y++)
+            {
+                int halfDepth = PeakY - y;
+                int halfWidth = halfDepth * BaseHalfWidth / PeakY;
+                int left = CenterX - halfWidth, right = CenterX + halfWidth;
+                int front = CenterZ - halfDepth, back = CenterZ + halfDepth;
+                int nextWidth = (halfDepth - 1) * BaseHalfWidth / PeakY;
+                Fill(left, y, front, right, y, back, Limestone);
+                Fill(CenterX - nextWidth, y, front + 1, CenterX + nextWidth, y, back - 1, Sandstone);
+            }
+            Set(CenterX, PeakY, CenterZ, Limestone);
+        }
+
+        private void BurialDetails()
+        {
+            // Recessed chamber with masonry piers and a stone sarcophagus beside the processional aisle.
+            Fill(58, -12, 66, 64, -12, 67, Limestone);
+            Fill(58, -11, 66, 64, -8, 67, 0);
+            Fill(58, -11, 62, 59, -11, 64, Basalt);
+            Fill(58, -10, 62, 59, -10, 64, Marble);
+            Fill(64, -11, 64, 64, -8, 65, Basalt);
+            Fill(60, -7, 64, 62, -7, 67, Relief);
+            Set(61, -8, 66, Lamp);
+        }
+
+        // Absolute-coordinate air check; never overwrite a non-air cell (seals, lamps, loot, masonry).
+        private bool Air(int x, int y, int z)
+        {
+            if (x < x0 || x > x0 + 15 || z < z0 || z > z0 + 15 || y < LowY || y > HighY) return false;
+            return cells[(((z - z0) * 16 + x - x0) * Height) + y - LowY] == 0;
+        }
+        // One shared block index; the kind lives in DATA. Only fills verified-air cells.
+        private void Place(int x, int y, int z, int kind, int variant = 0, bool open = false, int rotation = 0)
+        {
+            if (Air(x, y, z))
+                Set(x, y, z, Terrain.MakeBlockValue(PyramidDecorRules.Index, 0,
+                    PyramidDecorRules.Encode(kind, variant, open, rotation)));
+        }
+        private static readonly int[] UpperDecor =
+        {
+            PyramidDecorRules.StorageJar, PyramidDecorRules.Shabti, PyramidDecorRules.OfferingTable,
+            PyramidDecorRules.BookOfDead, PyramidDecorRules.Brazier
+        };
+        private static readonly int[] MiddleDecor =
+        {
+            PyramidDecorRules.CanopicJar, PyramidDecorRules.Shabti, PyramidDecorRules.StorageJar,
+            PyramidDecorRules.AnubisStatue, PyramidDecorRules.OfferingTable
+        };
+        private static readonly int[] LowerDecor =
+        {
+            PyramidDecorRules.Sarcophagus, PyramidDecorRules.CanopicJar, PyramidDecorRules.AnubisStatue,
+            PyramidDecorRules.BookOfDead, PyramidDecorRules.Obelisk, PyramidDecorRules.Brazier
+        };
+
+        // Stateless per-room selection, so independently generated slices always agree. No shared
+        // Random instance and no dependence on generation order or slice direction.
+        private static int Pick(int seed, int level, int cell, int salt)
+        {
+            unchecked
+            {
+                uint h = (uint)seed ^ ((uint)level * 0x45d9f3bu) ^
+                    ((uint)cell * 0x27d4eb2du) ^ ((uint)salt * 0x165667b1u);
+                h ^= h >> 16;
+                h *= 0x7feb352du;
+                h ^= h >> 15;
+                h *= 0x846ca68bu;
+                h ^= h >> 16;
+                return (int)(h & 0x7fffffffu);
+            }
+        }
+
+        // Every maze chamber gets a seed-driven arrangement at its floor corners. Corners are never
+        // a chamber centre or a passage throat, so all 192 room centres and the vault route stay
+        // clear. Place() still refuses any cell that is not air in the completed layout.
+        private void DecorateRooms(int seed)
+        {
+            for (int level = 0; level < PyramidMaze.Levels; level++)
+            for (int cell = 0; cell < PyramidMaze.Count; cell++)
+            {
+                if (level == 0 && cell == 3) continue; // tomb entry / first mummy keeps its room empty
+                if (level == 2 && cell == PyramidMaze.Count - 1) continue; // vault has anchored pieces
+                Point3 room = PyramidMaze.Room(level, cell);
+                int pieces = 1 + (Pick(seed, level, cell, 0) & 1);
+                for (int slot = 0; slot < pieces; slot++)
+                {
+                    int corner = Pick(seed, level, cell, 1 + slot) & 3;
+                    int dx = (corner & 1) == 0 ? -1 : 1;
+                    int dz = (corner & 2) == 0 ? -1 : 1;
+                    int[] palette = level == 0 ? UpperDecor : level == 1 ? MiddleDecor : LowerDecor;
+                    int kind = palette[Pick(seed, level, cell, 3 + slot) % palette.Length];
+                    int variant = kind == PyramidDecorRules.CanopicJar ? (cell + slot) & 3 : 0;
+                    bool open = kind == PyramidDecorRules.Brazier && (Pick(seed, level, cell, 5 + slot) & 3) == 0;
+                    int rotation = Pick(seed, level, cell, 7 + slot) & 3;
+                    Place(room.X + dx, room.Y + 1, room.Z + dz, kind, variant, open, rotation);
+                }
+            }
+        }
+
+        private void DecorateMaze(int seed, bool tomb)
+        {
+            DecorateRooms(seed);
+            const int sar = PyramidDecorRules.Sarcophagus, jar = PyramidDecorRules.CanopicJar;
+            // Vault signature pieces: obelisk first, then the surrounding chamber set.
+            Place(59, -11, 65, PyramidDecorRules.Obelisk);
+            // Vault chamber: x58..64, z59..65, carved y-11..-8. Keep the central route
+            // (x60..62, z61..63, terminus 61,62) clear; decor hugs the outer ring only.
+            Place(58, -11, 59, PyramidDecorRules.AnubisStatue);
+            Place(64, -11, 59, PyramidDecorRules.AnubisStatue);
+            Place(58, -11, 62, PyramidDecorRules.Brazier);
+            Place(64, -11, 62, PyramidDecorRules.Brazier, open: true);
+            Place(58, -11, 64, jar, 0);
+            Place(64, -11, 64, jar, 1);
+            Place(58, -11, 65, jar, 2);
+            Place(64, -11, 65, jar, 3);
+            Place(59, -11, 59, sar);
+            Place(60, -11, 59, PyramidDecorRules.OfferingTable);
+            Place(62, -11, 59, PyramidDecorRules.BookOfDead);
+            Place(63, -11, 59, PyramidDecorRules.StorageJar);
+            if (tomb)
+            {
+                // Burial chamber: stone dais x58..64, z62..67, carved y-11..-8.
+                // Away from the vault route terminus (61,-11,62).
+                Place(61, -11, 67, sar);
+                for (int i = 0; i < 4; i++) Place(59 + i, -11, 66, jar, i);
+                Place(58, -11, 67, PyramidDecorRules.Shabti);
+                Place(64, -11, 67, PyramidDecorRules.Shabti);
+                Place(59, -11, 67, PyramidDecorRules.AnubisStatue);
+                Place(63, -11, 67, PyramidDecorRules.OfferingTable);
+                Place(58, -11, 66, PyramidDecorRules.StorageJar);
+                Place(64, -11, 66, PyramidDecorRules.StorageJar);
+            }
+        }
+
+        // The pre-maze layout still appears in older records. Give it the same nine kinds at
+        // hand-picked air pockets away from the processional route, pillars and puzzle blocks.
+        private void DecorateLegacy()
+        {
+            const int jar = PyramidDecorRules.CanopicJar;
+            // Main hall side aisles: the centre x36..43 stays clear for the seal procession.
+            Place(28, 1, 18, PyramidDecorRules.Shabti, rotation: 1);
+            Place(51, 1, 18, PyramidDecorRules.StorageJar);
+            Place(28, 1, 42, PyramidDecorRules.OfferingTable, rotation: 2);
+            Place(51, 1, 42, PyramidDecorRules.BookOfDead);
+            // Lower bridge landing and its far ledge, outside the jump lane x21..25.
+            Place(14, -4, 21, PyramidDecorRules.Brazier);
+            Place(24, -4, 29, PyramidDecorRules.Brazier, open: true);
+            // Labyrinth wall niches outside the three carved lanes x54/59/64.
+            Place(52, 1, 19, jar, 0);
+            Place(67, 1, 19, jar, 1);
+            Place(57, 1, 40, jar, 2);
+            Place(62, 1, 40, jar, 3);
+            // Upper gallery corners and the vault's outer bays.
+            Place(34, 18, 25, PyramidDecorRules.AnubisStatue);
+            Place(48, 18, 31, PyramidDecorRules.AnubisStatue, rotation: 2);
+            Place(29, -11, 57, PyramidDecorRules.Obelisk);
+            Place(50, -11, 57, PyramidDecorRules.StorageJar);
+            Place(29, -11, 70, PyramidDecorRules.Sarcophagus, rotation: 1);
+            Place(50, -11, 70, PyramidDecorRules.BookOfDead);
+        }
+
+        private void MazeShell(int approachFloor)
+        {
+            Fill(5, LowY, 12, 74, 0, 74, Sandstone);
+            for (int z = Math.Max(12, z0); z <= Math.Min(74, z0 + 15); z++)
+            for (int x = Math.Max(5, x0); x <= Math.Min(74, x0 + 15); x++)
+            {
+                int top = 2 + Math.Min(Math.Min(x - 5, 74 - x), Math.Min(z - 12, 74 - z));
+                Fill(x, 1, z, x, top, z, Sandstone);
+                if (top % 6 == 0) Set(x, top, z, Limestone);
+                if (top == 33 && x >= 37 && x <= 42) Set(x, top, z, Relief);
+            }
+            Point3 entrance = PyramidMaze.Entrance;
+            int door = entrance.X;
+            Approach(entrance, approachFloor, 10);
+            // Only the front cell is exposed. The threshold is flat for crouching in either direction.
+            Set(door, entrance.Y, entrance.Z, 0);
+            Set(door, entrance.Y + 1, entrance.Z, Relief);
+            Fill(door - 1, 1, 13, door + 1, 2, 20, 0);
+            Fill(door - 1, 3, 14, door + 1, 3, 20, 0);
+        }
+
+        private void Approach(Point3 entrance, int approachFloor, int rise)
+        {
+            int door = entrance.X;
+            for (int z = 0; z < entrance.Z; z++)
+            {
+                int tread = Math.Max(approachFloor, Math.Min(0, z - rise));
+                Fill(door - 2, LowY, z, door + 2, tread - 1, z, Underpinning);
+                Fill(door - 2, tread, z, door + 2, tread, z, Limestone);
+                Fill(door - 2, tread + 1, z, door + 2, 3, z, 0);
+            }
+        }
+
+        private void LabyrinthFloors(PyramidMaze maze)
+        {
+            for (int level = 0; level < PyramidMaze.Levels; level++)
+            for (int cell = 0; cell < PyramidMaze.Count; cell++)
+            {
+                Point3 room = PyramidMaze.Room(level, cell);
+                int x = room.X, y = room.Y, z = room.Z;
+                Fill(x - 1, y, z - 1, x + 1, y, z + 1, Limestone);
+                Fill(x - 1, y + 1, z - 1, x + 1, y + 3, z + 1, 0);
+                if (maze.East(level, cell))
+                    Fill(x + 2, y + 1, z - 1, x + 4, y + 3, z + 1, 0);
+                if (maze.South(level, cell))
+                    Fill(x - 1, y + 1, z + 2, x + 1, y + 3, z + 4, 0);
+                if (cell % 4 == 1) Set(x, y + 4, z, Lamp);
+            }
+
+            // Two side stairwells are offset by one row between floors, with masonry around each shaft.
+            Transfer(61, 67, 62, 56, 0);
+            Transfer(19, 12, 20, 26, -6);
+            Fill(58, -12, 59, 64, -12, 65, Limestone);
+            Fill(58, -11, 59, 64, -8, 65, 0);
+            Fill(60, -11, 64, 62, -11, 65, Marble);
+            Set(PyramidMaze.Display.X, PyramidMaze.Display.Y, PyramidMaze.Display.Z,
+                PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal));
+            Set(58, -7, 61, Lamp);
+            Set(64, -7, 61, Lamp);
+        }
+
+        private void Transfer(int roomX, int stairX, int upperZ, int lowerZ, int upperY)
+        {
+            int lo = Math.Min(roomX, stairX), hi = Math.Max(roomX, stairX);
+            Fill(lo, upperY + 1, upperZ - 1, hi, upperY + 3, upperZ + 1, 0);
+            Fill(lo, upperY - 5, lowerZ - 1, hi, upperY - 3, lowerZ + 1, 0);
+            int step = Math.Sign(lowerZ - upperZ);
+            for (int i = 0; i <= 6; i++)
+                Stair(stairX - 1, stairX + 1, upperZ + i * step, upperY - i);
+        }
 
         private void Shell()
         {

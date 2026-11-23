@@ -18,12 +18,12 @@ namespace SCIEPort.Features.Geology
     internal sealed class GeologySite
     {
         internal readonly GeologyKind Kind;
-        internal readonly int X, Z, Base, Radius, Seed, Sea, Outlet;
+        internal readonly int X, Z, Base, Radius, Seed, Sea;
         internal readonly Point2 Facing;
         internal int CloudfallSpringY { get; set; }
         internal int Extent => Radius + (GeologySites.IsVolcano(Kind) ? GeologyProfiles.VolcanoApron : 0);
 
-        internal GeologySite(GeologyKind kind, int x, int z, int height, int radius, int seed, int sea, Point2 facing, int outlet = 0)
+        internal GeologySite(GeologyKind kind, int x, int z, int height, int radius, int seed, int sea, Point2 facing)
         {
             Kind = kind;
             X = x;
@@ -33,7 +33,6 @@ namespace SCIEPort.Features.Geology
             Seed = seed;
             Sea = sea;
             Facing = facing;
-            Outlet = outlet;
         }
 
         internal bool Touches(TerrainChunk chunk)
@@ -185,17 +184,16 @@ namespace SCIEPort.Features.Geology
 
                 int baseline = Math.Max(height, sea + 25);
                 int floor = baseline + (kind == GeologyKind.CraterLakes ? 4 : -4);
-                if (TryFindOutlet(generator, kind, x, z, radius, floor, seed, out Point2 facing, out int outlet))
-                    return new GeologySite(kind, x, z, baseline, radius, seed, sea, facing, outlet);
+                if (TryFindApproach(generator, kind, x, z, radius, floor, seed, out Point2 facing))
+                    return new GeologySite(kind, x, z, baseline, radius, seed, sea, facing);
             }
             return null;
         }
 
-        private static bool TryFindOutlet(ITerrainContentsGenerator generator, GeologyKind kind,
-            int x, int z, int radius, int floor, int seed, out Point2 facing, out int outlet)
+        private static bool TryFindApproach(ITerrainContentsGenerator generator, GeologyKind kind,
+            int x, int z, int radius, int floor, int seed, out Point2 facing)
         {
             facing = default;
-            outlet = 0;
             int bestScore = int.MaxValue;
             int first = Grain(x, z, seed, Directions.Length);
             for (int index = 0; index < Directions.Length; index++)
@@ -213,7 +211,6 @@ namespace SCIEPort.Features.Geology
                 if (score >= bestScore) continue;
                 bestScore = score;
                 facing = direction;
-                outlet = edge;
             }
             return bestScore < int.MaxValue;
         }

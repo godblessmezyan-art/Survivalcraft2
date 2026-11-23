@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="Subsystems" Guid="75acb50b-fb75-4c85-af38-a0fb51a9eb90">
+    <SubsystemTemplate Name="SCIEPortScenery" Guid="3d9b7c14-5a2e-4f83-9b61-7c0de4a2f518" InheritanceParent="a3914c13-7801-46a6-b23a-9e2b36e9defb">
+      <Parameter Name="Class" Guid="8e41c2a6-0b7d-4d93-85af-26b1c9e7d340" Value="SCIEPort.Features.Scenery.SubsystemScenery" Type="string"/>
+      <Parameter Name="Dependencies" Guid="c4f0a731-9d52-4a18-8b76-05e3d19c6a24" Value="Terrain, BlockEntities, Time" Type="string"/>
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortScenery" Guid="b57a0c92-6f34-4e18-a0d5-3c92e8b41f76" InheritanceParent="3d9b7c14-5a2e-4f83-9b61-7c0de4a2f518"/>
+  </ProjectTemplate>
+</DatabaseObjects>

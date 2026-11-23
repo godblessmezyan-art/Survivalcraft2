@@ -60,7 +60,7 @@ public static class TidePalaceProbe
     }
 
     public static void Run(Assembly mod, XElement xml, string nativeBlocks, string geologyBlocks, string palaceBlocks,
-        string pyramidBlocks, string[] artifactTables)
+        string pyramidBlocks, string pyramidDecor, string[] artifactTables, string assets)
     {
         siteType = mod.GetType("SCIEPort.Features.TidePalace.PalaceSite", true);
         layoutType = mod.GetType("SCIEPort.Features.TidePalace.PalaceLayout", true);
@@ -71,7 +71,7 @@ public static class TidePalaceProbe
         CommonLib.Net = (NetNode)FormatterServices.GetUninitializedObject(typeof(NetNode));
         Put(CommonLib.Net, "PendingPackages", new List<IPackage>());
         CommonLib.Net.Clients = new Dictionary<int, Client>();
-        RegisterBlocks(mod, nativeBlocks, geologyBlocks, palaceBlocks, pyramidBlocks, artifactTables);
+        RegisterBlocks(mod, nativeBlocks, geologyBlocks, palaceBlocks, pyramidBlocks, pyramidDecor, artifactTables);
         CheckRegistration(mod, xml);
         var site = Make(siteType, new Point2(0, 0), 32, 17);
         Layout(site);
@@ -92,6 +92,7 @@ public static class TidePalaceProbe
             return Fixture(game, mode, out project, out behavior, seed);
         });
         PyramidNativeProbe.Run(mod, game, Fixture);
+        PyramidGuardianProbe.Run(mod, game, Fixture, assets);
         SpecialTerrainNativeProbe.Run(mod, (mode, seed) =>
         {
             Project project;
@@ -101,7 +102,7 @@ public static class TidePalaceProbe
     }
 
     private static void RegisterBlocks(Assembly mod, string native, string geology, string palace,
-        string pyramid, string[] artifactTables)
+        string pyramid, string pyramidDecor, string[] artifactTables)
     {
         var artifacts = new HashSet<string>(artifactTables.Select(table => table.Split('\n')[1].Split(';')[0]));
         var geologyClasses = new HashSet<string>(geology.Split('\n').Skip(1).Select(row => row.Split(';')[0]));
@@ -113,7 +114,7 @@ public static class TidePalaceProbe
             var index = type.GetField("Index", Static | BindingFlags.DeclaredOnly);
             if (index == null || !index.IsLiteral || type.GetConstructor(Type.EmptyTypes) == null) continue;
             int id = (int)index.GetRawConstantValue();
-            if (assembly == mod && id != 954 && !geologyClasses.Contains(type.Name) && id != PalaceId && id != 1023 &&
+            if (assembly == mod && id != 954 && !geologyClasses.Contains(type.Name) && id != PalaceId && id != 1023 && id != 886 &&
                 !artifacts.Contains(type.Name)) continue;
             var block = (Block)Activator.CreateInstance(type);
             block.BlockIndex = id;
@@ -125,6 +126,7 @@ public static class TidePalaceProbe
         BlocksManager.LoadBlocksData(geology);
         BlocksManager.LoadBlocksData(palace);
         BlocksManager.LoadBlocksData(pyramid);
+        BlocksManager.LoadBlocksData(pyramidDecor);
         foreach (string table in artifactTables) BlocksManager.LoadBlocksData(table);
         BlocksManager.FluidBlocks[WaterBlock.Index].Initialize();
         BlocksManager.Blocks[951].MaxStacking = 1;
@@ -303,6 +305,8 @@ public static class TidePalaceProbe
         Add(p, new SubsystemGameInfo { WorldSeed = seed, WorldSettings = settings });
         Add(p, new SubsystemInventories());
         Add(p, new SubsystemPlayers());
+        Add(p, new SubsystemTime());
+        Add(p, new SubsystemBodies());
         Add(p, new SubsystemBottomSuckerBlockBehavior());
         Add(p, new SubsystemBlockEntities());
         var terrain = new SubsystemTerrain { Terrain = new Terrain(), TerrainSerializer = new TerrainSerializer23 { m_storage = new Storage() } };

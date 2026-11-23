@@ -22,7 +22,9 @@ namespace SCIEPort.Features.Pyramid
 
         private static readonly int[,] Orders = { { 0, 1, 2 }, { 0, 2, 1 }, { 1, 0, 2 }, { 1, 2, 0 }, { 2, 0, 1 }, { 2, 1, 0 } };
         internal readonly Point2 Origin;
-        internal readonly int BaseY, Order, RewardId;
+        internal readonly int BaseY, Order, RewardId, ApproachFloor;
+        internal readonly PyramidMaze Maze;
+        internal readonly bool Tomb, Pointed;
 
         internal PyramidSite(Point2 origin, int baseY, int order, int rewardId)
         {
@@ -30,6 +32,20 @@ namespace SCIEPort.Features.Pyramid
             BaseY = baseY;
             Order = order;
             RewardId = rewardId;
+        }
+
+        internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor, bool tomb)
+            : this(origin, baseY, order, rewardId, mazeSeed, approachFloor, tomb, false)
+        {
+        }
+
+        internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor, bool tomb, bool pointed)
+            : this(origin, baseY, order, rewardId)
+        {
+            Maze = new PyramidMaze(mazeSeed);
+            ApproachFloor = Math.Max(tomb ? -9 : -10, Math.Min(0, approachFloor));
+            Tomb = tomb;
+            Pointed = tomb && pointed;
         }
 
         internal Point3 World(Point3 local) => new Point3(Origin.X + local.X, BaseY + local.Y, Origin.Y + local.Z);
@@ -61,11 +77,36 @@ namespace SCIEPort.Features.Pyramid
                 int x = region.X * RegionSize + random.Int(2, 17) * 16;
                 int z = region.Y * RegionSize + random.Int(2, 17) * 16;
                 var origin = new Point2(x, z);
-                if (!ValidOrigin(origin) || !TryBase(generator, x, z, out int baseY) ||
+                if (!ValidOrigin(origin) || !TryBase(generator, x, z, out _) ||
                     OverlapsGeology(generator, worldSeed, origin)) continue;
-                return new PyramidSite(origin, baseY, random.Int(0, 5), PyramidLoot.Draw(random));
+                int frontY = Terrain.ToCell(generator.CalculateHeight(
+                    x + PyramidMaze.TombEntrance.X, z + PyramidMaze.TombEntrance.Z - 1));
+                // Leave one block of clearance for the native surface's rounding near the rim.
+                // The recessed door only needs a short cut into the natural sand in front.
+                int baseY = frontY - 2;
+                if (baseY < 32 || baseY > RimHeight(generator, origin)) continue;
+                return new PyramidSite(origin, baseY, random.Int(0, 5), PyramidLoot.Draw(random),
+                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), 0, true, true);
             }
             return null;
+        }
+
+        private static int RimHeight(ITerrainContentsGenerator generator, Point2 origin)
+        {
+            // Sample the visible rim, including its corners, so a downhill face cannot
+            // expose several layers of the vertical foundation.
+            const int left = PyramidLayout.CenterX - PyramidLayout.BaseHalfWidth;
+            const int right = PyramidLayout.CenterX + PyramidLayout.BaseHalfWidth;
+            const int front = PyramidLayout.CenterZ - PyramidLayout.BaseHalfDepth;
+            const int back = PyramidLayout.CenterZ + PyramidLayout.BaseHalfDepth;
+            float minimum = float.MaxValue;
+            for (int x = left; x <= right; x++)
+                minimum = Math.Min(minimum, Math.Min(generator.CalculateHeight(origin.X + x, origin.Y + front),
+                    generator.CalculateHeight(origin.X + x, origin.Y + back)));
+            for (int z = front + 1; z < back; z++)
+                minimum = Math.Min(minimum, Math.Min(generator.CalculateHeight(origin.X + left, origin.Y + z),
+                    generator.CalculateHeight(origin.X + right, origin.Y + z)));
+            return Terrain.ToCell(minimum);
         }
 
         private static bool TryBase(ITerrainContentsGenerator generator, int x, int z, out int baseY)

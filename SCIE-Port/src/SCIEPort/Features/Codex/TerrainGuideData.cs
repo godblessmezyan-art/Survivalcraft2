@@ -110,7 +110,7 @@ namespace SCIEPort.Features.Codex
             new TerrainGuideEntry("竹林小径", "竹株之间的短碎石径绕过植被，遇到坡地时逐格升降。"),
             new TerrainGuideEntry("竹亭", "竹林旁平缓的内陆水岸偶有坡顶竹亭。门朝陆地，碎石路可接回林缘。"),
             new TerrainGuideEntry("水幕沉殿", "海床上的原创遗迹。断塔、淹没的柱廊和两翼围着王座厅，部分高处留有换气空间。"),
-            new TerrainGuideEntry("日阶神殿", "干暖内陆的原创阶梯金字塔。砂岩与灰白横带围成高台，入口内能看到主厅和两侧通廊。")
+            new TerrainGuideEntry("日阶神殿", "干暖内陆的石灰岩金字塔。矩形塔身向上收成尖顶，北门藏在贴地的低甬道里。")
         };
     }
 }

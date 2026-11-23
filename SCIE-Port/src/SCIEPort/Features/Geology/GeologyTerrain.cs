@@ -131,6 +131,7 @@ namespace SCIEPort.Features.Geology
 
         private static bool PlanColumn(TerrainChunk chunk, int x, int z, GeologyColumn shape, GeologyKind kind, List<CellEdit> writes)
         {
+            bool volcano = GeologySites.IsVolcano(kind);
             int top = chunk.CalculateTopmostCellHeight(x, z);
             int ground = top;
             bool dry = kind == GeologyKind.DryCanyon || kind == GeologyKind.ColumnarBasalt ||
@@ -152,6 +153,12 @@ namespace SCIEPort.Features.Geology
             int target = shape.RelativeSurface ? ground + shape.Surface : shape.Surface;
             int surface = GeologyProfiles.Mix(ground, target, shape.Weight);
             bool tunnel = shape.CaveFloor != 0;
+            if (volcano && shape.Waterline == 0)
+            {
+                // Keep a continuous rock face when a native spike would exceed a column's edit budget.
+                const int rise = MaxHeightRange - SkinDepth - 1;
+                surface = Math.Max(top - rise, Math.Min(ground + rise, surface));
+            }
             if (tunnel) surface = Math.Max(surface, shape.CaveFloor);
             if (shape.Waterline != 0 && shape.Surface < shape.Waterline && shape.Weight >= .9f && !tunnel)
                 surface = Math.Min(surface, shape.Waterline - 1);
@@ -168,12 +175,12 @@ namespace SCIEPort.Features.Geology
 
             int low = Math.Min(ground, surface) - SkinDepth;
             if (tunnel) low = Math.Min(low, shape.CaveFloor - 2);
+            if (shape.Foundation > 0) low = Math.Min(low, shape.Foundation);
             low = Math.Max(5, low);
             int high = Math.Max(top, Math.Max(surface, fluidTop));
             if (high > 248 || high - low >= MaxHeightRange) return false;
 
             int offset = TerrainChunk.CalculateCellIndex(x, 0, z);
-            bool volcano = GeologySites.IsVolcano(kind);
             for (int y = low; y <= high; y++)
             {
                 int contents = Terrain.ExtractContents(chunk.GetCellValueFast(offset + y));

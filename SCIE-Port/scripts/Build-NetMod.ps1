@@ -34,6 +34,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Home furniture DATA/conditional undo tests fai
 & (Join-Path $PSScriptRoot 'Test-Fishing.ps1') -GameDir $GameDir
 & dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Fishing.Tests') -c Release --nologo
 if ($LASTEXITCODE -ne 0) { throw 'Fishing authority-cycle timing and reward tests failed.' }
+& dotnet run --project (Join-Path $projectRoot 'tests/SCIEPort.Scenery.Tests') -c Release --nologo
+if ($LASTEXITCODE -ne 0) { throw 'Fantasy scenery deterministic selection/layout tests failed.' }
 & (Join-Path $PSScriptRoot 'Test-Poseidon.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PoseidonV2Assets.ps1') -GameDir $GameDir
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir
@@ -371,6 +373,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Excalibur target-native combat/protocol checks
 if ($LASTEXITCODE -ne 0) { throw 'Suspended item native storage/save/transfer/drop checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-TidePalace.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-PyramidDecor.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Pyramid decor assets or block registration failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-SaltCrafting.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Salt crafting target block checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -379,6 +383,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprin
 if ($LASTEXITCODE -ne 0) { throw 'Mountain shelter native regression tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Plants.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Plant target-native geometry, growth, authority and harvest checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Scenery.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Fantasy scenery target-native selection, generation and safety checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Codex.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Artifact Codex native permissions/storage checks failed.' }
 & (Join-Path $PSScriptRoot 'Test-PortInventory.ps1') -GameDir $GameDir -BuiltAssembly (Join-Path $build 'SCIEPort.dll')
@@ -893,6 +899,8 @@ try {
         'Assets/Blocks/SaltCrafting.csv',
         'Assets/Blocks/TidePalace.csv',
         'Assets/Blocks/Pyramid.csv',
+        'Assets/Blocks/PyramidDecor.csv',
+        'Assets/Blocks/Scenery.csv',
         'Assets/Blocks/MountainShelter.csv',
         'Assets/Blocks/Flax.csv',
         'Assets/Blocks/Sunflower.csv',
@@ -914,6 +922,13 @@ try {
         'Assets/Database/TidePalace.xdb',
         'Assets/Database/Pyramid.xdb',
         'Assets/Database/MountainShelter.xdb',
+        'Assets/Database/PyramidGuardians.xdb',
+        'Assets/Database/Scenery.xdb',
+        'Assets/Models/PyramidMummy.dae',
+        'Assets/Models/PyramidPharaoh.dae',
+        'Assets/Textures/PyramidGuardians.png',
+        'Assets/Textures/PyramidDecor.png',
+        'Assets/Textures/Scenery.png',
         'Assets/Database/Flax.xdb',
         'Assets/Database/Sunflower.xdb',
         'Assets/Database/Apple.xdb',

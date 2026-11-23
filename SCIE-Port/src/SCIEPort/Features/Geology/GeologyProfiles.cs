@@ -11,6 +11,7 @@ namespace SCIEPort.Features.Geology
         internal int Surface, Cap, Rock, ColorBand;
         internal int Liquid, Waterline, SourceLine;
         internal int CaveFloor, CaveRoof, CaveLining;
+        internal int Foundation;
 
         internal GeologyColumn(float weight, int surface, int cap, int rock)
         {
@@ -59,8 +60,7 @@ namespace SCIEPort.Features.Geology
             float weight = Edge((site.Radius - radius) / 7f);
             int v = dx * site.Facing.X + dz * site.Facing.Y;
             int u = dz * site.Facing.X - dx * site.Facing.Y;
-            if (weight == 0 && !(GeologySites.IsVolcano(site.Kind) && v <= -8 &&
-                v > -site.Extent && Math.Abs(u) < 6)) return default;
+            if (weight == 0) return default;
             switch (site.Kind)
             {
                 case Crater:
@@ -96,19 +96,9 @@ namespace SCIEPort.Features.Geology
             int floor = site.Base + (lakes ? 4 : -4);
             float ring = (radius + 1.8f * (float)Math.Sin(u * .12 + v * .15)) / site.Radius;
             float ramp = ring <= .57f ? Edge((ring - .31f) / .26f) : Edge((1f - ring) / .43f);
+            bool crest = Math.Abs(radius - site.Radius * .57f) <= 2f;
+            if (crest) ramp = Math.Max(ramp, .93f);
             int height = floor + (int)Math.Round(ramp * (lakes ? 24 : 23));
-            int reach = -v;
-            int side = Math.Abs(u);
-            if (reach >= 8 && side <= 6)
-            {
-                // Keep the central five columns on grade through the ring's outer edge.
-                // Fade the extended approach beyond the circular part of the mountain.
-                float grade = (reach - 8f) / (site.Radius - 9);
-                int trail = Mix(floor, site.Outlet, Math.Min(grade, 1f));
-                float shoulder = Edge((6f - side) / 4f);
-                height = Mix(height, trail, shoulder);
-                weight = Math.Max(weight, shoulder * Edge((site.Extent - reach) / (VolcanoApron + 1f)));
-            }
 
             int cap = radius > site.Radius * .72f || (radius < 14 && GeologySites.Grain(u, v, site.Seed, 7) == 0)
                 ? VolcanicSandBlock.Index : VolcanicRockBlock.Index;
@@ -119,6 +109,7 @@ namespace SCIEPort.Features.Geology
                 cap = VolcanicSandBlock.Index;
             }
             var result = new GeologyColumn(weight, height, cap, VolcanicRockBlock.Index);
+            if (crest) result.Foundation = floor - 1;
             if (lakes)
             {
                 AddCraterLake(ref result, site, u + 16, v, 0, 4);
@@ -133,13 +124,6 @@ namespace SCIEPort.Features.Geology
                 result.Flood(Terrain.MakeBlockValue(MagmaBlock.Index), floor - 2);
             }
 
-            int center = (int)Math.Round(2 * Math.Sin((v - 8) * .19));
-            if (v >= 8 && v <= 32 && Math.Abs(u - center) <= 1)
-            {
-                int tunnelFloor = floor + (v - 8) / 3;
-                if (v < 27) result.Tunnel(tunnelFloor, tunnelFloor + 3, VolcanicRockBlock.Index);
-                else result.Surface = Math.Min(result.Surface, tunnelFloor);
-            }
             return result;
         }
 

@@ -66,6 +66,10 @@ $KnownVanillaParents = @{
     '49a9845c-3810-4092-ba53-df213d10d563' = 'Wolf (EntityTemplate)'
     '8e62c6e4-a544-4c09-a3fb-59fd37d5b998' = 'Alpaca (EntityTemplate)'
     '4d02fd7e-3054-4121-b2a5-787db985df5f' = 'Rhino (EntityTemplate, Cerberus metadata only)'
+    'e4275171-a39f-413f-8888-4c472868364d' = 'LandAnimal (EntityTemplate)'
+    '0566662e-bb24-45f9-84d8-f3c1e5d083df' = 'HumanModel (ComponentTemplate)'
+    '31894441-d90a-4549-9264-db9dbe20e234' = 'ChaseBehavior (ComponentTemplate)'
+    '8acca888-ba39-464f-bcf5-6ae15e448c62' = 'Miner (ComponentTemplate)'
 }
 
 if (-not (Test-Path -LiteralPath $DatabaseDir -PathType Container)) {

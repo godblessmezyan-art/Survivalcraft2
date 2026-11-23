@@ -1,0 +1,2 @@
+﻿Class Name;DefaultDisplayName;DefaultCategory;Behaviors;DisplayOrder;DefaultCreativeData;IsCollidable;IsPlaceable;IsDiggingTransparent;IsPlacementTransparent;DefaultIsInteractive;IsEditable;IsFluidBlocker;IsTransparent;DefaultShadowStrength;LightAttenuation;DefaultEmittedLightAmount;DefaultDropContent;DefaultDropCount;MaxStacking;DefaultTextureSlot;DigMethod;DigResilience;ExplosionResilience;DefaultSoundMaterialName
+PyramidDecorBlock;埃及墓葬饰物;SCIEPort.Structures;SCIEPortPyramidDecor;373;-1;TRUE;TRUE;FALSE;FALSE;TRUE;FALSE;TRUE;FALSE;15;0;0;886;1;40;0;Quarry;20;150;Stone
