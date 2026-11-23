@@ -8,14 +8,16 @@ namespace SCIEPort.Features.Pyramid
         internal volatile int Slices;
         internal int Progress { get; private set; }
         internal bool Stocked { get; private set; }
+        internal int GuardiansSpawned { get; private set; }
         internal bool Solved => Progress == PyramidSite.Seals.Length;
 
-        internal PyramidState(PyramidSite site, int slices = 0, int progress = 0, bool stocked = false)
+        internal PyramidState(PyramidSite site, int slices = 0, int progress = 0, bool stocked = false, int guardiansSpawned = 0)
         {
             Site = site;
             Slices = slices & PyramidSite.Complete;
             Progress = Math.Min(PyramidSite.Seals.Length, Math.Max(0, progress));
             Stocked = Solved && stocked;
+            GuardiansSpawned = guardiansSpawned & PyramidGuardians.All;
         }
 
         internal bool Press(int seal)
@@ -38,5 +40,7 @@ namespace SCIEPort.Features.Pyramid
         {
             if (Solved && Slices == PyramidSite.Complete) Stocked = true;
         }
+
+        internal void MarkGuardianSpawned(int index) => GuardiansSpawned |= 1 << index;
     }
 }

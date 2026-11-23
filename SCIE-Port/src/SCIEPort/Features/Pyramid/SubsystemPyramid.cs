@@ -18,6 +18,7 @@ namespace SCIEPort.Features.Pyramid
         private readonly Queue<PyramidState> pending = new Queue<PyramidState>();
         private readonly HashSet<PyramidState> scheduled = new HashSet<PyramidState>();
         private SubsystemBlockEntities entities;
+        private PyramidGuardians guardians;
 
         /// <inheritdoc/>
         public override int[] HandledBlocks => new int[0]; // Pyramid.csv supplies the native named binding.
@@ -30,6 +31,7 @@ namespace SCIEPort.Features.Pyramid
             base.Load(values);
             entities = Project.FindSubsystem<SubsystemBlockEntities>(true);
             if (CommonLib.WorkType == WorkType.Client) return;
+            guardians = new PyramidGuardians(SubsystemTerrain, Find);
             foreach (object entry in values.GetValue("Pyramids", new ValuesDictionary()).Values)
             {
                 if (!(entry is ValuesDictionary row)) continue;
@@ -39,7 +41,7 @@ namespace SCIEPort.Features.Pyramid
                     order < 0 || order > 5 || !PyramidLoot.IsEligible(reward)) continue;
                 var site = new PyramidSite(origin, baseY, order, reward);
                 sites[PyramidSite.Region(origin)] = new PyramidState(site, row.GetValue("Slices", 0),
-                    row.GetValue("Progress", 0), row.GetValue("Stocked", false));
+                    row.GetValue("Progress", 0), row.GetValue("Stocked", false), row.GetValue("GuardiansSpawned", 0));
             }
         }
 
@@ -61,6 +63,7 @@ namespace SCIEPort.Features.Pyramid
                     row.SetValue("Slices", state.Slices);
                     row.SetValue("Progress", state.Progress);
                     row.SetValue("Stocked", state.Stocked);
+                    row.SetValue("GuardiansSpawned", state.GuardiansSpawned);
                     records.SetValue("Pyramid" + records.Count, row);
                 }
             }
@@ -152,6 +155,7 @@ namespace SCIEPort.Features.Pyramid
                 scheduled.Remove(state);
                 Synchronize(state);
             }
+            guardians?.Update();
         }
 
         private PyramidState Find(Point2 point)

@@ -60,7 +60,7 @@ public static class TidePalaceProbe
     }
 
     public static void Run(Assembly mod, XElement xml, string nativeBlocks, string geologyBlocks, string palaceBlocks,
-        string pyramidBlocks, string[] artifactTables)
+        string pyramidBlocks, string[] artifactTables, string assets)
     {
         siteType = mod.GetType("SCIEPort.Features.TidePalace.PalaceSite", true);
         layoutType = mod.GetType("SCIEPort.Features.TidePalace.PalaceLayout", true);
@@ -92,6 +92,7 @@ public static class TidePalaceProbe
             return Fixture(game, mode, out project, out behavior, seed);
         });
         PyramidNativeProbe.Run(mod, game, Fixture);
+        PyramidGuardianProbe.Run(mod, game, Fixture, assets);
         SpecialTerrainNativeProbe.Run(mod, (mode, seed) =>
         {
             Project project;
@@ -302,6 +303,8 @@ public static class TidePalaceProbe
         Add(p, new SubsystemGameInfo { WorldSeed = seed, WorldSettings = settings });
         Add(p, new SubsystemInventories());
         Add(p, new SubsystemPlayers());
+        Add(p, new SubsystemTime());
+        Add(p, new SubsystemBodies());
         Add(p, new SubsystemBottomSuckerBlockBehavior());
         Add(p, new SubsystemBlockEntities());
         var terrain = new SubsystemTerrain { Terrain = new Terrain(), TerrainSerializer = new TerrainSerializer23 { m_storage = new Storage() } };

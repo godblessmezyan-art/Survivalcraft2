@@ -1,0 +1,249 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+using Engine;
+using Engine.Graphics;
+using Engine.Media;
+using Game;
+using Game.NetWork;
+using GameEntitySystem;
+using TemplatesDatabase;
+
+public static class PyramidGuardianProbe
+{
+    private const BindingFlags Instance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+    private const BindingFlags Static = BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+    private const int Full = (1 << 25) - 1;
+    private static Type siteType, layoutType, runtimeType, stateType, guardianType;
+    private static int checks;
+
+    public static void Run(Assembly mod, GameDatabase database, PyramidNativeProbe.Fixture fixture, string assets)
+    {
+        const string prefix = "SCIEPort.Features.Pyramid.";
+        siteType = mod.GetType(prefix + "PyramidSite", true);
+        layoutType = mod.GetType(prefix + "PyramidLayout", true);
+        runtimeType = mod.GetType(prefix + "SubsystemPyramid", true);
+        stateType = mod.GetType(prefix + "PyramidState", true);
+        guardianType = mod.GetType(prefix + "PyramidGuardians", true);
+
+        var caches = (IDictionary)typeof(ContentManager).GetField("Caches", Static).GetValue(null);
+        var log = new ConsoleLogSink();
+        Log.AddLogSink(log);
+        using (var png = File.OpenRead(Path.Combine(assets, "Textures/PyramidGuardians.png")))
+        {
+            var image = Engine.Media.Image.Load(png);
+            Check(image.Width == 256 && image.Height == 256, "native atlas import");
+        }
+        // The headless placeholder owns no GPU object or render-thread dispatcher.
+        var texture = (Texture2D)FormatterServices.GetUninitializedObject(typeof(Texture2D));
+        GC.SuppressFinalize(texture);
+        caches.Add("Textures/PyramidGuardians", new List<object> { texture });
+        try
+        {
+            Template(database, assets, caches, "Mummy", "木乃伊", 20f, 3f, 2.4f);
+            Template(database, assets, caches, "Pharaoh", "法老", 65f, 6f, 3.5f);
+            Lifecycle(database, fixture, WorkType.Local);
+            Lifecycle(database, fixture, WorkType.Server);
+        }
+        finally
+        {
+            foreach (string name in new[] { "Mummy", "Pharaoh" })
+            {
+                caches.Remove("Models/Pyramid" + name);
+                DatabaseManager.m_valueDictionaries.Remove("SCIEPort" + name);
+            }
+            caches.Remove("Textures/PyramidGuardians");
+            CommonLib.WorkType = WorkType.Local;
+            Log.RemoveLogSink(log);
+        }
+        Console.WriteLine("Pyramid guardian native templates, meshes and encounter lifecycle: " + checks + " checks passed.");
+    }
+
+    private static void Template(GameDatabase database, string assets, IDictionary caches,
+        string name, string display, float health, float damage, float speed)
+    {
+        var values = new ValuesDictionary();
+        var template = database.Database.FindDatabaseObject("SCIEPort" + name, database.EntityTemplateType, true);
+        values.PopulateFromDatabaseObject(template);
+        DatabaseManager.m_valueDictionaries.Add(template.Name, values);
+        var modelValues = values.GetValue<ValuesDictionary>("HumanModel");
+        var creature = values.GetValue<ValuesDictionary>("Creature");
+        var chase = values.GetValue<ValuesDictionary>("ChaseBehavior");
+        Check(modelValues.GetValue<string>("Class") == typeof(ComponentHumanModel).FullName &&
+            modelValues.GetValue<string>("ModelName") == "Models/Pyramid" + name &&
+            modelValues.GetValue<string>("TextureOverride") == "Textures/PyramidGuardians" &&
+            creature.GetValue<string>("DisplayName") == display && creature.GetValue<bool>("ConstantSpawn") &&
+            creature.GetValue<CreatureCategory>("Category") == CreatureCategory.LandPredator,
+            name + " native animation and creature profile");
+        Check(values.GetValue<ValuesDictionary>("Health").GetValue<float>("AttackResilience") == health &&
+            values.GetValue<ValuesDictionary>("Miner").GetValue<float>("AttackPower") == damage &&
+            values.GetValue<ValuesDictionary>("Locomotion").GetValue<float>("WalkSpeed") == speed &&
+            chase.GetValue<CreatureCategory>("AutoChaseMask") == 0 && chase.GetValue<float>("DayChaseRange") > 0f &&
+            chase.GetValue<float>("NightChaseRange") == chase.GetValue<float>("DayChaseRange"), name + " combat settings");
+        var egg = values.GetValue<ValuesDictionary>("CreatureEggData");
+        Check(egg.GetValue<int>("EggTypeIndex") == -1 && !egg.GetValue<bool>("ShowEgg") &&
+            !values.GetValue<ValuesDictionary>("Spawn").GetValue<bool>("AutoDespawn"), name + " resident only");
+
+        ModelData data;
+        using (var dae = File.OpenRead(Path.Combine(assets, "Models/Pyramid" + name + ".dae")))
+            data = ModelData.Load(dae);
+        var model = new Model();
+        foreach (var bone in data.Bones)
+            model.NewBone(bone.Name, bone.Transform, bone.ParentBoneIndex < 0 ? null : model.Bones[bone.ParentBoneIndex]);
+        Check(model.RootBone.Name == "Body" && data.Bones.Count == 6 && data.Meshes.Count == 6 &&
+            new[] { "Head", "Hand1", "Hand2", "Leg1", "Leg2" }.All(bone => model.FindBone(bone).ParentBone == model.RootBone),
+            name + " six-bone native biped");
+        int triangles = 0;
+        var size = values.GetValue<ValuesDictionary>("Body").GetValue<Vector3>("BoxSize");
+        foreach (var mesh in data.Meshes)
+        {
+            Vector3 pivot = data.Bones[mesh.ParentBoneIndex].Transform.Translation;
+            Vector3 min = mesh.BoundingBox.Min + pivot, max = mesh.BoundingBox.Max + pivot;
+            Check(min.Y >= -0.001f && max.Y <= size.Y && min.X >= -size.X / 2 && max.X <= size.X / 2 &&
+                min.Z >= -size.Z / 2 && max.Z <= size.Z / 2, name + " geometry fits collision size");
+            foreach (var part in mesh.MeshParts) triangles += part.IndicesCount / 3;
+        }
+        Check(triangles > 500 && triangles <= 1500, name + " triangle budget");
+        caches.Add("Models/Pyramid" + name, new List<object> { model });
+    }
+
+    private static void Lifecycle(GameDatabase db, PyramidNativeProbe.Fixture fixture, WorkType role)
+    {
+        CommonLib.WorkType = role;
+        Project project;
+        SubsystemBlockBehavior palace;
+        var terrain = fixture(db, TerrainGenerationMode.Continent, out project, out palace, 711);
+        var sky = new SubsystemSky();
+        foreach (Subsystem subsystem in new Subsystem[]
+        {
+            new SubsystemAudio(), new SubsystemAmbientSounds(), new SubsystemBlockBehaviors(),
+            new SubsystemMovingBlocks(), new SubsystemNoise(), new SubsystemParticles(), new SubsystemPathfinding(),
+            new SubsystemPickables(), new SubsystemPlayerStats(), sky, new SubsystemSoundMaterials(),
+            new SubsystemTimeOfDay(), new SubsystemWaterBlockBehavior(), new SubsystemModelsRenderer { m_subsystemSky = sky }
+        })
+            TidePalaceProbe.Add(project, subsystem);
+
+        // Use the real project component loading to surface missing template dependencies.
+        foreach (string name in new[] { "SCIEPortMummy", "SCIEPortPharaoh" })
+            DatabaseManager.CreateEntity(project, name, true).Dispose();
+
+        var runtime = (SubsystemBlockBehavior)Create(runtimeType);
+        TidePalaceProbe.Add(project, runtime);
+        var site = Create(siteType, new Point2(-80, -80), 72, 0, 953);
+        var row = new ValuesDictionary();
+        row.SetValue("Origin", new Point2(-80, -80));
+        row.SetValue("Base", 72);
+        row.SetValue("Order", 0);
+        row.SetValue("Reward", 953);
+        row.SetValue("Slices", Full - 1);
+        var records = new ValuesDictionary();
+        records.SetValue("Pyramid0", row);
+        var oldSave = new ValuesDictionary();
+        oldSave.SetValue("Pyramids", records);
+        runtime.Load(oldSave);
+        var state = State(runtime);
+        Check(Spawned(state) == 0, role + " legacy pyramid starts with no spawned guards");
+        var positionMethod = guardianType.GetMethod("SpawnPosition", Static);
+        Vector3[] points = Enumerable.Range(0, 3).Select(i => (Vector3)positionMethod.Invoke(null, new[] { site, (object)i })).ToArray();
+        for (int i = 0; i < points.Length; i++) WriteRoom(terrain.Terrain, site, points[i]);
+
+        var player = TidePalaceProbe.MakePlayer(project);
+        var playerBody = new ComponentBody { m_entity = player.Entity };
+        TidePalaceProbe.Put(player, "<ComponentBody>k__BackingField", playerBody);
+        var players = project.FindSubsystem<SubsystemPlayers>(true);
+        players.m_playersData.Add(player.PlayerData);
+        players.UpdateComponentPlayers();
+        var time = project.FindSubsystem<SubsystemTime>(true);
+        Action tick = () => { time.m_gameTime += .5; ((IUpdateable)runtime).Update(.5f); };
+        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        tick();
+        Check(Spawned(state) == 0 && project.Entities.Count == 0, role + " partial pyramid never spawns");
+        TidePalaceProbe.Put(state, "Slices", Full);
+        playerBody.Position = points[0] + new Vector3(0, 20, 0);
+        tick();
+        Check(Spawned(state) == 0, role + " surface above the room is excluded");
+        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        CommonLib.WorkType = WorkType.Client;
+        tick();
+        Check(Spawned(state) == 0 && project.Entities.Count == 0, "client cannot create a guard");
+        CommonLib.WorkType = role;
+
+        var p = Terrain.ToCell(points[0]);
+        terrain.Terrain.SetCellValueFast(p.X, p.Y + 1, p.Z, GraniteBlock.Index);
+        tick();
+        Check(Spawned(state) == 0, role + " obstruction defers the spawn");
+        terrain.Terrain.SetCellValueFast(p.X, p.Y + 1, p.Z, 0);
+        var bodies = project.FindSubsystem<SubsystemBodies>(true);
+        playerBody.BoxSize = new Vector3(.8f, 1.8f, .8f);
+        playerBody.Position = points[0];
+        bodies.AddBody(playerBody);
+        tick();
+        Check(Spawned(state) == 0, role + " occupied point waits for player to move");
+        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        tick();
+        Check(Spawned(state) == 1 && project.Entities.Count == 1, role + " main hall creates one resident");
+        Entity first = project.Entities.Single();
+        Check(first.ValuesDictionary.DatabaseObject.Name == "SCIEPortMummy" &&
+            first.FindComponent<ComponentHumanModel>(true) != null &&
+            first.FindComponent<ComponentBody>(true).Position == points[0], role + " native mummy entity at the selected point");
+        project.RemoveEntity(first, true);
+        tick();
+        Check(project.Entities.Count == 0, role + " removed creature does not reappear on a later update");
+        playerBody.Position = points[1] + new Vector3(0, 0, 4);
+        tick();
+        Check(Spawned(state) == 3 && project.Entities.Single().ValuesDictionary.DatabaseObject.Name == "SCIEPortMummy",
+            role + " separate maze resident");
+
+        playerBody.Position = points[2] - new Vector3(0, 1, 5);
+        tick();
+        Check(Spawned(state) == 3, role + " sealed vault never spawns the pharaoh");
+        for (int seal = 0; seal < 3; seal++) stateType.GetMethod("Press", Instance).Invoke(state, new object[] { seal });
+        tick();
+        Check(Spawned(state) == 7 && project.Entities.Count(entity => entity.ValuesDictionary.DatabaseObject.Name == "SCIEPortPharaoh") == 1,
+            role + " opened vault creates exactly one pharaoh");
+
+        var save = new ValuesDictionary();
+        runtime.Save(save);
+        runtime = (SubsystemBlockBehavior)Create(runtimeType);
+        TidePalaceProbe.Add(project, runtime);
+        runtime.Load(save);
+        Check(Spawned(State(runtime)) == 7, role + " once-only flags survive loading");
+        foreach (Entity entity in project.Entities.ToArray()) project.RemoveEntity(entity, true);
+        tick();
+        Check(project.Entities.Count == 0, role + " consumed points do not recreate removed creatures after reload");
+    }
+
+    private static void WriteRoom(Terrain terrain, object site, Vector3 position)
+    {
+        Point3 p = Terrain.ToCell(position);
+        var chunk = terrain.GetChunkAtCell(p.X, p.Z) ?? terrain.AllocateChunk(p.X >> 4, p.Z >> 4);
+        chunk.State = TerrainChunkState.Valid;
+        var layout = Create(layoutType, site, chunk.Origin);
+        for (int y = p.Y - 1; y <= p.Y + 2; y++)
+        {
+            int value = (int)layoutType.GetMethod("At", Instance).Invoke(layout, new object[] { p.X & 15, y - 72, p.Z & 15 });
+            Check(y < p.Y ? value > 0 : value == 0, "generated guardian floor and three-cell headroom " + p);
+            terrain.SetCellValueFast(p.X, y, p.Z, value);
+        }
+    }
+
+    private static object Create(Type type, params object[] args) { return Activator.CreateInstance(type, Instance, null, args, null); }
+    private static object State(SubsystemBlockBehavior runtime)
+    {
+        return ((IDictionary)runtimeType.GetField("sites", Instance).GetValue(runtime))[new Point2(-1, -1)];
+    }
+    private static int Spawned(object state)
+    {
+        return (int)stateType.GetProperty("GuardiansSpawned", Instance).GetValue(state);
+    }
+
+    private static void Check(bool result, string failure)
+    {
+        checks++;
+        if (!result) throw new InvalidOperationException("Pyramid guardians: " + failure);
+    }
+}

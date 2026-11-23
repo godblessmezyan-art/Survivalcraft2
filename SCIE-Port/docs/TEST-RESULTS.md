@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-23 · 1.5.0 日阶神殿守卫
+
+- 仓库根目录执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标 Windows 程序集哈希与 Net_x25.01.17 的公开 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-guardians-1.5.0`，退出 0。Release 编译 0 警告、0 错误。书柜、五分类、钓鱼、云天书典、天工绘卷和既有地形回归通过。
+- 守卫专项 75 项检查通过。目标引擎载入两个模型、图集与有效 XDB，并在无图形设备的原生 Project 中创建两种实体。测试覆盖负坐标、25 个切片齐备、房间高度、净空、实体占位、Local 与 Server 生成、Client 拒绝生成、藏器室解锁、旧存档缺省值、保存重读及一次性生成。既有金字塔选址、路线、机关与奖励的 9,124 项检查通过。
+- 两个安装包字节一致，含 237 个条目、13,224,285 字节。SHA-256 为 `B1C2DB1214B2725A9C82A72E0D7EBD4D508A412C1873D43799658C695D2D8FC3`。包内守卫 XDB、两套模型与贴图和源码资源逐字节相符。
+- Android 7723 的画面、实际寻路与战斗、游戏内保存与读档及真实房主与普通客户端同步 **待验证**。[守卫复测点](PYRAMID-GUARDIANS-1.5.0.md)
+
 ## 2026-11-22 · 1.4.1 沉船、飞艇与浮空岛
 
 - 从 `SCIE-Port` 目录执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-NetMod.ps1 -GameDir 'D:\Games\SCNET-x25.01.17' -Configuration Release -OutputDir 'D:\Dev\Survivalcraft2\SCIE-Port\artifacts\scenery-1.4.1'`，退出 0。固定 Windows 三程序集（net472 / API 1.42 / SC 2.4.10.6）、Release 构建、全部既有回归、统一包与版本副本校验通过；编译无警告。

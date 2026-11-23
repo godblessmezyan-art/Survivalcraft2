@@ -128,7 +128,7 @@ public static class PyramidNativeProbe
         for (int order = 0; order < 6; order++)
         {
             var site = Create(siteType, new Point2(-80, -80), 72, order, 952);
-            var state = Create(stateType, site, Full - 1, 0, false);
+            var state = Create(stateType, site, Full - 1, 0, false, 0);
             int[] pattern = Enumerable.Range(0, 3).Select(step => (int)Call(site, "SealAt", step)).ToArray();
             Check(pattern.Distinct().Count() == 3 && !(bool)Call(state, "Press", pattern[0]), "incomplete site cannot progress");
             TidePalaceProbe.Put(state, "Slices", Full);
@@ -354,7 +354,7 @@ public static class PyramidNativeProbe
         TidePalaceProbe.Put(updater, "m_terrain", terrain.Terrain);
         TidePalaceProbe.Put(terrain, "<TerrainUpdater>k__BackingField", updater);
         var site = Create(siteType, new Point2(0, 0), 72, 0, mode == WorkType.Local ? 948 : 971);
-        var state = Create(stateType, site, Full, 0, false);
+        var state = Create(stateType, site, Full, 0, false, 0);
         Field<IDictionary>(runtime, "sites").Add(new Point2(0, 0), state);
         var entities = project.FindSubsystem<SubsystemBlockEntities>(true);
         var display = (Point3)Call(site, "World", new Point3(40, -9, 65));

@@ -16,7 +16,9 @@ if ($Package) {
     $archive = [IO.Compression.ZipFile]::OpenRead($Package)
     try {
         foreach ($name in @('Blocks/TidePalace.csv', 'Database/TidePalace.xdb', 'Textures/TidePalace.png',
-                'Blocks/Pyramid.csv', 'Database/Pyramid.xdb', 'Textures/PyramidMechanism.png')) {
+                'Blocks/Pyramid.csv', 'Database/Pyramid.xdb', 'Textures/PyramidMechanism.png',
+                'Database/PyramidGuardians.xdb', 'Models/PyramidMummy.dae', 'Models/PyramidPharaoh.dae',
+                'Textures/PyramidGuardians.png')) {
             $entry = $archive.GetEntry("Assets/$name")
             if (!$entry) { throw "Missing palace asset $name" }
             $stream = $entry.Open()
@@ -27,7 +29,7 @@ if ($Package) {
             } finally { $stream.Dispose() }
         }
     } finally { $archive.Dispose() }
-    Write-Host 'Tide Palace and Pyramid package CSV, XDB and atlas match the tested source assets.'
+    Write-Host 'Tide Palace and Pyramid package resources match the tested source assets.'
     return
 }
 
@@ -48,7 +50,8 @@ $compiler = New-Object Microsoft.CSharp.CSharpCodeProvider
     (Join-Path $root 'tests/SCIEPort.TidePalace.NativeTests/TidePalaceProbe.cs'),
     (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/VolcanoNativeProbe.cs'),
     (Join-Path $root 'tests/SCIEPort.Geology.NativeTests/SpecialTerrainNativeProbe.cs'),
-    (Join-Path $root 'tests/SCIEPort.Pyramid.NativeTests/PyramidNativeProbe.cs')
+    (Join-Path $root 'tests/SCIEPort.Pyramid.NativeTests/PyramidNativeProbe.cs'),
+    (Join-Path $root 'tests/SCIEPort.Pyramid.NativeTests/PyramidGuardianProbe.cs')
 )
 $compiled = $compiler.CompileAssemblyFromFile($options, $sources)
 if ($compiled.Errors.HasErrors) { throw (($compiled.Errors | ForEach-Object ToString) -join "`n") }
@@ -70,7 +73,7 @@ try {
     if (!$nativeTable) { throw "Native block CSV not found. Candidate names: $($zip.Entries.Name -like '*Block*' -join ', ')." }
     $nativeBlocks = Read-Text $nativeTable
 } finally { $zip.Dispose() }
-foreach ($name in @('Geology', 'SuspendedItem', 'TidePalace', 'Pyramid')) {
+foreach ($name in @('Geology', 'SuspendedItem', 'TidePalace', 'Pyramid', 'PyramidGuardians')) {
     $xdb = [IO.File]::OpenRead((Join-Path $assets "Database/$name.xdb"))
     try { [ModsManager]::CombineDataBase($xml, $xdb) } finally { $xdb.Dispose() }
 }
@@ -80,5 +83,5 @@ $pyramid = [IO.File]::ReadAllText((Join-Path $assets 'Blocks/Pyramid.csv'))
 [string[]]$artifactTables = Get-ChildItem -LiteralPath (Join-Path $assets 'Blocks') -Filter '*.csv' |
     Where-Object { Select-String -LiteralPath $_.FullName -Pattern ';SCIEPort.Artifacts;' -Quiet } |
     ForEach-Object { [IO.File]::ReadAllText($_.FullName) }
-try { $compiled.CompiledAssembly.GetType('TidePalaceProbe').GetMethod('Run').Invoke($null, @($mod, $xml, $nativeBlocks, $geology, $palace, $pyramid, $artifactTables)) }
+try { $compiled.CompiledAssembly.GetType('TidePalaceProbe').GetMethod('Run').Invoke($null, @($mod, $xml, $nativeBlocks, $geology, $palace, $pyramid, $artifactTables, $assets.PSObject.BaseObject)) }
 catch { Write-Host $_.Exception.ToString(); throw }
