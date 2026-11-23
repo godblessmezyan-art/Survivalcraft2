@@ -441,7 +441,7 @@ public static class PyramidNativeProbe
             Check(terrain.Terrain.GetCellContents(origin.X + 39, b + 36, origin.Y + 44) == LimestoneBlock.Index, "limestone crown written");
             Func<Point3, int> at = p => Terrain.ReplaceLight(terrain.Terrain.GetCellValue(origin.X + p.X, b + p.Y, origin.Y + p.Z), 0);
             Check(CheckMaze(at, true) >= 350, mode + " long route works in actually generated terrain");
-            CheckApproach(terrain.Terrain, generator, origin, b, Field<int>(site, "ApproachFloor"));
+            CheckGroundEntrance(origin, b, Field<int>(site, "ApproachFloor"), chunks);
             var display = (Point3)Call(site, "World", MazeAltar);
             Check(project.FindSubsystem<SubsystemBlockEntities>(true).GetBlockEntity(display.X, display.Y, display.Z) == null,
                 "generation alone cannot create a reward inventory");
@@ -449,29 +449,25 @@ public static class PyramidNativeProbe
         }
     }
 
-    private static void CheckApproach(Terrain terrain, ITerrainContentsGenerator generator, Point2 origin, int baseY, int approachFloor)
+    private static void CheckGroundEntrance(Point2 origin, int baseY, int approachFloor, IList<TerrainChunk> chunks)
     {
-        int center = origin.X + TombDoor.X;
-        var outside = terrain.AllocateChunk(center >> 4, (origin.Y - 1) >> 4);
-        generator.GenerateChunkContentsPass1(outside);
-        generator.GenerateChunkContentsPass2(outside);
-        generator.GenerateChunkContentsPass3(outside);
-        generator.GenerateChunkContentsPass4(outside);
-        Func<int, int, int, bool> solid = (x, y, z) => BlocksManager.Blocks[terrain.GetCellContents(x, y, z)].IsCollidable;
+        // New sites are anchored so the local y=1 doorway is flush with the desert in front of it.
+        // The base is buried, so there is no approach floor to climb and no exterior stair to build.
+        Check(approachFloor == 0, "no approach floor: pyramid sits on the desert");
+        int doorway = baseY + TombDoor.Y;
+        var front = chunks[2]; // chunk column containing the entrance (local x 32..47)
+        int surface = front.CalculateTopmostCellHeight(TombDoor.X & 15, TombDoor.Z - 1);
+        Check(Math.Abs(surface - doorway) <= 1,
+            "doorway is flush with native ground at " + doorway + ", surface " + surface + ", origin " + origin);
+        // No carved limestone stair tread may rise in front of the doorway: local z 0..9 keeps
+        // native ground. (The old approach paved this strip with limestone; it is gone now.)
         for (int z = 0; z < TombDoor.Z; z++)
+        for (int x = TombDoor.X - 2; x <= TombDoor.X + 2; x++)
         {
-            int floor = baseY + Math.Max(approachFloor, Math.Min(0, z - 9));
-            int worldZ = origin.Y + z;
-            Check(solid(center, floor, worldZ) && !solid(center, floor + 1, worldZ) &&
-                !solid(center, floor + 2, worldZ), "exterior steps clear the native terrain");
+            int content = Terrain.ExtractContents(front.GetCellValueFast(x & 15, doorway, z));
+            Check(content != LimestoneBlock.Index && content != MarbleBlock.Index,
+                "no exterior stair tread at " + origin + " local " + x + "," + doorway + "," + z);
         }
-        int foot = baseY + approachFloor;
-        bool reachesTerrain = false;
-        for (int x = center - 2; x <= center + 2; x++)
-        for (int y = foot - 1; y <= foot + 1; y++)
-            reachesTerrain |= solid(x, y, origin.Y - 1) && !solid(x, y + 1, origin.Y - 1) && !solid(x, y + 2, origin.Y - 1);
-        Check(reachesTerrain, "the first steps connect to native ground at " + origin + " approach " + foot +
-            ", outside top " + outside.CalculateTopmostCellHeight(center & 15, 15));
     }
 
     private static void FinishMazeReward(SubsystemTerrain terrain, SubsystemBlockBehavior runtime, Point3 point, int reward)

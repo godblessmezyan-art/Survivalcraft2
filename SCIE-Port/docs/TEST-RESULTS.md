@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-23 · 1.7.5 金字塔落地与取消外部楼梯
+
+- 重塑 `PyramidSite.Choose`：基准高度改为入口正前方 (local 37,9) 自然地面 − 1（并要求 `frontY >= 33` 以维持存档校验的 `baseY >= 32`）。门口 local y=1 与沙地齐平，实体基座 local y=-14..0 全部埋于地下，阶梯四棱锥从地面直接升起。墓室布局移除 `Approach()` 外部引道，旧版迷宫布局保留以兼容旧存档；`ApproachFloor` 新站点恒为 0。
+- 更新 `PyramidNativeProbe.CheckGroundEntrance`：验证 `ApproachFloor==0`、门口世界高度与 native 地表相差 ≤1 格、门前 local z0..9 无人工石灰岩/大理石台阶铺面。
+- 执行 `dotnet build SCIEPort.csproj -c Release`，0 警告、0 错误；`Test-TidePalace.ps1` 全部通过：金字塔固定目标 **14,955**（原 14,832，因基座改由自然地形承载而增加）、守卫/装饰 421 项、25 种子迷宫连通（634–824 步）、装饰每层 87/90/107 格、火山 77,829、潮汐宫殿 384、特殊地形 126,134 均保持通过。站点数 Continent 8 / Island 1 / Better 8（每 256 区域）。
+- Android 7723 下金字塔落地观感、门口蹲伏进入、渲染与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
 ## 2026-11-23 · 1.7.4 金字塔装饰地形接入
 
 - 重新设计 `PyramidLayout` 的装饰管线：三层迷宫 192 个房间中，除入口房与已有标志物的藏器室房外，每房按 `(seed, level, cell, slot)` 无状态哈希在地面四角放 1–2 件，主题按层变化；墓室/藏器室保留原 anchors；无迷宫的旧版布局补齐同样九种方块。所有摆放只写完整布局中确认为空气的单格，房间中心、通道、机关和奖台不占用。
@@ -11,7 +18,7 @@
 ## 2026-11-23 · 1.7.3 埃及墓葬装饰
 
 - 执行 `scripts/Test-Environment.ps1`，原生 260 方块常量无冲突，903–1023 保留区间有效。
-- 执行 `scripts/New-PyramidDecorAssets.py` 生成 14 个原创 Y_UP 模型（3264 三角形）与 512×512 不透明图集；`scripts/Test-PyramidDecorGeometry.py` 静态校验（有限/非退化几何、独立索引、单 tile UV、opaque PNG）通过。
+- 执行 `scripts/New-PyramidDecorAssets.py` 生成 14 个原创 Y_UP 模型（3200 三角形）与 512×512 不透明图集；`scripts/Test-PyramidDecorGeometry.py` 静态校验（有限/非退化几何、独立索引、单 tile UV、opaque PNG）通过。
 - 执行 `scripts/Test-PyramidDecor.ps1`：目标 Engine `ModelData.Load` 实际导入 14 模型/3200 三角形（骨骼=1、网格/三角形数与 manifest 一致），512×512 图集原生解码通过；方块 ID 947 注册检查通过。
 - `dotnet build SCIEPort.csproj -c Release` 0 警告、0 错误。
 - 金字塔原生测试（`Test-TidePalace.ps1`）：守卫检查由 207 增至 **217** 项，新增 9 种装饰 kind 的墓室布置断言与总数断言；迷宫 25 种子连通、金字塔固定目标 14832、火山 77829 等全部保持通过。装饰避开路线终点 (61,-11,62)，未破坏任何房间连通。

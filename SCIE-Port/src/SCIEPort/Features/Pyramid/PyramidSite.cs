@@ -71,11 +71,17 @@ namespace SCIEPort.Features.Pyramid
                 int x = region.X * RegionSize + random.Int(2, 17) * 16;
                 int z = region.Y * RegionSize + random.Int(2, 17) * 16;
                 var origin = new Point2(x, z);
-                if (!ValidOrigin(origin) || !TryBase(generator, x, z, out int baseY) ||
+                if (!ValidOrigin(origin) || !TryBase(generator, x, z, out _) ||
                     OverlapsGeology(generator, worldSeed, origin)) continue;
-                int frontY = Terrain.ToCell(generator.CalculateHeight(x + PyramidMaze.TombEntrance.X, z - 1));
-                return new PyramidSite(origin, baseY, random.Int(0, 5), PyramidLoot.Draw(random),
-                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), frontY - baseY, true);
+                int frontY = Terrain.ToCell(generator.CalculateHeight(
+                    x + PyramidMaze.TombEntrance.X, z + PyramidMaze.TombEntrance.Z - 1));
+                // The pyramid must sit on the desert, not on a plinth above it. The ground-floor
+                // doorway is local y=1, so anchoring the base one cell below the ground in front
+                // of the entrance makes that doorway flush with the natural surface. No exterior
+                // stair is then needed, and the 15-cell masonry base is entirely underground.
+                if (frontY < 33) continue; // base = frontY - 1 must remain >= 32 for save/load validation
+                return new PyramidSite(origin, frontY - 1, random.Int(0, 5), PyramidLoot.Draw(random),
+                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), 0, true);
             }
             return null;
         }

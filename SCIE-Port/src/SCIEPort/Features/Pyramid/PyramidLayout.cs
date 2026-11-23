@@ -56,7 +56,11 @@ namespace SCIEPort.Features.Pyramid
                 Set(x, top, z, Limestone);
             }
             Point3 entrance = PyramidMaze.TombEntrance;
-            Approach(entrance, approachFloor, 9);
+            // No exterior stair for new sites: the base is anchored one cell below the desert in
+            // front of the door, so local y=1 is flush with the ground and the plinth stays buried.
+            // Old saves carry a negative ApproachFloor with the old raised base, so they still get
+            // their original stair; without it their doorway would be stranded above the sand.
+            if (approachFloor < 0) Approach(entrance, approachFloor, 9);
             Set(entrance.X, entrance.Y + 1, entrance.Z, Relief);
             Fill(37, 1, 10, 37, 1, 11, 0);
             Fill(37, 1, 12, 37, 2, 16, 0);
