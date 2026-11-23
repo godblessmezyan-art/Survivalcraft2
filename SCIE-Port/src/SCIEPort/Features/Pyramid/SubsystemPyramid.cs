@@ -41,7 +41,8 @@ namespace SCIEPort.Features.Pyramid
                     order < 0 || order > 5 || !PyramidLoot.IsEligible(reward)) continue;
                 var site = row.ContainsKey("MazeSeed")
                     ? new PyramidSite(origin, baseY, order, reward, row.GetValue<int>("MazeSeed"),
-                        row.GetValue("ApproachFloor", -10), row.GetValue("Tomb", false), row.GetValue("Pointed", false))
+                        row.GetValue("ApproachFloor", -10), row.GetValue("Tomb", false), row.GetValue("Pointed", false),
+                        row.GetValue("Monumental", false))
                     : new PyramidSite(origin, baseY, order, reward);
                 sites[PyramidSite.Region(origin)] = new PyramidState(site, row.GetValue("Slices", 0),
                     row.GetValue("Progress", 0), row.GetValue("Stocked", false), row.GetValue("GuardiansSpawned", 0));
@@ -69,6 +70,7 @@ namespace SCIEPort.Features.Pyramid
                         row.SetValue("ApproachFloor", state.Site.ApproachFloor);
                         row.SetValue("Tomb", state.Site.Tomb);
                         row.SetValue("Pointed", state.Site.Pointed);
+                        row.SetValue("Monumental", state.Site.Monumental);
                     }
                     row.SetValue("Slices", state.Slices);
                     row.SetValue("Progress", state.Progress);
@@ -221,12 +223,19 @@ namespace SCIEPort.Features.Pyramid
                 !ShrineWorld.Ready(SubsystemTerrain, point) || !ShrineWorld.AllowsChange(point))
                 return;
             PyramidState state = Find(new Point2(point.X, point.Z));
-            if (state == null || state.Slices != PyramidSite.Complete || state.Solved)
+            if (state == null || state.Slices != PyramidSite.Complete)
                 return;
+            int value = Cell(point);
+            if (state.Site.Monumental && Terrain.ExtractContents(value) == PyramidDecorRules.Index)
+            {
+                Project.FindSubsystem<SubsystemPyramidDecor>(false)?.UseMonument(player, point, value);
+                return;
+            }
+            if (state.Solved) return;
             for (int index = 0; index < PyramidSite.Seals.Length; index++)
             {
                 if (point != state.Site.World(PyramidSite.Seals[index]) ||
-                    state.IsLit(index) || Cell(point) != PyramidMechanismBlock.Value(index) ||
+                    state.IsLit(index) || value != PyramidMechanismBlock.Value(index) ||
                     !ShrineWorld.CanReach(SubsystemTerrain, player, point)) continue;
                 if (state.Press(index)) Schedule(state);
                 break;

@@ -33,9 +33,12 @@ namespace SCIEPort.Features.Shrines
         }
 
         internal static bool CanReach(SubsystemTerrain terrain, ComponentPlayer player, Point3 point)
+            => CanReach(terrain, player, point, new Vector3(.5f));
+
+        internal static bool CanReach(SubsystemTerrain terrain, ComponentPlayer player, Point3 point, Vector3 offset)
         {
             Vector3 eye = player.ComponentCreatureModel.EyePosition;
-            Vector3 target = new Vector3(point) + new Vector3(.5f);
+            Vector3 target = new Vector3(point) + offset;
             if (!(Vector3.DistanceSquared(eye, target) <= 25f)) return false;
             TerrainRaycastResult? hit = terrain.Raycast(eye, target, true, true,
                 (value, distance) => !BlocksManager.Blocks[Terrain.ExtractContents(value)].IsPlacementTransparent);

@@ -11,19 +11,34 @@ foreach($entry in $manifest.models){
     try{$model=[Engine.Media.ModelData]::Load($stream)}finally{$stream.Dispose()}
     $count=0
     $lowest=[single]::PositiveInfinity
+    $extent=if($entry.footprint){$entry.footprint}else{@(1,1,1)}
     foreach($mesh in $model.Meshes){
+        $lower=[Engine.Vector3]::new(-.5,0,-.5)
+        $upper=[Engine.Vector3]::new(.5,1,.5)
+        if ($entry.footprint) {
+            if ($mesh.Name -notmatch '^Part([0-9]+)$') { throw "Invalid imported monument part: $($entry.name) $($mesh.Name)" }
+            $partIndex=[int]$Matches[1]
+            $width=[int]$extent[0]; $depth=[int]$extent[2]
+            $x=$partIndex % $width
+            $z=[int][Math]::Floor($partIndex / $width) % $depth
+            $y=[int][Math]::Floor($partIndex / ($width * $depth))
+            if ($y -ge $extent[1]) { throw "Invalid monument part height: $($entry.name)" }
+            $lower=[Engine.Vector3]::new($x-.5,$y,$z-.5)
+            $upper=$lower+[Engine.Vector3]::One
+        }
         foreach($part in $mesh.MeshParts){
             $count+=$part.IndicesCount/3
             $box=$part.BoundingBox
             $lowest=[Math]::Min($lowest,$box.Min.Y)
-            if ($box.Min.X -le -.5 -or $box.Max.X -ge .5 -or $box.Min.Z -le -.5 -or $box.Max.Z -ge .5 -or
-                $box.Min.Y -lt -0.00001 -or $box.Max.Y -gt 1) {
+            if ($box.Min.X -lt $lower.X-0.00001 -or $box.Max.X -gt $upper.X+0.00001 -or
+                $box.Min.Z -lt $lower.Z-0.00001 -or $box.Max.Z -gt $upper.Z+0.00001 -or
+                $box.Min.Y -lt $lower.Y-0.00001 -or $box.Max.Y -gt $upper.Y+0.00001) {
                 throw "Pyramid decor leaves its block after native import: $($entry.name) $box"
             }
         }
     }
     if ([Math]::Abs($lowest) -gt 0.00001) { throw "Pyramid decor has no floor contact: $($entry.name)" }
-    if($model.Bones.Count -ne 1 -or $model.Meshes.Count -ne $entry.meshes -or $count -ne $entry.triangles){throw "Actual SCNET import failed: $($entry.name) bones=$($model.Bones.Count) meshes=$($model.Meshes.Count) tris=$count expected=$($entry.triangles)/$($entry.meshes)"}
+    if($model.Bones.Count -ne $entry.bones -or $model.Meshes.Count -ne $entry.meshes -or $count -ne $entry.triangles){throw "Actual SCNET import failed: $($entry.name) bones=$($model.Bones.Count) meshes=$($model.Meshes.Count) tris=$count expected=$($entry.triangles)/$($entry.meshes)"}
     $triangles+=$count
 }
 $atlas=Join-Path $root 'src/SCIEPort/Assets/Textures/PyramidDecor.png'

@@ -45,6 +45,7 @@ public static class PyramidNativeProbe
         MazeCases();
         int seed = SeedText.Select((c, i) => c * (1 + 29 * i)).Sum();
         GenerateWorlds(database, fixture, seed);
+        MonumentInteraction(database, fixture, seed);
         LegacyDecor(database, fixture, seed);
         Reward(database, fixture, seed, WorkType.Local);
         Reward(database, fixture, seed, WorkType.Server);
@@ -221,7 +222,7 @@ public static class PyramidNativeProbe
         return edge >= 0 && p.Y >= -14 && p.Y <= 2 + edge;
     }
 
-    private static int CheckMaze(Func<Point3, int> at, bool tomb = false, bool pointed = false)
+    private static int CheckMaze(Func<Point3, int> at, bool tomb = false, bool pointed = false, bool monumental = false)
     {
         Point3 door = pointed ? PointedDoor : tomb ? TombDoor : MazeDoor;
         Check(at(door) == 0 && at(door + new Point3(0, 1, 0)) > 0 &&
@@ -274,6 +275,25 @@ public static class PyramidNativeProbe
         for (int z = 0; z < 8; z++)
         for (int x = 0; x < 8; x++)
             Check(seen.ContainsKey(new Point3(19 + 6 * x, 1 - level * 6, 20 + 6 * z)), "every chamber connects to the entrance");
+        if (monumental)
+        {
+            Check(seen.ContainsKey(new Point3(59, -11, 68)) && seen.ContainsKey(new Point3(62, -11, 68)) &&
+                seen.ContainsKey(new Point3(60, -11, 70)), "both side aisles and rear of the coffin are accessible");
+            var root = new Point3(60, -11, 67);
+            for (int i = 0; i < 12; i++)
+                Check(at(root + new Point3(i % 2, i / 6, i / 2 % 3)) == Terrain.MakeBlockValue(886, 0, 9 | (i << 10)),
+                    "the generated coffin uses every cell of its authored footprint");
+            for (int y = 0; y < 3; y++)
+            {
+                Check(at(new Point3(59, -11 + y, 61)) == Terrain.MakeBlockValue(886, 0, 10 | (y << 10)),
+                    "left guardian is three cells high");
+                Check(at(new Point3(63, -11 + y, 61)) == Terrain.MakeBlockValue(886, 0, 10 | (y << 10)),
+                    "right guardian is three cells high");
+            }
+            Check(at(new Point3(58, -11, 65)) == Terrain.MakeBlockValue(886, 0, 11 | 128) &&
+                at(new Point3(64, -11, 68)) == Terrain.MakeBlockValue(886, 0, 11),
+                "only one rear brazier starts lit");
+        }
         return seen[new Point3(61, -11, 62)];
     }
 
@@ -504,7 +524,7 @@ public static class PyramidNativeProbe
                 terrain.Terrain.GetCellContents(origin.X + 39, b + 35, origin.Y + 44) == 0 &&
                 terrain.Terrain.GetCellContents(origin.X + 40, b + 35, origin.Y + 45) == 0, "one-block limestone summit written");
             Func<Point3, int> at = p => Terrain.ReplaceLight(terrain.Terrain.GetCellValue(origin.X + p.X, b + p.Y, origin.Y + p.Z), 0);
-            Check(CheckMaze(at, true, true) >= 350, mode + " long route works in actually generated terrain");
+            Check(CheckMaze(at, true, true, true) >= 350, mode + " long route works in actually generated terrain");
             CheckGroundEntrance(origin, b, Field<int>(site, "ApproachFloor"), chunks);
             var display = (Point3)Call(site, "World", MazeAltar);
             Check(project.FindSubsystem<SubsystemBlockEntities>(true).GetBlockEntity(display.X, display.Y, display.Z) == null,
@@ -559,12 +579,13 @@ public static class PyramidNativeProbe
         runtime.Save(values);
         var saved = (ValuesDictionary)values.GetValue<ValuesDictionary>("Pyramids").Values.Single();
         Check(saved.ContainsKey("MazeSeed") && saved.ContainsKey("ApproachFloor") && saved.GetValue<bool>("Tomb") &&
-            saved.GetValue<bool>("Pointed") &&
+            saved.GetValue<bool>("Pointed") && saved.GetValue<bool>("Monumental") &&
             saved.GetValue<int>("Progress") == 0 && saved.GetValue<bool>("Stocked"),
             "maze identity and treasure persist without legacy progress");
         runtime.Load(values);
         var restored = Field<IDictionary>(runtime, "sites").Values.Cast<object>().Single();
-        Check(Field<bool>(Field<object>(restored, "Site"), "Pointed") && Property<bool>(restored, "Stocked"),
+        Check(Field<bool>(Field<object>(restored, "Site"), "Pointed") &&
+            Field<bool>(Field<object>(restored, "Site"), "Monumental") && Property<bool>(restored, "Stocked"),
             "a resumed site keeps its pointed shell and consumed reward");
     }
 
@@ -597,6 +618,77 @@ public static class PyramidNativeProbe
     private static object TidePalaceProbeStorage(SubsystemTerrain terrain, string name)
     {
         return terrain.TerrainSerializer.m_storage.GetType().GetField(name, Instance).GetValue(terrain.TerrainSerializer.m_storage);
+    }
+
+    private static void MonumentInteraction(GameDatabase database, Fixture fixture, int seed)
+    {
+        Project project;
+        SubsystemBlockBehavior palace;
+        var terrain = fixture(database, TerrainGenerationMode.Continent, out project, out palace, seed);
+        var runtime = AddRuntime(terrain);
+        var decor = (SubsystemBlockBehavior)Create(TypeOf(runtimeType.Assembly, "SubsystemPyramidDecor"));
+        TidePalaceProbe.Add(project, decor);
+        decor.Load(new ValuesDictionary());
+        terrain.m_subsystemBlockBehaviors = new SubsystemBlockBehaviors
+        {
+            m_blockBehaviorsByContents = Enumerable.Range(0, BlocksManager.Blocks.Length).Select(n => new SubsystemBlockBehavior[0]).ToArray()
+        };
+        terrain.m_subsystemBlockBehaviors.m_blockBehaviorsByContents[886] = new[] { decor };
+        var updater = (TerrainUpdater)FormatterServices.GetUninitializedObject(typeof(TerrainUpdater));
+        TidePalaceProbe.Put(updater, "m_terrain", terrain.Terrain);
+        TidePalaceProbe.Put(terrain, "<TerrainUpdater>k__BackingField", updater);
+        var site = Create(siteType, new Point2(0, 0), 72, 0, 948, seed, 0, true, true, true);
+        Field<IDictionary>(runtime, "sites").Add(new Point2(0, 0), Create(stateType, site, Full, 0, true, 0));
+        Point3 root = new Point3(60, 61, 67);
+        var parts = new List<Point3>();
+        for (int i = 0; i < 12; i++)
+        {
+            Point3 cell = root + new Point3(i % 2, i / 6, i / 2 % 3);
+            parts.Add(cell);
+            Write(terrain.Terrain, cell, Terrain.MakeBlockValue(886, 0, 9 | (i << 10)));
+        }
+        Point3 hit = parts[9];
+        Point3 obstruction = hit + new Point3(1, 0, 0);
+        int closed = Terrain.MakeBlockValue(886, 0, 9);
+        int opened = Terrain.MakeBlockValue(886, 0, 9 | 128);
+        var player = TidePalaceProbe.MakePlayer(project);
+        player.ComponentCreatureModel.m_eyePosition = new Vector3(hit.X + 2.5f, hit.Y + .17f, hit.Z + .5f);
+        var miner = new ComponentMiner { m_entity = player.Entity, ComponentPlayer = player };
+        Action request = () =>
+        {
+            var result = new TerrainRaycastResult { CellFace = new CellFace(hit.X, hit.Y, hit.Z, 1),
+                Value = terrain.Terrain.GetCellValue(hit.X, hit.Y, hit.Z) };
+            Check(decor.OnInteract(result, miner), "the upper non-root piece accepts use");
+            ((IUpdateable)runtime).Update(0f);
+        };
+        Write(terrain.Terrain, obstruction, GraniteBlock.Index);
+        request();
+        Check(terrain.Terrain.GetCellValue(root.X, root.Y, root.Z) == closed, "coffin use is rejected through a wall");
+        Write(terrain.Terrain, obstruction, 0);
+        request();
+        Check(terrain.Terrain.GetCellValue(root.X, root.Y, root.Z) == opened, "upper piece opens the root with native reach");
+        CommonLib.WorkType = WorkType.Server;
+        try
+        {
+            var networkProject = (ProjectNet)FormatterServices.GetUninitializedObject(typeof(ProjectNet));
+            TidePalaceProbe.Put(networkProject, "m_subsystems", project.m_subsystems);
+            var players = project.FindSubsystem<SubsystemPlayers>(true);
+            var sender = new Client(player.PlayerGuid, null) { State = ClientState.ProjectLoaded };
+            TidePalaceProbe.Put(sender, "<SubsystemPlayers>k__BackingField", players);
+            TidePalaceProbe.Put(sender, "<ID>k__BackingField", (byte)7);
+            CommonLib.Net.Clients[7] = sender;
+            players.m_playersData.Add(player.PlayerData);
+            var packet = (IPackage)Create(packetType);
+            TidePalaceProbe.Put(packet, "Point", hit);
+            packet.From = sender;
+            packet.Handle(networkProject, CommonLib.Net, true);
+            ((IUpdateable)runtime).Update(0f);
+            Check(terrain.Terrain.GetCellValue(root.X, root.Y, root.Z) == closed, "the existing remote request closes the same root");
+        }
+        finally { CommonLib.WorkType = WorkType.Local; }
+        terrain.ChangeCell(hit.X, hit.Y, hit.Z, 0);
+        Check(parts.All(p => terrain.Terrain.GetCellContents(p.X, p.Y, p.Z) == 0),
+            "taking out any piece clears the generated coffin footprint");
     }
 
     private static void LegacyDecor(GameDatabase database, Fixture fixture, int seed)

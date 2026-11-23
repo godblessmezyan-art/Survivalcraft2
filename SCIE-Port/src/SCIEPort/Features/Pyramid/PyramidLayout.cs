@@ -29,9 +29,13 @@ namespace SCIEPort.Features.Pyramid
             {
                 if (site.Tomb) TombShell(site.ApproachFloor, site.Pointed);
                 else MazeShell(site.ApproachFloor);
-                LabyrinthFloors(site.Maze);
-                if (site.Tomb) BurialDetails();
-                DecorateMaze(site.Maze.Seed, site.Tomb);
+                LabyrinthFloors(site.Maze, site.Monumental);
+                if (site.Monumental) BuildMainTomb(site.Maze.Seed);
+                else
+                {
+                    if (site.Tomb) BurialDetails();
+                    DecorateMaze(site.Maze.Seed, site.Tomb);
+                }
                 return;
             }
             Shell();
@@ -108,6 +112,42 @@ namespace SCIEPort.Features.Pyramid
             Set(61, -8, 66, Lamp);
         }
 
+        private void BuildMainTomb(int seed)
+        {
+            DecorateRooms(seed, true);
+            Fill(58, -12, 66, 64, -12, 70, Basalt);
+            Fill(58, -11, 66, 64, -8, 70, 0);
+            // Stone lintel above the rear bay. Both sides of the central monument stay walkable.
+            Fill(59, -8, 66, 63, -8, 66, Sandstone);
+            Fill(59, -10, 71, 62, -9, 71, Relief);
+            PlaceMonument(60, -11, 67, PyramidMonuments.Coffin);
+            PlaceMonument(59, -11, 61, PyramidMonuments.Guardian);
+            PlaceMonument(63, -11, 61, PyramidMonuments.Guardian);
+            PlaceMonument(58, -11, 65, PyramidMonuments.Brazier, true);
+            PlaceMonument(64, -11, 68, PyramidMonuments.Brazier);
+            PlaceMonument(58, -11, 69, PyramidMonuments.Obelisk);
+            for (int i = 0; i < 4; i++) Place(64, -11, 63 + i, PyramidDecorRules.CanopicJar, i, rotation: 3);
+            Place(58, -11, 67, PyramidDecorRules.OfferingTable, rotation: 1);
+            Place(58, -11, 68, PyramidDecorRules.BookOfDead, rotation: 1);
+        }
+
+        private void PlaceMonument(int x, int y, int z, int kind, bool lit = false)
+        {
+            int parts = PyramidMonuments.Size(kind);
+            if (x < x0 || x >= x0 + 16 || z < z0 || z >= z0 + 16) return;
+            // The render anchor and every collision part have to fit the same terrain chunk.
+            for (int part = 0; part < parts; part++)
+            {
+                Point3 offset = PyramidMonuments.Offset(kind, part);
+                if (!Air(x + offset.X, y + offset.Y, z + offset.Z)) return;
+            }
+            for (int part = 0; part < parts; part++)
+            {
+                Point3 offset = PyramidMonuments.Offset(kind, part);
+                Set(x + offset.X, y + offset.Y, z + offset.Z, PyramidMonuments.Value(kind, part, lit));
+            }
+        }
+
         // Absolute-coordinate air check; never overwrite a non-air cell (seals, lamps, loot, masonry).
         private bool Air(int x, int y, int z)
         {
@@ -157,7 +197,7 @@ namespace SCIEPort.Features.Pyramid
         // Every maze chamber gets a seed-driven arrangement at its floor corners. Corners are never
         // a chamber centre or a passage throat, so all 192 room centres and the vault route stay
         // clear. Place() still refuses any cell that is not air in the completed layout.
-        private void DecorateRooms(int seed)
+        private void DecorateRooms(int seed, bool sparse = false)
         {
             for (int level = 0; level < PyramidMaze.Levels; level++)
             for (int cell = 0; cell < PyramidMaze.Count; cell++)
@@ -165,7 +205,9 @@ namespace SCIEPort.Features.Pyramid
                 if (level == 0 && cell == 3) continue; // tomb entry / first mummy keeps its room empty
                 if (level == 2 && cell == PyramidMaze.Count - 1) continue; // vault has anchored pieces
                 Point3 room = PyramidMaze.Room(level, cell);
-                int pieces = 1 + (Pick(seed, level, cell, 0) & 1);
+                int draw = Pick(seed, level, cell, 0);
+                if (sparse && draw % 4 != 0) continue;
+                int pieces = sparse ? 1 : 1 + (draw & 1);
                 for (int slot = 0; slot < pieces; slot++)
                 {
                     int corner = Pick(seed, level, cell, 1 + slot) & 3;
@@ -173,8 +215,10 @@ namespace SCIEPort.Features.Pyramid
                     int dz = (corner & 2) == 0 ? -1 : 1;
                     int[] palette = level == 0 ? UpperDecor : level == 1 ? MiddleDecor : LowerDecor;
                     int kind = palette[Pick(seed, level, cell, 3 + slot) % palette.Length];
+                    if (sparse && (kind == PyramidDecorRules.Sarcophagus || kind == PyramidDecorRules.Obelisk))
+                        kind = PyramidDecorRules.StorageJar;
                     int variant = kind == PyramidDecorRules.CanopicJar ? (cell + slot) & 3 : 0;
-                    bool open = kind == PyramidDecorRules.Brazier && (Pick(seed, level, cell, 5 + slot) & 3) == 0;
+                    bool open = !sparse && kind == PyramidDecorRules.Brazier && (Pick(seed, level, cell, 5 + slot) & 3) == 0;
                     int rotation = Pick(seed, level, cell, 7 + slot) & 3;
                     Place(room.X + dx, room.Y + 1, room.Z + dz, kind, variant, open, rotation);
                 }
@@ -276,7 +320,7 @@ namespace SCIEPort.Features.Pyramid
             }
         }
 
-        private void LabyrinthFloors(PyramidMaze maze)
+        private void LabyrinthFloors(PyramidMaze maze, bool monumental)
         {
             for (int level = 0; level < PyramidMaze.Levels; level++)
             for (int cell = 0; cell < PyramidMaze.Count; cell++)
@@ -289,7 +333,7 @@ namespace SCIEPort.Features.Pyramid
                     Fill(x + 2, y + 1, z - 1, x + 4, y + 3, z + 1, 0);
                 if (maze.South(level, cell))
                     Fill(x - 1, y + 1, z + 2, x + 1, y + 3, z + 4, 0);
-                if (cell % 4 == 1) Set(x, y + 4, z, Lamp);
+                if (cell % (monumental ? 11 : 4) == 1) Set(x, y + 4, z, Lamp);
             }
 
             // Two side stairwells are offset by one row between floors, with masonry around each shaft.
@@ -300,8 +344,11 @@ namespace SCIEPort.Features.Pyramid
             Fill(60, -11, 64, 62, -11, 65, Marble);
             Set(PyramidMaze.Display.X, PyramidMaze.Display.Y, PyramidMaze.Display.Z,
                 PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal));
-            Set(58, -7, 61, Lamp);
-            Set(64, -7, 61, Lamp);
+            if (!monumental)
+            {
+                Set(58, -7, 61, Lamp);
+                Set(64, -7, 61, Lamp);
+            }
         }
 
         private void Transfer(int roomX, int stairX, int upperZ, int lowerZ, int upperY)

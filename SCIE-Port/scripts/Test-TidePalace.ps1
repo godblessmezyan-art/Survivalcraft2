@@ -13,12 +13,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.Xml.Linq
 
 if ($Package) {
+    $decorManifest = Get-Content -Raw -Encoding UTF8 (Join-Path $root 'docs/assets/pyramid-decor/manifest.json') | ConvertFrom-Json
+    $decorAssets = @('Blocks/PyramidDecor.csv', 'Textures/PyramidDecor.png') + @(
+        $decorManifest.models | ForEach-Object { "Models/$($_.name).dae" })
     $archive = [IO.Compression.ZipFile]::OpenRead($Package)
     try {
         foreach ($name in @('Blocks/TidePalace.csv', 'Database/TidePalace.xdb', 'Textures/TidePalace.png',
                 'Blocks/Pyramid.csv', 'Database/Pyramid.xdb', 'Textures/PyramidMechanism.png',
                 'Database/PyramidGuardians.xdb', 'Models/PyramidMummy.dae', 'Models/PyramidPharaoh.dae',
-                'Textures/PyramidGuardians.png')) {
+                'Textures/PyramidGuardians.png') + $decorAssets) {
             $entry = $archive.GetEntry("Assets/$name")
             if (!$entry) { throw "Missing palace asset $name" }
             $stream = $entry.Open()

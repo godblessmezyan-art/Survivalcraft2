@@ -4,7 +4,7 @@ using Game.NetWork;
 
 namespace SCIEPort.Features.Pyramid
 {
-    /// <summary>Requests one native interaction with a generated pyramid seal.</summary>
+    /// <summary>Requests one interaction with a generated pyramid seal or tomb furnishing.</summary>
     public sealed class PyramidPackage : IPackage
     {
         /// <inheritdoc/>

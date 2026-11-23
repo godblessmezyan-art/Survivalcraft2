@@ -24,7 +24,7 @@ namespace SCIEPort.Features.Pyramid
         internal readonly Point2 Origin;
         internal readonly int BaseY, Order, RewardId, ApproachFloor;
         internal readonly PyramidMaze Maze;
-        internal readonly bool Tomb, Pointed;
+        internal readonly bool Tomb, Pointed, Monumental;
 
         internal PyramidSite(Point2 origin, int baseY, int order, int rewardId)
         {
@@ -40,12 +40,18 @@ namespace SCIEPort.Features.Pyramid
         }
 
         internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor, bool tomb, bool pointed)
+            : this(origin, baseY, order, rewardId, mazeSeed, approachFloor, tomb, pointed, false)
+        {
+        }
+
+        internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor, bool tomb, bool pointed, bool monumental)
             : this(origin, baseY, order, rewardId)
         {
             Maze = new PyramidMaze(mazeSeed);
             ApproachFloor = Math.Max(tomb ? -9 : -10, Math.Min(0, approachFloor));
             Tomb = tomb;
             Pointed = tomb && pointed;
+            Monumental = Pointed && monumental;
         }
 
         internal Point3 World(Point3 local) => new Point3(Origin.X + local.X, BaseY + local.Y, Origin.Y + local.Z);
@@ -86,7 +92,7 @@ namespace SCIEPort.Features.Pyramid
                 int baseY = frontY - 2;
                 if (baseY < 32 || baseY > RimHeight(generator, origin)) continue;
                 return new PyramidSite(origin, baseY, random.Int(0, 5), PyramidLoot.Draw(random),
-                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), 0, true, true);
+                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), 0, true, true, true);
             }
             return null;
         }

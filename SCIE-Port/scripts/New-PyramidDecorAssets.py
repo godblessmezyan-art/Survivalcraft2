@@ -13,10 +13,10 @@ ASSETS = ROOT / 'src/SCIEPort/Assets'
 ATLAS_SIZE = 512
 TILE = 128
 PALETTE = [
-    ('Limestone', '#AA9172'), ('Gold', '#BA8E48'), ('Lapis', '#31576A'), ('Faience', '#3F9990'),
-    ('Terracotta', '#A46048'), ('Linen', '#C2AE87'), ('Basalt', '#333943'), ('Recess', '#514137'),
-    ('Alabaster', '#D9C8A0'), ('Papyrus', '#D4B77C'), ('Flame', '#F58E39'), ('RedGranite', '#835552'),
-    ('CoffinInlay', '#A2763D'), ('Cartouche', '#9C6A61'), ('Coals', '#623734'), ('PaintedBand', '#906D4D'),
+    ('Limestone', '#93816A'), ('Gold', '#856945'), ('Lapis', '#3D5054'), ('Faience', '#567973'),
+    ('Terracotta', '#825748'), ('Linen', '#9C8E71'), ('Basalt', '#4B4841'), ('Recess', '#342D26'),
+    ('Alabaster', '#B6A791'), ('Papyrus', '#B6A078'), ('Flame', '#C76C2B'), ('RedGranite', '#66514A'),
+    ('CoffinInlay', '#615347'), ('Cartouche', '#796A60'), ('Coals', '#402F2A'), ('PaintedBand', '#796450'),
 ]
 STONE, GOLD, BLUE, JADE, CLAY, LINEN, BLACK, DARK, IVORY, PAPER, FIRE, GRANITE, INLAY, CARVED, COALS, BAND = range(16)
 
@@ -33,14 +33,17 @@ def write_atlas():
             for u in range(TILE):
                 grain = rng.triangular(-fleck, fleck)
                 patina = 5 * math.sin(u * .069 + math.sin(v * .054)) + 4 * math.cos(v * .079 - u * .023)
+                if index in (STONE, BLACK, GRANITE):
+                    strata = math.sin(v*.19 + 1.8*math.sin(u*.056) + 1.3*math.sin(u*.23))
+                    patina += 2.5 * strata - (4 if strata < -.88 else 0)
                 if index == FIRE:
                     patina += 32 * (v / 127 - .4)
                 pixels.append(tuple(max(0, min(255, round(c + grain + patina))) for c in base))
         surface.putdata(pixels)
         draw = ImageDraw.Draw(surface)
         if index in (PAPER, INLAY, CARVED, BAND):
-            ink = {PAPER: '#754732', INLAY: '#395960', CARVED: '#623E3C', BAND: '#325B61'}[index]
-            edge = '#C69D57' if index != PAPER else '#994F3E'
+            ink = {PAPER: '#6C4737', INLAY: '#3F372F', CARVED: '#4F433A', BAND: '#514A41'}[index]
+            edge = '#8C7550' if index != PAPER else '#805A42'
             draw.rectangle((13, 13, 114, 114), outline=edge, width=3)
             draw.rectangle((18, 18, 109, 109), outline=ink, width=2)
             # Original pictographs with broad strokes that remain legible under mipmaps.
@@ -58,6 +61,13 @@ def write_atlas():
                     else:
                         draw.arc((col-6,row-5,col+6,row+7), 0, 180, fill=ink, width=3)
                         draw.line((col,row, col,row+8), fill=ink, width=3)
+        if index in (STONE, BLACK, GRANITE):
+            for _ in range(54):
+                u, v = rng.randrange(4, 120), rng.randrange(4, 120)
+                stain = tuple(max(0, c-rng.randrange(5, 23)) for c in base)
+                draw.point((u, v), fill=stain)
+                if rng.random() < .35:
+                    draw.line(((u, v), (u+2, v-1), (u+5, v)), fill=stain)
         atlas.paste(surface, ((index % 4) * TILE, (3 - index // 4) * TILE))
     path = ASSETS / 'Textures/PyramidDecor.png'
     atlas.convert('RGBA').save(path, compress_level=9)
@@ -327,12 +337,112 @@ def obelisk():
     return p
 
 
+def front_panel(p, x, y, z, half_width, height, tile):
+    p.face(tile, [(x-half_width,y,z),(x-half_width,y+height,z),
+                  (x+half_width,y+height,z),(x+half_width,y,z)],
+           [(0,0),(0,1),(1,1),(1,0)])
+
+
+def royal_coffin(opened):
+    p = Prop()
+    center = (.50, 1.00)
+    p.banded_box(.50, 0, 1.00, .86, 1.40, .22, GRANITE)
+    p.profile([(.21,.72,1.26),(.33,.75,1.33),(.78,.70,1.30),(.92,.67,1.28),
+               (.92,.54,1.17),(.47,.50,1.11)], [BLACK,BLACK,GRANITE,STONE,DARK],
+              CHAMFER, center=center)
+    # A short load-bearing ledge supports the displaced lid at the head of the coffin.
+    p.banded_box(.50, .22, 2.20, .63, .25, .70, BLACK)
+    lid_center = (.50, 1.28 if opened else .97)
+    p.profile([(.91,.68,1.20),(1.03,.68,1.18),(1.21,.56,1.09),(1.27,.50,1.02)],
+              [BLACK,GRANITE,BLACK], CHAMFER, center=lid_center)
+    p.profile([(1.266,.30,.76),(1.283,.26,.71)], GRANITE, COFFIN, center=lid_center, cap=INLAY)
+    p.profile([(1.277,.145,.166,.5,lid_center[1]+.57),(1.32,.123,.13,.5,lid_center[1]+.58)],
+              GRANITE, CHAMFER, cap=CARVED)
+    front_panel(p,.50,.43,-.298,.38,.29,INLAY)
+    for tip in (-1,1):
+        for z in (.13,.67,1.22,1.78):
+            x = .50+tip*.709
+            corner = [(x,.43,z-.16),(x,.76,z-.16),(x,.76,z+.16),(x,.43,z+.16)]
+            p.face(CARVED, corner if tip>0 else corner[::-1], [(0,0),(0,1),(1,1),(1,0)])
+    if opened:
+        # The shroud just clears the exposed end beneath the displaced lid.
+        p.oval(.50,.57,.73,.26,.12,.82,LINEN,12)
+        p.oval(.50,.63,-.025,.17,.123,.175,LINEN)
+    return p
+
+
+def standing_guardian():
+    p = Prop()
+    p.banded_box(0,0,0,.42,.42,.19,GRANITE)
+    p.banded_box(0,.19,0,.34,.35,.15,BLACK)
+    for side in (-1,1):
+        x = side*.12
+        p.banded_box(x,.34,-.035,.105,.20,.15,BLACK)
+        p.profile([(.40,.079,.081,x,0),(.79,.108,.103,x,.027),(1.17,.107,.112,x,.015)],
+                  BLACK, CHAMFER)
+        p.rod((side*.232,1.93,-.004),(side*.218,1.49,-.020),.073,BLACK,.057,6)
+        p.rod((side*.218,1.51,-.020),(side*.186,1.19,-.091),.056,BLACK,.044,6)
+        p.banded_box(side*.176,1.12,-.087,.049,.050,.14,GRANITE)
+    p.profile([(1.03,.234,.17),(1.38,.199,.147),(1.58,.151,.121)],
+              [BLACK,GRANITE],CHAMFER)
+    p.profile([(1.48,.161,.130),(1.75,.218,.144),(1.96,.268,.137),(2.05,.153,.111),(2.17,.092,.088)],
+              [BLACK,BLACK,BLACK,GOLD], CHAMFER)
+    front_panel(p,0,1.13,-.166,.107,.24,BAND)
+    # Mirror the canonical jackal head in the horizontal plane to face the entry.
+    head = Prop()
+    jackal(head,2.245,-.095,2.30,BLACK)
+    for tile, mesh in head.meshes.items():
+        for i in range(0,len(mesh['pos']),3):
+            positions = [(x,y,-z) for x,y,z in mesh['pos'][i:i+3]][::-1]
+            uv = [(4*u-tile%4-.055,4*v-tile//4-.055) for u,v in mesh['uv'][i:i+3]][::-1]
+            p.face(tile, positions, [(u/.89,v/.89) for u,v in uv])
+    return p
+
+
+def ritual_brazier(lit):
+    p = Prop()
+    p.banded_box(0,0,0,.40,.40,.16,GRANITE)
+    p.profile([(.15,.29,.29),(.23,.25,.25),(.64,.17,.17),(.73,.22,.22)],
+              [BLACK,BLACK,GRANITE], CHAMFER)
+    p.profile([(.69,.23,.23),(.78,.30,.30),(.96,.418,.418),(1.04,.427,.427),
+               (1.07,.397,.397),(1.07,.347,.347),(.93,.258,.258)],
+              [BLACK,BLACK,GRANITE,GOLD,BLACK,DARK], sides=14)
+    for x,z in ((-.12,-.08),(.095,-.12),(-.04,.11),(.13,.08)):
+        p.oval(x,.963,z,.10,.047,.072,COALS,8)
+    if lit:
+        for x,z,height in ((-.095,.034,1.17),(.09,-.064,1.235),(-.05,-.065,1.14)):
+            p.profile([(.966,.071,.069,x,z),(1.074,.064,.061,x+.015,z),
+                       (height,.006,.006,x+.058,z-.017)], [COALS,FIRE], sides=8)
+    return p
+
+
+def tomb_obelisk():
+    p = Prop()
+    p.banded_box(0,0,0,.43,.41,.21,BLACK)
+    p.banded_box(0,.21,0,.32,.32,.20,GRANITE)
+    p.profile([(.405,.235,.235),(.47,.231,.232),(2.18,.148,.149),(2.24,.15,.15)],
+              [GRANITE,BLACK,GRANITE], CHAMFER)
+    p.profile([(2.24,.152,.152),(2.58,.007,.007)], STONE, CHAMFER)
+    p.face(CARVED,[(-.135,.60,-.228),(-.086,2.04,-.160),(.086,2.04,-.160),(.135,.60,-.228)],
+           [(0,0),(0,1),(1,1),(1,0)])
+    return p
+
+
 MODELS = {
     'Sarcophagus': lambda: coffin(False), 'SarcophagusOpen': lambda: coffin(True),
     **{'Canopic'+name: (lambda kind=name: canopic(kind)) for name in ('Human','Baboon','Jackal','Falcon')},
     'StorageJar': storage_jar, 'Shabti': shabti, 'AnubisStatue': anubis,
     'OfferingTable': offering, 'Brazier': lambda: brazier(False), 'BrazierLit': lambda: brazier(True),
     'BookOfDead': scroll, 'Obelisk': obelisk,
+}
+
+MONUMENTS = {
+    'RoyalCoffin': (lambda: royal_coffin(False), [2, 2, 3]),
+    'RoyalCoffinOpen': (lambda: royal_coffin(True), [2, 2, 3]),
+    'StoneGuardian': (standing_guardian, [1, 3, 1]),
+    'RitualBrazier': (lambda: ritual_brazier(False), [1, 2, 1]),
+    'RitualBrazierLit': (lambda: ritual_brazier(True), [1, 2, 1]),
+    'TombObelisk': (tomb_obelisk, [1, 3, 1]),
 }
 
 NS = 'http://www.collada.org/2005/11/COLLADASchema'
@@ -344,7 +454,51 @@ def e(parent, tag, attrib=None, text=None):
         child.text = str(text)
     return child
 
-def export_model(name, meshes):
+def clip_triangle(points, axis, boundary, sign):
+    clipped = []
+    for start, end in zip(points[-1:] + points[:-1], points):
+        a = sign * (start[axis] - boundary)
+        b = sign * (end[axis] - boundary)
+        if (a < 0) != (b < 0):
+            t = a / (a - b)
+            clipped.append(tuple(u + (v-u)*t for u,v in zip(start,end)))
+        if b >= 0:
+            clipped.append(end)
+    return clipped
+
+
+def split_monument(meshes, footprint):
+    """Keep vertices within the cell used by SCNET for light sampling."""
+    width, height, depth = footprint
+    assert all(-.5 < x < width-.5 and 0 <= y <= height and -.5 < z < depth-.5
+               for _,mesh in meshes for x,y,z in mesh['pos']), 'Monument exceeds authored footprint.'
+    for y in range(height):
+        for z in range(depth):
+            for x in range(width):
+                part = (y * depth + z) * width + x
+                lower = (x-.5, y, z-.5)
+                for material, mesh in meshes:
+                    chunk = {'pos': [], 'nrm': [], 'uv': []}
+                    for i in range(0,len(mesh['pos']),3):
+                        polygon = [pos + uv for pos,uv in zip(mesh['pos'][i:i+3],mesh['uv'][i:i+3])]
+                        for axis, boundary in enumerate(lower):
+                            if polygon: polygon = clip_triangle(polygon,axis,boundary,1)
+                            if polygon: polygon = clip_triangle(polygon,axis,boundary+1,-1)
+                        for vertex in range(1,len(polygon)-1):
+                            a,b,c = polygon[0],polygon[vertex],polygon[vertex+1]
+                            u = [b[j]-a[j] for j in range(3)]
+                            v = [c[j]-a[j] for j in range(3)]
+                            cross = (u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0])
+                            if sum(n*n for n in cross) < 1e-14:
+                                continue
+                            chunk['pos'].extend(p[:3] for p in (a,b,c))
+                            chunk['uv'].extend(p[3:] for p in (a,b,c))
+                            chunk['nrm'].extend([mesh['nrm'][i]] * 3)
+                    if chunk['pos']:
+                        yield material, chunk, part
+
+
+def export_model(name, meshes, footprint=None):
     root = ET.Element('{'+NS+'}COLLADA', {'version':'1.4.1'})
     asset = e(root, 'asset'); e(asset, 'unit', {'name':'meter','meter':'1'}); e(asset, 'up_axis', text='Y_UP')
     lib = e(root, 'library_geometries')
@@ -359,7 +513,9 @@ def export_model(name, meshes):
         for v in vectors:
             out.extend(v)
         return out
-    for idx, (role, p) in enumerate(meshes):
+    sections = list(split_monument(meshes, footprint)) if footprint else [(role, mesh, None) for role, mesh in meshes]
+    part_nodes = {}
+    for idx, (role, p, part) in enumerate(sections):
         pos, nrm, uv = p['pos'], p['nrm'], p['uv']
         n = len(pos)
         assert n == len(nrm) and n == len(uv) and n % 3 == 0
@@ -381,14 +537,20 @@ def export_model(name, meshes):
         for semantic, src, off in [('VERTEX','v',0),('NORMAL','n',1),('TEXCOORD','uv',2)]:
             e(tr, 'input', {'semantic':semantic,'source':'#'+ident+src,'offset':str(off)})
         e(tr, 'p', text=' '.join(str(j) for j in range(n) for _ in range(3)))
-        e(node, 'instance_geometry', {'url':'#'+ident,'name':role})
+        owner = node
+        if part is not None:
+            if part not in part_nodes:
+                label = f'Part{part}'
+                part_nodes[part] = e(node, 'node', {'id':name+label,'name':label,'type':'NODE'})
+            owner = part_nodes[part]
+        e(owner, 'instance_geometry', {'url':'#'+ident,'name':role})
     e(e(root, 'scene'), 'instance_visual_scene', {'url':'#Scene'})
     path = ASSETS / 'Models' / (name+'.dae')
     pending = path.with_suffix('.dae.pending')
     pending.write_bytes(ET.tostring(root, encoding='utf-8', xml_declaration=True))
     pending.replace(path)
     return {
-        'name': name, 'triangles': tris_total, 'meshes': len(meshes),
+        'name': name, 'triangles': tris_total, 'meshes': len(sections), 'bones': 1 + len(part_nodes),
         'bounds': [[min(v[i] for v in bounds) for i in range(3)], [max(v[i] for v in bounds) for i in range(3)]],
         'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
     }
@@ -396,8 +558,12 @@ def export_model(name, meshes):
 def main():
     atlas = write_atlas()
     reports = [export_model('Pyramid'+name, model().parts()) for name, model in MODELS.items()]
+    for name, (model, footprint) in MONUMENTS.items():
+        report = export_model('Pyramid'+name, model().parts(), footprint)
+        report['footprint'] = footprint
+        reports.append(report)
     manifest = {
-        'artRevision': 'Sunstep tomb decor V2',
+        'artRevision': 'Sunstep tomb decor V3',
         'author': 'Original project geometry and illustrated atlas',
         'generatorSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'textureSha256': hashlib.sha256(atlas.read_bytes()).hexdigest(),

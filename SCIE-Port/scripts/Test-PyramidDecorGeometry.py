@@ -7,7 +7,7 @@ manifest = json.loads((ROOT/'docs/assets/pyramid-decor/manifest.json').read_text
 assert hashlib.sha256((ROOT/'scripts/New-PyramidDecorAssets.py').read_bytes()).hexdigest() == manifest['generatorSha256'], 'Authoring script fingerprint changed; regenerate/save the manifest.'
 ns = {'c': 'http://www.collada.org/2005/11/COLLADASchema'}
 entries = manifest['models']
-assert len(entries) == 14
+assert len(entries) == 20
 triangles = 0
 for entry in entries:
     path = ROOT/'src/SCIEPort/Assets/Models'/(entry['name']+'.dae')
@@ -15,7 +15,17 @@ for entry in entries:
     root = ET.parse(path).getroot()
     assert root.find('c:asset/c:up_axis', ns).text == 'Y_UP'
     nodes = root.findall('c:library_visual_scenes/c:visual_scene/c:node', ns)
-    assert len(nodes) == 1 and not nodes[0].findall('c:node', ns)
+    assert len(nodes) == 1
+    parts = nodes[0].findall('c:node', ns)
+    assert len(parts) + 1 == entry['bones']
+    footprint = entry.get('footprint', [1,1,1])
+    width, height, depth = footprint
+    owners = {}
+    for part in parts:
+        name = part.attrib['name']
+        assert name.startswith('Part') and 0 <= int(name[4:]) < math.prod(footprint)
+        for instance in part.findall('c:instance_geometry', ns):
+            owners[instance.attrib['url'][1:]] = int(name[4:])
     assert [float(x) for x in nodes[0].find('c:matrix', ns).text.split()] == [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
     geoms = root.findall('c:library_geometries/c:geometry', ns)
     assert len(geoms) == entry['meshes']
@@ -44,6 +54,10 @@ for entry in entries:
         positions = sources[geom.attrib['id']+'p'][0]
         normals = sources[geom.attrib['id']+'n'][0]
         model_positions.extend(zip(positions[::3], positions[1::3], positions[2::3]))
+        if parts:
+            cell = owners[geom.attrib['id']]
+            origin = (cell%width-.5,cell//(width*depth),cell//width%depth-.5)
+            assert all(-1e-6 <= value - origin[i%3] <= 1.000001 for i,value in enumerate(positions)), entry['name']
         for i in range(n):
             a,b,c = [positions[(i*3+j)*3:(i*3+j+1)*3] for j in range(3)]
             u = [b[j]-a[j] for j in range(3)]; v = [c[j]-a[j] for j in range(3)]
@@ -53,7 +67,8 @@ for entry in entries:
                 normal = normals[(i*3+corner)*3:(i*3+corner+1)*3]
                 assert sum(x*y for x,y in zip(cross, normal)) > 0, 'Normal disagrees with winding: '+geom.attrib['name']
     assert abs(min(y for _,y,_ in model_positions)) < 1e-5, 'Expected a floor origin: '+entry['name']
-    assert all(abs(x) < .5 and abs(z) < .5 and 0 <= y <= 1 for x,y,z in model_positions), entry['name']
+    assert all(-.5 < x < width-.5 and -.5 < z < depth-.5 and 0 <= y <= height
+               for x,y,z in model_positions), entry['name']
     assert count == entry['triangles'] and 100 <= count <= 1600
     triangles += count
 texture = ROOT/'src/SCIEPort/Assets/Textures/PyramidDecor.png'

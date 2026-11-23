@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-24 · 1.10.5 法老主墓室
+
+- `python SCIE-Port/scripts/New-PyramidDecorAssets.py` 生成 20 个模型和 512×512 墓室图集。静态几何与 `Test-PyramidDecor.ps1` 原生导入通过，合计 16,783 三角形，检查了各部件边界、UV、绕序和原点。
+- 固定目标环境检查通过。SDK 8.0.427 从仓库外运行 `dotnet build <SCIEPort.csproj 的绝对路径> -c Release --no-restore -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o <输出目录> --nologo`，0 警告、0 错误。
+- `Test-TidePalace.ps1` 的金字塔通过 15,412 项检查，涵盖大陆、岛屿和 Better 的石棺占用、两侧与后方绕行、隔墙拒绝、非根格开合、原有 234 请求、拆除和布局保存。守卫及旧装饰 421 项通过。水幕沉殿、火山、特殊地形和云瀑峰林回归通过。
+- Blender 使用实际输出资产检查入口和开棺的第一人称比例。Android 7723 实际亮度、触屏命中及真实联机待验证。[装饰规格](PYRAMID-DECOR-PLAN.md)
+
 ## 2026-11-23 · 1.10.4 墓室装饰重制
 
 - `python SCIE-Port/scripts/New-PyramidDecorAssets.py` 生成九种装饰的 14 个模型和 512×512 不透明图集。静态测试通过 10,662 个三角形的索引、绕序、法线、UV、落点及单格边界检查。Blender 5.1.1 用导出资产生成正侧与背侧渲染，检查日阶神殿模型的轮廓、图集和棺盖落点。
