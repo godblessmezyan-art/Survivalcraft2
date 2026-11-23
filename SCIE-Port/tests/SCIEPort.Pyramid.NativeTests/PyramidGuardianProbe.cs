@@ -52,6 +52,7 @@ public static class PyramidGuardianProbe
             Lifecycle(database, fixture, WorkType.Server);
             Lifecycle(database, fixture, WorkType.Local, true);
             Lifecycle(database, fixture, WorkType.Server, true);
+            Decor();
         }
         finally
         {
@@ -302,6 +303,29 @@ public static class PyramidGuardianProbe
             Check(y < p.Y ? value > 0 : value == 0, "generated guardian floor and three-cell headroom " + p);
             terrain.SetCellValueFast(p.X, y, p.Z, value);
         }
+    }
+
+    private static void Decor()
+    {
+        var origin = new Point2(-80, -80);
+        object site = Create(siteType, origin, 72, 0, 953, 68251, -3, true);
+        var seen = new HashSet<int>();
+        for (int sx = 0; sx < 5; sx++)
+        for (int sz = 0; sz < 5; sz++)
+        {
+            object layout = Create(layoutType, site,
+                new Point2(origin.X + sx * 16, origin.Y + sz * 16));
+            var cells = (int[])layoutType.GetField("cells", Instance).GetValue(layout);
+            foreach (int value in cells)
+            {
+                if (Terrain.ExtractContents(value) != 947) continue;
+                int data = Terrain.ExtractData(value);
+                seen.Add(data & 31); // kind
+            }
+        }
+        for (int kind = 0; kind < 9; kind++)
+            Check(seen.Contains(kind), "Egyptian decor kind " + kind + " placed in the tomb layout");
+        Check(seen.Count == 9, "all nine decor kinds appear (found " + seen.Count + ")");
     }
 
     private static object Create(Type type, params object[] args) { return Activator.CreateInstance(type, Instance, null, args, null); }

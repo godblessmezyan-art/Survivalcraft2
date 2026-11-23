@@ -1,5 +1,17 @@
 # 测试结果
 
+## 2026-11-23 · 1.7.3 埃及墓葬装饰
+
+- 执行 `scripts/Test-Environment.ps1`，原生 260 方块常量无冲突，903–1023 保留区间有效。
+- 执行 `scripts/New-PyramidDecorAssets.py` 生成 14 个原创 Y_UP 模型（3264 三角形）与 512×512 不透明图集；`scripts/Test-PyramidDecorGeometry.py` 静态校验（有限/非退化几何、独立索引、单 tile UV、opaque PNG）通过。
+- 执行 `scripts/Test-PyramidDecor.ps1`：目标 Engine `ModelData.Load` 实际导入 14 模型/3200 三角形（骨骼=1、网格/三角形数与 manifest 一致），512×512 图集原生解码通过；方块 ID 947 注册检查通过。
+- `dotnet build SCIEPort.csproj -c Release` 0 警告、0 错误。
+- 金字塔原生测试（`Test-TidePalace.ps1`）：守卫检查由 207 增至 **217** 项，新增 9 种装饰 kind 的墓室布置断言与总数断言；迷宫 25 种子连通、金字塔固定目标 14832、火山 77829 等全部保持通过。装饰避开路线终点 (61,-11,62)，未破坏任何房间连通。
+- 实现要点：`Terrain.ContentsMask=1023` 硬上限，九种装饰共用索引 947，DATA 位编码 kind/变体/状态/旋转；石棺与火盆经 `SubsystemPyramidDecor` 在权威端 `ChangeCell` 切换状态位，无新网络包。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir 'E:/SCNET/SCNETx25.01.17' -Configuration Release -OutputDir 'E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-decor-1.7.3-final'`，退出 0，Release 编译 0 警告、0 错误；品牌契约、127 行创造栏 CSV、XDB GUID/继承、完整统一包与全部既有回归通过。包内 `modinfo.json` 与 csproj 均为 1.7.3。
+- 两份安装包字节一致：`荒野探险家.netmod` / `荒野探险家-1.7.3.netmod`，253 个条目、13,507,501 字节，SHA-256 `98457D7BF1BD631C32EF7E5EB90B143DEFF4AC1074167742B3A67EDF62C5020E`。相对 1.7.2 增加 `PyramidDecor.csv`、`PyramidDecor.png` 与 14 个装饰模型，并更新 `SCIEPort.dll`、`modinfo.json`、`Pyramid.xdb`。
+- Android 7723 渲染、碰撞盒、朝向、触屏开棺/点火交互与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
 ## 2026-11-23 · 1.7.2 守卫强度与技能
 
 - 执行 `scripts/Test-Environment.ps1`，Windows 目标程序集哈希与 Net_x25.01.17 ABI 检查通过。

@@ -29,6 +29,7 @@ namespace SCIEPort.Features.Pyramid
                 else MazeShell(site.ApproachFloor);
                 LabyrinthFloors(site.Maze);
                 if (site.Tomb) BurialDetails();
+                Decorate(site.Maze.Seed, site.Tomb);
                 return;
             }
             Shell();
@@ -76,6 +77,56 @@ namespace SCIEPort.Features.Pyramid
             Fill(64, -11, 64, 64, -8, 65, Basalt);
             Fill(60, -7, 64, 62, -7, 67, Relief);
             Set(61, -8, 66, Lamp);
+        }
+
+        // Absolute-coordinate air check; never overwrite a non-air cell (seals, lamps, loot, masonry).
+        private bool Air(int x, int y, int z)
+        {
+            if (x < x0 || x > x0 + 15 || z < z0 || z > z0 + 15 || y < LowY || y > HighY) return false;
+            return cells[(((z - z0) * 16 + x - x0) * Height) + y - LowY] == 0;
+        }
+        // One shared block index; the kind lives in DATA. Only fills verified-air cells.
+        private void Place(int x, int y, int z, int kind, int variant = 0, bool open = false, int rotation = 0)
+        {
+            if (Air(x, y, z))
+                Set(x, y, z, Terrain.MakeBlockValue(PyramidDecorRules.Index, 0,
+                    PyramidDecorRules.Encode(kind, variant, open, rotation)));
+        }
+        private void Decorate(int seed, bool tomb)
+        {
+            // Decoration is confined to the vault/burial chambers, whose carved alcoves are outside
+            // the maze route. Maze rooms are left untouched so every chamber stays reachable.
+            seed.ToString(); // deterministic hook retained for a future room-safe variant pass
+            const int sar = PyramidDecorRules.Sarcophagus, jar = PyramidDecorRules.CanopicJar;
+            // Obelisk first, so it claims a clear rear-corner cell before other decor.
+            Place(59, -11, 65, PyramidDecorRules.Obelisk);
+            // Vault chamber: x58..64, z59..65, carved y-11..-8. Keep the central route
+            // (x60..62, z61..63,终点 61,62) clear; decor hugs the outer ring only.
+            Place(58, -11, 59, PyramidDecorRules.AnubisStatue);
+            Place(64, -11, 59, PyramidDecorRules.AnubisStatue);
+            Place(58, -11, 62, PyramidDecorRules.Brazier);
+            Place(64, -11, 62, PyramidDecorRules.Brazier, open: true);
+            Place(58, -11, 64, jar, 0);
+            Place(64, -11, 64, jar, 1);
+            Place(58, -11, 65, jar, 2);
+            Place(64, -11, 65, jar, 3);
+            Place(59, -11, 59, sar);
+            Place(60, -11, 59, PyramidDecorRules.OfferingTable);
+            Place(62, -11, 59, PyramidDecorRules.BookOfDead);
+            Place(63, -11, 59, PyramidDecorRules.StorageJar);
+            if (tomb)
+            {
+                // Burial chamber: stone dais x58..64, z62..67, carved y-11..-8.
+                // Away from the vault route terminus (61,-11,62).
+                Place(61, -11, 67, sar);
+                for (int i = 0; i < 4; i++) Place(59 + i, -11, 66, jar, i);
+                Place(58, -11, 67, PyramidDecorRules.Shabti);
+                Place(64, -11, 67, PyramidDecorRules.Shabti);
+                Place(59, -11, 67, PyramidDecorRules.AnubisStatue);
+                Place(63, -11, 67, PyramidDecorRules.OfferingTable);
+                Place(58, -11, 66, PyramidDecorRules.StorageJar);
+                Place(64, -11, 66, PyramidDecorRules.StorageJar);
+            }
         }
 
         private void MazeShell(int approachFloor)

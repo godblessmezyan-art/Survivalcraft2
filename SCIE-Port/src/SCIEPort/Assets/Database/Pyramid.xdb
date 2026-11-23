@@ -5,8 +5,13 @@
       <Parameter Name="Class" Guid="7ffd9144-ac2b-434d-930f-b10e36ab41d3" Value="SCIEPort.Features.Pyramid.SubsystemPyramid" Type="string"/>
       <Parameter Name="Dependencies" Guid="d931ba70-1b0a-49ca-91a8-a843935c04d9" Value="Terrain, BlockEntities, Time, Players, Bodies" Type="string"/>
     </SubsystemTemplate>
+    <SubsystemTemplate Name="SCIEPortPyramidDecor" Guid="af16b184-23ef-4bdd-aebe-977d0b693c95" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="edfe0362-2769-45fe-a075-b4f57b7473b4" Value="SCIEPort.Features.Pyramid.SubsystemPyramidDecor" Type="string"/>
+      <Parameter Name="Dependencies" Guid="5306e885-7f84-44ae-badc-8e3d0de58f9e" Value="Terrain" Type="string"/>
+    </SubsystemTemplate>
   </Folder>
   <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
     <MemberSubsystemTemplate Name="SCIEPortPyramid" Guid="e1c20ae8-a948-49de-acb3-4080becb8aa2" InheritanceParent="66bdd673-b3cd-4f85-b90f-15d6377b4831"/>
+    <MemberSubsystemTemplate Name="SCIEPortPyramidDecor" Guid="61cb77d4-522f-45ff-a7db-34c73f2838fc" InheritanceParent="af16b184-23ef-4bdd-aebe-977d0b693c95"/>
   </ProjectTemplate>
 </DatabaseObjects>
