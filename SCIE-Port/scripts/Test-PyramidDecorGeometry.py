@@ -20,6 +20,7 @@ for entry in entries:
     geoms = root.findall('c:library_geometries/c:geometry', ns)
     assert len(geoms) == entry['meshes']
     count = 0
+    model_positions = []
     for geom in geoms:
         mesh = geom.find('c:mesh', ns); sources = {}
         for source in mesh.findall('c:source', ns):
@@ -41,12 +42,19 @@ for entry in entries:
                     coords = values[axis::2]
                     assert max(coords)-min(coords) <= .23001, 'Default UV leaked across atlas tiles: '+geom.attrib['name']
         positions = sources[geom.attrib['id']+'p'][0]
+        normals = sources[geom.attrib['id']+'n'][0]
+        model_positions.extend(zip(positions[::3], positions[1::3], positions[2::3]))
         for i in range(n):
             a,b,c = [positions[(i*3+j)*3:(i*3+j+1)*3] for j in range(3)]
             u = [b[j]-a[j] for j in range(3)]; v = [c[j]-a[j] for j in range(3)]
-            area = sum(x*x for x in (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0]))
-            assert area > 1e-20, 'Degenerate triangle: '+geom.attrib['name']
-    assert count == entry['triangles'] and 100 <= count <= 6000
+            cross = (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
+            assert sum(x*x for x in cross) > 1e-20, 'Degenerate triangle: '+geom.attrib['name']
+            for corner in range(3):
+                normal = normals[(i*3+corner)*3:(i*3+corner+1)*3]
+                assert sum(x*y for x,y in zip(cross, normal)) > 0, 'Normal disagrees with winding: '+geom.attrib['name']
+    assert abs(min(y for _,y,_ in model_positions)) < 1e-5, 'Expected a floor origin: '+entry['name']
+    assert all(abs(x) < .5 and abs(z) < .5 and 0 <= y <= 1 for x,y,z in model_positions), entry['name']
+    assert count == entry['triangles'] and 100 <= count <= 1600
     triangles += count
 texture = ROOT/'src/SCIEPort/Assets/Textures/PyramidDecor.png'
 assert hashlib.sha256(texture.read_bytes()).hexdigest() == manifest['textureSha256']

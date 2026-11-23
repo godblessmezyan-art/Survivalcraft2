@@ -1,331 +1,330 @@
 {
-  "artRevision": "Egyptian tomb decor V1",
-  "status": "待验证",
-  "author": "Original project procedural geometry and atlas",
-  "generatorSha256": "efaceb9cd9ff3d3ec4be0b8d72df535804d4c342b3f8b963907bb1b34e121729",
-  "textureSha256": "6ce39ae50d791e5d7cdb166846ad3812b9566bef0e0848ffd115a92bfcee515d",
+  "artRevision": "Sunstep tomb decor V2",
+  "author": "Original project geometry and illustrated atlas",
+  "generatorSha256": "9b2ab448ce28924f92df4f2ce2c9d2ecd795b1879ca93a5fc4a0b8abf5da3252",
+  "textureSha256": "8768d0504ecdd5eafa8e8a593d865e55c4bd9ead139eee1ed0c692b00915ef4a",
   "textureSize": [
     512,
     512
   ],
   "palette": [
     {
-      "name": "Sandstone",
-      "color": "#C9A46B"
+      "name": "Limestone",
+      "color": "#AA9172"
     },
     {
       "name": "Gold",
-      "color": "#D9B23C"
+      "color": "#BA8E48"
     },
     {
       "name": "Lapis",
-      "color": "#2A4E8C"
+      "color": "#31576A"
     },
     {
-      "name": "Turquoise",
-      "color": "#2E8B8B"
+      "name": "Faience",
+      "color": "#3F9990"
     },
     {
-      "name": "Clay",
-      "color": "#9C5B3C"
+      "name": "Terracotta",
+      "color": "#A46048"
     },
     {
-      "name": "LinenWad",
-      "color": "#D8C9A6"
+      "name": "Linen",
+      "color": "#C2AE87"
     },
     {
-      "name": "Obsidian",
-      "color": "#2B2B31"
+      "name": "Basalt",
+      "color": "#333943"
     },
     {
-      "name": "Shade",
-      "color": "#6E5A3A"
+      "name": "Recess",
+      "color": "#514137"
     },
     {
-      "name": "Bone",
-      "color": "#E6DCC0"
+      "name": "Alabaster",
+      "color": "#D9C8A0"
     },
     {
       "name": "Papyrus",
-      "color": "#CBB887"
+      "color": "#D4B77C"
     },
     {
-      "name": "Ember",
-      "color": "#E6612A"
+      "name": "Flame",
+      "color": "#F58E39"
     },
     {
-      "name": "RedOchre",
-      "color": "#8E3B2A"
+      "name": "RedGranite",
+      "color": "#835552"
     },
     {
-      "name": "PaleGold",
-      "color": "#E8CD72"
+      "name": "CoffinInlay",
+      "color": "#A2763D"
     },
     {
-      "name": "DeepLapis",
-      "color": "#1B3663"
+      "name": "Cartouche",
+      "color": "#9C6A61"
     },
     {
-      "name": "WarmShade",
-      "color": "#5A462C"
+      "name": "Coals",
+      "color": "#623734"
     },
     {
-      "name": "Dust",
-      "color": "#B7A276"
+      "name": "PaintedBand",
+      "color": "#906D4D"
     }
   ],
   "models": [
     {
       "name": "PyramidSarcophagus",
-      "triangles": 264,
-      "meshes": 6,
-      "bounds": [
-        [
-          0.09000000000000002,
-          0.24,
-          -1.04
-        ],
-        [
-          0.9099999999999999,
-          0.76,
-          -0.0
-        ]
-      ],
-      "sha256": "87aeb75ce2091c7cd80b27675941c67a9210ee9253f9605bc33255adddebbff2"
-    },
-    {
-      "name": "PyramidSarcophagusOpen",
-      "triangles": 264,
-      "meshes": 6,
-      "bounds": [
-        [
-          0.09000000000000002,
-          0.28,
-          -0.9
-        ],
-        [
-          0.9099999999999999,
-          1.0725302989964907,
-          -0.0
-        ]
-      ],
-      "sha256": "b65486a3980b0278796d59a836a1d7e5a8e3d3409239918f50dbc098730eab38"
-    },
-    {
-      "name": "PyramidCanopicHuman",
-      "triangles": 192,
-      "meshes": 4,
-      "bounds": [
-        [
-          0.28,
-          0.28,
-          -0.69
-        ],
-        [
-          0.72,
-          0.72,
-          -0.2
-        ]
-      ],
-      "sha256": "ee0bbcaa54b431a9d95f2bd9d3f9cb86a073ab94e62c74ee12cc0fa34da72bae"
-    },
-    {
-      "name": "PyramidCanopicBaboon",
-      "triangles": 192,
-      "meshes": 4,
-      "bounds": [
-        [
-          0.28,
-          0.28,
-          -0.69
-        ],
-        [
-          0.72,
-          0.72,
-          -0.2
-        ]
-      ],
-      "sha256": "bae5ffd943e747c0325d18e5d5091a7dbfd0bc2d63124f31cd549f9b8599791a"
-    },
-    {
-      "name": "PyramidCanopicJackal",
-      "triangles": 288,
-      "meshes": 6,
-      "bounds": [
-        [
-          0.28,
-          0.28,
-          -0.82
-        ],
-        [
-          0.72,
-          0.72,
-          -0.2
-        ]
-      ],
-      "sha256": "bf50df8280df50acbff9187c9e34463d59e40410866ffa55e243bfce03c86b6c"
-    },
-    {
-      "name": "PyramidCanopicFalcon",
-      "triangles": 208,
-      "meshes": 5,
-      "bounds": [
-        [
-          0.28,
-          0.28,
-          -0.76
-        ],
-        [
-          0.72,
-          0.72,
-          -0.2
-        ]
-      ],
-      "sha256": "2ca880687084129808bb52b69d9aeb94162da3634fbd13ef569b9e5d6e5c8537"
-    },
-    {
-      "name": "PyramidStorageJar",
-      "triangles": 240,
-      "meshes": 5,
-      "bounds": [
-        [
-          0.2,
-          0.2,
-          -0.78
-        ],
-        [
-          0.8,
-          0.8,
-          -0.26
-        ]
-      ],
-      "sha256": "e0b56dc7a624dce078bb26dd6dc934f6067603883013134fb8ef3fd9caf102e6"
-    },
-    {
-      "name": "PyramidShabti",
-      "triangles": 212,
-      "meshes": 5,
-      "bounds": [
-        [
-          0.32,
-          0.32880982706687234,
-          -1.0
-        ],
-        [
-          0.6799999999999999,
-          0.6711901729331277,
-          -0.0
-        ]
-      ],
-      "sha256": "5ae5923e65c76a4ee4d4995198c3a027401cf3c4edd6889f6f126d81d4744918"
-    },
-    {
-      "name": "PyramidAnubisStatue",
-      "triangles": 384,
+      "triangles": 424,
       "meshes": 8,
       "bounds": [
         [
-          0.29000000000000004,
-          0.3,
-          -1.1
+          -0.23,
+          0,
+          -0.438
         ],
         [
-          0.71,
-          0.7,
-          -0.0
+          0.23,
+          0.361,
+          0.438
         ]
       ],
-      "sha256": "e66c4e522a8fedd2493e40a8d2e6c2b95ec88291d54aa7e7afd4104b49e6393b"
+      "sha256": "9ff97d586cec53a94852734d549794be48df48123946018e4add422d38b736e9"
     },
     {
-      "name": "PyramidOfferingTable",
-      "triangles": 224,
-      "meshes": 5,
+      "name": "PyramidSarcophagusOpen",
+      "triangles": 920,
+      "meshes": 9,
       "bounds": [
         [
-          0.13,
-          0.25,
-          -0.41
+          -0.39,
+          0,
+          -0.438
         ],
         [
-          0.87,
-          0.75,
-          -0.0
+          0.31666698363440815,
+          0.39428255167591475,
+          0.438
         ]
       ],
-      "sha256": "3ce07b90047958d8db329d6da28ec4774f3cbdfc1ac61ced05db0b46788e4a50"
+      "sha256": "944b99dad152ca94f050a32880373e5ffd687570c4969616f89200a1101b0cb6"
     },
     {
-      "name": "PyramidBrazier",
-      "triangles": 144,
+      "name": "PyramidCanopicHuman",
+      "triangles": 716,
+      "meshes": 7,
+      "bounds": [
+        [
+          -0.211,
+          0,
+          -0.19401065452418295
+        ],
+        [
+          0.211,
+          0.726,
+          0.19401065452418292
+        ]
+      ],
+      "sha256": "e7687fe23db2222bb7bd00fa32e3853c5bf454ec499b4cac00b14e173bdbda21"
+    },
+    {
+      "name": "PyramidCanopicBaboon",
+      "triangles": 1100,
+      "meshes": 8,
+      "bounds": [
+        [
+          -0.211,
+          0,
+          -0.19401065452418295
+        ],
+        [
+          0.211,
+          0.72,
+          0.19401065452418292
+        ]
+      ],
+      "sha256": "bfac3408c4f09f323e173238a2dec1b2dd3ae2c6c86bc1148568cb4fc8ee05a5"
+    },
+    {
+      "name": "PyramidCanopicJackal",
+      "triangles": 852,
+      "meshes": 6,
+      "bounds": [
+        [
+          -0.211,
+          0,
+          -0.19401065452418295
+        ],
+        [
+          0.211,
+          0.7578,
+          0.19401065452418292
+        ]
+      ],
+      "sha256": "33f78a74e0959df3199f0341fd69313d246ffa68c56eb03a621d909cda5f96a1"
+    },
+    {
+      "name": "PyramidCanopicFalcon",
+      "triangles": 944,
+      "meshes": 6,
+      "bounds": [
+        [
+          -0.211,
+          0,
+          -0.19401065452418295
+        ],
+        [
+          0.211,
+          0.7350000000000001,
+          0.19401065452418292
+        ]
+      ],
+      "sha256": "05150c472e88c40bd82dc99dee72e76e8d79d65092e025449e08447ede976a6e"
+    },
+    {
+      "name": "PyramidStorageJar",
+      "triangles": 604,
+      "meshes": 4,
+      "bounds": [
+        [
+          -0.283973122109886,
+          0,
+          -0.216
+        ],
+        [
+          0.283973122109886,
+          0.614,
+          0.216
+        ]
+      ],
+      "sha256": "91c175c4a3ba9bef1cead337a44958036757ed1520899b9eb0b9a1d081e8d6b8"
+    },
+    {
+      "name": "PyramidShabti",
+      "triangles": 688,
+      "meshes": 6,
+      "bounds": [
+        [
+          -0.145,
+          0,
+          -0.112
+        ],
+        [
+          0.145,
+          0.83,
+          0.12280182055505749
+        ]
+      ],
+      "sha256": "868b74b2f1c39babdadf7362118624d3e608a2234952db033bb50029fa9411ce"
+    },
+    {
+      "name": "PyramidAnubisStatue",
+      "triangles": 1436,
       "meshes": 3,
       "bounds": [
         [
-          0.15999999999999998,
-          0.15999999999999998,
-          -0.48
+          -0.258,
+          0,
+          -0.389
         ],
         [
-          0.8400000000000001,
-          0.8400000000000001,
-          -0.0
+          0.258,
+          0.7150000000000001,
+          0.389
         ]
       ],
-      "sha256": "5464180722f6b4a8a306105b8af0a2a3f36ad36b77786096f8bbe18200d11585"
+      "sha256": "3377784a15de512f978edbcaf185ddaa4a38088a871dfb2a7724db5799764a19"
+    },
+    {
+      "name": "PyramidOfferingTable",
+      "triangles": 588,
+      "meshes": 7,
+      "bounds": [
+        [
+          -0.376,
+          0,
+          -0.251
+        ],
+        [
+          0.376,
+          0.421,
+          0.251
+        ]
+      ],
+      "sha256": "3e73bd96c7760609932fdab16cec93dd0d2f3f478ba40912816b4e9ef1e2f505"
+    },
+    {
+      "name": "PyramidBrazier",
+      "triangles": 680,
+      "meshes": 5,
+      "bounds": [
+        [
+          -0.293,
+          0,
+          -0.28565387826927435
+        ],
+        [
+          0.293,
+          0.439,
+          0.2856538782692743
+        ]
+      ],
+      "sha256": "25e1df73cd73bcf3ae204aa635cd356bfffebc30f25d7e838808dc231d3cf6e6"
     },
     {
       "name": "PyramidBrazierLit",
-      "triangles": 180,
-      "meshes": 5,
+      "triangles": 938,
+      "meshes": 6,
       "bounds": [
         [
-          0.15999999999999998,
-          0.15999999999999998,
-          -0.94
+          -0.293,
+          0,
+          -0.28565387826927435
         ],
         [
-          0.8400000000000001,
-          0.8400000000000001,
-          -0.0
+          0.293,
+          0.824,
+          0.2856538782692743
         ]
       ],
-      "sha256": "4f7a2950394aa5a5fa4b58a8b9766347ab339604fca069d8fbb7cde47da2f720"
+      "sha256": "f334edb5368677a12ed3dc235f16bf475be6840ea3c6e3737effc73147e5a722"
     },
     {
       "name": "PyramidBookOfDead",
-      "triangles": 240,
-      "meshes": 5,
+      "triangles": 380,
+      "meshes": 4,
       "bounds": [
         [
-          0.21999999999999997,
-          0.33999999999999997,
-          -0.26
+          -0.36,
+          0,
+          -0.231
         ],
         [
-          0.78,
-          0.66,
-          -0.1
+          0.36,
+          0.128,
+          0.231
         ]
       ],
-      "sha256": "45dd11436e39473fd8d5cb53afa028ca7889b8a78a696e8f52d3c99c85219bd4"
+      "sha256": "d1bf56d797a8651d6043a618147b225a8c1e0066575493d220a67c77f4037d40"
     },
     {
       "name": "PyramidObelisk",
-      "triangles": 168,
+      "triangles": 392,
       "meshes": 5,
       "bounds": [
         [
-          0.26,
-          0.26,
-          -2.1
+          -0.241,
+          0,
+          -0.241
         ],
         [
-          0.74,
-          0.74,
-          -0.0
+          0.241,
+          0.908,
+          0.241
         ]
       ],
-      "sha256": "c5d975c58ae8857cc8222a09cc901bd7a96e2998a102792b2a689443fef822b7"
+      "sha256": "b8e21dac3ba2848a867ced0191701576592e2f37699680f59dbf06f34f31d81e"
     }
   ]
 }

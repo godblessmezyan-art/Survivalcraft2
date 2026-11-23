@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-23 · 1.10.4 墓室装饰重制
+
+- `python SCIE-Port/scripts/New-PyramidDecorAssets.py` 生成九种装饰的 14 个模型和 512×512 不透明图集。静态测试通过 10,662 个三角形的索引、绕序、法线、UV、落点及单格边界检查。Blender 5.1.1 用导出资产生成正侧与背侧渲染，检查日阶神殿模型的轮廓、图集和棺盖落点。
+- 根目录与 SCIE-Port 各自的 `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 通过。通过 SDK 8.0.427 从仓库外运行 `dotnet build <SCIEPort.csproj 绝对路径> -c Release --no-restore -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o <输出目录> --nologo`，0 警告、0 错误。
+- `Test-PyramidDecor.ps1` 以固定目标引擎成功导入 14 个模型及图集，验证原生包围盒和 886/947 的独立注册。物品栏通过 385 项。金字塔世界生成与旧存档离线回归通过 15,346 项，守卫与墓室装饰通过 421 项。水幕沉殿、火山、特殊地形和云瀑峰林回归同时通过。
+- Android 7723 实际画面、触屏命中和联机互动待验证。[资产清单](assets/pyramid-decor/manifest.json)
+
 ## 2026-11-23 · 1.10.3 日阶金字塔尖顶
 
 - 根目录及 SCIE-Port 的 `Test-Environment.ps1 -GameDir D:/Games/SCNET-x25.01.17` 通过固定 Windows 目标与 ABI 检查。SDK 8.0.427 从仓库外调用 `dotnet build <SCIEPort.csproj 的绝对路径> -c Release -p:SCNetGameDir=D:/Games/SCNET-x25.01.17 -o <构建输出目录> --nologo`，使用本机 net472 参考程序集，0 警告、0 错误。XDB 静态验证通过。

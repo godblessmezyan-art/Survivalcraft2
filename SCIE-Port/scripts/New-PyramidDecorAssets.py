@@ -1,283 +1,339 @@
-"""Original Egyptian tomb decor for the pyramid. Pure-Python COLLADA authoring.
-
-No Blender dependency: geometry is built from oriented boxes, cylinders, lathes
-and cones, then serialized in the verified SCNET import order (one identity node,
-independent p/n/uv offsets, Y_UP, per-part atlas UV). The 512x512 RGBA atlas is
-written byte-for-byte. All art is original and procedural.
-"""
+"""Build the original Sunstep tomb props and the SCNET COLLADA/atlas assets."""
 from pathlib import Path
-import math, hashlib, json, struct, zlib, xml.etree.ElementTree as ET
-from PIL import Image
+from collections import defaultdict
+import hashlib
+import json
+import math
+import random
+import xml.etree.ElementTree as ET
+from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'src/SCIEPort/Assets'
-OUTPUT = ROOT / 'artifacts/pyramid-decor'
-OUTPUT.mkdir(parents=True, exist_ok=True)
-
-# One palette entry per 128px atlas tile (4x4 grid). Order defines tile index.
-PALETTE = [
-    ('Sandstone', '#C9A46B'),   # 0 warm limestone
-    ('Gold', '#D9B23C'),        # 1 gilded trim
-    ('Lapis', '#2A4E8C'),       # 2 lapis / blue stripe
-    ('Turquoise', '#2E8B8B'),   # 3 faience
-    ('Clay', '#9C5B3C'),        # 4 terracotta jar
-    ('LinenWad', '#D8C9A6'),    # 5 wrapped linen / shabti
-    ('Obsidian', '#2B2B31'),    # 6 dark stone / anubis
-    ('Shade', '#6E5A3A'),       # 7 carved shadow
-    ('Bone', '#E6DCC0'),        # 8 bone / mask face
-    ('Papyrus', '#CBB887'),     # 9 scroll / offering bread
-    ('Ember', '#E6612A'),       # 10 flame
-    ('RedOchre', '#8E3B2A'),    # 11 red ochre painting
-    ('PaleGold', '#E8CD72'),    # 12 unused tile filler
-    ('DeepLapis', '#1B3663'),   # 13 unused tile filler
-    ('WarmShade', '#5A462C'),   # 14 unused tile filler
-    ('Dust', '#B7A276'),        # 15 unused tile filler
-]
-
-# model name -> list of parts; each part = (role, primitive, params, uv_tile)
-# Primitives use local block coordinates in [0,1] x [0,1] footprint, y up.
-def box(cx, cy, cz, sx, sy, sz, rot=0.0):
-    return ('box', (cx, cy, cz, sx, sy, sz, rot))
-def cyl(cx, cy, cz, r, h, sides=12, r2=None):
-    return ('cyl', (cx, cy, cz, r, h, sides, r2))
-def cone(cx, cy, cz, r, h, sides=12):
-    return ('cone', (cx, cy, cz, r, h, sides, None))
-
-# (role, primitive, uv_tile)
-def part(role, prim, tile):
-    return (role, prim, tile)
-
-MODELS = {}
-# Sarcophagus: closed human-shaped coffin lid; open variant lifts the lid aside.
-MODELS['PyramidSarcophagus'] = [
-    part('Sandstone', box(.5,.14,.5,.82,.28,.44), 0),
-    part('Gold', box(.5,.30,.5,.72,.06,.36), 1),
-    part('Lapis', box(.5,.34,.5,.30,.05,.22), 2),
-    part('LinenWad', cone(.5,.58,.5,.26,.46,12), 5),
-    part('Gold', box(.5,.40,.5,.44,.05,.12), 1),
-    part('Turquoise', box(.5,.72,.5,.20,.06,.14), 3),
-]
-MODELS['PyramidSarcophagusOpen'] = [
-    part('Sandstone', box(.5,.14,.5,.82,.28,.44), 0),
-    part('Shade', box(.5,.29,.5,.66,.05,.30), 7),
-    part('LinenWad', box(.5,.34,.5,.50,.12,.24), 5),
-    part('Gold', box(.5,.20,.78,.72,.06,.36,0.35), 1),
-    part('Lapis', box(.5,.26,.78,.30,.05,.22,0.35), 2),
-    part('LinenWad', cone(.5,.50,.78,.26,.40,12), 5),
-]
-# Canopic jars: four variants with distinct head stoppers (human/baboon/jackal/falcon).
-def canopic(head_tile, beak=False, ears=False):
-    p = [
-        part('Clay', cyl(.5,.20,.5,.22,.40,12,.18), 4),
-        part('Gold', cyl(.5,.41,.5,.20,.05,12), 1),
-        part('LinenWad', cyl(.5,.46,.5,.15,.14,12), 5),
-        part(head_tile, box(.5,.60,.5,.20,.18,.18), head_tile),
-    ]
-    if ears:
-        p += [part(head_tile, box(.40,.74,.5,.05,.16,.06), head_tile),
-              part(head_tile, box(.60,.74,.5,.05,.16,.06), head_tile)]
-    if beak:
-        p += [part('Gold', cone(.5,.62,.60,.06,.14,8), 1)]
-    return p
-MODELS['PyramidCanopicHuman'] = canopic(8)      # Imsety - liver - human
-MODELS['PyramidCanopicBaboon'] = canopic(7)     # Hapy - lungs - baboon
-MODELS['PyramidCanopicJackal'] = canopic(6, ears=True)  # Duamutef - stomach - jackal
-MODELS['PyramidCanopicFalcon'] = canopic(1, beak=True)  # Qebehsenuef - intestines - falcon
-# Storage jar: clay amphora with narrow neck and two handles.
-MODELS['PyramidStorageJar'] = [
-    part('Clay', cyl(.5,.26,.5,.30,.52,12,.16), 4),
-    part('Clay', cyl(.5,.55,.5,.16,.18,12), 4),
-    part('RedOchre', cyl(.5,.66,.5,.18,.05,12), 11),
-    part('Clay', box(.28,.48,.5,.10,.22,.06,0.5), 4),
-    part('Clay', box(.72,.48,.5,.10,.22,.06,-0.5), 4),
-]
-# Shabti: mummy-shaped servant figure with crossed arms and a small basket.
-MODELS['PyramidShabti'] = [
-    part('LinenWad', box(.5,.16,.5,.30,.32,.22), 5),
-    part('LinenWad', cone(.5,.56,.5,.18,.44,10), 5),
-    part('Turquoise', box(.5,.78,.5,.16,.10,.16), 3),
-    part('Gold', box(.5,.66,.5,.28,.05,.10), 1),
-    part('Papyrus', box(.5,.40,.62,.20,.12,.08), 9),
-]
-# Anubis statue: jackal-headed guardian on a plinth.
-MODELS['PyramidAnubisStatue'] = [
-    part('Obsidian', box(.5,.08,.5,.42,.16,.40), 6),
-    part('Obsidian', box(.5,.46,.5,.26,.64,.24), 6),
-    part('Obsidian', box(.5,.84,.5,.24,.22,.22), 6),
-    part('Gold', box(.5,.74,.5,.26,.04,.24), 1),
-    part('Obsidian', box(.41,1.00,.5,.06,.20,.08), 6),
-    part('Obsidian', box(.59,1.00,.5,.06,.20,.08), 6),
-    part('Lapis', box(.43,.86,.62,.05,.04,.02), 2),
-    part('Lapis', box(.57,.86,.62,.05,.04,.02), 2),
-]
-# Offering table: low slab with bread and a libation channel.
-MODELS['PyramidOfferingTable'] = [
-    part('Sandstone', box(.5,.28,.5,.74,.10,.50), 0),
-    part('Sandstone', box(.5,.14,.5,.20,.28,.20), 0),
-    part('Papyrus', cyl(.30,.36,.42,.09,.05,10), 9),
-    part('Papyrus', cyl(.54,.36,.42,.09,.05,10), 9),
-    part('Gold', box(.5,.34,.66,.60,.02,.04), 1),
-]
-# Brazier: stone basin on legs, with a lit flame variant.
-MODELS['PyramidBrazier'] = [
-    part('Obsidian', box(.5,.12,.5,.30,.24,.30), 6),
-    part('Sandstone', cyl(.5,.32,.5,.28,.16,12,.34), 0),
-    part('Gold', cyl(.5,.41,.5,.30,.04,12), 1),
-]
-MODELS['PyramidBrazierLit'] = MODELS['PyramidBrazier'] + [
-    part('Ember', cone(.5,.58,.5,.18,.34,10), 10),
-    part('Ember', cone(.5,.72,.5,.10,.22,8), 10),
-]
-# Book of the Dead scroll: rolled papyrus tied with a linen band.
-MODELS['PyramidBookOfDead'] = [
-    part('Papyrus', cyl(.5,.10,.5,.16,.16,12), 9),
-    part('Papyrus', box(.5,.12,.5,.56,.02,.30), 9),
-    part('LinenWad', box(.5,.13,.5,.06,.04,.32), 5),
-    part('RedOchre', box(.36,.135,.5,.08,.01,.10), 11),
-    part('Lapis', box(.64,.135,.5,.08,.01,.10), 2),
-]
-# Obelisk: tall tapering monument with a gilded pyramidion.
-MODELS['PyramidObelisk'] = [
-    part('Sandstone', box(.5,.06,.5,.44,.12,.44), 0),
-    part('Sandstone', cyl(.5,.78,.5,.24,1.32,4,.16), 0),
-    part('Gold', cone(.5,1.58,.5,.18,.28,4), 1),
-    part('RedOchre', box(.5,.60,.63,.16,.30,.02), 11),
-    part('Lapis', box(.5,1.00,.62,.10,.20,.02), 2),
-]
-
 ATLAS_SIZE = 512
 TILE = 128
+PALETTE = [
+    ('Limestone', '#AA9172'), ('Gold', '#BA8E48'), ('Lapis', '#31576A'), ('Faience', '#3F9990'),
+    ('Terracotta', '#A46048'), ('Linen', '#C2AE87'), ('Basalt', '#333943'), ('Recess', '#514137'),
+    ('Alabaster', '#D9C8A0'), ('Papyrus', '#D4B77C'), ('Flame', '#F58E39'), ('RedGranite', '#835552'),
+    ('CoffinInlay', '#A2763D'), ('Cartouche', '#9C6A61'), ('Coals', '#623734'), ('PaintedBand', '#906D4D'),
+]
+STONE, GOLD, BLUE, JADE, CLAY, LINEN, BLACK, DARK, IVORY, PAPER, FIRE, GRANITE, INLAY, CARVED, COALS, BAND = range(16)
+
 
 def write_atlas():
-    raw = bytearray()
-    colors = []
-    for name, hx in PALETTE:
-        colors.append([int(hx[i:i+2], 16) for i in (1, 3, 5)])
-    for y in range(ATLAS_SIZE):
-        raw.append(0)
-        for x in range(ATLAS_SIZE):
-            k = ((511 - y) // TILE) * 4 + x // TILE
-            base = colors[k]
-            u = (x % TILE) / TILE
-            v = (y % TILE) / TILE
-            n = math.sin(x * 12.9898 + y * 78.233) * 43758.5453
-            n -= math.floor(n)
-            grain = (n - .5) * 10
-            vein = 6 * math.sin(u * 22 + v * 6) * math.cos(v * 17 - u * 4)
-            seam = -24 if (x % TILE < 2 or y % TILE < 2) else 0
-            delta = grain + vein + seam
-            raw.extend(max(0, min(255, round(c + delta))) for c in base)
-            raw.append(255)
-    def chunk(tag, data):
-        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
-    png = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', ATLAS_SIZE, ATLAS_SIZE, 8, 6, 0, 0, 0))
-           + chunk(b'sRGB', b'\x00') + chunk(b'IDAT', zlib.compress(bytes(raw), 9)) + chunk(b'IEND', b''))
+    atlas = Image.new('RGB', (ATLAS_SIZE, ATLAS_SIZE))
+    rng = random.Random(371102)
+    for index, (_, color) in enumerate(PALETTE):
+        base = tuple(bytes.fromhex(color[1:]))
+        surface = Image.new('RGB', (TILE, TILE))
+        fleck = 14 if index in (STONE, BLACK, GRANITE, CARVED) else 7
+        pixels = []
+        for v in range(TILE):
+            for u in range(TILE):
+                grain = rng.triangular(-fleck, fleck)
+                patina = 5 * math.sin(u * .069 + math.sin(v * .054)) + 4 * math.cos(v * .079 - u * .023)
+                if index == FIRE:
+                    patina += 32 * (v / 127 - .4)
+                pixels.append(tuple(max(0, min(255, round(c + grain + patina))) for c in base))
+        surface.putdata(pixels)
+        draw = ImageDraw.Draw(surface)
+        if index in (PAPER, INLAY, CARVED, BAND):
+            ink = {PAPER: '#754732', INLAY: '#395960', CARVED: '#623E3C', BAND: '#325B61'}[index]
+            edge = '#C69D57' if index != PAPER else '#994F3E'
+            draw.rectangle((13, 13, 114, 114), outline=edge, width=3)
+            draw.rectangle((18, 18, 109, 109), outline=ink, width=2)
+            # Original pictographs with broad strokes that remain legible under mipmaps.
+            rows = (34, 58, 82) if index != BAND else (48, 70)
+            for row in rows:
+                for col in (36, 62, 88):
+                    kind = rng.randrange(4)
+                    if kind == 0:
+                        draw.line([(col-8,row+4), (col,row-5), (col+8,row+4), (col-8,row+4)], fill=ink, width=3)
+                    elif kind == 1:
+                        draw.ellipse((col-7, row-5, col+7, row+5), outline=ink, width=3)
+                        draw.line((col, row-3, col, row+3), fill=ink, width=3)
+                    elif kind == 2:
+                        draw.line([(col-7,row+4),(col-4,row-3),(col,row+2),(col+6,row-5)], fill=ink, width=3)
+                    else:
+                        draw.arc((col-6,row-5,col+6,row+7), 0, 180, fill=ink, width=3)
+                        draw.line((col,row, col,row+8), fill=ink, width=3)
+        atlas.paste(surface, ((index % 4) * TILE, (3 - index // 4) * TILE))
     path = ASSETS / 'Textures/PyramidDecor.png'
-    pending = path.with_suffix('.png.pending')
-    pending.write_bytes(png)
-    pending.replace(path)
+    atlas.convert('RGBA').save(path, compress_level=9)
     return path
 
-# ---- geometry builders: return (positions, normals, uvs) triangle soup in game space (x,z,-y) ----
-def emit_box(p, tile, params, seg=2):
-    cx, cy, cz, sx, sy, sz, rot = params
-    hx, hy, hz = sx/2, sy/2, sz/2
-    corners = [(-hx,-hy,-hz),(hx,-hy,-hz),(hx,hy,-hz),(-hx,hy,-hz),
-               (-hx,-hy,hz),(hx,-hy,hz),(hx,hy,hz),(-hx,hy,hz)]
-    faces = [(0,3,2,1),(4,5,6,7),(0,1,5,4),(2,3,7,6),(0,4,7,3),(1,2,6,5)]
-    normals = [(0,-1,0),(0,1,0),(0,0,-1),(0,0,1),(-1,0,0),(1,0,0)]
-    ca, sa = math.cos(rot), math.sin(rot)
-    def xf(v):
-        x, y, z = v
-        xr, zr = x*ca - z*sa, x*sa + z*ca
-        return (cx + xr, cy + y, cz + zr)
-    def lerp(a, b, t):
-        return tuple(a[i] + (b[i]-a[i])*t for i in range(len(a)))
-    for fi, f in enumerate(faces):
-        quad = [xf(corners[i]) for i in f]
-        nrm = normals[fi]
-        nr = (nrm[0]*ca - nrm[2]*sa, nrm[1], nrm[0]*sa + nrm[2]*ca)
-        a, b, c, d = quad
-        uvq = [(0.04,0.04),(0.96,0.04),(0.96,0.96),(0.04,0.96)]
-        for i in range(seg):
-            for j in range(seg):
-                u0, u1 = i/seg, (i+1)/seg
-                v0, v1 = j/seg, (j+1)/seg
-                def surf(u, v):
-                    return lerp(lerp(a,b,u), lerp(d,c,u), v), lerp(lerp(uvq[0],uvq[1],u), lerp(uvq[3],uvq[2],u), v)
-                p00,uv00 = surf(u0,v0); p10,uv10 = surf(u1,v0)
-                p11,uv11 = surf(u1,v1); p01,uv01 = surf(u0,v1)
-                for vtx, uv in ((p00,uv00),(p10,uv10),(p11,uv11),(p00,uv00),(p11,uv11),(p01,uv01)):
-                    p['pos'].append((vtx[0], vtx[2], -vtx[1]))
-                    p['nrm'].append((nr[0], nr[2], -nr[1]))
-                    p['uv'].append(((tile%4 + uv[0])/4, (tile//4 + uv[1])/4))
 
-def emit_lathe(p, tile, params, cone_top=False):
-    cx, cy, cz, r, h, sides, r2 = params
-    rbot, rtop = r, (r2 if r2 is not None else r)
-    if cone_top:
-        rtop = 0.0
-    # side quads
-    for i in range(sides):
-        a0 = 2*math.pi*i/sides
-        a1 = 2*math.pi*(i+1)/sides
-        p0 = (cx+rbot*math.cos(a0), cy, cz+rbot*math.sin(a0))
-        p1 = (cx+rbot*math.cos(a1), cy, cz+rbot*math.sin(a1))
-        p2 = (cx+rtop*math.cos(a1), cy+h, cz+rtop*math.sin(a1))
-        p3 = (cx+rtop*math.cos(a0), cy+h, cz+rtop*math.sin(a0))
-        mx = math.cos((a0+a1)/2); mz = math.sin((a0+a1)/2)
-        nrm = (mx, (rbot-rtop)/max(h,1e-6), mz)
-        ln = math.sqrt(sum(t*t for t in nrm)) or 1
-        nrm = tuple(t/ln for t in nrm)
-        u0, u1 = i/sides, (i+1)/sides
-        if cone_top:
-            quad = [(p0,0.04+u0*.92,0.04),(p1,0.04+u1*.92,0.04),
-                    (p2,0.5,0.96)]
-            order = (0,1,2)
-        else:
-            quad = [(p0,0.04+u0*.92,0.04),(p1,0.04+u1*.92,0.04),
-                    (p2,0.04+u1*.92,0.96),(p3,0.04+u0*.92,0.96)]
-            order = (0,1,2,0,2,3)
-        for idx in order:
-            vtx, u, v = quad[idx]
-            p['pos'].append((vtx[0], vtx[2], -vtx[1]))
-            p['nrm'].append((nrm[0], nrm[2], -nrm[1]))
-            p['uv'].append(((tile%4 + u)/4, (tile//4 + v)/4))
-    # bottom cap
-    for i in range(sides):
-        a0 = 2*math.pi*i/sides; a1 = 2*math.pi*(i+1)/sides
-        c = (cx, cy, cz)
-        v0 = (cx+rbot*math.cos(a0), cy, cz+rbot*math.sin(a0))
-        v1 = (cx+rbot*math.cos(a1), cy, cz+rbot*math.sin(a1))
-        for vtx in (c, v1, v0):
-            p['pos'].append((vtx[0], vtx[2], -vtx[1]))
-            p['nrm'].append((0,0,1))
-            p['uv'].append(((tile%4 + .5)/4, (tile//4 + .5)/4))
-    # top cap (skip for cone)
-    if not cone_top and rtop > 1e-6:
-        for i in range(sides):
-            a0 = 2*math.pi*i/sides; a1 = 2*math.pi*(i+1)/sides
-            c = (cx, cy+h, cz)
-            v0 = (cx+rtop*math.cos(a0), cy+h, cz+rtop*math.sin(a0))
-            v1 = (cx+rtop*math.cos(a1), cy+h, cz+rtop*math.sin(a1))
-            for vtx in (c, v0, v1):
-                p['pos'].append((vtx[0], vtx[2], -vtx[1]))
-                p['nrm'].append((0,0,-1))
-                p['uv'].append(((tile%4 + .5)/4, (tile//4 + .5)/4))
+def circle(sides):
+    return [(math.cos(math.tau * i / sides), math.sin(math.tau * i / sides)) for i in range(sides)]
 
-def build_parts(parts):
-    meshes = []
-    for role, prim, tile in parts:
-        p = {'pos':[], 'nrm':[], 'uv':[]}
-        kind, params = prim
-        if kind == 'box':
-            emit_box(p, tile, params)
-        elif kind == 'cyl':
-            emit_lathe(p, tile, params, cone_top=False)
-        elif kind == 'cone':
-            emit_lathe(p, tile, params, cone_top=True)
-        meshes.append((role, p))
-    return meshes
+
+CHAMFER = [(1,-.79),(1,.79),(.79,1),(-.79,1),(-1,.79),(-1,-.79),(-.79,-1),(.79,-1)]
+COFFIN = [(1,-.62),(.86,.42),(.66,.81),(.36,1),(-.36,1),(-.66,.81),(-.86,.42),(-1,-.62),(-.72,-1),(.72,-1)]
+
+
+class Prop:
+    def __init__(self):
+        self.meshes = defaultdict(lambda: {'pos': [], 'nrm': [], 'uv': []})
+
+    def face(self, tile, positions, uv, transform=None):
+        if transform:
+            positions = [transform(*point) for point in positions]
+        for b in range(1, len(positions) - 1):
+            points = [positions[i] for i in (0, b, b+1)]
+            a, bpoint, c = points
+            left = [bpoint[i] - a[i] for i in range(3)]
+            right = [c[i] - a[i] for i in range(3)]
+            normal = (left[1]*right[2]-left[2]*right[1], left[2]*right[0]-left[0]*right[2],
+                      left[0]*right[1]-left[1]*right[0])
+            length = math.sqrt(sum(v*v for v in normal))
+            if length < 1e-10:
+                continue
+            mesh = self.meshes[tile]
+            mesh['pos'].extend(points)
+            mesh['nrm'].extend([tuple(v / length for v in normal)] * 3)
+            for i in (0, b, b+1):
+                u, v = uv[i]
+                mesh['uv'].append(((tile % 4 + .055 + u*.89)/4, (tile//4 + .055 + v*.89)/4))
+
+    def profile(self, rings, tiles, shape=None, sides=12, center=(0,0), transform=None, cap=None, strip=False):
+        """Join (y, x-radius, z-radius[, x, z]) rings and cap both ends."""
+        shape = circle(sides) if shape is None else shape
+        points = []
+        for y, rx, rz, *offset in rings:
+            x, z = offset or center
+            points.append([(x+u*rx,y,z+v*rz) for u,v in shape])
+        for row, (a,b) in enumerate(zip(points, points[1:])):
+            tile = tiles if isinstance(tiles, int) else tiles[row]
+            for i in range(len(shape)):
+                j = (i+1) % len(shape)
+                lo, hi = (i/len(shape),(i+1)/len(shape)) if strip else (0,1)
+                self.face(tile, [a[i],b[i],b[j],a[j]], [(lo,0),(lo,1),(hi,1),(hi,0)], transform)
+        bottom, top = (tiles, tiles) if isinstance(tiles, int) else (tiles[0], tiles[-1])
+        cap_uv = [(.5+u*.5,.5+v*.5) for u,v in shape]
+        self.face(bottom, points[0], cap_uv, transform)
+        self.face(top if cap is None else cap, points[-1][::-1], cap_uv[::-1], transform)
+
+    def banded_box(self, x, y, z, rx, rz, h, tile, cap=None):
+        bevel = min(.022, h*.25, rx*.18, rz*.18)
+        self.profile([(y,rx-bevel,rz-bevel),(y+bevel,rx,rz),(y+h-bevel,rx,rz),(y+h,rx-bevel,rz-bevel)],
+                     tile, CHAMFER, center=(x,z), cap=cap)
+
+    def oval(self, x, y, z, rx, ry, rz, tile, sides=10):
+        rings = [(y+ry*h, rx*w, rz*w) for h,w in [(-1,.10),(-.75,.66),(-.36,.93),(.15,1),(.65,.76),(1,.10)]]
+        self.profile(rings,tile,sides=sides,center=(x,z))
+
+    def rod(self, start, end, radius, tile, end_radius=None, sides=8):
+        dx, dy, dz = (end[i]-start[i] for i in range(3))
+        length = math.sqrt(dx*dx+dy*dy+dz*dz)
+        axis = (dx/length,dy/length,dz/length)
+        ref = (0,1,0) if abs(axis[1]) < .9 else (1,0,0)
+        normal = (axis[1]*ref[2]-axis[2]*ref[1],axis[2]*ref[0]-axis[0]*ref[2],axis[0]*ref[1]-axis[1]*ref[0])
+        norm = math.sqrt(sum(c*c for c in normal))
+        u = tuple(c/norm for c in normal)
+        v = (u[1]*axis[2]-u[2]*axis[1],u[2]*axis[0]-u[0]*axis[2],u[0]*axis[1]-u[1]*axis[0])
+        def transform(x,y,z):
+            return tuple(start[i]+u[i]*x+axis[i]*y+v[i]*z for i in range(3))
+        tip = radius if end_radius is None else end_radius
+        self.profile([(0,radius,radius),(length,tip,tip)], tile, sides=sides, transform=transform)
+
+    def parts(self):
+        return [(PALETTE[tile][0], mesh) for tile,mesh in sorted(self.meshes.items())]
+
+
+def mask(prop,x,y,z,tile=IVORY):
+    prop.oval(x,y,z,.067,.072,.051,tile)
+    prop.oval(x,y-.008,z+.045,.016,.027,.026,tile,8)
+    for side in (-1,1):
+        prop.rod((x+side*.021,y+.011,z+.046),(x+side*.047,y+.017,z+.042),.006,BLACK)
+    prop.rod((x-.021,y-.031,z+.045),(x+.021,y-.031,z+.045),.004,GRANITE)
+
+
+def coffin(opened):
+    p = Prop()
+    x = -.16 if opened else 0
+    p.profile([(0,.185,.407),(.031,.216,.431),(.17,.219,.429),(.195,.230,.438),(.222,.216,.422),
+               (.222,.179,.383),(.082,.158,.344)], [STONE,STONE,STONE,GOLD,DARK,DARK], COFFIN,center=(x,0))
+    def lid(x0,y,z):
+        if not opened:
+            return x0,y+.205,z
+        angle = -1.09
+        return .15+x0*math.cos(angle)-y*math.sin(angle), .182+x0*math.sin(angle)+y*math.cos(angle),z*.96
+    p.profile([(0,.205,.419),(.027,.219,.429),(.066,.205,.414),(.092,.184,.391)],
+              [BLUE,GOLD,BLUE],COFFIN,transform=lid,cap=INLAY)
+    p.profile([(.089,.091,.114,0,.249),(.122,.084,.109,0,.249),(.136,.064,.086,0,.269)],
+              [BLUE,GOLD],CHAMFER,transform=lid,cap=IVORY)
+    p.profile([(.136,.018,.030,0,.267),(.156,.011,.021,0,.263)],IVORY,CHAMFER,transform=lid)
+    for x0 in (-.034,.034):
+        p.profile([(.136,.021,.007,x0,.293),(.140,.019,.005,x0,.294)],BLACK,CHAMFER,transform=lid)
+    p.profile([(.136,.025,.006,0,.227),(.140,.022,.004,0,.227)],GRANITE,CHAMFER,transform=lid)
+    for side in (-1,1):
+        p.profile([(.09,.018,.20,side*.107,-.029),(.103,.016,.179,side*.107,-.027)],
+                  GOLD, CHAMFER,transform=lid)
+    if opened:
+        p.oval(x,.107,.017,.109,.047,.271,LINEN,12)
+        p.oval(x,.126,.273,.065,.052,.068,LINEN,10)
+        for z in (-.16,-.07,.02,.11):
+            p.banded_box(x,.124,z,.093,.015,.012,IVORY)
+    return p
+
+
+def canopic(kind):
+    p = Prop()
+    p.profile([(0,.116,.116),(.032,.143,.143),(.092,.153,.153),(.23,.211,.199),(.337,.204,.193),
+               (.407,.157,.153),(.442,.146,.143),(.476,.151,.148)],
+              [STONE,GOLD,IVORY,IVORY,BAND,IVORY,GOLD],sides=14,strip=True)
+    p.profile([(.458,.117,.114),(.489,.139,.127),(.526,.121,.111)], [STONE,BLUE],sides=12)
+    if kind == 'Human':
+        p.oval(0,.614,-.013,.103,.112,.092,BLUE)
+        mask(p,0,.607,.063)
+        p.rod((0,.557,.098),(0,.527,.089),.015,GOLD,sides=6)
+    elif kind == 'Baboon':
+        p.oval(0,.615,-.011,.113,.105,.091,STONE)
+        for side in (-1,1):
+            p.oval(side*.094,.604,.034,.026,.037,.027,IVORY,8)
+            p.oval(side*.04,.622,.069,.024,.022,.021,IVORY,8)
+            p.oval(side*.04,.622,.088,.011,.011,.01,BLACK,8)
+        p.oval(0,.567,.089,.068,.041,.062,GRANITE)
+        p.rod((-.044,.558,.131),(.044,.558,.131),.005,DARK)
+    elif kind == 'Jackal':
+        jackal(p, .601, 0, .80, BLACK)
+    else:
+        p.oval(0,.617,-.004,.099,.112,.09,IVORY)
+        p.oval(0,.666,-.026,.102,.069,.091,BLUE)
+        for side in (-1,1):
+            p.oval(side*.052,.62,.065,.022,.024,.025,GOLD,8)
+            p.oval(side*.052,.622,.088,.012,.012,.010,BLACK,8)
+        p.rod((0,.616,.074),(0,.595,.142),.035,GOLD,.020)
+        p.rod((0,.595,.142),(0,.55,.122),.020,GOLD,.006)
+    return p
+
+
+def jackal(p,y,z,scale,tile):
+    p.oval(0,y,z,.103*scale,.096*scale,.108*scale,tile)
+    p.rod((0,y-.018*scale,z+.051*scale),(0,y-.032*scale,z+.218*scale),.073*scale,tile,.034*scale)
+    p.oval(0,y-.029*scale,z+.214*scale,.037*scale,.025*scale,.021*scale,BLACK,8)
+    for side in (-1,1):
+        x = side*.066*scale
+        p.profile([(y+.047*scale,.043*scale,.035*scale,x,z-.025*scale),
+                   (y+.136*scale,.025*scale,.020*scale,x*1.17,z-.031*scale),
+                   (y+.196*scale,.006*scale,.007*scale,x*1.25,z-.025*scale)],tile,CHAMFER)
+        p.rod((x,y+.066*scale,z+.004*scale),(x*1.22,y+.151*scale,z-.012*scale),.011*scale,GOLD,.004*scale)
+        p.oval(x,y+.016*scale,z+.087*scale,.016*scale,.012*scale,.013*scale,GOLD,8)
+
+
+def storage_jar():
+    p = Prop()
+    p.profile([(0,.125,.124),(.036,.157,.143),(.101,.19,.171),(.214,.248,.216),(.338,.238,.207),
+               (.417,.185,.163),(.474,.119,.115),(.566,.104,.101),(.582,.133,.120),(.614,.133,.12),
+               (.614,.094,.088),(.455,.082,.078)], [CLAY,CLAY,CLAY,CLAY,BAND,CLAY,CLAY,CLAY,GRANITE,CLAY,DARK],
+              sides=16,strip=True)
+    for side in (-1,1):
+        nodes = [(side*.105,.536,0),(side*.206,.515,0),(side*.261,.46,0),(side*.258,.398,0),(side*.213,.352,0)]
+        for a,b in zip(nodes,nodes[1:]):
+            p.rod(a,b,.023,CLAY)
+    return p
+
+
+def shabti():
+    p = Prop()
+    p.banded_box(0,0,0,.143,.112,.052,BLACK)
+    p.profile([(.052,.093,.075),(.087,.102,.086),(.255,.086,.072),(.459,.119,.076),
+               (.562,.145,.086),(.625,.101,.073),(.656,.074,.064)], [JADE,JADE,JADE,JADE,GOLD,JADE],CHAMFER,cap=JADE)
+    p.oval(0,.722,-.017,.094,.108,.076,BLUE)
+    mask(p,0,.715,.041,JADE)
+    p.rod((-.087,.555,.072),(.078,.45,.083),.024,JADE)
+    p.rod((.086,.55,.080),(-.073,.469,.102),.021,IVORY)
+    p.rod((-.099,.445,.092),(-.059,.604,.10),.009,GOLD)
+    p.rod((.1,.445,.09),(.068,.602,.10),.009,GOLD)
+    return p
+
+
+def anubis():
+    p = Prop()
+    p.banded_box(0,0,0,.258,.389,.065,BLACK)
+    p.banded_box(0,.065,0,.231,.355,.024,GOLD)
+    p.banded_box(0,.088,0,.219,.338,.042,BLUE)
+    p.oval(0,.275,-.048,.14,.137,.259,BLACK,12)
+    p.oval(0,.277,.126,.125,.139,.099,BLACK)
+    for side in (-1,1):
+        p.rod((side*.092,.187,.097),(side*.099,.167,.316),.044,BLACK,.031)
+        p.oval(side*.099,.167,.294,.045,.029,.055,BLACK)
+    p.profile([(.288,.102,.084,0,.143),(.378,.110,.092,0,.138),(.428,.086,.081,0,.135),
+               (.492,.077,.073,0,.134)], [BLACK,GOLD,BLACK], sides=12)
+    jackal(p,.519,.135,1,BLACK)
+    p.rod((.023,.291,-.255),(.089,.17,-.315),.036,BLACK,.022)
+    p.rod((.089,.17,-.315),(.178,.155,-.271),.022,BLACK,.013)
+    return p
+
+
+def offering():
+    p = Prop()
+    p.banded_box(0,0,0,.254,.185,.053,STONE)
+    p.profile([(.053,.162,.111),(.091,.138,.091),(.246,.097,.073),(.285,.144,.111)],
+              [STONE,STONE,BAND], CHAMFER)
+    p.profile([(.277,.318,.218),(.317,.376,.251),(.369,.365,.247),(.369,.32,.205),(.332,.312,.198)],
+              [STONE,STONE,GOLD,STONE],CHAMFER)
+    for x,z,rx in [(-.173,.039,.081),(.013,.09,.078),(.087,-.073,.065)]:
+        p.oval(x,.356,z,rx,.053,.049,PAPER,8)
+    p.profile([(.332,.066,.064,.216,.048),(.407,.083,.081,.216,.048),(.421,.080,.078,.216,.048),
+               (.421,.063,.062,.216,.048),(.387,.056,.055,.216,.048)], [CLAY,BLUE,CLAY,DARK])
+    return p
+
+
+def brazier(lit):
+    p = Prop()
+    p.banded_box(0,0,0,.222,.222,.055,BLACK)
+    p.profile([(.052,.156,.156),(.103,.142,.142),(.263,.106,.106),(.297,.124,.124)], [GOLD,BLACK,GOLD],CHAMFER)
+    p.profile([(.271,.139,.139),(.302,.209,.209),(.375,.284,.284),(.422,.293,.293),(.439,.286,.286),
+               (.439,.253,.253),(.349,.181,.181)], [BLACK,BLACK,BLACK,GOLD,BLUE,DARK],sides=14)
+    for x,z in [(-.09,-.06),(.07,-.083),(-.007,.095),(.129,.039)]:
+        p.oval(x,.368,z,.082,.034,.054,COALS,8)
+    if lit:
+        for x,z,h,lean in [(-.069,-.011,.729,-.057),(.029,.045,.824,.044),(.086,-.054,.699,.077)]:
+            p.profile([(.389,.076,.061,x,z),(.475,.085,.073,x,z),(.579,.050,.044,x+lean*.25,z),
+                       (h-.042,.027,.026,x+lean*.66,z+.009),(h,.004,.004,x+lean,z+.028)],
+                      [COALS,FIRE,FIRE,GOLD],sides=9)
+    return p
+
+
+def scroll():
+    p = Prop()
+    p.profile([(0,.315,.216),(.015,.342,.229),(.029,.321,.217)], [LINEN,PAPER], CHAMFER,cap=PAPER)
+    for x in (-.301,.301):
+        p.rod((x,.068,-.222),(x,.068,.222),.058,LINEN,sides=12)
+        p.rod((x,.068,-.231),(x,.068,.231),.018,GRANITE,sides=10)
+        for z in (-.164,.164):
+            p.rod((x,.069,z-.012),(x,.069,z+.012),.059,GOLD,sides=12)
+    return p
+
+
+def obelisk():
+    p = Prop()
+    p.banded_box(0,0,0,.241,.241,.050,BLACK)
+    p.banded_box(0,.05,0,.206,.206,.066,GRANITE)
+    p.banded_box(0,.116,0,.175,.175,.045,STONE)
+    p.profile([(.16,.140,.140),(.217,.139,.139),(.748,.089,.089),(.769,.093,.093)],
+              [GRANITE,GRANITE,GOLD],CHAMFER)
+    p.profile([(.767,.094,.094),(.908,.002,.002)],GOLD,CHAMFER)
+    for side in (-1,1):
+        def face(x,y,z):
+            return (x,y,z*side)
+        # Cap the carved plaque on both sides, with text mapped to a continuous field.
+        p.banded_box(0,.177,side*.133,.079,.013,.028,GRANITE)
+        vertices = [(-.063,.238,.140),(.063,.238,.140),(.055,.693,.098),(-.055,.693,.098)]
+        uv = [(0,0),(1,0),(1,1),(0,1)]
+        p.face(CARVED,vertices if side==1 else vertices[::-1],uv if side==1 else uv[::-1],face)
+    return p
+
+
+MODELS = {
+    'Sarcophagus': lambda: coffin(False), 'SarcophagusOpen': lambda: coffin(True),
+    **{'Canopic'+name: (lambda kind=name: canopic(kind)) for name in ('Human','Baboon','Jackal','Falcon')},
+    'StorageJar': storage_jar, 'Shabti': shabti, 'AnubisStatue': anubis,
+    'OfferingTable': offering, 'Brazier': lambda: brazier(False), 'BrazierLit': lambda: brazier(True),
+    'BookOfDead': scroll, 'Obelisk': obelisk,
+}
 
 NS = 'http://www.collada.org/2005/11/COLLADASchema'
 ET.register_namespace('', NS)
@@ -339,29 +395,20 @@ def export_model(name, meshes):
 
 def main():
     atlas = write_atlas()
-    atlas_hash = hashlib.sha256(atlas.read_bytes()).hexdigest()
-    reports = []
-    for name, parts in MODELS.items():
-        meshes = build_parts(parts)
-        report = export_model(name, meshes)
-        assert 100 <= report['triangles'] <= 6000, (name, report['triangles'])
-        reports.append(report)
+    reports = [export_model('Pyramid'+name, model().parts()) for name, model in MODELS.items()]
     manifest = {
-        'artRevision': 'Egyptian tomb decor V1',
-        'status': '待验证',
-        'author': 'Original project procedural geometry and atlas',
+        'artRevision': 'Sunstep tomb decor V2',
+        'author': 'Original project geometry and illustrated atlas',
         'generatorSha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        'textureSha256': atlas_hash,
+        'textureSha256': hashlib.sha256(atlas.read_bytes()).hexdigest(),
         'textureSize': [ATLAS_SIZE, ATLAS_SIZE],
-        'palette': [{'name':n,'color':h} for n,h in PALETTE],
+        'palette': [{'name': name, 'color': color} for name,color in PALETTE],
         'models': reports,
     }
-    mp = ROOT / 'docs/assets/pyramid-decor/manifest.json'
-    mp.parent.mkdir(parents=True, exist_ok=True)
-    mp.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding='utf-8')
-    for r in reports:
-        (OUTPUT/(r['name']+'.json')).write_text(json.dumps(r, indent=2), encoding='utf-8')
-    print(f"Generated {len(reports)} Egyptian decor models, {sum(r['triangles'] for r in reports)} triangles, atlas {atlas_hash[:16]}")
+    path = ROOT / 'docs/assets/pyramid-decor/manifest.json'
+    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(f"Generated {len(reports)} decor models, {sum(r['triangles'] for r in reports)} triangles.")
+
 
 if __name__ == '__main__':
     main()

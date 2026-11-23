@@ -14,6 +14,7 @@ namespace SCIEPort.Features.Pyramid
         /// <summary>Reserved content index; Terrain.ContentsMask caps block IDs at 1023.</summary>
         public const int Index = PyramidDecorRules.Index;
         private readonly Dictionary<int, BlockMesh> meshes = new Dictionary<int, BlockMesh>();
+        private readonly Dictionary<int, BoundingBox[]> boundsByData = new Dictionary<int, BoundingBox[]>();
         private readonly Dictionary<int, Vector3> iconOffsets = new Dictionary<int, Vector3>();
         private Texture2D texture;
         /// <inheritdoc/>
@@ -29,11 +30,10 @@ namespace SCIEPort.Features.Pyramid
                 BlockMesh mesh = CreateMesh(data, rotation);
                 mesh.GenerateSidesData();
                 meshes[data] = mesh;
-                if (state == 0 && rotation == 0)
-                {
-                    BoundingBox bounds = mesh.CalculateBoundingBox();
+                BoundingBox bounds = mesh.CalculateBoundingBox();
+                boundsByData[data] = new[] { bounds };
+                if (rotation == 0)
                     iconOffsets[PyramidDecorRules.ItemData(data)] = -.5f * (bounds.Min + bounds.Max);
-                }
             }
             base.Initialize();
         }
@@ -49,8 +49,10 @@ namespace SCIEPort.Features.Pyramid
         }
         private int Data(int value) => PyramidDecorRules.Normalize(Terrain.ExtractData(value));
         /// <inheritdoc/>
-        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value)
-            => new[] { new BoundingBox(new Vector3(.08f, 0, .08f), new Vector3(.92f, .92f, .92f)) };
+        public override BoundingBox[] GetCustomCollisionBoxes(SubsystemTerrain terrain, int value) => boundsByData[Data(value)];
+        /// <inheritdoc/>
+        public override BoundingBox[] GetCustomInteractionBoxes(SubsystemTerrain terrain, int value)
+            => GetCustomCollisionBoxes(terrain, value);
         /// <inheritdoc/>
         public override bool IsFaceTransparent(SubsystemTerrain terrain, int face, int value) => true;
         /// <inheritdoc/>

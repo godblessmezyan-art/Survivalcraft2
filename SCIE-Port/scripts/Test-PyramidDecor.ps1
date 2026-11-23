@@ -10,11 +10,25 @@ foreach($entry in $manifest.models){
     $stream=[IO.File]::OpenRead($path)
     try{$model=[Engine.Media.ModelData]::Load($stream)}finally{$stream.Dispose()}
     $count=0
-    foreach($mesh in $model.Meshes){foreach($part in $mesh.MeshParts){$count+=$part.IndicesCount/3}}
+    $lowest=[single]::PositiveInfinity
+    foreach($mesh in $model.Meshes){
+        foreach($part in $mesh.MeshParts){
+            $count+=$part.IndicesCount/3
+            $box=$part.BoundingBox
+            $lowest=[Math]::Min($lowest,$box.Min.Y)
+            if ($box.Min.X -le -.5 -or $box.Max.X -ge .5 -or $box.Min.Z -le -.5 -or $box.Max.Z -ge .5 -or
+                $box.Min.Y -lt -0.00001 -or $box.Max.Y -gt 1) {
+                throw "Pyramid decor leaves its block after native import: $($entry.name) $box"
+            }
+        }
+    }
+    if ([Math]::Abs($lowest) -gt 0.00001) { throw "Pyramid decor has no floor contact: $($entry.name)" }
     if($model.Bones.Count -ne 1 -or $model.Meshes.Count -ne $entry.meshes -or $count -ne $entry.triangles){throw "Actual SCNET import failed: $($entry.name) bones=$($model.Bones.Count) meshes=$($model.Meshes.Count) tris=$count expected=$($entry.triangles)/$($entry.meshes)"}
     $triangles+=$count
 }
-$stream=[IO.File]::OpenRead((Join-Path $root 'src/SCIEPort/Assets/Textures/PyramidDecor.png'))
+$atlas=Join-Path $root 'src/SCIEPort/Assets/Textures/PyramidDecor.png'
+if ((Get-FileHash -LiteralPath $atlas).Hash -ne $manifest.textureSha256) { throw 'Pyramid decor atlas hash drift.' }
+$stream=[IO.File]::OpenRead($atlas)
 try{$image=[Engine.Media.Image]::Load($stream)}finally{$stream.Dispose()}
 if($image.Width -ne 512 -or $image.Height -ne 512){throw 'Native PyramidDecor PNG decoding failed'}
 if($AssemblyPath){
@@ -31,4 +45,4 @@ if($AssemblyPath){
     }
     Write-Output 'Pyramid decor block 886 and mountain shelter block 947 registered; no duplicates.'
 }
-Write-Output "Pyramid decor: $($manifest.models.Count) models / $triangles triangles imported by target Engine, atlas decoded."
+Write-Output "Pyramid decor: $($manifest.models.Count) centered and grounded models / $triangles triangles imported by target Engine, atlas decoded."
