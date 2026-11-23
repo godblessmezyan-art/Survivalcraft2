@@ -54,7 +54,6 @@ public static class VolcanoNativeProbe
     {
         internal readonly string Kind;
         internal readonly int X, Z, Base, Radius, Sea;
-        internal readonly Point2 Facing;
 
         internal Site(object site)
         {
@@ -64,15 +63,10 @@ public static class VolcanoNativeProbe
             Base = Read<int>(site, "Base");
             Radius = Read<int>(site, "Radius");
             Sea = Read<int>(site, "Sea");
-            Facing = Read<Point2>(site, "Facing");
         }
 
         internal Point2 Crater { get { return new Point2(X, Z); } }
         internal int Floor { get { return Base + (Kind == Lakes ? 4 : -4); } }
-        internal Point2 At(int side, int outward)
-        {
-            return new Point2(X - outward * Facing.X - side * Facing.Y, Z - outward * Facing.Y + side * Facing.X);
-        }
         public override string ToString() { return Kind + " (" + X + "," + Z + ") Y=" + Floor; }
     }
 
@@ -116,7 +110,7 @@ public static class VolcanoNativeProbe
                 var world = fixture(mode, seed);
                 ITerrainContentsGenerator contents = Generator(world, mode);
                 var chunks = Build(world.Terrain, contents, site, seed, mode, false);
-                Route(world.Terrain, site);
+                Ring(world.Terrain, site);
                 if (site.Kind != Active) continue;
                 Lava(world.Terrain, site);
                 if (site != sample[0]) continue;
@@ -171,58 +165,25 @@ public static class VolcanoNativeProbe
         return 0;
     }
 
-    private static void Route(Terrain terrain, Site site)
+    private static void Ring(Terrain terrain, Site site)
     {
-        var heights = new Dictionary<Point2, int>();
-        int end = site.Radius - 1;
-        for (int step = 8; step <= end; step++)
-        for (int side = -2; side <= 2; side++)
+        // Any low breach would connect the open exterior to the crater at this elevation.
+        // Cardinal angles cover the old entrance and rear tunnel, with all other directions sampled too.
+        double radius = site.Radius * .57;
+        for (int bearing = 0; bearing < 360; bearing++)
         {
-            Point2 point = site.At(side, step);
-            int y = Ground(terrain, point);
-            heights.Add(new Point2(side, step), y);
-            if (Blocked(terrain, point, y + 1) || Blocked(terrain, point, y + 2))
-                heights[new Point2(side, step)] = -256;
-            int id = terrain.GetCellContents(point.X, y, point.Y);
-            Check(id != MagmaBlock.Index && id != WaterBlock.Index, "dry corridor " + site + " step " + step);
+            double angle = bearing * Math.PI / 180;
+            var point = new Point2(site.X + (int)Math.Round(Math.Cos(angle) * radius),
+                site.Z + (int)Math.Round(Math.Sin(angle) * radius));
+            int height = Ground(terrain, point);
+            Check(height >= site.Floor + 18, "unbroken crater rim at " + point + " " + site + " height " + height);
+            for (int y = height - 3; y <= height; y++)
+                Check(BlocksManager.Blocks[terrain.GetCellContents(point.X, y, point.Y)].IsCollidable,
+                    "solid rock under crest at " + point);
+            for (int y = site.Floor + 3; y <= site.Floor + 8; y++)
+                Check(BlocksManager.Blocks[terrain.GetCellContents(point.X, y, point.Y)].IsCollidable,
+                    "no old radial passage under the crest at " + point);
         }
-        int middle = site.Radius * 57 / 100;
-        int crown = Math.Max(Ground(terrain, site.At(-8, middle)), Ground(terrain, site.At(8, middle)));
-        Check(crown - Ground(terrain, site.At(0, middle)) >= 9, "crest has a visible opening " + site);
-        var queue = new Queue<Point2>();
-        var reached = new HashSet<Point2>();
-        for (int side = -2; side <= 2; side++)
-        {
-            Point2 start = new Point2(side, 8);
-            if (Math.Abs(heights[start] - site.Floor) > 1) continue;
-            queue.Enqueue(start);
-            reached.Add(start);
-        }
-        while (queue.Count != 0)
-        {
-            Point2 position = queue.Dequeue();
-            foreach (var step in Steps)
-            {
-                Point2 next = position + step;
-                int height;
-                if (heights.TryGetValue(next, out height) && height > 0 && Math.Abs(height - heights[position]) <= 1 && reached.Add(next))
-                    queue.Enqueue(next);
-            }
-        }
-        Check(reached.Any(p => p.Y == end), "one-block step route through outer apron " + site +
-            ", reached " + (reached.Count == 0 ? 0 : reached.Max(p => p.Y)) + ", center=" +
-            string.Join(",", Enumerable.Range(8, end - 7).Select(i =>
-            {
-                Point2 point = site.At(0, i);
-                int y = heights[new Point2(0, i)];
-                return y + "/" + terrain.GetCellContents(point.X, y, point.Y);
-            })));
-    }
-
-    private static bool Blocked(Terrain terrain, Point2 point, int y)
-    {
-        int contents = terrain.GetCellContents(point.X, y, point.Y);
-        return contents != SnowBlock.Index && BlocksManager.Blocks[contents].IsCollidable;
     }
 
     private static void Lava(Terrain terrain, Site site)

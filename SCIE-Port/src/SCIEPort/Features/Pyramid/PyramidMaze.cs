@@ -8,6 +8,7 @@ namespace SCIEPort.Features.Pyramid
         internal const int Width = 8, Count = Width * Width, Levels = 3, Spacing = 6;
         internal static readonly Point3 Display = new Point3(61, -10, 64);
         internal static readonly Point3 Entrance = new Point3(37, 1, 12);
+        internal static readonly Point3 TombEntrance = new Point3(37, 1, 10);
         private static readonly int[] Starts = { 3, 6 * Width + 7, Width };
         private static readonly int[] Ends = { Count - 1, 0, Count - 1 };
         private readonly byte[][] passages = new byte[Levels][];

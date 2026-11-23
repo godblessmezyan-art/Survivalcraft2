@@ -4,7 +4,7 @@ namespace SCIEPort.Features.Pyramid
 {
     internal static class PyramidTerrain
     {
-        internal static bool Apply(TerrainChunk chunk, PyramidSite site)
+        internal static PyramidLayout Prepare(TerrainChunk chunk, PyramidSite site)
         {
             var plan = new PyramidLayout(site, chunk.Origin);
             for (int z = 0; z < 16; z++)
@@ -14,8 +14,18 @@ namespace SCIEPort.Features.Pyramid
                 int value = plan.At(x, y, z);
                 if (value < 0) continue;
                 int old = Terrain.ExtractContents(chunk.GetCellValueFast(x, site.BaseY + y, z));
-                if (!Natural(old)) return false;
+                if (!Natural(old))
+                {
+                    Engine.Log.Warning("[SCIEPort] Pyramid slice " + chunk.Coords + " contains protected block " + old +
+                        " at " + (chunk.Origin.X + x) + "," + (site.BaseY + y) + "," + (chunk.Origin.Y + z) + ".");
+                    return null;
+                }
             }
+            return plan;
+        }
+
+        internal static void Write(TerrainChunk chunk, PyramidSite site, PyramidLayout plan)
+        {
             for (int z = 0; z < 16; z++)
             for (int x = 0; x < 16; x++)
             for (int y = PyramidLayout.LowY; y <= PyramidLayout.HighY; y++)
@@ -32,7 +42,6 @@ namespace SCIEPort.Features.Pyramid
                 chunk.SetCellValueFast(x, height, z, value);
             }
             chunk.ModificationCounter++;
-            return true;
         }
 
         private static bool Natural(int contents)

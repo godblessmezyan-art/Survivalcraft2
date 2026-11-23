@@ -1,5 +1,15 @@
 # 测试结果
 
+## 2026-11-23 · 1.7.0 石灰岩金字塔与环壁火山
+
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标程序集与公开 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/tomb-volcano-1.7.0`，退出 0，Release 编译 0 警告、0 错误。书柜、五分类、钓鱼、云天书典等统一包回归通过。
+- 金字塔通过 14,832 项原生检查。模拟原生第四阶段装饰会让旧表拒绝目标格的用例，确认提前预检后可完整落下切片。检查覆盖受保护块、已保存区块、负坐标、切片顺序和三种地形的封闭性、入口及陈列器。25 个布局种子的墓道最短路径为 634–824 方格步，旧 1.6 记录仍按旧几何绘制。
+- 守卫通过 189 项原生检查，覆盖缺失远处切片时触发入口木乃伊、生成点所在切片缺失时跳过、其余七个木乃伊点位、单一法老、占位与净空以及重载不重复生成。
+- 火山通过 77,829 项原生检查。覆盖三种变体的整圈山脊、山脊下旧通道高度的岩基、余火型池床、137 格液面和围岸、跨区块顺序以及保存区块保护。
+- 两份安装包字节一致，237 个条目、13,226,597 字节，SHA-256 为 `2F4BAD821E6ADA6C27E9EDBEB29B2DE97B7D1370579B2A092EA914858349D2CD`。与 1.6.0 运行包逐条比较，仅主 DLL 和版本元数据不同。
+- Android 7723 实机、已有存档的实际守卫行为及房主和客户端同步 **待验证**。[复测点](TOMB-VOLCANO-1.7.0.md)
+
 ## 2026-11-23 · 1.6.0 日阶迷宫
 
 - 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，Windows 目标程序集哈希与 ABI 检查通过。

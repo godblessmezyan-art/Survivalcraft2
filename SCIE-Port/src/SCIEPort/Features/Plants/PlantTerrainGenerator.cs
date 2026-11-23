@@ -61,9 +61,28 @@ namespace SCIEPort.Features.Plants
 
         public void GenerateChunkContentsPass4(TerrainChunk chunk)
         {
+            bool authoritative = CommonLib.WorkType != WorkType.Client &&
+                gameInfo.WorldSettings.TerrainGenerationMode != TerrainGenerationMode.Nihility;
+            SubsystemPyramid.Placement pyramidPlacement = null;
+            if (authoritative)
+            {
+                try
+                {
+                    // Hook contributions are already present. Native pass four runs between our preflight and stamp.
+                    pyramidPlacement = pyramid?.Prepare(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode);
+                }
+                catch (Exception error)
+                {
+                    Log.Error("[SCIEPort] Pyramid preparation failed: " + error);
+                }
+            }
             original.GenerateChunkContentsPass4(chunk);
-            if (CommonLib.WorkType == WorkType.Client || gameInfo.WorldSettings.TerrainGenerationMode == TerrainGenerationMode.Nihility)
+            if (!authoritative) return;
+            if (pyramidPlacement != null)
+            {
+                pyramid.Finish(chunk, pyramidPlacement);
                 return;
+            }
 
             try
             {
@@ -73,16 +92,6 @@ namespace SCIEPort.Features.Plants
             catch (Exception error)
             {
                 Log.Error("[SCIEPort] Tide Palace generation failed: " + error);
-            }
-
-            try
-            {
-                if (pyramid?.Generate(chunk, original, gameInfo.WorldSeed, gameInfo.WorldSettings.TerrainGenerationMode) == true)
-                    return;
-            }
-            catch (Exception error)
-            {
-                Log.Error("[SCIEPort] Pyramid generation failed: " + error);
             }
 
             try

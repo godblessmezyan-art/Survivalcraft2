@@ -198,6 +198,7 @@ public static class PyramidNativeProbe
     }
 
     private static readonly Point3 MazeDoor = new Point3(37, 1, 12);
+    private static readonly Point3 TombDoor = new Point3(37, 1, 10);
     private static readonly Point3 MazeAltar = new Point3(61, -10, 64);
     private static readonly Point3[] Neighbors =
     {
@@ -205,23 +206,25 @@ public static class PyramidNativeProbe
         new Point3(0, 0, -1), new Point3(0, 1, 0), new Point3(0, -1, 0)
     };
 
-    private static bool InShell(Point3 p)
+    private static bool InShell(Point3 p, bool tomb)
     {
-        int edge = Math.Min(Math.Min(p.X - 5, 74 - p.X), Math.Min(p.Z - 12, 74 - p.Z));
+        int edge = Math.Min(Math.Min(p.X - 5, 74 - p.X),
+            Math.Min(p.Z - (tomb ? 10 : 12), (tomb ? 79 : 74) - p.Z));
         return edge >= 0 && p.Y >= -14 && p.Y <= 2 + edge;
     }
 
-    private static int CheckMaze(Func<Point3, int> at)
+    private static int CheckMaze(Func<Point3, int> at, bool tomb = false)
     {
-        Check(at(MazeDoor) == 0 && at(MazeDoor + new Point3(0, 1, 0)) > 0 &&
-            at(MazeDoor + new Point3(0, -1, 0)) > 0, "one flat-floor crawl aperture");
+        Point3 door = tomb ? TombDoor : MazeDoor;
+        Check(at(door) == 0 && at(door + new Point3(0, 1, 0)) > 0 &&
+            at(door + new Point3(0, -1, 0)) > 0, "one flat-floor crawl aperture");
         int holes = 0;
         for (int x = 5; x <= 74; x++)
-        for (int z = 12; z <= 74; z++)
-        for (int y = -14; y <= 33; y++)
+        for (int z = door.Z; z <= (tomb ? 79 : 74); z++)
+        for (int y = -14; y <= 36; y++)
         {
             var p = new Point3(x, y, z);
-            if (!InShell(p)) continue;
+            if (!InShell(p, tomb)) continue;
             int value = at(p);
             if (Terrain.ExtractContents(value) == MechanismId)
             {
@@ -231,8 +234,8 @@ public static class PyramidNativeProbe
             if (value != 0) continue;
             foreach (Point3 direction in Neighbors)
             {
-                if (InShell(p + direction)) continue;
-                if (p != MazeDoor || direction != new Point3(0, 0, -1))
+                if (InShell(p + direction, tomb)) continue;
+                if (p != door || direction != new Point3(0, 0, -1))
                     throw new InvalidOperationException("Maze opens through its shell at " + p);
                 holes++;
             }
@@ -241,11 +244,11 @@ public static class PyramidNativeProbe
         Check(at(MazeAltar) == Value(10), "deepest level has the single prize pedestal");
 
         var up = new Point3(0, 1, 0);
-        Func<Point3, bool> stand = p => InShell(p) && at(p) == 0 && at(p - up) > 0 &&
-            (p == MazeDoor || at(p + up) == 0);
-        var seen = new Dictionary<Point3, int> { { MazeDoor, 0 } };
+        Func<Point3, bool> stand = p => InShell(p, tomb) && at(p) == 0 && at(p - up) > 0 &&
+            (p == door || (tomb && p == door + new Point3(0, 0, 1)) || at(p + up) == 0);
+        var seen = new Dictionary<Point3, int> { { door, 0 } };
         var queue = new Queue<Point3>();
-        queue.Enqueue(MazeDoor);
+        queue.Enqueue(door);
         while (queue.Count > 0)
         {
             Point3 p = queue.Dequeue();
@@ -269,21 +272,23 @@ public static class PyramidNativeProbe
     private static void MazeCases()
     {
         var origin = new Point2(-80, -80);
+        var oldMaze = Create(siteType, origin, 72, 0, 953, 68251, -10, false);
+        Check(CheckMaze(Plan(oldMaze)) >= 350, "the 1.6 tomb record still draws its own layout");
         int min = int.MaxValue, max = 0;
         for (int seed = -12; seed <= 12; seed++)
         {
-            var site = Create(siteType, origin, 72, 0, 953, 17321 * seed, -10);
+            var site = Create(siteType, origin, 72, 0, 953, 17321 * seed, -9, true);
             var plan = Plan(site);
-            int route = CheckMaze(plan);
+            int route = CheckMaze(plan, true);
             min = Math.Min(min, route);
             max = Math.Max(max, route);
         }
         Check(min >= 350 && max > min, "three floors give long, seed-dependent routes, observed " + min + "–" + max);
         Console.WriteLine("Pyramid maze, 25 seeds: shortest walk to the vault is " + min + "–" + max + " moves.");
 
-        var fixedSite = Create(siteType, origin, 72, 0, 953, 68251, -3);
+        var fixedSite = Create(siteType, origin, 72, 0, 953, 68251, -3, true);
         var forward = Plan(fixedSite);
-        var reverse = Plan(Create(siteType, origin, 72, 0, 953, 68251, -3), true);
+        var reverse = Plan(Create(siteType, origin, 72, 0, 953, 68251, -3, true), true);
         for (int x = 0; x < 80; x++)
         for (int z = 0; z < 80; z++)
         for (int y = -14; y <= 36; y++)
@@ -294,10 +299,20 @@ public static class PyramidNativeProbe
         Check(true, "a persisted seed gives identical voxels in reverse generation order");
         var chunk = new Terrain().AllocateChunk(-5, -5);
         chunk.SetCellValueFast(5, 72, 12, Value(10));
-        var apply = TypeOf(runtimeType.Assembly, "PyramidTerrain").GetMethod("Apply", Static);
-        Check(!(bool)apply.Invoke(null, new[] { chunk, fixedSite }) && chunk.ModificationCounter == 0 &&
+        var terrainType = TypeOf(runtimeType.Assembly, "PyramidTerrain");
+        var prepare = terrainType.GetMethod("Prepare", Static);
+        Check(prepare.Invoke(null, new[] { chunk, fixedSite }) == null && chunk.ModificationCounter == 0 &&
             chunk.GetCellValueFast(5, 72, 12) == Value(10) && chunk.GetCellValueFast(5, 73, 12) == 0,
             "foreign occupancy rejects the entire slice before the first write");
+        chunk.SetCellValueFast(5, 72, 12, 0);
+        object layout = prepare.Invoke(null, new[] { chunk, fixedSite });
+        Check(layout != null, "prepared fresh native substrate");
+        chunk.SetCellValueFast(5, 73, 12, SeaUrchinBlock.Index);
+        var natural = terrainType.GetMethod("Natural", Static);
+        Check(!(bool)natural.Invoke(null, new object[] { SeaUrchinBlock.Index }), "native bottom decoration reproduces old veto");
+        terrainType.GetMethod("Write", Static).Invoke(null, new[] { chunk, fixedSite, layout });
+        Check(chunk.GetCellValueFast(5, 73, 12) == SandstoneBlock.Index && chunk.ModificationCounter == 1,
+            "native decoration between passes cannot veto an approved slice");
     }
 
     private static int Distance(Func<Point3, int> at, Point3 from, Point3 to, bool jump, bool open, int ceiling)
@@ -405,10 +420,10 @@ public static class PyramidNativeProbe
                 chunks.Add(chunk);
             }
             CommonLib.WorkType = WorkType.Client;
-            Check(!(bool)Call(runtime, "Generate", chunks[0], generator, seed, mode), "pure clients cannot generate");
+            Check(Call(runtime, "Prepare", chunks[0], generator, seed, mode) == null, "pure clients cannot generate");
             CommonLib.WorkType = WorkType.Local;
             chunks[0].IsLoaded = true;
-            Check(!(bool)Call(runtime, "Generate", chunks[0], generator, seed, mode) &&
+            Check(Call(runtime, "Prepare", chunks[0], generator, seed, mode) == null &&
                 chunks[0].ModificationCounter == 0, "already loaded chunk untouched");
             chunks[0].IsLoaded = false;
             var stored = (HashSet<Point2>)TidePalaceProbeStorage(terrain, "Existing");
@@ -416,16 +431,16 @@ public static class PyramidNativeProbe
             var blocker = (SubsystemBlockBehavior)Create(runtimeType);
             TidePalaceProbe.Add(project, blocker);
             blocker.Load(new ValuesDictionary());
-            Check(!(bool)Call(blocker, "Generate", chunks[0], generator, seed, mode), "saved neighbor rejects the footprint");
+            Check(Call(blocker, "Prepare", chunks[0], generator, seed, mode) == null, "saved neighbor rejects the footprint");
             stored.Clear();
             foreach (var chunk in chunks.AsEnumerable().Reverse()) wrapper.GenerateChunkContentsPass4(chunk);
             var records = Field<IDictionary>(runtime, "sites");
             int written = records.Count == 1 ? Field<int>(records.Values.Cast<object>().Single(), "Slices") : 0;
             Check(written == Full, mode + " wrote all 25 native slices through the real entry point. " +
                 (written == Full ? string.Empty : RejectedSlices(site, b, written, chunks)));
-            Check(terrain.Terrain.GetCellValue(origin.X + 39, b + 33, origin.Y + 43) == Value(12), "crown written");
+            Check(terrain.Terrain.GetCellContents(origin.X + 39, b + 36, origin.Y + 44) == LimestoneBlock.Index, "limestone crown written");
             Func<Point3, int> at = p => Terrain.ReplaceLight(terrain.Terrain.GetCellValue(origin.X + p.X, b + p.Y, origin.Y + p.Z), 0);
-            Check(CheckMaze(at) >= 350, mode + " long route works in actually generated terrain");
+            Check(CheckMaze(at, true) >= 350, mode + " long route works in actually generated terrain");
             CheckApproach(terrain.Terrain, generator, origin, b, Field<int>(site, "ApproachFloor"));
             var display = (Point3)Call(site, "World", MazeAltar);
             Check(project.FindSubsystem<SubsystemBlockEntities>(true).GetBlockEntity(display.X, display.Y, display.Z) == null,
@@ -436,16 +451,16 @@ public static class PyramidNativeProbe
 
     private static void CheckApproach(Terrain terrain, ITerrainContentsGenerator generator, Point2 origin, int baseY, int approachFloor)
     {
-        int center = origin.X + MazeDoor.X;
+        int center = origin.X + TombDoor.X;
         var outside = terrain.AllocateChunk(center >> 4, (origin.Y - 1) >> 4);
         generator.GenerateChunkContentsPass1(outside);
         generator.GenerateChunkContentsPass2(outside);
         generator.GenerateChunkContentsPass3(outside);
         generator.GenerateChunkContentsPass4(outside);
         Func<int, int, int, bool> solid = (x, y, z) => BlocksManager.Blocks[terrain.GetCellContents(x, y, z)].IsCollidable;
-        for (int z = 0; z < MazeDoor.Z; z++)
+        for (int z = 0; z < TombDoor.Z; z++)
         {
-            int floor = baseY + Math.Max(approachFloor, Math.Min(0, z - 10));
+            int floor = baseY + Math.Max(approachFloor, Math.Min(0, z - 9));
             int worldZ = origin.Y + z;
             Check(solid(center, floor, worldZ) && !solid(center, floor + 1, worldZ) &&
                 !solid(center, floor + 2, worldZ), "exterior steps clear the native terrain");
@@ -483,7 +498,7 @@ public static class PyramidNativeProbe
         var values = new ValuesDictionary();
         runtime.Save(values);
         var saved = (ValuesDictionary)values.GetValue<ValuesDictionary>("Pyramids").Values.Single();
-        Check(saved.ContainsKey("MazeSeed") && saved.ContainsKey("ApproachFloor") &&
+        Check(saved.ContainsKey("MazeSeed") && saved.ContainsKey("ApproachFloor") && saved.GetValue<bool>("Tomb") &&
             saved.GetValue<int>("Progress") == 0 && saved.GetValue<bool>("Stocked"),
             "maze identity and treasure persist without legacy progress");
     }

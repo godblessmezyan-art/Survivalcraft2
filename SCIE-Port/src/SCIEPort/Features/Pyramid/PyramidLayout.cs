@@ -25,8 +25,10 @@ namespace SCIEPort.Features.Pyramid
             for (int i = 0; i < cells.Length; i++) cells[i] = Unchanged;
             if (site.Maze != null)
             {
-                MazeShell(site.ApproachFloor);
+                if (site.Tomb) TombShell(site.ApproachFloor);
+                else MazeShell(site.ApproachFloor);
                 LabyrinthFloors(site.Maze);
+                if (site.Tomb) BurialDetails();
                 return;
             }
             Shell();
@@ -38,6 +40,43 @@ namespace SCIEPort.Features.Pyramid
         }
 
         internal int At(int x, int y, int z) => cells[((z * 16 + x) * Height) + y - LowY];
+
+        internal static int TombTop(int x, int z) => 2 + Math.Min(Math.Min(x - 5, 74 - x), Math.Min(z - 10, 79 - z));
+
+        private void TombShell(int approachFloor)
+        {
+            Fill(5, LowY, 10, 74, 0, 79, Sandstone);
+            for (int z = Math.Max(10, z0); z <= Math.Min(79, z0 + 15); z++)
+            for (int x = Math.Max(5, x0); x <= Math.Min(74, x0 + 15); x++)
+            {
+                int top = TombTop(x, z);
+                Fill(x, 1, z, x, top - 1, z, Sandstone);
+                Set(x, top, z, Limestone);
+            }
+            Point3 entrance = PyramidMaze.TombEntrance;
+            Approach(entrance, approachFloor, 9);
+            Set(entrance.X, entrance.Y + 1, entrance.Z, Relief);
+            Fill(37, 1, 10, 37, 1, 11, 0);
+            Fill(37, 1, 12, 37, 2, 16, 0);
+            Fill(36, 1, 16, 38, 3, 18, 0);
+            Fill(35, 1, 18, 39, 3, 22, 0);
+            Fill(36, 4, 18, 38, 5, 22, 0);
+            Fill(37, 6, 18, 37, 6, 22, 0);
+            Set(35, 3, 20, Lamp);
+            Set(39, 3, 20, Lamp);
+        }
+
+        private void BurialDetails()
+        {
+            // Recessed chamber with masonry piers and a stone sarcophagus beside the processional aisle.
+            Fill(58, -12, 66, 64, -12, 67, Limestone);
+            Fill(58, -11, 66, 64, -8, 67, 0);
+            Fill(58, -11, 62, 59, -11, 64, Basalt);
+            Fill(58, -10, 62, 59, -10, 64, Marble);
+            Fill(64, -11, 64, 64, -8, 65, Basalt);
+            Fill(60, -7, 64, 62, -7, 67, Relief);
+            Set(61, -8, 66, Lamp);
+        }
 
         private void MazeShell(int approachFloor)
         {
@@ -52,18 +91,24 @@ namespace SCIEPort.Features.Pyramid
             }
             Point3 entrance = PyramidMaze.Entrance;
             int door = entrance.X;
-            for (int z = 0; z < entrance.Z; z++)
-            {
-                int tread = Math.Max(approachFloor, Math.Min(0, z - 10));
-                Fill(door - 2, LowY, z, door + 2, tread - 1, z, Underpinning);
-                Fill(door - 2, tread, z, door + 2, tread, z, Limestone);
-                Fill(door - 2, tread + 1, z, door + 2, 3, z, 0);
-            }
+            Approach(entrance, approachFloor, 10);
             // Only the front cell is exposed. The threshold is flat for crouching in either direction.
             Set(door, entrance.Y, entrance.Z, 0);
             Set(door, entrance.Y + 1, entrance.Z, Relief);
             Fill(door - 1, 1, 13, door + 1, 2, 20, 0);
             Fill(door - 1, 3, 14, door + 1, 3, 20, 0);
+        }
+
+        private void Approach(Point3 entrance, int approachFloor, int rise)
+        {
+            int door = entrance.X;
+            for (int z = 0; z < entrance.Z; z++)
+            {
+                int tread = Math.Max(approachFloor, Math.Min(0, z - rise));
+                Fill(door - 2, LowY, z, door + 2, tread - 1, z, Underpinning);
+                Fill(door - 2, tread, z, door + 2, tread, z, Limestone);
+                Fill(door - 2, tread + 1, z, door + 2, 3, z, 0);
+            }
         }
 
         private void LabyrinthFloors(PyramidMaze maze)

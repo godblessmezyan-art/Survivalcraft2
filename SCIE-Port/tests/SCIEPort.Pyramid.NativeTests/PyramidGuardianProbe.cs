@@ -136,7 +136,7 @@ public static class PyramidGuardianProbe
         var runtime = (SubsystemBlockBehavior)Create(runtimeType);
         TidePalaceProbe.Add(project, runtime);
         var origin = new Point2(-80, -80);
-        var site = maze ? Create(siteType, origin, 72, 0, 953, -7798, -6) : Create(siteType, origin, 72, 0, 953);
+        var site = maze ? Create(siteType, origin, 72, 0, 953, -7798, -6, true) : Create(siteType, origin, 72, 0, 953);
         var row = new ValuesDictionary();
         row.SetValue("Origin", origin);
         row.SetValue("Base", 72);
@@ -147,6 +147,7 @@ public static class PyramidGuardianProbe
         {
             row.SetValue("MazeSeed", -7798);
             row.SetValue("ApproachFloor", -6);
+            row.SetValue("Tomb", true);
         }
         var records = new ValuesDictionary();
         records.SetValue("Pyramid0", row);
@@ -159,6 +160,14 @@ public static class PyramidGuardianProbe
         Vector3[] points = Enumerable.Range(0, maze ? 9 : 3)
             .Select(i => (Vector3)positionMethod.Invoke(null, new[] { site, (object)i })).ToArray();
         for (int i = 0; i < points.Length; i++) WriteRoom(terrain.Terrain, site, points[i]);
+        if (maze)
+        {
+            var spawn = Terrain.ToCell(points[0]);
+            int spawnSlice = (int)siteType.GetMethod("ChunkBit", Instance)
+                .Invoke(site, new object[] { new Point2(spawn.X, spawn.Z) });
+            TidePalaceProbe.Put(state, "Slices", Full & ~spawnSlice);
+            Check(spawn.X - origin.X == 37 && spawn.Z - origin.Y == 20, "first mummy guards the entry gallery");
+        }
 
         var player = TidePalaceProbe.MakePlayer(project);
         var playerBody = new ComponentBody { m_entity = player.Entity };
@@ -171,8 +180,8 @@ public static class PyramidGuardianProbe
         Vector3 approach = points[0] - new Vector3(0, 0, maze ? 1 : 4);
         playerBody.Position = approach;
         tick();
-        Check(Spawned(state) == 0 && project.Entities.Count == 0, role + " partial pyramid never spawns");
-        TidePalaceProbe.Put(state, "Slices", Full);
+        Check(Spawned(state) == 0 && project.Entities.Count == 0, role + " ungenerated room never spawns");
+        TidePalaceProbe.Put(state, "Slices", maze ? Full - 1 : Full);
         playerBody.Position = points[0] + new Vector3(0, 20, 0);
         tick();
         Check(Spawned(state) == 0, role + " surface above the room is excluded");

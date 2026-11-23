@@ -24,6 +24,7 @@ namespace SCIEPort.Features.Pyramid
         internal readonly Point2 Origin;
         internal readonly int BaseY, Order, RewardId, ApproachFloor;
         internal readonly PyramidMaze Maze;
+        internal readonly bool Tomb;
 
         internal PyramidSite(Point2 origin, int baseY, int order, int rewardId)
         {
@@ -33,11 +34,12 @@ namespace SCIEPort.Features.Pyramid
             RewardId = rewardId;
         }
 
-        internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor)
+        internal PyramidSite(Point2 origin, int baseY, int order, int rewardId, int mazeSeed, int approachFloor, bool tomb)
             : this(origin, baseY, order, rewardId)
         {
             Maze = new PyramidMaze(mazeSeed);
-            ApproachFloor = Math.Max(-10, Math.Min(0, approachFloor));
+            ApproachFloor = Math.Max(tomb ? -9 : -10, Math.Min(0, approachFloor));
+            Tomb = tomb;
         }
 
         internal Point3 World(Point3 local) => new Point3(Origin.X + local.X, BaseY + local.Y, Origin.Y + local.Z);
@@ -71,9 +73,9 @@ namespace SCIEPort.Features.Pyramid
                 var origin = new Point2(x, z);
                 if (!ValidOrigin(origin) || !TryBase(generator, x, z, out int baseY) ||
                     OverlapsGeology(generator, worldSeed, origin)) continue;
-                int frontY = Terrain.ToCell(generator.CalculateHeight(x + PyramidMaze.Entrance.X, z - 1));
+                int frontY = Terrain.ToCell(generator.CalculateHeight(x + PyramidMaze.TombEntrance.X, z - 1));
                 return new PyramidSite(origin, baseY, random.Int(0, 5), PyramidLoot.Draw(random),
-                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), frontY - baseY);
+                    KellyPlantRules.GetChunkSeed(worldSeed ^ 0x2e12ba7, x, z), frontY - baseY, true);
             }
             return null;
         }
