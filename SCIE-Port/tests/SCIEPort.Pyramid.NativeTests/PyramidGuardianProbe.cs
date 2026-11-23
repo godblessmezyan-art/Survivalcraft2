@@ -310,22 +310,62 @@ public static class PyramidGuardianProbe
         var origin = new Point2(-80, -80);
         object site = Create(siteType, origin, 72, 0, 953, 68251, -3, true);
         var seen = new HashSet<int>();
+        var layouts = new object[5, 5];
+        var perLevel = new int[3];
         for (int sx = 0; sx < 5; sx++)
         for (int sz = 0; sz < 5; sz++)
         {
             object layout = Create(layoutType, site,
                 new Point2(origin.X + sx * 16, origin.Y + sz * 16));
+            layouts[sx, sz] = layout;
             var cells = (int[])layoutType.GetField("cells", Instance).GetValue(layout);
-            foreach (int value in cells)
+            for (int i = 0; i < cells.Length; i++)
             {
+                int value = cells[i];
                 if (Terrain.ExtractContents(value) != 947) continue;
-                int data = Terrain.ExtractData(value);
-                seen.Add(data & 31); // kind
+                int y = -14 + i % 51;
+                perLevel[y >= -2 ? 0 : y >= -8 ? 1 : 2]++;
+                seen.Add(Terrain.ExtractData(value) & 31); // kind
             }
         }
         for (int kind = 0; kind < 9; kind++)
             Check(seen.Contains(kind), "Egyptian decor kind " + kind + " placed in the tomb layout");
         Check(seen.Count == 9, "all nine decor kinds appear (found " + seen.Count + ")");
+        for (int level = 0; level < 3; level++)
+            Check(perLevel[level] >= 48, "floor " + level + " carries a decor pass (" + perLevel[level] + " cells)");
+        Console.WriteLine("Pyramid decor per floor: " + perLevel[0] + " / " + perLevel[1] + " / " + perLevel[2] + " cells.");
+
+        Func<int, int, int, int> at = (x, y, z) =>
+        {
+            int sx = (x - origin.X) >> 4, sz = (z - origin.Y) >> 4;
+            return (int)layoutType.GetMethod("At", Instance).Invoke(layouts[sx, sz],
+                new object[] { x - origin.X - sx * 16, y, z - origin.Y - sz * 16 });
+        };
+        for (int level = 0; level < 3; level++)
+        for (int cell = 0; cell < 64; cell++)
+        {
+            int x = 19 + 6 * (cell % 8), y = -6 * level, z = 20 + 6 * (cell / 8);
+            Check(at(origin.X + x, y + 1, origin.Y + z) == 0,
+                "decor leaves chamber centre " + x + "," + (y + 1) + "," + z + " clear");
+        }
+
+        // The older layout has no maze seed, but must still carry the same nine kinds.
+        object legacy = Create(siteType, origin, 72, 0, 953);
+        var legacySeen = new HashSet<int>();
+        for (int sx = 0; sx < 5; sx++)
+        for (int sz = 0; sz < 5; sz++)
+        {
+            object layout = Create(layoutType, legacy,
+                new Point2(origin.X + sx * 16, origin.Y + sz * 16));
+            var cells = (int[])layoutType.GetField("cells", Instance).GetValue(layout);
+            foreach (int value in cells)
+            {
+                if (Terrain.ExtractContents(value) == 947)
+                    legacySeen.Add(Terrain.ExtractData(value) & 31);
+            }
+        }
+        for (int kind = 0; kind < 9; kind++)
+            Check(legacySeen.Contains(kind), "legacy layout carries Egyptian decor kind " + kind);
     }
 
     private static object Create(Type type, params object[] args) { return Activator.CreateInstance(type, Instance, null, args, null); }

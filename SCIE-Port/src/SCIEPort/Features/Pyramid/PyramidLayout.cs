@@ -29,7 +29,7 @@ namespace SCIEPort.Features.Pyramid
                 else MazeShell(site.ApproachFloor);
                 LabyrinthFloors(site.Maze);
                 if (site.Tomb) BurialDetails();
-                Decorate(site.Maze.Seed, site.Tomb);
+                DecorateMaze(site.Maze.Seed, site.Tomb);
                 return;
             }
             Shell();
@@ -38,6 +38,7 @@ namespace SCIEPort.Features.Pyramid
             Labyrinth();
             UpperChamber();
             Vault();
+            DecorateLegacy();
         }
 
         internal int At(int x, int y, int z) => cells[((z * 16 + x) * Height) + y - LowY];
@@ -92,16 +93,74 @@ namespace SCIEPort.Features.Pyramid
                 Set(x, y, z, Terrain.MakeBlockValue(PyramidDecorRules.Index, 0,
                     PyramidDecorRules.Encode(kind, variant, open, rotation)));
         }
-        private void Decorate(int seed, bool tomb)
+        private static readonly int[] UpperDecor =
         {
-            // Decoration is confined to the vault/burial chambers, whose carved alcoves are outside
-            // the maze route. Maze rooms are left untouched so every chamber stays reachable.
-            seed.ToString(); // deterministic hook retained for a future room-safe variant pass
+            PyramidDecorRules.StorageJar, PyramidDecorRules.Shabti, PyramidDecorRules.OfferingTable,
+            PyramidDecorRules.BookOfDead, PyramidDecorRules.Brazier
+        };
+        private static readonly int[] MiddleDecor =
+        {
+            PyramidDecorRules.CanopicJar, PyramidDecorRules.Shabti, PyramidDecorRules.StorageJar,
+            PyramidDecorRules.AnubisStatue, PyramidDecorRules.OfferingTable
+        };
+        private static readonly int[] LowerDecor =
+        {
+            PyramidDecorRules.Sarcophagus, PyramidDecorRules.CanopicJar, PyramidDecorRules.AnubisStatue,
+            PyramidDecorRules.BookOfDead, PyramidDecorRules.Obelisk, PyramidDecorRules.Brazier
+        };
+
+        // Stateless per-room selection, so independently generated slices always agree. No shared
+        // Random instance and no dependence on generation order or slice direction.
+        private static int Pick(int seed, int level, int cell, int salt)
+        {
+            unchecked
+            {
+                uint h = (uint)seed ^ ((uint)level * 0x45d9f3bu) ^
+                    ((uint)cell * 0x27d4eb2du) ^ ((uint)salt * 0x165667b1u);
+                h ^= h >> 16;
+                h *= 0x7feb352du;
+                h ^= h >> 15;
+                h *= 0x846ca68bu;
+                h ^= h >> 16;
+                return (int)(h & 0x7fffffffu);
+            }
+        }
+
+        // Every maze chamber gets a seed-driven arrangement at its floor corners. Corners are never
+        // a chamber centre or a passage throat, so all 192 room centres and the vault route stay
+        // clear. Place() still refuses any cell that is not air in the completed layout.
+        private void DecorateRooms(int seed)
+        {
+            for (int level = 0; level < PyramidMaze.Levels; level++)
+            for (int cell = 0; cell < PyramidMaze.Count; cell++)
+            {
+                if (level == 0 && cell == 3) continue; // tomb entry / first mummy keeps its room empty
+                if (level == 2 && cell == PyramidMaze.Count - 1) continue; // vault has anchored pieces
+                Point3 room = PyramidMaze.Room(level, cell);
+                int pieces = 1 + (Pick(seed, level, cell, 0) & 1);
+                for (int slot = 0; slot < pieces; slot++)
+                {
+                    int corner = Pick(seed, level, cell, 1 + slot) & 3;
+                    int dx = (corner & 1) == 0 ? -1 : 1;
+                    int dz = (corner & 2) == 0 ? -1 : 1;
+                    int[] palette = level == 0 ? UpperDecor : level == 1 ? MiddleDecor : LowerDecor;
+                    int kind = palette[Pick(seed, level, cell, 3 + slot) % palette.Length];
+                    int variant = kind == PyramidDecorRules.CanopicJar ? (cell + slot) & 3 : 0;
+                    bool open = kind == PyramidDecorRules.Brazier && (Pick(seed, level, cell, 5 + slot) & 3) == 0;
+                    int rotation = Pick(seed, level, cell, 7 + slot) & 3;
+                    Place(room.X + dx, room.Y + 1, room.Z + dz, kind, variant, open, rotation);
+                }
+            }
+        }
+
+        private void DecorateMaze(int seed, bool tomb)
+        {
+            DecorateRooms(seed);
             const int sar = PyramidDecorRules.Sarcophagus, jar = PyramidDecorRules.CanopicJar;
-            // Obelisk first, so it claims a clear rear-corner cell before other decor.
+            // Vault signature pieces: obelisk first, then the surrounding chamber set.
             Place(59, -11, 65, PyramidDecorRules.Obelisk);
             // Vault chamber: x58..64, z59..65, carved y-11..-8. Keep the central route
-            // (x60..62, z61..63,终点 61,62) clear; decor hugs the outer ring only.
+            // (x60..62, z61..63, terminus 61,62) clear; decor hugs the outer ring only.
             Place(58, -11, 59, PyramidDecorRules.AnubisStatue);
             Place(64, -11, 59, PyramidDecorRules.AnubisStatue);
             Place(58, -11, 62, PyramidDecorRules.Brazier);
@@ -127,6 +186,33 @@ namespace SCIEPort.Features.Pyramid
                 Place(58, -11, 66, PyramidDecorRules.StorageJar);
                 Place(64, -11, 66, PyramidDecorRules.StorageJar);
             }
+        }
+
+        // The pre-maze layout still appears in older records. Give it the same nine kinds at
+        // hand-picked air pockets away from the processional route, pillars and puzzle blocks.
+        private void DecorateLegacy()
+        {
+            const int jar = PyramidDecorRules.CanopicJar;
+            // Main hall side aisles: the centre x36..43 stays clear for the seal procession.
+            Place(28, 1, 18, PyramidDecorRules.Shabti, rotation: 1);
+            Place(51, 1, 18, PyramidDecorRules.StorageJar);
+            Place(28, 1, 42, PyramidDecorRules.OfferingTable, rotation: 2);
+            Place(51, 1, 42, PyramidDecorRules.BookOfDead);
+            // Lower bridge landing and its far ledge, outside the jump lane x21..25.
+            Place(14, -4, 21, PyramidDecorRules.Brazier);
+            Place(24, -4, 29, PyramidDecorRules.Brazier, open: true);
+            // Labyrinth wall niches outside the three carved lanes x54/59/64.
+            Place(52, 1, 19, jar, 0);
+            Place(67, 1, 19, jar, 1);
+            Place(57, 1, 40, jar, 2);
+            Place(62, 1, 40, jar, 3);
+            // Upper gallery corners and the vault's outer bays.
+            Place(34, 18, 25, PyramidDecorRules.AnubisStatue);
+            Place(48, 18, 31, PyramidDecorRules.AnubisStatue, rotation: 2);
+            Place(29, -11, 57, PyramidDecorRules.Obelisk);
+            Place(50, -11, 57, PyramidDecorRules.StorageJar);
+            Place(29, -11, 70, PyramidDecorRules.Sarcophagus, rotation: 1);
+            Place(50, -11, 70, PyramidDecorRules.BookOfDead);
         }
 
         private void MazeShell(int approachFloor)

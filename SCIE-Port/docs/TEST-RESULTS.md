@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-23 · 1.7.4 金字塔装饰地形接入
+
+- 重新设计 `PyramidLayout` 的装饰管线：三层迷宫 192 个房间中，除入口房与已有标志物的藏器室房外，每房按 `(seed, level, cell, slot)` 无状态哈希在地面四角放 1–2 件，主题按层变化；墓室/藏器室保留原 anchors；无迷宫的旧版布局补齐同样九种方块。所有摆放只写完整布局中确认为空气的单格，房间中心、通道、机关和奖台不占用。
+- 执行 `scripts/Build-NetMod.ps1 -GameDir 'E:/SCNET/SCNETx25.01.17' -Configuration Release -OutputDir 'E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-decor-terrain-1.7.4'`，退出 0，Release 编译 0 警告、0 错误；品牌契约、127 行创造栏 CSV、XDB、统一包、书典、绘卷及全部既有回归通过。包内 `modinfo.json` 为 1.7.4。
+- 金字塔原生测试（`Test-TidePalace.ps1`）：守卫/装饰检查由 217 增至 **421** 项，新增每层装饰数量（87 / 90 / 107 格）、192 处房间中心保持空气、旧版布局九种 kind 全部出现；25 种子迷宫最短路径仍为 634–824 步，金字塔固定目标 14,832、火山 77,829、潮汐宫殿 384 等全部保持通过。正反切片顺序的完整布局逐格一致。
+- 两份安装包字节一致：`荒野探险家.netmod` / `荒野探险家-1.7.4.netmod`，253 个条目、13,507,999 字节，SHA-256 `09DF47FD28FD26FC182726B8C816351F6B2A6640C8476FB6A87FB965014AC996`。相对 1.7.3 仅 `SCIEPort.dll` 与版本元数据变化，资源条目不变。
+- Android 7723 下每层房间的实际密度、渲染、碰撞、触屏开棺/点火交互与真实 Local/Server/Client **待验证**。[装饰方案](PYRAMID-DECOR-PLAN.md)
+
 ## 2026-11-23 · 1.7.3 埃及墓葬装饰
 
 - 执行 `scripts/Test-Environment.ps1`，原生 260 方块常量无冲突，903–1023 保留区间有效。
