@@ -23,6 +23,12 @@ namespace SCIEPort.Features.Pyramid
             x0 = origin.X - site.Origin.X;
             z0 = origin.Y - site.Origin.Y;
             for (int i = 0; i < cells.Length; i++) cells[i] = Unchanged;
+            if (site.Maze != null)
+            {
+                MazeShell(site.ApproachFloor);
+                LabyrinthFloors(site.Maze);
+                return;
+            }
             Shell();
             MainHall(site);
             Bridge();
@@ -32,6 +38,71 @@ namespace SCIEPort.Features.Pyramid
         }
 
         internal int At(int x, int y, int z) => cells[((z * 16 + x) * Height) + y - LowY];
+
+        private void MazeShell(int approachFloor)
+        {
+            Fill(5, LowY, 12, 74, 0, 74, Sandstone);
+            for (int z = Math.Max(12, z0); z <= Math.Min(74, z0 + 15); z++)
+            for (int x = Math.Max(5, x0); x <= Math.Min(74, x0 + 15); x++)
+            {
+                int top = 2 + Math.Min(Math.Min(x - 5, 74 - x), Math.Min(z - 12, 74 - z));
+                Fill(x, 1, z, x, top, z, Sandstone);
+                if (top % 6 == 0) Set(x, top, z, Limestone);
+                if (top == 33 && x >= 37 && x <= 42) Set(x, top, z, Relief);
+            }
+            Point3 entrance = PyramidMaze.Entrance;
+            int door = entrance.X;
+            for (int z = 0; z < entrance.Z; z++)
+            {
+                int tread = Math.Max(approachFloor, Math.Min(0, z - 10));
+                Fill(door - 2, LowY, z, door + 2, tread - 1, z, Underpinning);
+                Fill(door - 2, tread, z, door + 2, tread, z, Limestone);
+                Fill(door - 2, tread + 1, z, door + 2, 3, z, 0);
+            }
+            // Only the front cell is exposed. The threshold is flat for crouching in either direction.
+            Set(door, entrance.Y, entrance.Z, 0);
+            Set(door, entrance.Y + 1, entrance.Z, Relief);
+            Fill(door - 1, 1, 13, door + 1, 2, 20, 0);
+            Fill(door - 1, 3, 14, door + 1, 3, 20, 0);
+        }
+
+        private void LabyrinthFloors(PyramidMaze maze)
+        {
+            for (int level = 0; level < PyramidMaze.Levels; level++)
+            for (int cell = 0; cell < PyramidMaze.Count; cell++)
+            {
+                Point3 room = PyramidMaze.Room(level, cell);
+                int x = room.X, y = room.Y, z = room.Z;
+                Fill(x - 1, y, z - 1, x + 1, y, z + 1, Limestone);
+                Fill(x - 1, y + 1, z - 1, x + 1, y + 3, z + 1, 0);
+                if (maze.East(level, cell))
+                    Fill(x + 2, y + 1, z - 1, x + 4, y + 3, z + 1, 0);
+                if (maze.South(level, cell))
+                    Fill(x - 1, y + 1, z + 2, x + 1, y + 3, z + 4, 0);
+                if (cell % 4 == 1) Set(x, y + 4, z, Lamp);
+            }
+
+            // Two side stairwells are offset by one row between floors, with masonry around each shaft.
+            Transfer(61, 67, 62, 56, 0);
+            Transfer(19, 12, 20, 26, -6);
+            Fill(58, -12, 59, 64, -12, 65, Limestone);
+            Fill(58, -11, 59, 64, -8, 65, 0);
+            Fill(60, -11, 64, 62, -11, 65, Marble);
+            Set(PyramidMaze.Display.X, PyramidMaze.Display.Y, PyramidMaze.Display.Z,
+                PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal));
+            Set(58, -7, 61, Lamp);
+            Set(64, -7, 61, Lamp);
+        }
+
+        private void Transfer(int roomX, int stairX, int upperZ, int lowerZ, int upperY)
+        {
+            int lo = Math.Min(roomX, stairX), hi = Math.Max(roomX, stairX);
+            Fill(lo, upperY + 1, upperZ - 1, hi, upperY + 3, upperZ + 1, 0);
+            Fill(lo, upperY - 5, lowerZ - 1, hi, upperY - 3, lowerZ + 1, 0);
+            int step = Math.Sign(lowerZ - upperZ);
+            for (int i = 0; i <= 6; i++)
+                Stair(stairX - 1, stairX + 1, upperZ + i * step, upperY - i);
+        }
 
         private void Shell()
         {

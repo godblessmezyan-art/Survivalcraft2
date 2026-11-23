@@ -39,7 +39,9 @@ namespace SCIEPort.Features.Pyramid
                 int baseY = row.GetValue("Base", 0), order = row.GetValue("Order", -1), reward = row.GetValue("Reward", 0);
                 if (!PyramidSite.ValidOrigin(origin) || baseY < 32 || baseY + PyramidLayout.HighY >= 248 ||
                     order < 0 || order > 5 || !PyramidLoot.IsEligible(reward)) continue;
-                var site = new PyramidSite(origin, baseY, order, reward);
+                var site = row.ContainsKey("MazeSeed")
+                    ? new PyramidSite(origin, baseY, order, reward, row.GetValue<int>("MazeSeed"), row.GetValue("ApproachFloor", -10))
+                    : new PyramidSite(origin, baseY, order, reward);
                 sites[PyramidSite.Region(origin)] = new PyramidState(site, row.GetValue("Slices", 0),
                     row.GetValue("Progress", 0), row.GetValue("Stocked", false), row.GetValue("GuardiansSpawned", 0));
             }
@@ -60,6 +62,11 @@ namespace SCIEPort.Features.Pyramid
                     row.SetValue("Base", state.Site.BaseY);
                     row.SetValue("Order", state.Site.Order);
                     row.SetValue("Reward", state.Site.RewardId);
+                    if (state.Site.Maze != null)
+                    {
+                        row.SetValue("MazeSeed", state.Site.Maze.Seed);
+                        row.SetValue("ApproachFloor", state.Site.ApproachFloor);
+                    }
                     row.SetValue("Slices", state.Slices);
                     row.SetValue("Progress", state.Progress);
                     row.SetValue("Stocked", state.Stocked);
@@ -194,6 +201,17 @@ namespace SCIEPort.Features.Pyramid
         {
             if (state.Slices != PyramidSite.Complete) return;
             PyramidSite site = state.Site;
+            if (site.Maze == null) SynchronizeLegacySeals(state);
+            Point3 display = site.Maze == null ? PyramidSite.Display : PyramidMaze.Display;
+            if (state.Solved && !state.Stocked && PyramidLoot.IsRegistered(site.RewardId) &&
+                ShrineWorld.TryStock(SubsystemTerrain, entities, site.World(display),
+                    PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal), Terrain.MakeBlockValue(site.RewardId)))
+                state.MarkStocked();
+        }
+
+        private void SynchronizeLegacySeals(PyramidState state)
+        {
+            PyramidSite site = state.Site;
             for (int index = 0; index < PyramidSite.Seals.Length; index++)
             {
                 Point3 point = site.World(PyramidSite.Seals[index]);
@@ -210,10 +228,6 @@ namespace SCIEPort.Features.Pyramid
                 if (ShrineWorld.Ready(SubsystemTerrain, point) && Cell(point) == PyramidMechanismBlock.Value(PyramidMechanismBlock.Gate))
                     Change(point, 0);
             }
-            if (!state.Stocked && PyramidLoot.IsRegistered(site.RewardId) &&
-                ShrineWorld.TryStock(SubsystemTerrain, entities, site.World(PyramidSite.Display),
-                    PyramidMechanismBlock.Value(PyramidMechanismBlock.Seal), Terrain.MakeBlockValue(site.RewardId)))
-                state.MarkStocked();
         }
 
         private int Cell(Point3 point) =>

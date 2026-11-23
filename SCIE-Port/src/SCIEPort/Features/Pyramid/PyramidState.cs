@@ -9,7 +9,7 @@ namespace SCIEPort.Features.Pyramid
         internal int Progress { get; private set; }
         internal bool Stocked { get; private set; }
         internal int GuardiansSpawned { get; private set; }
-        internal bool Solved => Progress == PyramidSite.Seals.Length;
+        internal bool Solved => Site.Maze != null || Progress == PyramidSite.Seals.Length;
 
         internal PyramidState(PyramidSite site, int slices = 0, int progress = 0, bool stocked = false, int guardiansSpawned = 0)
         {
@@ -17,7 +17,7 @@ namespace SCIEPort.Features.Pyramid
             Slices = slices & PyramidSite.Complete;
             Progress = Math.Min(PyramidSite.Seals.Length, Math.Max(0, progress));
             Stocked = Solved && stocked;
-            GuardiansSpawned = guardiansSpawned & PyramidGuardians.All;
+            GuardiansSpawned = guardiansSpawned & PyramidGuardians.Mask(site);
         }
 
         internal bool Press(int seal)

@@ -42,6 +42,7 @@ public static class PyramidNativeProbe
         StateCases(mod);
         var site = Create(siteType, new Point2(0, 0), 72, 0, 953);
         LayoutRoutes(site);
+        MazeCases();
         int seed = SeedText.Select((c, i) => c * (1 + 29 * i)).Sum();
         GenerateWorlds(database, fixture, seed);
         Reward(database, fixture, seed, WorkType.Local);
@@ -87,6 +88,16 @@ public static class PyramidNativeProbe
             var runtime = values.GetValue<ValuesDictionary>("SCIEPortPyramid");
             Check(runtime.GetValue<string>("Class") == runtimeType.FullName &&
                 values.ContainsKey("BlockEntities") && values.ContainsKey("Terrain"), project + " real XDB member");
+        }
+        foreach (string name in new[] { "MalePlayer", "FemalePlayer" })
+        {
+            var values = new ValuesDictionary();
+            values.PopulateFromDatabaseObject(database.Database.FindDatabaseObject(name, database.EntityTemplateType, true));
+            var body = new ComponentBody { BoxSize = values.GetValue<ValuesDictionary>("Body").GetValue<Vector3>("BoxSize") };
+            Check(body.StanceBoxSize.Y > 1f, name + " cannot stand through a one-cell entrance");
+            body.m_crouchFactor = 1f;
+            Check(body.StanceBoxSize.Y < 1f && body.StanceBoxSize.X < 1f && body.StanceBoxSize.Z < 1f,
+                name + " has native one-cell crouch clearance");
         }
         var packet = (IPackage)Create(packetType);
         var allIds = typeof(IPackage).Assembly.GetTypes().Concat(mod.GetTypes())
@@ -143,19 +154,12 @@ public static class PyramidNativeProbe
 
     private static void LayoutRoutes(object site)
     {
-        var slices = new Func<int, int, int, int>[5, 5];
-        for (int z = 0; z < 5; z++)
-        for (int x = 0; x < 5; x++)
-        {
-            var layout = Create(layoutType, site, new Point2(x * 16, z * 16));
-            slices[x, z] = (Func<int, int, int, int>)layoutType.GetMethod("At", Instance)
-                .CreateDelegate(typeof(Func<int, int, int, int>), layout);
-        }
+        var planned = Plan(site);
         Func<Point3, int> at = point =>
         {
             if (point.X < 0 || point.X >= 80 || point.Z < 0 || point.Z >= 80 || point.Y < -14) return SandstoneBlock.Index;
             if (point.Y > 36) return 0;
-            int value = slices[point.X >> 4, point.Z >> 4](point.X & 15, point.Y, point.Z & 15);
+            int value = planned(point);
             return value == -2 || (value == -1 && point.Y < 0) ? SandstoneBlock.Index : Math.Max(0, value);
         };
         Check(at(new Point3(39, 36, 39)) == Value(12), "36-block sandstone pyramid summit");
@@ -175,6 +179,125 @@ public static class PyramidNativeProbe
         var altar = new Point3(40, -9, 64);
         Check(Distance(at, entry, altar, false, false, 11) < 0, "closed gate blocks the underground chamber");
         Check(Distance(at, entry, altar, false, true, 11) >= 40, "opening the gate exposes a continuous staircase to the altar");
+    }
+
+    private static Func<Point3, int> Plan(object site, bool reverse = false)
+    {
+        var slices = new Func<int, int, int, int>[5, 5];
+        Point2 origin = Field<Point2>(site, "Origin");
+        for (int i = 0; i < 25; i++)
+        {
+            int index = reverse ? 24 - i : i;
+            int x = index % 5, z = index / 5;
+            var layout = Create(layoutType, site, new Point2(origin.X + x * 16, origin.Y + z * 16));
+            slices[x, z] = (Func<int, int, int, int>)layoutType.GetMethod("At", Instance)
+                .CreateDelegate(typeof(Func<int, int, int, int>), layout);
+        }
+        return p => p.X < 0 || p.X >= 80 || p.Z < 0 || p.Z >= 80 || p.Y < -14 || p.Y > 36
+            ? -1 : slices[p.X >> 4, p.Z >> 4](p.X & 15, p.Y, p.Z & 15);
+    }
+
+    private static readonly Point3 MazeDoor = new Point3(37, 1, 12);
+    private static readonly Point3 MazeAltar = new Point3(61, -10, 64);
+    private static readonly Point3[] Neighbors =
+    {
+        new Point3(1, 0, 0), new Point3(-1, 0, 0), new Point3(0, 0, 1),
+        new Point3(0, 0, -1), new Point3(0, 1, 0), new Point3(0, -1, 0)
+    };
+
+    private static bool InShell(Point3 p)
+    {
+        int edge = Math.Min(Math.Min(p.X - 5, 74 - p.X), Math.Min(p.Z - 12, 74 - p.Z));
+        return edge >= 0 && p.Y >= -14 && p.Y <= 2 + edge;
+    }
+
+    private static int CheckMaze(Func<Point3, int> at)
+    {
+        Check(at(MazeDoor) == 0 && at(MazeDoor + new Point3(0, 1, 0)) > 0 &&
+            at(MazeDoor + new Point3(0, -1, 0)) > 0, "one flat-floor crawl aperture");
+        int holes = 0;
+        for (int x = 5; x <= 74; x++)
+        for (int z = 12; z <= 74; z++)
+        for (int y = -14; y <= 33; y++)
+        {
+            var p = new Point3(x, y, z);
+            if (!InShell(p)) continue;
+            int value = at(p);
+            if (Terrain.ExtractContents(value) == MechanismId)
+            {
+                int data = Terrain.ExtractData(value);
+                if (data < 10 || data > 12) throw new InvalidOperationException("Maze contains a puzzle block at " + p);
+            }
+            if (value != 0) continue;
+            foreach (Point3 direction in Neighbors)
+            {
+                if (InShell(p + direction)) continue;
+                if (p != MazeDoor || direction != new Point3(0, 0, -1))
+                    throw new InvalidOperationException("Maze opens through its shell at " + p);
+                holes++;
+            }
+        }
+        Check(holes == 1, "shell and basement enclose every passage except the north entrance");
+        Check(at(MazeAltar) == Value(10), "deepest level has the single prize pedestal");
+
+        var up = new Point3(0, 1, 0);
+        Func<Point3, bool> stand = p => InShell(p) && at(p) == 0 && at(p - up) > 0 &&
+            (p == MazeDoor || at(p + up) == 0);
+        var seen = new Dictionary<Point3, int> { { MazeDoor, 0 } };
+        var queue = new Queue<Point3>();
+        queue.Enqueue(MazeDoor);
+        while (queue.Count > 0)
+        {
+            Point3 p = queue.Dequeue();
+            foreach (Point2 direction in Directions)
+            for (int y = -1; y <= 1; y++)
+            {
+                var target = p + new Point3(direction.X, y, direction.Y);
+                if (!stand(target) || seen.ContainsKey(target)) continue;
+                if ((y > 0 && at(p + up + up) != 0) || (y < 0 && at(target + up + up) != 0)) continue;
+                seen.Add(target, seen[p] + 1);
+                queue.Enqueue(target);
+            }
+        }
+        for (int level = 0; level < 3; level++)
+        for (int z = 0; z < 8; z++)
+        for (int x = 0; x < 8; x++)
+            Check(seen.ContainsKey(new Point3(19 + 6 * x, 1 - level * 6, 20 + 6 * z)), "every chamber connects to the entrance");
+        return seen[new Point3(61, -11, 62)];
+    }
+
+    private static void MazeCases()
+    {
+        var origin = new Point2(-80, -80);
+        int min = int.MaxValue, max = 0;
+        for (int seed = -12; seed <= 12; seed++)
+        {
+            var site = Create(siteType, origin, 72, 0, 953, 17321 * seed, -10);
+            var plan = Plan(site);
+            int route = CheckMaze(plan);
+            min = Math.Min(min, route);
+            max = Math.Max(max, route);
+        }
+        Check(min >= 350 && max > min, "three floors give long, seed-dependent routes, observed " + min + "–" + max);
+        Console.WriteLine("Pyramid maze, 25 seeds: shortest walk to the vault is " + min + "–" + max + " moves.");
+
+        var fixedSite = Create(siteType, origin, 72, 0, 953, 68251, -3);
+        var forward = Plan(fixedSite);
+        var reverse = Plan(Create(siteType, origin, 72, 0, 953, 68251, -3), true);
+        for (int x = 0; x < 80; x++)
+        for (int z = 0; z < 80; z++)
+        for (int y = -14; y <= 36; y++)
+        {
+            var point = new Point3(x, y, z);
+            if (forward(point) != reverse(point)) throw new InvalidOperationException("Order changed the maze at " + point);
+        }
+        Check(true, "a persisted seed gives identical voxels in reverse generation order");
+        var chunk = new Terrain().AllocateChunk(-5, -5);
+        chunk.SetCellValueFast(5, 72, 12, Value(10));
+        var apply = TypeOf(runtimeType.Assembly, "PyramidTerrain").GetMethod("Apply", Static);
+        Check(!(bool)apply.Invoke(null, new[] { chunk, fixedSite }) && chunk.ModificationCounter == 0 &&
+            chunk.GetCellValueFast(5, 72, 12) == Value(10) && chunk.GetCellValueFast(5, 73, 12) == 0,
+            "foreign occupancy rejects the entire slice before the first write");
     }
 
     private static int Distance(Func<Point3, int> at, Point3 from, Point3 to, bool jump, bool open, int ceiling)
@@ -300,12 +423,69 @@ public static class PyramidNativeProbe
             int written = records.Count == 1 ? Field<int>(records.Values.Cast<object>().Single(), "Slices") : 0;
             Check(written == Full, mode + " wrote all 25 native slices through the real entry point. " +
                 (written == Full ? string.Empty : RejectedSlices(site, b, written, chunks)));
-            Check(terrain.Terrain.GetCellValue(origin.X + 39, b + 36, origin.Y + 39) == Value(12), "crown written");
-            var display = (Point3)Call(site, "World", new Point3(40, -9, 65));
-            Check(terrain.Terrain.GetCellValue(display.X, display.Y, display.Z) == Value(10), "deep altar still sealed after generation");
+            Check(terrain.Terrain.GetCellValue(origin.X + 39, b + 33, origin.Y + 43) == Value(12), "crown written");
+            Func<Point3, int> at = p => Terrain.ReplaceLight(terrain.Terrain.GetCellValue(origin.X + p.X, b + p.Y, origin.Y + p.Z), 0);
+            Check(CheckMaze(at) >= 350, mode + " long route works in actually generated terrain");
+            CheckApproach(terrain.Terrain, generator, origin, b, Field<int>(site, "ApproachFloor"));
+            var display = (Point3)Call(site, "World", MazeAltar);
             Check(project.FindSubsystem<SubsystemBlockEntities>(true).GetBlockEntity(display.X, display.Y, display.Z) == null,
                 "generation alone cannot create a reward inventory");
+            FinishMazeReward(terrain, runtime, display, Field<int>(site, "RewardId"));
         }
+    }
+
+    private static void CheckApproach(Terrain terrain, ITerrainContentsGenerator generator, Point2 origin, int baseY, int approachFloor)
+    {
+        int center = origin.X + MazeDoor.X;
+        var outside = terrain.AllocateChunk(center >> 4, (origin.Y - 1) >> 4);
+        generator.GenerateChunkContentsPass1(outside);
+        generator.GenerateChunkContentsPass2(outside);
+        generator.GenerateChunkContentsPass3(outside);
+        generator.GenerateChunkContentsPass4(outside);
+        Func<int, int, int, bool> solid = (x, y, z) => BlocksManager.Blocks[terrain.GetCellContents(x, y, z)].IsCollidable;
+        for (int z = 0; z < MazeDoor.Z; z++)
+        {
+            int floor = baseY + Math.Max(approachFloor, Math.Min(0, z - 10));
+            int worldZ = origin.Y + z;
+            Check(solid(center, floor, worldZ) && !solid(center, floor + 1, worldZ) &&
+                !solid(center, floor + 2, worldZ), "exterior steps clear the native terrain");
+        }
+        int foot = baseY + approachFloor;
+        bool reachesTerrain = false;
+        for (int x = center - 2; x <= center + 2; x++)
+        for (int y = foot - 1; y <= foot + 1; y++)
+            reachesTerrain |= solid(x, y, origin.Y - 1) && !solid(x, y + 1, origin.Y - 1) && !solid(x, y + 2, origin.Y - 1);
+        Check(reachesTerrain, "the first steps connect to native ground at " + origin + " approach " + foot +
+            ", outside top " + outside.CalculateTopmostCellHeight(center & 15, 15));
+    }
+
+    private static void FinishMazeReward(SubsystemTerrain terrain, SubsystemBlockBehavior runtime, Point3 point, int reward)
+    {
+        terrain.m_subsystemBlockBehaviors = new SubsystemBlockBehaviors
+        {
+            m_blockBehaviorsByContents = Enumerable.Range(0, BlocksManager.Blocks.Length).Select(n => new SubsystemBlockBehavior[0]).ToArray()
+        };
+        var updater = (TerrainUpdater)FormatterServices.GetUninitializedObject(typeof(TerrainUpdater));
+        TidePalaceProbe.Put(updater, "m_terrain", terrain.Terrain);
+        TidePalaceProbe.Put(terrain, "<TerrainUpdater>k__BackingField", updater);
+        var chunk = terrain.Terrain.GetChunkAtCell(point.X, point.Z);
+        chunk.State = TerrainChunkState.Valid;
+        runtime.OnChunkInitialized(chunk);
+        ((IUpdateable)runtime).Update(0f);
+        var blockEntities = terrain.Project.FindSubsystem<SubsystemBlockEntities>(true);
+        var chest = blockEntities.GetBlockEntity(point.X, point.Y, point.Z).Entity.FindComponent<ComponentChest>(true);
+        Check(chest.GetSlotCount(0) == 1 && chest.GetSlotValue(0) == Terrain.MakeBlockValue(reward),
+            "maze altar stocks once without a seal interaction");
+        chest.RemoveSlotItems(0, 1);
+        runtime.OnChunkInitialized(chunk);
+        ((IUpdateable)runtime).Update(0f);
+        Check(chest.GetSlotCount(0) == 0, "explored altar cannot restock");
+        var values = new ValuesDictionary();
+        runtime.Save(values);
+        var saved = (ValuesDictionary)values.GetValue<ValuesDictionary>("Pyramids").Values.Single();
+        Check(saved.ContainsKey("MazeSeed") && saved.ContainsKey("ApproachFloor") &&
+            saved.GetValue<int>("Progress") == 0 && saved.GetValue<bool>("Stocked"),
+            "maze identity and treasure persist without legacy progress");
     }
 
     private static string RejectedSlices(object site, int baseY, int written, IList<TerrainChunk> chunks)

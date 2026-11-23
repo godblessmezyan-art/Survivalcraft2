@@ -48,6 +48,8 @@ public static class PyramidGuardianProbe
             Template(database, assets, caches, "Pharaoh", "法老", 65f, 6f, 3.5f);
             Lifecycle(database, fixture, WorkType.Local);
             Lifecycle(database, fixture, WorkType.Server);
+            Lifecycle(database, fixture, WorkType.Local, true);
+            Lifecycle(database, fixture, WorkType.Server, true);
         }
         finally
         {
@@ -111,7 +113,7 @@ public static class PyramidGuardianProbe
         caches.Add("Models/Pyramid" + name, new List<object> { model });
     }
 
-    private static void Lifecycle(GameDatabase db, PyramidNativeProbe.Fixture fixture, WorkType role)
+    private static void Lifecycle(GameDatabase db, PyramidNativeProbe.Fixture fixture, WorkType role, bool maze = false)
     {
         CommonLib.WorkType = role;
         Project project;
@@ -133,22 +135,29 @@ public static class PyramidGuardianProbe
 
         var runtime = (SubsystemBlockBehavior)Create(runtimeType);
         TidePalaceProbe.Add(project, runtime);
-        var site = Create(siteType, new Point2(-80, -80), 72, 0, 953);
+        var origin = new Point2(-80, -80);
+        var site = maze ? Create(siteType, origin, 72, 0, 953, -7798, -6) : Create(siteType, origin, 72, 0, 953);
         var row = new ValuesDictionary();
-        row.SetValue("Origin", new Point2(-80, -80));
+        row.SetValue("Origin", origin);
         row.SetValue("Base", 72);
         row.SetValue("Order", 0);
         row.SetValue("Reward", 953);
         row.SetValue("Slices", Full - 1);
+        if (maze)
+        {
+            row.SetValue("MazeSeed", -7798);
+            row.SetValue("ApproachFloor", -6);
+        }
         var records = new ValuesDictionary();
         records.SetValue("Pyramid0", row);
         var oldSave = new ValuesDictionary();
         oldSave.SetValue("Pyramids", records);
         runtime.Load(oldSave);
         var state = State(runtime);
-        Check(Spawned(state) == 0, role + " legacy pyramid starts with no spawned guards");
+        Check(Spawned(state) == 0, role + " pyramid starts with no spawned guards");
         var positionMethod = guardianType.GetMethod("SpawnPosition", Static);
-        Vector3[] points = Enumerable.Range(0, 3).Select(i => (Vector3)positionMethod.Invoke(null, new[] { site, (object)i })).ToArray();
+        Vector3[] points = Enumerable.Range(0, maze ? 9 : 3)
+            .Select(i => (Vector3)positionMethod.Invoke(null, new[] { site, (object)i })).ToArray();
         for (int i = 0; i < points.Length; i++) WriteRoom(terrain.Terrain, site, points[i]);
 
         var player = TidePalaceProbe.MakePlayer(project);
@@ -159,14 +168,15 @@ public static class PyramidGuardianProbe
         players.UpdateComponentPlayers();
         var time = project.FindSubsystem<SubsystemTime>(true);
         Action tick = () => { time.m_gameTime += .5; ((IUpdateable)runtime).Update(.5f); };
-        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        Vector3 approach = points[0] - new Vector3(0, 0, maze ? 1 : 4);
+        playerBody.Position = approach;
         tick();
         Check(Spawned(state) == 0 && project.Entities.Count == 0, role + " partial pyramid never spawns");
         TidePalaceProbe.Put(state, "Slices", Full);
         playerBody.Position = points[0] + new Vector3(0, 20, 0);
         tick();
         Check(Spawned(state) == 0, role + " surface above the room is excluded");
-        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        playerBody.Position = approach;
         CommonLib.WorkType = WorkType.Client;
         tick();
         Check(Spawned(state) == 0 && project.Entities.Count == 0, "client cannot create a guard");
@@ -183,7 +193,7 @@ public static class PyramidGuardianProbe
         bodies.AddBody(playerBody);
         tick();
         Check(Spawned(state) == 0, role + " occupied point waits for player to move");
-        playerBody.Position = points[0] - new Vector3(0, 0, 4);
+        playerBody.Position = approach;
         tick();
         Check(Spawned(state) == 1 && project.Entities.Count == 1, role + " main hall creates one resident");
         Entity first = project.Entities.Single();
@@ -193,25 +203,40 @@ public static class PyramidGuardianProbe
         project.RemoveEntity(first, true);
         tick();
         Check(project.Entities.Count == 0, role + " removed creature does not reappear on a later update");
-        playerBody.Position = points[1] + new Vector3(0, 0, 4);
-        tick();
-        Check(Spawned(state) == 3 && project.Entities.Single().ValuesDictionary.DatabaseObject.Name == "SCIEPortMummy",
-            role + " separate maze resident");
+        if (maze)
+        {
+            for (int i = 1; i < points.Length; i++)
+            {
+                playerBody.Position = points[i] - new Vector3(0, 0, 1);
+                tick();
+                Check(Spawned(state) == (1 << (i + 1)) - 1, role + " reaches distinct maze encounter " + i);
+            }
+            Check(project.Entities.Count(entity => entity.ValuesDictionary.DatabaseObject.Name == "SCIEPortMummy") == 7 &&
+                project.Entities.Count(entity => entity.ValuesDictionary.DatabaseObject.Name == "SCIEPortPharaoh") == 1,
+                role + " maze spawned eight mummies including the removed one, and one pharaoh without a seal");
+        }
+        else
+        {
+            playerBody.Position = points[1] + new Vector3(0, 0, 4);
+            tick();
+            Check(Spawned(state) == 3 && project.Entities.Single().ValuesDictionary.DatabaseObject.Name == "SCIEPortMummy",
+                role + " separate maze resident");
 
-        playerBody.Position = points[2] - new Vector3(0, 1, 5);
-        tick();
-        Check(Spawned(state) == 3, role + " sealed vault never spawns the pharaoh");
-        for (int seal = 0; seal < 3; seal++) stateType.GetMethod("Press", Instance).Invoke(state, new object[] { seal });
-        tick();
-        Check(Spawned(state) == 7 && project.Entities.Count(entity => entity.ValuesDictionary.DatabaseObject.Name == "SCIEPortPharaoh") == 1,
-            role + " opened vault creates exactly one pharaoh");
+            playerBody.Position = points[2] - new Vector3(0, 1, 5);
+            tick();
+            Check(Spawned(state) == 3, role + " sealed vault never spawns the pharaoh");
+            for (int seal = 0; seal < 3; seal++) stateType.GetMethod("Press", Instance).Invoke(state, new object[] { seal });
+            tick();
+            Check(Spawned(state) == 7 && project.Entities.Count(entity => entity.ValuesDictionary.DatabaseObject.Name == "SCIEPortPharaoh") == 1,
+                role + " opened vault creates exactly one pharaoh");
+        }
 
         var save = new ValuesDictionary();
         runtime.Save(save);
         runtime = (SubsystemBlockBehavior)Create(runtimeType);
         TidePalaceProbe.Add(project, runtime);
         runtime.Load(save);
-        Check(Spawned(State(runtime)) == 7, role + " once-only flags survive loading");
+        Check(Spawned(State(runtime)) == (maze ? 511 : 7), role + " once-only flags survive loading");
         foreach (Entity entity in project.Entities.ToArray()) project.RemoveEntity(entity, true);
         tick();
         Check(project.Entities.Count == 0, role + " consumed points do not recreate removed creatures after reload");

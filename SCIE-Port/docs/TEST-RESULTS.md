@@ -1,5 +1,14 @@
 # 测试结果
 
+## 2026-11-23 · 1.6.0 日阶迷宫
+
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，Windows 目标程序集哈希与 ABI 检查通过。
+- 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -Configuration Release -OutputDir E:/Survivalcraft2/SCIE-Port/artifacts/pyramid-maze-1.6.0`，退出 0。Release 编译 0 警告、0 错误，原有地形、书柜、五分类、钓鱼与云天书典回归通过。
+- 金字塔原生检查 14,639 项通过。25 个布局种子均有唯一 1×1 开口和 192 个可达小间，正门到藏器室的最短路径为 632–822 方格步。大陆、岛屿与 Better 的实际生成验证了门前石阶、地形围合、藏器室与一次性神器陈列。还检查了原生玩家蹲行包围盒、负坐标、相反切片顺序、旧区块拒绝、表外占用中止整片以及客户端拒绝生成。
+- 守卫原生检查 187 项通过，覆盖单机和房主的八只木乃伊与唯一法老、其他高度与点位占用、存档恢复、一次性生成和旧神殿封印进度。
+- 统一包及版本副本字节一致，共 237 个条目、13,226,061 字节。SHA-256 为 `24E2EA7A4F3B87C90892710ED87AC6888D0372737466BA1328A6629008860EAA`。与 1.5.0 的运行包逐条比较，只有 `SCIEPort.dll` 和 `modinfo.json` 的字节不同。
+- Android 7723 的蹲行进出、石阶实机通行、战斗和真实联机同步 **待验证**。[复测点](PYRAMID-MAZE-1.6.0.md)
+
 ## 2026-11-23 · 1.5.0 日阶神殿守卫
 
 - 仓库根目录执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标 Windows 程序集哈希与 Net_x25.01.17 的公开 ABI 检查通过。

@@ -10,10 +10,9 @@ namespace SCIEPort.Features.Pyramid
     /// <summary>Creates the pyramid's resident creatures on the authoritative update thread.</summary>
     internal sealed class PyramidGuardians
     {
-        internal const int All = 7;
         private const string Mummy = "SCIEPortMummy", Pharaoh = "SCIEPortPharaoh";
         private const float ArrivalRange = 14f;
-        private static readonly Encounter[] Encounters =
+        private static readonly Encounter[] LegacyEncounters =
         {
             new Encounter(Mummy, new Point3(40, 1, 25), BasaltBlock.Index,
                 new Point3(28, 1, 14), new Point3(51, 9, 44)),
@@ -21,6 +20,12 @@ namespace SCIEPort.Features.Pyramid
                 new Point3(51, 1, 18), new Point3(68, 7, 42)),
             new Encounter(Pharaoh, new Point3(43, -10, 64), LimestoneBlock.Index,
                 new Point3(28, -11, 56), new Point3(51, -4, 71))
+        };
+        private static readonly Encounter[] MazeEncounters =
+        {
+            MazeRoom(0, 17), MazeRoom(0, 36), MazeRoom(0, 53),
+            MazeRoom(1, 11), MazeRoom(1, 29), MazeRoom(1, 47),
+            MazeRoom(2, 22), MazeRoom(2, 40), MazeRoom(2, PyramidMaze.Count - 1, Pharaoh)
         };
 
         private readonly SubsystemTerrain terrain;
@@ -53,7 +58,7 @@ namespace SCIEPort.Features.Pyramid
                 if (!player.IsAddedToProject || player.ComponentHealth.Health <= 0f) continue;
                 Vector3 position = player.ComponentBody.Position;
                 PyramidState state = find(new Point2(Terrain.ToCell(position.X), Terrain.ToCell(position.Z)));
-                if (state == null || state.Slices != PyramidSite.Complete || state.GuardiansSpawned == All) continue;
+                if (state == null || state.Slices != PyramidSite.Complete || state.GuardiansSpawned == Mask(state.Site)) continue;
                 int index = EncounterFor(state, position);
                 if (index < 0 || !IsSpawnClear(terrain, state.Site, index)) continue;
                 Vector3 spawn = SpawnPosition(state.Site, index);
@@ -68,9 +73,10 @@ namespace SCIEPort.Features.Pyramid
             if (state.Slices != PyramidSite.Complete) return -1;
             var local = new Point3(Terrain.ToCell(position.X) - state.Site.Origin.X,
                 Terrain.ToCell(position.Y) - state.Site.BaseY, Terrain.ToCell(position.Z) - state.Site.Origin.Y);
-            for (int i = 0; i < Encounters.Length; i++)
+            Encounter[] encounters = ForSite(state.Site);
+            for (int i = 0; i < encounters.Length; i++)
             {
-                Encounter encounter = Encounters[i];
+                Encounter encounter = encounters[i];
                 if ((state.GuardiansSpawned & (1 << i)) != 0 || (encounter.Template == Pharaoh && !state.Solved)) continue;
                 if (local.X >= encounter.RoomMin.X && local.X <= encounter.RoomMax.X &&
                     local.Y >= encounter.RoomMin.Y && local.Y <= encounter.RoomMax.Y &&
@@ -81,12 +87,23 @@ namespace SCIEPort.Features.Pyramid
             return -1;
         }
 
+        internal static int Mask(PyramidSite site) => (1 << ForSite(site).Length) - 1;
+
+        private static Encounter[] ForSite(PyramidSite site) => site.Maze == null ? LegacyEncounters : MazeEncounters;
+
+        private static Encounter MazeRoom(int level, int cell, string template = Mummy)
+        {
+            Point3 floor = PyramidMaze.Room(level, cell);
+            return new Encounter(template, floor + new Point3(0, 1, 0), LimestoneBlock.Index,
+                floor + new Point3(-5, 1, -5), floor + new Point3(5, 3, 5));
+        }
+
         internal static Vector3 SpawnPosition(PyramidSite site, int index) =>
-            new Vector3(site.World(Encounters[index].Point)) + new Vector3(0.5f, 0.01f, 0.5f);
+            new Vector3(site.World(ForSite(site)[index].Point)) + new Vector3(0.5f, 0.01f, 0.5f);
 
         internal static bool IsSpawnClear(SubsystemTerrain terrain, PyramidSite site, int index)
         {
-            Encounter encounter = Encounters[index];
+            Encounter encounter = ForSite(site)[index];
             Point3 point = site.World(encounter.Point);
             if (!ShrineWorld.Ready(terrain, point) || !ShrineWorld.AllowsChange(point)) return false;
             Terrain cells = terrain.Terrain;
@@ -110,7 +127,7 @@ namespace SCIEPort.Features.Pyramid
         private void TrySpawn(PyramidState state, int index, Vector3 position)
         {
             Project project = terrain.Project;
-            string name = Encounters[index].Template;
+            string name = ForSite(state.Site)[index].Template;
             Entity entity = null;
             try
             {

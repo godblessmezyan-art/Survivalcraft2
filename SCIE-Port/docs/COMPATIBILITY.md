@@ -1,5 +1,9 @@
 # SCIE-Port 兼容性记录
 
+## 2026-11-23 · 1.6.0 日阶迷宫
+
+固定目标 Net_x25.01.17、net472、API 1.42、SC 2.4.10.6。新金字塔使用原生第四阶段地形入口和分片写入，`Pyramids` 存档记录增加 `MazeSeed` 与 `ApproachFloor`。旧记录按原版布局读取。方块 1023、守卫实体模板与旧机关包 234 沿用既有身份。目标 Windows 三种原生地形上的围合、路线、守卫和陈列器检查 **已确认**。Android 7723 的蹲行进出、实机战斗及真实联机 **待验证**。[日阶迷宫](PYRAMID-MAZE-1.6.0.md)
+
 ## 2026-11-23 · 1.5.0 日阶神殿守卫
 
 固定目标 Net_x25.01.17、net472、API 1.42、SC 2.4.10.6。新增 `SCIEPortMummy` 和 `SCIEPortPharaoh` 两个 XDB 实体模板，复用原生 LandAnimal、人形动作和实体同步。既有日阶神殿子系统增加存档字段 `GuardiansSpawned`，缺字段按 0 读取。Windows ABI、模型导入和本地及房主角色的离线实体生成 **已确认**。Android 7723 实机、战斗手感和真实联机 **待验证**。[守卫规则与复测点](PYRAMID-GUARDIANS-1.5.0.md)

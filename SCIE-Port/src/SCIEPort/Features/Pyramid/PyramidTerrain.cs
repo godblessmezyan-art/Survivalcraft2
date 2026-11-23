@@ -66,6 +66,18 @@ namespace SCIEPort.Features.Pyramid
                 case GermaniumOreBlock.Index:
                 case SaltpeterOreBlock.Index:
                 case SulphurOreBlock.Index:
+                // The native fourth pass can decorate the fresh footprint with a grave or cairn.
+                case GravestoneBlock.Index:
+                case TreasureGeneratorBlock.Index:
+                case JackOLanternBlock.Index:
+                case TorchBlock.Index:
+                case CairnBlock.Index:
+                case SandstoneStairsBlock.Index:
+                case SandstoneSlabBlock.Index:
+                case StoneStairsBlock.Index:
+                case StoneSlabBlock.Index:
+                case BasaltStairsBlock.Index:
+                case BasaltSlabBlock.Index:
                     return true;
                 default:
                     Block block = BlocksManager.Blocks[contents];
