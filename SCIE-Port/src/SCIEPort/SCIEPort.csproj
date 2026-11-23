@@ -3,9 +3,9 @@
     <TargetFramework>net472</TargetFramework>
     <AssemblyName>SCIEPort</AssemblyName>
     <RootNamespace>SCIEPort</RootNamespace>
-    <Version>1.7.0</Version>
-    <AssemblyVersion>1.7.0.0</AssemblyVersion>
-    <FileVersion>1.7.0.0</FileVersion>
+    <Version>1.7.2</Version>
+    <AssemblyVersion>1.7.2.0</AssemblyVersion>
+    <FileVersion>1.7.2.0</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <SCNetGameDir Condition="'$(SCNetGameDir)' == '' and '$(SCNET_GAME_DIR)' != ''">$(SCNET_GAME_DIR)</SCNetGameDir>

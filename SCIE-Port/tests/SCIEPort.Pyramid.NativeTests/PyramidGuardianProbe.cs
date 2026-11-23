@@ -44,8 +44,10 @@ public static class PyramidGuardianProbe
         caches.Add("Textures/PyramidGuardians", new List<object> { texture });
         try
         {
-            Template(database, assets, caches, "Mummy", "木乃伊", 20f, 3f, 2.4f);
-            Template(database, assets, caches, "Pharaoh", "法老", 65f, 6f, 3.5f);
+            Template(database, assets, caches, "Mummy", "木乃伊", 160f, 12f, 2.6f, 20f, 10f,
+                new[] { "CottonWadBlock;1;2", "CopperIngotBlock;1;1;0.3" });
+            Template(database, assets, caches, "Pharaoh", "法老", 480f, 24f, 3.8f, 24f, 35f,
+                new[] { "DiamondChunkBlock;1;2", "IronIngotBlock;2;4" });
             Lifecycle(database, fixture, WorkType.Local);
             Lifecycle(database, fixture, WorkType.Server);
             Lifecycle(database, fixture, WorkType.Local, true);
@@ -62,11 +64,11 @@ public static class PyramidGuardianProbe
             CommonLib.WorkType = WorkType.Local;
             Log.RemoveLogSink(log);
         }
-        Console.WriteLine("Pyramid guardian native templates, meshes and encounter lifecycle: " + checks + " checks passed.");
+        Console.WriteLine("Pyramid guardian templates, meshes, combat health and encounter lifecycle: " + checks + " native checks passed.");
     }
 
     private static void Template(GameDatabase database, string assets, IDictionary caches,
-        string name, string display, float health, float damage, float speed)
+        string name, string display, float health, float damage, float speed, float chaseTime, float fireResilience, string[] loot)
     {
         var values = new ValuesDictionary();
         var template = database.Database.FindDatabaseObject("SCIEPort" + name, database.EntityTemplateType, true);
@@ -84,8 +86,13 @@ public static class PyramidGuardianProbe
         Check(values.GetValue<ValuesDictionary>("Health").GetValue<float>("AttackResilience") == health &&
             values.GetValue<ValuesDictionary>("Miner").GetValue<float>("AttackPower") == damage &&
             values.GetValue<ValuesDictionary>("Locomotion").GetValue<float>("WalkSpeed") == speed &&
+            values.GetValue<ValuesDictionary>("Health").GetValue<float>("FireResilience") == fireResilience &&
             chase.GetValue<CreatureCategory>("AutoChaseMask") == 0 && chase.GetValue<float>("DayChaseRange") > 0f &&
-            chase.GetValue<float>("NightChaseRange") == chase.GetValue<float>("DayChaseRange"), name + " combat settings");
+            chase.GetValue<float>("NightChaseRange") == chase.GetValue<float>("DayChaseRange") &&
+            chase.GetValue<float>("DayChaseTime") == chaseTime && chase.GetValue<float>("NightChaseTime") == chaseTime,
+            name + " combat settings");
+        var lootTable = values.GetValue<ValuesDictionary>("Loot").GetValue<ValuesDictionary>("Loot");
+        Check(lootTable.Values.Count() == loot.Length && loot.All(entry => lootTable.Values.Contains(entry)), name + " loot table");
         var egg = values.GetValue<ValuesDictionary>("CreatureEggData");
         Check(egg.GetValue<int>("EggTypeIndex") == -1 && !egg.GetValue<bool>("ShowEgg") &&
             !values.GetValue<ValuesDictionary>("Spawn").GetValue<bool>("AutoDespawn"), name + " resident only");
@@ -132,6 +139,11 @@ public static class PyramidGuardianProbe
         // Use the real project component loading to surface missing template dependencies.
         foreach (string name in new[] { "SCIEPortMummy", "SCIEPortPharaoh" })
             DatabaseManager.CreateEntity(project, name, true).Dispose();
+        if (!maze)
+        {
+            CheckHealth(project, "SCIEPortMummy", 160f, "Excalibur.ExcaliburRules", "ImpactPower", 1);
+            CheckHealth(project, "SCIEPortPharaoh", 480f, "Gungnir.GungnirRules", "JudgmentPower", 1);
+        }
 
         var runtime = (SubsystemBlockBehavior)Create(runtimeType);
         TidePalaceProbe.Add(project, runtime);
@@ -249,6 +261,33 @@ public static class PyramidGuardianProbe
         foreach (Entity entity in project.Entities.ToArray()) project.RemoveEntity(entity, true);
         tick();
         Check(project.Entities.Count == 0, role + " consumed points do not recreate removed creatures after reload");
+    }
+
+    private static void CheckHealth(Project project, string template, float maximum,
+        string ruleType, string powerName, int survivedHits)
+    {
+        var rules = guardianType.Assembly.GetType("SCIEPort.Features." + ruleType, true);
+        float power = (float)rules.GetField(powerName, Static).GetRawConstantValue();
+        Entity entity = DatabaseManager.CreateEntity(project, template, true);
+        var health = entity.FindComponent<ComponentHealth>(true);
+        Check(health.Health == 1f && health.AttackResilience == maximum, template + " starts at its new maximum");
+        for (int i = 0; i < survivedHits; i++)
+            health.Injure(power / health.AttackResilience, null, false, powerName);
+        Check(health.Health > 0f && Math.Abs(health.Health * maximum - (maximum - power * survivedHits)) < .001f,
+            template + " survives the expected native injury from " + powerName);
+        health.Injure(power / health.AttackResilience, null, false, powerName);
+        Check(health.Health == 0f, template + " still dies to accumulated damage");
+        entity.Dispose();
+
+        // Native saves persist the health fraction and resolve resilience from the entity template at load.
+        var values = new ValuesDictionary();
+        values.PopulateFromDatabaseObject(DatabaseManager.FindEntityValuesDictionary(template, true).DatabaseObject);
+        values.GetValue<ValuesDictionary>("Health").SetValue("Health", .5f);
+        Entity restored = project.CreateEntity(values);
+        var restoredHealth = restored.FindComponent<ComponentHealth>(true);
+        Check(restoredHealth.Health == .5f && restoredHealth.AttackResilience == maximum,
+            template + " legacy half-health save keeps its fraction at the new maximum");
+        restored.Dispose();
     }
 
     private static void WriteRoom(Terrain terrain, object site, Vector3 position)

@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-23 · 1.7.2 守卫强度与技能
+
+- 执行 `scripts/Test-Environment.ps1`，Windows 目标程序集哈希与 Net_x25.01.17 ABI 检查通过。
+- 执行 `dotnet build SCIEPort.csproj -c Release`，Release 编译 0 警告、0 错误。
+- 金字塔守卫 207 项原生检查通过，覆盖木乃伊/法老的新攻击抗性、攻击力、步行速度、追击时长、火焰抗性与 Loot 掉落表；法老血量改为 480，圣剑/雷神击杀次数断言同步更新。
+- 新增技能在权威端结算：木乃伊「裹尸缠绕」（近战 +4、命中定身 0.7 秒，8 秒冷却）、法老「法老诅咒」（3 跳 × 7 攻击点数）、「太阳裁决」（0.8 秒后半径 4 格 25→10）与「亡者号令」（12 格内木乃伊攻击力 +20%）。离线探针不触发真实攻击 Hook，技能命中、定身与联机表现 **待验证**。
+- Android 7723 实机战斗、触屏表现与真实 Local/Server/Client **待验证**。[守卫规则](PYRAMID-GUARDIANS-1.5.0.md)
+
 ## 2026-11-23 · 1.7.0 石灰岩金字塔与环壁火山
 
 - 执行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Test-Environment.ps1 -GameDir E:/SCNET/SCNETx25.01.17`，目标程序集与公开 ABI 检查通过。

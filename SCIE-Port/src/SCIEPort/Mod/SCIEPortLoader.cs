@@ -142,6 +142,7 @@ namespace SCIEPort.Mod
                 behavior?.PrepareAwakenedMelee(target, attacker, hitPoint, ref attackPower, isMeleeAttack);
                 attacker.Project.FindSubsystem<SubsystemExcalibur>(false)?.PrepareMelee(target,attackingPlayer,attackPower,isMeleeAttack);
             }
+            PyramidGuardianSkills.OnAttackBody(target, attacker, ref attackPower, isMeleeAttack);
             return false;
         }
 
@@ -199,6 +200,7 @@ namespace SCIEPort.Mod
         public override void SubsystemUpdate(float dt)
         {
             StormhammerVisuals.Update();
+            PyramidGuardianSkills.Update();
             // Register native wildlife after project loading; native updates own all spawning.
             CreatureWorldSpawn.Update();
             DeathAuthorityRuntime.AfterNativeUpdates();
