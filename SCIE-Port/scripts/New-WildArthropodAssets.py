@@ -52,7 +52,7 @@ def blender(point):
     return (point[0], -point[2], point[1])
 
 
-def make_atlas(path):
+def make_atlas(path, palette=PALETTE):
     """Print padded pixel clusters and edge bands into the native nearest-filtered texture."""
     rand = random.Random(7813)
     pattern = [[rand.choice((-10, -5, 0, 0, 5, 9)) for _ in range(64)] for _ in range(16)]
@@ -63,7 +63,7 @@ def make_atlas(path):
         for x in range(width):
             band = -8 if y < 7 or y > 24 else 0
             speckle = pattern[y // 2][x // 2]
-            rows.extend(max(0, min(255, channel + band + speckle)) for channel in PALETTE[x // 8])
+            rows.extend(max(0, min(255, channel + band + speckle)) for channel in palette[x // 8])
             rows.append(255)
 
     def chunk(kind, data):

@@ -59,8 +59,16 @@ namespace SCIEPort.Ecology.Tests
                 Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species, 0, 0, 4) == 1, "Arthropods spawn singly");
                 Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species, cap, 0, 1) == 0, "Arthropod population is capped");
             }
+            foreach (int species in new[] { SCIEPort.Features.Creatures.WildlifeRules.MossbackTurtle,
+                SCIEPort.Features.Creatures.WildlifeRules.CloudwingRay })
+            {
+                int cap = SCIEPort.Features.Creatures.WildlifeRules.Caps[species];
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species, 0, 0, 3) == 1, "Large wildlife spawns singly");
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species, 0, 2, 1) == 0, "Large wildlife shares the frame budget");
+                Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(species, cap, 0, 1) == 0, "Large wildlife population cap");
+            }
             Assert(!SCIEPort.Features.Creatures.WildlifeRules.Habitat(-1,8,8,65,true,true),"Unknown species rejected");
-            Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(6,0,0,1)==0,"Unknown spawn rejected");
+            Assert(SCIEPort.Features.Creatures.WildlifeRules.SpawnCount(8,0,0,1)==0,"Unknown spawn rejected");
         }
 
         private static void TestChunkSeedDeterminism()

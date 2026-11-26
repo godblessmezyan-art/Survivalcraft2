@@ -63,6 +63,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new PyramidPackage());
                 PackageManager.RegisterPackage(new MountainShelterPackage());
                 PackageManager.RegisterPackage(new ArthropodStingPackage());
+                PackageManager.RegisterPackage(new LargeWildlifePosePackage());
                 PackageManager.RegisterPackage(new FlashlightPackage());
                 s_networkPackageRegistered = true;
             }
@@ -151,6 +152,9 @@ namespace SCIEPort.Mod
                 behavior?.PrepareAwakenedMelee(target, attacker, hitPoint, ref attackPower, isMeleeAttack);
                 attacker.Project.FindSubsystem<SubsystemExcalibur>(false)?.PrepareMelee(target,attackingPlayer,attackPower,isMeleeAttack);
             }
+            if (CommonLib.WorkType != WorkType.Client && attackPower > 0f &&
+                target?.Entity.FindComponent<ComponentMossbackTurtle>(false)?.Guarding == true)
+                attackPower *= .55f;
             PyramidGuardianSkills.OnAttackBody(target, attacker, ref attackPower, isMeleeAttack);
             return false;
         }

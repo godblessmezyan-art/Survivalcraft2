@@ -39,10 +39,36 @@ foreach($name in $arthropods.Keys){
     if($triangles -gt 1450 -or $triangles -lt 500){throw "Arthropod triangle budget failed: $name/$triangles"}
     Write-Host "Arthropod native import: $name $($model.Bones.Count) bones/$($model.Meshes.Count) meshes/$triangles triangles"
 }
+$large=@{
+    MossbackTurtle=@('Body','Head','Tail','LegL1','LegR1','LegL2','LegR2')
+    CloudwingRay=@('Body','WingL','WingR','WingTipL','WingTipR','Tail1','Tail2')
+}
+foreach($name in $large.Keys){
+    $file=Join-Path $assets ('Models/'+$name+'.dae')
+    $inputStream=[IO.File]::OpenRead($file)
+    try{$model=[Engine.Media.ModelData]::Load($inputStream)}finally{$inputStream.Dispose()}
+    if($model.Bones.Count -ne 7 -or $model.Meshes.Count -ne 7){throw "Large wildlife model shape failed: $name"}
+    foreach($bone in $large[$name]){if($model.Bones.Name -notcontains $bone){throw "Missing $name/$bone"}}
+    [xml]$dae=Get-Content -LiteralPath $file -Raw -Encoding UTF8
+    $triangleCount=($dae.SelectNodes("//*[local-name()='triangles']") | ForEach-Object {[int]$_.count} | Measure-Object -Sum).Sum
+    if($triangleCount -lt 900 -or $triangleCount -gt 2750){throw "Large wildlife triangle budget failed: $name/$triangleCount"}
+    Write-Host "Large wildlife native import: $name, 7 bones, $triangleCount triangles"
+}
+if($all.ContainsKey(891)){throw 'Large wildlife spawner ID 891 conflicts with native target'}
 foreach($id in 887..889){if($all.ContainsKey($id)){throw "Arthropod block ID $id conflicts with native target"}}
 $rows=@(Import-Csv -LiteralPath (Join-Path $assets 'Blocks/Creatures.csv') -Delimiter ';' -Encoding UTF8)
 foreach($name in $models.Keys){$row=@($rows|Where-Object {$_.'Class Name' -eq ($name+'SpawnBlock')});if($row.Count -ne 1 -or $row[0].DefaultCategory -ne 'SCIEPort.Nature' -or $row[0].Behaviors -ne ('SCIEPort'+$name+'SpawnBehavior')){throw "Creative item mapping failed $name"}}
+$largeSpawner=@($rows|Where-Object {$_.'Class Name' -eq 'LargeWildlifeSpawnBlock'})
+if($largeSpawner.Count -ne 1 -or $largeSpawner[0].DefaultCategory -ne 'SCIEPort.Nature' -or
+    $largeSpawner[0].Behaviors -ne 'SCIEPortLargeWildlifeSpawnBehavior' -or $largeSpawner[0].IsPlaceable -ne 'FALSE'){
+    throw 'Large wildlife creative entry failed'
+}
 Add-Type -AssemblyName System.Drawing
+$largeImage=[Drawing.Bitmap]::FromFile((Join-Path $assets 'Textures/LargeWildlife.png'))
+try{
+    if($largeImage.Width -ne 128 -or $largeImage.Height -ne 32){throw 'Large wildlife texture atlas dimensions'}
+    for($y=0;$y -lt 32;$y++){for($x=0;$x -lt 128;$x++){if($largeImage.GetPixel($x,$y).A -ne 255){throw 'Large wildlife atlas must be opaque'}}}
+}finally{$largeImage.Dispose()}
 $image=[Drawing.Bitmap]::FromFile((Join-Path $assets 'Textures/WildlifePalette.png'))
 try{if($image.Width -ne 128 -or $image.Height -ne 8){throw 'Wildlife atlas dimensions changed'};for($y=0;$y -lt 8;$y++){for($x=0;$x -lt 128;$x++){if($image.GetPixel($x,$y).A -ne 255){throw 'Wildlife atlas must be opaque'}}}}finally{$image.Dispose()}
 if($AssemblyPath){
@@ -68,10 +94,10 @@ if($Package){
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=[IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($Package))
     try{
-        foreach($name in @($models.Keys) + @($arthropods.Keys)){
+        foreach($name in @($models.Keys) + @($arthropods.Keys) + @($large.Keys)){
             if(-not $zip.GetEntry('Assets/Models/'+$name+'.dae')){throw "Packaged wildlife missing $name"}
         }
-        foreach($entry in @('Assets/Textures/WildlifePalette.png','Assets/Textures/WildArthropods.png','Assets/Database/WildArthropods.xdb')){
+        foreach($entry in @('Assets/Textures/WildlifePalette.png','Assets/Textures/WildArthropods.png','Assets/Database/WildArthropods.xdb','Assets/Textures/LargeWildlife.png','Assets/Database/LargeWildlife.xdb')){
             if(-not $zip.GetEntry($entry)){throw "Packaged wildlife missing $entry"}
         }
     }finally{$zip.Dispose()}

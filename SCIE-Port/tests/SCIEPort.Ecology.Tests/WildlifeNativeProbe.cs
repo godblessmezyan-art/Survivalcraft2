@@ -58,11 +58,12 @@ public static class WildlifeNativeProbe
         int data=EggBlock.SetIsLaid(EggBlock.SetEggType(0,50),true);
         Check(nativeEgg.GetEggType(data).TemplateName=="SCIEPortChicken" && !EggBlock.GetIsCooked(data),"native laid-egg data roundtrip");
         CheckArthropods(gd, mod);
+        CheckLargeWildlife(gd, mod);
         var flags=BindingFlags.Static|BindingFlags.NonPublic;
         var runtime=mod.GetType("SCIEPort.Features.Creatures.CreatureWorldSpawn",true);
         var spawn=new SubsystemCreatureSpawn();
-        for(int repeat=0;repeat<3;repeat++) for(int i=0;i<6;i++) runtime.GetMethod("Register",flags).Invoke(null,new object[]{spawn,i});
-        Check(spawn.m_creatureTypes.Count==6,"world registration idempotent");
+        for(int repeat=0;repeat<3;repeat++) for(int i=0;i<8;i++) runtime.GetMethod("Register",flags).Invoke(null,new object[]{spawn,i});
+        Check(spawn.m_creatureTypes.Count==8,"world registration idempotent");
         var old=Game.NetWork.CommonLib.WorkType;
         try
         {
@@ -109,7 +110,7 @@ public static class WildlifeNativeProbe
         using (var terrain = new Terrain())
         {
             var chunk = terrain.AllocateChunk(0, 0);
-            BlocksManager.Blocks[AirBlock.Index] = new AirBlock();
+            BlocksManager.Blocks[AirBlock.Index] = new AirBlock { IsCollidable = false };
             BlocksManager.Blocks[SandBlock.Index] = new SandBlock { IsCollidable = true };
             BlocksManager.Blocks[WaterBlock.Index] = new WaterBlock { IsCollidable = false };
             BlocksManager.Blocks[GraniteBlock.Index] = new GraniteBlock { IsCollidable = true };
@@ -141,5 +142,112 @@ public static class WildlifeNativeProbe
         Check(baitValue(Terrain.MakeBlockValue(887)) && !baitValue(Terrain.MakeBlockValue(887, 0, 1)), "crab bait only accepts DATA 0");
         Check(baitValue(Terrain.MakeBlockValue(SeedsBlock.Index, 0, (int)SeedsBlock.SeedType.Rye)) &&
             baitValue(Terrain.MakeBlockValue(SeedsBlock.Index, 0, (int)SeedsBlock.SeedType.WildRye)), "existing rye baits preserved");
+    }
+
+    private static void CheckLargeWildlife(GameDatabase gd, Assembly mod)
+    {
+        const string prefix = "SCIEPort.Features.Creatures.";
+        foreach (string species in new[] { "MossbackTurtle", "CloudwingRay" })
+        {
+            bool ray = species == "CloudwingRay";
+            var values = new ValuesDictionary();
+            values.PopulateFromDatabaseObject(gd.Database.FindDatabaseObject("SCIEPort" + species, gd.EntityTemplateType, true));
+            var model = values.GetValue<ValuesDictionary>("LargeWildlifeModel");
+            Check(model.GetValue<string>("Class") == prefix + "ComponentLargeWildlifeModel", species + " model binding");
+            Check(model.GetValue<string>("ModelName") == "Models/" + species &&
+                model.GetValue<string>("TextureOverride") == "Textures/LargeWildlife", species + " material and model");
+            Check(values.GetValue<ValuesDictionary>("LargeWildlife").GetValue<string>("Class") == prefix + "Component" + species,
+                species + " behavior binding");
+            var movement = values.GetValue<ValuesDictionary>("Locomotion");
+            Check(ray ? movement.GetValue<float>("FlySpeed") > 0 && movement.GetValue<float>("WalkSpeed") == 0
+                : movement.GetValue<float>("FlySpeed") == 0 && movement.GetValue<float>("WalkSpeed") > 0, species + " locomotion");
+            var category = values.GetValue<ValuesDictionary>("Creature").GetValue<CreatureCategory>("Category");
+            Check(category == (ray ? CreatureCategory.Bird : CreatureCategory.LandOther), species + " neutral native category");
+            var body = values.GetValue<ValuesDictionary>("Body");
+            var box = body.GetValue<Vector3>("BoxSize");
+            Check(ray ? box.X < 2f && box.Z > 2f : box.X > 2.3f && box.Y > 1.6f &&
+                body.GetValue<float>("MaxSmoothRiseHeight") >= 1f, species + " contact body matches core anatomy");
+        }
+
+        var block = (Block)Activator.CreateInstance(mod.GetType(prefix + "LargeWildlifeSpawnBlock", true));
+        int[] creative = block.GetCreativeValues().ToArray();
+        Check(creative.SequenceEqual(new[] { Terrain.MakeBlockValue(891), Terrain.MakeBlockValue(891, 0, 1) }),
+            "one block exposes both creative variants");
+        Check(block.GetDisplayName(null, creative[0]) != block.GetDisplayName(null, creative[1]), "distinct spawner labels");
+        var modelClass = mod.GetType(prefix + "ComponentLargeWildlifeModel", true);
+        Check(typeof(IDrawable).IsAssignableFrom(modelClass), "ray can queue a native shadow even outside creature frustum");
+        var packet = (Game.NetWork.IPackage)Activator.CreateInstance(mod.GetType(prefix + "LargeWildlifePosePackage", true));
+        var nativePackages = typeof(Game.NetWork.IPackage).Assembly.GetTypes()
+            .Where(t => !t.IsAbstract && !t.IsInterface && typeof(Game.NetWork.IPackage).IsAssignableFrom(t))
+            .Select(t => (Game.NetWork.IPackage)Activator.CreateInstance(t));
+        Check(packet.ID == 230 && nativePackages.All(p => p.ID != packet.ID), "large wildlife distinct native packet ID");
+        packet.Handle(null, null, true);
+
+        const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
+        var habitat = mod.GetType(prefix + "LargeWildlifeHabitat", true);
+        var suitable = habitat.GetMethod("Suitable", Flags);
+        var foothold = habitat.GetMethod("TurtleFooting", Flags);
+        var perch = habitat.GetMethod("TryPerch", Flags);
+        var air = habitat.GetMethod("TryFlightFloor", Flags);
+        var spawn = habitat.GetMethod("SpawnPosition", Flags);
+        BlocksManager.Blocks[AirBlock.Index] = new AirBlock { IsCollidable = false };
+        BlocksManager.Blocks[GrassBlock.Index] = new GrassBlock { IsCollidable = true };
+        BlocksManager.Blocks[GraniteBlock.Index] = new GraniteBlock { IsCollidable = true };
+        BlocksManager.Blocks[WaterBlock.Index] = new WaterBlock { IsCollidable = false };
+
+        using (var terrain = new Terrain())
+        {
+            var chunk = terrain.AllocateChunk(0, 0);
+            chunk.State = TerrainChunkState.Valid;
+            for (int x = 0; x < 16; x++)
+            for (int z = 0; z < 16; z++)
+            {
+                bool wet = x >= 9;
+                chunk.SetCellValueFast(x, wet ? 78 : 79, z, Terrain.MakeBlockValue(GrassBlock.Index));
+                if (wet) chunk.SetCellValueFast(x, 79, z, Terrain.MakeBlockValue(WaterBlock.Index));
+                int climate = Terrain.ReplaceHumidity(Terrain.ReplaceTemperature(0, 10), 9);
+                chunk.SetShaftValueFast(x, z, Terrain.ReplaceTopHeight(climate, 79));
+            }
+            Point3 point = new Point3(6, 80, 7);
+            var tiles = new object[] { terrain, new Vector3(8.5f, 80, 7.5f), true, 0 };
+            Check((bool)suitable.Invoke(null, new object[] { terrain, false, point }), "turtle selects walkable wetland");
+            Check((bool)foothold.Invoke(null, tiles) && (int)tiles[3] == 80, "broad turtle can step along one-block mixed bank");
+            Check(!(bool)foothold.Invoke(null, new object[] { terrain, new Vector3(8.5f, 80, 7.5f), false, 0 }),
+                "dry planting rejects water in shell footprint");
+            for (int x = 9; x < 16; x++)
+            for (int z = 0; z < 16; z++)
+            {
+                chunk.SetCellValueFast(x, 79, z, 0);
+                chunk.SetCellValueFast(x, 78, z, 0);
+                chunk.SetCellValueFast(x, 76, z, Terrain.MakeBlockValue(GrassBlock.Index));
+                chunk.SetCellValueFast(x, 77, z, Terrain.MakeBlockValue(WaterBlock.Index));
+            }
+            Check(!(bool)suitable.Invoke(null, new object[] { terrain, false, point }), "turtle rejects a cliff separating the shore");
+            Check(!(bool)foothold.Invoke(null, tiles), "wide shell cannot stride over a cliff");
+        }
+
+        using (var terrain = new Terrain())
+        {
+            var chunk = terrain.AllocateChunk(0, 0);
+            chunk.State = TerrainChunkState.Valid;
+            for (int x = 0; x < 16; x++)
+            for (int z = 0; z < 16; z++)
+            {
+                chunk.SetCellValueFast(x, 79, z, Terrain.MakeBlockValue(GrassBlock.Index));
+                chunk.SetShaftValueFast(x, z, Terrain.ReplaceTopHeight(Terrain.ReplaceHumidity(0, 8), 79));
+            }
+            Point3 point = new Point3(7, 80, 7);
+            var center = new Vector3(7.5f, 80, 7.5f);
+            var airArgs = new object[] { terrain, center, 0f };
+            Check((bool)suitable.Invoke(null, new object[] { terrain, true, point }), "ray selects open highland");
+            Check((bool)air.Invoke(null, airArgs) && (float)airArgs[2] == 80f, "ray corridor follows the highest sampled surface");
+            Check((bool)perch.Invoke(null, new object[] { terrain, center, new Vector3() }), "ray lands in a clear wing footprint");
+            Check(!(bool)air.Invoke(null, new object[] { terrain, new Vector3(15.5f, 82, 15.5f), 0f }), "ray avoids unloaded wingspan");
+            Vector3 launch = (Vector3)spawn.Invoke(null, new object[] { point, true });
+            Check(launch.Y == 87f && launch.X == 7.5f && launch.Z == 7.5f, "natural ray begins in air over selected land");
+            chunk.SetCellValueFast(11, 80, 7, Terrain.MakeBlockValue(GraniteBlock.Index));
+            chunk.SetShaftValueFast(11, 7, Terrain.ReplaceTopHeight(0, 80));
+            Check(!(bool)perch.Invoke(null, new object[] { terrain, center, new Vector3() }), "ray rejects a wingtip obstruction");
+        }
     }
 }

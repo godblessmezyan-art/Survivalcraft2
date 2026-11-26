@@ -3,14 +3,15 @@ namespace SCIEPort.Features.Creatures
     /// <summary>Policy shared by the native adapter and offline tests.</summary>
     internal static class WildlifeRules
     {
-        internal const int SandScorpion = 4, FiddlerCrab = 5;
+        internal const int SandScorpion = 4, FiddlerCrab = 5, MossbackTurtle = 6, CloudwingRay = 7;
         internal static readonly string[] Names =
         {
-            "SCIEPortFox", "SCIEPortRabbit", "SCIEPortChicken", "SCIEPortCat", "SCIEPortSandScorpion", "SCIEPortFiddlerCrab"
+            "SCIEPortFox", "SCIEPortRabbit", "SCIEPortChicken", "SCIEPortCat", "SCIEPortSandScorpion", "SCIEPortFiddlerCrab",
+            "SCIEPortMossbackTurtle", "SCIEPortCloudwingRay"
         };
-        internal static readonly int[] Caps = { 16, 40, 32, 16, 12, 16 };
-        internal static readonly int[] GroupMax = { 1, 2, 3, 1, 1, 1 };
-        internal static readonly float[] Weights = { .14f, .45f, .35f, .12f, .48f, .52f };
+        internal static readonly int[] Caps = { 16, 40, 32, 16, 12, 16, 6, 5 };
+        internal static readonly int[] GroupMax = { 1, 2, 3, 1, 1, 1, 1, 1 };
+        internal static readonly float[] Weights = { .14f, .45f, .35f, .12f, .48f, .52f, .47f, .42f };
 
         internal static bool Habitat(int species, int temperature, int humidity, int height, bool naturalGround, bool open)
         {

@@ -1,5 +1,7 @@
 # 移植工程物品展示规范（0.44.0 起强制）
 
+1.13.0 的苔背巨龟生成器和云翼巨鳐生成器在「自然与生物」SCIEPort.Nature 展示 891 的 DATA0 和 DATA1，使用分类默认槽位样式。[大型野生生物](LARGE-WILDLIFE.md)
+
 1.12.0 的招潮蟹饵 887、沙蝎生成器 888、招潮蟹生成器 889 在「自然与生物」SCIEPort.Nature 展示 DATA0，使用分类默认槽位样式。[野外生物](WILD-ARTHROPODS.md)
 
 1.11.0 的手电筒 890 在「装备与工具」`SCIEPort.Gear` 展示满电关闭的 DATA 0。使用普通工具槽位样式和原生耐久条显示电量。[手电筒](FLASHLIGHT.md)

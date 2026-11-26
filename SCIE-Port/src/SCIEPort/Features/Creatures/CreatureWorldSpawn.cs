@@ -46,7 +46,12 @@ namespace SCIEPort.Features.Creatures
             if (chunk == null || chunk.State < TerrainChunkState.InvalidLight || point.Y < 2 || point.Y > 252) return 0f;
             if (species >= WildlifeRules.SandScorpion)
             {
-                if (!ArthropodHabitat.Suitable(terrain, species, point)) return 0f;
+                bool large = species >= WildlifeRules.MossbackTurtle;
+                bool suitable = large
+                    ? LargeWildlifeHabitat.Suitable(terrain, species == WildlifeRules.CloudwingRay, point)
+                    : ArthropodHabitat.Suitable(terrain, species, point);
+                if (!suitable) return 0f;
+                float localRadius = large ? 42f : 14f;
                 var center = new Vector2(point.X, point.Z);
                 int count = 0;
                 int local = 0;
@@ -55,9 +60,9 @@ namespace SCIEPort.Features.Creatures
                     if (creature.ComponentHealth.Health <= 0f ||
                         creature.Entity.ValuesDictionary.DatabaseObject.Name != WildlifeRules.Names[species]) continue;
                     count++;
-                    if ((creature.ComponentBody.Position.XZ - center).LengthSquared() <= 14f * 14f) local++;
+                    if ((creature.ComponentBody.Position.XZ - center).LengthSquared() <= localRadius * localRadius) local++;
                 }
-                return count < WildlifeRules.Caps[species] && local < 2 ? WildlifeRules.Weights[species] : 0f;
+                return count < WildlifeRules.Caps[species] && local < (large ? 1 : 2) ? WildlifeRules.Weights[species] : 0f;
             }
             int ground = Terrain.ExtractContents(terrain.GetCellValueFast(point.X, point.Y - 1, point.Z));
             bool natural = BlocksManager.Blocks[ground] is GrassBlock || BlocksManager.Blocks[ground] is DirtBlock;
@@ -91,9 +96,15 @@ namespace SCIEPort.Features.Creatures
                 if (spawn.CountCreaturesInArea(center - new Vector2(16f), center + new Vector2(16f), false) >= SubsystemCreatureSpawn.m_maxPointLimit) break;
                 try
                 {
-                    int added = species >= WildlifeRules.SandScorpion
-                        ? (spawn.SpawnCreature(type.Name, new Vector3(point.X + .5f, point.Y + .06f, point.Z + .5f), type.ConstantSpawn) != null ? 1 : 0)
-                        : spawn.SpawnCreatures(type, type.Name, point, 1).Count;
+                    int added;
+                    if (species >= WildlifeRules.SandScorpion)
+                    {
+                        Vector3 position = species >= WildlifeRules.MossbackTurtle
+                            ? LargeWildlifeHabitat.SpawnPosition(point, species == WildlifeRules.CloudwingRay)
+                            : new Vector3(point.X + .5f, point.Y + .06f, point.Z + .5f);
+                        added = spawn.SpawnCreature(type.Name, position, type.ConstantSpawn) != null ? 1 : 0;
+                    }
+                    else added = spawn.SpawnCreatures(type, type.Name, point, 1).Count;
                     spawned += added; s_frameSpawns += added;
                 }
                 catch (Exception error)

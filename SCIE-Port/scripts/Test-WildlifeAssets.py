@@ -4,7 +4,7 @@ import math, xml.etree.ElementTree as E
 ROOT=Path(__file__).resolve().parents[1]/'src/SCIEPort/Assets/Models'
 ns={'c':'http://www.collada.org/2005/11/COLLADASchema'}
 checks=0
-for name in ['Fox','Rabbit','Chicken','Cat','SandScorpion','FiddlerCrab']:
+for name in ['Fox','Rabbit','Chicken','Cat','SandScorpion','FiddlerCrab','MossbackTurtle','CloudwingRay']:
     r=E.parse(ROOT/(name+'.dae')).getroot()
     assert r.find('c:asset/c:up_axis',ns).text=='Y_UP'
     for mesh in r.findall('.//c:geometry/c:mesh',ns):
@@ -48,7 +48,11 @@ def dimensions(name):
 
     for node in r.findall('.//c:visual_scene/c:node', ns):
         visit(node, (0, 0, 0))
-    assert 0 <= min(p[1] for p in points) < .015, name + ' feet nearly touch the ground'
+    minimum = min(p[1] for p in points)
+    if name == 'CloudwingRay':
+        assert .10 <= minimum < .27, name + ' belly stays above ground at rest'
+    else:
+        assert 0 <= minimum < .018, name + ' feet nearly touch the ground'
     return tuple(max(p[i] for p in points) - min(p[i] for p in points) for i in range(3))
 
 sx, sy, sz = dimensions('SandScorpion')
@@ -56,5 +60,11 @@ cx, cy, cz = dimensions('FiddlerCrab')
 assert .78 <= sx <= .91 and .43 <= sy <= .53 and .90 <= sz <= 1.04, 'scorpion body envelope'
 assert .44 <= cx <= .55 and .20 <= cy <= .28 and .35 <= cz <= .47, 'crab body envelope'
 assert cy < .55 * sy and cx < .65 * sx, 'crab reads as the smaller creature'
+tx, ty, tz = dimensions('MossbackTurtle')
+rx, ry, rz = dimensions('CloudwingRay')
+assert 2.4 <= tx <= 2.7 and 1.68 <= ty <= 1.86 and 3.82 <= tz <= 4.12, 'turtle envelope'
+assert 6.85 <= rx <= 7.15 and .55 <= ry <= .82 and 4.60 <= rz <= 5.10, 'ray envelope'
+assert rx > tz * 1.65, 'the spread wings read substantially wider than the turtle'
+print(f'Turtle rest bounds {tx:.3f} x {ty:.3f} x {tz:.3f}; ray {rx:.3f} x {ry:.3f} x {rz:.3f}')
 print('Wildlife triangle checks:', checks)
 print(f'Scorpion rest bounds {sx:.3f} x {sy:.3f} x {sz:.3f}; crab {cx:.3f} x {cy:.3f} x {cz:.3f}')

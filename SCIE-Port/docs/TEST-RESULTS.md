@@ -1,5 +1,11 @@
 # 测试结果
 
+## 2026-11-26 · 1.13.0 苔背巨龟和云翼巨鳐
+
+- 根目录与 SCIE-Port 的 Test-Environment.ps1 使用 E:/SCNET/SCNETx25.01.17，通过固定环境和原生 ID 检查。执行 dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17，0 警告、0 错误。
+- Test-WildlifeAssets.py 检查 8878 个三角形和实际尺寸。Test-Wildlife.ps1 通过 157 项原生数据库和生境检查，包括巨龟浅水路径及断崖、巨鳐降落净空与未加载区块、新编号和创造栏变体。生态规则通过 11133 项，XDB 静态检查通过。
+- 按实际模型制作同尺度预览。Android 7723、真实联机及游戏内刷新密度和动作观感待实测。[大型野生生物](LARGE-WILDLIFE.md)
+
 ## 2026-11-26 · 1.12.0 野外沙蝎和招潮蟹
 
 - 在 Git 暂存快照执行 powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17。固定环境、Release 完整回归和 .netmod 内容校验通过。版本包 SHA-256 为 c6cf66317af88878cc1b2fbfcca419a67d335f27067fde746215c860bb820dba。
