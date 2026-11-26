@@ -107,7 +107,7 @@ foreach ($type in $loadedTypes) {
 if ($nativeIds.Count -lt 200) {
     throw "Native block ID audit was incomplete; only $($nativeIds.Count) block constants were readable."
 }
-foreach ($reservedId in ((880..886) + 890 + (892..899) + (903..1023))) {
+foreach ($reservedId in ((880..890) + (892..899) + (903..1023))) {
     if ($nativeIds -contains $reservedId) {
         throw "SCIE-Port block index $reservedId conflicts with a native block."
     }
@@ -167,7 +167,7 @@ foreach ($type in $loadedTypes) {
         try { $nativePackageIds += [int]([Activator]::CreateInstance($type).ID) } catch { }
     }
 }
-foreach ($reservedPackageId in @(231, 233, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252)) {
+foreach ($reservedPackageId in @(231, 232, 233, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252)) {
     if ($nativePackageIds -contains $reservedPackageId) {
         throw "SCIE-Port package ID $reservedPackageId conflicts with a native x25.01.17 package."
     }

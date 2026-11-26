@@ -287,8 +287,15 @@ namespace SCIEPort.Features.Fishing
             if (inventory == null || slot < 0 || slot >= inventory.VisibleSlotsCount || inventory.GetSlotCount(slot) == 0)
                 return false;
             int value = inventory.GetSlotValue(slot);
+            return IsBaitValue(value);
+        }
+
+        internal static bool IsBaitValue(int value)
+        {
+            int contents = Terrain.ExtractContents(value);
+            if (contents == Creatures.CrabBaitBlock.Index) return Terrain.ExtractData(value) == 0;
             var seed = (SeedsBlock.SeedType)Terrain.ExtractData(value);
-            return Terrain.ExtractContents(value) == SeedsBlock.Index &&
+            return contents == SeedsBlock.Index &&
                 (seed == SeedsBlock.SeedType.Rye || seed == SeedsBlock.SeedType.WildRye);
         }
 

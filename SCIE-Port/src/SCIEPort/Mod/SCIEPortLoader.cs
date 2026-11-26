@@ -34,6 +34,9 @@ namespace SCIEPort.Mod
         private static bool s_networkPackageRegistered;
 
         /// <inheritdoc />
+        public override int GetMaxInstancesCount() => ComponentWildArthropodModel.MaxBones;
+
+        /// <inheritdoc />
         public override void __ModInitialize()
         {
             if (!s_networkPackageRegistered)
@@ -59,6 +62,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new TidePalacePackage());
                 PackageManager.RegisterPackage(new PyramidPackage());
                 PackageManager.RegisterPackage(new MountainShelterPackage());
+                PackageManager.RegisterPackage(new ArthropodStingPackage());
                 PackageManager.RegisterPackage(new FlashlightPackage());
                 s_networkPackageRegistered = true;
             }

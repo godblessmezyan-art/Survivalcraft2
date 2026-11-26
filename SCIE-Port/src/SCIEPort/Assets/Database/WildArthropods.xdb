@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<SCIEPortWildArthropods>
+  <Folder Name="Entities" Guid="5fcdf35f-7001-442c-883e-e0502b15d291">
+    <EntityTemplate Name="SCIEPortSandScorpion" Guid="1c2d97a5-18b7-5bda-adc9-c77494f0ec0d" InheritanceParent="bc5be211-c1f8-4e50-9ffb-4fde625d2692">
+      <MemberComponentTemplate Name="Creature" Guid="843ebca0-4322-5e08-8560-6c73c5e64a20">
+        <Parameter Name="DisplayName" Guid="9c75f9ed-9bbe-5e16-8e93-88c68f70d966" Type="string" Value="沙蝎" />
+        <Parameter Name="Description" Guid="bb0cf66b-9ebb-5afe-8877-a43a10e8b726" Type="string" Value="" />
+        <Parameter Name="Category" Guid="a7418565-9542-5edf-82af-e69a6e8124a0" Type="Game.CreatureCategory" Value="LandPredator" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="e902c3ed-2199-540c-8e97-c5ab745da5ab">
+        <Parameter Name="BoxSize" Guid="1b861738-9939-53fb-89de-cec28d55d2a8" Type="Vector3" Value="0.68,0.34,0.74" />
+        <Parameter Name="Mass" Guid="e2345e9d-79cb-5569-aada-8d39ba7e66ea" Type="float" Value="7" />
+        <Parameter Name="Density" Guid="fa536305-e44a-5b6f-a4c4-be518a75ce68" Type="float" Value="1.16" />
+        <Parameter Name="WaterTurnSpeed" Guid="f84c2f94-56d6-5fb1-85de-c34f6ffd5c69" Type="float" Value="0" />
+        <Parameter Name="WaterSwayAngle" Guid="fa87ef8d-625a-5756-9ac0-c1fe57107d51" Type="float" Value="0" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="d3d16336-3de1-5882-9bfe-de4d110e8fea">
+        <Parameter Name="AttackResilience" Guid="4c59148c-244d-5c9a-a448-f160d0cf8889" Type="float" Value="9" />
+        <Parameter Name="CorpseDuration" Guid="211ae22f-ff5a-55dc-8161-bef2f4dcfcc3" Type="float" Value="2" />
+        <Parameter Name="AirCapacity" Guid="07d25497-d2a8-5d42-b43d-591839d9e942" Type="float" Value="10" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="a4f43331-67a6-5e19-bce5-5a44fbd5b19e">
+        <Parameter Name="AutoDespawn" Guid="8bd63d7f-1059-5bb1-801f-b8b7ce1960f4" Type="bool" Value="False" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="59416686-bafe-59da-ac5e-1756fe0efea0">
+        <Parameter Name="WalkSpeed" Guid="13cf8e5b-4cda-5a6c-8d5a-bbaa13c5744c" Type="float" Value="3.2" />
+        <Parameter Name="FlySpeed" Guid="ad518069-8716-5e5a-a9e4-021a7eead59b" Type="float" Value="0" />
+        <Parameter Name="SwimSpeed" Guid="9a54b49b-9475-5e72-869c-8d50882b4389" Type="float" Value="0" />
+        <Parameter Name="TurnSpeed" Guid="b18c143f-60a0-548a-ad3a-3291f5e3912d" Type="float" Value="11" />
+        <Parameter Name="LadderSpeed" Guid="d9dfdcbb-b654-5b5d-ad30-e7346f59530b" Type="float" Value="0" />
+        <Parameter Name="WalkSpeedWhenTurning" Guid="535373f1-5398-53a7-9218-ca4dd3effe73" Type="float" Value="0" />
+        <Parameter Name="AccelerationFactor" Guid="14f734c3-becc-56c2-ad7b-22abaf70a1a9" Type="float" Value="1.6" />
+        <Parameter Name="JumpSpeed" Guid="46ed2d8c-48be-5aba-adf2-c449fa9def16" Type="float" Value="0" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ArthropodModel" Guid="6b387326-661b-521a-84f5-c2fde5299529" InheritanceParent="681a5886-5bff-418a-bf5f-ac84f290a311">
+        <Parameter Name="Class" Guid="8bab0900-ed06-5b2c-877a-b21106e3b03c" Type="string" Value="SCIEPort.Features.Creatures.ComponentWildArthropodModel" />
+        <Parameter Name="ModelName" Guid="41e7130f-5d9e-5deb-9083-a69e20c3a87c" Type="string" Value="Models/SandScorpion" />
+        <Parameter Name="TextureOverride" Guid="e7251ce7-1f05-5681-ae9d-3e5e8473823f" Type="string" Value="Textures/WildArthropods" />
+        <Parameter Name="BoundingSphereRadius" Guid="598c0a42-d14e-5494-a514-ec9d39d4b440" Type="float" Value="1.1" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Arthropod" Guid="7d1a543f-fb3d-5d3d-83bf-0e630311088e" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+        <Parameter Name="Class" Guid="4d35d709-0997-5d48-8b47-dae785de2e8a" Type="string" Value="SCIEPort.Features.Creatures.ComponentWildArthropod" />
+        <Parameter Name="IsScorpion" Guid="99923f1f-5c34-52fa-afe0-dbbfff0103b6" Type="bool" Value="True" />
+      </MemberComponentTemplate>
+    </EntityTemplate>
+    <EntityTemplate Name="SCIEPortFiddlerCrab" Guid="c5071a2a-20d3-5904-96f0-dca4c6bf9c5a" InheritanceParent="bc5be211-c1f8-4e50-9ffb-4fde625d2692">
+      <MemberComponentTemplate Name="Creature" Guid="9165169d-a30d-53f6-bf90-47b375ff3fd8">
+        <Parameter Name="DisplayName" Guid="63907317-f928-5319-be77-17f2c849b3dd" Type="string" Value="招潮蟹" />
+        <Parameter Name="Description" Guid="e203224c-a78c-55fd-a939-3b5aa8334496" Type="string" Value="" />
+        <Parameter Name="Category" Guid="84eaad37-ca94-5492-9a2e-a4c5eee93768" Type="Game.CreatureCategory" Value="LandOther" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Body" Guid="925b5748-850f-55e5-8e30-65752cd7090b">
+        <Parameter Name="BoxSize" Guid="74d3b48e-f061-59bf-9259-703f6d5f4948" Type="Vector3" Value="0.37,0.24,0.35" />
+        <Parameter Name="Mass" Guid="68de6ab7-f835-52e8-90c1-fc57b7b58abd" Type="float" Value="2.6" />
+        <Parameter Name="Density" Guid="6417f07e-ad7d-5e39-81b7-fc24e94292c2" Type="float" Value="1.16" />
+        <Parameter Name="WaterTurnSpeed" Guid="b1d467b6-1a9e-5768-9868-3b6205aefd01" Type="float" Value="0" />
+        <Parameter Name="WaterSwayAngle" Guid="545be841-c946-52a0-bd65-a7f8498f512a" Type="float" Value="0" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Health" Guid="1d90d92d-0f6b-50c5-983d-34f6bafc06f6">
+        <Parameter Name="AttackResilience" Guid="ce395c57-db27-56ce-ba96-e8b7dfa3783c" Type="float" Value="3.5" />
+        <Parameter Name="CorpseDuration" Guid="743ea005-8554-56e3-a308-7cc67edf5c7c" Type="float" Value="2" />
+        <Parameter Name="AirCapacity" Guid="65797e2a-0e3d-59fc-8921-c29325b3ca86" Type="float" Value="120" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Spawn" Guid="345a170d-2df6-532c-9fbb-5c676b45e706">
+        <Parameter Name="AutoDespawn" Guid="8a4c769a-daf0-5320-a626-a4e833669da5" Type="bool" Value="False" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Locomotion" Guid="a8bfb089-ec05-5f6d-be00-fc7f9c8a000c">
+        <Parameter Name="WalkSpeed" Guid="2ada326f-e1c2-58a9-b794-d6f6153b9c5d" Type="float" Value="2.8" />
+        <Parameter Name="FlySpeed" Guid="5db013e6-07e5-5847-9194-5dcc5e8f4070" Type="float" Value="0" />
+        <Parameter Name="SwimSpeed" Guid="7c166c7a-081a-50f0-800c-11743a149ceb" Type="float" Value="0" />
+        <Parameter Name="TurnSpeed" Guid="ff2ea047-455b-52ca-bf27-e1464326198f" Type="float" Value="11" />
+        <Parameter Name="LadderSpeed" Guid="8ca94efc-f211-51a2-b865-6bf87d5bd3c5" Type="float" Value="0" />
+        <Parameter Name="WalkSpeedWhenTurning" Guid="94945212-8222-5c2f-886a-18d630f11f7c" Type="float" Value="0" />
+        <Parameter Name="AccelerationFactor" Guid="70d7228e-8675-514a-9f19-cbd5829032b8" Type="float" Value="1.6" />
+        <Parameter Name="JumpSpeed" Guid="543e7966-3475-50d6-b4bd-8df595fe6b40" Type="float" Value="4.8" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="ArthropodModel" Guid="25d19d78-493d-550f-adef-0b1d9a4a2805" InheritanceParent="681a5886-5bff-418a-bf5f-ac84f290a311">
+        <Parameter Name="Class" Guid="3a3f6a48-a36a-5920-bc83-ba1d3a5543bf" Type="string" Value="SCIEPort.Features.Creatures.ComponentWildArthropodModel" />
+        <Parameter Name="ModelName" Guid="e065b72e-d6e2-54e9-9405-40f6e5e884f5" Type="string" Value="Models/FiddlerCrab" />
+        <Parameter Name="TextureOverride" Guid="455234ff-44e7-55ab-b4eb-dcbbad1bf1a7" Type="string" Value="Textures/WildArthropods" />
+        <Parameter Name="BoundingSphereRadius" Guid="ace6bb39-5762-5831-bef2-aeb4eb86b767" Type="float" Value=".57" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Arthropod" Guid="3b77472a-b337-5bd0-a5a1-5b559fe7d384" InheritanceParent="b05700ed-7e4e-4679-98f5-b597f421496b">
+        <Parameter Name="Class" Guid="aaab5982-e757-5089-b2c8-58387cc04ba0" Type="string" Value="SCIEPort.Features.Creatures.ComponentWildArthropod" />
+        <Parameter Name="IsScorpion" Guid="77953aeb-4e01-50c9-a40c-1af2c3603def" Type="bool" Value="False" />
+      </MemberComponentTemplate>
+      <MemberComponentTemplate Name="Loot" Guid="df0f4007-f8d8-5f9b-b29c-f3578c8a875a" InheritanceParent="8547d74d-d347-4744-a839-14adf11731d0">
+        <ParameterSet Name="Loot" Guid="240f399c-44de-5125-b0d5-6656566a5b48">
+          <Parameter Name="Crab" Guid="dcf3ac6f-e671-5262-81ca-0285225f6abf" Type="string" Value="CrabBaitBlock;1;1" />
+        </ParameterSet>
+        <ParameterSet Name="LootOnFire" Guid="d2014d47-0725-598b-9e60-6fa9f8566f8f">
+          <Parameter Name="Crab" Guid="997287f4-2fff-5fe6-a116-c627fa2b977b" Type="string" Value="CrabBaitBlock;1;1" />
+        </ParameterSet>
+      </MemberComponentTemplate>
+    </EntityTemplate>
+  </Folder>
+  <Folder Name="BlockBehaviors" Guid="00c97f0f-731e-481c-9909-eae9cc5ee940">
+    <SubsystemTemplate Name="SCIEPortArthropodSpawnBehavior" Guid="19bbea40-ae8c-5c99-b2d3-2606c6a4cc8f" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="48d1b43d-ddf4-527d-83e9-5a9d9b6fbc8a" Type="string" Value="SCIEPort.Features.Creatures.SubsystemArthropodSpawnBlockBehavior" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="SCIEPortArthropodSpawnBehavior" Guid="b9762d2a-1446-556e-b125-695c6eeaa498" InheritanceParent="19bbea40-ae8c-5c99-b2d3-2606c6a4cc8f" />
+  </ProjectTemplate>
+</SCIEPortWildArthropods>

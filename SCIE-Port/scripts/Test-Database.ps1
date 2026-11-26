@@ -1,4 +1,4 @@
-﻿[CmdletBinding()]
+[CmdletBinding()]
 param(
     [string]$ProjectRoot,
     [string]$DatabaseDir
@@ -59,6 +59,9 @@ $KnownVanillaParents = @{
     'd0b14127-39ce-4490-af00-fb4111e9c51e' = 'Mount (ComponentTemplate)'
     '8edd1986-0dcc-424f-893a-491c089b821e' = 'Body (ComponentTemplate)'
     '17bb7b53-159c-4eb3-b4bc-137b10bba88a' = 'Damage (ComponentTemplate)'
+    'bc5be211-c1f8-4e50-9ffb-4fde625d2692' = 'Creature base (EntityTemplate)'
+    '681a5886-5bff-418a-bf5f-ac84f290a311' = 'Creature model base (ComponentTemplate)'
+    '8547d74d-d347-4744-a839-14adf11731d0' = 'Creature loot (ComponentTemplate)'
     'b05700ed-7e4e-4679-98f5-b597f421496b' = 'Drive base (ComponentTemplate)'
     'a3914c13-7801-46a6-b23a-9e2b36e9defb' = 'Subsystem (SubsystemTemplate)'
     'fefb9590-4972-4893-b02a-76063611b745' = 'Boat block behavior base (SubsystemTemplate)'

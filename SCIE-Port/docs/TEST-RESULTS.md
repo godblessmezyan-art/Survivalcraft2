@@ -1,5 +1,12 @@
 # 测试结果
 
+## 2026-11-26 · 1.12.0 野外沙蝎和招潮蟹
+
+- 在 Git 暂存快照执行 powershell.exe -NoProfile -ExecutionPolicy Bypass -File SCIE-Port/scripts/Build-NetMod.ps1 -GameDir E:/SCNET/SCNETx25.01.17。固定环境、Release 完整回归和 .netmod 内容校验通过。版本包 SHA-256 为 c6cf66317af88878cc1b2fbfcca419a67d335f27067fde746215c860bb820dba。
+- python SCIE-Port/scripts/Test-WildlifeAssets.py 通过 5150 项三角形检查，核对两种生物的着地高度和静止尺寸。
+- dotnet run --project SCIE-Port/tests/SCIEPort.Ecology.Tests -c Release 通过 11127 项生态规则检查。Test-Wildlife.ps1 使用固定目标引擎导入 14 骨骼沙蝎和 11 骨骼招潮蟹，另通过 126 项有效数据库、生境、命中、鱼饵和网络注册检查。
+- 用实际导出的 DAE 制作同比例预览。Android 7723 画面、触屏命中、野外刷新频率和真实联机待实测。[尺寸及首测入口](WILD-ARTHROPODS.md)
+
 ## 2026-11-26 · 1.11.0 手电筒
 
 - 固定 Windows `Net_x25.01.17` 的根工程与 SCIE-Port 两套 `Test-Environment.ps1` 均通过。游戏 SHA-256 为 `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`，Engine SHA-256 为 `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`。从主线与手电筒改动的独立快照执行 `dotnet build <SCIEPort.csproj> -c Release --nologo -v:q -p:NoWarn=1591`，0 警告、0 错误。

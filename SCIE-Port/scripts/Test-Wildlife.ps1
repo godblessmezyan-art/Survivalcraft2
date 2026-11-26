@@ -19,6 +19,27 @@ foreach($name in $models.Keys){
     if($triangles -lt 400 -or $triangles -gt 1000){throw "Wildlife triangle budget failed: $name/$triangles"}
     Write-Host "Wildlife native import: $name $($model.Bones.Count) bones/$($model.Meshes.Count) meshes/$triangles triangles"
 }
+$arthropods=@{SandScorpion=14;FiddlerCrab=11}
+foreach($name in $arthropods.Keys){
+    $path=Join-Path $assets ('Models/'+$name+'.dae')
+    $stream=[IO.File]::OpenRead($path)
+    try{$model=[Engine.Media.ModelData]::Load($stream)}finally{$stream.Dispose()}
+    if($model.Bones.Count -ne $arthropods[$name] -or $model.Meshes.Count -ne $arthropods[$name]){
+        throw "Arthropod bones/native meshes failed: $name"
+    }
+    foreach($side in @('L','R')){
+        if($model.Bones.Name -notcontains "Claw$side"){throw "Missing $name claw $side"}
+        foreach($i in 1..4){if($model.Bones.Name -notcontains "Leg$side$i"){throw "Missing $name leg $side$i"}}
+    }
+    if($name -eq 'SandScorpion'){
+        foreach($i in 1..3){if($model.Bones.Name -notcontains "Tail$i"){throw "Missing scorpion tail bone $i"}}
+    }
+    [xml]$dae=Get-Content -LiteralPath $path -Raw -Encoding UTF8
+    $triangles=($dae.SelectNodes("//*[local-name()='triangles']") | ForEach-Object {[int]$_.count} | Measure-Object -Sum).Sum
+    if($triangles -gt 1450 -or $triangles -lt 500){throw "Arthropod triangle budget failed: $name/$triangles"}
+    Write-Host "Arthropod native import: $name $($model.Bones.Count) bones/$($model.Meshes.Count) meshes/$triangles triangles"
+}
+foreach($id in 887..889){if($all.ContainsKey($id)){throw "Arthropod block ID $id conflicts with native target"}}
 $rows=@(Import-Csv -LiteralPath (Join-Path $assets 'Blocks/Creatures.csv') -Delimiter ';' -Encoding UTF8)
 foreach($name in $models.Keys){$row=@($rows|Where-Object {$_.'Class Name' -eq ($name+'SpawnBlock')});if($row.Count -ne 1 -or $row[0].DefaultCategory -ne 'SCIEPort.Nature' -or $row[0].Behaviors -ne ('SCIEPort'+$name+'SpawnBehavior')){throw "Creative item mapping failed $name"}}
 Add-Type -AssemblyName System.Drawing
@@ -46,5 +67,12 @@ if($AssemblyPath){
 if($Package){
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=[IO.Compression.ZipFile]::OpenRead([IO.Path]::GetFullPath($Package))
-    try{foreach($name in $models.Keys){if(-not $zip.GetEntry('Assets/Models/'+$name+'.dae')){throw "Packaged wildlife missing $name"}};if(-not $zip.GetEntry('Assets/Textures/WildlifePalette.png')){throw 'Packaged atlas missing'}}finally{$zip.Dispose()}
+    try{
+        foreach($name in @($models.Keys) + @($arthropods.Keys)){
+            if(-not $zip.GetEntry('Assets/Models/'+$name+'.dae')){throw "Packaged wildlife missing $name"}
+        }
+        foreach($entry in @('Assets/Textures/WildlifePalette.png','Assets/Textures/WildArthropods.png','Assets/Database/WildArthropods.xdb')){
+            if(-not $zip.GetEntry($entry)){throw "Packaged wildlife missing $entry"}
+        }
+    }finally{$zip.Dispose()}
 }
