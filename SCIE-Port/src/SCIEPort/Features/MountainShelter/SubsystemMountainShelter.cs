@@ -13,6 +13,12 @@ namespace SCIEPort.Features.MountainShelter
     public sealed partial class SubsystemMountainShelter : SubsystemBlockBehavior, IUpdateable
     {
         private const int MaxPending = 64;
+        private static readonly Vector2[] supportSamples =
+        {
+            new Vector2(.5f, .5f),
+            new Vector2(.2f, .2f), new Vector2(.8f, .2f),
+            new Vector2(.2f, .8f), new Vector2(.8f, .8f)
+        };
         private readonly Queue<Request> requests = new Queue<Request>();
         private readonly Queue<Site> dirtySites = new Queue<Site>();
         private readonly HashSet<Point3> dirtyRoots = new HashSet<Point3>();
@@ -50,7 +56,7 @@ namespace SCIEPort.Features.MountainShelter
         /// <inheritdoc/>
         public override int[] HandledBlocks => new[] { MountainShelterBlock.Index };
         /// <inheritdoc/>
-        public UpdateOrder UpdateOrder => UpdateOrder.Default;
+        public UpdateOrder UpdateOrder => UpdateOrder.Locomotion;
         private static bool Authority => CommonLib.WorkType != WorkType.Client;
 
         /// <inheritdoc/>
@@ -68,9 +74,14 @@ namespace SCIEPort.Features.MountainShelter
         {
             if (miner?.ComponentPlayer == null || Terrain.ReplaceLight(miner.ActiveBlockValue, 0) != MountainShelterBlock.ItemValue)
                 return false;
-            var hit = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Digging);
-            if (hit.HasValue && hit.Value.CellFace.Face == 4)
-                Submit(miner.ComponentPlayer, hit.Value.CellFace, hit.Value.Value, true);
+            var hit = miner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Interaction);
+            if (!hit.HasValue) return true;
+            TerrainRaycastResult target = hit.Value;
+            int contents = Terrain.ExtractContents(target.Value);
+            if (contents == MountainShelterBlock.Index || !BlocksManager.Blocks[contents].IsCollidable_(target.Value))
+                return false;
+            if (target.CellFace.Face != 5)
+                Submit(miner.ComponentPlayer, target.CellFace, target.Value, true);
             return true;
         }
 
@@ -85,9 +96,23 @@ namespace SCIEPort.Features.MountainShelter
 
         private void Submit(ComponentPlayer player, CellFace hit, int expected, bool place)
         {
+            if (CommonLib.WorkType != WorkType.Local && player.PlayerData?.IsMainPlayer != true)
+                return; // A remote user's native input is replayed alongside their authenticated request.
             var packet = new MountainShelterPackage { Point = hit.Point, Expected = Terrain.ReplaceLight(expected, hit.Face + 1), Place = place };
-            if (Authority) Enqueue(player, packet, null);
-            else if (ReferenceEquals(CommonLib.MainPlayer, player)) CommonLib.Net.QueuePackage(packet);
+            if (Authority)
+            {
+                Enqueue(player, packet, null);
+                return;
+            }
+            var net = CommonLib.Net;
+            if (net == null) return;
+            var inventory = player.ComponentMiner.Inventory;
+            if (place && inventory != null && player.LastActiveSlot != inventory.ActiveSlotIndex)
+            {
+                // The native player normally queues a newly selected slot on its next update.
+                net.QueuePackage(new ComponentInventoryPackage(inventory, inventory.ActiveSlotIndex));
+            }
+            net.QueuePackage(packet);
         }
 
         internal void Enqueue(ComponentPlayer player, MountainShelterPackage packet, Client client)
@@ -155,8 +180,8 @@ namespace SCIEPort.Features.MountainShelter
             Point3 point = packet.Point;
             Vector3 eye = player.ComponentCreatureModel.EyePosition;
             Vector3 offset = new Vector3(point);
+            if (packet.Place) return packet.Face != 5 && CanReachSupport(eye, point);
             if (!(Vector3.DistanceSquared(eye, offset + new Vector3(.5f)) <= 25f)) return false;
-            if (packet.Place) return Reaches(eye, offset + new Vector3(.5f, .99f, .5f), point, false, 4);
             int value = Value(point);
             if (Decode(value, out int part, out int rotation, out _, out _) && ShelterLayout.LampPart(part))
             {
@@ -167,6 +192,19 @@ namespace SCIEPort.Features.MountainShelter
             }
             foreach (BoundingBox box in BlocksManager.Blocks[MountainShelterBlock.Index].GetCustomInteractionBoxes(SubsystemTerrain, value))
                 if (Reaches(eye, offset + (box.Min + box.Max) * .5f, point, true)) return true;
+            return false;
+        }
+
+        private bool CanReachSupport(Vector3 eye, Point3 support)
+        {
+            if (!(eye.Y > support.Y + 1f) || !Supports(support)) return false;
+            // A tap near an edge can see enough of the top even if the center is obstructed.
+            foreach (Vector2 sample in supportSamples)
+            {
+                var top = new Vector3(support.X + sample.X, support.Y + .999f, support.Z + sample.Y);
+                if (Vector3.DistanceSquared(eye, top) <= 25f && Reaches(eye, top, support, false, 4))
+                    return true;
+            }
             return false;
         }
 
@@ -188,8 +226,14 @@ namespace SCIEPort.Features.MountainShelter
             var edits = new List<CellEdit>(ShelterLayout.CellCount);
             if (!PlanPlacement(player, site, edits))
             {
-                Message(player, "这里无法搭帐");
-                return;
+                // The tapped support can be either of the two front corners.
+                site.Root -= ShelterLayout.Offset(1, site.Rotation);
+                edits.Clear();
+                if (!PlanPlacement(player, site, edits))
+                {
+                    Message(player, "这里无法搭帐");
+                    return;
+                }
             }
             if (!Commit(edits, player.ComponentMiner)) return;
             int beforeCount = inventory.GetSlotCount(slot);

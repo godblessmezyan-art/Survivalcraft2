@@ -167,5 +167,21 @@ if ($block.GetDamage($inventory.GetSlotValue(0)) -ne 1 -or $inventory.GetSlotCou
 $saved = [TemplatesDatabase.ValuesDictionary]::new()
 $inventory.Save($saved, $null)
 if ($saved['Slots']['Slot0']['Contents'] -ne $inventory.GetSlotValue(0)) { throw 'Native save did not retain exact flashlight DATA.' }
+$firstPerson = [Game.ComponentFirstPersonModel]::new()
+$firstPerson.m_componentPlayer = $player
+$firstPerson.m_componentMiner = $player.ComponentMiner
+$player.ComponentCreatureModel = [Game.ComponentHumanModel]::new()
+$player.ComponentCreatureModel.m_eyeRotation = [Engine.Quaternion]::Identity
+$firstPerson.m_value = $inventory.GetSlotValue(0)
+for ($second = 2; $second -le 300; $second++) {
+    $runtime.Update(1)
+    $firstPerson.Update(0.05)
+    if ($firstPerson.m_swapAnimationTime -ne 0 -or $firstPerson.m_value -ne $inventory.GetSlotValue(0)) {
+        throw "Native first-person model played a swap animation when the battery changed at $second seconds."
+    }
+}
+if (!$block.IsSwapAnimationNeeded($nativeBlocks[0].BlockIndex, $full) -or $inventory.GetSlotCount(0) -ne 1) {
+    throw 'Normal item switches should still animate and an exhausted flashlight must remain in inventory.'
+}
 $runtime.Dispose()
-Write-Host 'Flashlight: native registration, three terrain shader pairs, request round-trip, 300 power states, crafting, replacement, slot authority and save passed.'
+Write-Host 'Flashlight: native registration, terrain shaders, packet, battery, crafting, slot authority, save and native first-person model passed.'

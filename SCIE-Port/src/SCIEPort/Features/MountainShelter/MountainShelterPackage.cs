@@ -43,7 +43,7 @@ namespace SCIEPort.Features.MountainShelter
         /// <inheritdoc/>
         public void Handle(ProjectNet project, NetNode node, bool isServer)
         {
-            if (!isServer || From == null || From.State < ClientState.ProjectLoaded)
+            if (!isServer || From?.SubsystemPlayers == null || From.State < ClientState.ProjectLoaded)
                 return;
             var player = From.PlayerData?.ComponentPlayer;
             if (player != null && ReferenceEquals(player.PlayerData.Client, From))

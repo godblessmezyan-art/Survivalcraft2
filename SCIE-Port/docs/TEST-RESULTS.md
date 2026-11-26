@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-26 · 1.13.1 手电筒与双人庇护帐
+
+- 根工程和 SCIE-Port 的 `Test-Environment.ps1` 均通过。用 `dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release --nologo -v:q -p:NoWarn=1591` 针对固定 Windows `Net_x25.01.17` 编译，0 警告、0 错误。
+- `Test-Flashlight.ps1` 调用原生 `ComponentFirstPersonModel.Update`。旧 DLL 在第 2 秒的电量更新触发换持物动画。修复版验证扣电到耗尽期间模型立即接收新值且无换持物动画，普通物品切换仍沿用原生动画，空电保留物品。
+- `Test-MountainShelter.ps1` 通过 1791 项。旧 DLL 无法在点击位置中心被挡、旁侧有合适占地的用例搭起帐篷。修复版经 `ComponentMiner.Use` 识别原生地面点击，选择合法占地。离线主机执行原生选槽包后处理搭帐，远端原生输入重放期间无额外搭建。持折叠帐仍可开合已展开的帐门。既有遮挡、跨区块、施工中断恢复、库存和睡眠用例通过。
+- 书柜注册、五分类及物品栏 396 项、钓鱼 2526 项、野生生物原生模型和数据库 157 项、墓室装饰原生导入均通过。云天书典通过 627 项核心和 36,142 项 Windows 固定目标检查。
+- Android 7723 实际触屏与真实多人房间 **待验证**。本次交付为 Release 编译与源码修复。
+
 ## 2026-11-26 · 1.13.0 苔背巨龟和云翼巨鳐
 
 - 根目录与 SCIE-Port 的 Test-Environment.ps1 使用 E:/SCNET/SCNETx25.01.17，通过固定环境和原生 ID 检查。执行 dotnet build SCIE-Port/src/SCIEPort/SCIEPort.csproj -c Release -p:SCNetGameDir=E:/SCNET/SCNETx25.01.17，0 警告、0 错误。

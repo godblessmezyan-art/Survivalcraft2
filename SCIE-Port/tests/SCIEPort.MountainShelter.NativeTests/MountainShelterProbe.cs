@@ -62,12 +62,19 @@ public static class MountainShelterProbe
         var data = Bare<PlayerData>();
         data.PlayerGUID = p.PlayerGuid;
         data.ComponentPlayer = p;
+        data.Level = 1f;
         data.m_stateMachine = new StateMachine();
         data.m_stateMachine.m_currentState = new StateMachine.State { Name = "Playing" };
         p.PlayerData = data;
         var inventory = new ComponentInventory { m_entity = entity };
         inventory.m_slots.Add(new ComponentInventoryBase.Slot());
         p.ComponentMiner = new ComponentMiner { m_entity = entity, ComponentPlayer = p, Inventory = inventory };
+        p.ComponentMiner.ComponentCreature = p;
+        p.ComponentMiner.m_subsystemGameInfo = info;
+        p.ComponentMiner.m_subsystemTerrain = terrain;
+        p.ComponentMiner.m_subsystemBodies = project.FindSubsystem<SubsystemBodies>(true);
+        p.ComponentMiner.m_subsystemMovingBlocks = new SubsystemMovingBlocks();
+        p.ComponentMiner.m_subsystemBlockBehaviors = terrain.m_subsystemBlockBehaviors;
         Put(entity, "m_components", new List<Component> { p, body, p.ComponentHealth, p.ComponentCreatureModel,
             p.ComponentSleep, p.ComponentVitalStats, p.ComponentMiner, inventory });
         project.FindSubsystem<SubsystemPlayers>(true).m_componentPlayers.Add(p);
@@ -245,6 +252,36 @@ public static class MountainShelterProbe
     private static int Cell(Terrain cells, Point3 point) { return cells.GetCellValue(point.X, point.Y, point.Z); }
     private static void Set(Terrain cells, Point3 point, int value) { cells.SetCellValueFast(point.X, point.Y, point.Z, value); }
 
+    private static Ray3 PlacementRay(ComponentPlayer player, Terrain cells, int x)
+    {
+        // Find a clear footprint with the clicked support under the front-right corner only.
+        for (int column = x - 1; column <= x + 1; column++) for (int z = 11; z <= 13; z++)
+            Set(cells, new Point3(column, 63, z), 3);
+        Set(cells, new Point3(x + 1, 64, 12), 3);
+        Set(cells, new Point3(x, 64, 10), 3);
+        var inventory = (ComponentInventory)player.ComponentMiner.Inventory;
+        inventory.SetSlotValue(0, new ComponentInventoryBase.Slot { Count = 1, Value = 947 });
+        Move(player, new Vector3(x - .5f, 64, 8.5f), 3);
+        Vector3 eye = player.ComponentCreatureModel.EyePosition;
+        var centerHit = player.ComponentMiner.m_subsystemTerrain.Raycast(eye, new Vector3(x + .5f, 63.999f, 12.5f), false, true, null);
+        Check(centerHit.HasValue && centerHit.Value.CellFace.Point.Equals(new Point3(x, 64, 10)),
+            "the original center-only ray is obstructed");
+        Vector3 target = new Vector3(x + .2f, 63.99f, 12.2f);
+        var ray = new Ray3(eye, Vector3.Normalize(target - eye));
+        var hit = player.ComponentMiner.Raycast<TerrainRaycastResult>(ray, RaycastMode.Interaction);
+        Check(hit.HasValue && hit.Value.CellFace.Point.Equals(new Point3(x, 63, 12)) && hit.Value.CellFace.Face == 4,
+            "the native touch ray can see a corner of the same support at x=" + x + " (hit " +
+            (hit.HasValue ? hit.Value.CellFace.Point.ToString() + " face " + hit.Value.CellFace.Face : "nothing") + ")");
+        return ray;
+    }
+
+    private static void CheckPlaced(ComponentPlayer player, Terrain cells, int x)
+    {
+        Check(Cell(cells, new Point3(x - 1, 64, 12)) == Terrain.MakeBlockValue(947, 0, 1) &&
+            Cell(cells, new Point3(x + 1, 64, 12)) == 3 && player.ComponentMiner.Inventory.GetSlotCount(0) == 0,
+            "ground tap uses the free two-by-two footprint alongside the clicked support, without overwriting the obstacle");
+    }
+
     private sealed class InterruptedWrite : SubsystemBlockBehavior
     {
         public override int[] HandledBlocks { get { return new[] { 947 }; } }
@@ -310,6 +347,8 @@ public static class MountainShelterProbe
                 Add(project, terrain);
                 Add(project, new SubsystemBodies());
                 Add(project, new SubsystemPlayers());
+                var inventories = new SubsystemInventories();
+                Add(project, inventories);
                 var info = new SubsystemGameInfo { WorldSettings = Bare<WorldSettings>() };
                 info.WorldSettings.DisableBlocks = string.Empty;
                 info.WorldSettings.GameMode = GameMode.Survival;
@@ -423,6 +462,7 @@ public static class MountainShelterProbe
                 tent.Update(.05f);
                 Check(shelter.GetEmittedLightAmount(Cell(cells, lamp)) == 12 && pending.Exists(p => p is SubsystemTerrainPackage),
                     "authenticated remote control changes the lamp and queues native terrain packets");
+                CommonLib.WorkType = WorkType.Local;
                 Move(left, new Vector3(15.5f,64.18f,8.5f), null);
                 Move(right, new Vector3(16.5f,64.18f,8.5f), null);
                 TapView(tent, left, terrain, lamp, new Vector3(15.02f,65.65f,8.52f), 1);
@@ -437,8 +477,10 @@ public static class MountainShelterProbe
                         received.ReadData(reader);
                     }
                 }
+                CommonLib.WorkType = WorkType.Server;
                 received.Handle(netProject, CommonLib.Net, true);
                 tent.Update(.05f);
+                CommonLib.WorkType = WorkType.Local;
                 Check(ViewOpen(cells, lampRight) && shelter.GetEmittedLightAmount(Cell(cells, lamp)) == 12,
                     "authenticated remote curtain tap survives serialization and preserves light state");
                 var roofLeft = new Point3(15,66,8);
@@ -500,6 +542,49 @@ public static class MountainShelterProbe
                 Move(right, new Vector3(17.5f,64,5.5f), 3);
                 Press(tent, left, cells, canopy);
                 Check(Cell(cells, root) == 0 && Cell(cells, leg) == 0 && bag.GetSlotCount(0) == 1, "empty recovery returns exactly one folded shelter");
+                info.WorldSettings.GameMode = GameMode.Survival;
+                Ray3 localRay = PlacementRay(left, cells, 10);
+                Check(left.ComponentMiner.Use(localRay), "native use accepts the local tap with a folded shelter");
+                tent.Update(.05f);
+                CheckPlaced(left, cells, 10);
+                bag.SetSlotValue(0, new ComponentInventoryBase.Slot { Count = 1, Value = 947 });
+                Move(left, new Vector3(9.5f, 64, 10.5f), 3);
+                Vector3 origin = left.ComponentCreatureModel.EyePosition;
+                var doorRay = new Ray3(origin, Vector3.Normalize(new Vector3(9.105f, 65.95f, 12.07f) - origin));
+                var door = left.ComponentMiner.Raycast<TerrainRaycastResult>(doorRay, RaycastMode.Interaction);
+                Check(door.HasValue && door.Value.CellFace.Point.Equals(new Point3(9, 65, 12)) &&
+                    !left.ComponentMiner.Use(doorRay) && left.ComponentMiner.Interact(door.Value),
+                    "holding another folded shelter lets a tap reach the deployed shelter's door");
+                tent.Update(.05f);
+                Check(Terrain.ExtractData(Cell(cells, new Point3(9, 64, 12))) == 5 && bag.GetSlotCount(0) == 1,
+                    "native interaction closes the chosen door and retains the folded item");
+
+                Ray3 remoteRay = PlacementRay(right, cells, 20);
+                var remoteInventory = (ComponentInventory)right.ComponentMiner.Inventory;
+                remoteInventory.m_slots.Add(new ComponentInventoryBase.Slot { Count = 1, Value = 3 });
+                Put(remoteInventory, "Id", inventories.ProduceInventoryId(remoteInventory));
+                right.PlayerData.SetMain();
+                right.LastActiveSlot = 1;
+                pending.Clear();
+                CommonLib.WorkType = WorkType.Client;
+                Check(right.ComponentMiner.Use(remoteRay), "native use accepts a client tap after changing shortcut slots");
+                Check(pending.Count == 2 && pending[0] is ComponentInventoryPackage && pending[1] is MountainShelterPackage &&
+                    Cell(cells, new Point3(19, 64, 12)) == 0, "the slot announcement precedes the placement request and the client does not write terrain");
+                var slotRequest = (ComponentInventoryPackage)pending[0];
+                var deployRequest = (MountainShelterPackage)pending[1];
+                deployRequest.From = client;
+                Put(right.PlayerData, "m_isMainPlayer", false);
+                CommonLib.WorkType = WorkType.Server;
+                remoteInventory.ActiveSlotIndex = 1;
+                slotRequest.From = client;
+                slotRequest.Handle(netProject, CommonLib.Net, true);
+                Check(remoteInventory.ActiveSlotIndex == 0, "native slot packet updates the host shortcut before deployment");
+                Check(right.ComponentMiner.Use(remoteRay), "the server consumes replayed native use");
+                tent.Update(.05f);
+                Check(Cell(cells, new Point3(19, 64, 12)) == 0, "native replay does not also enqueue a remote deployment");
+                deployRequest.Handle(netProject, CommonLib.Net, true);
+                tent.Update(.05f);
+                CheckPlaced(right, cells, 20);
             }
             Console.WriteLine("Mountain shelter native checks passed: " + checks);
         }

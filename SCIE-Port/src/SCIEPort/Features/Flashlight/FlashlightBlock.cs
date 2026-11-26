@@ -35,6 +35,10 @@ namespace SCIEPort.Features.Flashlight
         }
 
         public override int GetDamage(int value) => Spent(Terrain.ExtractData(value));
+        // The native first-person model asks the new block about every value change, including DATA.
+        public override bool IsSwapAnimationNeeded(int oldValue, int newValue)
+            => Terrain.ExtractContents(oldValue) != Index || Terrain.ExtractContents(newValue) != Index;
+
         // The native inventory bar reads durability. Striking or mining leaves electrical charge alone.
         public override int SetDamage(int value, int damage) => value;
         public override int GetDamageDestructionValue(int value) => value;
