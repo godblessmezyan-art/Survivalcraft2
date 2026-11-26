@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DatabaseObjects>
+  <Folder Name="FlashlightBehaviors" Guid="27e70426-2f66-4593-94ab-de47bdf42f45">
+    <SubsystemTemplate Name="FlashlightBehavior" Guid="39b595fa-f2df-4472-81cb-fbf1ecc7918b" InheritanceParent="fefb9590-4972-4893-b02a-76063611b745">
+      <Parameter Name="Class" Guid="88f8103a-64cb-4e1c-a68e-ddd125015282" Value="SCIEPort.Features.Flashlight.SubsystemFlashlight" Type="string" />
+    </SubsystemTemplate>
+  </Folder>
+  <ProjectTemplate Name="Project" Guid="85023bf8-1c90-4dd1-9442-e6c13691d078">
+    <MemberSubsystemTemplate Name="FlashlightBehavior" Guid="7571cd77-6afc-45fc-b5cb-5278d8e3b934" InheritanceParent="39b595fa-f2df-4472-81cb-fbf1ecc7918b" />
+  </ProjectTemplate>
+</DatabaseObjects>

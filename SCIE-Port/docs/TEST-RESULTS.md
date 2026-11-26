@@ -1,5 +1,13 @@
 # 测试结果
 
+## 2026-11-26 · 1.11.0 手电筒
+
+- 固定 Windows `Net_x25.01.17` 的根工程与 SCIE-Port 两套 `Test-Environment.ps1` 均通过。游戏 SHA-256 为 `3D14B8D698546F13E66FBF49DBCFAC45A2CDDFC97709D738050DF2E1CC74A7AD`，Engine SHA-256 为 `98F2035B98129259567E39ECAC46638226B46A842D3062D83AA934716E770694`。从主线与手电筒改动的独立快照执行 `dotnet build <SCIEPort.csproj> -c Release --nologo -v:q -p:NoWarn=1591`，0 警告、0 错误。
+- `Test-Flashlight.ps1 -GameDir E:/SCNET/SCNETx25.01.17 -AssemblyPath <SCIEPort.dll>` 通过物品注册、300 档电量、熄灭、暂停、存档值、原生合成、原生槽位读写、客户端只读、请求包往返及三个着色器补丁检查。`Test-Database.ps1` 通过 XDB 继承和合并检查。
+- 固定目标 Engine 的独立 GPU 场景编译三对原生地形着色器，调用实际补丁与绘制方法检查光束中心变亮、纹理颜色、边缘、距离和深度遮挡。手电筒模型及开关时的灯头像素均通过读回检查。
+- 云天书典通过 627 项核心和 30,328 项固定目标检查。物品栏 387 项、书柜注册、钓鱼 2,526 项及 API 检查通过。墓室装饰 20 个模型和图集经目标引擎导入，886 与 947 独立注册。
+- Android 7723 触屏、多人实际房间和长时间帧耗 **待验证**。本次验证针对 Release 编译输出。
+
 ## 2026-11-24 · 1.10.5 法老主墓室
 
 - `python SCIE-Port/scripts/New-PyramidDecorAssets.py` 生成 20 个模型和 512×512 墓室图集。静态几何与 `Test-PyramidDecor.ps1` 原生导入通过，合计 16,783 三角形，检查了各部件边界、UV、绕序和原点。

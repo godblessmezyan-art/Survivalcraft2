@@ -377,6 +377,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Pyramid, Tide Palace or volcano target terrain
 if ($LASTEXITCODE -ne 0) { throw 'Pyramid decor assets or block registration failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-SaltCrafting.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Salt crafting target block checks failed.' }
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-Flashlight.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
+if ($LASTEXITCODE -ne 0) { throw 'Flashlight target tests failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-HomeNative.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
 if ($LASTEXITCODE -ne 0) { throw 'Home target-native legacy storage and footprint checks failed.' }
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-MountainShelter.ps1') -GameDir $GameDir -AssemblyPath (Join-Path $build 'SCIEPort.dll')
@@ -922,6 +924,8 @@ try {
         'Assets/Database/TidePalace.xdb',
         'Assets/Database/Pyramid.xdb',
         'Assets/Database/MountainShelter.xdb',
+        'Assets/Database/Flashlight.xdb',
+        'Assets/Blocks/Flashlight.csv',
         'Assets/Database/PyramidGuardians.xdb',
         'Assets/Database/Scenery.xdb',
         'Assets/Models/PyramidMummy.dae',

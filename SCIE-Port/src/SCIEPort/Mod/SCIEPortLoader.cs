@@ -20,6 +20,7 @@ using SCIEPort.Features.Stormhammer;
 using SCIEPort.Features.Gungnir;
 using SCIEPort.Features.FourSaints;
 using SCIEPort.Features.Fishing;
+using SCIEPort.Features.Flashlight;
 using SCIEPort.Features.TidePalace;
 using SCIEPort.Features.Pyramid;
 using SCIEPort.Features.MountainShelter;
@@ -58,6 +59,7 @@ namespace SCIEPort.Mod
                 PackageManager.RegisterPackage(new TidePalacePackage());
                 PackageManager.RegisterPackage(new PyramidPackage());
                 PackageManager.RegisterPackage(new MountainShelterPackage());
+                PackageManager.RegisterPackage(new FlashlightPackage());
                 s_networkPackageRegistered = true;
             }
 
